@@ -22,7 +22,9 @@ synopsis/
 │   │   └── (ugyanígy)
 │   ├── 03-valoszinusegi-valtozok/
 │   │   └── (ugyanígy)
-│   └── 04-nevezetes-eloszlasok/
+│   ├── 04-nevezetes-eloszlasok/
+│   │   └── (ugyanígy)
+│   └── 05-nagy-szamok-torvenye/
 │       └── (ugyanígy)
 └── matematikai-statisztika/
     ├── index.html                  ← a témakör fejezetlistája
@@ -38,7 +40,7 @@ Helyi megtekintés: `python3 -m http.server` a `synopsis` mappában, majd <http:
 
 ## Új fejezet hozzáadása
 
-1. Hozz létre egy új mappát, pl. `valoszinusegszamitas/05-nagy-szamok-torvenye/`, az 1. fejezet mintájára.
+1. Hozz létre egy új mappát, pl. `matematikai-statisztika/01-adatok-populacio-minta/`, az 1. fejezet mintájára.
 2. Szemléltetés: `<div class="widget" data-widget="név"></div>` + a `widgets.js`-ben `W["név"] = root => {...}`.
 3. Kvíz: `<div class="quiz" data-quiz="azonosító"></div>` + a `quizzes.js`-ben a kérdések
    (típusok: `single`, `multi`, `numeric`, `match`, `set` – lásd `assets/quiz.js`).
