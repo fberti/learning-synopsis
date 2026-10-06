@@ -14,10 +14,12 @@ synopsis/
 │   └── quiz.js                     ← általános kvízmotor
 └── valoszinusegszamitas/
     ├── index.html                  ← a témakör fejezetlistája
-    └── 01-esemenyek-es-valoszinuseg/
-        ├── index.html              ← a fejezet szövege
-        ├── widgets.js              ← interaktív szemléltetések
-        └── quizzes.js              ← a fejezet kvízei
+    ├── 01-esemenyek-es-valoszinuseg/
+    │   ├── index.html              ← a fejezet szövege
+    │   ├── widgets.js              ← interaktív szemléltetések
+    │   └── quizzes.js              ← a fejezet kvízei
+    └── 02-felteteles-valoszinuseg-es-fuggetlenseg/
+        └── (ugyanígy)
 ```
 
 ## Közzététel GitHub Pages-en
@@ -29,7 +31,7 @@ Helyi megtekintés: `python3 -m http.server` a `synopsis` mappában, majd <http:
 
 ## Új fejezet hozzáadása
 
-1. Hozz létre egy új mappát, pl. `valoszinusegszamitas/02-feltételes-valoszinuseg/`, az 1. fejezet mintájára.
+1. Hozz létre egy új mappát, pl. `valoszinusegszamitas/03-valoszinusegi-valtozok/`, az 1. fejezet mintájára.
 2. Szemléltetés: `<div class="widget" data-widget="név"></div>` + a `widgets.js`-ben `W["név"] = root => {...}`.
 3. Kvíz: `<div class="quiz" data-quiz="azonosító"></div>` + a `quizzes.js`-ben a kérdések
    (típusok: `single`, `multi`, `numeric`, `match`, `set` – lásd `assets/quiz.js`).
