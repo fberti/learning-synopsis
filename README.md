@@ -12,14 +12,17 @@ synopsis/
 │   ├── style.css                   ← közös stílus (világos/sötét téma)
 │   ├── common.js                   ← téma, KaTeX, tartalomjegyzék, haladás mentése
 │   └── quiz.js                     ← általános kvízmotor
-└── valoszinusegszamitas/
+├── valoszinusegszamitas/
+│   ├── index.html                  ← a témakör fejezetlistája
+│   ├── 01-esemenyek-es-valoszinuseg/
+│   │   ├── index.html              ← a fejezet szövege
+│   │   ├── widgets.js              ← interaktív szemléltetések
+│   │   └── quizzes.js              ← a fejezet kvízei
+│   └── 02-felteteles-valoszinuseg-es-fuggetlenseg/
+│       └── (ugyanígy)
+└── matematikai-statisztika/
     ├── index.html                  ← a témakör fejezetlistája
-    ├── 01-esemenyek-es-valoszinuseg/
-    │   ├── index.html              ← a fejezet szövege
-    │   ├── widgets.js              ← interaktív szemléltetések
-    │   └── quizzes.js              ← a fejezet kvízei
-    └── 02-felteteles-valoszinuseg-es-fuggetlenseg/
-        └── (ugyanígy)
+    └── TERV.md                     ← a 14 fejezet részletes kidolgozási terve
 ```
 
 ## Közzététel GitHub Pages-en
