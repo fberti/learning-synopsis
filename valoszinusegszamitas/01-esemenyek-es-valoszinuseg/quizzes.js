@@ -168,7 +168,23 @@
           type: "numeric",
           q: R`$P(A+B) = 0{,}8$, $P(A) = 0{,}5$, $P(B) = 0{,}6$. Mennyi $P(AB)$?`,
           answer: 0.3,
-          explain: R`Az összeadási tételből: $P(AB) = P(A)+P(B)-P(A+B) = 0{,}5+0{,}6-0{,}8 = 0{,}3$.`
+          explain: R`Az összeadási tételből: $P(AB) = P(A)+P(B)-P(A+B) = 0{,}5+0{,}6-0{,}8 = 0{,}3$.
+            <details><summary>💡 Példa az érthetőség kedvéért</summary>
+              <p>Egy cégnél <b>100 ember</b> dolgozik. $A$ = „beszél angolul” (<b>50</b> fő), $B$ = „beszél németül” (<b>60</b> fő),
+                és legalább az egyik nyelvet <b>80</b> fő beszéli, vagyis $P(A+B) = 0{,}8$. Hányan beszélik <em>mindkettőt</em>?</p>
+              <p>A két névsort összeadva $50 + 60 = 110$ nevet kapunk, pedig csak 80 különböző ember van.
+                A többlet azoktól jön, akik <b>mindkét</b> névsorban szerepelnek, őket kétszer számoltuk:
+                $110 - 80 = 30$ fő, tehát $P(AB) = 0{,}3$.</p>
+              <table style="margin:.4rem 0">
+                <tr><td>csak angolul</td><td>$50 - 30 = 20$</td></tr>
+                <tr><td>angolul <b>és</b> németül</td><td>$30$</td></tr>
+                <tr><td>csak németül</td><td>$60 - 30 = 30$</td></tr>
+                <tr><td><b>legalább az egyiken</b></td><td>$20 + 30 + 30 = 80$ ✔</td></tr>
+                <tr><td>egyiken sem</td><td>$100 - 80 = 20$</td></tr>
+              </table>
+              <p>Az összeadási tétel $-P(AB)$ tagja éppen ezt a kétszer számolt közös részt vonja le.
+                Gyors ellenőrzés: már $P(A) + P(B) = 1{,}1 > 1$ is mutatja, hogy a két eseménynek <em>muszáj</em> átfednie.</p>
+            </details>`
         },
         {
           type: "numeric",
