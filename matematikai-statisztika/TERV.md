@@ -114,7 +114,7 @@ A 4. és a 14. fejezet kihagyható anélkül, hogy a többi érthetetlenné vál
 - `confounder` – szimulált adatok: X és Y korrelál, mert Z mindkettőt befolyásolja; Z szerinti színezés be/ki.
 
 ### Kvízek
-`ms1-11` (statisztika fogalma), `ms1-13` (skálák), `ms1-14` (mintavétel), `ms1-15` (torzítások), `ms1-16` (kísérlet vs. megfigyelés), `ms1-final`.
+`ms1-11` (statisztika fogalma), `ms1-12` (sokaság, minta, paraméter), `ms1-13` (skálák), `ms1-14` (mintavétel), `ms1-15` (torzítások), `ms1-16` (kísérlet vs. megfigyelés), `ms1-final`.
 
 ### Csapdák
 - „Nagy minta = reprezentatív.” – nem: a torzítás nem csökken az elemszámmal.

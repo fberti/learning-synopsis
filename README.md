@@ -29,7 +29,8 @@ synopsis/
 │       └── (ugyanígy)
 ├── matematikai-statisztika/
 │   ├── index.html                  ← a témakör fejezetlistája
-│   └── TERV.md                     ← a 14 fejezet részletes kidolgozási terve
+│   ├── TERV.md                     ← a 14 fejezet részletes kidolgozási terve
+│   └── 01-adatok-populacio-minta/  ← index.html, widgets.js, quizzes.js
 └── analizis/
     ├── index.html                  ← a témakör fejezetlistája
     ├── TERV.md                     ← a 11 fejezet részletes kidolgozási terve
@@ -56,7 +57,7 @@ Matematika: KaTeX, `$...$` (sorközi) és `$$...$$` (kiemelt) jelöléssel.
 
 ## Tananyagírási útmutató
 
-A részletes útmutató a [`CLAUDE.md`](CLAUDE.md) fájlban van (ezt az AI-asszisztens automatikusan beolvassa).
+A részletes útmutató a [`CLAUDE.md`](CLAUDE.md) és vele azonos tartalommal az [`AGENTS.md`](AGENTS.md) fájlban van (ezeket az AI-asszisztensek automatikusan beolvassák).
 Mintapélda: `valoszinusegszamitas/01-esemenyek-es-valoszinuseg/` – **1.4.2 Kombinatorika** szakasz.
 Röviden:
 
@@ -65,7 +66,7 @@ Röviden:
 2. Lépések az egyszerűtől a bonyolultig; minden új fogalom az előző korlátjából nő ki,
    az előismeret (jelölés, technika) külön lépés.
 3. Minden lépésen belül: kis, kézzel felsorolható eset → szabály / képlet „miért?”-tel →
-   2–3 egylépéses kidolgozott példa → buktató-doboz → kb. 5 gyakorló feladat lenyíló, részletes megoldással.
+   2–3 egylépéses kidolgozott példa → buktató-doboz → kb. 5 gyakorló feladat csukott lenyíló mögött, feladatonként lenyíló, részletes megoldással.
 4. Alkalmazás külön részben, az összes eszköz után.
 5. Összefoglalás + döntési táblázat → ellenőrző kvíz.
 
@@ -78,8 +79,11 @@ Röviden:
 - Magyar terminológia; eltérő angol elnevezésnél tip-doboz a megfeleléssel.
 - Minden számeredményt Pythonnal ellenőrizni.
 
+**Lenyílók**
+- Gyakorló blokkok és kvízek mindig csukott lenyíló mögött (`details.box.practice`, illetve a kvízmotor); a kidolgozott példák maradhatnak nyitva.
+
 **Kvízek**
-- Mindig lenyílóban (a motor intézi).
+- Mindig lenyíló mögött, alapból csukva – kivétel nélkül (a motor intézi; kvízt csak `data-quiz` + `quizzes.js` formában adj hozzá).
 - Minden kérdésnek van `hint`-je (ötlet a megoldáshoz, a választ nem árulja el) és `explain`-je.
 - Gépelés nélkül megoldható: `single`, `multi`, `match` vagy `set` – ami a kérdéshez illik.
 - A rossz válaszok kézzel írva, tipikus hibákból.

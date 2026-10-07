@@ -1,3 +1,6 @@
+<!-- Az AGENTS.md a CLAUDE.md tartalmát tükrözi (Codex, Cursor és más ágensek ezt olvassák).
+     Ha az egyiket módosítod, a másikat is frissítsd! -->
+
 # Synopsis – tananyagírási útmutató
 
 Ez a mappa egy interaktív, statikus tanulási oldal (lásd `README.md`: szerkezet, közzététel, új fejezet hozzáadása).
