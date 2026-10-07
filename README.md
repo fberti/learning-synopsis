@@ -11,7 +11,8 @@ synopsis/
 ├── assets/
 │   ├── style.css                   ← közös stílus (világos/sötét téma)
 │   ├── common.js                   ← téma, KaTeX, tartalomjegyzék, haladás mentése
-│   └── quiz.js                     ← általános kvízmotor
+│   ├── quiz.js                     ← általános kvízmotor
+│   └── calc.js                     ← analízis: képletértelmező (eval nélkül) és függvényrajzoló
 ├── valoszinusegszamitas/
 │   ├── index.html                  ← a témakör fejezetlistája
 │   ├── 01-esemenyek-es-valoszinuseg/
@@ -31,7 +32,8 @@ synopsis/
 │   └── TERV.md                     ← a 14 fejezet részletes kidolgozási terve
 └── analizis/
     ├── index.html                  ← a témakör fejezetlistája
-    └── TERV.md                     ← a 11 fejezet részletes kidolgozási terve
+    ├── TERV.md                     ← a 11 fejezet részletes kidolgozási terve
+    └── 01-fuggvenyek-es-modellek/  ← index.html, widgets.js (a calc.js-re épül), quizzes.js
 ```
 
 ## Közzététel GitHub Pages-en
