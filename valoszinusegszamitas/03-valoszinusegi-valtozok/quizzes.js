@@ -36,21 +36,24 @@
           explain: "Diszkrét: megszámlálható (véges vagy „1, 2, 3, …” módon felsorolható) sok értéke van. Folytonos: egy intervallum bármely értékét felveheti."
         },
         {
-          type: "numeric",
+          type: "single", shuffle: true,
           q: R`Két kockával dobunk, $X = |a - b|$ (a két szám eltérése). Mennyi $P(X = 0)$?`,
-          answer: 1 / 6,
+          options: [R`$\tfrac{1}{6} \approx 0{,}167$`, R`$\tfrac{1}{36} \approx 0{,}028$`, R`$\tfrac{2}{7} \approx 0{,}286$`, R`$\tfrac{5}{18} \approx 0{,}278$`],
+          answer: 0,
           explain: R`$X = 0$ pontosan a dupláknál: 6 eset a 36-ból, $P = \tfrac16$.`
         },
         {
-          type: "numeric",
+          type: "single", shuffle: true,
           q: R`Egy $X$ változó az 1, 2, 3, 4 értékeket rendre 0,1; 0,3; $p$; 0,2 valószínűséggel veszi fel. Mennyi $p$?`,
-          answer: 0.4,
+          options: ["$0{,}4$", "$0{,}6$", "$0{,}25$", "$0{,}2$"],
+          answer: 0,
           explain: R`A valószínűségek összege 1: $p = 1 - 0{,}1 - 0{,}3 - 0{,}2 = 0{,}4$.`
         },
         {
-          type: "numeric",
+          type: "single", shuffle: true,
           q: "Egy urnában 2 piros és 3 fehér golyó van. Visszatevés nélkül kihúzunk kettőt, X a piros golyók száma. Mennyi P(X = 1)?",
-          answer: 0.6,
+          options: ["$0{,}6$", "$0{,}48$", "$0{,}3$", "$0{,}4$"],
+          answer: 0,
           explain: R`$P(X = 1) = \dfrac{\binom21\binom31}{\binom52} = \dfrac{6}{10} = 0{,}6$.`
         }
       ]
@@ -61,9 +64,10 @@
       title: "Kvíz – 3.3 Várható érték",
       questions: [
         {
-          type: "numeric",
+          type: "single", shuffle: true,
           q: "X a 0, 1, 2 értékeket rendre 0,5; 0,3; 0,2 valószínűséggel veszi fel. Mennyi E(X)?",
-          answer: 0.7,
+          options: ["$0{,}7$", "$1$", "$1{,}1$", "$0{,}5$"],
+          answer: 0,
           explain: R`$E(X) = 0\cdot0{,}5 + 1\cdot0{,}3 + 2\cdot0{,}2 = 0{,}7$.`
         },
         {
@@ -78,21 +82,24 @@
           explain: "A várható érték a hosszú távú átlag. A 3,5-öt egyetlen dobás sem adja ki, és általában nem is a leggyakoribb érték."
         },
         {
-          type: "numeric",
+          type: "single", shuffle: true,
           q: "500 sorsjegyet adnak el 100 Ft-ért. Egy 20 000 Ft-os és két 5000 Ft-os nyeremény van. Mennyi egy jegy várható nettó nyeresége (forintban)?",
-          answer: -40, tol: 0.01, unit: "Ft", placeholder: "pl. -25",
+          options: ["$-40$ Ft", "$60$ Ft", "$-50$ Ft", "$40$ Ft"],
+          answer: 0,
           explain: R`A nyeremények várható értéke $\tfrac{20\,000 + 2\cdot5000}{500} = 60$ Ft, a jegy ára 100 Ft: $E = 60 - 100 = -40$ Ft.`
         },
         {
-          type: "numeric",
+          type: "single", shuffle: true,
           q: R`$E(X) = 4$. Mennyi $E(3X + 2)$?`,
-          answer: 14,
+          options: ["$14$", "$12$", "$38$", "$18$"],
+          answer: 0,
           explain: R`A várható érték lineáris: $E(3X + 2) = 3E(X) + 2 = 14$.`
         },
         {
-          type: "numeric",
+          type: "single", shuffle: true,
           q: "Ruletten (37 mező: 18 piros, 18 fekete, 1 zöld nulla) 1000 Ft-ot teszünk a pirosra. Ha nyerünk, +1000 Ft, különben −1000 Ft. Mennyi a várható nyereség?",
-          answer: -1000 / 37, tol: 0.05, unit: "Ft",
+          options: ["$-27{,}03$ Ft", "$0$ Ft", "$486{,}49$ Ft", "$-513{,}51$ Ft"],
+          answer: 0,
           explain: R`$E = 1000\cdot\tfrac{18}{37} - 1000\cdot\tfrac{19}{37} = -\tfrac{1000}{37} \approx -27{,}03$ Ft. A zöld nulla a kaszinó „adója”: 2,7%.`
         },
         {
@@ -114,21 +121,24 @@
       title: "Kvíz – 3.4 Szórásnégyzet és szórás",
       questions: [
         {
-          type: "numeric",
+          type: "single", shuffle: true,
           q: R`X a 0, 1, 2 értékeket rendre 0,5; 0,3; 0,2 valószínűséggel veszi fel ($E(X) = 0{,}7$). Mennyi $D^2(X)$?`,
-          answer: 0.61,
+          options: ["$0{,}61$", "$1{,}1$", "$0{,}4$", "$0{,}78$"],
+          answer: 0,
           explain: R`$E(X^2) = 0 + 0{,}3 + 4\cdot0{,}2 = 1{,}1$, így $D^2(X) = 1{,}1 - 0{,}7^2 = 0{,}61$.`
         },
         {
-          type: "numeric",
+          type: "single", shuffle: true,
           q: R`$D(X) = 3$. Mennyi $D(-2X + 5)$?`,
-          answer: 6,
+          options: ["$6$", "$-6$", "$12$", "$-1$"],
+          answer: 0,
           explain: R`$D^2(aX + b) = a^2 D^2(X)$, így $D(aX+b) = |a|\,D(X) = 2\cdot 3 = 6$. Az eltolás nem változtat a szóráson, és a szórás sosem negatív.`
         },
         {
-          type: "numeric",
+          type: "single", shuffle: true,
           q: "Mennyi egy szabályos kockadobás szórásnégyzete?",
-          answer: 35 / 12,
+          options: [R`$\tfrac{35}{12} \approx 2{,}917$`, R`$\tfrac{91}{6} \approx 15{,}167$`, R`$\tfrac{35}{3} \approx 11{,}667$`, R`$\tfrac{7}{2} = 3{,}5$`],
+          answer: 0,
           explain: R`$E(X^2) = \tfrac{1+4+9+16+25+36}{6} = \tfrac{91}{6}$, így $D^2(X) = \tfrac{91}{6} - 3{,}5^2 = \tfrac{35}{12} \approx 2{,}917$.`
         },
         {
@@ -158,21 +168,24 @@
       title: "Kvíz – 3.5 Eloszlásfüggvény",
       questions: [
         {
-          type: "numeric",
+          type: "single", shuffle: true,
           q: R`Kockadobás. Mennyi $F(3{,}5) = P(X \lt 3{,}5)$?`,
-          answer: 0.5,
+          options: [R`$\tfrac{1}{2} = 0{,}5$`, R`$\tfrac{2}{3} \approx 0{,}667$`, R`$\tfrac{1}{3} \approx 0{,}333$`, R`$\tfrac{7}{12} \approx 0{,}583$`],
+          answer: 0,
           explain: R`$X \lt 3{,}5$ az 1, 2, 3 dobásoknál: $\tfrac36 = \tfrac12$.`
         },
         {
-          type: "numeric",
+          type: "single", shuffle: true,
           q: R`Kockadobás, Obádovics jelölésével: $F(x) = P(X \lt x)$. Mennyi $F(3)$?`,
-          answer: 1 / 3,
+          options: [R`$\tfrac{1}{3} \approx 0{,}333$`, R`$\tfrac{1}{2} = 0{,}5$`, R`$\tfrac{1}{6} \approx 0{,}167$`, R`$\tfrac{2}{3} \approx 0{,}667$`],
+          answer: 0,
           explain: R`$P(X \lt 3) = P(X = 1) + P(X = 2) = \tfrac13$ – a 3-as itt még <em>nem</em> számít bele. (A $P(X \le x)$ definícióval $\tfrac12$ lenne.)`
         },
         {
-          type: "numeric",
+          type: "single", shuffle: true,
           q: R`$F(2) = 0{,}3$ és $F(5) = 0{,}8$. Mennyi $P(2 \le X \lt 5)$?`,
-          answer: 0.5,
+          options: ["$0{,}5$", "$0{,}24$", "$0{,}7$", "$0{,}2$"],
+          answer: 0,
           explain: R`$P(a \le X \lt b) = F(b) - F(a) = 0{,}8 - 0{,}3 = 0{,}5$.`
         },
         {
@@ -196,15 +209,17 @@
       title: "Kvíz – 3.6 Folytonos valószínűségi változó",
       questions: [
         {
-          type: "numeric",
+          type: "single", shuffle: true,
           q: R`Az $f(x) = c\,x$ ($0 \le x \le 2$, máshol 0) sűrűségfüggvény. Mennyi $c$?`,
-          answer: 0.5,
+          options: ["$0{,}5$", "$2$", "$0{,}25$", "$1$"],
+          answer: 0,
           explain: R`$\int_0^2 c\,x\,dx = 2c = 1$, tehát $c = \tfrac12$.`
         },
         {
-          type: "numeric",
+          type: "single", shuffle: true,
           q: "Egy izzó élettartama egyenletes eloszlású a [0; 1000] órán. Mi a valószínűsége, hogy 200 és 450 óra között ég ki?",
-          answer: 0.25,
+          options: ["$0{,}25$", "$0{,}45$", "$0{,}65$", "$0{,}55$"],
+          answer: 0,
           explain: R`$F(450) - F(200) = \tfrac{450 - 200}{1000} = 0{,}25$.`
         },
         {
@@ -220,15 +235,17 @@
           explain: R`Pl. az $f(x) = 2$ a $[0; \tfrac12]$-en érvényes sűrűségfüggvény. A sűrűség „valószínűség egységnyi hosszra”: $P(x \lt X \lt x + \Delta x) \approx f(x)\,\Delta x$.`
         },
         {
-          type: "numeric",
+          type: "single", shuffle: true,
           q: R`$f(x) = 2x$ a $[0; 1]$-en. Mennyi $P(X \gt 0{,}5)$?`,
-          answer: 0.75,
+          options: ["$0{,}75$", "$0{,}25$", "$0{,}5$", "$1$"],
+          answer: 0,
           explain: R`$F(x) = x^2$, így $P(X \gt 0{,}5) = 1 - 0{,}25 = 0{,}75$.`
         },
         {
-          type: "numeric",
+          type: "single", shuffle: true,
           q: R`$f(x) = \tfrac38 x^2$ a $[0; 2]$-n. Mennyi $E(X)$?`,
-          answer: 1.5,
+          options: ["$1{,}5$", "$1$", "$2{,}4$", "$1{,}59$"],
+          answer: 0,
           explain: R`$E(X) = \int_0^2 x\cdot\tfrac38x^2\,dx = \tfrac38\cdot\tfrac{2^4}{4} = 1{,}5$.`
         }
       ]
@@ -245,21 +262,24 @@
           explain: "A kevés, nagyon nagy jövedelem felhúzza az átlagot, a mediánt alig mozdítja: jobbra ferde eloszlásnál tipikusan módusz < medián < átlag."
         },
         {
-          type: "numeric",
-          q: R`$F(x) = \tfrac{x^3}{8}$ a $[0; 2]$-n. Mennyi a medián? (3 tizedesjegy)`,
-          answer: Math.cbrt(4), tol: 0.002,
+          type: "single", shuffle: true,
+          q: R`$F(x) = \tfrac{x^3}{8}$ a $[0; 2]$-n. Mennyi a medián?`,
+          options: ["$1{,}587$", "$1{,}500$", "$1{,}260$", "$1{,}000$"],
+          answer: 0,
           explain: R`$\tfrac{x^3}{8} = \tfrac12 \Rightarrow x = \sqrt[3]{4} \approx 1{,}587$.`
         },
         {
-          type: "numeric",
+          type: "single", shuffle: true,
           q: "Egy izzó élettartama egyenletes a [0; 1000] órán. Mennyi a felső kvartilis?",
-          answer: 750, tol: 0.5, unit: "óra",
+          options: ["$750$ óra", "$250$ óra", "$500$ óra", "$1000$ óra"],
+          answer: 0,
           explain: R`$F(x) = \tfrac{x}{1000} = 0{,}75 \Rightarrow x = 750$.`
         },
         {
-          type: "numeric",
+          type: "single", shuffle: true,
           q: R`X a 0, 1, 2 értékeket rendre 0,5; 0,3; 0,2 valószínűséggel veszi fel. Mennyi a második momentum, $E(X^2)$?`,
-          answer: 1.1,
+          options: ["$1{,}1$", "$0{,}49$", "$0{,}61$", "$0{,}7$"],
+          answer: 0,
           explain: R`$0^2\cdot0{,}5 + 1^2\cdot0{,}3 + 2^2\cdot0{,}2 = 1{,}1$.`
         },
         {
@@ -293,15 +313,17 @@
           explain: R`A függetlenségből következik a korrelálatlanság, fordítva nem: pl. $X \in \{-1, 0, 1\}$ egyenletes és $Y = X^2$ esetén $\operatorname{Cov} = 0$, pedig $Y$-t $X$ teljesen meghatározza.`
         },
         {
-          type: "numeric",
+          type: "single", shuffle: true,
           q: R`$X$ és $Y$ függetlenek, $D^2(X) = 4$, $D^2(Y) = 9$. Mennyi $D^2(X - Y)$?`,
-          answer: 13,
+          options: ["$13$", "$5$", "$1$", "$25$"],
+          answer: 0,
           explain: R`$D^2(X - Y) = D^2(X) + (-1)^2 D^2(Y) = 13$. A különbség szórásnégyzete is <em>összeadódik</em>, nem kivonódik!`
         },
         {
-          type: "numeric",
+          type: "single", shuffle: true,
           q: R`$\operatorname{Cov}(X, Y) = 3$, $D(X) = 2$, $D(Y) = 4$. Mennyi a korreláció?`,
-          answer: 0.375,
+          options: ["$0{,}375$", "$0{,}5$", "$0{,}047$", "$0{,}75$"],
+          answer: 0,
           explain: R`$R = \tfrac{3}{2\cdot4} = 0{,}375$.`
         },
         {
@@ -316,9 +338,10 @@
           explain: R`$|R| = 1$ pontosan a lineáris függvénykapcsolatnál; az előjel a meredekség előjele.`
         },
         {
-          type: "numeric",
+          type: "single", shuffle: true,
           q: "Négy független kockadobás átlagának mennyi a szórásnégyzete? (Egy dobásé 35/12.)",
-          answer: 35 / 48,
+          options: [R`$\tfrac{35}{48} \approx 0{,}729$`, R`$\tfrac{35}{12} \approx 2{,}917$`, R`$\tfrac{35}{192} \approx 0{,}182$`, R`$\tfrac{35}{24} \approx 1{,}458$`],
+          answer: 0,
           explain: R`$D^2\!\left(\tfrac{X_1 + \dots + X_4}{4}\right) = \tfrac{1}{16}\cdot 4\cdot\tfrac{35}{12} = \tfrac{35}{48} \approx 0{,}729$ – negyedannyi, a szórás pedig fele akkora.`
         }
       ]
@@ -329,27 +352,31 @@
       title: "Fejezetzáró teszt – 3. fejezet",
       questions: [
         {
-          type: "numeric",
+          type: "single", shuffle: true,
           q: "Három érmét dobunk fel, X a fejek száma. Mennyi E(X)?",
-          answer: 1.5,
+          options: ["$1{,}5$", "$0{,}875$", "$0{,}5$", "$3$"],
+          answer: 0,
           explain: R`$E(X) = 0\cdot\tfrac18 + 1\cdot\tfrac38 + 2\cdot\tfrac38 + 3\cdot\tfrac18 = 1{,}5$.`
         },
         {
-          type: "numeric",
+          type: "single", shuffle: true,
           q: "Két kockával dobunk, X a kisebbik szám. Mennyi P(X = 2)?",
-          answer: 0.25,
+          options: [R`$\tfrac{1}{4} = 0{,}25$`, R`$\tfrac{2}{9} \approx 0{,}222$`, R`$\tfrac{11}{36} \approx 0{,}306$`, R`$\tfrac{5}{36} \approx 0{,}139$`],
+          answer: 0,
           explain: R`A kisebbik 2: $(2,2)$, valamint $(2, b)$ és $(a, 2)$ $a, b \in \{3,\dots,6\}$ – összesen $1 + 4 + 4 = 9$ eset, $\tfrac{9}{36} = 0{,}25$.`
         },
         {
-          type: "numeric",
+          type: "single", shuffle: true,
           q: R`$E(X) = 2$ és $E(X^2) = 7$. Mennyi $D^2(X)$?`,
-          answer: 3,
+          options: ["$3$", "$5$", "$11$", "$45$"],
+          answer: 0,
           explain: R`$D^2(X) = E(X^2) - E(X)^2 = 7 - 4 = 3$.`
         },
         {
-          type: "numeric",
+          type: "single", shuffle: true,
           q: R`(V.3.7) Az $f(x) = \tfrac16x + b$ ($0 \le x \le 3$, máshol 0) sűrűségfüggvény. Mennyi $b$?`,
-          answer: 1 / 12,
+          options: [R`$\tfrac{1}{12} \approx 0{,}083$`, R`$\tfrac{1}{4} = 0{,}25$`, R`$\tfrac{1}{3} \approx 0{,}333$`, R`$\tfrac{1}{6} \approx 0{,}167$`],
+          answer: 0,
           explain: R`$\int_0^3 \left(\tfrac x6 + b\right)dx = \tfrac{9}{12} + 3b = 1 \Rightarrow b = \tfrac{1}{12}$.`
         },
         {
@@ -364,9 +391,10 @@
           ]
         },
         {
-          type: "numeric",
+          type: "single", shuffle: true,
           q: "Egy biztosító évi 20 000 Ft díjat szed egy lakásbiztosításért. 1% eséllyel kell 1,5 millió Ft kárt fizetnie (más kár nincs). Mennyi a biztosító várható nyeresége szerződésenként?",
-          answer: 5000, tol: 1, unit: "Ft",
+          options: [R`$5\,000$ Ft`, R`$4\,800$ Ft`, R`$15\,000$ Ft`, R`$-130\,000$ Ft`],
+          answer: 0,
           explain: R`$E = 20\,000 - 0{,}01\cdot1\,500\,000 = 20\,000 - 15\,000 = 5000$ Ft. A biztosítás a <em>biztosítónak</em> kedvező játék – a biztosított a kockázat csökkentéséért fizet.`
         },
         {

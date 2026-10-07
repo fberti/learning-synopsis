@@ -132,7 +132,7 @@
   const W = {}; // widget-regiszter
 
   /* ------------------------------------------------------------------
-     4.2.1  Galton-deszka
+     4.1  Galton-deszka
      ------------------------------------------------------------------ */
   W["galton"] = root => {
     header(root, "Galton-deszka", "Minden golyó $n$ soron esik át; minden szögnél $p$ valószínűséggel jobbra, $1-p$ valószínűséggel balra pattan – egymástól függetlenül. A golyó végső helye a jobbra pattanások száma, azaz egy $(n, p)$ paraméterű <b>binomiális</b> változó. A piros körvonal az elméleti eloszlás.");
@@ -199,7 +199,7 @@
   };
 
   /* ------------------------------------------------------------------
-     4.2.1 / 4.4  Binomiális eloszlás – és normális közelítése
+     4.1 / 4.7  Binomiális eloszlás – és normális közelítése
      ------------------------------------------------------------------ */
   const BIN_PRESETS = [
     ["6 érme (fejek)", 6, 0.5, 3, 3], ["V.4.2: csapat", 4, 2 / 3, 3, 4], ["V.4.4: lövész", 7, 0.25, 2, 7],
@@ -240,7 +240,7 @@
   };
 
   /* ------------------------------------------------------------------
-     4.2.3  Hipergeometrikus eloszlás – lottó, kártya, minőségellenőrzés
+     4.3  Hipergeometrikus eloszlás – lottó, kártya, minőségellenőrzés
      ------------------------------------------------------------------ */
   const HY_PRESETS = [["Ötöslottó (90/5)", 90, 5, 5], ["Hatoslottó (45/6)", 45, 6, 6], ["Piros lapok (32/8/8)", 32, 8, 8], ["Alma (V.4.12)", 100, 5, 4], ["Csavarok (20/6/3)", 20, 6, 3]];
   W["hypergeo"] = root => {
@@ -273,7 +273,7 @@
   };
 
   /* ------------------------------------------------------------------
-     4.2.4  A Poisson-eloszlás mint a binomiális határesete
+     4.4  A Poisson-eloszlás mint a binomiális határesete
      ------------------------------------------------------------------ */
   const NS = [5, 10, 20, 50, 100, 300, 1000, 10000];
   W["poisson-limit"] = root => {
@@ -301,7 +301,7 @@
   };
 
   /* ------------------------------------------------------------------
-     4.2.4 / 4.3.2  Poisson-folyamat: darabszámok és várakozási idők
+     4.4 / 4.5  Poisson-folyamat: darabszámok és várakozási idők
      ------------------------------------------------------------------ */
   W["poisson-process"] = root => {
     header(root, "Véletlen beérkezések (Poisson-folyamat)", "Hívások egy telefonközpontba, vásárlók egy pénztárhoz, bomlások egy Geiger-számlálóban: átlagosan $\\lambda$ esemény egységnyi idő alatt, egymástól függetlenül. Fent az idővonal első 30 egysége; lent balra az egységnyi időközökbe eső <b>darabszámok</b> (Poisson-eloszlás), jobbra az egymást követő események közti <b>várakozási idők</b> (exponenciális eloszlás).");
@@ -358,7 +358,7 @@
   };
 
   /* ------------------------------------------------------------------
-     4.3.2  Exponenciális eloszlás és az örökifjúság
+     4.5  Exponenciális eloszlás és az örökifjúság
      ------------------------------------------------------------------ */
   const EXP_PRESETS = [["Alkatrész (μ = 500 óra)", 500, 1000, 2000], ["Képcső V.4.7 (μ = 800 óra)", 800, 1600, 3200], ["Szén-14 (felezési idő 5730 év)", 5730 / Math.LN2, 5730, 10000]];
   W["exp-memoryless"] = root => {
@@ -398,7 +398,7 @@
   };
 
   /* ------------------------------------------------------------------
-     4.3.3  Normális eloszlás – kalkulátor
+     4.6  Normális eloszlás – kalkulátor
      ------------------------------------------------------------------ */
   const N_PRESETS = [
     ["Standard N(0, 1)", 0, 1, "ab", -1, 1, 0.975], ["Korongok", 0.75, 0.06, "ab", 0.6, 0.84, 0.5], ["Júliusi hőmérséklet", 26, 4, "ab", 28, 34, 0.5],
@@ -461,7 +461,7 @@
   };
 
   /* ------------------------------------------------------------------
-     4.3.3  A Φ(x) függvény táblázata
+     4.6  A Φ(x) függvény táblázata
      ------------------------------------------------------------------ */
   W["phi-table"] = root => {
     header(root, "A standard normális eloszlásfüggvény táblázata", "$\\Phi(x) = P(X^* \\lt x)$, ahol $X^* \\sim N(0, 1)$. A sor az egész és az első tizedesjegy, az oszlop a második tizedesjegy. Negatív $x$-re: $\\Phi(-x) = 1 - \\Phi(x)$. Írj be egy számot, és megkeressük!");
@@ -490,7 +490,7 @@
   };
 
   /* ------------------------------------------------------------------
-     4.4  Centrális határeloszlás-tétel
+     4.7  Centrális határeloszlás-tétel
      ------------------------------------------------------------------ */
   const BASES = [
     { name: "kockadobás", m: 3.5, s: Math.sqrt(35 / 12), gen: () => 1 + Math.floor(Math.random() * 6), lattice: 1 },

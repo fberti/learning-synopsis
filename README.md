@@ -46,7 +46,38 @@ Helyi megtekintés: `python3 -m http.server` a `synopsis` mappában, majd <http:
 1. Hozz létre egy új mappát, pl. `matematikai-statisztika/01-adatok-populacio-minta/`, az 1. fejezet mintájára.
 2. Szemléltetés: `<div class="widget" data-widget="név"></div>` + a `widgets.js`-ben `W["név"] = root => {...}`.
 3. Kvíz: `<div class="quiz" data-quiz="azonosító"></div>` + a `quizzes.js`-ben a kérdések
-   (típusok: `single`, `multi`, `numeric`, `match`, `set` – lásd `assets/quiz.js`).
+   (típusok: `single`, `multi`, `match`, `set` – lásd `assets/quiz.js`; a `numeric` elavult, ne használd).
+   A kvíz automatikusan lenyílóban jelenik meg; minden kérdéshez kell `hint` és `explain`.
 4. Frissítsd a témakör `index.html`-jét és a főoldal `data-progress` listáját az új kvízazonosítókkal.
 
 Matematika: KaTeX, `$...$` (sorközi) és `$$...$$` (kiemelt) jelöléssel.
+
+## Tananyagírási útmutató
+
+A részletes útmutató a [`CLAUDE.md`](CLAUDE.md) fájlban van (ezt az AI-asszisztens automatikusan beolvassa).
+Mintapélda: `valoszinusegszamitas/01-esemenyek-es-valoszinuseg/` – **1.4.2 Kombinatorika** szakasz.
+Röviden:
+
+**Felépítés** (minden fejezetre / szakaszra)
+1. Motiváló kérdés → útiterv (számozott lépések, horgonylinkekkel).
+2. Lépések az egyszerűtől a bonyolultig; minden új fogalom az előző korlátjából nő ki,
+   az előismeret (jelölés, technika) külön lépés.
+3. Minden lépésen belül: kis, kézzel felsorolható eset → szabály / képlet „miért?”-tel →
+   2–3 egylépéses kidolgozott példa → buktató-doboz → kb. 5 gyakorló feladat lenyíló, részletes megoldással.
+4. Alkalmazás külön részben, az összes eszköz után.
+5. Összefoglalás + döntési táblázat → ellenőrző kvíz.
+
+**Elvek**
+- Előbb a konkrét eset, aztán a képlet.
+- Szembeállító párok (ugyanaz a feladat egy paraméterben eltérve), egymás mellett.
+- Egy példa = egy új gondolat; trükkös feladat csak a gyakorlás végén / az alkalmazásban.
+- Forráskönyv követése nem kötelező, de a felépítés mindig ezeket az elveket kövesse; ami a forrásból
+  hiányzik, de a magyar tananyagban benne van, azt „Kiegészítés”-ként jelöld.
+- Magyar terminológia; eltérő angol elnevezésnél tip-doboz a megfeleléssel.
+- Minden számeredményt Pythonnal ellenőrizni.
+
+**Kvízek**
+- Mindig lenyílóban (a motor intézi).
+- Minden kérdésnek van `hint`-je (ötlet a megoldáshoz, a választ nem árulja el) és `explain`-je.
+- Gépelés nélkül megoldható: `single`, `multi`, `match` vagy `set` – ami a kérdéshez illik.
+- A rossz válaszok kézzel írva, tipikus hibákból.
