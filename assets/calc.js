@@ -182,7 +182,7 @@
 
   /* ------------------------------------------------------------------
      Rajzoló
-     view:   { xmin, xmax, ymin, ymax, xstep?, ystep?, grid? (true), labels? (true) }
+     view:   { xmin, xmax, ymin, ymax, xstep?, ystep?, grid? (true), labels? (true), xname? ("x"), yname? ("y") }
      layers: [
        { f, color, width, dash, domain:[a,b] }                       görbe
        { param: t => [x, y], t:[a,b], color, dash }                  paraméteres görbe
@@ -248,9 +248,10 @@
       ctx.textAlign = leftRoom ? "right" : "left";
       yl.forEach(y => ctx.fillText(lab(y), leftRoom ? tx(ax) - 4 : tx(ax) + 5, ty(y)));
       ctx.textAlign = "left"; ctx.textBaseline = "bottom";
-      ctx.fillText("x", w - 12, ty(ay) - 4);
+      const xn = view.xname || "x";
+      ctx.fillText(xn, xn === "x" ? w - 12 : w - 6 - ctx.measureText(xn).width, ty(ay) - 4);
       ctx.textBaseline = "top";
-      ctx.fillText("y", tx(ax) + 6, 2);
+      ctx.fillText(view.yname || "y", tx(ax) + 6, 2);
     }
 
     let auto = 0;

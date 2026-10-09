@@ -31,10 +31,15 @@ synopsis/
 │   ├── index.html                  ← a témakör fejezetlistája
 │   ├── TERV.md                     ← a 14 fejezet részletes kidolgozási terve
 │   └── 01-adatok-populacio-minta/  ← index.html, widgets.js, quizzes.js
-└── analizis/
-    ├── index.html                  ← a témakör fejezetlistája
-    ├── TERV.md                     ← a 11 fejezet részletes kidolgozási terve
-    └── 01-fuggvenyek-es-modellek/  ← index.html, widgets.js (a calc.js-re épül), quizzes.js
+├── analizis/
+│   ├── index.html                  ← a témakör fejezetlistája
+│   ├── TERV.md                     ← a 11 fejezet részletes kidolgozási terve
+│   └── 01-fuggvenyek-es-modellek/  ← index.html, widgets.js (a calc.js-re épül), quizzes.js
+└── mesterseges-intelligencia/
+    ├── index.html                  ← a témakör fejezetlistája és tanulási útvonalai
+    ├── TERV.md                     ← a 24 fejezet részletes kidolgozási terve
+    ├── 01-mi-a-mesterseges-intelligencia/  ← index.html, widgets.js, quizzes.js
+    └── 02-matematikai-eszkoztar/   ← index.html, widgets.js (a calc.js-re épül), quizzes.js
 ```
 
 ## Közzététel GitHub Pages-en
