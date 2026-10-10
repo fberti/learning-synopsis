@@ -44,7 +44,8 @@ synopsis/
     ├── 04-adatok-es-jellemzok/     ← index.html, widgets.js (a calc.js-re épül), quizzes.js
     ├── 05-osztalyozas/             ← index.html, widgets.js (a calc.js-re épül), quizzes.js
     ├── 06-modellertekeles/         ← index.html, widgets.js (a calc.js-re épül), quizzes.js
-    └── 07-fak-svm-egyuttes/        ← index.html, widgets.js (a calc.js-re épül), quizzes.js
+    ├── 07-fak-svm-egyuttes/        ← index.html, widgets.js (a calc.js-re épül), quizzes.js
+    └── 08-felugyelet-nelkuli-tanulas/ ← index.html, widgets.js (a calc.js-re épül), quizzes.js, digits-data.js
 ```
 
 ## Közzététel GitHub Pages-en

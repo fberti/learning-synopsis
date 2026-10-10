@@ -1,0 +1,188 @@
+<!-- ===================================================== 8.4 -->
+<section id="s84">
+<h2>8.4 Nemlineáris dimenziócsökkentés: t-SNE és UMAP ★★★</h2>
+<p><i>Ez a szakasz haladó; ha most kihagyod, a fejezet többi része ugyanúgy érthető. A 12. fejezetben (beágyazások) visszatérünk rá.</i></p>
+<p>A PCA egyenesekre és síkokra vetít. A kör példája (<a href="#s83-d">8.3</a>) megmutatta a határát: ha az adat egy <b>görbe</b> mentén fekszik, egyetlen egyenes sem írja le jól.
+A megoldás ötlete: ne a távolságokat próbáljuk megőrizni, hanem azt, <b>ki kinek a szomszédja</b>.</p>
+
+<h3 id="s84-a">1. lépés: a szomszédság megőrzése – a t-SNE ötlete</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy patkó alakú út</span>
+  Hét megálló egy U alakú út mentén: $P_1 (-1; 3)$, $P_2 (-1; 2)$, $P_3 (-1; 1)$, $P_4 (0; 0)$, $P_5 (1; 1)$, $P_6 (1; 2)$, $P_7 (1; 3)$. Az út mentén $P_1$ és $P_7$ a két vége – messze vannak egymástól.
+  <ul style="margin:.2rem 0">
+    <li><b>PCA egy dimenzióra:</b> a függőleges variancia (1,06) nagyobb, mint a vízszintes (0,86), ezért az első főkomponens a függőleges tengely. Rá vetítve $P_1$ és $P_7$ <b>ugyanoda</b> esik (3),
+      ugyanígy $P_2$ és $P_6$, $P_3$ és $P_5$. Az út két vége „összeér”.</li>
+    <li><b>Szomszédok szerint:</b> minden megálló <em>legközelebbi</em> szomszédja egy út menti szomszéd ($P_1$-é a $P_2$, $P_4$-é a $P_3$ és a $P_5$). Ha egy egyenesen úgy rakjuk le őket, hogy a legközelebbi szomszédok egymás mellé kerüljenek,
+      a sorrend $P_1, P_2, \dots, P_7$ – az U „kiegyenesedik”.</li>
+  </ul>
+  A második térkép a <em>távolságokat</em> nem őrzi ($P_1$ és $P_7$ valójában csak 2 egységre van egymástól), de a <em>szomszédságot</em> igen – és itt ez a lényeg.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – t-SNE (L. van der Maaten, G. Hinton, 2008)</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Hasonlóságok az eredeti térben.</b> Minden $i$ pontra a többi pont „szomszédsági valószínűsége” egy Gauss-haranggal:
+      $p_{j|i} \propto e^{-\|\mathbf x_i - \mathbf x_j\|^2/2\sigma_i^2}$, összegük 1. A $\sigma_i$-t minden pontra úgy állítjuk be, hogy a <b>perplexitás</b> – nagyjából a „hatásos szomszédok száma” – egy
+      megadott érték legyen (szokásosan 5–50). A perplexitás $2^{H_i}$, ahol $H_i = -\sum_j p_{j|i}\log_2 p_{j|i}$ a szomszédsági eloszlás entrópiája (<a href="../02-matematikai-eszkoztar/#s26-b">2.6</a>).
+      A két irányú valószínűséget végül szimmetrizáljuk: $p_{ij} = (p_{j|i} + p_{i|j})/2n$.</li>
+    <li><b>Hasonlóságok a térképen.</b> A 2D-s pontokra $q_{ij} \propto \dfrac{1}{1 + \|\mathbf y_i - \mathbf y_j\|^2}$ – ez a Student-féle $t$-eloszlás „vastag farkú” harangja (innen a „t” a névben).</li>
+    <li><b>Illesztés.</b> A térképpontokat gradiens módszerrel (<a href="../02-matematikai-eszkoztar/#s28-a">2.8</a>) addig mozgatjuk, amíg a két hasonlóság-eloszlás a lehető legjobban egyezik:
+      a <b>KL-divergenciát</b> (<a href="../02-matematikai-eszkoztar/#s26-d">2.6</a>) minimalizáljuk, $\mathrm{KL}(P\,\|\,Q) = \sum_{i,j} p_{ij}\ln\frac{p_{ij}}{q_{ij}}$.</li>
+  </ol>
+  <small>Miért éppen így? A KL aszimmetrikus: ha két <em>szomszédot</em> ($p$ nagy) messzire teszel ($q$ kicsi), az drága; ha két <em>távoli</em> pontot ($p$ kicsi) közel teszel, az olcsó. A t-SNE ezért
+  a helyi szomszédságot nagyon gondosan őrzi, a nagy távolságokat alig. A vastag farkú $q$ pedig engedi, hogy a közepesen távoli pontok a térképen jó messzire kerüljenek – így a csoportok szétválnak,
+  és nem zsúfolódnak egymásra (a „zsúfoltsági probléma” megoldása).</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a szomszédsági valószínűségek</span>
+    A patkó $P_4$ pontjára $\sigma = 1$-gyel. Távolságnégyzetek: $P_3, P_5$: 2; $P_2, P_6$: 5; $P_1, P_7$: 10. Súlyok: $e^{-1} \approx 0{,}368$, $e^{-2{,}5} \approx 0{,}082$, $e^{-5} \approx 0{,}0067$.
+    Normálva: $P_3$ és $P_5$ egyenként <b>0,40</b>, $P_2$ és $P_6$ 0,09, $P_1$ és $P_7$ 0,007. A perplexitás $2^{H} \approx 3{,}4$: mintha kb. három-négy szomszédja lenne.
+    $\sigma = 0{,}5$-tel a perplexitás 2,0 (csak a két közvetlen szomszéd számít), $\sigma = 2$-vel 5,6.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – Gauss vagy t?</span>
+    <table style="font-size:.86rem;text-align:center">
+      <tr><th>távolság $d$</th><td>1</td><td>2</td><td>3</td><td>5</td></tr>
+      <tr><th>Gauss $e^{-d^2/2}$</th><td>0,61</td><td>0,14</td><td>0,011</td><td>0,000004</td></tr>
+      <tr><th>t: $1/(1 + d^2)$</th><td>0,50</td><td>0,20</td><td>0,10</td><td>0,038</td></tr>
+    </table>
+    5 egységnyi távolságban a t-harang még tízezerszer „vastagabb”. Ugyanakkora kis hasonlóságot a térképen sokkal nagyobb távolság is kifejezhet – a csoportok közt így „levegő” lesz.
+  </div>
+</div>
+<div class="widget" data-widget="digit-embedding"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A t-SNE nem látta a címkéket.</b> A színezés a szemléltetésben utólagos: az algoritmus csak a 64 pixelt kapta. Hogy a számjegyek mégis szigetekbe rendeződnek, az az adat szerkezetéről árulkodik.</li>
+    <li><b>Nincs képlet új pontra.</b> A t-SNE nem tanul függvényt: a térkép a konkrét pontok elhelyezése. Egy új számjegyet nem lehet „levetíteni” – újra kell futtatni (vagy más módszer kell, pl. UMAP).</li>
+    <li><b>Lassú és véletlen.</b> A naiv változat $n^2$ párt néz; minden futás más elrendezést adhat (más véletlen kezdés).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a t-SNE ötlete</summary>
+  <ol>
+    <li>A patkó pontjainál a PCA egy dimenzióra vetítve mely párokat „ejti egybe”?
+      <details><summary>Megoldás</summary>A függőleges tengelyre vetít: $P_1$ és $P_7$ (3), $P_2$ és $P_6$ (2), $P_3$ és $P_5$ (1). Csak $P_4$ (0) marad egyedül.</details></li>
+    <li>Egy pontnak két szomszédja van, egyenlő súllyal (0,5–0,5), a többi súlya 0. Mennyi a perplexitás?
+      <details><summary>Megoldás</summary>$H = -2 \cdot 0{,}5\log_2 0{,}5 = 1$ bit, perplexitás $2^1 = 2$. Ha $k$ szomszéd egyenlő súllyal: $H = \log_2 k$, perplexitás $k$ – innen a „hatásos szomszédszám”.</details></li>
+    <li>Két szomszéd: $p = 0{,}4$, de a térképen messze kerülnek, $q = 0{,}01$. Mennyi a KL-összeg ezen tagja? És fordítva ($p = 0{,}01$, $q = 0{,}4$)?
+      <details><summary>Megoldás</summary>$0{,}4\ln(0{,}4/0{,}01) = 0{,}4\ln 40 \approx 1{,}48$. Fordítva: $0{,}01\ln(0{,}01/0{,}4) \approx -0{,}037$. A szomszédok szétszakítása sokba kerül, a távoliak összetolása szinte semmibe – ezért őrzi a t-SNE a helyi szerkezetet.</details></li>
+    <li>Miért nem lehet egy betanított t-SNE-térképre egy új pontot „rávetíteni”, mint a PCA-nál?
+      <details><summary>Megoldás</summary>Mert a PCA egy függvényt tanul ($\mathbf z = V_q^\top(\mathbf x - \bar{\mathbf x})$), a t-SNE viszont csak a meglévő pontok koordinátáit optimalizálja. Az új pont helye a többiekétől is függne – nincs rá képlet.</details></li>
+    <li>(nehezebb) Mi történne, ha a térképen is Gauss-hasonlóságot használnánk (ez volt a korábbi SNE)?
+      <details><summary>Megoldás</summary>Sok dimenzióban egy pontnak sok, közepesen távoli „második szomszédja” lehet; 2D-ben nincs elég hely mindet közepes távolságban elhelyezni. A gyorsan lecsengő Gauss miatt ezeket a térkép középre zsúfolná,
+        a csoportok egymásra csúsznának (zsúfoltsági probléma). A vastag farkú t-eloszlás megengedi, hogy messzebb kerüljenek.</details></li>
+  </ol>
+</details>
+
+<h3 id="s84-b">2. lépés: hogyan olvasd a térképet? – és az UMAP</h3>
+<p>A t-SNE-térkép szép – és könnyű félreolvasni. A szemléltetésben váltogasd a perplexitást és a véletlen magot: a szigetek alakja, mérete, helye változik, a <b>szomszédságok</b> viszont nagyrészt maradnak.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – 800 számjegy, öt térkép</span>
+  A szemléltetés 800 számjegyén mérjük meg, mennyire őrzi meg egy térkép a szomszédságot: minden pontra nézzük meg az <b>5 legközelebbi szomszédját a 2D-s térképen</b>, és szavaztassuk meg, melyik számjegy
+  (5-NN, <a href="../05-osztalyozas/#s52-b">5.2</a>, keresztvalidálva).
+  <table style="max-width:620px;font-size:.88rem;text-align:center">
+    <tr><th>hol keresünk szomszédot?</th><th>5-NN pontosság</th></tr>
+    <tr><td>az eredeti 64 dimenzióban</td><td>94,9%</td></tr>
+    <tr><td>PCA, 2 komponens</td><td>63,8%</td></tr>
+    <tr><td>t-SNE (perplexitás 5 / 30 / 100)</td><td>96,1% / 95,1% / 95,5%</td></tr>
+    <tr><td>UMAP</td><td>96,4%</td></tr>
+  </table>
+  A PCA két tengelye elveszti a szomszédságok nagy részét (csak a variancia 28,5%-át tartja meg). A t-SNE és az UMAP 2D-ben is szinte annyira „jó szomszédokat” ad, mint a teljes 64 dimenzió.
+  A t-SNE-térképek közben egymástól nagyon különbözőnek <em>látszanak</em>.
+  <small>(A szemléltetés kiírása minden pontot egyenként hagy ki, nem ötszörös keresztvalidációval számol – ezért ott pár százalékponttal magasabb értékeket látsz: PCA kb. 67%, t-SNE és UMAP kb. 97%.)</small>
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – egy t-SNE- vagy UMAP-térkép olvasása</span>
+  <ul style="margin:.2rem 0">
+    <li>✅ <b>Megbízható:</b> ki kinek a <b>szomszédja</b>; hogy egy pont egy szigeten belül van-e.</li>
+    <li>❌ <b>Nem értelmezhető:</b> a szigetek <b>mérete</b> (a t-SNE a sűrű csoportokat kitágítja, a ritkásakat összehúzza), a szigetek <b>egymástól mért távolsága</b>, a tengelyek (nincs „1. tengely” jelentés).</li>
+    <li>⚠️ <b>Ellenőrizd:</b> több perplexitással és véletlen maggal is futtasd. Kis perplexitásnál tiszta véletlen zajban is „csoportok” jelenhetnek meg.</li>
+  </ul>
+  <b>UMAP</b> (L. McInnes, J. Healy, J. Melville, 2018): hasonló ötlet – egy szomszédsági gráfot épít az eredeti térben (paraméter: <code>n_neighbors</code>), és olyan 2D-s elrendezést keres, amelynek hasonló a gráfja
+  (<code>min_dist</code>: milyen szorosan tömörülhetnek a pontok). Gyorsabb, nagy adaton is fut, és van belőle <b>transzformáció új pontokra</b>.
+  <br><small>Miért nem jó a távolság? Mert a cél (KL) a helyi szomszédságot jutalmazza – a nagy távolságokért szinte semmi nem „fizet”. Amit a módszer nem optimalizál, arra ne alapozz következtetést.</small>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 PCA, t-SNE, UMAP – egymás mellett</span>
+  <table style="font-size:.88rem">
+    <tr><th></th><th>PCA</th><th>t-SNE</th><th>UMAP</th></tr>
+    <tr><td>lineáris?</td><td>igen</td><td>nem</td><td>nem</td></tr>
+    <tr><td>mit őriz?</td><td>a varianciát (nagy távolságokat)</td><td>a helyi szomszédságot</td><td>a helyi szomszédságot, valamivel több globális szerkezettel</td></tr>
+    <tr><td>új pont?</td><td>képlettel</td><td>nem</td><td>igen (közelítőleg)</td></tr>
+    <tr><td>a tengelyek jelentése</td><td>van (súlyok)</td><td>nincs</td><td>nincs</td></tr>
+    <tr><td>determinisztikus?</td><td>igen (előjelig)</td><td>nem</td><td>nem</td></tr>
+    <tr><td>tipikus használat</td><td>előfeldolgozás, tömörítés, első ránézés</td><td>megjelenítés</td><td>megjelenítés, előfeldolgozás</td></tr>
+  </table>
+  Gyakori recept: előbb PCA kb. 50 dimenzióra (zajszűrés, gyorsítás), utána t-SNE vagy UMAP 2D-re.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – szöveg- és képbeágyazások</span>
+    Egy nyelvi modell minden mondathoz egy több száz dimenziós vektort, <b>beágyazást</b> rendel (12. fejezet). Hogy a hasonló jelentésű mondatok tényleg közel vannak-e, egy UMAP-térképen nézik meg –
+    pl. ügyfélpanaszok témái szigetekbe rendeződnek-e.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egysejt-genomika</span>
+    A biológiában több ezer gén aktivitását mérik sejtenként. A sejttípusokat ma rutinszerűen UMAP-térképen azonosítják – és a terület kutatói figyelmeztetnek is: a térkép távolságaiból ne következtess a sejttípusok „rokonságára”.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A szigetek távolsága nem a valódi távolság.</b> Egy gyakorlati könyv (PDL 14) szerint a t-SNE-ábrán „az osztályok közti távolság a 128 dimenziós tér valódi elkülönülését tükrözi”, és egy rossz
+      t-SNE-képpel magyarázza, miért gyenge a legközelebbi centroid módszer. A t-SNE csak a helyi szomszédságot őrzi; a középpontok távolságára nem lehet belőle következtetni.</li>
+    <li><b>Ne klaszterezz vakon a t-SNE-térképen.</b> A térkép torzít (méret, sűrűség); ha klaszterezni akarsz, inkább az eredeti vagy a PCA-tömörített térben tedd, és a térképpel csak <em>nézd meg</em> az eredményt.</li>
+    <li><b>A szép kép nem bizonyíték.</b> Hogy valami szigetekre esik, sejtést ad, nem igazolást. Ellenőrizd az eredeti térben is (pl. sziluettel, vagy egy felügyelt modellel, ha van címke).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – térképek olvasása</summary>
+  <ol>
+    <li>Egy t-SNE-térképen az A sziget kétszer akkora, mint a B. Következik-e, hogy az A csoport pontjai jobban szóródnak?
+      <details><summary>Megoldás</summary>Nem. A t-SNE pontonként más $\sigma$-t használ (a perplexitáshoz igazítva), ezért a sűrű csoportokat kitágítja, a ritkásakat összehúzza. A sziget mérete nem a valódi szórás.</details></li>
+    <li>Az A és B sziget közel van egymáshoz, a C messze. Biztos, hogy A és B hasonlóbb egymáshoz, mint A és C?
+      <details><summary>Megoldás</summary>Nem biztos. A szigetek egymástól mért távolságát a t-SNE célja alig bünteti. Ezt az eredeti térben kell ellenőrizni (pl. a csoportátlagok távolságával).</details></li>
+    <li>Miért adhat a PCA 2D-ben 64%-os, a t-SNE 95%-os 5-NN pontosságot ugyanazokon a számjegyeken?
+      <details><summary>Megoldás</summary>A PCA két lineáris tengelye csak a variancia 28,5%-át őrzi, a számjegyek nagyrészt egymásra vetülnek. A t-SNE kifejezetten a szomszédságot őrzi – épp azt, amit az 5-NN mér.</details></li>
+    <li>Egy új vásárlót fel akarsz tenni a meglévő térképre, újrafuttatás nélkül. PCA, t-SNE vagy UMAP?
+      <details><summary>Megoldás</summary>PCA (képlettel) vagy UMAP (van <code>transform</code>-ja). A t-SNE-vel nem megy.</details></li>
+    <li>(nehezebb) Egy elemző azt mondja: „A t-SNE-térképen 7 sziget van, tehát 7 vásárlótípus van.” Mit kérdeznél?
+      <details><summary>Megoldás</summary>Milyen perplexitással és hány véletlen maggal futtatta, és mindegyiken 7 sziget van-e? Mi a sziluett vagy a könyök az eredeti (standardizált) térben? Stabil-e a csoportosítás az adat újramintázására?
+        És van-e üzleti értelmük a csoportoknak? A térkép jó sejtést ad, de a klaszterek számát nem bizonyítja.</details></li>
+  </ol>
+</details>
+<details class="box">
+  <summary>🐍 Python – a 800 számjegy térképei</summary>
+  <pre style="margin:.6rem 0;font-size:.85rem">import numpy as np
+from sklearn.datasets import load_digits
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import cross_val_score
+import umap                                             # pip install umap-learn
+
+X, y = load_digits(return_X_y=True)                     # 1797 kép, 64 pixel
+rng = np.random.RandomState(0)                          # számjegyenként 80 kép
+idx = np.sort(np.concatenate([rng.choice(np.where(y == c)[0], 80, replace=False) for c in range(10)]))
+X, y = X[idx], y[idx]
+
+terkep = {"PCA": PCA(2).fit_transform(X),
+          "t-SNE 30": TSNE(2, perplexity=30, init="pca", random_state=0).fit_transform(X),
+          "UMAP": umap.UMAP(n_neighbors=15, min_dist=0.1, random_state=0).fit_transform(X)}
+for nev, E in terkep.items():                           # mennyire „jó szomszédok” a térképen?
+    print(nev, cross_val_score(KNeighborsClassifier(5), E, y, cv=5).mean().round(3))
+# PCA 0.638 · t-SNE 30 0.951 · UMAP 0.964  (a 64 pixelen: 0.949)</pre>
+  <small>A t-SNE és az UMAP eredménye a könyvtár verziójától és a véletlen magtól kicsit függ.</small>
+</details>
+
+<div class="box history">
+  <span class="box-title">📜 Történet</span>
+  A szomszédsági valószínűségek ötlete G. Hinton és S. Roweis 2002-es SNE-módszeréből ered; a vastag farkú t-eloszlással L. van der Maaten és G. Hinton 2008-ban tette használhatóvá – ez lett a t-SNE.
+  Az UMAP-ot L. McInnes, J. Healy és J. Melville 2018-ban publikálta, a topológia (az „alakok” matematikája) nyelvén. A régebbi nemlineáris módszerek – az Isomap és az LLE (2000) – ugyanezt a célt
+  szolgálták: a görbült felületen fekvő adatot „kiteríteni”.
+</div>
+
+<div class="quiz" data-quiz="ai8-84"></div>
+</section>
+

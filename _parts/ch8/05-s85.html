@@ -1,0 +1,208 @@
+<!-- ===================================================== 8.5 -->
+<section id="s85">
+<h2>8.5 Anomáliadetektálás ★★</h2>
+<p>A <a href="../04-adatok-es-jellemzok/#s42-c">4.2</a>-ben egyetlen oszlopban kerestünk kiugró értéket (IQR-szabály, z-érték), hogy kijavítsuk vagy kezeljük. Most a kilógó eset maga a <b>cél</b>:
+a csaló tranzakció, a meghibásodó gép rezgése, a betörési kísérlet a hálózaton. Címke ritkán van – a csalást épp azért nehéz megcímkézni, mert senki nem vette észre. Ezért ez is felügyelet nélküli feladat:
+megtanuljuk, milyen a <b>szokásos</b>, és azt jelöljük meg, ami nem az.</p>
+
+<h3 id="s85-a">1. lépés: ami külön-külön átlagos, együtt furcsa – távolságalapú pontszámok</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – az L vásárló</span>
+  Nézd meg a könyvesbolt L vásárlóját: havonta 14-szer vásárol, átlagosan 28 ezer forintért.
+  <ul style="margin:.2rem 0">
+    <li><b>Oszloponként:</b> a 14 vásárlás nem kiugró (az IQR-szabály kerítései a 12 vásárlón −12,75 és 29,25), a 28 ezer sem (−28,5 és 61,5). A z-értékei 1,24 és 1,12 – teljesen átlagosak.</li>
+    <li><b>Együtt:</b> a többiek vagy gyakran vásárolnak keveset, vagy ritkán sokat. A legközelebbi szomszédja (ezer forintban mérve) a G, <b>11,05</b> távolságra. Minden más vásárlónak 2,24-en belül van szomszédja.</li>
+  </ul>
+  L-t egyetlen oszlop sem árulja el, csak a kettő <b>együtt</b>. Ezért kell a pontokat a térben, a szomszédaikhoz mérni.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – anomáliapontszám, távolságalapú módszerek</span>
+  Az <b>anomáliadetektálás</b> minden ponthoz egy <b>anomáliapontszámot</b> rendel – minél nagyobb, annál szokatlanabb –, és a küszöb fölötti (vagy a legnagyobb $N$) pontot jelöli meg. Két egyszerű pontszám:
+  <ul style="margin:.2rem 0">
+    <li><b>$k$-adik szomszéd távolsága:</b> milyen messze van a pont $k$-adik legközelebbi szomszédja. Aki magányos, annak messze.</li>
+    <li><b>Távolság a legközelebbi klaszterközépponttól:</b> futtass k-közepet (<a href="#s81">8.1</a>), és nézd meg, milyen messze van a pont a saját középpontjától.</li>
+  </ul>
+  A küszöböt gyakran a <b>kapacitás</b> dönti el: ha naponta 50 esetet tud valaki átnézni, az 50 legnagyobb pontszámú esetet kapja.
+  <br><small>Miért működik? Mert a szokásos esetek sokan vannak, és hasonlítanak egymásra – sűrű felhőket alkotnak. Az anomália ritka és más: a sűrű részektől távol esik.
+  Ez ugyanaz a gondolat, mint a DBSCAN zajpontja (<a href="#s82-c">8.2</a>).</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – távolság a középponttól</span>
+    A 11 „rendes” vásárló három k-közép középpontja: $(2{,}5;\ 27{,}5)$, $(13;\ 5)$, $(7;\ 15)$. L távolsága tőlük: <b>11,51</b>, 23,02 és 14,76 – a legközelebbi is 11,51.
+    A többi vásárló egyike sincs 2,6-nál messzebb a saját középpontjától.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – két csaló együtt</span>
+    Tegyük fel, hogy L mellett egy L′ $(14;\ 27)$ vásárló is van. Most egymás <em>legközelebbi</em> szomszédai (távolság 1) – az 1. szomszéd távolsága alapján „rendesnek” látszanak.
+    A <b>2.</b> szomszéd távolsága viszont 11,05, illetve 11 – újra kilógnak. Ha az anomáliák csoportosan jöhetnek, a $k$ legyen legalább akkora, mint a csoportjuk mérete.
+  </div>
+</div>
+<details class="box">
+  <summary>📐 Mahalanobis-távolság – amikor a jellemzők összefüggenek ★★★</summary>
+  A standardizált euklideszi távolság minden jellemzőt külön skáláz, de az <em>összefüggésüket</em> nem nézi. A 11 vásárlónál a két jellemző korrelációja −0,96: a pontok egy ferde sáv mentén fekszenek.
+  A <b>Mahalanobis-távolság</b> $d_M(\mathbf x) = \sqrt{(\mathbf x - \bar{\mathbf x})^\top C^{-1}(\mathbf x - \bar{\mathbf x})}$ a kovarianciamátrixszal „kiegyenesíti” ezt a sávot.
+  <table style="max-width:560px;font-size:.88rem;text-align:center">
+    <tr><th>vásárló</th><th>standardizált távolság az átlagtól</th><th>Mahalanobis-távolság</th></tr>
+    <tr><td>A $(2; 25)$</td><td>1,52</td><td>1,41</td></tr>
+    <tr><td>I $(7; 14)$</td><td>0,23</td><td>1,08</td></tr>
+    <tr><td><b>L $(14; 28)$</b></td><td>1,87</td><td><b>9,07</b></td></tr>
+  </table>
+  Standardizálva L alig messzebb, mint A; a Mahalanobis-távolság szerint hatszor messzebb – mert L a sávra merőlegesen, a „ritka” irányban tér el. (Csak egyetlen felhőnél értelmes; több klaszternél klaszterenként kell számolni.)
+</details>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Skálázás.</b> A távolságalapú pontszám mértékegységfüggő – itt is standardizálni kell (<a href="#s81-e">8.1</a>).</li>
+    <li><b>Anomália ≠ hiba ≠ csalás.</b> L lehet egy iskola könyvtárosa, aki az osztálynak vásárol. A pontszám csak azt mondja: „nézd meg”. A döntés emberi (vagy egy felügyelt modellé, ha lesz címke).</li>
+    <li><b>Kiugró pont vagy újdonság?</b> A scikit-learn két feladatot különít el. <em>Outlier detection</em>: a tanító adatban is vannak furcsa pontok, és őket keressük. <em>Novelty detection</em>: a tanító adat tiszta, és az <em>új</em> adatban
+      keressük a szokatlant. (Az MLD 11 a két szót másképp használja: nála az <em>outlier</em> a hibás érték, a <em>novelty</em> a szokatlan, de valódi.)</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – távolságalapú pontszámok</summary>
+  <ol>
+    <li>Pontok egy egyenesen: 1, 2, 3, 4, 12. Mennyi minden pontra az 1. szomszéd távolsága? Melyik a leggyanúsabb?
+      <details><summary>Megoldás</summary>1: 1; 2: 1; 3: 1; 4: 1; 12: 8. A 12 a leggyanúsabb.</details></li>
+    <li>Ugyanezekre mennyi a 2. szomszéd távolsága?
+      <details><summary>Megoldás</summary>1: 2 (a 3); 2: 1 (az 1 vagy a 3); 3: 1; 4: 2 (a 2); 12: 9 (a 3). A sorrend ugyanaz, a 12 kilóg.</details></li>
+    <li>Pontok: 1, 2, 3, 20, 21. Az 1. szomszéd szerint gyanús-e a 20 és a 21? És a 2. szomszéd szerint?
+      <details><summary>Megoldás</summary>1. szomszéd: a 20-nak és a 21-nek 1 – nem gyanúsak (egymást „védik”). 2. szomszéd: a 20-nak a 3 (17), a 21-nek a 3 (18) – nagyon gyanúsak. Az 1, 2, 3 pontoké 2, 1, 2.</details></li>
+    <li>Egy banki elemző naponta 30 esetet tud átnézni, $100\,000$ tranzakcióból. Hogyan állítanád be a küszöböt?
+      <details><summary>Megoldás</summary>Kapacitás szerint: minden nap a 30 legnagyobb pontszámú tranzakciót kapja (a felső 0,03%). A pontszám abszolút értékénél fontosabb a sorrend.</details></li>
+    <li>(nehezebb) Miért nem találta meg L-t a z-érték, és milyen esetben találna meg valamit, amit a szomszédtávolság nem?
+      <details><summary>Megoldás</summary>Mert L minden oszlopban átlagos tartományban van; a különlegessége a kombinációban rejlik, amit a z-érték (oszloponként) nem lát. Fordítva: egy tömegesen előforduló, de egyetlen oszlopban extrém érték
+        (pl. sok azonos, hibásan rögzített „999” kosár) egymás szomszédai lennének – a szomszédtávolság kicsi, a z-érték viszont nagy. A két módszer kiegészíti egymást.</details></li>
+  </ol>
+</details>
+
+<h3 id="s85-b">2. lépés: izolációs erdő – a furcsát könnyű elszigetelni</h3>
+<p>A távolságalapú pontszámhoz minden pont minden szomszédját ismerni kell – millió tranzakciónál ez lassú, és sok dimenzióban a távolság is elmosódik (<a href="../04-adatok-es-jellemzok/#s46-c">4.6</a>).
+Egy egészen más ötlet: <b>vágjunk véletlenszerűen</b>, és nézzük meg, hány vágás kell, hogy egy pont egyedül maradjon.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – hat pont, véletlen vágások</span>
+  Pontok: 1, 2, 3, 4, 5, 20. Vágjunk egy véletlen helyen az 1 és a 20 között (egyenletes eloszlással)! A vágás $\frac{20 - 5}{19} \approx 79\%$ eséllyel az 5 és a 20 közé esik – és a 20 már <b>egyetlen vágás után</b> egyedül van.
+  A 3-ashoz viszont mindkét oldalról „le kell hántani” a szomszédokat. Ha minden részen tovább vágunk, a várható vágásszám, amíg egy pont egyedül marad:
+  <table style="max-width:560px;font-size:.88rem;text-align:center">
+    <tr><th>pont</th><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>20</td></tr>
+    <tr><th>várható vágásszám</th><td>2,87</td><td>3,67</td><td>3,88</td><td>3,77</td><td>3,08</td><td><b>1,23</b></td></tr>
+  </table>
+  Az anomália „rövid úton” elszigetelhető. A sűrű csoport belsejében lévő pontokhoz sok vágás kell.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – izolációs erdő (F. T. Liu, K. M. Ting, Z.-H. Zhou, 2008)</span>
+  <ol style="margin:.2rem 0">
+    <li>Építs sok (pl. 100) <b>véletlen fát</b>, mindegyiket az adat egy kis véletlen részhalmazán (pl. $\psi = 256$ pont): minden csomópontban válassz egy véletlen jellemzőt és egy véletlen küszöböt a
+      csomópont pontjainak minimuma és maximuma között; vágj, amíg minden pont egyedül nem marad (vagy elég mély nem lesz a fa).</li>
+    <li>Egy $\mathbf x$ pont <b>úthossza</b> $h(\mathbf x)$: hány vágás után kerül egyedül egy levélbe. Átlagold a fákon: $E[h(\mathbf x)]$.</li>
+    <li>Az anomáliapontszám: $s(\mathbf x) = 2^{-E[h(\mathbf x)]/c(\psi)}$, ahol $c(n) = 2H(n - 1) - \frac{2(n - 1)}{n}$ egy $n$ pontos véletlen fa átlagos úthossza ($H(i) \approx \ln i + 0{,}5772$).</li>
+  </ol>
+  $s$ közel 1: biztosan anomália; jóval 0,5 alatt: szokásos pont; ha mindenki 0,5 körül van, nincs kiugró eset.
+  <br><small>Miért jó? Mert az anomáliák <b>kevesen vannak és mások</b> – ezért a véletlen vágások hamar leválasztják őket. Nem kell távolságot számolni (gyors, és a fákhoz hasonlóan <b>nem kell skálázni</b>, <a href="../07-fak-svm-egyuttes/#s71-d">7.1</a>),
+  és a sok fa átlaga stabil (mint a véletlen erdőnél, <a href="../07-fak-svm-egyuttes/#s73-c">7.3</a>). De vigyázz: ezek a fák nem Gini-indexszel vágnak – címke nincs, a vágás tisztán véletlen.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a hat pont pontszáma</span>
+    Itt $\psi = 6$, és a közelítő képlettel $c(6) \approx 2{,}71$. A 20-as pont: $s = 2^{-1{,}23/2{,}71} \approx$ <b>0,73</b>. A többiek: 0,37 (a 3-as) és 0,48 (az 1-es) között. Csak a 20 van 0,5 fölött.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – 256 pontos részminták</span>
+    $c(256) \approx 10{,}24$. Ha egy pont átlagosan 3 vágás után egyedül marad: $s = 2^{-3/10{,}24} \approx 0{,}82$ – gyanús. Ha 10,24 után (az átlagos úthossz): $s = 0{,}5$. Ha 15 után: $s \approx 0{,}36$ – szokásos.
+  </div>
+</div>
+<div class="widget" data-widget="anomaly-explorer"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Tengelyekkel párhuzamos vágások.</b> Mint a döntési fánál, a vágások egy-egy jellemző mentén mennek. Egy ferde, keskeny felhő mellett lévő anomáliát ezért nehezebben szigetel el – a szemléltetés „ferde felhő” adatán megnézheted.</li>
+    <li><b>A „szennyezettség” paraméter csak küszöb.</b> A scikit-learnben a <code>contamination</code> azt mondja meg, a pontok hányad részét jelölje meg – a pontszámot nem változtatja. Ha nem tudod, mennyi anomália van, inkább a sorrendet használd.</li>
+    <li><b>A pontszám véletlen.</b> Kevés fával és kis mintával két futás más sorrendet adhat a határeseteknél. Rögzítsd a magot, és használj elég fát (100–300).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – izolációs erdő</summary>
+  <ol>
+    <li>Pontok: 0, 1, 2, 10. Mekkora eséllyel szigeteli el a 10-et az első véletlen vágás (a 0 és a 10 között)?
+      <details><summary>Megoldás</summary>A vágásnak a 2 és a 10 közé kell esnie: $8/10 = 80\%$.</details></li>
+    <li>Ugyanitt mekkora eséllyel marad a 0 egyedül az első vágás után?
+      <details><summary>Megoldás</summary>A vágásnak a 0 és az 1 közé kell esnie: $1/10 = 10\%$.</details></li>
+    <li>Egy pont átlagos úthossza 5, $c(\psi) = 10$. Mennyi a pontszáma? Gyanús?
+      <details><summary>Megoldás</summary>$s = 2^{-5/10} = 2^{-0{,}5} \approx 0{,}71$. Gyanús – jóval 0,5 fölött van.</details></li>
+    <li>Miért nem kell standardizálni az izolációs erdő előtt?
+      <details><summary>Megoldás</summary>Mert minden vágás egyetlen jellemzőn, annak saját minimuma és maximuma között történik. Ha egy jellemzőt ezerszeresére nagyítasz, a vágás helyei is ezerszeresükre nőnek – ugyanazokat a pontokat választja szét.</details></li>
+    <li>(nehezebb) Miért használ minden fa csak egy kis részmintát (pl. 256 pontot), és nem az összes adatot?
+      <details><summary>Megoldás</summary>Gyorsabb, és jobb is: a teljes adatban az anomáliák körül több „szokásos” pont lehet, illetve az anomáliák csoportjai egymást takarhatják (elfedés). Egy kis mintában a csoportos anomáliák is ritkábbak, könnyebben elszigetelhetők.
+        Ráadásul a fák így különbözőbbek, az átlaguk stabilabb.</details></li>
+  </ol>
+</details>
+
+<h3 id="s85-c">3. lépés: rekonstrukciós hiba – és hogyan értékeljük?</h3>
+<p>A harmadik ötlet a <a href="#s83">PCA</a>-ból jön: ha a szokásos adat egy egyszerűbb szerkezetbe (egyenes, sík, néhány főkomponens) tömöríthető, akkor az, ami <b>nem fér bele</b>, gyanús.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két új pont a négy mellé</span>
+  A <a href="#s83-a">8.3</a> négy pontjának első főkomponense $\mathbf v_1 = \frac{1}{\sqrt2}(1; 1)$. Jön két új pont:
+  <div class="two-col">
+    <div><b>$(3;\ 3{,}5)$:</b> az átlagtól (az origótól) 4,61-re van – messze. De szinte az átlón fekszik: a rekonstrukciós hibája csak <b>0,125</b>. A szokásos mintázatot követi, csak „nagyobb”.</div>
+    <div><b>$(2;\ -2)$:</b> az origótól csak 2,83-ra van. De pontosan merőleges az átlóra: $z = 0$, a visszaállított pont $(0; 0)$, a hiba <b>8</b>. Ez az, ami nem illik a mintázatba.</div>
+  </div>
+  A „messze van a középtől” és a „nem illik a mintázatba” két különböző dolog. A rekonstrukciós hiba a másodikat méri.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – rekonstrukcióalapú anomáliadetektálás</span>
+  Taníts egy tömörítő modellt a (főleg) szokásos adaton – pl. PCA-t $q$ komponenssel, vagy egy <b>autokódolót</b> (egy neurális hálót, amely egy szűk „nyakon” át tanulja visszaadni a bemenetét, 14. fejezet).
+  Az anomáliapontszám a <b>rekonstrukciós hiba</b>: $\|\mathbf x - \hat{\mathbf x}\|^2$.
+  <br><b>Értékelés</b> – ha utólag van néhány címke (kivizsgált esetek):
+  <ul style="margin:.2rem 0">
+    <li><b>Precizitás $N$-nél</b> (precision@N): a megjelölt $N$ eset hányad része valódi anomália (<a href="../06-modellertekeles/#s61-b">6.1</a>).</li>
+    <li><b>Felidézés:</b> az összes valódi anomália hányad részét találta meg a felső $N$.</li>
+    <li>Mivel az anomália nagyon ritka, a pontosság (accuracy) és még a ROC is félrevezet – a <b>PR-görbe</b> a jó mérce (<a href="../06-modellertekeles/#s62-d">6.2</a>).</li>
+  </ul>
+  <small>Miért jó a tömörítés? Mert a modell csak azt tanulja meg „gazdaságosan” leírni, ami gyakori. A ritka, más szerkezetű eset számára nincs hely a szűk ábrázolásban – a visszaállítása rossz lesz.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – precizitás és felidézés</span>
+    $10\,000$ tranzakcióban 10 csalás van (ezt utólag kivizsgálták). A felső 20 pontszámú tranzakció között 6 csalás van. Precizitás@20: $6/20 = 30\%$; felidézés: $6/10 = 60\%$.
+    Ha vakon választanánk 20-at, átlagosan $20 \cdot 0{,}001 = 0{,}02$ csalást találnánk – a módszer kb. 300-szor jobb a véletlennél.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy gép rezgése</span>
+    Egy mikrokontrollerre szerelt gyorsulásmérő mozgásmintáit tömörítik (spektrális jellemzők, majd k-közép vagy autokódoló) – ez egy rendszerkönyv (MLSYS) gyakorló feladata. A szokásos mozgásokra a pontszám kicsi,
+    egy soha nem látott mozgásra (pl. „gurulásra”) nagy. Hibás csapágy, kiegyensúlyozatlan motor így jelezhető előre, címkézett hibaadat nélkül.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Ha az anomáliák is benne vannak a tanító adatban,</b> a modell őket is megtanulhatja „szokásosként”. Lehetőleg tiszta (vagy szűrt) adaton tanítsd a tömörítőt.</li>
+    <li><b>A világ változik.</b> A „szokásos” idővel eltolódik (új termékek, ünnepi vásárlás). Egy fél éve tanított detektor a karácsonyi forgalmat anomáliának látja – rendszeresen újra kell tanítani (22. fejezet).</li>
+    <li><b>A csaló alkalmazkodik.</b> Aki tudja, mit figyel a rendszer, a „szokásos” mintázatba rejtőzik. Az anomáliadetektálás egy versengés része, nem egyszeri megoldás.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – rekonstrukciós hiba és értékelés</summary>
+  <ol>
+    <li>A $\mathbf v_1 = \frac{1}{\sqrt2}(1; 1)$ irány mellett mennyi az $(1;\ 2)$ pont rekonstrukciós hibája?
+      <details><summary>Megoldás</summary>$z = 3/\sqrt2$, $\hat{\mathbf x} = z\mathbf v_1 = (1{,}5;\ 1{,}5)$, a hiba $(-0{,}5)^2 + 0{,}5^2 = 0{,}5$.</details></li>
+    <li>És a $(-3;\ 3)$ ponté? Melyik a gyanúsabb?
+      <details><summary>Megoldás</summary>$z = 0$, $\hat{\mathbf x} = (0; 0)$, a hiba $9 + 9 = 18$. A $(-3; 3)$ sokkal gyanúsabb – teljesen merőleges a szokásos irányra.</details></li>
+    <li>500 megjelölt esetből 40 valódi csalás; összesen 50 csalás volt. Mennyi a precizitás és a felidézés?
+      <details><summary>Megoldás</summary>Precizitás@500: $40/500 = 8\%$. Felidézés: $40/50 = 80\%$.</details></li>
+    <li>Egy detektor „99,9%-os pontosságú” $10\,000$ tranzakción, amelyben 10 csalás van. Jó?
+      <details><summary>Megoldás</summary>Nem derül ki: a „senki sem csaló” válasz is 99,9%-os (<a href="../04-adatok-es-jellemzok/#s48-b">4.8</a>). Precizitás és felidézés kell – a pontosság ritka eseménynél semmit nem mond.</details></li>
+    <li>(nehezebb) Miért lehet a PCA-rekonstrukciós hiba jobb anomáliapontszám, mint az átlagtól mért távolság?
+      <details><summary>Megoldás</summary>Mert a távolság a „nagy, de szokásos” pontokat (amelyek a fő irány mentén messze vannak) is megjelöli, a rekonstrukciós hiba viszont csak azokat, amelyek a szokásos szerkezetből <em>kilépnek</em> – mint a $(2; -2)$ a $(3; 3{,}5)$-del szemben.
+        (A kettő kombinálható is: a Mahalanobis-távolság mindkét irányt a saját szórásához méri.)</details></li>
+  </ol>
+</details>
+
+<div class="box tip">
+  <span class="box-title">💡 Kiegészítés – még néhány módszer</span>
+  <b>LOF</b> (<em>local outlier factor</em>, M. Breunig és társai, 2000): a pont környezetének sűrűségét a szomszédai sűrűségéhez méri – így eltérő sűrűségű csoportok mellett is működik.
+  <b>Egyosztályos SVM</b> (B. Schölkopf és társai, 2001): egy kernellel (<a href="../07-fak-svm-egyuttes/#s76-c">7.6</a>) a szokásos adat köré „burkot” húz. <b>Gauss-keverék:</b> a pont valószínűsége a modell szerint – ami valószínűtlen, az gyanús.
+</div>
+
+<div class="quiz" data-quiz="ai8-85"></div>
+</section>
+

@@ -1,0 +1,273 @@
+<!-- ===================================================== 8.3 -->
+<section id="s83">
+<h2>8.3 Főkomponens-elemzés (PCA) ★★</h2>
+<p>A <a href="../02-matematikai-eszkoztar/#s24-c">2.4</a>-ben megismerted a PCA receptjét: középre tolás, kovarianciamátrix, a legnagyobb sajátértékhez tartozó sajátvektor.
+Most megnézzük, <b>miért</b> épp ez a recept: mit jelent „vetíteni”, mennyit veszítünk vele, hány komponens kell, mikor kell skálázni – és mit nem tud a PCA.</p>
+<div class="box">
+  <span class="box-title">🔁 Emlékeztető</span>
+  Az $A$ mátrix <b>sajátvektora</b> az a $\mathbf v \ne \mathbf 0$ irány, amelyet $A$ csak nyújt: $A\mathbf v = \lambda\mathbf v$ (<a href="../02-matematikai-eszkoztar/#s24-b">2.4</a>).
+  Középre tolt adatnál ($\bar{\mathbf x} = \mathbf 0$) a <b>kovarianciamátrix</b> $C = \frac1n\sum_i \mathbf x_i\mathbf x_i^\top$: az átlójában a jellemzők varianciái, máshol a kovarianciák.
+  Szimmetrikus, ezért van egymásra merőleges, egységnyi hosszú sajátvektor-rendszere; és mivel $\mathbf u^\top C\mathbf u$ egy variancia (lásd lent), a sajátértékei nem negatívak. Egy pont <b>vetülete</b> az $\mathbf u$ egységvektorra $z = \mathbf u^\top\mathbf x$.
+</div>
+
+<h3 id="s83-a">1. lépés: vetítés egy irányra – mennyi szórás marad?</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – négy pont, négy irány</span>
+  Négy, már középre tolt pont: $(-2; -2)$, $(-1; 1)$, $(1; -1)$, $(2; 2)$. Ha <b>egyetlen</b> számmal akarjuk leírni őket, vetítsük őket egy egyenesre, és nézzük meg, mennyire szóródnak a vetületek!
+  <table style="max-width:700px;font-size:.88rem;text-align:center">
+    <tr><th>irány</th><th>$\mathbf u$</th><th>vetületek $z = \mathbf u^\top\mathbf x$</th><th>a vetületek varianciája</th></tr>
+    <tr><td>vízszintes</td><td>$(1; 0)$</td><td>$-2, -1, 1, 2$</td><td>$\frac{4 + 1 + 1 + 4}{4} = 2{,}5$</td></tr>
+    <tr><td>függőleges</td><td>$(0; 1)$</td><td>$-2, 1, -1, 2$</td><td>2,5</td></tr>
+    <tr><td>átló (45°)</td><td>$\frac{1}{\sqrt2}(1; 1)$</td><td>$-2{,}83;\ 0;\ 0;\ 2{,}83$</td><td>$\frac{8 + 0 + 0 + 8}{4} =$ <b>4</b></td></tr>
+    <tr><td>másik átló (135°)</td><td>$\frac{1}{\sqrt2}(-1; 1)$</td><td>$0;\ 1{,}41;\ -1{,}41;\ 0$</td><td>1</td></tr>
+  </table>
+  A 45°-os irányban a vetületek a legjobban szétszóródnak: itt őrzi meg a vetítés a legtöbbet abból, ami a pontokat megkülönbözteti. A 135°-os irányban a két középső pont
+  a $(0; 0)$-ra esik – az irány szinte semmit nem mutat meg. És vedd észre: $4 + 1 = 2{,}5 + 2{,}5 = 5$.
+</div>
+<div class="box def">
+  <span class="box-title">Tétel – a vetített variancia, és miért a sajátvektor</span>
+  Középre tolt adatnál az $\mathbf u$ egységvektorra vetített értékek varianciája
+  $$\operatorname{Var}(\mathbf u) = \frac1n\sum_i (\mathbf u^\top\mathbf x_i)^2 = \mathbf u^\top C\,\mathbf u.$$
+  Ez akkor a legnagyobb, ha $\mathbf u$ a $C$ legnagyobb sajátértékéhez ($\lambda_1$) tartozó sajátvektor – ez az <b>első főkomponens</b> –, és a maximum épp $\lambda_1$.
+  <br>Minden pont felbomlik a vetületére és a <b>maradékára</b> (Pitagorasz-tétel): $\|\mathbf x\|^2 = z^2 + \|\mathbf x - z\mathbf u\|^2$. Átlagolva:
+  $$\underbrace{\operatorname{tr} C}_{\text{teljes variancia}} = \underbrace{\mathbf u^\top C\,\mathbf u}_{\text{megtartott}} + \underbrace{\tfrac1n\textstyle\sum_i\|\mathbf x_i - z_i\mathbf u\|^2}_{\text{rekonstrukciós hiba}}.$$
+  A teljes variancia (az átló összege, $\operatorname{tr} C$) rögzített, ezért <b>a legtöbb szórás megtartása ugyanaz, mint a legkisebb rekonstrukciós hiba</b>. Két kérdés, egy válasz.
+  <br><small>Miért mindegy, melyiket nézzük? Mert ami a vetítés után „eltűnik”, az a maradék – ami nem tűnik el, az a megtartott variancia. A PCA olyan egyenest keres, amelyhez a pontok a legközelebb vannak
+  (merőlegesen mérve!), és ez ugyanaz az egyenes, amely mentén a legjobban szóródnak.</small>
+  <details><summary>📐 Miért a sajátvektor adja a maximumot?</summary>
+    Írd fel $\mathbf u$-t a $C$ merőleges, egységnyi sajátvektoraival: $\mathbf u = c_1\mathbf v_1 + \dots + c_d\mathbf v_d$, ahol $c_1^2 + \dots + c_d^2 = 1$. Ekkor
+    $\mathbf u^\top C\mathbf u = \lambda_1c_1^2 + \dots + \lambda_dc_d^2 \le \lambda_1(c_1^2 + \dots + c_d^2) = \lambda_1$, és egyenlőség $\mathbf u = \mathbf v_1$-nél van.
+    A második főkomponens ugyanígy a $\mathbf v_1$-re merőleges irányok közül a legjobb: $\mathbf v_2$, varianciája $\lambda_2$. És így tovább.
+  </details>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – minden irány egy képlettel</span>
+    A négy pontnál $C = \begin{pmatrix} 2{,}5 & 1{,}5 \\ 1{,}5 & 2{,}5 \end{pmatrix}$. Az $\mathbf u = (\cos\theta; \sin\theta)$ irányban
+    $\operatorname{Var} = 2{,}5\cos^2\theta + 2{,}5\sin^2\theta + 2 \cdot 1{,}5\sin\theta\cos\theta = 2{,}5 + 1{,}5\sin 2\theta$.
+    Legnagyobb $\theta = 45°$-nál (4), legkisebb $135°$-nál (1); 30°-nál 3,80. A sajátértékek: $\lambda_1 = 4$, $\lambda_2 = 1$.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – mit veszítünk?</span>
+    A 45°-os egyenesre vetítve a $(-2; -2)$ és a $(2; 2)$ pontosan visszaállítható (rajta vannak), a $(-1; 1)$ és az $(1; -1)$ viszont a $(0; 0)$-ra esik – hibájuk egyenként $1^2 + 1^2 = 2$.
+    Az átlagos rekonstrukciós hiba $\frac{0 + 2 + 2 + 0}{4} = 1 = \lambda_2$. A teljes 5-ből 4-et megtartottunk: <b>80%</b>.
+  </div>
+</div>
+<div class="widget" data-widget="pca-projection"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Variancia, nem terjedelem.</b> Egy vizuális könyv (DLV 10) azt az egyenest keresi, amelyre vetítve a pontok „a legnagyobb tartományt” fedik le. A PCA a <em>varianciát</em> maximalizálja:
+      egyetlen távoli pont a terjedelmet nagyon, a varianciát csak kicsit növeli.</li>
+    <li><b>Merőlegesen mérünk.</b> A PCA egyenese nem a regressziós egyenes (<a href="../03-tanulas-anatomiaja/#s34-b">3.4</a>). A regresszió <em>függőlegesen</em> méri a hibát (egy kitüntetett célváltozóban),
+      a PCA <em>merőlegesen</em> (minden jellemző egyenrangú).</li>
+    <li><b>Előbb középre tolni.</b> Középre tolás nélkül az „első főkomponens” az origótól az adatfelhő felé mutatna (<a href="../02-matematikai-eszkoztar/#s24-c">2.4</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – vetítés és vetített variancia</summary>
+  <ol>
+    <li>A négy pontnál mennyi a vetített variancia $\theta = 60°$-nál? Melyik másik szögnél ugyanennyi?
+      <details><summary>Megoldás</summary>$2{,}5 + 1{,}5\sin 120° = 2{,}5 + 1{,}5 \cdot 0{,}866 \approx 3{,}80$. Ugyanennyi 30°-nál, mert $\sin 60° = \sin 120°$ – a 45° két oldalán szimmetrikus.</details></li>
+    <li>Vetítsd a $(2; 2)$ és a $(-1; 1)$ pontot az $\mathbf u = \frac{1}{\sqrt2}(1; 1)$ irányra! Mi a visszaállított pont?
+      <details><summary>Megoldás</summary>$(2; 2)$: $z = 4/\sqrt2 \approx 2{,}83$, visszaállítva $z\mathbf u = (2; 2)$ – hiba 0. $(-1; 1)$: $z = 0$, visszaállítva $(0; 0)$ – hiba $1 + 1 = 2$.</details></li>
+    <li>Mit jelent a kovarianciamátrix két átlóbeli eleme a vetítés nyelvén?
+      <details><summary>Megoldás</summary>A tengelyirányú vetítések varianciáit: $\mathbf u = (1; 0)$-ra $\mathbf u^\top C\mathbf u = C_{11}$, $(0; 1)$-re $C_{22}$. A négy pontnál mindkettő 2,5.</details></li>
+    <li>Egy adat kovarianciamátrixa $\begin{pmatrix} 3 & 0 \\ 0 & 1 \end{pmatrix}$. Mi az első főkomponens, és hány százalékot magyaráz?
+      <details><summary>Megoldás</summary>A mátrix átlós, a sajátvektorok a tengelyek. Az első főkomponens $(1; 0)$, $\lambda_1 = 3$; aránya $3/(3 + 1) = 75\%$.</details></li>
+    <li>(nehezebb) Mutasd meg, hogy $\frac1n\sum_i(\mathbf u^\top\mathbf x_i)^2 = \mathbf u^\top C\mathbf u$!
+      <details><summary>Megoldás</summary>$(\mathbf u^\top\mathbf x_i)^2 = (\mathbf u^\top\mathbf x_i)(\mathbf x_i^\top\mathbf u) = \mathbf u^\top(\mathbf x_i\mathbf x_i^\top)\mathbf u$. Átlagolva: $\mathbf u^\top\left(\frac1n\sum_i\mathbf x_i\mathbf x_i^\top\right)\mathbf u = \mathbf u^\top C\mathbf u$.
+        (Középre tolt adatnál a vetületek átlaga 0, ezért ez tényleg a variancia.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s83-b">2. lépés: több komponens – magyarázott variancia, rekonstrukció, hány kell?</h3>
+<p>Két dimenzióból egyet csinálni szép, de a valódi haszon ott van, ahol <b>sok</b> jellemző van. Egy 8×8 pixeles kézírásos számjegy 64 szám. Kell-e mind a 64?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – 1797 számjegy, 64 pixel</span>
+  A scikit-learn kézírásos számjegyein (1797 kép, 8×8 pixel) a PCA sajátértékeiből számolt <b>halmozott</b> arány:
+  <table style="max-width:560px;font-size:.88rem;text-align:center">
+    <tr><th>ennyi variancia megtartásához…</th><td>50%</td><td>80%</td><td>90%</td><td>95%</td><td>99%</td></tr>
+    <tr><th>…ennyi főkomponens kell (a 64-ből)</th><td>5</td><td>13</td><td>21</td><td>29</td><td>41</td></tr>
+  </table>
+  A pixelek erősen összefüggnek: ha egy vonás áthalad egy pixelen, a szomszédja is valószínűleg sötét. 21 „összetett pixel” a variancia 90%-át hordozza. Az első kettő csak 28,5%-ot –
+  ezért lesz egy 2D-s PCA-térkép a számjegyekről elég zsúfolt (<a href="#s84">8.4</a>).
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – PCA $q$ komponenssel</span>
+  Legyenek a kovarianciamátrix sajátértékei csökkenő sorrendben $\lambda_1 \ge \lambda_2 \ge \dots \ge \lambda_d \ge 0$, a hozzájuk tartozó egységnyi sajátvektorok $\mathbf v_1, \dots, \mathbf v_d$,
+  és $V_q$ az első $q$ sajátvektorból mint oszlopokból álló mátrix.
+  <ul style="margin:.2rem 0">
+    <li><b>Pontszámok</b> (az új koordináták): $\mathbf z = V_q^\top(\mathbf x - \bar{\mathbf x})$ – $d$ szám helyett $q$.</li>
+    <li><b>Rekonstrukció:</b> $\hat{\mathbf x} = \bar{\mathbf x} + V_q\mathbf z$.</li>
+    <li><b>Magyarázott variancia aránya:</b> $\dfrac{\lambda_1 + \dots + \lambda_q}{\lambda_1 + \dots + \lambda_d}$; az átlagos rekonstrukciós hiba a <em>kihagyott</em> sajátértékek összege: $\lambda_{q+1} + \dots + \lambda_d$.</li>
+  </ul>
+  Hány komponens kell? Három szokásos szabály: (1) a halmozott arány érje el a 90–95%-ot; (2) a sajátértékek görbéjén (<b>scree plot</b>, „kőomlás-ábra”) ott állj meg, ahol a meredek rész laposba fordul;
+  (3) ha a PCA egy felügyelt modell előtt áll, a $q$-t a modell <b>keresztvalidált</b> teljesítménye döntse el (<a href="../06-modellertekeles/#s68-a">6.8</a>).
+  <br><small>Miért éppen a legnagyobb sajátértékek? Az előző lépés gondolatmenete minden $q$-ra igaz: az első $q$ sajátvektor kifeszítette altér a legjobb $q$ dimenziós „sík” – rá vetítve a legkisebb a rekonstrukciós hiba.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy kőomlás-ábra</span>
+    Öt jellemző sajátértékei: 2,6; 1,4; 0,5; 0,3; 0,2 (összeg 5). Arányban: 52%, 28%, 10%, 6%, 4% – halmozva 52%, 80%, 90%, 96%, 100%.
+    A görbe a 2. komponens után laposodik: két-három komponens elég. 90%-hoz pontosan három.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – tömörítés</span>
+    1797 kép × 64 pixel = $115\,008$ szám. 21 komponenssel tároljuk a pontszámokat ($1797 \cdot 21$), a komponenseket ($21 \cdot 64$) és az átlagképet (64): összesen $39\,145$ szám – az eredeti <b>34%-a</b>,
+    a variancia 90%-ának megőrzésével.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A PCA nem jellemzőkiválasztás.</b> A főkomponensek az <em>összes</em> eredeti jellemző súlyozott összegei – új jellemzők (<b>jellemzőkivonás</b>), nem a régiek egy része
+      (<a href="../04-adatok-es-jellemzok/#s46-a">4.6</a>). Egy rendszerkönyv (MLSYS) a PCA-t a „legrelevánsabb jellemzőket azonosító” kiválasztási módszerek közé sorolja – ez pontatlan.</li>
+    <li><b>Közelítés, nem azonosság.</b> Az MLD szerint az első néhány komponens használata „egyenértékű az eredeti adattal”. Nem az: a kihagyott sajátértékek összegével egyenlő hibát elfogadunk.</li>
+    <li><b>Az előjel önkényes.</b> Ha $\mathbf v$ sajátvektor, $-\mathbf v$ is az. Két program „tükrözött” PCA-ábrát adhat – ugyanaz az eredmény.</li>
+    <li><b>Scree vagy könyök?</b> A <em>scree plot</em> a PCA sajátértékeinek ábrája; a k-közép SSE-görbéje a <em>könyökábra</em> (<a href="#s81-d">8.1</a>). Hasonló ötlet, más görbe.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – magyarázott variancia, rekonstrukció</summary>
+  <ol>
+    <li>Négy sajátérték: 5, 3, 1, 1. Mennyi az első, illetve az első két főkomponens magyarázott aránya?
+      <details><summary>Megoldás</summary>Összeg 10. Az első: 50%, az első kettő: $8/10 = 80\%$.</details></li>
+    <li>Sajátértékek: 40, 25, 15, 10, 5, 5. Hány komponens kell a 90%-hoz? Mennyi ekkor az átlagos rekonstrukciós hiba?
+      <details><summary>Megoldás</summary>Összeg 100; halmozva 40, 65, 80, <b>90</b> → 4 komponens. A hiba a kihagyottak összege: $5 + 5 = 10$.</details></li>
+    <li>A négy pont példájában ($\mathbf v_1 = \frac{1}{\sqrt2}(1; 1)$) mennyi az $(1; -1)$ pont pontszáma és rekonstrukciója egy komponenssel?
+      <details><summary>Megoldás</summary>$z = (1 - 1)/\sqrt2 = 0$, $\hat{\mathbf x} = (0; 0)$. A hiba $1^2 + (-1)^2 = 2$ – ez a pont teljes egészében a „kidobott” irányban fekszik.</details></li>
+    <li>1000 kép, egyenként 1024 pixel. 50 komponenst tartasz meg. Hány számot kell tárolnod, és ez hány százaléka az eredetinek?
+      <details><summary>Megoldás</summary>Pontszámok $1000 \cdot 50 = 50\,000$, komponensek $50 \cdot 1024 = 51\,200$, átlagkép 1024: összesen $102\,224$, az eredeti $1\,024\,000$ kb. <b>10%-a</b>.</details></li>
+    <li>(nehezebb) Miért a kihagyott sajátértékek összege az átlagos rekonstrukciós hiba?
+      <details><summary>Megoldás</summary>A középre tolt $\mathbf x$-et a sajátvektorok bázisában felírva $\mathbf x = \sum_j z_j\mathbf v_j$, a rekonstrukció az első $q$ tag, a hiba $\sum_{j \gt q} z_j\mathbf v_j$, a hossza négyzete $\sum_{j \gt q} z_j^2$
+        (a $\mathbf v_j$-k merőlegesek és egységnyiek). Átlagolva $\sum_{j \gt q}\frac1n\sum_i z_{ij}^2 = \sum_{j \gt q}\lambda_j$, mert a $j$-edik irányban a vetített variancia $\lambda_j$.</details></li>
+  </ol>
+</details>
+
+<h3 id="s83-c">3. lépés: skálázni vagy nem? – kovariancia és korreláció</h3>
+<p>A PCA a <b>varianciát</b> nézi. A variancia viszont mértékegységfüggő: ugyanaz a kosár forintban milliószor nagyobb varianciájú, mint ezer forintban. Mit lát ilyenkor a PCA?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a 11 vásárló három mértékegységben</span>
+  A 11 vásárló (A–K) két jellemzője erősen összefügg (korreláció: −0,96): aki gyakran vásárol, kis kosárral teszi. Az első főkomponens:
+  <table style="max-width:700px;font-size:.88rem;text-align:center">
+    <tr><th>a kosár mértékegysége</th><th>$\mathbf v_1$ (vásárlás; kosár)</th><th>magyarázott arány</th><th>mit jelent?</th></tr>
+    <tr><td>ezer Ft</td><td>$(-0{,}42;\ 0{,}91)$</td><td>98,7%</td><td>főleg a kosár, kicsit a vásárlásszám</td></tr>
+    <tr><td>Ft</td><td>$(-0{,}0005;\ 1{,}000)$</td><td>&gt; 99,999%</td><td>csak a kosár – a vásárlásszám „eltűnt”</td></tr>
+    <tr><td>standardizálva</td><td>$(0{,}71;\ -0{,}71)$</td><td>97,9%</td><td>„gyakori, kicsi ↔ ritka, nagy” tengely, egyenlő súllyal</td></tr>
+  </table>
+  Forintban a PCA egyszerűen a legnagyobb számú oszlopot választja. Standardizálás után a két jellemző egyenrangú, és a főkomponens azt az összefüggést mutatja, amit valóban látunk.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – kovariancia- vagy korrelációs PCA?</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Standardizálj</b> ($z = (x - \bar x)/s$ minden jellemzőre), ha a jellemzők <b>különböző mértékegységűek</b> vagy nagyságrendűek (forint, darab, %, kg). Ekkor a PCA valójában a <b>korrelációs mátrix</b> sajátvektorait keresi.</li>
+    <li><b>Ne standardizálj</b>, ha a jellemzők <b>azonos mértékegységűek</b>, és a nagyobb szórás valóban fontosabb: pl. pixelek (0–255), azonos skálájú kérdőíves válaszok. Itt a standardizálás a szinte állandó,
+      „unalmas” jellemzőket (pl. a kép szélén mindig fehér pixeleket) felnagyítaná.</li>
+  </ul>
+  <small>Miért? Mert a PCA nem tudja, mi „fontos” – csak azt, mi <b>szóródik</b>. A mértékegység választása annak eldöntése, mennyit számítson egy jellemző. Ezt neked kell eldöntened, nem a PCA-nak.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – 178 bor, nyersen</span>
+    A <em>wine</em> adatkészlet 13 kémiai mérése között van a <b>prolin</b> (mg/l, szórás 314) és a <b>színárnyalat</b> (szórás 0,23). Nyers PCA: az első főkomponens a variancia <b>99,8%</b>-át „magyarázza” –
+    és szinte pontosan a prolin tengelye. Egy jellemző a 13-ból.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – 178 bor, standardizálva</span>
+    Standardizálás után az első főkomponens 36,2%-ot, a második 19,2%-ot magyaráz (együtt 55,4%; öt komponens 80%-ot). Az első komponensben a fenolok és a flavonoidok súlya a legnagyobb –
+    egy valódi, sok jellemzőt összefogó tengely. Ezt az adatot a <a href="#s87-b">8.7</a>-ben klaszterezzük is.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A nagy magyarázott arány gyanús is lehet.</b> A „99,8% egy komponensben” nem az adat egyszerűségét, hanem egy mértékegység uralmát mutathatja. Mindig nézd meg a komponens súlyait (a $\mathbf v_1$ elemeit)!</li>
+    <li><b>A standardizálás paramétereit is a tanító adaton számold</b> – akárcsak a PCA-t (<a href="../04-adatok-es-jellemzok/#s47-b">4.7</a>).</li>
+    <li><b>Képeknél óvatosan.</b> Egy vizuális könyv (DLV 10) szerint a „sajátarcokhoz” pixelenként egységnyi szórásra standardizálnak. Az eredeti módszer (Turk és Pentland, 1991) csak az átlagarcot vonja ki.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – skálázás és PCA</summary>
+  <ol>
+    <li>Egy adatban a magasság cm-ben (szórás 10) és a testtömeg tonnában (szórás 0,015) szerepel. Mit ad a nyers PCA első komponense?
+      <details><summary>Megoldás</summary>Szinte pontosan a magasság tengelyét: a varianciák aránya $100 : 0{,}000225$. A testtömeg gyakorlatilag eltűnik – csak a mértékegysége miatt. Standardizálni kell.</details></li>
+    <li>A wine adatban a prolin szórása 314, a színárnyalaté 0,23. Hányszor nagyobb a prolin varianciája?
+      <details><summary>Megoldás</summary>$(314/0{,}23)^2 \approx 1365^2$, kb. 1,9 milliószor.</details></li>
+    <li>Két standardizált jellemző korrelációja $r$. A korrelációs mátrix $\begin{pmatrix} 1 & r \\ r & 1 \end{pmatrix}$. Mik a sajátértékek és -vektorok?
+      <details><summary>Megoldás</summary>$(1; 1)$: $(1 + r;\ r + 1)$ → $\lambda = 1 + r$. $(1; -1)$: $(1 - r;\ r - 1)$ → $\lambda = 1 - r$. A vásárlóknál $r = -0{,}957$: $\lambda_1 = 1{,}957$ az $(1; -1)$ irányban, aránya $1{,}957/2 \approx 97{,}9\%$ ✓.</details></li>
+    <li>Az előző feladatból: két standardizált jellemzőnél merre mutat <em>mindig</em> az első főkomponens?
+      <details><summary>Megoldás</summary>45°-ban ($r \gt 0$ esetén $(1; 1)$) vagy 135°-ban ($r \lt 0$ esetén $(1; -1)$) – az adattól csak az <em>aránya</em> függ, az iránya nem. Két standardizált jellemzőnél a PCA iránya „üres” információ.</details></li>
+    <li>(nehezebb) 28×28 pixeles, fekete-fehér képeken a szélső pixelek szinte mindig 0-k, szórásuk 0,01. Mi történik, ha a PCA előtt pixelenként standardizálsz?
+      <details><summary>Megoldás</summary>Ezek a pixelek a standardizálással 100-szorosára nagyítódnak: az ott lévő apró zaj ugyanakkora varianciát kap, mint a számjegy vonásai. A főkomponensek egy része zajt fog követni.
+        Azonos mértékegységű pixeleknél a középre tolás elég (esetleg 0–1 közé osztás – az minden pixelt egyformán skáláz).</details></li>
+  </ol>
+</details>
+
+<h3 id="s83-d">4. lépés: mire jó, és mit nem tud? – a PCA a gyakorlatban</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két párhuzamos szivar</span>
+  Két osztály: az egyik pontjai $(x; 0)$, a másikéi $(x; 1)$, mindkettőnél $x = -3, -2, \dots, 3$. Két hosszú, vékony, párhuzamos „szivar”.
+  A variancia vízszintesen 4, függőlegesen 0,25: az első főkomponens a vízszintes tengely, és a variancia <b>94%</b>-át magyarázza. Vetítsünk rá!
+  A két osztály pontjai <b>pontosan egymásra esnek</b> – a megtartott 94% semmit sem árul el arról, ami az osztályokat elválasztja. Az a 6% volt, amit eldobtunk.
+</div>
+<div class="box def">
+  <span class="box-title">Recept – PCA a gyakorlatban</span>
+  <ol style="margin:.2rem 0">
+    <li>Oszd fel az adatot (tanító / teszt). A skálázót és a PCA-t <b>csak a tanító adaton</b> illeszd, és ugyanazzal a transzformációval alakítsd a teszt adatot (csővezeték, <a href="../06-modellertekeles/#s65-d">6.5</a>).</li>
+    <li>Különböző mértékegységeknél standardizálj (<a href="#s83-c">3. lépés</a>).</li>
+    <li>Válaszd meg $q$-t (halmozott arány, kőomlás-ábra, vagy a későbbi modell keresztvalidációja).</li>
+    <li>Nézd meg a komponensek súlyait: mit jelent az 1., a 2. tengely?</li>
+  </ol>
+  <b>Mire jó?</b> <b>Megjelenítés</b> (2 komponens → szórásdiagram), <b>tömörítés</b>, <b>zajszűrés</b> (a kis sajátértékű irányok gyakran zajt hordoznak), <b>előfeldolgozás</b>
+  (kevesebb, korrelálatlan jellemző egy későbbi modellnek – kNN, k-közép, regresszió), <b>anomáliadetektálás</b> a rekonstrukciós hibával (<a href="#s85-c">8.5</a>).
+  <br><b>Mit nem tud?</b> A PCA <b>lineáris</b>: egyenesekre, síkokra vetít. És <b>felügyelet nélküli</b>: nem tudja, mi a címke, ezért eldobhatja épp azt, ami a jósláshoz kell.
+  <br><small>A számolás a gyakorlatban nem a kovarianciamátrixon, hanem a középre tolt $X$ adatmátrix <b>szinguláris felbontásán</b> (SVD) megy: $X = U\Sigma V^\top$. A $V$ oszlopai a főkomponensek,
+  a sajátértékek $\lambda_j = \sigma_j^2/n$, a pontszámok $U\Sigma$. Ez numerikusan pontosabb, és nem kell felírni a $d \times d$-s mátrixot.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy kör</span>
+    Tizenkét pont egy kör kerületén, egyenletesen. Minden irányban ugyanakkora a szórás: a két főkomponens 50–50%-ot magyaráz. Bármelyik egyenesre vetítesz, két-két, az egyenesre tükrös pont egymásra esik.
+    Az adat valójában egydimenziós (a szög írja le), de nem <em>egyenes</em> mentén – ehhez nemlineáris módszer kell (<a href="#s84">8.4</a>).
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – SVD a négy ponton</span>
+    A négy pont $4 \times 2$-es mátrixának szinguláris értékei: $\sigma_1 = 4$, $\sigma_2 = 2$. Ellenőrzés: $\sigma_1^2/n = 16/4 = 4 = \lambda_1$, $\sigma_2^2/n = 4/4 = 1 = \lambda_2$ ✓.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Nagy variancia ≠ fontos a jósláshoz.</b> Egy vizuális könyv (DLV 10) szerint a PCA úgy választja ki és kombinálja a jellemzőket, hogy „a legkevésbé hasson az eredményeinkre”. A PCA az eredményeidről
+      semmit nem tud: a varianciát őrzi meg. Ha a cél egy címke jóslása, a $q$-t a felügyelt modell validációja döntse el.</li>
+    <li><b>A teljes PCA csak elforgat.</b> Ha mind a $d$ komponenst megtartod, a pontok közti távolságok nem változnak – a k-közép és a kNN eredménye sem. Csak a <em>levágás</em> (kevesebb komponens) változtat.</li>
+    <li><b>Szivárgás.</b> Ha a PCA-t a teljes adaton illeszted a felosztás előtt, a teszt adat jellemzői belelátnak a tanításba (<a href="../04-adatok-es-jellemzok/#s47-b">4.7</a>). Egy gyakorlati könyv (PDL 5) példakódja pont így tesz.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a PCA a gyakorlatban</summary>
+  <ol>
+    <li>A két szivar példájában mennyi a vízszintes és a függőleges variancia, és mekkora az első főkomponens aránya?
+      <details><summary>Megoldás</summary>Vízszintesen az $x = -3, \dots, 3$ értékek varianciája $\frac{9 + 4 + 1 + 0 + 1 + 4 + 9}{7} = 4$; függőlegesen a 0/1 fele-fele: $0{,}25$. Arány: $4/4{,}25 \approx 94\%$.</details></li>
+    <li>Mit kapsz, ha a két szivart a <em>második</em> főkomponensre vetíted?
+      <details><summary>Megoldás</summary>Két pontot: minden 0-s osztálybeli pont ugyanoda (−0,5), minden 1-es ugyanoda (+0,5) esik. Egyetlen szám tökéletesen szétválasztja az osztályokat – a „kevéssé fontos” 6%-ban volt minden információ.</details></li>
+    <li>Egy kollégád a PCA-t az egész adaton illesztette, aztán osztotta fel tanító és teszt halmazra. Mekkora a baj?
+      <details><summary>Megoldás</summary>Szivárgás: a teszt pontok befolyásolták a főkomponenseket. Címkét nem látott, ezért általában kicsi a hatása, de a tesztbecslés így elvileg optimista. A javítás: csővezeték, illesztés csak a tanító (hajtás) adaton.</details></li>
+    <li>Egy adatmátrix szinguláris értékei 10 és 5, $n = 25$ sor. Mik a kovarianciamátrix sajátértékei, és mennyi az első komponens aránya?
+      <details><summary>Megoldás</summary>$\lambda_1 = 100/25 = 4$, $\lambda_2 = 25/25 = 1$; arány $4/5 = 80\%$.</details></li>
+    <li>(nehezebb) Miért nem változnak a távolságok, ha mind a $d$ főkomponenst megtartod?
+      <details><summary>Megoldás</summary>Az új koordináták $\mathbf z = V^\top\mathbf x$, ahol $V$ oszlopai merőleges egységvektorok ($V^\top V = I$). Ekkor $\|\mathbf z\|^2 = \mathbf x^\top VV^\top\mathbf x = \|\mathbf x\|^2$ (négyzetes $V$-re $VV^\top = I$ is igaz),
+        és ugyanez két pont különbségére. A teljes PCA egy forgatás (esetleg tükrözés) – ezért nem „javítja meg” az euklideszi távolságot, ahogy az MLD állítja.</details></li>
+  </ol>
+</details>
+
+<div class="box history">
+  <span class="box-title">📜 Történet</span>
+  A főkomponens-elemzést K. Pearson írta le 1901-ben („a pontrendszerhez legközelebbi egyenesek és síkok”, vagyis a rekonstrukciós hiba felől), és H. Hotelling 1933-ban – a variancia felől.
+  A két nézőpont ugyanazt adja, ahogy az első lépésben láttuk. A számítógépes látásban M. Turk és A. Pentland 1991-es <em>sajátarcai</em> (eigenfaces) tették híressé: minden arckép néhány „alap-arc” súlyozott összegeként írható le.
+</div>
+
+<div class="quiz" data-quiz="ai8-83"></div>
+</section>
+

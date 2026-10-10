@@ -1,0 +1,1980 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>8. Felügyelet nélküli tanulás – Mesterséges intelligencia – Synopsis</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="../../assets/common.js"></script>
+  <script defer src="../../assets/quiz.js"></script>
+  <script defer src="../../assets/calc.js"></script>
+  <script defer src="digits-data.js"></script>
+  <script defer src="widgets.js"></script>
+  <script defer src="quizzes.js"></script>
+</head>
+<body>
+<div class="progressbar"></div>
+<header class="topbar">
+  <a class="brand" href="../../">📚 Synopsis</a>
+  <span class="crumbs"><a href="../../">Tartalomjegyzék</a> › <a href="../">Mesterséges intelligencia</a> › 8. fejezet</span>
+  <button class="icon-btn" data-theme-toggle title="Téma váltása">🌙</button>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <div class="toc-title">8. fejezet</div>
+  <ol>
+    <li><a href="#s81">8.1 Klaszterezés: a k-közép</a></li>
+    <li><a href="#s82">8.2 Hierarchikus és sűrűségalapú klaszterezés</a></li>
+    <li><a href="#s83">8.3 Főkomponens-elemzés</a></li>
+    <li><a href="#s84">8.4 t-SNE és UMAP</a></li>
+    <li><a href="#s85">8.5 Anomáliadetektálás</a></li>
+    <li><a href="#s86">8.6 Ajánlórendszerek</a></li>
+    <li><a href="#s87">8.7 Alkalmazás: a könyvesbolt</a>
+      <ol>
+        <li><a href="#s87-a">Tizenkét vásárló</a></li>
+        <li><a href="#s87-b">Nagyban: 178 bor</a></li>
+      </ol>
+    </li>
+    <li><a href="#s-sum">Összefoglalás</a></li>
+    <li><a href="#s-check">Ellenőrző kérdések</a></li>
+    <li><a href="#s-ex">Vegyes gyakorló feladatok</a></li>
+    <li><a href="#s-final">Fejezetzáró teszt</a></li>
+    <li><a href="#s-gloss">Szómagyarázó</a></li>
+  </ol>
+</nav>
+
+<main class="content">
+
+<section class="hero" style="padding-top:.5rem">
+  <div class="kicker">Mesterséges intelligencia · 8. fejezet · ★★</div>
+  <h1>Felügyelet nélküli tanulás</h1>
+  <p class="lead">Az <a href="../05-osztalyozas/">5–7. fejezetben</a> minden mintához tartozott egy helyes válasz, a <b>címke</b>: spam vagy nem, esett vagy nem.
+  A valóságban a legtöbb adathoz nincs címke – senki nem írta rá a vásárlókra, hogy „törzsvásárló”, a tranzakciókra, hogy „csalás”.
+  Most címkék nélkül keresünk <b>szerkezetet</b>: <b>csoportokat</b> (klaszterezés), <b>kevesebb, de beszédesebb dimenziót</b> (dimenziócsökkentés),
+  <b>kilógó eseteket</b> (anomáliadetektálás) – és megnézzük, hogyan ajánl könyvet egy webbolt abból, hogy ki mit olvasott.</p>
+</section>
+
+<div class="box tip">
+  <span class="box-title">Mit fogsz megtanulni?</span>
+  <ul style="margin:.2rem 0">
+    <li>mi a jó csoportosítás (<b>klaszteren belüli négyzetösszeg</b>), és hogyan találja meg a <b>k-közép</b> algoritmus – lépésről lépésre;</li>
+    <li>miért számít a <b>kezdés</b> (lokális optimum, <b>k-means++</b>), és hogyan válaszd meg a klaszterek számát (<b>könyök</b>, <b>sziluett</b>);</li>
+    <li>mit tud a <b>hierarchikus</b> klaszterezés (<b>dendrogram</b>, kapcsolási módok) és a sűrűségalapú <b>DBSCAN</b>, amit a k-közép nem;</li>
+    <li>hogyan tömörít a <b>főkomponens-elemzés</b> (PCA): vetítés, <b>magyarázott variancia</b>, rekonstrukció, skálázás;</li>
+    <li>hogyan rajzol „térképet” a <b>t-SNE</b> és az <b>UMAP</b> – és hogyan <em>ne</em> olvasd őket;</li>
+    <li>hogyan találj <b>anomáliát</b> távolsággal, <b>izolációs erdővel</b> és rekonstrukciós hibával;</li>
+    <li>hogyan működik egy <b>ajánlórendszer</b>: tartalomalapú és <b>kollaboratív szűrés</b>, <b>mátrixfaktorizáció</b>.</li>
+  </ul>
+</div>
+
+<div class="box">
+  <span class="box-title">🔁 Amit használni fogunk</span>
+  Az <a href="../01-mi-a-mesterseges-intelligencia/">1. fejezetből</a>: mi a felügyelet nélküli tanulás (<a href="../01-mi-a-mesterseges-intelligencia/#s13-b">1.3</a>).
+  A <a href="../02-matematikai-eszkoztar/">2. fejezetből</a>: a távolság (<a href="../02-matematikai-eszkoztar/#s23-b">2.3</a>), a koszinusz-hasonlóság (<a href="../02-matematikai-eszkoztar/#s23-c">2.3</a>),
+  a sajátvektor (<a href="../02-matematikai-eszkoztar/#s24-b">2.4</a>), a PCA receptje (<a href="../02-matematikai-eszkoztar/#s24-c">2.4</a>) és a KL-divergencia (<a href="../02-matematikai-eszkoztar/#s26-d">2.6</a>).
+  A <a href="../03-tanulas-anatomiaja/">3. fejezetből</a>: a legjobb konstans az átlag (<a href="../03-tanulas-anatomiaja/#s34-a">3.4</a>).
+  A <a href="../04-adatok-es-jellemzok/">4. fejezetből</a>: a kiugró értékek (<a href="../04-adatok-es-jellemzok/#s42-c">4.2</a>), a skálázás (<a href="../04-adatok-es-jellemzok/#s44-a">4.4</a>),
+  a dimenzió átka (<a href="../04-adatok-es-jellemzok/#s46-c">4.6</a>) és a szivárgás (<a href="../04-adatok-es-jellemzok/#s47-b">4.7</a>).
+  Az <a href="../05-osztalyozas/">5. fejezetből</a>: a kNN (<a href="../05-osztalyozas/#s52-b">5.2</a>) és a legközelebbi centroid (<a href="../05-osztalyozas/#s52-d">5.2</a>).
+  A <a href="../06-modellertekeles/">6. fejezetből</a>: a precizitás és a felidézés (<a href="../06-modellertekeles/#s61-b">6.1</a>). A <a href="../07-fak-svm-egyuttes/">7. fejezetből</a>: a döntési fa (<a href="../07-fak-svm-egyuttes/#s71-a">7.1</a>)
+  és a véletlen erdő (<a href="../07-fak-svm-egyuttes/#s73-c">7.3</a>).
+  <br><small>Jelölések: ★ alap · ★★ közép · ★★★ haladó (kihagyható). A 📐 jelű lenyílók levezetéseket rejtenek, a 🐍 jelűek rövid Python-kódot –
+  a továbbhaladáshoz egyik sem kell.</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">🎯 A fejezet kérdése – kik vásárolnak a könyvesboltban?</span>
+  A „Lapozó” nevű kis webes könyvesbolt tizenkét vásárlójáról két számot ismerünk: hányszor vásárol havonta, és mennyit költ átlagosan egy vásárláskor.
+  Az első nyolc vásárló ismerős lehet az <a href="../01-mi-a-mesterseges-intelligencia/#s13-b">1. fejezetből</a>.
+  <div style="overflow-x:auto">
+  <table style="font-size:.86rem;text-align:center">
+    <tr><th>vásárló</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th><th>G</th><th>H</th><th>I</th><th>J</th><th>K</th><th>L</th></tr>
+    <tr><td>vásárlás / hó</td><td>2</td><td>3</td><td>2</td><td>12</td><td>15</td><td>11</td><td>3</td><td>14</td><td>7</td><td>8</td><td>6</td><td>14</td></tr>
+    <tr><td>átlagos kosár (ezer Ft)</td><td>25</td><td>30</td><td>28</td><td>5</td><td>4</td><td>6</td><td>27</td><td>5</td><td>14</td><td>16</td><td>15</td><td>28</td></tr>
+  </table>
+  </div>
+  Senki nem mondta meg, ki milyen „típusú” vásárló. Négy kérdés:
+  <ol style="margin:.3rem 0">
+    <li>Vannak-e <b>típusok</b> a vásárlók között? Ha igen, <b>hány</b>, és ki melyikbe tartozik?</li>
+    <li>Van-e köztük olyan, aki <b>nem illik a képbe</b>? (Tipp: egyik oszlopban sem lóg ki semmi.)</li>
+    <li>A bolt később nem két, hanem <b>sok</b> jellemzőt gyűjt. Hogyan nézhetsz rá az adatra <b>egyetlen képen</b>?</li>
+    <li>Anna két krimit szeretett, egy sci-fit nem. <b>Mit ajánljon neki</b> a bolt?</li>
+  </ol>
+  A fejezet végén (<a href="#s87">8.7</a>) mindegyikre válaszolunk – a harmadikra egy valódi, 178 soros adatkészleten.
+</div>
+
+<p><b>Útiterv</b> – lépésről lépésre, az egyszerűtől a bonyolultig:</p>
+<ol>
+  <li><b>Csoportok keresése</b>
+    <ol>
+      <li><a href="#s81">Klaszterezés: a k-közép</a>: mi a jó csoportosítás; a Lloyd-algoritmus; kezdés és lokális optimum; hány klaszter; amit a k-közép nem tud.</li>
+      <li><a href="#s82">Hierarchikus és sűrűségalapú klaszterezés</a>: dendrogram, kapcsolási módok, DBSCAN.</li>
+    </ol></li>
+  <li><b>Kevesebb dimenzió</b>
+    <ol start="3">
+      <li><a href="#s83">Főkomponens-elemzés</a>: vetítés, magyarázott variancia, skálázás, korlátok.</li>
+      <li><a href="#s84">t-SNE és UMAP</a>: szomszédságot őrző térképek, és hogyan olvasd őket.</li>
+    </ol></li>
+  <li><b>Két nagy alkalmazás</b>
+    <ol start="5">
+      <li><a href="#s85">Anomáliadetektálás</a>: ami együtt furcsa; izolációs erdő; rekonstrukciós hiba.</li>
+      <li><a href="#s86">Ajánlórendszerek</a>: hasonló termék, hasonló olvasó, rejtett ízlések.</li>
+    </ol></li>
+  <li><b>Összerakva</b>
+    <ol start="7">
+      <li><a href="#s87">Alkalmazás</a>: a könyvesbolt négy kérdése, és nagyban.</li>
+    </ol></li>
+</ol>
+
+<!-- ===================================================== 8.1 -->
+<section id="s81">
+<h2>8.1 Klaszterezés: a k-közép ★</h2>
+<p>Az <a href="../01-mi-a-mesterseges-intelligencia/#s13-b">1.3</a>-ban nyolc vásárlót ránézésre két csoportba soroltunk. Tízezer vásárlóra és húsz jellemzőre viszont nem nézhetünk rá.
+Kell egy <b>szám</b>, amely megmondja, mennyire jó egy csoportosítás – és egy <b>algoritmus</b>, amely jó csoportosítást talál.</p>
+
+<h3 id="s81-a">1. lépés: mi a jó csoportosítás? – a klaszteren belüli négyzetösszeg</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – négy vásárló, egy jellemző</span>
+  Négy vásárló havi vásárlásainak száma: A: 2, B: 3, F: 11, E: 15. Osszuk őket <b>két</b> csoportra! Minden csoportot a saját <b>átlagával</b> képviselünk,
+  és összeadjuk, mennyire térnek el tőle a tagok (négyzetesen). Négy pontot pontosan hétféleképpen lehet két nem üres csoportra osztani – nézzük meg mindet:
+  <table style="max-width:620px;font-size:.88rem;text-align:center">
+    <tr><th>1. csoport</th><th>2. csoport</th><th>átlagok</th><th>eltérésnégyzetek összege</th></tr>
+    <tr><td>{A, B}</td><td>{F, E}</td><td>2,5 és 13</td><td>$0{,}25 + 0{,}25 + 4 + 4 =$ <b>8,5</b></td></tr>
+    <tr><td>{E}</td><td>{A, B, F}</td><td>15 és 5,33</td><td>48,7</td></tr>
+    <tr><td>{A}</td><td>{B, F, E}</td><td>2 és 9,67</td><td>74,7</td></tr>
+    <tr><td>{B}</td><td>{A, F, E}</td><td>3 és 9,33</td><td>88,7</td></tr>
+    <tr><td>{F}</td><td>{A, B, E}</td><td>11 és 6,67</td><td>104,7</td></tr>
+    <tr><td>{A, F}</td><td>{B, E}</td><td>6,5 és 9</td><td>112,5</td></tr>
+    <tr><td>{A, E}</td><td>{B, F}</td><td>8,5 és 7</td><td>116,5</td></tr>
+  </table>
+  A legkisebb összeg a „ritkán vásárlók” {A, B} és a „gyakran vásárlók” {F, E} csoportosításé – pontosan az, amit szemre is mondanánk.
+  Egy jó csoportosításban a tagok <b>közel</b> vannak a saját csoportjuk közepéhez.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – klaszterezés, középpont, klaszteren belüli négyzetösszeg</span>
+  A <b>klaszterezés</b> az $\mathbf x_1, \dots, \mathbf x_n$ pontokat $k$ nem üres, egymást nem átfedő csoportra, <b>klaszterre</b> osztja: $C_1, \dots, C_k$.
+  A $C_j$ klaszter <b>középpontja</b> (centroidja) a tagjainak átlaga:
+  $$\boldsymbol\mu_j = \frac{1}{|C_j|}\sum_{i \in C_j}\mathbf x_i.$$
+  A felosztás jóságát a <b>klaszteren belüli négyzetösszeg</b> méri – minden pont távolságnégyzete a saját középpontjától, összeadva:
+  $$\text{SSE} = \sum_{j=1}^{k}\ \sum_{i \in C_j}\|\mathbf x_i - \boldsymbol\mu_j\|^2.$$
+  Adott $k$ mellett az a jobb felosztás, amelyiknek kisebb az SSE-je.
+  <br><small>Miért az átlag, és miért négyzet? A <a href="../03-tanulas-anatomiaja/#s34-a">3.4</a>-ben láttuk: ha egyetlen számmal kell helyettesíteni egy csoportot, és a négyzetes hibát nézzük,
+  a legjobb választás az <b>átlag</b>. Az SSE tehát azt méri, mennyit veszítünk, ha minden vásárlót a csoportja „tipikus vásárlójával” helyettesítünk.</small>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Nevek</span>
+  Az SSE angolul <em>sum of squared errors</em>, <em>within-cluster sum of squares</em> (WCSS), a scikit-learnben <code>inertia_</code> („tehetetlenség”).
+  A középpont angolul <em>centroid</em>, azaz súlypont: ha minden pont egységnyi tömeg, itt lehetne alátámasztani.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy csoport két jellemzővel</span>
+    A, B, C, G: $(2; 25)$, $(3; 30)$, $(2; 28)$, $(3; 27)$. A középpont $(2{,}5;\ 27{,}5)$. Az eltérések: A: $(-0{,}5;\ -2{,}5)$, B: $(0{,}5;\ 2{,}5)$, C: $(-0{,}5;\ 0{,}5)$, G: $(0{,}5;\ -0{,}5)$.
+    A távolságnégyzetek: $6{,}5 + 6{,}5 + 0{,}5 + 0{,}5 = 14$. Két jellemzőnél egyszerűen összeadjuk a koordinátánkénti négyzeteket.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – miért nem próbáljuk ki mindet?</span>
+    $n$ pontot két csoportra $2^{n-1} - 1$-féleképpen oszthatunk (minden pont – az elsőn kívül – választ egy oldalt, de a „mindenki egy oldalon” nem ér).
+    4 pontnál ez 7, 20 pontnál $524\,287$, 100 pontnál kb. $6{,}3 \cdot 10^{29}$. Három csoportra 100 pontot kb. $8{,}6 \cdot 10^{46}$-féleképpen.
+    Kipróbálni mindet reménytelen – <b>okos keresés</b> kell.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az SSE-t nem lehet a $k$-val együtt minimalizálni.</b> Minél több a klaszter, annál kisebb: ha minden pont külön klaszter, $\text{SSE} = 0$. Az SSE csak <em>azonos</em> $k$ mellett
+      hasonlít össze felosztásokat. A $k$ megválasztása külön kérdés (<a href="#s81-d">4. lépés</a>).</li>
+    <li><b>A mértékegység mindent eldönt.</b> Ha a kosarat forintban mérnéd ezer forint helyett, a négyzetösszegben a kosár ezerszer-milliószor többet nyomna, mint a vásárlások száma (<a href="#s81-e">5. lépés</a>).</li>
+    <li><b>A klaszter nem kap nevet.</b> Az algoritmus annyit mond: „ezek összetartoznak”. Hogy ez „alkalmi nagyvásárló”, azt neked kell kitalálnod (<a href="../01-mi-a-mesterseges-intelligencia/#s13-b">1.3</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – klaszteren belüli négyzetösszeg</summary>
+  <ol>
+    <li>Mennyi a {2, 4, 9} csoport középpontja és négyzetösszege?
+      <details><summary>Megoldás</summary>Középpont: $15/3 = 5$. Négyzetösszeg: $(2 - 5)^2 + (4 - 5)^2 + (9 - 5)^2 = 9 + 1 + 16 = 26$.</details></li>
+    <li>Az 1, 2, 3, 10 pontokat két felosztással próbáljuk: {1, 2, 3} | {10}, illetve {1, 2} | {3, 10}. Melyik a jobb?
+      <details><summary>Megoldás</summary>Első: {1, 2, 3} középpontja 2, négyzetösszege $1 + 0 + 1 = 2$; a {10} egyedül 0. Összesen <b>2</b>.
+        Második: {1, 2}: $0{,}25 + 0{,}25 = 0{,}5$; {3, 10}: középpont 6,5, $12{,}25 + 12{,}25 = 24{,}5$. Összesen 25. Az első sokkal jobb.</details></li>
+    <li>D, E, F, H: $(12; 5)$, $(15; 4)$, $(11; 6)$, $(14; 5)$. Mennyi a középpont és az SSE?
+      <details><summary>Megoldás</summary>Középpont: $(52/4;\ 20/4) = (13;\ 5)$. Távolságnégyzetek: D: $1 + 0 = 1$, E: $4 + 1 = 5$, F: $4 + 1 = 5$, H: $1 + 0 = 1$. SSE = <b>12</b>.</details></li>
+    <li>Hányféleképpen osztható 6, illetve 30 pont két nem üres csoportra?
+      <details><summary>Megoldás</summary>$2^5 - 1 = 31$, illetve $2^{29} - 1 = 536\,870\,911$ – több mint félmilliárd, pedig csak 30 pont és 2 csoport.</details></li>
+    <li>(nehezebb) Mutasd meg, hogy egy számcsoportnál a $\sum_i (x_i - c)^2$ összeg a $c = \bar x$ átlagnál a legkisebb!
+      <details><summary>Megoldás</summary>Deriváljunk $c$ szerint: $-2\sum_i (x_i - c) = 0$, azaz $\sum_i x_i = nc$, $c = \bar x$. A második derivált $2n \gt 0$, tehát minimum.
+        Másképp: $\sum_i (x_i - c)^2 = \sum_i (x_i - \bar x)^2 + n(\bar x - c)^2$ – a második tag csak $c = \bar x$-nél nulla. Több dimenzióban koordinátánként ugyanez.</details></li>
+  </ol>
+</details>
+
+<h3 id="s81-b">2. lépés: a Lloyd-algoritmus – hozzárendelés és átlagolás</h3>
+<p>Minden felosztást nem próbálhatunk ki. De két dolgot könnyű megtenni: ha <em>ismerjük a középpontokat</em>, minden pontot a legközelebbihez rendelhetünk;
+ha <em>ismerjük a csoportokat</em>, kiszámolhatjuk az átlagukat. Váltogassuk a kettőt!</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – hat vásárló, két klaszter</span>
+  Hat vásárló: A $(2; 25)$, B $(3; 30)$, D $(12; 5)$, E $(15; 4)$, F $(11; 6)$, G $(3; 27)$. Legyen $k = 2$, és – szándékosan rosszul – kezdjünk két egymáshoz közeli
+  vásárlóval: $\boldsymbol\mu_1 = $ A $= (2; 25)$, $\boldsymbol\mu_2 = $ B $= (3; 30)$.
+  <table style="max-width:760px;font-size:.86rem;text-align:center">
+    <tr><th>lépés</th><th>mi történik?</th><th>1. klaszter</th><th>2. klaszter</th><th>SSE</th></tr>
+    <tr><td>1. hozzárendelés</td><td>mindenki a közelebbi középponthoz (pl. G: $1^2 + 2^2 = 5$ az A-tól, $0^2 + 3^2 = 9$ a B-től)</td><td>A, D, E, F, G</td><td>B</td><td>1557</td></tr>
+    <tr><td>1. frissítés</td><td>középpont = átlag</td><td>$\boldsymbol\mu_1 = (8{,}6;\ 13{,}4)$</td><td>$\boldsymbol\mu_2 = (3;\ 30)$</td><td>666,4</td></tr>
+    <tr><td>2. hozzárendelés</td><td>A és G átpártol: A-nak $\boldsymbol\mu_1$ $178{,}1$, $\boldsymbol\mu_2$ csak $26$ távolságnégyzetre van</td><td>D, E, F</td><td>A, B, G</td><td>306,96</td></tr>
+    <tr><td>2. frissítés</td><td>középpont = átlag</td><td>$(12{,}67;\ 5)$</td><td>$(2{,}67;\ 27{,}33)$</td><td><b>24</b></td></tr>
+    <tr><td>3. hozzárendelés</td><td>senki nem vált csoportot → <b>vége</b></td><td>D, E, F</td><td>A, B, G</td><td>24</td></tr>
+  </table>
+  Két kör után megtalálta a „szemre” jó csoportokat, pedig rosszul indult. És figyeld az SSE-t: <b>minden fél lépésben csökkent</b>.
+</div>
+<div class="box def">
+  <span class="box-title">Algoritmus – k-közép (Lloyd-algoritmus)</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Kezdés:</b> válassz $k$ kezdő középpontot (pl. $k$ véletlen adatpontot).</li>
+    <li><b>Hozzárendelés:</b> minden pontot a hozzá legközelebbi középpont klaszterébe teszel.</li>
+    <li><b>Frissítés:</b> minden középpontot a klaszterébe került pontok átlagára cseréled.</li>
+    <li>Ismételd a 2–3. lépést, amíg a hozzárendelés már nem változik.</li>
+  </ol>
+  <small>Miért működik? Mindkét lépés csak csökkentheti az SSE-t. A hozzárendelésnél minden pont a legközelebbi középpontot választja – a saját tagja így nem nőhet.
+  A frissítésnél rögzített csoportokra az átlag adja a legkisebb négyzetösszeget (<a href="#s81-a">1. lépés</a>, 5. feladat). Mivel véges sok felosztás van, és egy felosztáshoz
+  sosem térünk vissza (az SSE közben csökkent), az algoritmus <b>véges sok lépésben megáll</b>. Egy kör költsége kb. $n \cdot k \cdot d$ művelet ($d$ a jellemzők száma) –
+  ezért fut milliónyi ponton is.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy egyenesen</span>
+    Pontok: 1, 2, 6, 9, 10; kezdő középpontok: 1 és 2.
+    <ul style="margin:.2rem 0">
+      <li>Hozzárendelés: {1} | {2, 6, 9, 10} (SSE 129). Frissítés: 1 és 6,75 (SSE 38,75).</li>
+      <li>Hozzárendelés: a 2 átkerül, mert $|2 - 1| = 1 \lt |2 - 6{,}75| = 4{,}75$: {1, 2} | {6, 9, 10} (SSE 17,19). Frissítés: 1,5 és 8,33 (SSE 9,17).</li>
+      <li>Hozzárendelés: nincs változás → vége.</li>
+    </ul>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – új vásárló besorolása</span>
+    Egy új vásárló havonta 13-szor vásárol, 6 ezer forintért. A két középpont: $(12{,}67;\ 5)$ és $(2{,}67;\ 27{,}33)$. Távolságnégyzetek: $0{,}33^2 + 1^2 \approx 1{,}11$ és
+    $10{,}33^2 + 21{,}33^2 \approx 561{,}9$. A „gyakori, kis kosaras” klaszterbe kerül. Ez pontosan a <b>legközelebbi centroid</b> szabálya (<a href="../05-osztalyozas/#s52-d">5.2</a>) –
+    csak itt a középpontokat címkék nélkül, az adatból találtuk.
+  </div>
+</div>
+<div class="widget" data-widget="kmeans-steps"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>k-közép ≠ k legközelebbi szomszéd.</b> A k-közép $k$-ja a <em>klaszterek</em> száma, és nincs címke. A kNN $k$-ja a <em>szomszédok</em> száma, és felügyelt osztályozó
+      (<a href="../05-osztalyozas/#s52-b">5.2</a>). Egy kezdőknek szóló könyv (MLAB 9) és egy interjúkönyv (MLDI) is „kNN-klaszterezésről” ír – ilyen nincs.</li>
+    <li><b>Mindig megáll – de nem mindig a legjobbnál.</b> Az MLAB szerint a k-közép „nem mindig képes megbízhatóan végső felosztást találni”. Valójában mindig megáll (lásd fent);
+      a gond az, hogy egy <em>lokális</em> optimumban állhat meg (<a href="#s81-c">3. lépés</a>).</li>
+    <li><b>A középpont számtani közép.</b> Egy vizuális könyv (DLV 7) „mértani középről vagy átlagról” ír – a mértani közép ($\sqrt[n]{x_1 \cdots x_n}$) egészen más; a k-közép a koordinátánkénti számtani átlagot használja.</li>
+    <li><b>Üres klaszter.</b> Ha egy középponthoz senki sem kerül, az átlaga nincs értelmezve. A programok ilyenkor újraindítják (pl. a legtávolabbi pontra teszik).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a Lloyd-algoritmus</summary>
+  <ol>
+    <li>Pontok: 1, 3, 8, 10; kezdő középpontok: 1 és 3. Futtasd az algoritmust a megállásig!
+      <details><summary>Megoldás</summary>Hozzárendelés: {1} | {3, 8, 10} (SSE 74). Frissítés: 1 és 7 (SSE 26). Hozzárendelés: a 3 közelebb van az 1-hez (2) mint a 7-hez (4): {1, 3} | {8, 10} (SSE 14).
+        Frissítés: 2 és 9 (SSE <b>4</b>). Hozzárendelés: nincs változás → vége.</details></li>
+    <li>A középpontok $(2{,}5;\ 27{,}5)$ és $(13;\ 5)$. Melyikhez rendeled az I $(7;\ 14)$ vásárlót?
+      <details><summary>Megoldás</summary>Távolságnégyzetek: $4{,}5^2 + 13{,}5^2 = 20{,}25 + 182{,}25 = 202{,}5$ és $6^2 + 9^2 = 36 + 81 = 117$. A második, $(13;\ 5)$ klaszterhez – pedig I egyikhez sem igazán hasonlít.
+        Ez is jelzés: lehet, hogy két klaszter kevés.</details></li>
+    <li>Egy klaszterbe az I $(7; 14)$, J $(8; 16)$, K $(6; 15)$ került. Hová kerül a középpont?
+      <details><summary>Megoldás</summary>$\left(\frac{7 + 8 + 6}{3};\ \frac{14 + 16 + 15}{3}\right) = (7;\ 15)$.</details></li>
+    <li>Miért nem nőhet az SSE a frissítés lépésében?
+      <details><summary>Megoldás</summary>Mert a frissítéskor a csoportok rögzítettek, és minden csoportra az átlag adja a lehető legkisebb négyzetösszeget. A régi középpont legfeljebb ugyanolyan jó lehetett, mint az új.</details></li>
+    <li>(nehezebb) Miért biztos, hogy az algoritmus véges sok lépésben megáll?
+      <details><summary>Megoldás</summary>$n$ pontot $k$ csoportra véges sokféleképpen lehet osztani. Amíg a hozzárendelés változik, az SSE szigorúan csökken (egyenlő távolságnál maradjon a pont a régi klaszterében),
+        ezért egy korábbi felosztás nem jöhet vissza. Véges sok felosztáson nem lehet a végtelenségig „lefelé lépkedni”.</details></li>
+  </ol>
+</details>
+
+<h3 id="s81-c">3. lépés: rossz kezdés, rossz eredmény – lokális optimum, k-means++, újraindítás</h3>
+<p>A hat vásárlónál a rossz kezdés sem ártott. Ez nem mindig van így.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a beragadt középpont</span>
+  Hat pont, három nyilvánvaló pár: 0, 2 | 10, 12 | 20, 22. Legyen $k = 3$, a kezdő középpontok: 0, 2 és 16.
+  <ul style="margin:.2rem 0">
+    <li>Hozzárendelés: a 0 a 0-hoz, a 2 a 2-höz, a többi a 16-hoz (a 10 a 16-tól 6-ra, a 2-től 8-ra van).</li>
+    <li>Frissítés: $\{0\} \to 0$, $\{2\} \to 2$, $\{10, 12, 20, 22\} \to 16$. <b>Semmi sem változott.</b></li>
+  </ul>
+  Az algoritmus megállt. SSE: $36 + 16 + 16 + 36 = 104$. A nyilvánvaló felosztásé (1, 11, 21 középpontokkal): $6 \cdot 1 = 6$. Ez egy <b>lokális optimum</b>:
+  egyetlen lépés sem javít rajta, mégis messze van a legjobbtól. A hibát az okozta, hogy két kezdőpont <em>ugyanabba</em> a természetes csoportba esett.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – lokális optimum, k-means++, újraindítás</span>
+  A Lloyd-algoritmus <b>lokális optimumban</b> áll meg: olyan felosztásban, amelyen a hozzárendelés és a frissítés már nem változtat. Hogy melyikben, az a kezdéstől függ. Két ellenszer:
+  <ul style="margin:.2rem 0">
+    <li><b>k-means++ kezdés</b> (D. Arthur, S. Vassilvitskii, 2007): az első középpont egy véletlen adatpont. Minden további középpontnak az $\mathbf x$ pontot
+      $$P(\mathbf x) = \frac{D(\mathbf x)^2}{\sum_{\mathbf z} D(\mathbf z)^2}$$
+      valószínűséggel választjuk, ahol $D(\mathbf x)$ az $\mathbf x$ távolsága a legközelebbi, már kiválasztott középponttól. A távoli pontok így sokkal nagyobb eséllyel lesznek középpontok.</li>
+    <li><b>Újraindítás:</b> futtasd le az algoritmust többször, különböző kezdéssel, és tartsd meg a <b>legkisebb SSE-jű</b> eredményt (scikit-learnben <code>n_init</code>).</li>
+  </ul>
+  <small>Miért a négyzet? A $D^2$ erősen a távoli pontok felé billenti a választást, de nem determinisztikusan – ezért egyetlen kiugró pont sem „viszi el” biztosan a középpontot.
+  A k-means++ kezdés várható SSE-je bizonyítottan legfeljebb kb. $8(\ln k + 2)$-szerese az optimumnak – utána a Lloyd-lépések már csak javítanak.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – k-means++ a hat ponton</span>
+    Az első középpont legyen a 0. A távolságnégyzetek: $0, 4, 100, 144, 400, 484$, összegük 1132.
+    A második középpont $\frac{400 + 484}{1132} \approx 78\%$ eséllyel a 20–22 párból, $\frac{244}{1132} \approx 21{,}6\%$ eséllyel a 10–12 párból jön,
+    és csak $\frac{4}{1132} \approx 0{,}35\%$ eséllyel a 2 – a beragadás oka szinte kizárt.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – mennyi újraindítás kell?</span>
+    Ha egy futás 30% eséllyel találja meg a legjobb felosztást, és a futások függetlenek, akkor 10 futásból legalább egy megtalálja
+    $1 - 0{,}7^{10} \approx 97{,}2\%$ eséllyel; 5 futásnál csak $1 - 0{,}7^5 \approx 83{,}2\%$.
+  </div>
+</div>
+<p>A fenti szemléltetésben válaszd a <b>„négy folt”</b> adatot, véletlen kezdéssel: futtasd végig többször az „Új kezdés” gombbal, és figyeld az SSE-t. Aztán kapcsolj k-means++-ra,
+és próbáld ki a „10 újraindítás” gombot.</p>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A klaszterek sorszáma önkényes.</b> Két futás ugyanazt a felosztást adhatja 0/1 helyett 1/0 sorszámmal. Ez nem különbség – csak a csoportok tagsága számít.</li>
+    <li><b>Más véletlen mag, más eredmény.</b> Ha egy elemzést meg akarsz ismételni, rögzítsd a véletlen magot (<code>random_state</code>).</li>
+    <li><b>A k-means++ sem garancia.</b> Csak jó esélyt ad – az újraindítást ne hagyd el. A középpontokat kézzel sem szokás kijelölni (az MLAB „kézi” kezdést ír).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – kezdés és lokális optimum</summary>
+  <ol>
+    <li>Ellenőrizd, hogy a kiinduló példa 0 | 2 | {10, 12, 20, 22} felosztása tényleg nem változik: melyik középponthoz van legközelebb a 10, a 12, a 20 és a 22?
+      <details><summary>Megoldás</summary>Középpontok: 0, 2, 16. A 10-nek a 2 távolsága 8, a 16-é 6 → 16. A 12: 10 vs 4 → 16. A 20 és 22 egyértelműen a 16-hoz. A 0 és a 2 a saját középpontján ül. Semmi nem mozdul.</details></li>
+    <li>Pontok: 0, 1, 5; az első k-means++ középpont a 0. Mekkora eséllyel lesz a második az 1, illetve az 5?
+      <details><summary>Megoldás</summary>$D^2$: 0, 1, 25, összeg 26. Az 1: $1/26 \approx 3{,}8\%$, az 5: $25/26 \approx 96{,}2\%$.</details></li>
+    <li>Egy futás 20% eséllyel találja meg a legjobb megoldást. Hány független futás kell, hogy legalább 95% eséllyel köztük legyen?
+      <details><summary>Megoldás</summary>$1 - 0{,}8^m \ge 0{,}95$, azaz $0{,}8^m \le 0{,}05$, $m \ge \ln 0{,}05/\ln 0{,}8 \approx 13{,}4$ → <b>14</b> futás.</details></li>
+    <li>Két futás eredménye: [0, 0, 1, 1, 2] és [2, 2, 0, 0, 1]. Ugyanaz a klaszterezés?
+      <details><summary>Megoldás</summary>Igen: mindkettőben az 1–2. pont együtt, a 3–4. pont együtt, az 5. külön van. Csak a sorszámok (0, 1, 2) vannak átnevezve.</details></li>
+    <li>(nehezebb) Miért nem a <em>legtávolabbi</em> pontot választja determinisztikusan a k-means++?
+      <details><summary>Megoldás</summary>Mert akkor egy kiugró érték biztosan középpont lenne, és „elvinne” egy egész klasztert. A $D^2$-arányos sorsolás a távoli <em>csoportokat</em> részesíti előnyben (ahol sok távoli pont van),
+        de nem determinisztikusan. Egy nagyon távoli kiugró pontot ez sem zár ki – a 2. feladat 0, 1, 5 példájában az 5-öt 96% eséllyel választja –, csak csökkenti az esélyét annál, mintha mindig a legtávolabbit vennénk.
+        Ezért fontos a kiugró pontok előzetes vizsgálata (<a href="#s85">8.5</a>).</details></li>
+  </ol>
+</details>
+
+<h3 id="s81-d">4. lépés: hány klaszter? – könyök és sziluett</h3>
+<p>Eddig $k$-t megadtuk. De honnan tudod, hogy két, három vagy öt vásárlótípus van? Az SSE-vel nem dönthetsz, mert a $k$ növelésével mindig csökken. Nézzük meg, <em>mennyire</em> csökken!</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – nyolc vásárló, k = 1, 2, …, 6</span>
+  Az 1. fejezet nyolc vásárlóján (A–H) a legjobb k-közép felosztás SSE-je:
+  <table style="max-width:560px;font-size:.88rem;text-align:center">
+    <tr><th>$k$</th><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td></tr>
+    <tr><th>SSE</th><td>1259</td><td><b>26</b></td><td>16</td><td>7</td><td>3</td><td>2</td></tr>
+    <tr><th>csökkenés az előzőhöz képest</th><td>–</td><td><b>98%</b></td><td>38%</td><td>56%</td><td>57%</td><td>33%</td></tr>
+  </table>
+  Az első klaszter-kettévágás szinte minden szórást eltüntet: 1259 → 26. Utána már csak apróságokat nyerünk (mivel a 26 már kicsi, a további csökkenés <em>arányában</em> nagynak tűnhet, abszolút értékben viszont jelentéktelen).
+  Ha felrajzolod, a görbe a $k = 2$-nél éles „könyököt” mutat.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – könyökmódszer és sziluett</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Könyökmódszer:</b> rajzold fel az SSE-t $k$ függvényében, és ott állj meg, ahol a görbe megtörik: ahol a következő klaszter már alig csökkenti az SSE-t.</li>
+    <li><b>Sziluett</b> (P. Rousseeuw, 1987): minden $i$ pontra
+      $$s(i) = \frac{b(i) - a(i)}{\max\{a(i),\ b(i)\}},$$
+      ahol $a(i)$ az $i$ átlagos távolsága a saját klasztere többi pontjától, $b(i)$ pedig a legközelebbi <em>másik</em> klaszter pontjaitól mért átlagos távolsága.
+      $s(i) \in [-1, 1]$: közel 1, ha a pont jól a helyén van; 0 körül, ha két klaszter határán áll; negatív, ha egy másik klaszterbe illene jobban. Egyelemű klaszter pontjára $s = 0$.
+      A klaszterezés minősége az <b>átlagos sziluett</b>; azt a $k$-t választjuk, ahol a legnagyobb.</li>
+  </ul>
+  <small>Miért jó a sziluett? Az SSE csak a <em>tömörséget</em> nézi ($a$), a sziluett a <em>szétválást</em> is ($b$). Egy fölösleges vágás két közeli csoportot hoz létre – ott a $b$ kicsi, a sziluett leesik.</small>
+</div>
+<div class="box example">
+  <span class="box-title">Példa – sziluett kézzel egy egyenesen</span>
+  Pontok: 1, 2, 3 | 7, 8. A 3-as pontra: $a = \frac{|3 - 1| + |3 - 2|}{2} = 1{,}5$, $b = \frac{|3 - 7| + |3 - 8|}{2} = 4{,}5$, $s = \frac{4{,}5 - 1{,}5}{4{,}5} \approx 0{,}67$.
+  Mind az öt pontra: 0,77; 0,82; 0,67; 0,80; 0,83 – átlag <b>0,78</b>.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy fölösleges vágás</span>
+    Ugyanez $k = 3$-mal: {1, 2} | {3} | {7, 8}. A 3 egyedül van: $s = 0$. A 2-esnél $a = 1$, a legközelebbi másik klaszter a {3}, $b = 1$: $s = 0$.
+    Az átlag <b>0,41</b> – sokkal rosszabb, mint a 0,78. A sziluett szerint két klaszter van.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a nyolc vásárló</span>
+    Átlagos sziluett: $k = 2$: <b>0,89</b>; $k = 3$: 0,71; $k = 4$: 0,38; $k = 5$: 0,36. A könyök és a sziluett ugyanazt mondja: két típus.
+  </div>
+</div>
+<div class="widget" data-widget="elbow-plot"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A könyök gyakran nem éles.</b> Valódi adatnál az SSE-görbe sokszor egyenletesen hajlik – ilyenkor a könyökmódszer nem dönt. Egyenletes zajban is kijön <em>valamilyen</em> $k$ klaszter:
+      az algoritmus mindig felosztja az adatot, akkor is, ha nincs benne csoport.</li>
+    <li><b>Keresztvalidációval sem lehet $k$-t választani</b> úgy, mint a 6. fejezetben: az SSE a <em>teszt</em> pontokon is csökken $k$-val (ESL 14.3).</li>
+    <li><b>Könyök, nem „scree”.</b> Az MLAB a k-közép SSE-görbéjét „scree plot”-nak hívja, és „több törésről” ír. A <em>scree</em> (kőomlás) a PCA sajátértékgörbéje (<a href="#s83-b">8.3</a>);
+      a könyök egyetlen törés. Az MLD a Calinski–Harabasz-indexet ajánlja, de fordítva magyarázza: annál a mutatónál a <b>nagyobb</b> érték a jobb, és már bünteti a $k$ növelését.</li>
+    <li><b>A végső szó a felhasználásé.</b> Ha a marketingcsapat négy kampányt tud futtatni, a négy klaszter akkor is hasznos lehet, ha a sziluett hármat mond.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – hány klaszter?</summary>
+  <ol>
+    <li>Egy pontra $a = 2$, $b = 5$. Mennyi a sziluett? És ha $a = 5$, $b = 2$? Mit jelent a második?
+      <details><summary>Megoldás</summary>$(5 - 2)/5 = 0{,}6$ – a pont jól a helyén van. $(2 - 5)/5 = -0{,}6$ – a pont közelebb van egy másik klaszterhez, mint a sajátjához: valószínűleg rossz helyre került.</details></li>
+    <li>Az SSE $k = 1, \dots, 5$-re: 400, 150, 90, 80, 72. Hol a könyök?
+      <details><summary>Megoldás</summary>A csökkenések: 250, 60, 10, 8 (arányban 62,5%, 40%, 11%, 10%). A 3. klaszter még sokat hoz, a 4. már alig: a könyök $k = 3$-nál van.</details></li>
+    <li>Számold ki az 1, 2, 3 | 7, 8 felosztásban az 1-es pont sziluettjét!
+      <details><summary>Megoldás</summary>$a = (1 + 2)/2 = 1{,}5$, $b = (6 + 7)/2 = 6{,}5$, $s = 5/6{,}5 \approx 0{,}77$.</details></li>
+    <li>Miért szokás az egyelemű klaszter pontjának sziluettjét 0-nak venni?
+      <details><summary>Megoldás</summary>Mert ott $a$ nincs értelmezve (nincs más tag). Ha $a = 0$-val számolnánk, $s = 1$ lenne, és az „mindenki külön klaszter” felosztás tökéletesnek tűnne.</details></li>
+    <li>(nehezebb) Egyenletesen szórt pontokon futtatod a k-közepet $k = 2, \dots, 8$-ra. Mit vársz az SSE-görbétől és a sziluettől, és mit következtetsz?
+      <details><summary>Megoldás</summary>Az SSE egyenletesen, könyök nélkül csökken; az átlagos sziluett végig alacsony (kb. 0,3–0,4) és nincs kiugró maximuma. A következtetés: az adatban nincs valódi klaszterszerkezet –
+        a k-közép eredménye itt csak a tér önkényes feldarabolása. (Az <code>elbow-plot</code> szemléltetés „egyenletes zaj” adatán kipróbálhatod.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s81-e">5. lépés: amit a k-közép nem tud – skála, alak, kiugró pontok</h3>
+<p>A k-közép gyors és egyszerű, de az SSE-ből következő feltevései vannak. Ahol ezek nem teljesülnek, ott meglepő eredményt ad.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – forintban vagy ezer forintban?</span>
+  Három vásárló: P (2 vásárlás; 15 ezer Ft), Q (14; 15), R (2; 17). Kihez hasonlít P?
+  <div class="two-col">
+    <div><b>Ezer forintban:</b> $d(P, Q) = 12$, $d(P, R) = 2$. P az R-rel kerül egy klaszterbe: mindketten ritkán vásárolnak.</div>
+    <div><b>Forintban:</b> $d(P, Q) = 12$, $d(P, R) = 2000$. P most a Q-val kerül egy klaszterbe – a 2000 forintos kosárkülönbség „sokkal nagyobb”, mint a havi 12 vásárlás különbsége.</div>
+  </div>
+  Ugyanaz az adat, más mértékegység – más klaszterek. A távolság nem tudja, mi a „fontos”; azt tudja, mi a <b>nagy szám</b>.
+</div>
+<div class="box def">
+  <span class="box-title">Tény – a k-közép rejtett feltevései</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Számjellemzők, euklideszi távolság.</b> A jellemzők mértékegysége egymással összemérhető legyen – különben <b>standardizálj</b> (<a href="../04-adatok-es-jellemzok/#s44-a">4.4</a>):
+      $z = (x - \bar x)/s$.</li>
+    <li><b>Gömbölyű, hasonló méretű klaszterek.</b> Két középpont között a határ a két pontot összekötő szakasz <b>felező merőlegese</b>; a klaszterek konvex sokszögek (Voronoi-cellák).
+      Holdakat, gyűrűket, elnyúlt csoportokat nem tud követni.</li>
+    <li><b>Minden pont valahová tartozik.</b> Nincs „zaj” kategória: a kiugró pont is egy klaszterbe kerül, és magához húzza a középpontot – vagy saját klasztert kap.</li>
+    <li><b>A $k$-t neked kell megadnod.</b></li>
+  </ol>
+  <small>Miért? Mert az SSE minden pontot egyetlen középpont körüli <em>négyzetes</em> távolsággal büntet. Ez a „középpont körül minden irányban egyformán” kép a gömb.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a kiugró pont elvisz egy klasztert</span>
+    Pontok: 1, 2, 3, 4 | 10, 11, 12 és egy 40-es. $k = 2$-vel a legjobb felosztás: {1, …, 12} | {40} (SSE 130,9) – a két valódi csoport összeolvadt, mert a 40 „elvitte” a második klasztert.
+    A 40 nélkül: {1, 2, 3, 4} | {10, 11, 12}, SSE 7.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a holdak</span>
+    A fenti szemléltetés <b>„holdak”</b> adatán a k-közép $k = 2$-vel egy egyenessel vágja ketté a síkot – mindkét holdból levág egy darabot. Egyenes határral a két hold nem választható el.
+    Ehhez más elv kell: a <b>sűrűség</b> (<a href="#s82-c">8.2</a>).
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Kiegészítés – rokon módszerek</span>
+  <ul style="margin:.2rem 0">
+    <li><b>k-medoid</b> (L. Kaufman, P. Rousseeuw, 1990): a középpont egy valódi <em>adatpont</em> (medoid). Bármilyen távolsággal működik, és egy kiugró pont nem tudja „elhúzni” a középpontot.</li>
+    <li><b>k-módusz:</b> kategóriás jellemzőkre, átlag helyett a leggyakoribb értékkel.</li>
+    <li><b>Mini-batch k-közép:</b> minden lépésben csak egy kis véletlen részhalmazzal frissít – nagy adaton sokkal <b>gyorsabb</b>, kicsit pontatlanabb. (Az MLD szerint „több időt vesz igénybe” – fordítva van.)</li>
+  </ul>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A standardizálás sem automatikus igazság.</b> Ha egy jellemző szórása épp a klaszterek miatt nagy, a standardizálás elmoshatja őket (ESL 14.3). Gondold végig, melyik jellemző mennyit számítson.</li>
+    <li><b>A PCA nem javítja meg a távolságot.</b> Az MLD azt tanácsolja, hogy a standardizálás után PCA-val „távolítsd el a korrelációkat”, és akkor az euklideszi távolság „jól működik”.
+      De a teljes PCA csak <b>elforgatja</b> a koordináta-rendszert – a pontok közti távolságok, és így a k-közép eredménye is, változatlanok.</li>
+    <li><b>Előbb a kiugró pontok.</b> Klaszterezés előtt nézd meg az anomáliákat (<a href="#s85">8.5</a>) – vagy használj zajt kezelő módszert (DBSCAN, <a href="#s82-c">8.2</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a k-közép korlátai</summary>
+  <ol>
+    <li>A 11 vásárló (A–K) havi vásárlásainak átlaga 7,55, szórása 4,62. Mennyi az A vásárló (2 vásárlás) standardizált értéke?
+      <details><summary>Megoldás</summary>$z = (2 - 7{,}55)/4{,}62 \approx -1{,}20$: A az átlagnál 1,2 szórással ritkábban vásárol.</details></li>
+    <li>Az 1, 2, 3, 50 pontokat $k = 2$-vel klaszterezed. Mi lesz az eredmény, és mit tennél?
+      <details><summary>Megoldás</summary>{1, 2, 3} | {50} (SSE 2). Az 50 saját klasztert kapott. Előbb érdemes kideríteni, mi ez az érték (hiba? valódi ritka eset? – <a href="../04-adatok-es-jellemzok/#s42-c">4.2</a>),
+        és ha anomália, külön kezelni.</details></li>
+    <li>Melyik adatra illik a k-közép: (a) három kerek, hasonló méretű folt; (b) két koncentrikus kör; (c) egy hosszú, vékony és egy kicsi, kerek csoport?
+      <details><summary>Megoldás</summary>Csak az (a)-ra. A (b)-nél a határ nem lehet egyenes; a (c)-nél a hosszú csoport két végét a k-közép inkább külön klaszterbe tenné, mint a kis csoporttal együtt kezelné.</details></li>
+    <li>Két klaszter középpontja $(0;\ 0)$ és $(4;\ 2)$. Hol a határ a két klaszter között?
+      <details><summary>Megoldás</summary>A szakasz felező merőlegese: átmegy a $(2;\ 1)$ felezőponton, és merőleges a $(4;\ 2)$ irányra: $4x_1 + 2x_2 = 10$, azaz $2x_1 + x_2 = 5$.</details></li>
+    <li>(nehezebb) Mutasd meg, hogy két középpont között a határ mindig egyenes (több dimenzióban sík)!
+      <details><summary>Megoldás</summary>$\|\mathbf x - \boldsymbol\mu_1\|^2 = \|\mathbf x - \boldsymbol\mu_2\|^2$ kifejtve: $-2\boldsymbol\mu_1^\top\mathbf x + \|\boldsymbol\mu_1\|^2 = -2\boldsymbol\mu_2^\top\mathbf x + \|\boldsymbol\mu_2\|^2$,
+        azaz $2(\boldsymbol\mu_2 - \boldsymbol\mu_1)^\top\mathbf x = \|\boldsymbol\mu_2\|^2 - \|\boldsymbol\mu_1\|^2$. Az $\|\mathbf x\|^2$ kiesett – ami marad, az $\mathbf x$-ben lineáris egyenlet: egyenes, illetve (hiper)sík.</details></li>
+  </ol>
+</details>
+
+<div class="box history">
+  <span class="box-title">📜 Történet</span>
+  A módszert többen, egymástól függetlenül találták ki. H. Steinhaus 1956-ban írt a testek „részekre osztásáról”; S. Lloyd 1957-ben a Bell Laboratóriumban jelek kvantálására használta
+  (de csak 1982-ben publikálta); a <em>k-means</em> nevet J. MacQueen adta 1967-ben. A k-means++ kezdés 2007-es – fél évszázaddal az algoritmus után. Ma a k-közép a leggyakrabban használt
+  klaszterező módszer, és kódkönyv-építésre (vektorkvantálás) is használják, pl. a nagy nyelvi modellek tömörítésénél és a vektoradatbázisok gyors keresésénél (18. fejezet).
+</div>
+
+<div class="quiz" data-quiz="ai8-81"></div>
+</section>
+
+<!-- ===================================================== 8.2 -->
+<section id="s82">
+<h2>8.2 Hierarchikus és sűrűségalapú klaszterezés ★★</h2>
+<p>A k-közép előre kéri a $k$-t, és gömböket keres. Mi van, ha nem tudjuk, hány csoport van – vagy ha a csoportok nem gömbölyűek? Két másik ötlet: építsük fel a csoportokat
+<b>alulról, összevonásokkal</b> (és döntsünk utólag), vagy keressünk <b>sűrű tartományokat</b>, amelyeket ritkás rész választ el.</p>
+
+<h3 id="s82-a">1. lépés: összevonás lépésről lépésre – a dendrogram</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – öt pont egy egyenesen</span>
+  Pontok: 1, 2, 4, 8, 9. Kezdetben mindegyik a saját klaszterében van. Minden lépésben a két <b>legközelebbi</b> klasztert vonjuk össze; két klaszter távolsága most legyen
+  a <b>legközelebbi tagjaik</b> távolsága.
+  <ol style="margin:.2rem 0">
+    <li>{1} és {2} távolsága 1, {8} és {9} távolsága is 1 – vonjuk össze mindkettőt (1-es magasságban).</li>
+    <li>Klaszterek: {1, 2}, {4}, {8, 9}. A {1, 2} és a {4} távolsága $|2 - 4| = 2$, a {4} és a {8, 9} távolsága 4. Összevonás 2-es magasságban: {1, 2, 4}.</li>
+    <li>Maradt {1, 2, 4} és {8, 9}: távolságuk $|4 - 8| = 4$. Összevonás 4-es magasságban – kész, egyetlen klaszter.</li>
+  </ol>
+  Az összevonások fáját <b>dendrogramnak</b> hívjuk: alul a pontok, és minden összevonás egy vízszintes vonal annyi magasan, amekkora távolságnál történt.
+  <svg viewBox="0 0 420 200" style="width:100%;max-width:420px;display:block;margin:.6rem auto;font:12px system-ui,sans-serif" role="img" aria-label="Az öt pont dendrogramja">
+    <g style="stroke:var(--muted);stroke-width:1"><path d="M40 170 H400"/><path d="M40 170 V15"/></g>
+    <g style="fill:var(--muted)" text-anchor="end">
+      <text x="34" y="174">0</text><text x="34" y="137">1</text><text x="34" y="100">2</text><text x="34" y="63">3</text><text x="34" y="26">4</text>
+    </g>
+    <text x="44" y="12" style="fill:var(--muted)">magasság (távolság)</text>
+    <g style="stroke:var(--accent);stroke-width:2;fill:none">
+      <path d="M80 170 V133 H140 V170"/><path d="M290 170 V133 H350 V170"/>
+      <path d="M110 133 V96 H200 V170"/><path d="M155 96 V22 H320 V133"/>
+    </g>
+    <g style="stroke:var(--bad);stroke-width:1.5" stroke-dasharray="6 4"><path d="M40 78 H400"/></g>
+    <text x="398" y="74" text-anchor="end" style="fill:var(--bad)">vágás 2,5-nél → 2 klaszter</text>
+    <g style="fill:var(--text);font-weight:600" text-anchor="middle">
+      <text x="80" y="186">1</text><text x="140" y="186">2</text><text x="200" y="186">4</text><text x="290" y="186">8</text><text x="350" y="186">9</text>
+    </g>
+  </svg>
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – összevonó (agglomeratív) hierarchikus klaszterezés</span>
+  <ol style="margin:.2rem 0">
+    <li>Kezdetben minden pont egy külön klaszter ($n$ klaszter).</li>
+    <li>Számold ki minden klaszterpár távolságát (a <b>kapcsolási mód</b> szerint, <a href="#s82-b">2. lépés</a>), és vond össze a két legközelebbit.</li>
+    <li>Ismételd, amíg egyetlen klaszter marad ($n - 1$ összevonás).</li>
+  </ol>
+  A <b>dendrogram</b> az összevonások fája; egy összevonás <b>magassága</b> az a távolság, amelynél megtörtént. Ha a dendrogramot egy $h$ magasságú vízszintes vonallal <b>elvágod</b>,
+  a vonal alatt összefüggő ágak adják a klasztereket.
+  <br><small>Miért jó? Mert egyetlen futtatás <em>minden</em> $k$-ra ad felosztást – a $k$-t utólag, a dendrogramra nézve választod. Egy nagy ugrás az összevonási magasságokban
+  (hosszú függőleges szakasz) azt jelzi, hogy ott két jól elkülönülő csoport egyesülne – a vágás helye ennek a közepén van.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy fa, sok felosztás</span>
+    Az öt pont dendrogramját vágd el
+    <ul style="margin:.2rem 0">
+      <li>0,5-nél: 5 klaszter (még nem volt összevonás);</li>
+      <li>1,5-nél: 3 klaszter: {1, 2}, {4}, {8, 9};</li>
+      <li>3-nál: 2 klaszter: {1, 2, 4}, {8, 9};</li>
+      <li>5-nél: 1 klaszter.</li>
+    </ul>
+    A legnagyobb ugrás a 2 és a 4 között van – a „természetes” vágás itt két klasztert ad.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – felülről lefelé</span>
+    A fordított irány a <b>felosztó</b> (divizív) klaszterezés: egyetlen klaszterből indulsz, és mindig a „leglazábbat” vágod ketté (pl. egy $k = 2$-es k-középpel).
+    Ugyanolyan dendrogramot ad, de felülről építi; ritkábban használják, mert minden lépésben egy nehéz kettévágási feladatot kell megoldani.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A levelek sorrendje nem jelent semmit.</b> Bármelyik összevonásnál a két ágat felcserélheted – ugyanaz a dendrogram. Két levél közelségét az mutatja, <em>milyen magasan</em> találkoznak, nem az, hogy egymás mellett állnak-e.</li>
+    <li><b>Ami összevonva, az összevonva marad.</b> Az algoritmus mohó: egy korai rossz összevonást később nem bont fel.</li>
+    <li><b>Mindig hierarchiát ad</b> – akkor is, ha az adatban nincs (ESL 14.3). A fa léte nem bizonyíték arra, hogy a csoportok „egymásba ágyazódnak”.</li>
+    <li><b>Lassú nagy adaton.</b> Az összes páronkénti távolság $n^2/2$ szám: $100\,000$ pontnál 5 milliárd. Néhány tízezer pont fölött más módszer kell.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a dendrogram</summary>
+  <ol>
+    <li>Pontok: 0, 1, 5, 6, 20. Végezd el az összevonásokat (legközelebbi tagok távolsága)! Mik a magasságok?
+      <details><summary>Megoldás</summary>{0, 1} (1) és {5, 6} (1); aztán {0, 1} + {5, 6}: $|1 - 5| = 4$; végül + {20}: $|6 - 20| = 14$. Magasságok: 1, 1, 4, 14.</details></li>
+    <li>Az előző dendrogramot hol érdemes elvágni, és hány klasztert kapsz?
+      <details><summary>Megoldás</summary>A legnagyobb ugrás 4 és 14 között van: pl. 9-nél vágva 2 klaszter: {0, 1, 5, 6} és {20}. (Ha a 20-at kiugró értéknek tartod, a 4 alatti vágás – 3 klaszter – is védhető.)</details></li>
+    <li>Hány összevonás történik 50 pontnál, és hány klaszterpár távolságát kell az első lépésben ismerni?
+      <details><summary>Megoldás</summary>$n - 1 = 49$ összevonás. Az első lépésben minden pár: $\binom{50}{2} = 1225$ távolság.</details></li>
+    <li>Egy dendrogramon A és B levél egymás mellett áll, de csak a legfelső összevonásnál találkoznak. C két levéllel arrébb van, de A-val már 0,3-as magasságban összevonódott. Ki hasonlít jobban A-ra?
+      <details><summary>Megoldás</summary>C. A hasonlóságot az összevonás magassága mutatja; a levelek vízszintes sorrendje önkényes (az ágak felcserélhetők).</details></li>
+    <li>(nehezebb) Miért ad a dendrogram <em>egymásba ágyazott</em> felosztásokat, a k-közép $k = 2$ és $k = 3$ eredménye viszont nem feltétlenül az?
+      <details><summary>Megoldás</summary>A dendrogram 3 klaszteres vágását egyetlen összevonás teszi 2 klaszteressé – a 2 klaszter mindig a 3 klaszter két tagjának egyesítése. A k-közép minden $k$-ra külön, elölről optimalizál:
+        a $k = 3$ klaszterei keresztbe is vághatják a $k = 2$ klasztereit.</details></li>
+  </ol>
+</details>
+
+<h3 id="s82-b">2. lépés: mitől közel két csoport? – kapcsolási módok</h3>
+<p>Két <em>pont</em> távolsága egyértelmű. Két <em>csoporté</em> nem: a legközelebbi tagjaik? A legtávolabbiak? Az átlag? A választás – a <b>kapcsolási mód</b> – megváltoztatja a fát.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – {1, 2, 4} és {8, 9} távolsága</span>
+  A hat tagpár távolsága: $|1 - 8| = 7$, $|1 - 9| = 8$, $|2 - 8| = 6$, $|2 - 9| = 7$, $|4 - 8| = 4$, $|4 - 9| = 5$.
+  <ul style="margin:.2rem 0">
+    <li>a legkisebb: <b>4</b> (a 4 és a 8);</li>
+    <li>a legnagyobb: <b>8</b> (az 1 és a 9);</li>
+    <li>az átlag: $\frac{7 + 8 + 6 + 7 + 4 + 5}{6} \approx$ <b>6,17</b>;</li>
+    <li>és ha az SSE-t nézzük: külön $\text{SSE} = 4{,}67 + 0{,}5$, együtt $50{,}8$ – az összevonás <b>45,63</b>-mal növeli.</li>
+  </ul>
+  Négy jogos válasz – négy kapcsolási mód.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – kapcsolási módok (linkage)</span>
+  Az $A$ és $B$ klaszter távolsága:
+  <table style="font-size:.9rem">
+    <tr><th>mód</th><th>képlet</th><th>milyen klasztereket szeret?</th></tr>
+    <tr><td><b>egyszerű</b> (single, legközelebbi szomszéd)</td><td>$\min_{a \in A,\, b \in B} d(a, b)$</td><td>bármilyen alakot; hajlamos <b>láncolódni</b></td></tr>
+    <tr><td><b>teljes</b> (complete, legtávolabbi szomszéd)</td><td>$\max_{a \in A,\, b \in B} d(a, b)$</td><td>tömör, kis átmérőjű csoportokat</td></tr>
+    <tr><td><b>átlagos</b> (average, UPGMA)</td><td>$\frac{1}{|A||B|}\sum_{a, b} d(a, b)$</td><td>a kettő között</td></tr>
+    <tr><td><b>Ward</b></td><td>$\Delta\text{SSE} = \frac{|A||B|}{|A| + |B|}\|\boldsymbol\mu_A - \boldsymbol\mu_B\|^2$</td><td>gömbölyű, hasonló méretű csoportokat (mint a k-közép)</td></tr>
+  </table>
+  <small>Miért a Ward-képlet? Két csoport összevonásakor az SSE pontosan ennyivel nő. A Ward-módszer tehát minden lépésben azt a párt vonja össze, amelyik a legkevésbé rontja a k-közép mércéjét –
+  ezért ad hasonló klasztereket, mint a k-közép, és ezért csak euklideszi távolsággal értelmes. A programok (pl. a SciPy) a dendrogramon gyakran a $\sqrt{2\,\Delta\text{SSE}}$ értéket rajzolják.</small>
+</div>
+<div class="box example">
+  <span class="box-title">Példa – ugyanaz az öt pont, négy fa</span>
+  <table style="max-width:640px;font-size:.88rem;text-align:center">
+    <tr><th>összevonás</th><th>egyszerű</th><th>teljes</th><th>átlagos</th><th>Ward ($\Delta\text{SSE}$)</th></tr>
+    <tr><td>{1} + {2}</td><td>1</td><td>1</td><td>1</td><td>0,5</td></tr>
+    <tr><td>{8} + {9}</td><td>1</td><td>1</td><td>1</td><td>0,5</td></tr>
+    <tr><td>{1, 2} + {4}</td><td>2</td><td>3</td><td>2,5</td><td>4,17</td></tr>
+    <tr><td>{1, 2, 4} + {8, 9}</td><td>4</td><td>8</td><td>6,17</td><td>45,63</td></tr>
+  </table>
+  Itt a sorrend mindenhol ugyanaz, csak a magasságok mások. Szép ellenőrzés: a Ward-növekmények összege $0{,}5 + 0{,}5 + 4{,}17 + 45{,}63 = 50{,}8$ – az öt pont teljes SSE-je.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egyszerű, teljes, átlagos kapcsolás</span>
+    Pontok: 0, 1, 2, …, 10 (egy hosszú, egyenletes csoport) és a 15. Két klaszterre vágva mindhárom ugyanazt adja: <b>{0, …, 10} | {15}</b>.
+    A hosszú csoport egyben marad, mert a tagjai lépésenként közel vannak egymáshoz.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – Ward</span>
+    Ugyanez Ward-kapcsolással: <b>{0, 1, 2, 3} | {4, …, 10, 15}</b>. A Ward a hosszú csoportot kettévágja, a 15-öt pedig a jobb feléhez csapja – mert így kisebb az SSE (89 a 110 helyett).
+    A k-közép is kettévágná a hosszú csoportot, csak máshol: {0, …, 6} | {7, …, 10, 15}, SSE 66,8. A Ward mohó – lépésenként a legkisebb növekedést választja –, ezért nem feltétlenül a legjobb SSE-t találja meg.
+  </div>
+</div>
+<div class="widget" data-widget="dendrogram"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Láncolódás.</b> Az egyszerű kapcsolásnál elég egyetlen „híd” – néhány pont két csoport között –, és a két csoport korán összeolvad. A szemléltetés „lánc” adatán kipróbálhatod.</li>
+    <li><b>Nincs legjobb kapcsolás.</b> Elnyúlt, kanyargós csoportokhoz az egyszerű, gömbölyűekhez a Ward vagy a teljes illik. Ha nem tudod, Ward-dal kezdj, és nézd meg a többit is.</li>
+    <li>(★★★) <b>Inverzió.</b> Egy klasszikus tankönyv (ESL 14.3.12) szerint minden összevonó módszer monoton (az összevonási magasságok sosem csökkennek). Az egyszerű, teljes, átlagos és Ward kapcsolásra ez igaz,
+      de a középpontok távolságát használó <em>centroid</em> kapcsolásnál előfordulhat, hogy egy későbbi összevonás alacsonyabban történik – a dendrogram „keresztbe” rajzolódik.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – kapcsolási módok</summary>
+  <ol>
+    <li>$A = \{0, 1\}$, $B = \{4, 7\}$. Mennyi a távolságuk egyszerű, teljes és átlagos kapcsolással?
+      <details><summary>Megoldás</summary>Párok: 4, 7, 3, 6. Egyszerű: 3; teljes: 7; átlagos: $20/4 = 5$.</details></li>
+    <li>Ugyanerre a két klaszterre mennyi a Ward-féle $\Delta\text{SSE}$?
+      <details><summary>Megoldás</summary>$\mu_A = 0{,}5$, $\mu_B = 5{,}5$; $\frac{2 \cdot 2}{4}(5{,}5 - 0{,}5)^2 = 1 \cdot 25 = 25$. Ellenőrzés: külön $0{,}5 + 4{,}5 = 5$, együtt (átlag 3) $9 + 4 + 1 + 16 = 30$; a különbség 25 ✓.</details></li>
+    <li>Két jól elkülönülő, kerek pontfelhő között egy vékony pontsor húzódik. Melyik kapcsolás vonja össze őket a legkorábban?
+      <details><summary>Megoldás</summary>Az egyszerű: a pontsor mentén minden lépés kicsi, így a láncon keresztül a két felhő „legközelebbi tagjai” közel vannak. A teljes és a Ward a felhők átmérőjét, illetve középpontját nézi, ezért sokáig külön tartja őket.</details></li>
+    <li>Miért nem érdemes a Ward-kapcsolást koszinusz-távolsággal használni?
+      <details><summary>Megoldás</summary>Mert a Ward-képlet az SSE (euklideszi négyzetes távolság az átlagtól) növekedése. Más távolsággal a „középpont” és az „SSE” nem ugyanazt jelenti, a képlet értelmét veszti.</details></li>
+    <li>(nehezebb) Mutasd meg két egyelemű klaszterre, hogy a Ward-képlet $\frac{1}{2}d^2$-et ad!
+      <details><summary>Megoldás</summary>$|A| = |B| = 1$: $\frac{1 \cdot 1}{2}\|\mathbf a - \mathbf b\|^2 = \frac12 d^2$. Ellenőrzés: két pont SSE-je az átlaguk körül $2 \cdot (d/2)^2 = d^2/2$, egyenként 0 – a növekedés $d^2/2$.
+        (Ezért rajzolja a SciPy a $\sqrt{2\Delta\text{SSE}}$-t: két pontnál ez pont a távolságuk.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s82-c">3. lépés: sűrűség alapján – DBSCAN</h3>
+<p>A k-közép minden pontot besorol, és gömböket keres. A szem mást lát: <b>sűrű tartományokat</b>, amelyeket ritkás rész választ el, és néhány magányos pontot, amely sehova sem tartozik.
+Ezt a képet ülteti át algoritmusba a DBSCAN.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – nyolc pont, sugár 1,5</span>
+  Pontok: 1, 2, 3, 4, 10, 11, 12, 20. Minden pont körül nézzünk egy $\varepsilon = 1{,}5$ sugarú környezetet, és számoljuk meg, hány pont van benne (önmagát is beleértve):
+  <table style="max-width:620px;font-size:.88rem;text-align:center">
+    <tr><th>pont</th><td>1</td><td>2</td><td>3</td><td>4</td><td>10</td><td>11</td><td>12</td><td>20</td></tr>
+    <tr><th>szomszéd ($\le 1{,}5$)</th><td>2</td><td>3</td><td>3</td><td>2</td><td>2</td><td>3</td><td>2</td><td>1</td></tr>
+    <tr><th>szerep (minPts = 3)</th><td>határ</td><td><b>mag</b></td><td><b>mag</b></td><td>határ</td><td>határ</td><td><b>mag</b></td><td>határ</td><td>zaj</td></tr>
+  </table>
+  Ahol legalább 3 pont van a környezetben, az <b>magpont</b> – ott „sűrű” az adat. A 2 és a 3 magpont, és egymás környezetében vannak: egy klasztert alkotnak, amelyhez az 1 és a 4
+  <b>határpontként</b> csatlakozik. A 11 egy másik klaszter magja a 10-zel és a 12-vel. A 20 senki környezetében nincs: <b>zaj</b>.
+  Eredmény: {1, 2, 3, 4}, {10, 11, 12} és egy zajpont – anélkül, hogy megmondtuk volna, hány klasztert keresünk.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – DBSCAN (M. Ester, H.-P. Kriegel, J. Sander, X. Xu, 1996)</span>
+  Két paraméter: a környezet sugara, $\varepsilon$, és a sűrűség küszöbe, $\text{minPts}$.
+  <ul style="margin:.2rem 0">
+    <li><b>Magpont:</b> az $\varepsilon$ sugarú környezetében (önmagával együtt) legalább $\text{minPts}$ pont van.</li>
+    <li><b>Határpont:</b> nem magpont, de egy magpont környezetében van.</li>
+    <li><b>Zajpont:</b> se nem mag-, se nem határpont.</li>
+  </ul>
+  Egy <b>klaszter</b>: azok a magpontok, amelyek egymás környezetén át „lépkedve” elérhetők, plusz a határpontjaik. A zajpont nem tartozik klaszterhez.
+  <br><small>Miért jó? Mert a klaszter alakja tetszőleges lehet (a láncolás csak sűrű részen át megy), a klaszterek számát az adat dönti el, és a kiugró pontok nem rontják el a klasztereket – külön kategóriát kapnak.
+  A név: <em>Density-Based Spatial Clustering of Applications with Noise</em>, „sűrűségalapú térbeli klaszterezés zajos adatra”.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – szigorúbb sűrűség</span>
+    Ugyanazok a pontok, de $\varepsilon = 2$, $\text{minPts} = 4$. A 2 környezetében (0–4) négy pont van: 1, 2, 3, 4 → mag; a 3-é ugyanígy. A 10, 11, 12 környezetében legfeljebb 3 pont van → egyik sem mag.
+    Eredmény: {1, 2, 3, 4} és <b>négy zajpont</b> (10, 11, 12, 20). Három pont már nem elég „sűrű”.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – hogyan válassz $\varepsilon$-t?</span>
+    Számold ki minden pontra a $(\text{minPts} - 1)$-edik legközelebbi szomszéd távolságát, és rendezd sorba (<b>k-távolság-görbe</b>). A klaszterek belsejében ezek kicsik,
+    a zajpontoknál hirtelen megnőnek – az $\varepsilon$-t a görbe „térdénél” érdemes választani. A $\text{minPts}$ szokásos kezdőértéke a dimenziószám kétszerese (2D-ben 4).
+  </div>
+</div>
+<div class="widget" data-widget="dbscan-explorer"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Egyetlen $\varepsilon$ minden klaszterre.</b> Ha az egyik csoport sűrű, a másik ritkás, nincs jó $\varepsilon$: kicsivel a ritkás csoport zajjá esik szét, nagyval a sűrűek összeolvadnak.
+      Erre való a <b>HDBSCAN</b> (R. Campello és társai, 2013), amely sok $\varepsilon$-t egyszerre vizsgál.</li>
+    <li><b>Az $\varepsilon$ mértékegységben értendő.</b> Skálázás nélkül az $\varepsilon$ „kör” a nagy számú jellemző mentén hosszú, a másik mentén semmi – itt is standardizálj.</li>
+    <li><b>Sok dimenzióban a sűrűség elmosódik.</b> A dimenzió átka (<a href="../04-adatok-es-jellemzok/#s46-c">4.6</a>) miatt minden pont nagyjából egyforma messze van – a „sűrű” és „ritkás” megkülönböztetése nehéz.
+      Ilyenkor előbb dimenziót csökkentenek (<a href="#s83">8.3</a>).</li>
+    <li><b>A határpont gazdája.</b> Ha egy határpont két klaszter magpontjának környezetében is van, az, hogy melyikhez kerül, a feldolgozás sorrendjétől függhet.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – DBSCAN</summary>
+  <ol>
+    <li>Pontok: 0, 1, 2, 6, 7, 15; $\varepsilon = 1$, $\text{minPts} = 3$. Melyek a mag-, határ- és zajpontok?
+      <details><summary>Megoldás</summary>Szomszédszámok ($\le 1$): 0: 2, 1: 3, 2: 2, 6: 2, 7: 2, 15: 1. Mag: az 1. Határ: a 0 és a 2. Zaj: 6, 7, 15. Egy klaszter: {0, 1, 2}.</details></li>
+    <li>Ugyanez $\text{minPts} = 2$-vel. Mi változik?
+      <details><summary>Megoldás</summary>Most minden pont mag, amelynek van szomszédja 1-en belül: 0, 1, 2, 6, 7. Klaszterek: {0, 1, 2} és {6, 7}; zaj: 15.</details></li>
+    <li>Miért nem kell a DBSCAN-nek megadni a klaszterek számát?
+      <details><summary>Megoldás</summary>Mert a klasztereket a magpontok összefüggő láncai adják – annyi klaszter lesz, ahány egymástól elválasztott sűrű tartomány van az adott $\varepsilon$ és minPts mellett.</details></li>
+    <li>Két hold alakú pontfelhő: mit ad a k-közép ($k = 2$) és mit a DBSCAN (jó $\varepsilon$-nal)?
+      <details><summary>Megoldás</summary>A k-közép egyenessel vágja ketté a síkot, mindkét holdból levág egy darabot. A DBSCAN a holdak mentén lépkedve mindkét holdat egészben megtalálja, mert a hold belsejében sűrű, a két hold között ritkás az adat.</details></li>
+    <li>(nehezebb) Egy adatban egy sűrű (pontok közti távolság kb. 0,1) és egy ritkás (kb. 1) csoport van, egymástól 3 egységre. Mit kapsz $\varepsilon = 0{,}2$-vel és $\varepsilon = 4$-gyel?
+      <details><summary>Megoldás</summary>$\varepsilon = 0{,}2$: a sűrű csoport klaszter, a ritkás csoport pontjai zajjá esnek szét. $\varepsilon = 4$: minden egy klaszterbe olvad. Egyetlen $\varepsilon$ nem jó; kb. 1,5 körül talán igen –
+        de ha a ritkás csoport tovább ritkul, már az sem. Ilyenkor HDBSCAN kell.</details></li>
+  </ol>
+</details>
+
+<div class="box tip">
+  <span class="box-title">💡 Kiegészítés – lágy klaszterezés: Gauss-keverék ★★★</span>
+  Eddig minden pont pontosan egy klaszterbe tartozott (<b>kemény</b> klaszterezés). A <b>Gauss-keverékmodell</b> (GMM) azt feltételezi, hogy az adat $k$ normális eloszlás keverékéből származik,
+  és minden pontra <b>valószínűségeket</b> ad: „70% az 1. klaszter, 30% a 2.”. Az illesztése az <b>EM-algoritmus</b>: a k-középhez hasonlóan váltogat egy „hozzárendelés” (E: a valószínűségek)
+  és egy „frissítés” (M: átlagok, kovarianciák, arányok) lépést. Mivel minden klaszternek saját kovarianciamátrixa van, elnyúlt, ferde ellipszisekhez is illeszkedik.
+  A k-közép ennek határesete: egyforma, gömbölyű, nagyon kicsi szórású komponensek, ahol a valószínűségek 0-ra és 1-re „keményednek” (ESL 14.3.7).
+</div>
+
+<div class="box history">
+  <span class="box-title">📜 Történet</span>
+  Az egyszerű kapcsolás ötlete lengyel matematikusoktól (K. Florek és társai, 1951) és a biológiai rendszertanból (P. Sneath, 1957) ered – a dendrogram neve is a görög <em>dendron</em>, „fa” szóból jön,
+  és a fajok rokonsági fáira emlékeztet. J. Ward 1963-ban javasolta a „legkisebb információveszteség” elvét. A DBSCAN 1996-os; 2014-ben a KDD konferencia „az idő próbáját kiállt” díjával tüntették ki,
+  mert két évtized után is az egyik leggyakrabban használt klaszterező módszer.
+</div>
+
+<div class="quiz" data-quiz="ai8-82"></div>
+</section>
+
+<!-- ===================================================== 8.3 -->
+<section id="s83">
+<h2>8.3 Főkomponens-elemzés (PCA) ★★</h2>
+<p>A <a href="../02-matematikai-eszkoztar/#s24-c">2.4</a>-ben megismerted a PCA receptjét: középre tolás, kovarianciamátrix, a legnagyobb sajátértékhez tartozó sajátvektor.
+Most megnézzük, <b>miért</b> épp ez a recept: mit jelent „vetíteni”, mennyit veszítünk vele, hány komponens kell, mikor kell skálázni – és mit nem tud a PCA.</p>
+<div class="box">
+  <span class="box-title">🔁 Emlékeztető</span>
+  Az $A$ mátrix <b>sajátvektora</b> az a $\mathbf v \ne \mathbf 0$ irány, amelyet $A$ csak nyújt: $A\mathbf v = \lambda\mathbf v$ (<a href="../02-matematikai-eszkoztar/#s24-b">2.4</a>).
+  Középre tolt adatnál ($\bar{\mathbf x} = \mathbf 0$) a <b>kovarianciamátrix</b> $C = \frac1n\sum_i \mathbf x_i\mathbf x_i^\top$: az átlójában a jellemzők varianciái, máshol a kovarianciák.
+  Szimmetrikus, ezért van egymásra merőleges, egységnyi hosszú sajátvektor-rendszere; és mivel $\mathbf u^\top C\mathbf u$ egy variancia (lásd lent), a sajátértékei nem negatívak. Egy pont <b>vetülete</b> az $\mathbf u$ egységvektorra $z = \mathbf u^\top\mathbf x$.
+</div>
+
+<h3 id="s83-a">1. lépés: vetítés egy irányra – mennyi szórás marad?</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – négy pont, négy irány</span>
+  Négy, már középre tolt pont: $(-2; -2)$, $(-1; 1)$, $(1; -1)$, $(2; 2)$. Ha <b>egyetlen</b> számmal akarjuk leírni őket, vetítsük őket egy egyenesre, és nézzük meg, mennyire szóródnak a vetületek!
+  <table style="max-width:700px;font-size:.88rem;text-align:center">
+    <tr><th>irány</th><th>$\mathbf u$</th><th>vetületek $z = \mathbf u^\top\mathbf x$</th><th>a vetületek varianciája</th></tr>
+    <tr><td>vízszintes</td><td>$(1; 0)$</td><td>$-2, -1, 1, 2$</td><td>$\frac{4 + 1 + 1 + 4}{4} = 2{,}5$</td></tr>
+    <tr><td>függőleges</td><td>$(0; 1)$</td><td>$-2, 1, -1, 2$</td><td>2,5</td></tr>
+    <tr><td>átló (45°)</td><td>$\frac{1}{\sqrt2}(1; 1)$</td><td>$-2{,}83;\ 0;\ 0;\ 2{,}83$</td><td>$\frac{8 + 0 + 0 + 8}{4} =$ <b>4</b></td></tr>
+    <tr><td>másik átló (135°)</td><td>$\frac{1}{\sqrt2}(-1; 1)$</td><td>$0;\ 1{,}41;\ -1{,}41;\ 0$</td><td>1</td></tr>
+  </table>
+  A 45°-os irányban a vetületek a legjobban szétszóródnak: itt őrzi meg a vetítés a legtöbbet abból, ami a pontokat megkülönbözteti. A 135°-os irányban a két középső pont
+  a $(0; 0)$-ra esik – az irány szinte semmit nem mutat meg. És vedd észre: $4 + 1 = 2{,}5 + 2{,}5 = 5$.
+</div>
+<div class="box def">
+  <span class="box-title">Tétel – a vetített variancia, és miért a sajátvektor</span>
+  Középre tolt adatnál az $\mathbf u$ egységvektorra vetített értékek varianciája
+  $$\operatorname{Var}(\mathbf u) = \frac1n\sum_i (\mathbf u^\top\mathbf x_i)^2 = \mathbf u^\top C\,\mathbf u.$$
+  Ez akkor a legnagyobb, ha $\mathbf u$ a $C$ legnagyobb sajátértékéhez ($\lambda_1$) tartozó sajátvektor – ez az <b>első főkomponens</b> –, és a maximum épp $\lambda_1$.
+  <br>Minden pont felbomlik a vetületére és a <b>maradékára</b> (Pitagorasz-tétel): $\|\mathbf x\|^2 = z^2 + \|\mathbf x - z\mathbf u\|^2$. Átlagolva:
+  $$\underbrace{\operatorname{tr} C}_{\text{teljes variancia}} = \underbrace{\mathbf u^\top C\,\mathbf u}_{\text{megtartott}} + \underbrace{\tfrac1n\textstyle\sum_i\|\mathbf x_i - z_i\mathbf u\|^2}_{\text{rekonstrukciós hiba}}.$$
+  A teljes variancia (az átló összege, $\operatorname{tr} C$) rögzített, ezért <b>a legtöbb szórás megtartása ugyanaz, mint a legkisebb rekonstrukciós hiba</b>. Két kérdés, egy válasz.
+  <br><small>Miért mindegy, melyiket nézzük? Mert ami a vetítés után „eltűnik”, az a maradék – ami nem tűnik el, az a megtartott variancia. A PCA olyan egyenest keres, amelyhez a pontok a legközelebb vannak
+  (merőlegesen mérve!), és ez ugyanaz az egyenes, amely mentén a legjobban szóródnak.</small>
+  <details><summary>📐 Miért a sajátvektor adja a maximumot?</summary>
+    Írd fel $\mathbf u$-t a $C$ merőleges, egységnyi sajátvektoraival: $\mathbf u = c_1\mathbf v_1 + \dots + c_d\mathbf v_d$, ahol $c_1^2 + \dots + c_d^2 = 1$. Ekkor
+    $\mathbf u^\top C\mathbf u = \lambda_1c_1^2 + \dots + \lambda_dc_d^2 \le \lambda_1(c_1^2 + \dots + c_d^2) = \lambda_1$, és egyenlőség $\mathbf u = \mathbf v_1$-nél van.
+    A második főkomponens ugyanígy a $\mathbf v_1$-re merőleges irányok közül a legjobb: $\mathbf v_2$, varianciája $\lambda_2$. És így tovább.
+  </details>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – minden irány egy képlettel</span>
+    A négy pontnál $C = \begin{pmatrix} 2{,}5 & 1{,}5 \\ 1{,}5 & 2{,}5 \end{pmatrix}$. Az $\mathbf u = (\cos\theta; \sin\theta)$ irányban
+    $\operatorname{Var} = 2{,}5\cos^2\theta + 2{,}5\sin^2\theta + 2 \cdot 1{,}5\sin\theta\cos\theta = 2{,}5 + 1{,}5\sin 2\theta$.
+    Legnagyobb $\theta = 45°$-nál (4), legkisebb $135°$-nál (1); 30°-nál 3,80. A sajátértékek: $\lambda_1 = 4$, $\lambda_2 = 1$.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – mit veszítünk?</span>
+    A 45°-os egyenesre vetítve a $(-2; -2)$ és a $(2; 2)$ pontosan visszaállítható (rajta vannak), a $(-1; 1)$ és az $(1; -1)$ viszont a $(0; 0)$-ra esik – hibájuk egyenként $1^2 + 1^2 = 2$.
+    Az átlagos rekonstrukciós hiba $\frac{0 + 2 + 2 + 0}{4} = 1 = \lambda_2$. A teljes 5-ből 4-et megtartottunk: <b>80%</b>.
+  </div>
+</div>
+<div class="widget" data-widget="pca-projection"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Variancia, nem terjedelem.</b> Egy vizuális könyv (DLV 10) azt az egyenest keresi, amelyre vetítve a pontok „a legnagyobb tartományt” fedik le. A PCA a <em>varianciát</em> maximalizálja:
+      egyetlen távoli pont a terjedelmet nagyon, a varianciát csak kicsit növeli.</li>
+    <li><b>Merőlegesen mérünk.</b> A PCA egyenese nem a regressziós egyenes (<a href="../03-tanulas-anatomiaja/#s34-b">3.4</a>). A regresszió <em>függőlegesen</em> méri a hibát (egy kitüntetett célváltozóban),
+      a PCA <em>merőlegesen</em> (minden jellemző egyenrangú).</li>
+    <li><b>Előbb középre tolni.</b> Középre tolás nélkül az „első főkomponens” az origótól az adatfelhő felé mutatna (<a href="../02-matematikai-eszkoztar/#s24-c">2.4</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – vetítés és vetített variancia</summary>
+  <ol>
+    <li>A négy pontnál mennyi a vetített variancia $\theta = 60°$-nál? Melyik másik szögnél ugyanennyi?
+      <details><summary>Megoldás</summary>$2{,}5 + 1{,}5\sin 120° = 2{,}5 + 1{,}5 \cdot 0{,}866 \approx 3{,}80$. Ugyanennyi 30°-nál, mert $\sin 60° = \sin 120°$ – a 45° két oldalán szimmetrikus.</details></li>
+    <li>Vetítsd a $(2; 2)$ és a $(-1; 1)$ pontot az $\mathbf u = \frac{1}{\sqrt2}(1; 1)$ irányra! Mi a visszaállított pont?
+      <details><summary>Megoldás</summary>$(2; 2)$: $z = 4/\sqrt2 \approx 2{,}83$, visszaállítva $z\mathbf u = (2; 2)$ – hiba 0. $(-1; 1)$: $z = 0$, visszaállítva $(0; 0)$ – hiba $1 + 1 = 2$.</details></li>
+    <li>Mit jelent a kovarianciamátrix két átlóbeli eleme a vetítés nyelvén?
+      <details><summary>Megoldás</summary>A tengelyirányú vetítések varianciáit: $\mathbf u = (1; 0)$-ra $\mathbf u^\top C\mathbf u = C_{11}$, $(0; 1)$-re $C_{22}$. A négy pontnál mindkettő 2,5.</details></li>
+    <li>Egy adat kovarianciamátrixa $\begin{pmatrix} 3 & 0 \\ 0 & 1 \end{pmatrix}$. Mi az első főkomponens, és hány százalékot magyaráz?
+      <details><summary>Megoldás</summary>A mátrix átlós, a sajátvektorok a tengelyek. Az első főkomponens $(1; 0)$, $\lambda_1 = 3$; aránya $3/(3 + 1) = 75\%$.</details></li>
+    <li>(nehezebb) Mutasd meg, hogy $\frac1n\sum_i(\mathbf u^\top\mathbf x_i)^2 = \mathbf u^\top C\mathbf u$!
+      <details><summary>Megoldás</summary>$(\mathbf u^\top\mathbf x_i)^2 = (\mathbf u^\top\mathbf x_i)(\mathbf x_i^\top\mathbf u) = \mathbf u^\top(\mathbf x_i\mathbf x_i^\top)\mathbf u$. Átlagolva: $\mathbf u^\top\left(\frac1n\sum_i\mathbf x_i\mathbf x_i^\top\right)\mathbf u = \mathbf u^\top C\mathbf u$.
+        (Középre tolt adatnál a vetületek átlaga 0, ezért ez tényleg a variancia.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s83-b">2. lépés: több komponens – magyarázott variancia, rekonstrukció, hány kell?</h3>
+<p>Két dimenzióból egyet csinálni szép, de a valódi haszon ott van, ahol <b>sok</b> jellemző van. Egy 8×8 pixeles kézírásos számjegy 64 szám. Kell-e mind a 64?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – 1797 számjegy, 64 pixel</span>
+  A scikit-learn kézírásos számjegyein (1797 kép, 8×8 pixel) a PCA sajátértékeiből számolt <b>halmozott</b> arány:
+  <table style="max-width:560px;font-size:.88rem;text-align:center">
+    <tr><th>ennyi variancia megtartásához…</th><td>50%</td><td>80%</td><td>90%</td><td>95%</td><td>99%</td></tr>
+    <tr><th>…ennyi főkomponens kell (a 64-ből)</th><td>5</td><td>13</td><td>21</td><td>29</td><td>41</td></tr>
+  </table>
+  A pixelek erősen összefüggnek: ha egy vonás áthalad egy pixelen, a szomszédja is valószínűleg sötét. 21 „összetett pixel” a variancia 90%-át hordozza. Az első kettő csak 28,5%-ot –
+  ezért lesz egy 2D-s PCA-térkép a számjegyekről elég zsúfolt (<a href="#s84">8.4</a>).
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – PCA $q$ komponenssel</span>
+  Legyenek a kovarianciamátrix sajátértékei csökkenő sorrendben $\lambda_1 \ge \lambda_2 \ge \dots \ge \lambda_d \ge 0$, a hozzájuk tartozó egységnyi sajátvektorok $\mathbf v_1, \dots, \mathbf v_d$,
+  és $V_q$ az első $q$ sajátvektorból mint oszlopokból álló mátrix.
+  <ul style="margin:.2rem 0">
+    <li><b>Pontszámok</b> (az új koordináták): $\mathbf z = V_q^\top(\mathbf x - \bar{\mathbf x})$ – $d$ szám helyett $q$.</li>
+    <li><b>Rekonstrukció:</b> $\hat{\mathbf x} = \bar{\mathbf x} + V_q\mathbf z$.</li>
+    <li><b>Magyarázott variancia aránya:</b> $\dfrac{\lambda_1 + \dots + \lambda_q}{\lambda_1 + \dots + \lambda_d}$; az átlagos rekonstrukciós hiba a <em>kihagyott</em> sajátértékek összege: $\lambda_{q+1} + \dots + \lambda_d$.</li>
+  </ul>
+  Hány komponens kell? Három szokásos szabály: (1) a halmozott arány érje el a 90–95%-ot; (2) a sajátértékek görbéjén (<b>scree plot</b>, „kőomlás-ábra”) ott állj meg, ahol a meredek rész laposba fordul;
+  (3) ha a PCA egy felügyelt modell előtt áll, a $q$-t a modell <b>keresztvalidált</b> teljesítménye döntse el (<a href="../06-modellertekeles/#s68-a">6.8</a>).
+  <br><small>Miért éppen a legnagyobb sajátértékek? Az előző lépés gondolatmenete minden $q$-ra igaz: az első $q$ sajátvektor kifeszítette altér a legjobb $q$ dimenziós „sík” – rá vetítve a legkisebb a rekonstrukciós hiba.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy kőomlás-ábra</span>
+    Öt jellemző sajátértékei: 2,6; 1,4; 0,5; 0,3; 0,2 (összeg 5). Arányban: 52%, 28%, 10%, 6%, 4% – halmozva 52%, 80%, 90%, 96%, 100%.
+    A görbe a 2. komponens után laposodik: két-három komponens elég. 90%-hoz pontosan három.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – tömörítés</span>
+    1797 kép × 64 pixel = $115\,008$ szám. 21 komponenssel tároljuk a pontszámokat ($1797 \cdot 21$), a komponenseket ($21 \cdot 64$) és az átlagképet (64): összesen $39\,145$ szám – az eredeti <b>34%-a</b>,
+    a variancia 90%-ának megőrzésével.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A PCA nem jellemzőkiválasztás.</b> A főkomponensek az <em>összes</em> eredeti jellemző súlyozott összegei – új jellemzők (<b>jellemzőkivonás</b>), nem a régiek egy része
+      (<a href="../04-adatok-es-jellemzok/#s46-a">4.6</a>). Egy rendszerkönyv (MLSYS) a PCA-t a „legrelevánsabb jellemzőket azonosító” kiválasztási módszerek közé sorolja – ez pontatlan.</li>
+    <li><b>Közelítés, nem azonosság.</b> Az MLD szerint az első néhány komponens használata „egyenértékű az eredeti adattal”. Nem az: a kihagyott sajátértékek összegével egyenlő hibát elfogadunk.</li>
+    <li><b>Az előjel önkényes.</b> Ha $\mathbf v$ sajátvektor, $-\mathbf v$ is az. Két program „tükrözött” PCA-ábrát adhat – ugyanaz az eredmény.</li>
+    <li><b>Scree vagy könyök?</b> A <em>scree plot</em> a PCA sajátértékeinek ábrája; a k-közép SSE-görbéje a <em>könyökábra</em> (<a href="#s81-d">8.1</a>). Hasonló ötlet, más görbe.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – magyarázott variancia, rekonstrukció</summary>
+  <ol>
+    <li>Négy sajátérték: 5, 3, 1, 1. Mennyi az első, illetve az első két főkomponens magyarázott aránya?
+      <details><summary>Megoldás</summary>Összeg 10. Az első: 50%, az első kettő: $8/10 = 80\%$.</details></li>
+    <li>Sajátértékek: 40, 25, 15, 10, 5, 5. Hány komponens kell a 90%-hoz? Mennyi ekkor az átlagos rekonstrukciós hiba?
+      <details><summary>Megoldás</summary>Összeg 100; halmozva 40, 65, 80, <b>90</b> → 4 komponens. A hiba a kihagyottak összege: $5 + 5 = 10$.</details></li>
+    <li>A négy pont példájában ($\mathbf v_1 = \frac{1}{\sqrt2}(1; 1)$) mennyi az $(1; -1)$ pont pontszáma és rekonstrukciója egy komponenssel?
+      <details><summary>Megoldás</summary>$z = (1 - 1)/\sqrt2 = 0$, $\hat{\mathbf x} = (0; 0)$. A hiba $1^2 + (-1)^2 = 2$ – ez a pont teljes egészében a „kidobott” irányban fekszik.</details></li>
+    <li>1000 kép, egyenként 1024 pixel. 50 komponenst tartasz meg. Hány számot kell tárolnod, és ez hány százaléka az eredetinek?
+      <details><summary>Megoldás</summary>Pontszámok $1000 \cdot 50 = 50\,000$, komponensek $50 \cdot 1024 = 51\,200$, átlagkép 1024: összesen $102\,224$, az eredeti $1\,024\,000$ kb. <b>10%-a</b>.</details></li>
+    <li>(nehezebb) Miért a kihagyott sajátértékek összege az átlagos rekonstrukciós hiba?
+      <details><summary>Megoldás</summary>A középre tolt $\mathbf x$-et a sajátvektorok bázisában felírva $\mathbf x = \sum_j z_j\mathbf v_j$, a rekonstrukció az első $q$ tag, a hiba $\sum_{j \gt q} z_j\mathbf v_j$, a hossza négyzete $\sum_{j \gt q} z_j^2$
+        (a $\mathbf v_j$-k merőlegesek és egységnyiek). Átlagolva $\sum_{j \gt q}\frac1n\sum_i z_{ij}^2 = \sum_{j \gt q}\lambda_j$, mert a $j$-edik irányban a vetített variancia $\lambda_j$.</details></li>
+  </ol>
+</details>
+
+<h3 id="s83-c">3. lépés: skálázni vagy nem? – kovariancia és korreláció</h3>
+<p>A PCA a <b>varianciát</b> nézi. A variancia viszont mértékegységfüggő: ugyanaz a kosár forintban milliószor nagyobb varianciájú, mint ezer forintban. Mit lát ilyenkor a PCA?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a 11 vásárló három mértékegységben</span>
+  A 11 vásárló (A–K) két jellemzője erősen összefügg (korreláció: −0,96): aki gyakran vásárol, kis kosárral teszi. Az első főkomponens:
+  <table style="max-width:700px;font-size:.88rem;text-align:center">
+    <tr><th>a kosár mértékegysége</th><th>$\mathbf v_1$ (vásárlás; kosár)</th><th>magyarázott arány</th><th>mit jelent?</th></tr>
+    <tr><td>ezer Ft</td><td>$(-0{,}42;\ 0{,}91)$</td><td>98,7%</td><td>főleg a kosár, kicsit a vásárlásszám</td></tr>
+    <tr><td>Ft</td><td>$(-0{,}0005;\ 1{,}000)$</td><td>&gt; 99,999%</td><td>csak a kosár – a vásárlásszám „eltűnt”</td></tr>
+    <tr><td>standardizálva</td><td>$(0{,}71;\ -0{,}71)$</td><td>97,9%</td><td>„gyakori, kicsi ↔ ritka, nagy” tengely, egyenlő súllyal</td></tr>
+  </table>
+  Forintban a PCA egyszerűen a legnagyobb számú oszlopot választja. Standardizálás után a két jellemző egyenrangú, és a főkomponens azt az összefüggést mutatja, amit valóban látunk.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – kovariancia- vagy korrelációs PCA?</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Standardizálj</b> ($z = (x - \bar x)/s$ minden jellemzőre), ha a jellemzők <b>különböző mértékegységűek</b> vagy nagyságrendűek (forint, darab, %, kg). Ekkor a PCA valójában a <b>korrelációs mátrix</b> sajátvektorait keresi.</li>
+    <li><b>Ne standardizálj</b>, ha a jellemzők <b>azonos mértékegységűek</b>, és a nagyobb szórás valóban fontosabb: pl. pixelek (0–255), azonos skálájú kérdőíves válaszok. Itt a standardizálás a szinte állandó,
+      „unalmas” jellemzőket (pl. a kép szélén mindig fehér pixeleket) felnagyítaná.</li>
+  </ul>
+  <small>Miért? Mert a PCA nem tudja, mi „fontos” – csak azt, mi <b>szóródik</b>. A mértékegység választása annak eldöntése, mennyit számítson egy jellemző. Ezt neked kell eldöntened, nem a PCA-nak.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – 178 bor, nyersen</span>
+    A <em>wine</em> adatkészlet 13 kémiai mérése között van a <b>prolin</b> (mg/l, szórás 314) és a <b>színárnyalat</b> (szórás 0,23). Nyers PCA: az első főkomponens a variancia <b>99,8%</b>-át „magyarázza” –
+    és szinte pontosan a prolin tengelye. Egy jellemző a 13-ból.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – 178 bor, standardizálva</span>
+    Standardizálás után az első főkomponens 36,2%-ot, a második 19,2%-ot magyaráz (együtt 55,4%; öt komponens 80%-ot). Az első komponensben a fenolok és a flavonoidok súlya a legnagyobb –
+    egy valódi, sok jellemzőt összefogó tengely. Ezt az adatot a <a href="#s87-b">8.7</a>-ben klaszterezzük is.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A nagy magyarázott arány gyanús is lehet.</b> A „99,8% egy komponensben” nem az adat egyszerűségét, hanem egy mértékegység uralmát mutathatja. Mindig nézd meg a komponens súlyait (a $\mathbf v_1$ elemeit)!</li>
+    <li><b>A standardizálás paramétereit is a tanító adaton számold</b> – akárcsak a PCA-t (<a href="../04-adatok-es-jellemzok/#s47-b">4.7</a>).</li>
+    <li><b>Képeknél óvatosan.</b> Egy vizuális könyv (DLV 10) szerint a „sajátarcokhoz” pixelenként egységnyi szórásra standardizálnak. Az eredeti módszer (Turk és Pentland, 1991) csak az átlagarcot vonja ki.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – skálázás és PCA</summary>
+  <ol>
+    <li>Egy adatban a magasság cm-ben (szórás 10) és a testtömeg tonnában (szórás 0,015) szerepel. Mit ad a nyers PCA első komponense?
+      <details><summary>Megoldás</summary>Szinte pontosan a magasság tengelyét: a varianciák aránya $100 : 0{,}000225$. A testtömeg gyakorlatilag eltűnik – csak a mértékegysége miatt. Standardizálni kell.</details></li>
+    <li>A wine adatban a prolin szórása 314, a színárnyalaté 0,23. Hányszor nagyobb a prolin varianciája?
+      <details><summary>Megoldás</summary>$(314/0{,}23)^2 \approx 1365^2$, kb. 1,9 milliószor.</details></li>
+    <li>Két standardizált jellemző korrelációja $r$. A korrelációs mátrix $\begin{pmatrix} 1 & r \\ r & 1 \end{pmatrix}$. Mik a sajátértékek és -vektorok?
+      <details><summary>Megoldás</summary>$(1; 1)$: $(1 + r;\ r + 1)$ → $\lambda = 1 + r$. $(1; -1)$: $(1 - r;\ r - 1)$ → $\lambda = 1 - r$. A vásárlóknál $r = -0{,}957$: $\lambda_1 = 1{,}957$ az $(1; -1)$ irányban, aránya $1{,}957/2 \approx 97{,}9\%$ ✓.</details></li>
+    <li>Az előző feladatból: két standardizált jellemzőnél merre mutat <em>mindig</em> az első főkomponens?
+      <details><summary>Megoldás</summary>45°-ban ($r \gt 0$ esetén $(1; 1)$) vagy 135°-ban ($r \lt 0$ esetén $(1; -1)$) – az adattól csak az <em>aránya</em> függ, az iránya nem. Két standardizált jellemzőnél a PCA iránya „üres” információ.</details></li>
+    <li>(nehezebb) 28×28 pixeles, fekete-fehér képeken a szélső pixelek szinte mindig 0-k, szórásuk 0,01. Mi történik, ha a PCA előtt pixelenként standardizálsz?
+      <details><summary>Megoldás</summary>Ezek a pixelek a standardizálással 100-szorosára nagyítódnak: az ott lévő apró zaj ugyanakkora varianciát kap, mint a számjegy vonásai. A főkomponensek egy része zajt fog követni.
+        Azonos mértékegységű pixeleknél a középre tolás elég (esetleg 0–1 közé osztás – az minden pixelt egyformán skáláz).</details></li>
+  </ol>
+</details>
+
+<h3 id="s83-d">4. lépés: mire jó, és mit nem tud? – a PCA a gyakorlatban</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két párhuzamos szivar</span>
+  Két osztály: az egyik pontjai $(x; 0)$, a másikéi $(x; 1)$, mindkettőnél $x = -3, -2, \dots, 3$. Két hosszú, vékony, párhuzamos „szivar”.
+  A variancia vízszintesen 4, függőlegesen 0,25: az első főkomponens a vízszintes tengely, és a variancia <b>94%</b>-át magyarázza. Vetítsünk rá!
+  A két osztály pontjai <b>pontosan egymásra esnek</b> – a megtartott 94% semmit sem árul el arról, ami az osztályokat elválasztja. Az a 6% volt, amit eldobtunk.
+</div>
+<div class="box def">
+  <span class="box-title">Recept – PCA a gyakorlatban</span>
+  <ol style="margin:.2rem 0">
+    <li>Oszd fel az adatot (tanító / teszt). A skálázót és a PCA-t <b>csak a tanító adaton</b> illeszd, és ugyanazzal a transzformációval alakítsd a teszt adatot (csővezeték, <a href="../06-modellertekeles/#s65-d">6.5</a>).</li>
+    <li>Különböző mértékegységeknél standardizálj (<a href="#s83-c">3. lépés</a>).</li>
+    <li>Válaszd meg $q$-t (halmozott arány, kőomlás-ábra, vagy a későbbi modell keresztvalidációja).</li>
+    <li>Nézd meg a komponensek súlyait: mit jelent az 1., a 2. tengely?</li>
+  </ol>
+  <b>Mire jó?</b> <b>Megjelenítés</b> (2 komponens → szórásdiagram), <b>tömörítés</b>, <b>zajszűrés</b> (a kis sajátértékű irányok gyakran zajt hordoznak), <b>előfeldolgozás</b>
+  (kevesebb, korrelálatlan jellemző egy későbbi modellnek – kNN, k-közép, regresszió), <b>anomáliadetektálás</b> a rekonstrukciós hibával (<a href="#s85-c">8.5</a>).
+  <br><b>Mit nem tud?</b> A PCA <b>lineáris</b>: egyenesekre, síkokra vetít. És <b>felügyelet nélküli</b>: nem tudja, mi a címke, ezért eldobhatja épp azt, ami a jósláshoz kell.
+  <br><small>A számolás a gyakorlatban nem a kovarianciamátrixon, hanem a középre tolt $X$ adatmátrix <b>szinguláris felbontásán</b> (SVD) megy: $X = U\Sigma V^\top$. A $V$ oszlopai a főkomponensek,
+  a sajátértékek $\lambda_j = \sigma_j^2/n$, a pontszámok $U\Sigma$. Ez numerikusan pontosabb, és nem kell felírni a $d \times d$-s mátrixot.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy kör</span>
+    Tizenkét pont egy kör kerületén, egyenletesen. Minden irányban ugyanakkora a szórás: a két főkomponens 50–50%-ot magyaráz. Bármelyik egyenesre vetítesz, két-két, az egyenesre tükrös pont egymásra esik.
+    Az adat valójában egydimenziós (a szög írja le), de nem <em>egyenes</em> mentén – ehhez nemlineáris módszer kell (<a href="#s84">8.4</a>).
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – SVD a négy ponton</span>
+    A négy pont $4 \times 2$-es mátrixának szinguláris értékei: $\sigma_1 = 4$, $\sigma_2 = 2$. Ellenőrzés: $\sigma_1^2/n = 16/4 = 4 = \lambda_1$, $\sigma_2^2/n = 4/4 = 1 = \lambda_2$ ✓.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Nagy variancia ≠ fontos a jósláshoz.</b> Egy vizuális könyv (DLV 10) szerint a PCA úgy választja ki és kombinálja a jellemzőket, hogy „a legkevésbé hasson az eredményeinkre”. A PCA az eredményeidről
+      semmit nem tud: a varianciát őrzi meg. Ha a cél egy címke jóslása, a $q$-t a felügyelt modell validációja döntse el.</li>
+    <li><b>A teljes PCA csak elforgat.</b> Ha mind a $d$ komponenst megtartod, a pontok közti távolságok nem változnak – a k-közép és a kNN eredménye sem. Csak a <em>levágás</em> (kevesebb komponens) változtat.</li>
+    <li><b>Szivárgás.</b> Ha a PCA-t a teljes adaton illeszted a felosztás előtt, a teszt adat jellemzői belelátnak a tanításba (<a href="../04-adatok-es-jellemzok/#s47-b">4.7</a>). Egy gyakorlati könyv (PDL 5) példakódja pont így tesz.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a PCA a gyakorlatban</summary>
+  <ol>
+    <li>A két szivar példájában mennyi a vízszintes és a függőleges variancia, és mekkora az első főkomponens aránya?
+      <details><summary>Megoldás</summary>Vízszintesen az $x = -3, \dots, 3$ értékek varianciája $\frac{9 + 4 + 1 + 0 + 1 + 4 + 9}{7} = 4$; függőlegesen a 0/1 fele-fele: $0{,}25$. Arány: $4/4{,}25 \approx 94\%$.</details></li>
+    <li>Mit kapsz, ha a két szivart a <em>második</em> főkomponensre vetíted?
+      <details><summary>Megoldás</summary>Két pontot: minden 0-s osztálybeli pont ugyanoda (−0,5), minden 1-es ugyanoda (+0,5) esik. Egyetlen szám tökéletesen szétválasztja az osztályokat – a „kevéssé fontos” 6%-ban volt minden információ.</details></li>
+    <li>Egy kollégád a PCA-t az egész adaton illesztette, aztán osztotta fel tanító és teszt halmazra. Mekkora a baj?
+      <details><summary>Megoldás</summary>Szivárgás: a teszt pontok befolyásolták a főkomponenseket. Címkét nem látott, ezért általában kicsi a hatása, de a tesztbecslés így elvileg optimista. A javítás: csővezeték, illesztés csak a tanító (hajtás) adaton.</details></li>
+    <li>Egy adatmátrix szinguláris értékei 10 és 5, $n = 25$ sor. Mik a kovarianciamátrix sajátértékei, és mennyi az első komponens aránya?
+      <details><summary>Megoldás</summary>$\lambda_1 = 100/25 = 4$, $\lambda_2 = 25/25 = 1$; arány $4/5 = 80\%$.</details></li>
+    <li>(nehezebb) Miért nem változnak a távolságok, ha mind a $d$ főkomponenst megtartod?
+      <details><summary>Megoldás</summary>Az új koordináták $\mathbf z = V^\top\mathbf x$, ahol $V$ oszlopai merőleges egységvektorok ($V^\top V = I$). Ekkor $\|\mathbf z\|^2 = \mathbf x^\top VV^\top\mathbf x = \|\mathbf x\|^2$ (négyzetes $V$-re $VV^\top = I$ is igaz),
+        és ugyanez két pont különbségére. A teljes PCA egy forgatás (esetleg tükrözés) – ezért nem „javítja meg” az euklideszi távolságot, ahogy az MLD állítja.</details></li>
+  </ol>
+</details>
+
+<div class="box history">
+  <span class="box-title">📜 Történet</span>
+  A főkomponens-elemzést K. Pearson írta le 1901-ben („a pontrendszerhez legközelebbi egyenesek és síkok”, vagyis a rekonstrukciós hiba felől), és H. Hotelling 1933-ban – a variancia felől.
+  A két nézőpont ugyanazt adja, ahogy az első lépésben láttuk. A számítógépes látásban M. Turk és A. Pentland 1991-es <em>sajátarcai</em> (eigenfaces) tették híressé: minden arckép néhány „alap-arc” súlyozott összegeként írható le.
+</div>
+
+<div class="quiz" data-quiz="ai8-83"></div>
+</section>
+
+<!-- ===================================================== 8.4 -->
+<section id="s84">
+<h2>8.4 Nemlineáris dimenziócsökkentés: t-SNE és UMAP ★★★</h2>
+<p><i>Ez a szakasz haladó; ha most kihagyod, a fejezet többi része ugyanúgy érthető. A 12. fejezetben (beágyazások) visszatérünk rá.</i></p>
+<p>A PCA egyenesekre és síkokra vetít. A kör példája (<a href="#s83-d">8.3</a>) megmutatta a határát: ha az adat egy <b>görbe</b> mentén fekszik, egyetlen egyenes sem írja le jól.
+A megoldás ötlete: ne a távolságokat próbáljuk megőrizni, hanem azt, <b>ki kinek a szomszédja</b>.</p>
+
+<h3 id="s84-a">1. lépés: a szomszédság megőrzése – a t-SNE ötlete</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy patkó alakú út</span>
+  Hét megálló egy U alakú út mentén: $P_1 (-1; 3)$, $P_2 (-1; 2)$, $P_3 (-1; 1)$, $P_4 (0; 0)$, $P_5 (1; 1)$, $P_6 (1; 2)$, $P_7 (1; 3)$. Az út mentén $P_1$ és $P_7$ a két vége – messze vannak egymástól.
+  <ul style="margin:.2rem 0">
+    <li><b>PCA egy dimenzióra:</b> a függőleges variancia (1,06) nagyobb, mint a vízszintes (0,86), ezért az első főkomponens a függőleges tengely. Rá vetítve $P_1$ és $P_7$ <b>ugyanoda</b> esik (3),
+      ugyanígy $P_2$ és $P_6$, $P_3$ és $P_5$. Az út két vége „összeér”.</li>
+    <li><b>Szomszédok szerint:</b> minden megálló <em>legközelebbi</em> szomszédja egy út menti szomszéd ($P_1$-é a $P_2$, $P_4$-é a $P_3$ és a $P_5$). Ha egy egyenesen úgy rakjuk le őket, hogy a legközelebbi szomszédok egymás mellé kerüljenek,
+      a sorrend $P_1, P_2, \dots, P_7$ – az U „kiegyenesedik”.</li>
+  </ul>
+  A második térkép a <em>távolságokat</em> nem őrzi ($P_1$ és $P_7$ valójában csak 2 egységre van egymástól), de a <em>szomszédságot</em> igen – és itt ez a lényeg.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – t-SNE (L. van der Maaten, G. Hinton, 2008)</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Hasonlóságok az eredeti térben.</b> Minden $i$ pontra a többi pont „szomszédsági valószínűsége” egy Gauss-haranggal:
+      $p_{j|i} \propto e^{-\|\mathbf x_i - \mathbf x_j\|^2/2\sigma_i^2}$, összegük 1. A $\sigma_i$-t minden pontra úgy állítjuk be, hogy a <b>perplexitás</b> – nagyjából a „hatásos szomszédok száma” – egy
+      megadott érték legyen (szokásosan 5–50). A perplexitás $2^{H_i}$, ahol $H_i = -\sum_j p_{j|i}\log_2 p_{j|i}$ a szomszédsági eloszlás entrópiája (<a href="../02-matematikai-eszkoztar/#s26-b">2.6</a>).
+      A két irányú valószínűséget végül szimmetrizáljuk: $p_{ij} = (p_{j|i} + p_{i|j})/2n$.</li>
+    <li><b>Hasonlóságok a térképen.</b> A 2D-s pontokra $q_{ij} \propto \dfrac{1}{1 + \|\mathbf y_i - \mathbf y_j\|^2}$ – ez a Student-féle $t$-eloszlás „vastag farkú” harangja (innen a „t” a névben).</li>
+    <li><b>Illesztés.</b> A térképpontokat gradiens módszerrel (<a href="../02-matematikai-eszkoztar/#s28-a">2.8</a>) addig mozgatjuk, amíg a két hasonlóság-eloszlás a lehető legjobban egyezik:
+      a <b>KL-divergenciát</b> (<a href="../02-matematikai-eszkoztar/#s26-d">2.6</a>) minimalizáljuk, $\mathrm{KL}(P\,\|\,Q) = \sum_{i,j} p_{ij}\ln\frac{p_{ij}}{q_{ij}}$.</li>
+  </ol>
+  <small>Miért éppen így? A KL aszimmetrikus: ha két <em>szomszédot</em> ($p$ nagy) messzire teszel ($q$ kicsi), az drága; ha két <em>távoli</em> pontot ($p$ kicsi) közel teszel, az olcsó. A t-SNE ezért
+  a helyi szomszédságot nagyon gondosan őrzi, a nagy távolságokat alig. A vastag farkú $q$ pedig engedi, hogy a közepesen távoli pontok a térképen jó messzire kerüljenek – így a csoportok szétválnak,
+  és nem zsúfolódnak egymásra (a „zsúfoltsági probléma” megoldása).</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a szomszédsági valószínűségek</span>
+    A patkó $P_4$ pontjára $\sigma = 1$-gyel. Távolságnégyzetek: $P_3, P_5$: 2; $P_2, P_6$: 5; $P_1, P_7$: 10. Súlyok: $e^{-1} \approx 0{,}368$, $e^{-2{,}5} \approx 0{,}082$, $e^{-5} \approx 0{,}0067$.
+    Normálva: $P_3$ és $P_5$ egyenként <b>0,40</b>, $P_2$ és $P_6$ 0,09, $P_1$ és $P_7$ 0,007. A perplexitás $2^{H} \approx 3{,}4$: mintha kb. három-négy szomszédja lenne.
+    $\sigma = 0{,}5$-tel a perplexitás 2,0 (csak a két közvetlen szomszéd számít), $\sigma = 2$-vel 5,6.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – Gauss vagy t?</span>
+    <table style="font-size:.86rem;text-align:center">
+      <tr><th>távolság $d$</th><td>1</td><td>2</td><td>3</td><td>5</td></tr>
+      <tr><th>Gauss $e^{-d^2/2}$</th><td>0,61</td><td>0,14</td><td>0,011</td><td>0,000004</td></tr>
+      <tr><th>t: $1/(1 + d^2)$</th><td>0,50</td><td>0,20</td><td>0,10</td><td>0,038</td></tr>
+    </table>
+    5 egységnyi távolságban a t-harang még tízezerszer „vastagabb”. Ugyanakkora kis hasonlóságot a térképen sokkal nagyobb távolság is kifejezhet – a csoportok közt így „levegő” lesz.
+  </div>
+</div>
+<div class="widget" data-widget="digit-embedding"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A t-SNE nem látta a címkéket.</b> A színezés a szemléltetésben utólagos: az algoritmus csak a 64 pixelt kapta. Hogy a számjegyek mégis szigetekbe rendeződnek, az az adat szerkezetéről árulkodik.</li>
+    <li><b>Nincs képlet új pontra.</b> A t-SNE nem tanul függvényt: a térkép a konkrét pontok elhelyezése. Egy új számjegyet nem lehet „levetíteni” – újra kell futtatni (vagy más módszer kell, pl. UMAP).</li>
+    <li><b>Lassú és véletlen.</b> A naiv változat $n^2$ párt néz; minden futás más elrendezést adhat (más véletlen kezdés).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a t-SNE ötlete</summary>
+  <ol>
+    <li>A patkó pontjainál a PCA egy dimenzióra vetítve mely párokat „ejti egybe”?
+      <details><summary>Megoldás</summary>A függőleges tengelyre vetít: $P_1$ és $P_7$ (3), $P_2$ és $P_6$ (2), $P_3$ és $P_5$ (1). Csak $P_4$ (0) marad egyedül.</details></li>
+    <li>Egy pontnak két szomszédja van, egyenlő súllyal (0,5–0,5), a többi súlya 0. Mennyi a perplexitás?
+      <details><summary>Megoldás</summary>$H = -2 \cdot 0{,}5\log_2 0{,}5 = 1$ bit, perplexitás $2^1 = 2$. Ha $k$ szomszéd egyenlő súllyal: $H = \log_2 k$, perplexitás $k$ – innen a „hatásos szomszédszám”.</details></li>
+    <li>Két szomszéd: $p = 0{,}4$, de a térképen messze kerülnek, $q = 0{,}01$. Mennyi a KL-összeg ezen tagja? És fordítva ($p = 0{,}01$, $q = 0{,}4$)?
+      <details><summary>Megoldás</summary>$0{,}4\ln(0{,}4/0{,}01) = 0{,}4\ln 40 \approx 1{,}48$. Fordítva: $0{,}01\ln(0{,}01/0{,}4) \approx -0{,}037$. A szomszédok szétszakítása sokba kerül, a távoliak összetolása szinte semmibe – ezért őrzi a t-SNE a helyi szerkezetet.</details></li>
+    <li>Miért nem lehet egy betanított t-SNE-térképre egy új pontot „rávetíteni”, mint a PCA-nál?
+      <details><summary>Megoldás</summary>Mert a PCA egy függvényt tanul ($\mathbf z = V_q^\top(\mathbf x - \bar{\mathbf x})$), a t-SNE viszont csak a meglévő pontok koordinátáit optimalizálja. Az új pont helye a többiekétől is függne – nincs rá képlet.</details></li>
+    <li>(nehezebb) Mi történne, ha a térképen is Gauss-hasonlóságot használnánk (ez volt a korábbi SNE)?
+      <details><summary>Megoldás</summary>Sok dimenzióban egy pontnak sok, közepesen távoli „második szomszédja” lehet; 2D-ben nincs elég hely mindet közepes távolságban elhelyezni. A gyorsan lecsengő Gauss miatt ezeket a térkép középre zsúfolná,
+        a csoportok egymásra csúsznának (zsúfoltsági probléma). A vastag farkú t-eloszlás megengedi, hogy messzebb kerüljenek.</details></li>
+  </ol>
+</details>
+
+<h3 id="s84-b">2. lépés: hogyan olvasd a térképet? – és az UMAP</h3>
+<p>A t-SNE-térkép szép – és könnyű félreolvasni. A szemléltetésben váltogasd a perplexitást és a véletlen magot: a szigetek alakja, mérete, helye változik, a <b>szomszédságok</b> viszont nagyrészt maradnak.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – 800 számjegy, öt térkép</span>
+  A szemléltetés 800 számjegyén mérjük meg, mennyire őrzi meg egy térkép a szomszédságot: minden pontra nézzük meg az <b>5 legközelebbi szomszédját a 2D-s térképen</b>, és szavaztassuk meg, melyik számjegy
+  (5-NN, <a href="../05-osztalyozas/#s52-b">5.2</a>, keresztvalidálva).
+  <table style="max-width:620px;font-size:.88rem;text-align:center">
+    <tr><th>hol keresünk szomszédot?</th><th>5-NN pontosság</th></tr>
+    <tr><td>az eredeti 64 dimenzióban</td><td>94,9%</td></tr>
+    <tr><td>PCA, 2 komponens</td><td>63,8%</td></tr>
+    <tr><td>t-SNE (perplexitás 5 / 30 / 100)</td><td>96,1% / 95,1% / 95,5%</td></tr>
+    <tr><td>UMAP</td><td>96,4%</td></tr>
+  </table>
+  A PCA két tengelye elveszti a szomszédságok nagy részét (csak a variancia 28,5%-át tartja meg). A t-SNE és az UMAP 2D-ben is szinte annyira „jó szomszédokat” ad, mint a teljes 64 dimenzió.
+  A t-SNE-térképek közben egymástól nagyon különbözőnek <em>látszanak</em>.
+  <small>(A szemléltetés kiírása minden pontot egyenként hagy ki, nem ötszörös keresztvalidációval számol – ezért ott pár százalékponttal magasabb értékeket látsz: PCA kb. 67%, t-SNE és UMAP kb. 97%.)</small>
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – egy t-SNE- vagy UMAP-térkép olvasása</span>
+  <ul style="margin:.2rem 0">
+    <li>✅ <b>Megbízható:</b> ki kinek a <b>szomszédja</b>; hogy egy pont egy szigeten belül van-e.</li>
+    <li>❌ <b>Nem értelmezhető:</b> a szigetek <b>mérete</b> (a t-SNE a sűrű csoportokat kitágítja, a ritkásakat összehúzza), a szigetek <b>egymástól mért távolsága</b>, a tengelyek (nincs „1. tengely” jelentés).</li>
+    <li>⚠️ <b>Ellenőrizd:</b> több perplexitással és véletlen maggal is futtasd. Kis perplexitásnál tiszta véletlen zajban is „csoportok” jelenhetnek meg.</li>
+  </ul>
+  <b>UMAP</b> (L. McInnes, J. Healy, J. Melville, 2018): hasonló ötlet – egy szomszédsági gráfot épít az eredeti térben (paraméter: <code>n_neighbors</code>), és olyan 2D-s elrendezést keres, amelynek hasonló a gráfja
+  (<code>min_dist</code>: milyen szorosan tömörülhetnek a pontok). Gyorsabb, nagy adaton is fut, és van belőle <b>transzformáció új pontokra</b>.
+  <br><small>Miért nem jó a távolság? Mert a cél (KL) a helyi szomszédságot jutalmazza – a nagy távolságokért szinte semmi nem „fizet”. Amit a módszer nem optimalizál, arra ne alapozz következtetést.</small>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 PCA, t-SNE, UMAP – egymás mellett</span>
+  <table style="font-size:.88rem">
+    <tr><th></th><th>PCA</th><th>t-SNE</th><th>UMAP</th></tr>
+    <tr><td>lineáris?</td><td>igen</td><td>nem</td><td>nem</td></tr>
+    <tr><td>mit őriz?</td><td>a varianciát (nagy távolságokat)</td><td>a helyi szomszédságot</td><td>a helyi szomszédságot, valamivel több globális szerkezettel</td></tr>
+    <tr><td>új pont?</td><td>képlettel</td><td>nem</td><td>igen (közelítőleg)</td></tr>
+    <tr><td>a tengelyek jelentése</td><td>van (súlyok)</td><td>nincs</td><td>nincs</td></tr>
+    <tr><td>determinisztikus?</td><td>igen (előjelig)</td><td>nem</td><td>nem</td></tr>
+    <tr><td>tipikus használat</td><td>előfeldolgozás, tömörítés, első ránézés</td><td>megjelenítés</td><td>megjelenítés, előfeldolgozás</td></tr>
+  </table>
+  Gyakori recept: előbb PCA kb. 50 dimenzióra (zajszűrés, gyorsítás), utána t-SNE vagy UMAP 2D-re.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – szöveg- és képbeágyazások</span>
+    Egy nyelvi modell minden mondathoz egy több száz dimenziós vektort, <b>beágyazást</b> rendel (12. fejezet). Hogy a hasonló jelentésű mondatok tényleg közel vannak-e, egy UMAP-térképen nézik meg –
+    pl. ügyfélpanaszok témái szigetekbe rendeződnek-e.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egysejt-genomika</span>
+    A biológiában több ezer gén aktivitását mérik sejtenként. A sejttípusokat ma rutinszerűen UMAP-térképen azonosítják – és a terület kutatói figyelmeztetnek is: a térkép távolságaiból ne következtess a sejttípusok „rokonságára”.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A szigetek távolsága nem a valódi távolság.</b> Egy gyakorlati könyv (PDL 14) szerint a t-SNE-ábrán „az osztályok közti távolság a 128 dimenziós tér valódi elkülönülését tükrözi”, és egy rossz
+      t-SNE-képpel magyarázza, miért gyenge a legközelebbi centroid módszer. A t-SNE csak a helyi szomszédságot őrzi; a középpontok távolságára nem lehet belőle következtetni.</li>
+    <li><b>Ne klaszterezz vakon a t-SNE-térképen.</b> A térkép torzít (méret, sűrűség); ha klaszterezni akarsz, inkább az eredeti vagy a PCA-tömörített térben tedd, és a térképpel csak <em>nézd meg</em> az eredményt.</li>
+    <li><b>A szép kép nem bizonyíték.</b> Hogy valami szigetekre esik, sejtést ad, nem igazolást. Ellenőrizd az eredeti térben is (pl. sziluettel, vagy egy felügyelt modellel, ha van címke).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – térképek olvasása</summary>
+  <ol>
+    <li>Egy t-SNE-térképen az A sziget kétszer akkora, mint a B. Következik-e, hogy az A csoport pontjai jobban szóródnak?
+      <details><summary>Megoldás</summary>Nem. A t-SNE pontonként más $\sigma$-t használ (a perplexitáshoz igazítva), ezért a sűrű csoportokat kitágítja, a ritkásakat összehúzza. A sziget mérete nem a valódi szórás.</details></li>
+    <li>Az A és B sziget közel van egymáshoz, a C messze. Biztos, hogy A és B hasonlóbb egymáshoz, mint A és C?
+      <details><summary>Megoldás</summary>Nem biztos. A szigetek egymástól mért távolságát a t-SNE célja alig bünteti. Ezt az eredeti térben kell ellenőrizni (pl. a csoportátlagok távolságával).</details></li>
+    <li>Miért adhat a PCA 2D-ben 64%-os, a t-SNE 95%-os 5-NN pontosságot ugyanazokon a számjegyeken?
+      <details><summary>Megoldás</summary>A PCA két lineáris tengelye csak a variancia 28,5%-át őrzi, a számjegyek nagyrészt egymásra vetülnek. A t-SNE kifejezetten a szomszédságot őrzi – épp azt, amit az 5-NN mér.</details></li>
+    <li>Egy új vásárlót fel akarsz tenni a meglévő térképre, újrafuttatás nélkül. PCA, t-SNE vagy UMAP?
+      <details><summary>Megoldás</summary>PCA (képlettel) vagy UMAP (van <code>transform</code>-ja). A t-SNE-vel nem megy.</details></li>
+    <li>(nehezebb) Egy elemző azt mondja: „A t-SNE-térképen 7 sziget van, tehát 7 vásárlótípus van.” Mit kérdeznél?
+      <details><summary>Megoldás</summary>Milyen perplexitással és hány véletlen maggal futtatta, és mindegyiken 7 sziget van-e? Mi a sziluett vagy a könyök az eredeti (standardizált) térben? Stabil-e a csoportosítás az adat újramintázására?
+        És van-e üzleti értelmük a csoportoknak? A térkép jó sejtést ad, de a klaszterek számát nem bizonyítja.</details></li>
+  </ol>
+</details>
+<details class="box">
+  <summary>🐍 Python – a 800 számjegy térképei</summary>
+  <pre style="margin:.6rem 0;font-size:.85rem">import numpy as np
+from sklearn.datasets import load_digits
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import cross_val_score
+import umap                                             # pip install umap-learn
+
+X, y = load_digits(return_X_y=True)                     # 1797 kép, 64 pixel
+rng = np.random.RandomState(0)                          # számjegyenként 80 kép
+idx = np.sort(np.concatenate([rng.choice(np.where(y == c)[0], 80, replace=False) for c in range(10)]))
+X, y = X[idx], y[idx]
+
+terkep = {"PCA": PCA(2).fit_transform(X),
+          "t-SNE 30": TSNE(2, perplexity=30, init="pca", random_state=0).fit_transform(X),
+          "UMAP": umap.UMAP(n_neighbors=15, min_dist=0.1, random_state=0).fit_transform(X)}
+for nev, E in terkep.items():                           # mennyire „jó szomszédok” a térképen?
+    print(nev, cross_val_score(KNeighborsClassifier(5), E, y, cv=5).mean().round(3))
+# PCA 0.638 · t-SNE 30 0.951 · UMAP 0.964  (a 64 pixelen: 0.949)</pre>
+  <small>A t-SNE és az UMAP eredménye a könyvtár verziójától és a véletlen magtól kicsit függ.</small>
+</details>
+
+<div class="box history">
+  <span class="box-title">📜 Történet</span>
+  A szomszédsági valószínűségek ötlete G. Hinton és S. Roweis 2002-es SNE-módszeréből ered; a vastag farkú t-eloszlással L. van der Maaten és G. Hinton 2008-ban tette használhatóvá – ez lett a t-SNE.
+  Az UMAP-ot L. McInnes, J. Healy és J. Melville 2018-ban publikálta, a topológia (az „alakok” matematikája) nyelvén. A régebbi nemlineáris módszerek – az Isomap és az LLE (2000) – ugyanezt a célt
+  szolgálták: a görbült felületen fekvő adatot „kiteríteni”.
+</div>
+
+<div class="quiz" data-quiz="ai8-84"></div>
+</section>
+
+<!-- ===================================================== 8.5 -->
+<section id="s85">
+<h2>8.5 Anomáliadetektálás ★★</h2>
+<p>A <a href="../04-adatok-es-jellemzok/#s42-c">4.2</a>-ben egyetlen oszlopban kerestünk kiugró értéket (IQR-szabály, z-érték), hogy kijavítsuk vagy kezeljük. Most a kilógó eset maga a <b>cél</b>:
+a csaló tranzakció, a meghibásodó gép rezgése, a betörési kísérlet a hálózaton. Címke ritkán van – a csalást épp azért nehéz megcímkézni, mert senki nem vette észre. Ezért ez is felügyelet nélküli feladat:
+megtanuljuk, milyen a <b>szokásos</b>, és azt jelöljük meg, ami nem az.</p>
+
+<h3 id="s85-a">1. lépés: ami külön-külön átlagos, együtt furcsa – távolságalapú pontszámok</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – az L vásárló</span>
+  Nézd meg a könyvesbolt L vásárlóját: havonta 14-szer vásárol, átlagosan 28 ezer forintért.
+  <ul style="margin:.2rem 0">
+    <li><b>Oszloponként:</b> a 14 vásárlás nem kiugró (az IQR-szabály kerítései a 12 vásárlón −12,75 és 29,25), a 28 ezer sem (−28,5 és 61,5). A z-értékei 1,24 és 1,12 – teljesen átlagosak.</li>
+    <li><b>Együtt:</b> a többiek vagy gyakran vásárolnak keveset, vagy ritkán sokat. A legközelebbi szomszédja (ezer forintban mérve) a G, <b>11,05</b> távolságra. Minden más vásárlónak 2,24-en belül van szomszédja.</li>
+  </ul>
+  L-t egyetlen oszlop sem árulja el, csak a kettő <b>együtt</b>. Ezért kell a pontokat a térben, a szomszédaikhoz mérni.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – anomáliapontszám, távolságalapú módszerek</span>
+  Az <b>anomáliadetektálás</b> minden ponthoz egy <b>anomáliapontszámot</b> rendel – minél nagyobb, annál szokatlanabb –, és a küszöb fölötti (vagy a legnagyobb $N$) pontot jelöli meg. Két egyszerű pontszám:
+  <ul style="margin:.2rem 0">
+    <li><b>$k$-adik szomszéd távolsága:</b> milyen messze van a pont $k$-adik legközelebbi szomszédja. Aki magányos, annak messze.</li>
+    <li><b>Távolság a legközelebbi klaszterközépponttól:</b> futtass k-közepet (<a href="#s81">8.1</a>), és nézd meg, milyen messze van a pont a saját középpontjától.</li>
+  </ul>
+  A küszöböt gyakran a <b>kapacitás</b> dönti el: ha naponta 50 esetet tud valaki átnézni, az 50 legnagyobb pontszámú esetet kapja.
+  <br><small>Miért működik? Mert a szokásos esetek sokan vannak, és hasonlítanak egymásra – sűrű felhőket alkotnak. Az anomália ritka és más: a sűrű részektől távol esik.
+  Ez ugyanaz a gondolat, mint a DBSCAN zajpontja (<a href="#s82-c">8.2</a>).</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – távolság a középponttól</span>
+    A 11 „rendes” vásárló három k-közép középpontja: $(2{,}5;\ 27{,}5)$, $(13;\ 5)$, $(7;\ 15)$. L távolsága tőlük: <b>11,51</b>, 23,02 és 14,76 – a legközelebbi is 11,51.
+    A többi vásárló egyike sincs 2,6-nál messzebb a saját középpontjától.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – két csaló együtt</span>
+    Tegyük fel, hogy L mellett egy L′ $(14;\ 27)$ vásárló is van. Most egymás <em>legközelebbi</em> szomszédai (távolság 1) – az 1. szomszéd távolsága alapján „rendesnek” látszanak.
+    A <b>2.</b> szomszéd távolsága viszont 11,05, illetve 11 – újra kilógnak. Ha az anomáliák csoportosan jöhetnek, a $k$ legyen legalább akkora, mint a csoportjuk mérete.
+  </div>
+</div>
+<details class="box">
+  <summary>📐 Mahalanobis-távolság – amikor a jellemzők összefüggenek ★★★</summary>
+  A standardizált euklideszi távolság minden jellemzőt külön skáláz, de az <em>összefüggésüket</em> nem nézi. A 11 vásárlónál a két jellemző korrelációja −0,96: a pontok egy ferde sáv mentén fekszenek.
+  A <b>Mahalanobis-távolság</b> $d_M(\mathbf x) = \sqrt{(\mathbf x - \bar{\mathbf x})^\top C^{-1}(\mathbf x - \bar{\mathbf x})}$ a kovarianciamátrixszal „kiegyenesíti” ezt a sávot.
+  <table style="max-width:560px;font-size:.88rem;text-align:center">
+    <tr><th>vásárló</th><th>standardizált távolság az átlagtól</th><th>Mahalanobis-távolság</th></tr>
+    <tr><td>A $(2; 25)$</td><td>1,52</td><td>1,41</td></tr>
+    <tr><td>I $(7; 14)$</td><td>0,23</td><td>1,08</td></tr>
+    <tr><td><b>L $(14; 28)$</b></td><td>1,87</td><td><b>9,07</b></td></tr>
+  </table>
+  Standardizálva L alig messzebb, mint A; a Mahalanobis-távolság szerint hatszor messzebb – mert L a sávra merőlegesen, a „ritka” irányban tér el. (Csak egyetlen felhőnél értelmes; több klaszternél klaszterenként kell számolni.)
+</details>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Skálázás.</b> A távolságalapú pontszám mértékegységfüggő – itt is standardizálni kell (<a href="#s81-e">8.1</a>).</li>
+    <li><b>Anomália ≠ hiba ≠ csalás.</b> L lehet egy iskola könyvtárosa, aki az osztálynak vásárol. A pontszám csak azt mondja: „nézd meg”. A döntés emberi (vagy egy felügyelt modellé, ha lesz címke).</li>
+    <li><b>Kiugró pont vagy újdonság?</b> A scikit-learn két feladatot különít el. <em>Outlier detection</em>: a tanító adatban is vannak furcsa pontok, és őket keressük. <em>Novelty detection</em>: a tanító adat tiszta, és az <em>új</em> adatban
+      keressük a szokatlant. (Az MLD 11 a két szót másképp használja: nála az <em>outlier</em> a hibás érték, a <em>novelty</em> a szokatlan, de valódi.)</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – távolságalapú pontszámok</summary>
+  <ol>
+    <li>Pontok egy egyenesen: 1, 2, 3, 4, 12. Mennyi minden pontra az 1. szomszéd távolsága? Melyik a leggyanúsabb?
+      <details><summary>Megoldás</summary>1: 1; 2: 1; 3: 1; 4: 1; 12: 8. A 12 a leggyanúsabb.</details></li>
+    <li>Ugyanezekre mennyi a 2. szomszéd távolsága?
+      <details><summary>Megoldás</summary>1: 2 (a 3); 2: 1 (az 1 vagy a 3); 3: 1; 4: 2 (a 2); 12: 9 (a 3). A sorrend ugyanaz, a 12 kilóg.</details></li>
+    <li>Pontok: 1, 2, 3, 20, 21. Az 1. szomszéd szerint gyanús-e a 20 és a 21? És a 2. szomszéd szerint?
+      <details><summary>Megoldás</summary>1. szomszéd: a 20-nak és a 21-nek 1 – nem gyanúsak (egymást „védik”). 2. szomszéd: a 20-nak a 3 (17), a 21-nek a 3 (18) – nagyon gyanúsak. Az 1, 2, 3 pontoké 2, 1, 2.</details></li>
+    <li>Egy banki elemző naponta 30 esetet tud átnézni, $100\,000$ tranzakcióból. Hogyan állítanád be a küszöböt?
+      <details><summary>Megoldás</summary>Kapacitás szerint: minden nap a 30 legnagyobb pontszámú tranzakciót kapja (a felső 0,03%). A pontszám abszolút értékénél fontosabb a sorrend.</details></li>
+    <li>(nehezebb) Miért nem találta meg L-t a z-érték, és milyen esetben találna meg valamit, amit a szomszédtávolság nem?
+      <details><summary>Megoldás</summary>Mert L minden oszlopban átlagos tartományban van; a különlegessége a kombinációban rejlik, amit a z-érték (oszloponként) nem lát. Fordítva: egy tömegesen előforduló, de egyetlen oszlopban extrém érték
+        (pl. sok azonos, hibásan rögzített „999” kosár) egymás szomszédai lennének – a szomszédtávolság kicsi, a z-érték viszont nagy. A két módszer kiegészíti egymást.</details></li>
+  </ol>
+</details>
+
+<h3 id="s85-b">2. lépés: izolációs erdő – a furcsát könnyű elszigetelni</h3>
+<p>A távolságalapú pontszámhoz minden pont minden szomszédját ismerni kell – millió tranzakciónál ez lassú, és sok dimenzióban a távolság is elmosódik (<a href="../04-adatok-es-jellemzok/#s46-c">4.6</a>).
+Egy egészen más ötlet: <b>vágjunk véletlenszerűen</b>, és nézzük meg, hány vágás kell, hogy egy pont egyedül maradjon.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – hat pont, véletlen vágások</span>
+  Pontok: 1, 2, 3, 4, 5, 20. Vágjunk egy véletlen helyen az 1 és a 20 között (egyenletes eloszlással)! A vágás $\frac{20 - 5}{19} \approx 79\%$ eséllyel az 5 és a 20 közé esik – és a 20 már <b>egyetlen vágás után</b> egyedül van.
+  A 3-ashoz viszont mindkét oldalról „le kell hántani” a szomszédokat. Ha minden részen tovább vágunk, a várható vágásszám, amíg egy pont egyedül marad:
+  <table style="max-width:560px;font-size:.88rem;text-align:center">
+    <tr><th>pont</th><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>20</td></tr>
+    <tr><th>várható vágásszám</th><td>2,87</td><td>3,67</td><td>3,88</td><td>3,77</td><td>3,08</td><td><b>1,23</b></td></tr>
+  </table>
+  Az anomália „rövid úton” elszigetelhető. A sűrű csoport belsejében lévő pontokhoz sok vágás kell.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – izolációs erdő (F. T. Liu, K. M. Ting, Z.-H. Zhou, 2008)</span>
+  <ol style="margin:.2rem 0">
+    <li>Építs sok (pl. 100) <b>véletlen fát</b>, mindegyiket az adat egy kis véletlen részhalmazán (pl. $\psi = 256$ pont): minden csomópontban válassz egy véletlen jellemzőt és egy véletlen küszöböt a
+      csomópont pontjainak minimuma és maximuma között; vágj, amíg minden pont egyedül nem marad (vagy elég mély nem lesz a fa).</li>
+    <li>Egy $\mathbf x$ pont <b>úthossza</b> $h(\mathbf x)$: hány vágás után kerül egyedül egy levélbe. Átlagold a fákon: $E[h(\mathbf x)]$.</li>
+    <li>Az anomáliapontszám: $s(\mathbf x) = 2^{-E[h(\mathbf x)]/c(\psi)}$, ahol $c(n) = 2H(n - 1) - \frac{2(n - 1)}{n}$ egy $n$ pontos véletlen fa átlagos úthossza ($H(i) \approx \ln i + 0{,}5772$).</li>
+  </ol>
+  $s$ közel 1: biztosan anomália; jóval 0,5 alatt: szokásos pont; ha mindenki 0,5 körül van, nincs kiugró eset.
+  <br><small>Miért jó? Mert az anomáliák <b>kevesen vannak és mások</b> – ezért a véletlen vágások hamar leválasztják őket. Nem kell távolságot számolni (gyors, és a fákhoz hasonlóan <b>nem kell skálázni</b>, <a href="../07-fak-svm-egyuttes/#s71-d">7.1</a>),
+  és a sok fa átlaga stabil (mint a véletlen erdőnél, <a href="../07-fak-svm-egyuttes/#s73-c">7.3</a>). De vigyázz: ezek a fák nem Gini-indexszel vágnak – címke nincs, a vágás tisztán véletlen.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a hat pont pontszáma</span>
+    Itt $\psi = 6$, és a közelítő képlettel $c(6) \approx 2{,}71$. A 20-as pont: $s = 2^{-1{,}23/2{,}71} \approx$ <b>0,73</b>. A többiek: 0,37 (a 3-as) és 0,48 (az 1-es) között. Csak a 20 van 0,5 fölött.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – 256 pontos részminták</span>
+    $c(256) \approx 10{,}24$. Ha egy pont átlagosan 3 vágás után egyedül marad: $s = 2^{-3/10{,}24} \approx 0{,}82$ – gyanús. Ha 10,24 után (az átlagos úthossz): $s = 0{,}5$. Ha 15 után: $s \approx 0{,}36$ – szokásos.
+  </div>
+</div>
+<div class="widget" data-widget="anomaly-explorer"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Tengelyekkel párhuzamos vágások.</b> Mint a döntési fánál, a vágások egy-egy jellemző mentén mennek. Egy ferde, keskeny felhő mellett lévő anomáliát ezért nehezebben szigetel el – a szemléltetés „ferde felhő” adatán megnézheted.</li>
+    <li><b>A „szennyezettség” paraméter csak küszöb.</b> A scikit-learnben a <code>contamination</code> azt mondja meg, a pontok hányad részét jelölje meg – a pontszámot nem változtatja. Ha nem tudod, mennyi anomália van, inkább a sorrendet használd.</li>
+    <li><b>A pontszám véletlen.</b> Kevés fával és kis mintával két futás más sorrendet adhat a határeseteknél. Rögzítsd a magot, és használj elég fát (100–300).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – izolációs erdő</summary>
+  <ol>
+    <li>Pontok: 0, 1, 2, 10. Mekkora eséllyel szigeteli el a 10-et az első véletlen vágás (a 0 és a 10 között)?
+      <details><summary>Megoldás</summary>A vágásnak a 2 és a 10 közé kell esnie: $8/10 = 80\%$.</details></li>
+    <li>Ugyanitt mekkora eséllyel marad a 0 egyedül az első vágás után?
+      <details><summary>Megoldás</summary>A vágásnak a 0 és az 1 közé kell esnie: $1/10 = 10\%$.</details></li>
+    <li>Egy pont átlagos úthossza 5, $c(\psi) = 10$. Mennyi a pontszáma? Gyanús?
+      <details><summary>Megoldás</summary>$s = 2^{-5/10} = 2^{-0{,}5} \approx 0{,}71$. Gyanús – jóval 0,5 fölött van.</details></li>
+    <li>Miért nem kell standardizálni az izolációs erdő előtt?
+      <details><summary>Megoldás</summary>Mert minden vágás egyetlen jellemzőn, annak saját minimuma és maximuma között történik. Ha egy jellemzőt ezerszeresére nagyítasz, a vágás helyei is ezerszeresükre nőnek – ugyanazokat a pontokat választja szét.</details></li>
+    <li>(nehezebb) Miért használ minden fa csak egy kis részmintát (pl. 256 pontot), és nem az összes adatot?
+      <details><summary>Megoldás</summary>Gyorsabb, és jobb is: a teljes adatban az anomáliák körül több „szokásos” pont lehet, illetve az anomáliák csoportjai egymást takarhatják (elfedés). Egy kis mintában a csoportos anomáliák is ritkábbak, könnyebben elszigetelhetők.
+        Ráadásul a fák így különbözőbbek, az átlaguk stabilabb.</details></li>
+  </ol>
+</details>
+
+<h3 id="s85-c">3. lépés: rekonstrukciós hiba – és hogyan értékeljük?</h3>
+<p>A harmadik ötlet a <a href="#s83">PCA</a>-ból jön: ha a szokásos adat egy egyszerűbb szerkezetbe (egyenes, sík, néhány főkomponens) tömöríthető, akkor az, ami <b>nem fér bele</b>, gyanús.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két új pont a négy mellé</span>
+  A <a href="#s83-a">8.3</a> négy pontjának első főkomponense $\mathbf v_1 = \frac{1}{\sqrt2}(1; 1)$. Jön két új pont:
+  <div class="two-col">
+    <div><b>$(3;\ 3{,}5)$:</b> az átlagtól (az origótól) 4,61-re van – messze. De szinte az átlón fekszik: a rekonstrukciós hibája csak <b>0,125</b>. A szokásos mintázatot követi, csak „nagyobb”.</div>
+    <div><b>$(2;\ -2)$:</b> az origótól csak 2,83-ra van. De pontosan merőleges az átlóra: $z = 0$, a visszaállított pont $(0; 0)$, a hiba <b>8</b>. Ez az, ami nem illik a mintázatba.</div>
+  </div>
+  A „messze van a középtől” és a „nem illik a mintázatba” két különböző dolog. A rekonstrukciós hiba a másodikat méri.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – rekonstrukcióalapú anomáliadetektálás</span>
+  Taníts egy tömörítő modellt a (főleg) szokásos adaton – pl. PCA-t $q$ komponenssel, vagy egy <b>autokódolót</b> (egy neurális hálót, amely egy szűk „nyakon” át tanulja visszaadni a bemenetét, 14. fejezet).
+  Az anomáliapontszám a <b>rekonstrukciós hiba</b>: $\|\mathbf x - \hat{\mathbf x}\|^2$.
+  <br><b>Értékelés</b> – ha utólag van néhány címke (kivizsgált esetek):
+  <ul style="margin:.2rem 0">
+    <li><b>Precizitás $N$-nél</b> (precision@N): a megjelölt $N$ eset hányad része valódi anomália (<a href="../06-modellertekeles/#s61-b">6.1</a>).</li>
+    <li><b>Felidézés:</b> az összes valódi anomália hányad részét találta meg a felső $N$.</li>
+    <li>Mivel az anomália nagyon ritka, a pontosság (accuracy) és még a ROC is félrevezet – a <b>PR-görbe</b> a jó mérce (<a href="../06-modellertekeles/#s62-d">6.2</a>).</li>
+  </ul>
+  <small>Miért jó a tömörítés? Mert a modell csak azt tanulja meg „gazdaságosan” leírni, ami gyakori. A ritka, más szerkezetű eset számára nincs hely a szűk ábrázolásban – a visszaállítása rossz lesz.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – precizitás és felidézés</span>
+    $10\,000$ tranzakcióban 10 csalás van (ezt utólag kivizsgálták). A felső 20 pontszámú tranzakció között 6 csalás van. Precizitás@20: $6/20 = 30\%$; felidézés: $6/10 = 60\%$.
+    Ha vakon választanánk 20-at, átlagosan $20 \cdot 0{,}001 = 0{,}02$ csalást találnánk – a módszer kb. 300-szor jobb a véletlennél.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy gép rezgése</span>
+    Egy mikrokontrollerre szerelt gyorsulásmérő mozgásmintáit tömörítik (spektrális jellemzők, majd k-közép vagy autokódoló) – ez egy rendszerkönyv (MLSYS) gyakorló feladata. A szokásos mozgásokra a pontszám kicsi,
+    egy soha nem látott mozgásra (pl. „gurulásra”) nagy. Hibás csapágy, kiegyensúlyozatlan motor így jelezhető előre, címkézett hibaadat nélkül.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Ha az anomáliák is benne vannak a tanító adatban,</b> a modell őket is megtanulhatja „szokásosként”. Lehetőleg tiszta (vagy szűrt) adaton tanítsd a tömörítőt.</li>
+    <li><b>A világ változik.</b> A „szokásos” idővel eltolódik (új termékek, ünnepi vásárlás). Egy fél éve tanított detektor a karácsonyi forgalmat anomáliának látja – rendszeresen újra kell tanítani (22. fejezet).</li>
+    <li><b>A csaló alkalmazkodik.</b> Aki tudja, mit figyel a rendszer, a „szokásos” mintázatba rejtőzik. Az anomáliadetektálás egy versengés része, nem egyszeri megoldás.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – rekonstrukciós hiba és értékelés</summary>
+  <ol>
+    <li>A $\mathbf v_1 = \frac{1}{\sqrt2}(1; 1)$ irány mellett mennyi az $(1;\ 2)$ pont rekonstrukciós hibája?
+      <details><summary>Megoldás</summary>$z = 3/\sqrt2$, $\hat{\mathbf x} = z\mathbf v_1 = (1{,}5;\ 1{,}5)$, a hiba $(-0{,}5)^2 + 0{,}5^2 = 0{,}5$.</details></li>
+    <li>És a $(-3;\ 3)$ ponté? Melyik a gyanúsabb?
+      <details><summary>Megoldás</summary>$z = 0$, $\hat{\mathbf x} = (0; 0)$, a hiba $9 + 9 = 18$. A $(-3; 3)$ sokkal gyanúsabb – teljesen merőleges a szokásos irányra.</details></li>
+    <li>500 megjelölt esetből 40 valódi csalás; összesen 50 csalás volt. Mennyi a precizitás és a felidézés?
+      <details><summary>Megoldás</summary>Precizitás@500: $40/500 = 8\%$. Felidézés: $40/50 = 80\%$.</details></li>
+    <li>Egy detektor „99,9%-os pontosságú” $10\,000$ tranzakción, amelyben 10 csalás van. Jó?
+      <details><summary>Megoldás</summary>Nem derül ki: a „senki sem csaló” válasz is 99,9%-os (<a href="../04-adatok-es-jellemzok/#s48-b">4.8</a>). Precizitás és felidézés kell – a pontosság ritka eseménynél semmit nem mond.</details></li>
+    <li>(nehezebb) Miért lehet a PCA-rekonstrukciós hiba jobb anomáliapontszám, mint az átlagtól mért távolság?
+      <details><summary>Megoldás</summary>Mert a távolság a „nagy, de szokásos” pontokat (amelyek a fő irány mentén messze vannak) is megjelöli, a rekonstrukciós hiba viszont csak azokat, amelyek a szokásos szerkezetből <em>kilépnek</em> – mint a $(2; -2)$ a $(3; 3{,}5)$-del szemben.
+        (A kettő kombinálható is: a Mahalanobis-távolság mindkét irányt a saját szórásához méri.)</details></li>
+  </ol>
+</details>
+
+<div class="box tip">
+  <span class="box-title">💡 Kiegészítés – még néhány módszer</span>
+  <b>LOF</b> (<em>local outlier factor</em>, M. Breunig és társai, 2000): a pont környezetének sűrűségét a szomszédai sűrűségéhez méri – így eltérő sűrűségű csoportok mellett is működik.
+  <b>Egyosztályos SVM</b> (B. Schölkopf és társai, 2001): egy kernellel (<a href="../07-fak-svm-egyuttes/#s76-c">7.6</a>) a szokásos adat köré „burkot” húz. <b>Gauss-keverék:</b> a pont valószínűsége a modell szerint – ami valószínűtlen, az gyanús.
+</div>
+
+<div class="quiz" data-quiz="ai8-85"></div>
+</section>
+
+<!-- ===================================================== 8.6 -->
+<section id="s86">
+<h2>8.6 Ajánlórendszerek alapjai ★★</h2>
+<p>„Akik ezt a könyvet megvették, ezeket is…” – az ajánlórendszer a gépi tanulás egyik legelterjedtebb, legtöbb pénzt hozó alkalmazása. Címke itt sincs: senki nem mondta meg, mi a „jó ajánlás”.
+Csak azt látjuk, ki mit vett, olvasott, értékelt. Ebből kell kitalálni, mi tetszene valakinek abból, amit még <b>nem</b> látott. Két alapötlet van: <b>hasonló termék</b> és <b>hasonló vásárló</b>.</p>
+
+<h3 id="s86-a">1. lépés: hasonló könyv – tartalomalapú ajánlás</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – Anna és a könyvek jellemzői</span>
+  Minden könyvet három számmal írunk le: mennyire krimi, mennyire sci-fi, mennyire tudományos (0–1).
+  <table style="max-width:620px;font-size:.88rem;text-align:center">
+    <tr><th>könyv</th><th>krimi</th><th>sci-fi</th><th>tudomány</th><th>Anna értékelése</th></tr>
+    <tr><td>A néma tanú (K1)</td><td>1</td><td>0</td><td>0</td><td>5</td></tr>
+    <tr><td>Éjféli nyomozás (K2)</td><td>1</td><td>0</td><td>0,5</td><td>4</td></tr>
+    <tr><td>Csillagkapu (S1)</td><td>0</td><td>1</td><td>0,5</td><td>1</td></tr>
+    <tr><td>A Mars-kolónia (S2)</td><td>0</td><td>1</td><td>1</td><td>?</td></tr>
+    <tr><td>A tenger titkai (T)</td><td>0</td><td>0</td><td>1</td><td>?</td></tr>
+    <tr><td>A harmadik gyanúsított (K3)</td><td>1</td><td>0</td><td>0</td><td>?</td></tr>
+  </table>
+  Anna <b>ízlésprofilja</b> legyen a kedvelt könyvei (4–5 csillag) jellemzőinek átlaga: $\frac12[(1; 0; 0) + (1; 0; 0{,}5)] = (1;\ 0;\ 0{,}25)$.
+  Ehhez mérjük a még nem olvasott könyveket koszinusz-hasonlósággal (<a href="../02-matematikai-eszkoztar/#s23-c">2.3</a>): K3: <b>0,97</b>, T: 0,24, S2: 0,17.
+  Az ajánlás: <b>A harmadik gyanúsított</b> – egy újabb krimi.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – tartalomalapú ajánlás</span>
+  <ol style="margin:.2rem 0">
+    <li>Minden terméket egy <b>jellemzővektorral</b> írunk le (műfaj, szerző, kulcsszavak, ár; szövegnél szózsák vagy beágyazás – <a href="../04-adatok-es-jellemzok/#s45-c">4.5</a>, 12. fejezet).</li>
+    <li>A felhasználó <b>profilja</b> a kedvelt termékei vektorainak (súlyozott) átlaga.</li>
+    <li>Az ajánlás: a még nem látott termékek közül azok, amelyek a profilhoz a <b>leghasonlóbbak</b> (jellemzően koszinusz-hasonlósággal).</li>
+  </ol>
+  <small>Miért jó? Mert más felhasználók nem kellenek hozzá: egy vadonatúj könyvet is lehet ajánlani, ha ismerjük a jellemzőit, és az ajánlás megindokolható („mert krimiket szeretsz”).</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a nem tetszés is információ</span>
+    Súlyozzuk a könyveket Anna értékelésének eltérésével az átlagától (3,33): $+1{,}67$, $+0{,}67$, $-2{,}33$. A profil $(2{,}33;\ -2{,}33;\ -0{,}83)$ – a sci-fi „büntetést” kap.
+    Hasonlóságok: K3: 0,69, T: −0,24, S2: <b>−0,66</b>. A Mars-kolónia most egyenesen ellenjavallt.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy vadonatúj könyv</span>
+    Ma jelent meg egy tudományos krimi: $(1;\ 0;\ 1)$. Senki nem olvasta még, a tartalomalapú módszer mégis tud róla mondani valamit: Anna egyszerű profiljához mért hasonlósága
+    $\frac{1 + 0{,}25}{1{,}03 \cdot 1{,}41} \approx 0{,}86$.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Mindig ugyanazt.</b> A tartalomalapú ajánló „buborékba” zár: aki krimit olvasott, krimit kap. Nem fedez fel olyat, ami a profiljától eltér, de mégis tetszene neki.</li>
+    <li><b>A jellemzőket valakinek elő kell állítania.</b> A „mennyire krimi” szám nem jön magától – kézi címkézés vagy szövegből tanult jellemző kell.</li>
+    <li><b>A koszinusz szög, nem százalék.</b> Egy könyv (MLD 19) azt írja, hogy a koszinusz-hasonlóság közeli pontoknál „szűk”, távoliaknál „nagy” szöget ad, és „százalékként” adja meg.
+      A koszinusz a két vektor <em>irányát</em> hasonlítja, a hosszuktól független, és −1 és 1 között van.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – tartalomalapú ajánlás</summary>
+  <ol>
+    <li>Bence a K1-et és a T-t szerette. Mi a profilja (egyszerű átlag)?
+      <details><summary>Megoldás</summary>$\frac12[(1; 0; 0) + (0; 0; 1)] = (0{,}5;\ 0;\ 0{,}5)$.</details></li>
+    <li>Mennyi Bence profiljának koszinusz-hasonlósága a K2 $(1; 0; 0{,}5)$ könyvhöz?
+      <details><summary>Megoldás</summary>$\frac{0{,}5 + 0{,}25}{\sqrt{0{,}5} \cdot \sqrt{1{,}25}} = \frac{0{,}75}{0{,}707 \cdot 1{,}118} \approx 0{,}95$.</details></li>
+    <li>Két könyv vektora $(2; 0; 2)$ és $(1; 0; 1)$. Mennyi a koszinusz-hasonlóságuk? Mi a tanulság?
+      <details><summary>Megoldás</summary>1 – az irányuk azonos, csak a hosszuk más. A koszinusz a hosszt (pl. hogy egy könyvhöz több címkét írtak) figyelmen kívül hagyja.</details></li>
+    <li>Miért tud a tartalomalapú módszer ajánlani egy tegnap megjelent könyvet, és miért nehéz egy tegnap regisztrált vásárlónak?
+      <details><summary>Megoldás</summary>Az új könyvnek vannak jellemzői – nem kell, hogy bárki olvassa. Az új vásárlónak viszont még nincs profilja (nem értékelt semmit): ez a <b>hidegindítás</b> problémája. Ilyenkor népszerű könyveket vagy kérdőívet szokás használni.</details></li>
+    <li>(nehezebb) Hogyan kerülheted el, hogy az ajánló csak krimiket ajánljon Annának?
+      <details><summary>Megoldás</summary>Pl. <b>diverzifikálással</b> (a lista ne csak a leghasonlóbbakból álljon: büntesd az egymáshoz túl hasonló ajánlásokat), <b>felfedezéssel</b> (néha egy kevésbé biztos, de más jellegű könyvet is mutass),
+        vagy a kollaboratív szűrés bevonásával (a következő lépés), amely mások ízléséből új irányokat is talál.</details></li>
+  </ol>
+</details>
+
+<h3 id="s86-b">2. lépés: hasonló olvasó – kollaboratív szűrés</h3>
+<p>A tartalomalapú módszerhez jellemzők kellenek. De mi van, ha nincsenek – vagy épp az a lényeg, amit a jellemzők nem fognak meg (stílus, hangulat)? Akkor használjuk a <b>többi olvasót</b>: aki eddig úgy értékelt, mint Anna,
+az valószínűleg ezután is.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – négy olvasó, négy könyv</span>
+  <table style="max-width:560px;font-size:.88rem;text-align:center">
+    <tr><th></th><th>K1</th><th>K2</th><th>S1</th><th>S2</th></tr>
+    <tr><td><b>Anna</b></td><td>5</td><td>4</td><td>1</td><td><b>?</b></td></tr>
+    <tr><td>Bence</td><td>4</td><td>5</td><td>2</td><td>1</td></tr>
+    <tr><td>Csilla</td><td>1</td><td>2</td><td>5</td><td>4</td></tr>
+    <tr><td>Dávid</td><td>5</td><td>5</td><td>2</td><td>2</td></tr>
+  </table>
+  Kihez hasonlít Anna? Hasonlítsuk össze az értékeléseiket a <b>közösen olvasott</b> könyveken (K1, K2, S1), koszinusszal:
+  Bence: $\frac{20 + 20 + 2}{\sqrt{42}\sqrt{45}} \approx 0{,}97$, Dávid: 0,99, Csilla: $\frac{5 + 8 + 5}{\sqrt{42}\sqrt{30}} \approx$ <b>0,51</b>.
+  <br>Furcsa: Csilla ízlése épp az ellentéte Annáénak (ő a sci-fit szereti), mégis 0,51-es „hasonlóságot” kap. Az ok: minden értékelés pozitív szám, a vektorok mind „ugyanarra” mutatnak.
+  A javítás: vonjuk ki mindenkiből a saját átlagát, és úgy számoljunk koszinuszt (ez a <b>Pearson-korreláció</b>). Ekkor Bence: 0,84, Dávid: 0,97, Csilla: <b>−1,00</b> – tökéletes ellentét.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – felhasználóalapú kollaboratív szűrés</span>
+  <ol style="margin:.2rem 0">
+    <li>Számold ki az $u$ felhasználó hasonlóságát minden $v$ felhasználóhoz a közösen értékelt termékeken: $\operatorname{sim}(u, v)$ (átlagra igazított koszinusz, azaz Pearson-korreláció).</li>
+    <li>Az $i$ termék becsült értékelése az $i$-t értékelő szomszédokból ($N$):
+      $$\hat r_{ui} = \bar r_u + \frac{\sum_{v \in N}\operatorname{sim}(u, v)\,(r_{vi} - \bar r_v)}{\sum_{v \in N}|\operatorname{sim}(u, v)|}.$$</li>
+    <li>Ajánld a legnagyobb becsült értékelésű, még nem látott termékeket.</li>
+  </ol>
+  A hasonlóságot a <b>közösen értékelt</b> termékeken számoljuk (ott vonjuk ki az átlagot), a becslésben viszont mindenki <b>összes</b> értékelésének átlagát ($\bar r_u$, $\bar r_v$) használjuk.
+  <br><small>Miért az átlagtól való eltérés? Mert van, aki mindenre 4–5 csillagot ad, és van, aki szigorú. Az számít, hogy egy könyvet a <em>saját szokásához képest</em> jobbnak vagy rosszabbnak tart-e.
+  A negatív hasonlóságú „ellentétes ízlésű” olvasó is informatív: amit ő szeret, azt mi valószínűleg nem.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a két legjobb szomszéd átlaga</span>
+    A legegyszerűbb változat: a két leghasonlóbb olvasó (nyers koszinusszal Dávid 0,99 és Bence 0,97) értékelésének súlyozott átlaga: $\frac{0{,}99 \cdot 2 + 0{,}97 \cdot 1}{0{,}99 + 0{,}97} \approx$ <b>1,51</b>.
+    Anna valószínűleg nem szeretné A Mars-kolóniát.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a képlettel, mindhárom szomszéddal</span>
+    Átlagok: Anna 3,33, Bence 3, Csilla 3, Dávid 3,5. Eltérések az S2-nél: Bence −2, Csilla +1, Dávid −1,5.
+    $\hat r = 3{,}33 + \frac{0{,}84 \cdot (-2) + (-1) \cdot 1 + 0{,}97 \cdot (-1{,}5)}{0{,}84 + 1 + 0{,}97} \approx 3{,}33 - 1{,}47 =$ <b>1,86</b>. Csilla lelkesedése (+1) itt <em>lefelé</em> húzta a becslést.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Termékalapú változat</span>
+  Ugyanez fordítva: két <b>könyv</b> hasonló, ha ugyanazok az olvasók értékelik őket hasonlóan (az oszlopok hasonlósága). „Akik ezt megvették, azt is…” – az Amazon 2003-ban így írta le a rendszerét
+  (G. Linden, B. Smith, J. York). A termékek hasonlósága lassabban változik, mint az olvasóké, ezért előre kiszámolható és tárolható.
+</div>
+<div class="widget" data-widget="recommender-toy"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A hiányzó érték nem nulla.</b> Ha a „nem olvasta” cellát 0 csillagnak veszed, a hasonlóságok értelmetlenek lesznek (aki keveset olvasott, mindenkitől „különbözik”). Csak a közösen értékelt termékeket nézd.</li>
+    <li><b>Ritka mátrix.</b> Egy könyvesboltban egy vásárló a könyvek elenyésző töredékét értékeli. Két olvasónak sokszor 0–1 közös könyve van – a hasonlóság ilyenkor zajos (érdemes legalább néhány közös terméket megkövetelni).</li>
+    <li><b>Hidegindítás.</b> Új olvasónak nincs szomszédja, új könyvet senki nem értékelt – a kollaboratív szűrés mindkettőnél néma. A gyakorlatban a tartalomalapú módszerrel kombinálják (<b>hibrid</b> ajánló).</li>
+    <li><b>Népszerűségi torzítás.</b> A sokak által értékelt könyvek mindenki ajánlásában ott vannak – a ritkábbak sosem kapnak esélyt.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – kollaboratív szűrés</summary>
+  <ol>
+    <li>Két olvasó értékelése három közös könyvön: $(5, 3, 1)$ és $(4, 3, 2)$. Mennyi a nyers koszinusz-hasonlóságuk?
+      <details><summary>Megoldás</summary>$\frac{20 + 9 + 2}{\sqrt{35}\sqrt{29}} = \frac{31}{5{,}92 \cdot 5{,}39} \approx 0{,}97$.</details></li>
+    <li>Ugyanezekre mennyi az átlagra igazított (Pearson) hasonlóság?
+      <details><summary>Megoldás</summary>Átlagok 3 és 3: eltérések $(2, 0, -2)$ és $(1, 0, -1)$. Koszinuszuk $\frac{2 + 0 + 2}{\sqrt8\sqrt2} = \frac{4}{4} = 1$. Az ízlésük iránya pontosan ugyanaz, csak az első olvasó „hangosabban” értékel.</details></li>
+    <li>Egy olvasó átlaga 4. Két szomszédja: hasonlóság 0,8, a könyv értékelése 2, átlaga 3; hasonlóság 0,5, értékelés 5, átlag 4. Mennyi a becslés?
+      <details><summary>Megoldás</summary>$4 + \frac{0{,}8 \cdot (2 - 3) + 0{,}5 \cdot (5 - 4)}{0{,}8 + 0{,}5} = 4 + \frac{-0{,}8 + 0{,}5}{1{,}3} \approx 4 - 0{,}23 = 3{,}77$.</details></li>
+    <li>Miért kell a nevezőben a hasonlóságok <em>abszolút értéke</em>?
+      <details><summary>Megoldás</summary>Mert negatív hasonlóságok is lehetnek. Abszolút érték nélkül a nevező kicsi, akár nulla vagy negatív lehetne, és a súlyozott átlag „felrobbanna”. Az abszolút értékkel a súlyok összege pozitív, és a negatív hasonlóság a számlálóban fordítja meg az eltérés előjelét.</details></li>
+    <li>(nehezebb) Egy szolgáltatás 1 millió olvasót és $100\,000$ könyvet kezel. Miért nehéz a felhasználóalapú szűrés, és mit tennél?
+      <details><summary>Megoldás</summary>Minden olvasót minden olvasóhoz hasonlítani $\approx 5 \cdot 10^{11}$ pár – és az olvasók ízlése folyton változik. A termékalapú változat (a könyvek hasonlóságai előre kiszámolhatók, ritkábban változnak), vagy a mátrixfaktorizáció (következő lépés) sokkal jobban skálázódik.</details></li>
+  </ol>
+</details>
+
+<h3 id="s86-c">3. lépés: rejtett ízlések – mátrixfaktorizáció</h3>
+<p>A szomszédos módszer minden becsléshez végignézi a hasonló olvasókat. Egy tömörebb ötlet: tegyük fel, hogy az ízlést <b>néhány rejtett tényező</b> írja le („mennyire szereti a krimit”, „mennyire a sci-fit”), és minden könyvet is ugyanezek
+a tényezők jellemeznek. Pontosan ezt csinálta a PCA is – csak most hiányos táblázaton.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két szám olvasónként, két szám könyvenként</span>
+  Minden olvasónak legyen két száma (krimi-, sci-fi-kedvelés), minden könyvnek kettő (krimi-, sci-fi-jelleg), és a becsült értékelés: $1 + $ a két vektor skaláris szorzata.
+  <div class="two-col">
+    <div>
+      <table style="font-size:.86rem;text-align:center">
+        <tr><th>olvasó</th><th>$\mathbf p$</th></tr>
+        <tr><td>Anna</td><td>$(2;\ 0)$</td></tr>
+        <tr><td>Csilla</td><td>$(0;\ 2)$</td></tr>
+        <tr><td>Feri</td><td>$(1;\ 1)$</td></tr>
+      </table>
+      <table style="font-size:.86rem;text-align:center">
+        <tr><th>könyv</th><th>$\mathbf q$</th></tr>
+        <tr><td>K1</td><td>$(2;\ 0)$</td></tr>
+        <tr><td>S1</td><td>$(0;\ 2)$</td></tr>
+        <tr><td>S2</td><td>$(0;\ 1{,}5)$</td></tr>
+      </table>
+    </div>
+    <div>
+      <table style="font-size:.86rem;text-align:center">
+        <tr><th></th><th>K1</th><th>S1</th><th>S2</th></tr>
+        <tr><td>Anna</td><td>5</td><td>1</td><td><b>1</b></td></tr>
+        <tr><td>Csilla</td><td>1</td><td>5</td><td>4</td></tr>
+        <tr><td>Feri</td><td>3</td><td>3</td><td>2,5</td></tr>
+      </table>
+      Pl. Anna és K1: $1 + 2 \cdot 2 + 0 \cdot 0 = 5$; Feri (egy új olvasó, aki mindkét műfajt kedveli) és S2: $1 + 1 \cdot 0 + 1 \cdot 1{,}5 = 2{,}5$.
+    </div>
+  </div>
+  9 értékelést 12 szám ír le – de a lényeg nem a tömörítés: <b>Anna S2-értékelését soha nem láttuk</b>, a tényezőkből mégis kiszámolható: 1. A tanulás feladata fordított: a <em>látott</em> értékelésekből megtalálni a tényezőket.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – mátrixfaktorizáció</span>
+  Az $R$ értékelési mátrixot (olvasók × termékek, sok hiányzó cellával) két kicsi mátrix szorzatával közelítjük: minden $u$ olvasónak egy $\mathbf p_u$, minden $i$ terméknek egy $\mathbf q_i$ $k$ dimenziós vektora van, és
+  $$\hat r_{ui} = \mu + b_u + b_i + \mathbf p_u^\top\mathbf q_i,$$
+  ahol $\mu$ az összes értékelés átlaga, $b_u$ az olvasó, $b_i$ a termék „szigorúsága”, illetve „népszerűsége”. A tényezőket úgy tanuljuk, hogy <b>csak a látott</b> értékeléseken legyen kicsi a hiba:
+  $$\min \sum_{(u,i)\ \text{látott}}\big(r_{ui} - \hat r_{ui}\big)^2 + \lambda\Big(\sum_u\|\mathbf p_u\|^2 + \sum_i\|\mathbf q_i\|^2 + \dots\Big).$$
+  A $\lambda$-s tag ridge-regularizáció (<a href="../06-modellertekeles/#s67-a">6.7</a>); a minimalizálás sztochasztikus gradiens módszerrel (<a href="../02-matematikai-eszkoztar/#s28-a">2.8</a>) vagy felváltva rögzített $P$-vel és $Q$-val (ALS) megy.
+  <br><small>Miért működik? Mert a valódi ízlés valóban kevés dimenziós: rengeteg olvasó és könyv, de kevés „irány” (műfaj, hangulat, nehézség…). A $\mathbf q_i$ vektorok a könyvek <b>beágyazásai</b> – a 12. fejezet szóbeágyazásai ugyanebből a gondolatból nőttek ki.
+  A tényezők nevét a módszer nem adja meg: „krimi” és „sci-fi” csak a mi utólagos értelmezésünk.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy gradienslépés</span>
+    Egy látott értékelés: $r = 4$. A jelenlegi vektorok: $\mathbf p = (1;\ 1)$, $\mathbf q = (1;\ 0{,}5)$ (most $\mu$, $b$ és $\lambda$ nélkül). Becslés: $1{,}5$, hiba $e = 2{,}5$.
+    Lépés $\eta = 0{,}1$-gyel: $\mathbf p \leftarrow \mathbf p + \eta e\mathbf q = (1{,}25;\ 1{,}125)$, $\mathbf q \leftarrow \mathbf q + \eta e\mathbf p = (1{,}25;\ 0{,}75)$.
+    Az új becslés $1{,}25 \cdot 1{,}25 + 1{,}125 \cdot 0{,}75 \approx 2{,}41$ – közelebb a 4-hez.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – mekkora a modell?</span>
+    1 millió olvasó, 50 000 könyv: a teljes mátrix 50 milliárd cella (szinte mind üres). $k = 50$ tényezővel a modell $(1\,000\,000 + 50\,000) \cdot 50 = 52{,}5$ millió szám – a teljes mátrix kb. ezredrésze.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Nem a szokásos SVD.</b> A <a href="#s83-d">8.3</a> SVD-je teljes mátrixot bont fel. Ha a hiányzó cellákat 0-val töltöd ki (ahogy egy könyv, az MLD 19 példakódja teszi), a modell azt tanulja meg, hogy „a legtöbb könyvet mindenki 0-ra értékeli”.
+      A mátrixfaktorizáció csak a látott cellákon illeszt.</li>
+    <li><b>A hidegindítást ez sem oldja meg.</b> Az MLD szerint az SVD „még a vásárlóknak teljesen új termékekre is” megbízható ajánlást ad. Egy könyvnek, amelyet senki nem értékelt, nincs tanult $\mathbf q_i$ vektora – kell hozzá a tartalom (hibrid modell).</li>
+    <li><b>Ellenőrizd a példák számait.</b> Egy interjúkönyv (MLDI) kézzel számolt szorzatmátrixában több cella hibás (pl. 0 szerepel 1 helyett, 5 a 6 helyett) – egy ilyen táblát mindig érdemes egy sor kóddal újraszámolni.</li>
+    <li><b>Implicit visszajelzés.</b> A legtöbb boltban nincs csillag, csak vásárlás, kattintás, olvasási idő. Ott a „nem vette meg” nem „nem szereti” – lehet, hogy nem is látta. Erre külön változatok vannak (súlyozott, implicit MF).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – mátrixfaktorizáció</summary>
+  <ol>
+    <li>A kiinduló példa tényezőivel mennyi Csilla becsült értékelése egy $(1;\ 1)$ tényezőjű könyvre?
+      <details><summary>Megoldás</summary>$1 + 0 \cdot 1 + 2 \cdot 1 = 3$.</details></li>
+    <li>Egy új olvasó tényezője $(1{,}5;\ 0{,}5)$. Melyik könyvet ajánlanád a K1, S1, S2 közül?
+      <details><summary>Megoldás</summary>K1: $1 + 3 = 4$; S1: $1 + 1 = 2$; S2: $1 + 0{,}75 = 1{,}75$. A K1-et.</details></li>
+    <li>$\mu = 3{,}5$, az olvasó $b_u = -0{,}5$ (szigorú), a könyv $b_i = +0{,}8$ (népszerű), $\mathbf p_u^\top\mathbf q_i = 0{,}4$. Mennyi a becslés?
+      <details><summary>Megoldás</summary>$3{,}5 - 0{,}5 + 0{,}8 + 0{,}4 = 4{,}2$.</details></li>
+    <li>A gradienslépés példájában mi lett volna a frissített $\mathbf p$, ha $\eta = 0{,}2$?
+      <details><summary>Megoldás</summary>$\mathbf p + 0{,}2 \cdot 2{,}5 \cdot (1;\ 0{,}5) = (1;\ 1) + (0{,}5;\ 0{,}25) = (1{,}5;\ 1{,}25)$.</details></li>
+    <li>(nehezebb) Miért kell a $\lambda$-s regularizáció, ha egy olvasónak csak 2 értékelése van, de $k = 50$ tényezője?
+      <details><summary>Megoldás</summary>Mert 50 szabad paramétert 2 adat tetszőleges pontossággal kiszolgál – a tényezők „bemagolják” a két értékelést, és a többi könyvre vad becsléseket adnak (túlillesztés, <a href="../06-modellertekeles/#s66-b">6.6</a>).
+        A $\lambda$ a kevés adatú olvasók vektorait a nulla felé húzza, így náluk a becslés a $\mu + b_u + b_i$ alapvonal közelében marad.</details></li>
+  </ol>
+</details>
+
+<div class="box history">
+  <span class="box-title">📜 Történet</span>
+  Az első kollaboratív szűrő a Xerox PARC Tapestry rendszere volt (1992), a felhasználóalapú módszert a GroupLens-projekt (1994) tette ismertté – az ő filmértékelési adataik, a MovieLens, ma is a terület tananyaga.
+  A <b>Netflix-díj</b> (2006–2009) egymillió dollárt ígért annak, aki 10%-kal javít a Netflix saját ajánlóján. Az áttörést egy blogon közzétett, sztochasztikus gradiensű mátrixfaktorizáció hozta (S. Funk, 2006);
+  a díjat a BellKor's Pragmatic Chaos csapata nyerte több száz modell keverékével (<a href="../07-fak-svm-egyuttes/#s75-b">7.5</a>). Y. Koren, R. Bell és C. Volinsky 2009-es cikke a mátrixfaktorizációt tette az ajánlórendszerek alapjává.
+  A mai rendszerek (pl. a „két tornyos” neurális modellek) ugyanezt az ötletet viszik tovább: az olvasó és a termék egy-egy beágyazás, a pontszám a skaláris szorzatuk (23. fejezet).
+</div>
+
+<div class="quiz" data-quiz="ai8-86"></div>
+</section>
+
+<!-- ===================================================== 8.7 -->
+<section id="s87">
+<h2>8.7 Alkalmazás: kik vásárolnak a könyvesboltban?</h2>
+<p>Minden eszköz megvan. Térjünk vissza a Lapozó tizenkét vásárlójához és a fejezet négy kérdéséhez – a harmadikat pedig egy valódi, nagyobb adatkészleten válaszoljuk meg.</p>
+
+<h3 id="s87-a">Tizenkét vásárló</h3>
+<p><b>1. Vannak-e típusok, és hány?</b> A két jellemző mértékegysége különböző (darab / ezer Ft), ezért előbb <b>standardizálunk</b> (<a href="#s81-e">8.1</a>). A k-közép mind a 12 vásárlón:</p>
+<table style="max-width:620px;font-size:.9rem;text-align:center">
+  <tr><th>$k$</th><td>2</td><td>3</td><td>4</td><td>5</td></tr>
+  <tr><th>SSE (standardizálva)</th><td>8,86</td><td>3,67</td><td>0,75</td><td>0,34</td></tr>
+  <tr><th>átlagos sziluett</th><td>0,53</td><td>0,63</td><td><b>0,69</b></td><td>0,66</td></tr>
+</table>
+<ul>
+  <li>A sziluett a $k = 4$-et választja – de nézd meg a klasztereket! A negyedik „klaszter” <b>egyetlen vásárló: L</b>. Egy egyfős csoport nem vásárlótípus. Ez a k-közép ismert gyengesége:
+    a kiugró pont saját klasztert „vesz el” (<a href="#s81-e">8.1</a>).</li>
+  <li>Tegyük L-t félre (lásd a 2. kérdést), és futtassuk újra a maradék 11 vásárlón: a sziluett $k = 2$: 0,62; $k = 3$: <b>0,75</b>; $k = 4$: 0,72. Most a $k = 3$ nyer, és az SSE-görbe is itt törik meg (5,27 → 0,79 → 0,36).</li>
+</ul>
+<table style="max-width:760px;font-size:.9rem;text-align:center">
+  <tr><th>klaszter</th><th>tagok</th><th>középpont (vásárlás/hó; kosár ezer Ft)</th><th>a mi elnevezésünk</th></tr>
+  <tr><td>1</td><td>A, B, C, G</td><td>(2,5; 27,5)</td><td>„alkalmi nagyvásárló”</td></tr>
+  <tr><td>2</td><td>D, E, F, H</td><td>(13; 5)</td><td>„gyakori kisvásárló”</td></tr>
+  <tr><td>3</td><td>I, J, K</td><td>(7; 15)</td><td>„rendszeres, közepes”</td></tr>
+</table>
+<p>A neveket mi adtuk – az algoritmus csak a csoportokat (<a href="#s81-a">8.1</a>). Egy hierarchikus klaszterezés (Ward) ugyanezt a három csoportot adja, a dendrogram pedig megmutatja,
+hogy a „rendszeres, közepes” csoport előbb az „alkalmi nagyvásárlókkal” olvad össze – bár csak hajszállal: standardizálva a középpontjaik távolsága 1,62, a „gyakori kisvásárlókétól” 1,66
+(a szemléltetés „vásárlók” adatán, <a href="#s82-b">8.2</a>). A DBSCAN-nek itt kevés a pont – 11 vásárlón a sűrűség alig mérhető.</p>
+
+<p><b>2. Ki nem illik a képbe?</b> Az <b>L</b> vásárló (14 vásárlás, 28 ezer Ft). Oszloponként semmi különös (z-értékek 1,24 és 1,12, az IQR-kerítéseken belül), de együtt:</p>
+<ul>
+  <li>a legközelebbi szomszédja 11,05 egységre van – mindenki másé 2,24-en belül (<a href="#s85-a">8.5</a>); standardizálva a 2. szomszéd távolsága 2,04, a következő legnagyobb 0,64;</li>
+  <li>a 11 rendes vásárló legközelebbi középpontjától 11,51-re van (a többiek 2,6-on belül); a Mahalanobis-távolsága 9,07 (a többieké legfeljebb 2,03).</li>
+</ul>
+<p>Hogy L csaló, nagykereskedő vagy egy iskolai könyvtáros, azt a pontszám nem mondja meg – de azt igen, hogy érdemes megnézni. (Az izolációs erdő tizenkét ponton nem elég megbízható: L-t ugyan az első helyre teszi, de alig előzi meg a többieket.
+Az a módszer a nagy adatok eszköze.)</p>
+
+<p><b>4. Mit ajánljunk Annának?</b> (A harmadik kérdésre a következő részben válaszolunk.)</p>
+<ul>
+  <li><b>Tartalomalapú</b> ajánló (<a href="#s86-a">8.6</a>): Anna krimiket szeret → <b>A harmadik gyanúsított</b> (hasonlóság 0,97). Biztos tipp – de megint krimi.</li>
+  <li><b>Kollaboratív szűrés</b> (<a href="#s86-b">8.6</a>) a szemléltetés öt olvasóján (a 8.6 négy olvasója, két további könyv és Emese), Pearson-hasonlósággal: A Mars-kolónia becsült értékelése <b>1,86</b> – ne ajánljuk. A Nyári szerelem viszont <b>3,97</b>:
+    a hozzá leginkább hasonló Dávid a saját átlaga (3,6) fölé értékelte (4), Bence pont az átlagára (3), az ellentétes ízlésű Emese pedig az átlaga (3,4) alá (2) – ez is a könyv mellett szól. Ezt a tartalomalapú módszer nem találta volna meg – más műfaj.
+    (Nyers koszinusszal viszont A tenger titkai nyerne 4,48-cal: a tudományos könyvet imádó Csilla és Emese ott is „hasonlít” Annára. Próbáld ki a szemléltetésben!)</li>
+  <li>A gyakorlatban a kettőt kombinálják (<b>hibrid</b> ajánló): a lista eleje a biztos krimi, mellette egy „felfedezés” a kollaboratív szűrésből.</li>
+</ul>
+
+<h3 id="s87-b">Nagyban: 178 bor, 13 mérés, címkék nélkül</h3>
+<p><b>3. Mit tegyünk, ha sok jellemző van?</b> A bolt adatai még kicsik, ezért egy klasszikus, valódi adatkészleten mutatjuk meg: 178 olasz bor, mindegyikről 13 kémiai mérés (alkohol, savak, fenolok, prolin…).
+A borok valójában három szőlőfajtából készültek – ezt a címkét most <b>elrejtjük</b>, és csak a végén nézzük meg, mennyire találta el a felügyelet nélküli elemzés.</p>
+<table style="max-width:820px;font-size:.9rem;text-align:center">
+  <tr><th>lépés</th><th>eredmény</th><th>tanulság</th></tr>
+  <tr><td>PCA nyersen</td><td>PC1: 99,8% – szinte csak a prolin</td><td>egy mértékegység uralja (<a href="#s83-c">8.3</a>)</td></tr>
+  <tr><td>PCA standardizálva</td><td>PC1 36,2%, PC2 19,2% (együtt 55,4%); 80%-hoz 5 komponens</td><td>13 helyett 2 tengely már jó képet ad</td></tr>
+  <tr><td>k-közép standardizálva, $k = 2, \dots, 6$</td><td>sziluett: 0,27 / <b>0,29</b> / 0,25 / 0,25 / 0,20; SSE: 1659 → 1278 → 1181 → 1108 → 1044</td><td>gyenge, de egyező jelzés: $k = 3$</td></tr>
+  <tr><td>a $k = 3$ klaszterek vs. a rejtett fajták</td><td>172 bor a „saját” klaszterében (96,6%), korrigált Rand-index 0,90</td><td>a szerkezet tényleg az adatban van</td></tr>
+  <tr><td>k-közép <em>nyers</em> adaton</td><td>korrigált Rand-index 0,37</td><td>skálázás nélkül a prolin dönt</td></tr>
+  <tr><td>Ward-klaszterezés, $k = 3$</td><td>korrigált Rand-index 0,79</td><td>hasonló, kicsit gyengébb</td></tr>
+  <tr><td>DBSCAN 13 dimenzióban</td><td>$\varepsilon$-tól függően 1–7 klaszter és 24–118 zajpont</td><td>sok dimenzióban a sűrűség elmosódik (<a href="#s82-c">8.2</a>)</td></tr>
+</table>
+<ul>
+  <li>A sziluett 0,29-os értéke alacsony: a három fajta nem különül el élesen, a klaszterek összeérnek. A k-közép mégis 96,6%-ban visszaadta a fajtákat. <b>Az alacsony sziluett nem jelenti, hogy nincs szerkezet</b> – csak azt, hogy nem éles.</li>
+  <li>A <b>korrigált Rand-index</b> (ARI) két felosztás egyezését méri, a klaszterek sorszámától függetlenül: 1 = azonos, 0 körül = véletlenszerű egyezés. Csak akkor számolható, ha van (utólagos) címke – itt az ellenőrzéshez használtuk.</li>
+  <li>A harmadik kérdésre a válasz: <b>standardizálás → PCA két komponensre → szórásdiagram</b> (és ha a szomszédság érdekel, t-SNE vagy UMAP, <a href="#s84">8.4</a>). A klaszterezést viszont a teljes (standardizált) adaton érdemes végezni, és a térképen csak megnézni.</li>
+</ul>
+<details class="box">
+  <summary>🐍 Python – a borok elemzése</summary>
+  <pre style="margin:.6rem 0;font-size:.85rem">from sklearn.datasets import load_wine
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score, adjusted_rand_score
+
+X, fajta = load_wine(return_X_y=True)                  # 178 bor, 13 mérés; a fajtát most nem használjuk
+print(PCA().fit(X).explained_variance_ratio_[:2].round(3))          # [0.998 0.002] – a prolin uralja
+Z = StandardScaler().fit_transform(X)
+print(PCA().fit(Z).explained_variance_ratio_[:2].round(3))          # [0.362 0.192]
+
+for k in range(2, 7):
+    km = KMeans(k, n_init=20, random_state=0).fit(Z)
+    print(k, round(km.inertia_), round(silhouette_score(Z, km.labels_), 3))
+# 2 1659 0.268 · 3 1278 0.285 · 4 1181 0.246 · 5 1108 0.245 · 6 1044 0.196
+
+km = KMeans(3, n_init=20, random_state=0).fit(Z)
+print(adjusted_rand_score(fajta, km.labels_))           # 0.897 – csak most nézzük meg a címkét</pre>
+</details>
+</section>
+
+<!-- ===================================================== Összefoglalás -->
+<section id="s-sum">
+<h2>Összefoglalás</h2>
+<table>
+  <tr><th>Fogalom</th><th>Lényeg</th></tr>
+  <tr><td>Felügyelet nélküli tanulás</td><td>nincs címke; szerkezetet keresünk: csoportok, kevesebb dimenzió, kilógó esetek, hasonlóságok</td></tr>
+  <tr><td>Klaszteren belüli négyzetösszeg (SSE)</td><td>$\sum_j\sum_{i \in C_j}\|\mathbf x_i - \boldsymbol\mu_j\|^2$; azonos $k$ mellett a kisebb a jobb; $k$-val mindig csökken</td></tr>
+  <tr><td>k-közép (Lloyd)</td><td>hozzárendelés a legközelebbi középponthoz ↔ középpont = átlag; az SSE nem nő, véges sok lépésben megáll – lokális optimumban</td></tr>
+  <tr><td>k-means++, újraindítás</td><td>$D^2$-arányos kezdőpont-sorsolás; több futás, a legkisebb SSE nyer</td></tr>
+  <tr><td>Könyök, sziluett</td><td>az SSE-görbe törése; $s = (b - a)/\max(a, b) \in [-1, 1]$, a legnagyobb átlagos sziluett</td></tr>
+  <tr><td>A k-közép korlátai</td><td>skálázás kell; gömbölyű, hasonló klaszterek; nincs zaj kategória; a $k$-t meg kell adni</td></tr>
+  <tr><td>Hierarchikus klaszterezés</td><td>összevonás lépésenként; dendrogram, a vágás magassága adja a $k$-t; $n^2$ távolság</td></tr>
+  <tr><td>Kapcsolási módok</td><td>egyszerű (min, láncolódik), teljes (max, tömör), átlagos, Ward ($\Delta$SSE, k-középszerű)</td></tr>
+  <tr><td>DBSCAN</td><td>$\varepsilon$, minPts; mag-, határ-, zajpont; tetszőleges alak, a $k$-t nem kell megadni; egyetlen sűrűségszint</td></tr>
+  <tr><td>PCA</td><td>$\operatorname{Var}(\mathbf u) = \mathbf u^\top C\mathbf u$, maximum a sajátvektornál; legtöbb variancia = legkisebb rekonstrukciós hiba; magyarázott arány $\sum_{j \le q}\lambda_j / \sum_j\lambda_j$</td></tr>
+  <tr><td>Skálázás a PCA előtt</td><td>különböző mértékegységnél standardizálj (korrelációs PCA); azonosnál (pixelek) nem</td></tr>
+  <tr><td>A PCA korlátai</td><td>lineáris; felügyelet nélküli (eldobhatja, ami a jósláshoz kell); nem jellemzőkiválasztás; illesztés csak a tanító adaton</td></tr>
+  <tr><td>t-SNE, UMAP</td><td>a helyi szomszédságot őrzik; a szigetek mérete és távolsága nem értelmezhető; több futás, több paraméter</td></tr>
+  <tr><td>Anomáliapontszám</td><td>$k$-adik szomszéd távolsága, távolság a középponttól, Mahalanobis, izolációs erdő ($s = 2^{-E[h]/c(\psi)}$), rekonstrukciós hiba</td></tr>
+  <tr><td>Anomália értékelése</td><td>precizitás@N, felidézés, PR-görbe; a küszöböt a kapacitás dönti el</td></tr>
+  <tr><td>Tartalomalapú ajánlás</td><td>termékjellemzők, felhasználói profil, koszinusz; új terméket is ajánl, de buborékba zár</td></tr>
+  <tr><td>Kollaboratív szűrés</td><td>hasonló felhasználók (vagy termékek) átlagra igazított értékelései; hidegindítás, ritka mátrix</td></tr>
+  <tr><td>Mátrixfaktorizáció</td><td>$\hat r_{ui} = \mu + b_u + b_i + \mathbf p_u^\top\mathbf q_i$, csak a látott cellákon illesztve, regularizálva</td></tr>
+</table>
+
+<div class="box tip">
+  <span class="box-title">Melyik módszer mikor? – döntési táblázat</span>
+  <table>
+    <tr><th>Ha a feladatban ez áll…</th><th>…akkor ezt használd</th></tr>
+    <tr><td>csoportokat keresel, számjellemzők, kb. gömbölyű csoportok, sok pont</td><td>k-közép (standardizálva, k-means++, több újraindítás)</td></tr>
+    <tr><td>nem tudod, hány csoport van, és a csoportok egymásba ágyazódhatnak</td><td>hierarchikus klaszterezés (Ward-dal kezdve), dendrogram</td></tr>
+    <tr><td>a csoportok alakja szabálytalan (holdak, kanyarok), és van zaj</td><td>DBSCAN (vagy HDBSCAN eltérő sűrűségeknél)</td></tr>
+    <tr><td>valószínűséget szeretnél a klasztertagságra</td><td>Gauss-keverékmodell</td></tr>
+    <tr><td>a $k$-t kell megválasztani</td><td>könyök + sziluett – és a felhasználás szempontjai</td></tr>
+    <tr><td>sok jellemző, tömörítés, zajszűrés, előfeldolgozás</td><td>PCA (különböző mértékegységnél standardizálva), $q$ a halmozott arányból vagy keresztvalidációval</td></tr>
+    <tr><td>sok dimenziós adatot akarsz egy képen <em>megnézni</em></td><td>PCA (első ránézés), t-SNE vagy UMAP (szomszédságok)</td></tr>
+    <tr><td>új pontokat is el kell helyezni a térképen</td><td>PCA vagy UMAP – t-SNE nem</td></tr>
+    <tr><td>szokatlan eseteket keresel, kevés vagy nincs címke</td><td>$k$-adik szomszéd távolsága (kis adat), izolációs erdő (nagy adat), rekonstrukciós hiba (erős szerkezetű adat)</td></tr>
+    <tr><td>„ami külön-külön átlagos, együtt furcsa”</td><td>többváltozós módszer (távolság, Mahalanobis, izolációs erdő) – nem oszloponkénti z-érték</td></tr>
+    <tr><td>ajánlás, vannak termékjellemzők, sok új termék</td><td>tartalomalapú ajánló</td></tr>
+    <tr><td>ajánlás, sok felhasználói visszajelzés</td><td>kollaboratív szűrés (termékalapú), nagy adatnál mátrixfaktorizáció</td></tr>
+    <tr><td>új felhasználó vagy új termék</td><td>hibrid: tartalom + népszerűség, amíg nincs elég visszajelzés</td></tr>
+    <tr><td>van utólag néhány címke</td><td>azzal <em>értékeld</em> a felügyelet nélküli eredményt (ARI, precizitás@N) – vagy válts felügyelt modellre</td></tr>
+  </table>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabályok</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Előbb skálázz, aztán mérj távolságot.</b> Klaszterezés, PCA, anomália – mind a mértékegységen múlik.</li>
+    <li><b>Az algoritmus mindig ad választ.</b> Egyenletes zajból is $k$ klasztert csinál – ellenőrizd, hogy a szerkezet valódi-e.</li>
+    <li><b>A klasztert te nevezed el.</b> Az algoritmus csak csoportosít.</li>
+    <li><b>Egy klaszter egy taggal az anomália, nem típus.</b></li>
+    <li><b>Legtöbb variancia = legkisebb rekonstrukciós hiba.</b> De a nagy variancia nem jelent „fontosat a jósláshoz”.</li>
+    <li><b>t-SNE-térképen a szomszédság számít</b> – a méret és a távolság nem.</li>
+    <li><b>Ami hiányzik, az nem nulla.</b> Az értékelési mátrix üres cellája ismeretlen, nem rossz.</li>
+  </ul>
+</div>
+</section>
+
+<!-- ===================================================== Ellenőrző kérdések -->
+<section id="s-check">
+<h2>Ellenőrző kérdések</h2>
+<p>Gondold végig a választ, aztán kattints a kártyára a megfordításhoz!</p>
+<div class="flashcards">
+  <div class="flash"><div class="inner"><div class="face front">Mit mér a klaszteren belüli négyzetösszeg (SSE)?</div>
+    <div class="face back">Minden pont távolságnégyzetét a saját klaszterének középpontjától, összeadva. Azonos $k$ mellett a kisebb a jobb felosztás.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a Lloyd-algoritmus két lépése?</div>
+    <div class="face back">Hozzárendelés: minden pont a legközelebbi középponthoz. Frissítés: minden középpont a klasztere átlaga. Ismétlés, amíg semmi nem változik.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért nem nőhet az SSE a k-közép futása közben?</div>
+    <div class="face back">A hozzárendelés minden pontnak a legközelebbi középpontot adja, a frissítés pedig a rögzített csoportokhoz a legjobb (az átlag) középpontot. Egyik lépés sem ronthat.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit tesz a k-means++?</div>
+    <div class="face back">A kezdő középpontokat a legközelebbi már választott középponttól mért távolság négyzetével arányos eséllyel sorsolja – így a kezdőpontok jó eséllyel különböző csoportokba esnek.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért nem választhatod a $k$-t a legkisebb SSE alapján?</div>
+    <div class="face back">Mert az SSE a $k$ növelésével mindig csökken, $k = n$-nél 0. A törést (könyök) vagy a sziluett maximumát kell keresni.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit jelent a negatív sziluett?</div>
+    <div class="face back">Hogy a pont átlagosan közelebb van egy másik klaszter pontjaihoz, mint a sajátjáéhoz – valószínűleg rossz klaszterbe került.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit mutat egy dendrogram összevonásának magassága?</div>
+    <div class="face back">Azt a távolságot (a kapcsolási mód szerint), amelynél a két klaszter egyesült. A levelek sorrendje nem jelent semmit.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a láncolódás, és melyik kapcsolásnál fordul elő?</div>
+    <div class="face back">Az egyszerű (single) kapcsolásnál egy vékony pontsor „hídként” korán összeköthet két különálló csoportot.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a magpont, határpont és zajpont a DBSCAN-ben?</div>
+    <div class="face back">Mag: az $\varepsilon$-környezetében legalább minPts pont van. Határ: nem mag, de egy mag környezetében van. Zaj: egyik sem.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért ugyanaz a PCA két megfogalmazása?</div>
+    <div class="face back">Mert a teljes variancia = megtartott (vetített) variancia + rekonstrukciós hiba. A legtöbb megtartott variancia egyben a legkisebb hiba.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mikor kell a PCA előtt standardizálni?</div>
+    <div class="face back">Ha a jellemzők különböző mértékegységűek – különben a nagy számú jellemző uralja a varianciát. Azonos mértékegységnél (pl. pixelek) általában nem.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért dobhatja el a PCA a jósláshoz fontos információt?</div>
+    <div class="face back">Mert felügyelet nélküli: a varianciát őrzi, a címkét nem ismeri. Az osztályokat elválasztó irány lehet épp egy kis varianciájú irány.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit őriz meg a t-SNE, és mit nem?</div>
+    <div class="face back">A helyi szomszédságot igen; a csoportok méretét és egymástól mért távolságát nem.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért szigeteli el hamar az izolációs erdő az anomáliákat?</div>
+    <div class="face back">Mert kevesen vannak és mások: egy véletlen vágás nagy eséllyel leválasztja őket a sűrű részekről. Rövid úthossz = nagy anomáliapontszám.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miben más a rekonstrukciós hiba, mint az átlagtól mért távolság?</div>
+    <div class="face back">A távolság a „nagy, de szokásos” pontokat is megjelöli; a rekonstrukciós hiba csak azokat, amelyek kilépnek a szokásos szerkezetből.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért kell az értékeléseket a felhasználó átlagához igazítani?</div>
+    <div class="face back">Mert van, aki mindenre sokat, és van, aki kevés csillagot ad. Az számít, hogy a saját szokásához képest jobbnak vagy rosszabbnak tart-e valamit.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a hidegindítás problémája?</div>
+    <div class="face back">Új felhasználónak vagy terméknek nincs visszajelzése, ezért a kollaboratív szűrés és a mátrixfaktorizáció nem tud róla mondani semmit. Tartalom és népszerűség segít.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit tanul a mátrixfaktorizáció?</div>
+    <div class="face back">Minden felhasználónak és terméknek egy rövid rejtett tényezővektort; a becsült értékelés a skaláris szorzatuk (plusz eltolások). Csak a látott értékeléseken illeszt.</div></div></div>
+</div>
+</section>
+
+<!-- ===================================================== Vegyes gyakorló feladatok -->
+<section id="s-ex">
+<h2>Vegyes gyakorló feladatok</h2>
+<p>Itt már nincs megmondva, melyik szakaszhoz tartozik a feladat: neked kell eldönteni, melyik eszköz kell.</p>
+<details class="box practice">
+  <summary>✏️ Vegyes gyakorló feladatok – kattints a kinyitáshoz</summary>
+  <ol>
+    <li>Pontok egy egyenesen: 2, 4, 7, 14, 16. Két klaszter, a kezdő középpontok 2 és 4. Futtasd a k-közepet a megállásig! Mely pontok váltanak közben klasztert?
+      <details><summary>Tipp</summary>Váltogasd a hozzárendelést és az átlagolást; minden hozzárendelés előtt számold ki a távolságokat mindkét középponttól.</details>
+      <details><summary>Megoldás</summary>{2} | {4, 7, 14, 16} → középpontok 2 és 10,25. A 4 átkerül (2 &lt; 6,25): {2, 4} | {7, 14, 16} → 3 és 12,33. A 7 átkerül (4 &lt; 5,33): {2, 4, 7} | {14, 16} → 4,33 és 15, SSE 14,67. Nincs több változás.
+        Két pont váltott: a második hozzárendelésnél a 4, a harmadiknál a 7 – mindkettő a második klaszterből az elsőbe.</details></li>
+    <li>Az előző eredményben mennyi a 7-es pont sziluettje?
+      <details><summary>Tipp</summary>$a$: átlagos távolság a saját klaszter többi tagjától; $b$: a másik klaszter tagjaitól.</details>
+      <details><summary>Megoldás</summary>$a = (5 + 3)/2 = 4$, $b = (7 + 9)/2 = 8$, $s = (8 - 4)/8 = 0{,}5$ – a pont a helyén van, de nem nagyon biztosan.</details></li>
+    <li>$A = \{0, 3\}$, $B = \{5, 9\}$. Mennyi a távolságuk egyszerű, teljes és átlagos kapcsolással, és mennyi a Ward-féle $\Delta\text{SSE}$?
+      <details><summary>Tipp</summary>Négy tagpár van; a Ward-képlethez a két klaszter átlaga és mérete kell.</details>
+      <details><summary>Megoldás</summary>Párok: 5, 9, 2, 6. Egyszerű: 2; teljes: 9; átlagos: $22/4 = 5{,}5$. Ward: $\mu_A = 1{,}5$, $\mu_B = 7$, $\frac{2 \cdot 2}{4}(7 - 1{,}5)^2 = 30{,}25$.</details></li>
+    <li>Pontok: 1, 2, 3, 8, 9, 15; $\varepsilon = 1$, $\text{minPts} = 2$. Mit ad a DBSCAN? És $\text{minPts} = 3$-mal?
+      <details><summary>Tipp</summary>Számold meg minden pont $\varepsilon$-környezetében a pontokat (önmagával együtt).</details>
+      <details><summary>Megoldás</summary>Szomszédszámok: 1: 2, 2: 3, 3: 2, 8: 2, 9: 2, 15: 1. minPts = 2: klaszterek {1, 2, 3} és {8, 9}, zaj: 15. minPts = 3: csak a 2 mag; klaszter {1, 2, 3}, zaj: 8, 9, 15.</details></li>
+    <li>Egy kétdimenziós adat kovarianciamátrixa $\begin{pmatrix} 4 & 2 \\ 2 & 1 \end{pmatrix}$. Mik a sajátértékek, és hány százalékot magyaráz az első főkomponens? Mit jelent ez?
+      <details><summary>Tipp</summary>Próbáld ki a $(2; 1)$ és a $(1; -2)$ vektort.</details>
+      <details><summary>Megoldás</summary>$(2; 1) \mapsto (10; 5) = 5 \cdot (2; 1)$: $\lambda_1 = 5$. $(1; -2) \mapsto (0; 0)$: $\lambda_2 = 0$. Az első komponens 100%-ot magyaráz: minden pont egy egyenesen fekszik (a $(2; 1)$ irányban) – az adat valójában egydimenziós.</details></li>
+    <li>Pontok: 0, 1, 2, 3, 30. Mekkora eséllyel szigeteli el a 30-at az első véletlen vágás? És a 0-t?
+      <details><summary>Tipp</summary>A vágás egyenletes eloszlású a minimum és a maximum között.</details>
+      <details><summary>Megoldás</summary>30: a vágásnak a 3 és a 30 közé kell esnie: $27/30 = 90\%$. 0: a 0 és az 1 közé: $1/30 \approx 3{,}3\%$.</details></li>
+    <li>Egy olvasó átlaga 3. Két hasonló olvasó: hasonlóság 0,9, értékelés 5, átlag 4; hasonlóság −0,6, értékelés 1, átlag 2. Mennyi a becsült értékelés?
+      <details><summary>Tipp</summary>Átlagra igazított képlet, a nevezőben abszolút értékek.</details>
+      <details><summary>Megoldás</summary>$3 + \frac{0{,}9 \cdot (5 - 4) + (-0{,}6) \cdot (1 - 2)}{0{,}9 + 0{,}6} = 3 + \frac{0{,}9 + 0{,}6}{1{,}5} = 4$. Az ellentétes ízlésű olvasó nem szerette – ez is a könyv mellett szól.</details></li>
+    <li>Egy csapat a webáruház 30 jellemzős vásárlói adatán a k-közepet futtatja $k = 8$-cal, nyers adatokon, és a klasztereket egy t-SNE-térképen mutatja be: „nézzétek, nyolc szép sziget”. Mit kérdeznél tőlük?
+      <details><summary>Tipp</summary>Gondolj a mértékegységekre, a $k$ megválasztására, a kezdésre és a t-SNE olvasási szabályaira.</details>
+      <details><summary>Megoldás</summary>Standardizáltak-e (különben a legnagyobb számú jellemző – pl. az éves költés forintban – dönt)? Hogyan választották a $k$-t (könyök, sziluett, üzleti szempont)? Több újraindítással futott-e?
+        Vannak-e kiugró vásárlók, amelyek egy-egy klasztert „elvisznek”? A t-SNE-térkép szigetei önmagukban nem bizonyítanak semmit: a méretük és a távolságuk nem értelmezhető, és más perplexitással más képet kaphatnak – a sziluettet az eredeti térben kell nézni.</details></li>
+  </ol>
+</details>
+</section>
+
+<!-- ===================================================== Fejezetzáró teszt -->
+<section id="s-final">
+<h2>Fejezetzáró teszt</h2>
+<p>Vegyes feladatok az egész fejezetből. Ha legalább 80%-ot elérsz, nyugodtan továbbléphetsz a 9. fejezetre (neurális hálózatok) – ott a jellemzőket már nem mi találjuk ki, hanem a modell tanulja meg.</p>
+<div class="quiz" data-quiz="ai8-final"></div>
+</section>
+
+<!-- ===================================================== Szómagyarázó -->
+<section id="s-gloss">
+<h2>Szómagyarázó</h2>
+<p>A fejezetben előforduló idegen vagy kevésbé ismert szakkifejezések, betűrendben.</p>
+<dl class="glossary">
+  <dt id="g-anomalia">anomália <span class="etym">gör. <em>anómalos</em> „egyenetlen, szabálytalan” (<em>a-</em> „nem” + <em>homalos</em> „sima, egyenletes”)</span></dt>
+  <dd><p>A szokásos mintázattól eltérő eset. Az anomáliadetektálás ezeket keresi, gyakran címkék nélkül.</p></dd>
+
+  <dt id="g-autokodolo">autokódoló <span class="etym">ang. <em>autoencoder</em>; gör. <em>autos</em> „ön-” – a bemenetét kódolja és állítja vissza önmagának</span></dt>
+  <dd><p>Neurális háló, amely egy szűk köztes rétegen át tanulja visszaadni a bemenetét; a rekonstrukciós hibája anomáliapontszámként használható (14. fejezet).</p></dd>
+
+  <dt id="g-dbscan">DBSCAN <span class="etym">ang. <em>Density-Based Spatial Clustering of Applications with Noise</em> (M. Ester és társai, 1996)</span></dt>
+  <dd><p>Sűrűségalapú klaszterezés: a sűrű tartományokat (magpontok láncait) klaszternek, a ritkás helyen lévő pontokat zajnak tekinti.</p></dd>
+
+  <dt id="g-dendrogram">dendrogram <span class="etym">gör. <em>dendron</em> „fa” + <em>gramma</em> „rajz, írás”</span></dt>
+  <dd><p>A hierarchikus klaszterezés összevonásainak fája; egy összevonás magassága az a távolság, amelynél megtörtént.</p></dd>
+
+  <dt id="g-fokomponens">főkomponens <span class="etym">ang. <em>principal component</em>; lat. <em>principalis</em> „első, fő”, <em>componere</em> „összetenni”</span></dt>
+  <dd><p>A kovarianciamátrix sajátvektora; az első főkomponens az az irány, amelyre vetítve a legnagyobb az adat varianciája.</p></dd>
+
+  <dt id="g-hideginditas">hidegindítás <span class="etym">ang. <em>cold start</em> – mint a hideg motor, amelynek még nincs „üzemi” állapota</span></dt>
+  <dd><p>Az ajánlórendszerek gondja új felhasználóval vagy termékkel, amelyről még nincs visszajelzés.</p></dd>
+
+  <dt id="g-izolacios">izolációs erdő <span class="etym">ang. <em>isolation forest</em>; lat. <em>insula</em> „sziget” → ol. <em>isolare</em> „szigetté tesz, elszigetel”</span></dt>
+  <dd><p>Anomáliadetektáló módszer: véletlen fák, amelyekben a könnyen (kevés vágással) elszigetelhető pontok kapnak nagy pontszámot.</p></dd>
+
+  <dt id="g-kkozep">k-közép <span class="etym">ang. <em>k-means</em> (J. MacQueen, 1967); <em>mean</em> „átlag, közép”</span></dt>
+  <dd><p>Klaszterező algoritmus, amely $k$ középpontot keres úgy, hogy a pontok a legközelebbi középpontjukhoz a lehető legközelebb legyenek (kicsi SSE).</p></dd>
+
+  <dt id="g-kapcsolas">kapcsolási mód <span class="etym">ang. <em>linkage</em> „összekapcsolás”</span></dt>
+  <dd><p>A hierarchikus klaszterezésben két klaszter távolságának definíciója: egyszerű (min), teljes (max), átlagos, Ward.</p></dd>
+
+  <dt id="g-klaszter">klaszter <span class="etym">ang. <em>cluster</em> „fürt, csomó, csoport”</span></dt>
+  <dd><p>Egymáshoz hasonló pontok csoportja; a klaszterezés az adatot ilyen csoportokra osztja.</p></dd>
+
+  <dt id="g-kollaborativ">kollaboratív szűrés <span class="etym">lat. <em>collaborare</em> „együtt dolgozik”; a felhasználók „együtt” szűrik a kínálatot (a kifejezés a Tapestry rendszertől, 1992)</span></dt>
+  <dd><p>Ajánlási módszer, amely a hasonló felhasználók (vagy termékek) értékeléseiből becsli, mi tetszene valakinek.</p></dd>
+
+  <dt id="g-konyok">könyökmódszer <span class="etym">ang. <em>elbow method</em> – a görbe törése egy behajlított karra emlékeztet</span></dt>
+  <dd><p>A $k$ választása ott, ahol az SSE-görbe meredek része laposba fordul.</p></dd>
+
+  <dt id="g-mahalanobis">Mahalanobis-távolság <span class="etym">P. C. Mahalanobis (1893–1972) indiai statisztikusról, 1936</span></dt>
+  <dd><p>A kovarianciamátrixszal korrigált távolság: az összefüggő jellemzők „ferde” felhőjét gömbbé alakítva méri, milyen messze van egy pont az átlagtól.</p></dd>
+
+  <dt id="g-matrixfakt">mátrixfaktorizáció <span class="etym">lat. <em>factor</em> „tevő, előállító”; a mátrixot tényezők szorzatára bontjuk</span></dt>
+  <dd><p>Az értékelési mátrix közelítése két kis mátrix szorzatával: minden felhasználó és termék egy rövid rejtett tényezővektor.</p></dd>
+
+  <dt id="g-perplexitas">perplexitás <span class="etym">lat. <em>perplexus</em> „összekuszált, zavaros”; az információelméletben $2^H$</span></dt>
+  <dd><p>A t-SNE paramétere: nagyjából hány „hatásos szomszédot” vegyen figyelembe minden pont.</p></dd>
+
+  <dt id="g-scree">scree plot <span class="etym">ang. <em>scree</em> „kőomlás, törmeléklejtő” (R. Cattell, 1966) – a meredek sziklafal alján elterülő törmelékre emlékeztet</span></dt>
+  <dd><p>A PCA sajátértékeinek csökkenő sorrendű ábrája; ahol a meredek rész a „törmelékbe” lapul, ott érdemes megállni.</p></dd>
+
+  <dt id="g-sziluett">sziluett <span class="etym">fr. <em>silhouette</em>, É. de Silhouette (1709–1767) francia pénzügyminiszterről; P. Rousseeuw nevezte így a klaszterek „körvonalát” mutató ábráját (1987)</span></dt>
+  <dd><p>Pontonkénti mérőszám ($-1$ és $1$ között), amely a saját klaszterhez való közelséget a legközelebbi másik klaszterhez mért távolsággal veti össze.</p></dd>
+
+  <dt id="g-tsne">t-SNE <span class="etym">ang. <em>t-distributed Stochastic Neighbor Embedding</em> „t-eloszlású sztochasztikus szomszédsági beágyazás” (L. van der Maaten, G. Hinton, 2008)</span></dt>
+  <dd><p>Nemlineáris dimenziócsökkentés megjelenítésre, amely a helyi szomszédságokat őrzi meg.</p></dd>
+
+  <dt id="g-umap">UMAP <span class="etym">ang. <em>Uniform Manifold Approximation and Projection</em> (L. McInnes, J. Healy, J. Melville, 2018)</span></dt>
+  <dd><p>A t-SNE-hez hasonló, gyorsabb nemlineáris dimenziócsökkentés, amely új pontokra is alkalmazható.</p></dd>
+
+  <dt id="g-ward">Ward-módszer <span class="etym">J. H. Ward Jr. amerikai statisztikusról (1963)</span></dt>
+  <dd><p>Hierarchikus kapcsolási mód: mindig azt a két klasztert vonja össze, amelyik a legkevésbé növeli az SSE-t.</p></dd>
+</dl>
+</section>
+
+<nav class="pager">
+  <a href="../07-fak-svm-egyuttes/">← 7. Döntési fák, szupport vektor gépek, együttes módszerek</a>
+  <span class="next muted">9. Neurális hálózatok (hamarosan) →</span>
+</nav>
+
+</main>
+</div>
+
+<footer class="site">
+  Források: O. Theobald: <em>Machine Learning for Absolute Beginners</em> (3. kiad.), 9. fejezet · J. Mueller – L. Massaron: <em>Machine Learning for Dummies</em> (2. kiad.), 11–12., 19. fejezet ·
+  R. T. Kneusel: <em>Math for Deep Learning</em>, 6. fejezet · R. T. Kneusel: <em>Practical Deep Learning</em>, 5. és 14. fejezet · A. Glassner: <em>Deep Learning – A Visual Approach</em>, 7. és 10. fejezet ·
+  Hastie – Tibshirani – Friedman: <em>The Elements of Statistical Learning</em> (2. kiad.), 14.3, 14.5, 14.8–14.9 · S. Raschka: <em>Machine Learning and AI Beyond the Basics</em>, 1. fejezet ·
+  V. J. Reddi és társai: <em>Machine Learning Systems</em> (gyakorlat: <em>Motion Classification and Anomaly Detection</em>) · Khang Pham: <em>Machine Learning Design Interview</em> (ajánlórendszerek) ·
+  Kiegészítés: S. Lloyd (1957/1982) · J. MacQueen (1967) · D. Arthur – S. Vassilvitskii (2007, k-means++) · P. Rousseeuw (1987, sziluett) · J. Ward (1963) · M. Ester – H.-P. Kriegel – J. Sander – X. Xu (1996, DBSCAN) ·
+  R. Campello és társai (2013, HDBSCAN) · K. Pearson (1901) · H. Hotelling (1933) · M. Turk – A. Pentland (1991) · L. van der Maaten – G. Hinton (2008, t-SNE) · L. McInnes – J. Healy – J. Melville (2018, UMAP) ·
+  M. Wattenberg – F. Viégas – I. Johnson: <em>How to Use t-SNE Effectively</em> (Distill, 2016) · F. T. Liu – K. M. Ting – Z.-H. Zhou (2008, izolációs erdő) · M. Breunig és társai (2000, LOF) ·
+  G. Linden – B. Smith – J. York (2003) · Y. Koren – R. Bell – C. Volinsky (2009) · adatok: scikit-learn <em>digits</em> és <em>wine</em> (UCI).
+</footer>
+</body>
+</html>

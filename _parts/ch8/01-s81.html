@@ -1,0 +1,373 @@
+<!-- ===================================================== 8.1 -->
+<section id="s81">
+<h2>8.1 Klaszterezés: a k-közép ★</h2>
+<p>Az <a href="../01-mi-a-mesterseges-intelligencia/#s13-b">1.3</a>-ban nyolc vásárlót ránézésre két csoportba soroltunk. Tízezer vásárlóra és húsz jellemzőre viszont nem nézhetünk rá.
+Kell egy <b>szám</b>, amely megmondja, mennyire jó egy csoportosítás – és egy <b>algoritmus</b>, amely jó csoportosítást talál.</p>
+
+<h3 id="s81-a">1. lépés: mi a jó csoportosítás? – a klaszteren belüli négyzetösszeg</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – négy vásárló, egy jellemző</span>
+  Négy vásárló havi vásárlásainak száma: A: 2, B: 3, F: 11, E: 15. Osszuk őket <b>két</b> csoportra! Minden csoportot a saját <b>átlagával</b> képviselünk,
+  és összeadjuk, mennyire térnek el tőle a tagok (négyzetesen). Négy pontot pontosan hétféleképpen lehet két nem üres csoportra osztani – nézzük meg mindet:
+  <table style="max-width:620px;font-size:.88rem;text-align:center">
+    <tr><th>1. csoport</th><th>2. csoport</th><th>átlagok</th><th>eltérésnégyzetek összege</th></tr>
+    <tr><td>{A, B}</td><td>{F, E}</td><td>2,5 és 13</td><td>$0{,}25 + 0{,}25 + 4 + 4 =$ <b>8,5</b></td></tr>
+    <tr><td>{E}</td><td>{A, B, F}</td><td>15 és 5,33</td><td>48,7</td></tr>
+    <tr><td>{A}</td><td>{B, F, E}</td><td>2 és 9,67</td><td>74,7</td></tr>
+    <tr><td>{B}</td><td>{A, F, E}</td><td>3 és 9,33</td><td>88,7</td></tr>
+    <tr><td>{F}</td><td>{A, B, E}</td><td>11 és 6,67</td><td>104,7</td></tr>
+    <tr><td>{A, F}</td><td>{B, E}</td><td>6,5 és 9</td><td>112,5</td></tr>
+    <tr><td>{A, E}</td><td>{B, F}</td><td>8,5 és 7</td><td>116,5</td></tr>
+  </table>
+  A legkisebb összeg a „ritkán vásárlók” {A, B} és a „gyakran vásárlók” {F, E} csoportosításé – pontosan az, amit szemre is mondanánk.
+  Egy jó csoportosításban a tagok <b>közel</b> vannak a saját csoportjuk közepéhez.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – klaszterezés, középpont, klaszteren belüli négyzetösszeg</span>
+  A <b>klaszterezés</b> az $\mathbf x_1, \dots, \mathbf x_n$ pontokat $k$ nem üres, egymást nem átfedő csoportra, <b>klaszterre</b> osztja: $C_1, \dots, C_k$.
+  A $C_j$ klaszter <b>középpontja</b> (centroidja) a tagjainak átlaga:
+  $$\boldsymbol\mu_j = \frac{1}{|C_j|}\sum_{i \in C_j}\mathbf x_i.$$
+  A felosztás jóságát a <b>klaszteren belüli négyzetösszeg</b> méri – minden pont távolságnégyzete a saját középpontjától, összeadva:
+  $$\text{SSE} = \sum_{j=1}^{k}\ \sum_{i \in C_j}\|\mathbf x_i - \boldsymbol\mu_j\|^2.$$
+  Adott $k$ mellett az a jobb felosztás, amelyiknek kisebb az SSE-je.
+  <br><small>Miért az átlag, és miért négyzet? A <a href="../03-tanulas-anatomiaja/#s34-a">3.4</a>-ben láttuk: ha egyetlen számmal kell helyettesíteni egy csoportot, és a négyzetes hibát nézzük,
+  a legjobb választás az <b>átlag</b>. Az SSE tehát azt méri, mennyit veszítünk, ha minden vásárlót a csoportja „tipikus vásárlójával” helyettesítünk.</small>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Nevek</span>
+  Az SSE angolul <em>sum of squared errors</em>, <em>within-cluster sum of squares</em> (WCSS), a scikit-learnben <code>inertia_</code> („tehetetlenség”).
+  A középpont angolul <em>centroid</em>, azaz súlypont: ha minden pont egységnyi tömeg, itt lehetne alátámasztani.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy csoport két jellemzővel</span>
+    A, B, C, G: $(2; 25)$, $(3; 30)$, $(2; 28)$, $(3; 27)$. A középpont $(2{,}5;\ 27{,}5)$. Az eltérések: A: $(-0{,}5;\ -2{,}5)$, B: $(0{,}5;\ 2{,}5)$, C: $(-0{,}5;\ 0{,}5)$, G: $(0{,}5;\ -0{,}5)$.
+    A távolságnégyzetek: $6{,}5 + 6{,}5 + 0{,}5 + 0{,}5 = 14$. Két jellemzőnél egyszerűen összeadjuk a koordinátánkénti négyzeteket.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – miért nem próbáljuk ki mindet?</span>
+    $n$ pontot két csoportra $2^{n-1} - 1$-féleképpen oszthatunk (minden pont – az elsőn kívül – választ egy oldalt, de a „mindenki egy oldalon” nem ér).
+    4 pontnál ez 7, 20 pontnál $524\,287$, 100 pontnál kb. $6{,}3 \cdot 10^{29}$. Három csoportra 100 pontot kb. $8{,}6 \cdot 10^{46}$-féleképpen.
+    Kipróbálni mindet reménytelen – <b>okos keresés</b> kell.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az SSE-t nem lehet a $k$-val együtt minimalizálni.</b> Minél több a klaszter, annál kisebb: ha minden pont külön klaszter, $\text{SSE} = 0$. Az SSE csak <em>azonos</em> $k$ mellett
+      hasonlít össze felosztásokat. A $k$ megválasztása külön kérdés (<a href="#s81-d">4. lépés</a>).</li>
+    <li><b>A mértékegység mindent eldönt.</b> Ha a kosarat forintban mérnéd ezer forint helyett, a négyzetösszegben a kosár ezerszer-milliószor többet nyomna, mint a vásárlások száma (<a href="#s81-e">5. lépés</a>).</li>
+    <li><b>A klaszter nem kap nevet.</b> Az algoritmus annyit mond: „ezek összetartoznak”. Hogy ez „alkalmi nagyvásárló”, azt neked kell kitalálnod (<a href="../01-mi-a-mesterseges-intelligencia/#s13-b">1.3</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – klaszteren belüli négyzetösszeg</summary>
+  <ol>
+    <li>Mennyi a {2, 4, 9} csoport középpontja és négyzetösszege?
+      <details><summary>Megoldás</summary>Középpont: $15/3 = 5$. Négyzetösszeg: $(2 - 5)^2 + (4 - 5)^2 + (9 - 5)^2 = 9 + 1 + 16 = 26$.</details></li>
+    <li>Az 1, 2, 3, 10 pontokat két felosztással próbáljuk: {1, 2, 3} | {10}, illetve {1, 2} | {3, 10}. Melyik a jobb?
+      <details><summary>Megoldás</summary>Első: {1, 2, 3} középpontja 2, négyzetösszege $1 + 0 + 1 = 2$; a {10} egyedül 0. Összesen <b>2</b>.
+        Második: {1, 2}: $0{,}25 + 0{,}25 = 0{,}5$; {3, 10}: középpont 6,5, $12{,}25 + 12{,}25 = 24{,}5$. Összesen 25. Az első sokkal jobb.</details></li>
+    <li>D, E, F, H: $(12; 5)$, $(15; 4)$, $(11; 6)$, $(14; 5)$. Mennyi a középpont és az SSE?
+      <details><summary>Megoldás</summary>Középpont: $(52/4;\ 20/4) = (13;\ 5)$. Távolságnégyzetek: D: $1 + 0 = 1$, E: $4 + 1 = 5$, F: $4 + 1 = 5$, H: $1 + 0 = 1$. SSE = <b>12</b>.</details></li>
+    <li>Hányféleképpen osztható 6, illetve 30 pont két nem üres csoportra?
+      <details><summary>Megoldás</summary>$2^5 - 1 = 31$, illetve $2^{29} - 1 = 536\,870\,911$ – több mint félmilliárd, pedig csak 30 pont és 2 csoport.</details></li>
+    <li>(nehezebb) Mutasd meg, hogy egy számcsoportnál a $\sum_i (x_i - c)^2$ összeg a $c = \bar x$ átlagnál a legkisebb!
+      <details><summary>Megoldás</summary>Deriváljunk $c$ szerint: $-2\sum_i (x_i - c) = 0$, azaz $\sum_i x_i = nc$, $c = \bar x$. A második derivált $2n \gt 0$, tehát minimum.
+        Másképp: $\sum_i (x_i - c)^2 = \sum_i (x_i - \bar x)^2 + n(\bar x - c)^2$ – a második tag csak $c = \bar x$-nél nulla. Több dimenzióban koordinátánként ugyanez.</details></li>
+  </ol>
+</details>
+
+<h3 id="s81-b">2. lépés: a Lloyd-algoritmus – hozzárendelés és átlagolás</h3>
+<p>Minden felosztást nem próbálhatunk ki. De két dolgot könnyű megtenni: ha <em>ismerjük a középpontokat</em>, minden pontot a legközelebbihez rendelhetünk;
+ha <em>ismerjük a csoportokat</em>, kiszámolhatjuk az átlagukat. Váltogassuk a kettőt!</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – hat vásárló, két klaszter</span>
+  Hat vásárló: A $(2; 25)$, B $(3; 30)$, D $(12; 5)$, E $(15; 4)$, F $(11; 6)$, G $(3; 27)$. Legyen $k = 2$, és – szándékosan rosszul – kezdjünk két egymáshoz közeli
+  vásárlóval: $\boldsymbol\mu_1 = $ A $= (2; 25)$, $\boldsymbol\mu_2 = $ B $= (3; 30)$.
+  <table style="max-width:760px;font-size:.86rem;text-align:center">
+    <tr><th>lépés</th><th>mi történik?</th><th>1. klaszter</th><th>2. klaszter</th><th>SSE</th></tr>
+    <tr><td>1. hozzárendelés</td><td>mindenki a közelebbi középponthoz (pl. G: $1^2 + 2^2 = 5$ az A-tól, $0^2 + 3^2 = 9$ a B-től)</td><td>A, D, E, F, G</td><td>B</td><td>1557</td></tr>
+    <tr><td>1. frissítés</td><td>középpont = átlag</td><td>$\boldsymbol\mu_1 = (8{,}6;\ 13{,}4)$</td><td>$\boldsymbol\mu_2 = (3;\ 30)$</td><td>666,4</td></tr>
+    <tr><td>2. hozzárendelés</td><td>A és G átpártol: A-nak $\boldsymbol\mu_1$ $178{,}1$, $\boldsymbol\mu_2$ csak $26$ távolságnégyzetre van</td><td>D, E, F</td><td>A, B, G</td><td>306,96</td></tr>
+    <tr><td>2. frissítés</td><td>középpont = átlag</td><td>$(12{,}67;\ 5)$</td><td>$(2{,}67;\ 27{,}33)$</td><td><b>24</b></td></tr>
+    <tr><td>3. hozzárendelés</td><td>senki nem vált csoportot → <b>vége</b></td><td>D, E, F</td><td>A, B, G</td><td>24</td></tr>
+  </table>
+  Két kör után megtalálta a „szemre” jó csoportokat, pedig rosszul indult. És figyeld az SSE-t: <b>minden fél lépésben csökkent</b>.
+</div>
+<div class="box def">
+  <span class="box-title">Algoritmus – k-közép (Lloyd-algoritmus)</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Kezdés:</b> válassz $k$ kezdő középpontot (pl. $k$ véletlen adatpontot).</li>
+    <li><b>Hozzárendelés:</b> minden pontot a hozzá legközelebbi középpont klaszterébe teszel.</li>
+    <li><b>Frissítés:</b> minden középpontot a klaszterébe került pontok átlagára cseréled.</li>
+    <li>Ismételd a 2–3. lépést, amíg a hozzárendelés már nem változik.</li>
+  </ol>
+  <small>Miért működik? Mindkét lépés csak csökkentheti az SSE-t. A hozzárendelésnél minden pont a legközelebbi középpontot választja – a saját tagja így nem nőhet.
+  A frissítésnél rögzített csoportokra az átlag adja a legkisebb négyzetösszeget (<a href="#s81-a">1. lépés</a>, 5. feladat). Mivel véges sok felosztás van, és egy felosztáshoz
+  sosem térünk vissza (az SSE közben csökkent), az algoritmus <b>véges sok lépésben megáll</b>. Egy kör költsége kb. $n \cdot k \cdot d$ művelet ($d$ a jellemzők száma) –
+  ezért fut milliónyi ponton is.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy egyenesen</span>
+    Pontok: 1, 2, 6, 9, 10; kezdő középpontok: 1 és 2.
+    <ul style="margin:.2rem 0">
+      <li>Hozzárendelés: {1} | {2, 6, 9, 10} (SSE 129). Frissítés: 1 és 6,75 (SSE 38,75).</li>
+      <li>Hozzárendelés: a 2 átkerül, mert $|2 - 1| = 1 \lt |2 - 6{,}75| = 4{,}75$: {1, 2} | {6, 9, 10} (SSE 17,19). Frissítés: 1,5 és 8,33 (SSE 9,17).</li>
+      <li>Hozzárendelés: nincs változás → vége.</li>
+    </ul>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – új vásárló besorolása</span>
+    Egy új vásárló havonta 13-szor vásárol, 6 ezer forintért. A két középpont: $(12{,}67;\ 5)$ és $(2{,}67;\ 27{,}33)$. Távolságnégyzetek: $0{,}33^2 + 1^2 \approx 1{,}11$ és
+    $10{,}33^2 + 21{,}33^2 \approx 561{,}9$. A „gyakori, kis kosaras” klaszterbe kerül. Ez pontosan a <b>legközelebbi centroid</b> szabálya (<a href="../05-osztalyozas/#s52-d">5.2</a>) –
+    csak itt a középpontokat címkék nélkül, az adatból találtuk.
+  </div>
+</div>
+<div class="widget" data-widget="kmeans-steps"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>k-közép ≠ k legközelebbi szomszéd.</b> A k-közép $k$-ja a <em>klaszterek</em> száma, és nincs címke. A kNN $k$-ja a <em>szomszédok</em> száma, és felügyelt osztályozó
+      (<a href="../05-osztalyozas/#s52-b">5.2</a>). Egy kezdőknek szóló könyv (MLAB 9) és egy interjúkönyv (MLDI) is „kNN-klaszterezésről” ír – ilyen nincs.</li>
+    <li><b>Mindig megáll – de nem mindig a legjobbnál.</b> Az MLAB szerint a k-közép „nem mindig képes megbízhatóan végső felosztást találni”. Valójában mindig megáll (lásd fent);
+      a gond az, hogy egy <em>lokális</em> optimumban állhat meg (<a href="#s81-c">3. lépés</a>).</li>
+    <li><b>A középpont számtani közép.</b> Egy vizuális könyv (DLV 7) „mértani középről vagy átlagról” ír – a mértani közép ($\sqrt[n]{x_1 \cdots x_n}$) egészen más; a k-közép a koordinátánkénti számtani átlagot használja.</li>
+    <li><b>Üres klaszter.</b> Ha egy középponthoz senki sem kerül, az átlaga nincs értelmezve. A programok ilyenkor újraindítják (pl. a legtávolabbi pontra teszik).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a Lloyd-algoritmus</summary>
+  <ol>
+    <li>Pontok: 1, 3, 8, 10; kezdő középpontok: 1 és 3. Futtasd az algoritmust a megállásig!
+      <details><summary>Megoldás</summary>Hozzárendelés: {1} | {3, 8, 10} (SSE 74). Frissítés: 1 és 7 (SSE 26). Hozzárendelés: a 3 közelebb van az 1-hez (2) mint a 7-hez (4): {1, 3} | {8, 10} (SSE 14).
+        Frissítés: 2 és 9 (SSE <b>4</b>). Hozzárendelés: nincs változás → vége.</details></li>
+    <li>A középpontok $(2{,}5;\ 27{,}5)$ és $(13;\ 5)$. Melyikhez rendeled az I $(7;\ 14)$ vásárlót?
+      <details><summary>Megoldás</summary>Távolságnégyzetek: $4{,}5^2 + 13{,}5^2 = 20{,}25 + 182{,}25 = 202{,}5$ és $6^2 + 9^2 = 36 + 81 = 117$. A második, $(13;\ 5)$ klaszterhez – pedig I egyikhez sem igazán hasonlít.
+        Ez is jelzés: lehet, hogy két klaszter kevés.</details></li>
+    <li>Egy klaszterbe az I $(7; 14)$, J $(8; 16)$, K $(6; 15)$ került. Hová kerül a középpont?
+      <details><summary>Megoldás</summary>$\left(\frac{7 + 8 + 6}{3};\ \frac{14 + 16 + 15}{3}\right) = (7;\ 15)$.</details></li>
+    <li>Miért nem nőhet az SSE a frissítés lépésében?
+      <details><summary>Megoldás</summary>Mert a frissítéskor a csoportok rögzítettek, és minden csoportra az átlag adja a lehető legkisebb négyzetösszeget. A régi középpont legfeljebb ugyanolyan jó lehetett, mint az új.</details></li>
+    <li>(nehezebb) Miért biztos, hogy az algoritmus véges sok lépésben megáll?
+      <details><summary>Megoldás</summary>$n$ pontot $k$ csoportra véges sokféleképpen lehet osztani. Amíg a hozzárendelés változik, az SSE szigorúan csökken (egyenlő távolságnál maradjon a pont a régi klaszterében),
+        ezért egy korábbi felosztás nem jöhet vissza. Véges sok felosztáson nem lehet a végtelenségig „lefelé lépkedni”.</details></li>
+  </ol>
+</details>
+
+<h3 id="s81-c">3. lépés: rossz kezdés, rossz eredmény – lokális optimum, k-means++, újraindítás</h3>
+<p>A hat vásárlónál a rossz kezdés sem ártott. Ez nem mindig van így.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a beragadt középpont</span>
+  Hat pont, három nyilvánvaló pár: 0, 2 | 10, 12 | 20, 22. Legyen $k = 3$, a kezdő középpontok: 0, 2 és 16.
+  <ul style="margin:.2rem 0">
+    <li>Hozzárendelés: a 0 a 0-hoz, a 2 a 2-höz, a többi a 16-hoz (a 10 a 16-tól 6-ra, a 2-től 8-ra van).</li>
+    <li>Frissítés: $\{0\} \to 0$, $\{2\} \to 2$, $\{10, 12, 20, 22\} \to 16$. <b>Semmi sem változott.</b></li>
+  </ul>
+  Az algoritmus megállt. SSE: $36 + 16 + 16 + 36 = 104$. A nyilvánvaló felosztásé (1, 11, 21 középpontokkal): $6 \cdot 1 = 6$. Ez egy <b>lokális optimum</b>:
+  egyetlen lépés sem javít rajta, mégis messze van a legjobbtól. A hibát az okozta, hogy két kezdőpont <em>ugyanabba</em> a természetes csoportba esett.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – lokális optimum, k-means++, újraindítás</span>
+  A Lloyd-algoritmus <b>lokális optimumban</b> áll meg: olyan felosztásban, amelyen a hozzárendelés és a frissítés már nem változtat. Hogy melyikben, az a kezdéstől függ. Két ellenszer:
+  <ul style="margin:.2rem 0">
+    <li><b>k-means++ kezdés</b> (D. Arthur, S. Vassilvitskii, 2007): az első középpont egy véletlen adatpont. Minden további középpontnak az $\mathbf x$ pontot
+      $$P(\mathbf x) = \frac{D(\mathbf x)^2}{\sum_{\mathbf z} D(\mathbf z)^2}$$
+      valószínűséggel választjuk, ahol $D(\mathbf x)$ az $\mathbf x$ távolsága a legközelebbi, már kiválasztott középponttól. A távoli pontok így sokkal nagyobb eséllyel lesznek középpontok.</li>
+    <li><b>Újraindítás:</b> futtasd le az algoritmust többször, különböző kezdéssel, és tartsd meg a <b>legkisebb SSE-jű</b> eredményt (scikit-learnben <code>n_init</code>).</li>
+  </ul>
+  <small>Miért a négyzet? A $D^2$ erősen a távoli pontok felé billenti a választást, de nem determinisztikusan – ezért egyetlen kiugró pont sem „viszi el” biztosan a középpontot.
+  A k-means++ kezdés várható SSE-je bizonyítottan legfeljebb kb. $8(\ln k + 2)$-szerese az optimumnak – utána a Lloyd-lépések már csak javítanak.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – k-means++ a hat ponton</span>
+    Az első középpont legyen a 0. A távolságnégyzetek: $0, 4, 100, 144, 400, 484$, összegük 1132.
+    A második középpont $\frac{400 + 484}{1132} \approx 78\%$ eséllyel a 20–22 párból, $\frac{244}{1132} \approx 21{,}6\%$ eséllyel a 10–12 párból jön,
+    és csak $\frac{4}{1132} \approx 0{,}35\%$ eséllyel a 2 – a beragadás oka szinte kizárt.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – mennyi újraindítás kell?</span>
+    Ha egy futás 30% eséllyel találja meg a legjobb felosztást, és a futások függetlenek, akkor 10 futásból legalább egy megtalálja
+    $1 - 0{,}7^{10} \approx 97{,}2\%$ eséllyel; 5 futásnál csak $1 - 0{,}7^5 \approx 83{,}2\%$.
+  </div>
+</div>
+<p>A fenti szemléltetésben válaszd a <b>„négy folt”</b> adatot, véletlen kezdéssel: futtasd végig többször az „Új kezdés” gombbal, és figyeld az SSE-t. Aztán kapcsolj k-means++-ra,
+és próbáld ki a „10 újraindítás” gombot.</p>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A klaszterek sorszáma önkényes.</b> Két futás ugyanazt a felosztást adhatja 0/1 helyett 1/0 sorszámmal. Ez nem különbség – csak a csoportok tagsága számít.</li>
+    <li><b>Más véletlen mag, más eredmény.</b> Ha egy elemzést meg akarsz ismételni, rögzítsd a véletlen magot (<code>random_state</code>).</li>
+    <li><b>A k-means++ sem garancia.</b> Csak jó esélyt ad – az újraindítást ne hagyd el. A középpontokat kézzel sem szokás kijelölni (az MLAB „kézi” kezdést ír).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – kezdés és lokális optimum</summary>
+  <ol>
+    <li>Ellenőrizd, hogy a kiinduló példa 0 | 2 | {10, 12, 20, 22} felosztása tényleg nem változik: melyik középponthoz van legközelebb a 10, a 12, a 20 és a 22?
+      <details><summary>Megoldás</summary>Középpontok: 0, 2, 16. A 10-nek a 2 távolsága 8, a 16-é 6 → 16. A 12: 10 vs 4 → 16. A 20 és 22 egyértelműen a 16-hoz. A 0 és a 2 a saját középpontján ül. Semmi nem mozdul.</details></li>
+    <li>Pontok: 0, 1, 5; az első k-means++ középpont a 0. Mekkora eséllyel lesz a második az 1, illetve az 5?
+      <details><summary>Megoldás</summary>$D^2$: 0, 1, 25, összeg 26. Az 1: $1/26 \approx 3{,}8\%$, az 5: $25/26 \approx 96{,}2\%$.</details></li>
+    <li>Egy futás 20% eséllyel találja meg a legjobb megoldást. Hány független futás kell, hogy legalább 95% eséllyel köztük legyen?
+      <details><summary>Megoldás</summary>$1 - 0{,}8^m \ge 0{,}95$, azaz $0{,}8^m \le 0{,}05$, $m \ge \ln 0{,}05/\ln 0{,}8 \approx 13{,}4$ → <b>14</b> futás.</details></li>
+    <li>Két futás eredménye: [0, 0, 1, 1, 2] és [2, 2, 0, 0, 1]. Ugyanaz a klaszterezés?
+      <details><summary>Megoldás</summary>Igen: mindkettőben az 1–2. pont együtt, a 3–4. pont együtt, az 5. külön van. Csak a sorszámok (0, 1, 2) vannak átnevezve.</details></li>
+    <li>(nehezebb) Miért nem a <em>legtávolabbi</em> pontot választja determinisztikusan a k-means++?
+      <details><summary>Megoldás</summary>Mert akkor egy kiugró érték biztosan középpont lenne, és „elvinne” egy egész klasztert. A $D^2$-arányos sorsolás a távoli <em>csoportokat</em> részesíti előnyben (ahol sok távoli pont van),
+        de nem determinisztikusan. Egy nagyon távoli kiugró pontot ez sem zár ki – a 2. feladat 0, 1, 5 példájában az 5-öt 96% eséllyel választja –, csak csökkenti az esélyét annál, mintha mindig a legtávolabbit vennénk.
+        Ezért fontos a kiugró pontok előzetes vizsgálata (<a href="#s85">8.5</a>).</details></li>
+  </ol>
+</details>
+
+<h3 id="s81-d">4. lépés: hány klaszter? – könyök és sziluett</h3>
+<p>Eddig $k$-t megadtuk. De honnan tudod, hogy két, három vagy öt vásárlótípus van? Az SSE-vel nem dönthetsz, mert a $k$ növelésével mindig csökken. Nézzük meg, <em>mennyire</em> csökken!</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – nyolc vásárló, k = 1, 2, …, 6</span>
+  Az 1. fejezet nyolc vásárlóján (A–H) a legjobb k-közép felosztás SSE-je:
+  <table style="max-width:560px;font-size:.88rem;text-align:center">
+    <tr><th>$k$</th><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td></tr>
+    <tr><th>SSE</th><td>1259</td><td><b>26</b></td><td>16</td><td>7</td><td>3</td><td>2</td></tr>
+    <tr><th>csökkenés az előzőhöz képest</th><td>–</td><td><b>98%</b></td><td>38%</td><td>56%</td><td>57%</td><td>33%</td></tr>
+  </table>
+  Az első klaszter-kettévágás szinte minden szórást eltüntet: 1259 → 26. Utána már csak apróságokat nyerünk (mivel a 26 már kicsi, a további csökkenés <em>arányában</em> nagynak tűnhet, abszolút értékben viszont jelentéktelen).
+  Ha felrajzolod, a görbe a $k = 2$-nél éles „könyököt” mutat.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – könyökmódszer és sziluett</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Könyökmódszer:</b> rajzold fel az SSE-t $k$ függvényében, és ott állj meg, ahol a görbe megtörik: ahol a következő klaszter már alig csökkenti az SSE-t.</li>
+    <li><b>Sziluett</b> (P. Rousseeuw, 1987): minden $i$ pontra
+      $$s(i) = \frac{b(i) - a(i)}{\max\{a(i),\ b(i)\}},$$
+      ahol $a(i)$ az $i$ átlagos távolsága a saját klasztere többi pontjától, $b(i)$ pedig a legközelebbi <em>másik</em> klaszter pontjaitól mért átlagos távolsága.
+      $s(i) \in [-1, 1]$: közel 1, ha a pont jól a helyén van; 0 körül, ha két klaszter határán áll; negatív, ha egy másik klaszterbe illene jobban. Egyelemű klaszter pontjára $s = 0$.
+      A klaszterezés minősége az <b>átlagos sziluett</b>; azt a $k$-t választjuk, ahol a legnagyobb.</li>
+  </ul>
+  <small>Miért jó a sziluett? Az SSE csak a <em>tömörséget</em> nézi ($a$), a sziluett a <em>szétválást</em> is ($b$). Egy fölösleges vágás két közeli csoportot hoz létre – ott a $b$ kicsi, a sziluett leesik.</small>
+</div>
+<div class="box example">
+  <span class="box-title">Példa – sziluett kézzel egy egyenesen</span>
+  Pontok: 1, 2, 3 | 7, 8. A 3-as pontra: $a = \frac{|3 - 1| + |3 - 2|}{2} = 1{,}5$, $b = \frac{|3 - 7| + |3 - 8|}{2} = 4{,}5$, $s = \frac{4{,}5 - 1{,}5}{4{,}5} \approx 0{,}67$.
+  Mind az öt pontra: 0,77; 0,82; 0,67; 0,80; 0,83 – átlag <b>0,78</b>.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy fölösleges vágás</span>
+    Ugyanez $k = 3$-mal: {1, 2} | {3} | {7, 8}. A 3 egyedül van: $s = 0$. A 2-esnél $a = 1$, a legközelebbi másik klaszter a {3}, $b = 1$: $s = 0$.
+    Az átlag <b>0,41</b> – sokkal rosszabb, mint a 0,78. A sziluett szerint két klaszter van.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a nyolc vásárló</span>
+    Átlagos sziluett: $k = 2$: <b>0,89</b>; $k = 3$: 0,71; $k = 4$: 0,38; $k = 5$: 0,36. A könyök és a sziluett ugyanazt mondja: két típus.
+  </div>
+</div>
+<div class="widget" data-widget="elbow-plot"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A könyök gyakran nem éles.</b> Valódi adatnál az SSE-görbe sokszor egyenletesen hajlik – ilyenkor a könyökmódszer nem dönt. Egyenletes zajban is kijön <em>valamilyen</em> $k$ klaszter:
+      az algoritmus mindig felosztja az adatot, akkor is, ha nincs benne csoport.</li>
+    <li><b>Keresztvalidációval sem lehet $k$-t választani</b> úgy, mint a 6. fejezetben: az SSE a <em>teszt</em> pontokon is csökken $k$-val (ESL 14.3).</li>
+    <li><b>Könyök, nem „scree”.</b> Az MLAB a k-közép SSE-görbéjét „scree plot”-nak hívja, és „több törésről” ír. A <em>scree</em> (kőomlás) a PCA sajátértékgörbéje (<a href="#s83-b">8.3</a>);
+      a könyök egyetlen törés. Az MLD a Calinski–Harabasz-indexet ajánlja, de fordítva magyarázza: annál a mutatónál a <b>nagyobb</b> érték a jobb, és már bünteti a $k$ növelését.</li>
+    <li><b>A végső szó a felhasználásé.</b> Ha a marketingcsapat négy kampányt tud futtatni, a négy klaszter akkor is hasznos lehet, ha a sziluett hármat mond.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – hány klaszter?</summary>
+  <ol>
+    <li>Egy pontra $a = 2$, $b = 5$. Mennyi a sziluett? És ha $a = 5$, $b = 2$? Mit jelent a második?
+      <details><summary>Megoldás</summary>$(5 - 2)/5 = 0{,}6$ – a pont jól a helyén van. $(2 - 5)/5 = -0{,}6$ – a pont közelebb van egy másik klaszterhez, mint a sajátjához: valószínűleg rossz helyre került.</details></li>
+    <li>Az SSE $k = 1, \dots, 5$-re: 400, 150, 90, 80, 72. Hol a könyök?
+      <details><summary>Megoldás</summary>A csökkenések: 250, 60, 10, 8 (arányban 62,5%, 40%, 11%, 10%). A 3. klaszter még sokat hoz, a 4. már alig: a könyök $k = 3$-nál van.</details></li>
+    <li>Számold ki az 1, 2, 3 | 7, 8 felosztásban az 1-es pont sziluettjét!
+      <details><summary>Megoldás</summary>$a = (1 + 2)/2 = 1{,}5$, $b = (6 + 7)/2 = 6{,}5$, $s = 5/6{,}5 \approx 0{,}77$.</details></li>
+    <li>Miért szokás az egyelemű klaszter pontjának sziluettjét 0-nak venni?
+      <details><summary>Megoldás</summary>Mert ott $a$ nincs értelmezve (nincs más tag). Ha $a = 0$-val számolnánk, $s = 1$ lenne, és az „mindenki külön klaszter” felosztás tökéletesnek tűnne.</details></li>
+    <li>(nehezebb) Egyenletesen szórt pontokon futtatod a k-közepet $k = 2, \dots, 8$-ra. Mit vársz az SSE-görbétől és a sziluettől, és mit következtetsz?
+      <details><summary>Megoldás</summary>Az SSE egyenletesen, könyök nélkül csökken; az átlagos sziluett végig alacsony (kb. 0,3–0,4) és nincs kiugró maximuma. A következtetés: az adatban nincs valódi klaszterszerkezet –
+        a k-közép eredménye itt csak a tér önkényes feldarabolása. (Az <code>elbow-plot</code> szemléltetés „egyenletes zaj” adatán kipróbálhatod.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s81-e">5. lépés: amit a k-közép nem tud – skála, alak, kiugró pontok</h3>
+<p>A k-közép gyors és egyszerű, de az SSE-ből következő feltevései vannak. Ahol ezek nem teljesülnek, ott meglepő eredményt ad.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – forintban vagy ezer forintban?</span>
+  Három vásárló: P (2 vásárlás; 15 ezer Ft), Q (14; 15), R (2; 17). Kihez hasonlít P?
+  <div class="two-col">
+    <div><b>Ezer forintban:</b> $d(P, Q) = 12$, $d(P, R) = 2$. P az R-rel kerül egy klaszterbe: mindketten ritkán vásárolnak.</div>
+    <div><b>Forintban:</b> $d(P, Q) = 12$, $d(P, R) = 2000$. P most a Q-val kerül egy klaszterbe – a 2000 forintos kosárkülönbség „sokkal nagyobb”, mint a havi 12 vásárlás különbsége.</div>
+  </div>
+  Ugyanaz az adat, más mértékegység – más klaszterek. A távolság nem tudja, mi a „fontos”; azt tudja, mi a <b>nagy szám</b>.
+</div>
+<div class="box def">
+  <span class="box-title">Tény – a k-közép rejtett feltevései</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Számjellemzők, euklideszi távolság.</b> A jellemzők mértékegysége egymással összemérhető legyen – különben <b>standardizálj</b> (<a href="../04-adatok-es-jellemzok/#s44-a">4.4</a>):
+      $z = (x - \bar x)/s$.</li>
+    <li><b>Gömbölyű, hasonló méretű klaszterek.</b> Két középpont között a határ a két pontot összekötő szakasz <b>felező merőlegese</b>; a klaszterek konvex sokszögek (Voronoi-cellák).
+      Holdakat, gyűrűket, elnyúlt csoportokat nem tud követni.</li>
+    <li><b>Minden pont valahová tartozik.</b> Nincs „zaj” kategória: a kiugró pont is egy klaszterbe kerül, és magához húzza a középpontot – vagy saját klasztert kap.</li>
+    <li><b>A $k$-t neked kell megadnod.</b></li>
+  </ol>
+  <small>Miért? Mert az SSE minden pontot egyetlen középpont körüli <em>négyzetes</em> távolsággal büntet. Ez a „középpont körül minden irányban egyformán” kép a gömb.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a kiugró pont elvisz egy klasztert</span>
+    Pontok: 1, 2, 3, 4 | 10, 11, 12 és egy 40-es. $k = 2$-vel a legjobb felosztás: {1, …, 12} | {40} (SSE 130,9) – a két valódi csoport összeolvadt, mert a 40 „elvitte” a második klasztert.
+    A 40 nélkül: {1, 2, 3, 4} | {10, 11, 12}, SSE 7.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a holdak</span>
+    A fenti szemléltetés <b>„holdak”</b> adatán a k-közép $k = 2$-vel egy egyenessel vágja ketté a síkot – mindkét holdból levág egy darabot. Egyenes határral a két hold nem választható el.
+    Ehhez más elv kell: a <b>sűrűség</b> (<a href="#s82-c">8.2</a>).
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Kiegészítés – rokon módszerek</span>
+  <ul style="margin:.2rem 0">
+    <li><b>k-medoid</b> (L. Kaufman, P. Rousseeuw, 1990): a középpont egy valódi <em>adatpont</em> (medoid). Bármilyen távolsággal működik, és egy kiugró pont nem tudja „elhúzni” a középpontot.</li>
+    <li><b>k-módusz:</b> kategóriás jellemzőkre, átlag helyett a leggyakoribb értékkel.</li>
+    <li><b>Mini-batch k-közép:</b> minden lépésben csak egy kis véletlen részhalmazzal frissít – nagy adaton sokkal <b>gyorsabb</b>, kicsit pontatlanabb. (Az MLD szerint „több időt vesz igénybe” – fordítva van.)</li>
+  </ul>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A standardizálás sem automatikus igazság.</b> Ha egy jellemző szórása épp a klaszterek miatt nagy, a standardizálás elmoshatja őket (ESL 14.3). Gondold végig, melyik jellemző mennyit számítson.</li>
+    <li><b>A PCA nem javítja meg a távolságot.</b> Az MLD azt tanácsolja, hogy a standardizálás után PCA-val „távolítsd el a korrelációkat”, és akkor az euklideszi távolság „jól működik”.
+      De a teljes PCA csak <b>elforgatja</b> a koordináta-rendszert – a pontok közti távolságok, és így a k-közép eredménye is, változatlanok.</li>
+    <li><b>Előbb a kiugró pontok.</b> Klaszterezés előtt nézd meg az anomáliákat (<a href="#s85">8.5</a>) – vagy használj zajt kezelő módszert (DBSCAN, <a href="#s82-c">8.2</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a k-közép korlátai</summary>
+  <ol>
+    <li>A 11 vásárló (A–K) havi vásárlásainak átlaga 7,55, szórása 4,62. Mennyi az A vásárló (2 vásárlás) standardizált értéke?
+      <details><summary>Megoldás</summary>$z = (2 - 7{,}55)/4{,}62 \approx -1{,}20$: A az átlagnál 1,2 szórással ritkábban vásárol.</details></li>
+    <li>Az 1, 2, 3, 50 pontokat $k = 2$-vel klaszterezed. Mi lesz az eredmény, és mit tennél?
+      <details><summary>Megoldás</summary>{1, 2, 3} | {50} (SSE 2). Az 50 saját klasztert kapott. Előbb érdemes kideríteni, mi ez az érték (hiba? valódi ritka eset? – <a href="../04-adatok-es-jellemzok/#s42-c">4.2</a>),
+        és ha anomália, külön kezelni.</details></li>
+    <li>Melyik adatra illik a k-közép: (a) három kerek, hasonló méretű folt; (b) két koncentrikus kör; (c) egy hosszú, vékony és egy kicsi, kerek csoport?
+      <details><summary>Megoldás</summary>Csak az (a)-ra. A (b)-nél a határ nem lehet egyenes; a (c)-nél a hosszú csoport két végét a k-közép inkább külön klaszterbe tenné, mint a kis csoporttal együtt kezelné.</details></li>
+    <li>Két klaszter középpontja $(0;\ 0)$ és $(4;\ 2)$. Hol a határ a két klaszter között?
+      <details><summary>Megoldás</summary>A szakasz felező merőlegese: átmegy a $(2;\ 1)$ felezőponton, és merőleges a $(4;\ 2)$ irányra: $4x_1 + 2x_2 = 10$, azaz $2x_1 + x_2 = 5$.</details></li>
+    <li>(nehezebb) Mutasd meg, hogy két középpont között a határ mindig egyenes (több dimenzióban sík)!
+      <details><summary>Megoldás</summary>$\|\mathbf x - \boldsymbol\mu_1\|^2 = \|\mathbf x - \boldsymbol\mu_2\|^2$ kifejtve: $-2\boldsymbol\mu_1^\top\mathbf x + \|\boldsymbol\mu_1\|^2 = -2\boldsymbol\mu_2^\top\mathbf x + \|\boldsymbol\mu_2\|^2$,
+        azaz $2(\boldsymbol\mu_2 - \boldsymbol\mu_1)^\top\mathbf x = \|\boldsymbol\mu_2\|^2 - \|\boldsymbol\mu_1\|^2$. Az $\|\mathbf x\|^2$ kiesett – ami marad, az $\mathbf x$-ben lineáris egyenlet: egyenes, illetve (hiper)sík.</details></li>
+  </ol>
+</details>
+
+<div class="box history">
+  <span class="box-title">📜 Történet</span>
+  A módszert többen, egymástól függetlenül találták ki. H. Steinhaus 1956-ban írt a testek „részekre osztásáról”; S. Lloyd 1957-ben a Bell Laboratóriumban jelek kvantálására használta
+  (de csak 1982-ben publikálta); a <em>k-means</em> nevet J. MacQueen adta 1967-ben. A k-means++ kezdés 2007-es – fél évszázaddal az algoritmus után. Ma a k-közép a leggyakrabban használt
+  klaszterező módszer, és kódkönyv-építésre (vektorkvantálás) is használják, pl. a nagy nyelvi modellek tömörítésénél és a vektoradatbázisok gyors keresésénél (18. fejezet).
+</div>
+
+<div class="quiz" data-quiz="ai8-81"></div>
+</section>
+

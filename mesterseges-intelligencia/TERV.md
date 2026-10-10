@@ -582,6 +582,16 @@ mondja meg a helyes választ.*
 ### Kvízek
 `ai8-81`, `ai8-83`, `ai8-84`, `ai8-86`, `ai8-final`.
 
+> ✅ **Elkészült** (`08-felugyelet-nelkuli-tanulas/`). Eltérések a tervtől: kvíz minden szakaszhoz (`ai8-81` … `ai8-86`, `ai8-final`); a 8.1 öt lépés (SSE és a felosztások teljes felsorolása, Lloyd, lokális optimum + k-means++,
+> könyök + sziluett, a k-közép korlátai), a 8.2 három (dendrogram, kapcsolási módok, DBSCAN; Gauss-keverék tip-dobozban), a 8.3 a 2.4 receptjére épít (vetített variancia = $\mathbf u^\top C\mathbf u$, rekonstrukció, magyarázott variancia, skálázás, korlátok + SVD),
+> a 8.4 két lépés (a t-SNE ötlete, térképolvasás + UMAP), a 8.5 három (távolságalapú + Mahalanobis, izolációs erdő, rekonstrukciós hiba + értékelés), a 8.6 három (tartalomalapú, kollaboratív, mátrixfaktorizáció), 8.7 Alkalmazás.
+> Futó példa: a „Lapozó” könyvesbolt 12 vásárlója (az 1. fejezet A–H vásárlóinak bővítése; L az anomália: oszloponként átlagos, együtt furcsa) és egy 4×4-es (a widgetben 5×6-os) könyvértékelési mátrix.
+> Nagyban: 178 bor (wine) – nyers PCA 99,8% (prolin), standardizálva 36,2% + 19,2%; k-közép k = 3, ARI 0,90; 800 számjegy t-SNE/UMAP (előre számolt `digits-data.js`).
+> Szemléltetések: `kmeans-steps`, `elbow-plot`, `dendrogram`, `dbscan-explorer`, `pca-projection`, `digit-embedding`, `anomaly-explorer` (saját izolációs erdő), `recommender-toy` (CF + SGD-mátrixfaktorizáció).
+> A forrásokból jelzett hibák az oldalon: MLAB (kNN mint klaszterezés, „nem talál végső felosztást”, „scree plot” a k-közép görbéjére, kézi kezdőpont), DLV („mértani közép”, „legnagyobb tartomány”, PCA mint az eredményeket kímélő kiválasztás, sajátarcok standardizálása),
+> MLD (mini-batch „lassabb”, PCA „javítja” a távolságot, Calinski–Harabasz fordítva, koszinusz „százalék”, hiányzó = 0 az SVD előtt, SVD új termékre, outlier/novelty), ESL (monotonitás a centroid kapcsolásnál), MLSYS (PCA mint kiválasztás),
+> PDL (t-SNE-távolságok értelmezése, PCA a teljes adaton), MLDI (kNN-klaszterezés, hibás szorzatmátrix).
+
 ### Csapdák
 A $k$-közép csak „gömbölyű” klasztereket talál, és skálázásérzékeny · a PCA lineáris · a t-SNE-ábra távolságai
 globálisan nem értelmezhetők · a klaszter nem feltétlenül valódi kategória.

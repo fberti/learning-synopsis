@@ -1,0 +1,252 @@
+<!-- ===================================================== 8.2 -->
+<section id="s82">
+<h2>8.2 Hierarchikus és sűrűségalapú klaszterezés ★★</h2>
+<p>A k-közép előre kéri a $k$-t, és gömböket keres. Mi van, ha nem tudjuk, hány csoport van – vagy ha a csoportok nem gömbölyűek? Két másik ötlet: építsük fel a csoportokat
+<b>alulról, összevonásokkal</b> (és döntsünk utólag), vagy keressünk <b>sűrű tartományokat</b>, amelyeket ritkás rész választ el.</p>
+
+<h3 id="s82-a">1. lépés: összevonás lépésről lépésre – a dendrogram</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – öt pont egy egyenesen</span>
+  Pontok: 1, 2, 4, 8, 9. Kezdetben mindegyik a saját klaszterében van. Minden lépésben a két <b>legközelebbi</b> klasztert vonjuk össze; két klaszter távolsága most legyen
+  a <b>legközelebbi tagjaik</b> távolsága.
+  <ol style="margin:.2rem 0">
+    <li>{1} és {2} távolsága 1, {8} és {9} távolsága is 1 – vonjuk össze mindkettőt (1-es magasságban).</li>
+    <li>Klaszterek: {1, 2}, {4}, {8, 9}. A {1, 2} és a {4} távolsága $|2 - 4| = 2$, a {4} és a {8, 9} távolsága 4. Összevonás 2-es magasságban: {1, 2, 4}.</li>
+    <li>Maradt {1, 2, 4} és {8, 9}: távolságuk $|4 - 8| = 4$. Összevonás 4-es magasságban – kész, egyetlen klaszter.</li>
+  </ol>
+  Az összevonások fáját <b>dendrogramnak</b> hívjuk: alul a pontok, és minden összevonás egy vízszintes vonal annyi magasan, amekkora távolságnál történt.
+  <svg viewBox="0 0 420 200" style="width:100%;max-width:420px;display:block;margin:.6rem auto;font:12px system-ui,sans-serif" role="img" aria-label="Az öt pont dendrogramja">
+    <g style="stroke:var(--muted);stroke-width:1"><path d="M40 170 H400"/><path d="M40 170 V15"/></g>
+    <g style="fill:var(--muted)" text-anchor="end">
+      <text x="34" y="174">0</text><text x="34" y="137">1</text><text x="34" y="100">2</text><text x="34" y="63">3</text><text x="34" y="26">4</text>
+    </g>
+    <text x="44" y="12" style="fill:var(--muted)">magasság (távolság)</text>
+    <g style="stroke:var(--accent);stroke-width:2;fill:none">
+      <path d="M80 170 V133 H140 V170"/><path d="M290 170 V133 H350 V170"/>
+      <path d="M110 133 V96 H200 V170"/><path d="M155 96 V22 H320 V133"/>
+    </g>
+    <g style="stroke:var(--bad);stroke-width:1.5" stroke-dasharray="6 4"><path d="M40 78 H400"/></g>
+    <text x="398" y="74" text-anchor="end" style="fill:var(--bad)">vágás 2,5-nél → 2 klaszter</text>
+    <g style="fill:var(--text);font-weight:600" text-anchor="middle">
+      <text x="80" y="186">1</text><text x="140" y="186">2</text><text x="200" y="186">4</text><text x="290" y="186">8</text><text x="350" y="186">9</text>
+    </g>
+  </svg>
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – összevonó (agglomeratív) hierarchikus klaszterezés</span>
+  <ol style="margin:.2rem 0">
+    <li>Kezdetben minden pont egy külön klaszter ($n$ klaszter).</li>
+    <li>Számold ki minden klaszterpár távolságát (a <b>kapcsolási mód</b> szerint, <a href="#s82-b">2. lépés</a>), és vond össze a két legközelebbit.</li>
+    <li>Ismételd, amíg egyetlen klaszter marad ($n - 1$ összevonás).</li>
+  </ol>
+  A <b>dendrogram</b> az összevonások fája; egy összevonás <b>magassága</b> az a távolság, amelynél megtörtént. Ha a dendrogramot egy $h$ magasságú vízszintes vonallal <b>elvágod</b>,
+  a vonal alatt összefüggő ágak adják a klasztereket.
+  <br><small>Miért jó? Mert egyetlen futtatás <em>minden</em> $k$-ra ad felosztást – a $k$-t utólag, a dendrogramra nézve választod. Egy nagy ugrás az összevonási magasságokban
+  (hosszú függőleges szakasz) azt jelzi, hogy ott két jól elkülönülő csoport egyesülne – a vágás helye ennek a közepén van.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy fa, sok felosztás</span>
+    Az öt pont dendrogramját vágd el
+    <ul style="margin:.2rem 0">
+      <li>0,5-nél: 5 klaszter (még nem volt összevonás);</li>
+      <li>1,5-nél: 3 klaszter: {1, 2}, {4}, {8, 9};</li>
+      <li>3-nál: 2 klaszter: {1, 2, 4}, {8, 9};</li>
+      <li>5-nél: 1 klaszter.</li>
+    </ul>
+    A legnagyobb ugrás a 2 és a 4 között van – a „természetes” vágás itt két klasztert ad.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – felülről lefelé</span>
+    A fordított irány a <b>felosztó</b> (divizív) klaszterezés: egyetlen klaszterből indulsz, és mindig a „leglazábbat” vágod ketté (pl. egy $k = 2$-es k-középpel).
+    Ugyanolyan dendrogramot ad, de felülről építi; ritkábban használják, mert minden lépésben egy nehéz kettévágási feladatot kell megoldani.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A levelek sorrendje nem jelent semmit.</b> Bármelyik összevonásnál a két ágat felcserélheted – ugyanaz a dendrogram. Két levél közelségét az mutatja, <em>milyen magasan</em> találkoznak, nem az, hogy egymás mellett állnak-e.</li>
+    <li><b>Ami összevonva, az összevonva marad.</b> Az algoritmus mohó: egy korai rossz összevonást később nem bont fel.</li>
+    <li><b>Mindig hierarchiát ad</b> – akkor is, ha az adatban nincs (ESL 14.3). A fa léte nem bizonyíték arra, hogy a csoportok „egymásba ágyazódnak”.</li>
+    <li><b>Lassú nagy adaton.</b> Az összes páronkénti távolság $n^2/2$ szám: $100\,000$ pontnál 5 milliárd. Néhány tízezer pont fölött más módszer kell.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a dendrogram</summary>
+  <ol>
+    <li>Pontok: 0, 1, 5, 6, 20. Végezd el az összevonásokat (legközelebbi tagok távolsága)! Mik a magasságok?
+      <details><summary>Megoldás</summary>{0, 1} (1) és {5, 6} (1); aztán {0, 1} + {5, 6}: $|1 - 5| = 4$; végül + {20}: $|6 - 20| = 14$. Magasságok: 1, 1, 4, 14.</details></li>
+    <li>Az előző dendrogramot hol érdemes elvágni, és hány klasztert kapsz?
+      <details><summary>Megoldás</summary>A legnagyobb ugrás 4 és 14 között van: pl. 9-nél vágva 2 klaszter: {0, 1, 5, 6} és {20}. (Ha a 20-at kiugró értéknek tartod, a 4 alatti vágás – 3 klaszter – is védhető.)</details></li>
+    <li>Hány összevonás történik 50 pontnál, és hány klaszterpár távolságát kell az első lépésben ismerni?
+      <details><summary>Megoldás</summary>$n - 1 = 49$ összevonás. Az első lépésben minden pár: $\binom{50}{2} = 1225$ távolság.</details></li>
+    <li>Egy dendrogramon A és B levél egymás mellett áll, de csak a legfelső összevonásnál találkoznak. C két levéllel arrébb van, de A-val már 0,3-as magasságban összevonódott. Ki hasonlít jobban A-ra?
+      <details><summary>Megoldás</summary>C. A hasonlóságot az összevonás magassága mutatja; a levelek vízszintes sorrendje önkényes (az ágak felcserélhetők).</details></li>
+    <li>(nehezebb) Miért ad a dendrogram <em>egymásba ágyazott</em> felosztásokat, a k-közép $k = 2$ és $k = 3$ eredménye viszont nem feltétlenül az?
+      <details><summary>Megoldás</summary>A dendrogram 3 klaszteres vágását egyetlen összevonás teszi 2 klaszteressé – a 2 klaszter mindig a 3 klaszter két tagjának egyesítése. A k-közép minden $k$-ra külön, elölről optimalizál:
+        a $k = 3$ klaszterei keresztbe is vághatják a $k = 2$ klasztereit.</details></li>
+  </ol>
+</details>
+
+<h3 id="s82-b">2. lépés: mitől közel két csoport? – kapcsolási módok</h3>
+<p>Két <em>pont</em> távolsága egyértelmű. Két <em>csoporté</em> nem: a legközelebbi tagjaik? A legtávolabbiak? Az átlag? A választás – a <b>kapcsolási mód</b> – megváltoztatja a fát.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – {1, 2, 4} és {8, 9} távolsága</span>
+  A hat tagpár távolsága: $|1 - 8| = 7$, $|1 - 9| = 8$, $|2 - 8| = 6$, $|2 - 9| = 7$, $|4 - 8| = 4$, $|4 - 9| = 5$.
+  <ul style="margin:.2rem 0">
+    <li>a legkisebb: <b>4</b> (a 4 és a 8);</li>
+    <li>a legnagyobb: <b>8</b> (az 1 és a 9);</li>
+    <li>az átlag: $\frac{7 + 8 + 6 + 7 + 4 + 5}{6} \approx$ <b>6,17</b>;</li>
+    <li>és ha az SSE-t nézzük: külön $\text{SSE} = 4{,}67 + 0{,}5$, együtt $50{,}8$ – az összevonás <b>45,63</b>-mal növeli.</li>
+  </ul>
+  Négy jogos válasz – négy kapcsolási mód.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – kapcsolási módok (linkage)</span>
+  Az $A$ és $B$ klaszter távolsága:
+  <table style="font-size:.9rem">
+    <tr><th>mód</th><th>képlet</th><th>milyen klasztereket szeret?</th></tr>
+    <tr><td><b>egyszerű</b> (single, legközelebbi szomszéd)</td><td>$\min_{a \in A,\, b \in B} d(a, b)$</td><td>bármilyen alakot; hajlamos <b>láncolódni</b></td></tr>
+    <tr><td><b>teljes</b> (complete, legtávolabbi szomszéd)</td><td>$\max_{a \in A,\, b \in B} d(a, b)$</td><td>tömör, kis átmérőjű csoportokat</td></tr>
+    <tr><td><b>átlagos</b> (average, UPGMA)</td><td>$\frac{1}{|A||B|}\sum_{a, b} d(a, b)$</td><td>a kettő között</td></tr>
+    <tr><td><b>Ward</b></td><td>$\Delta\text{SSE} = \frac{|A||B|}{|A| + |B|}\|\boldsymbol\mu_A - \boldsymbol\mu_B\|^2$</td><td>gömbölyű, hasonló méretű csoportokat (mint a k-közép)</td></tr>
+  </table>
+  <small>Miért a Ward-képlet? Két csoport összevonásakor az SSE pontosan ennyivel nő. A Ward-módszer tehát minden lépésben azt a párt vonja össze, amelyik a legkevésbé rontja a k-közép mércéjét –
+  ezért ad hasonló klasztereket, mint a k-közép, és ezért csak euklideszi távolsággal értelmes. A programok (pl. a SciPy) a dendrogramon gyakran a $\sqrt{2\,\Delta\text{SSE}}$ értéket rajzolják.</small>
+</div>
+<div class="box example">
+  <span class="box-title">Példa – ugyanaz az öt pont, négy fa</span>
+  <table style="max-width:640px;font-size:.88rem;text-align:center">
+    <tr><th>összevonás</th><th>egyszerű</th><th>teljes</th><th>átlagos</th><th>Ward ($\Delta\text{SSE}$)</th></tr>
+    <tr><td>{1} + {2}</td><td>1</td><td>1</td><td>1</td><td>0,5</td></tr>
+    <tr><td>{8} + {9}</td><td>1</td><td>1</td><td>1</td><td>0,5</td></tr>
+    <tr><td>{1, 2} + {4}</td><td>2</td><td>3</td><td>2,5</td><td>4,17</td></tr>
+    <tr><td>{1, 2, 4} + {8, 9}</td><td>4</td><td>8</td><td>6,17</td><td>45,63</td></tr>
+  </table>
+  Itt a sorrend mindenhol ugyanaz, csak a magasságok mások. Szép ellenőrzés: a Ward-növekmények összege $0{,}5 + 0{,}5 + 4{,}17 + 45{,}63 = 50{,}8$ – az öt pont teljes SSE-je.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egyszerű, teljes, átlagos kapcsolás</span>
+    Pontok: 0, 1, 2, …, 10 (egy hosszú, egyenletes csoport) és a 15. Két klaszterre vágva mindhárom ugyanazt adja: <b>{0, …, 10} | {15}</b>.
+    A hosszú csoport egyben marad, mert a tagjai lépésenként közel vannak egymáshoz.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – Ward</span>
+    Ugyanez Ward-kapcsolással: <b>{0, 1, 2, 3} | {4, …, 10, 15}</b>. A Ward a hosszú csoportot kettévágja, a 15-öt pedig a jobb feléhez csapja – mert így kisebb az SSE (89 a 110 helyett).
+    A k-közép is kettévágná a hosszú csoportot, csak máshol: {0, …, 6} | {7, …, 10, 15}, SSE 66,8. A Ward mohó – lépésenként a legkisebb növekedést választja –, ezért nem feltétlenül a legjobb SSE-t találja meg.
+  </div>
+</div>
+<div class="widget" data-widget="dendrogram"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Láncolódás.</b> Az egyszerű kapcsolásnál elég egyetlen „híd” – néhány pont két csoport között –, és a két csoport korán összeolvad. A szemléltetés „lánc” adatán kipróbálhatod.</li>
+    <li><b>Nincs legjobb kapcsolás.</b> Elnyúlt, kanyargós csoportokhoz az egyszerű, gömbölyűekhez a Ward vagy a teljes illik. Ha nem tudod, Ward-dal kezdj, és nézd meg a többit is.</li>
+    <li>(★★★) <b>Inverzió.</b> Egy klasszikus tankönyv (ESL 14.3.12) szerint minden összevonó módszer monoton (az összevonási magasságok sosem csökkennek). Az egyszerű, teljes, átlagos és Ward kapcsolásra ez igaz,
+      de a középpontok távolságát használó <em>centroid</em> kapcsolásnál előfordulhat, hogy egy későbbi összevonás alacsonyabban történik – a dendrogram „keresztbe” rajzolódik.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – kapcsolási módok</summary>
+  <ol>
+    <li>$A = \{0, 1\}$, $B = \{4, 7\}$. Mennyi a távolságuk egyszerű, teljes és átlagos kapcsolással?
+      <details><summary>Megoldás</summary>Párok: 4, 7, 3, 6. Egyszerű: 3; teljes: 7; átlagos: $20/4 = 5$.</details></li>
+    <li>Ugyanerre a két klaszterre mennyi a Ward-féle $\Delta\text{SSE}$?
+      <details><summary>Megoldás</summary>$\mu_A = 0{,}5$, $\mu_B = 5{,}5$; $\frac{2 \cdot 2}{4}(5{,}5 - 0{,}5)^2 = 1 \cdot 25 = 25$. Ellenőrzés: külön $0{,}5 + 4{,}5 = 5$, együtt (átlag 3) $9 + 4 + 1 + 16 = 30$; a különbség 25 ✓.</details></li>
+    <li>Két jól elkülönülő, kerek pontfelhő között egy vékony pontsor húzódik. Melyik kapcsolás vonja össze őket a legkorábban?
+      <details><summary>Megoldás</summary>Az egyszerű: a pontsor mentén minden lépés kicsi, így a láncon keresztül a két felhő „legközelebbi tagjai” közel vannak. A teljes és a Ward a felhők átmérőjét, illetve középpontját nézi, ezért sokáig külön tartja őket.</details></li>
+    <li>Miért nem érdemes a Ward-kapcsolást koszinusz-távolsággal használni?
+      <details><summary>Megoldás</summary>Mert a Ward-képlet az SSE (euklideszi négyzetes távolság az átlagtól) növekedése. Más távolsággal a „középpont” és az „SSE” nem ugyanazt jelenti, a képlet értelmét veszti.</details></li>
+    <li>(nehezebb) Mutasd meg két egyelemű klaszterre, hogy a Ward-képlet $\frac{1}{2}d^2$-et ad!
+      <details><summary>Megoldás</summary>$|A| = |B| = 1$: $\frac{1 \cdot 1}{2}\|\mathbf a - \mathbf b\|^2 = \frac12 d^2$. Ellenőrzés: két pont SSE-je az átlaguk körül $2 \cdot (d/2)^2 = d^2/2$, egyenként 0 – a növekedés $d^2/2$.
+        (Ezért rajzolja a SciPy a $\sqrt{2\Delta\text{SSE}}$-t: két pontnál ez pont a távolságuk.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s82-c">3. lépés: sűrűség alapján – DBSCAN</h3>
+<p>A k-közép minden pontot besorol, és gömböket keres. A szem mást lát: <b>sűrű tartományokat</b>, amelyeket ritkás rész választ el, és néhány magányos pontot, amely sehova sem tartozik.
+Ezt a képet ülteti át algoritmusba a DBSCAN.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – nyolc pont, sugár 1,5</span>
+  Pontok: 1, 2, 3, 4, 10, 11, 12, 20. Minden pont körül nézzünk egy $\varepsilon = 1{,}5$ sugarú környezetet, és számoljuk meg, hány pont van benne (önmagát is beleértve):
+  <table style="max-width:620px;font-size:.88rem;text-align:center">
+    <tr><th>pont</th><td>1</td><td>2</td><td>3</td><td>4</td><td>10</td><td>11</td><td>12</td><td>20</td></tr>
+    <tr><th>szomszéd ($\le 1{,}5$)</th><td>2</td><td>3</td><td>3</td><td>2</td><td>2</td><td>3</td><td>2</td><td>1</td></tr>
+    <tr><th>szerep (minPts = 3)</th><td>határ</td><td><b>mag</b></td><td><b>mag</b></td><td>határ</td><td>határ</td><td><b>mag</b></td><td>határ</td><td>zaj</td></tr>
+  </table>
+  Ahol legalább 3 pont van a környezetben, az <b>magpont</b> – ott „sűrű” az adat. A 2 és a 3 magpont, és egymás környezetében vannak: egy klasztert alkotnak, amelyhez az 1 és a 4
+  <b>határpontként</b> csatlakozik. A 11 egy másik klaszter magja a 10-zel és a 12-vel. A 20 senki környezetében nincs: <b>zaj</b>.
+  Eredmény: {1, 2, 3, 4}, {10, 11, 12} és egy zajpont – anélkül, hogy megmondtuk volna, hány klasztert keresünk.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – DBSCAN (M. Ester, H.-P. Kriegel, J. Sander, X. Xu, 1996)</span>
+  Két paraméter: a környezet sugara, $\varepsilon$, és a sűrűség küszöbe, $\text{minPts}$.
+  <ul style="margin:.2rem 0">
+    <li><b>Magpont:</b> az $\varepsilon$ sugarú környezetében (önmagával együtt) legalább $\text{minPts}$ pont van.</li>
+    <li><b>Határpont:</b> nem magpont, de egy magpont környezetében van.</li>
+    <li><b>Zajpont:</b> se nem mag-, se nem határpont.</li>
+  </ul>
+  Egy <b>klaszter</b>: azok a magpontok, amelyek egymás környezetén át „lépkedve” elérhetők, plusz a határpontjaik. A zajpont nem tartozik klaszterhez.
+  <br><small>Miért jó? Mert a klaszter alakja tetszőleges lehet (a láncolás csak sűrű részen át megy), a klaszterek számát az adat dönti el, és a kiugró pontok nem rontják el a klasztereket – külön kategóriát kapnak.
+  A név: <em>Density-Based Spatial Clustering of Applications with Noise</em>, „sűrűségalapú térbeli klaszterezés zajos adatra”.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – szigorúbb sűrűség</span>
+    Ugyanazok a pontok, de $\varepsilon = 2$, $\text{minPts} = 4$. A 2 környezetében (0–4) négy pont van: 1, 2, 3, 4 → mag; a 3-é ugyanígy. A 10, 11, 12 környezetében legfeljebb 3 pont van → egyik sem mag.
+    Eredmény: {1, 2, 3, 4} és <b>négy zajpont</b> (10, 11, 12, 20). Három pont már nem elég „sűrű”.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – hogyan válassz $\varepsilon$-t?</span>
+    Számold ki minden pontra a $(\text{minPts} - 1)$-edik legközelebbi szomszéd távolságát, és rendezd sorba (<b>k-távolság-görbe</b>). A klaszterek belsejében ezek kicsik,
+    a zajpontoknál hirtelen megnőnek – az $\varepsilon$-t a görbe „térdénél” érdemes választani. A $\text{minPts}$ szokásos kezdőértéke a dimenziószám kétszerese (2D-ben 4).
+  </div>
+</div>
+<div class="widget" data-widget="dbscan-explorer"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Egyetlen $\varepsilon$ minden klaszterre.</b> Ha az egyik csoport sűrű, a másik ritkás, nincs jó $\varepsilon$: kicsivel a ritkás csoport zajjá esik szét, nagyval a sűrűek összeolvadnak.
+      Erre való a <b>HDBSCAN</b> (R. Campello és társai, 2013), amely sok $\varepsilon$-t egyszerre vizsgál.</li>
+    <li><b>Az $\varepsilon$ mértékegységben értendő.</b> Skálázás nélkül az $\varepsilon$ „kör” a nagy számú jellemző mentén hosszú, a másik mentén semmi – itt is standardizálj.</li>
+    <li><b>Sok dimenzióban a sűrűség elmosódik.</b> A dimenzió átka (<a href="../04-adatok-es-jellemzok/#s46-c">4.6</a>) miatt minden pont nagyjából egyforma messze van – a „sűrű” és „ritkás” megkülönböztetése nehéz.
+      Ilyenkor előbb dimenziót csökkentenek (<a href="#s83">8.3</a>).</li>
+    <li><b>A határpont gazdája.</b> Ha egy határpont két klaszter magpontjának környezetében is van, az, hogy melyikhez kerül, a feldolgozás sorrendjétől függhet.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – DBSCAN</summary>
+  <ol>
+    <li>Pontok: 0, 1, 2, 6, 7, 15; $\varepsilon = 1$, $\text{minPts} = 3$. Melyek a mag-, határ- és zajpontok?
+      <details><summary>Megoldás</summary>Szomszédszámok ($\le 1$): 0: 2, 1: 3, 2: 2, 6: 2, 7: 2, 15: 1. Mag: az 1. Határ: a 0 és a 2. Zaj: 6, 7, 15. Egy klaszter: {0, 1, 2}.</details></li>
+    <li>Ugyanez $\text{minPts} = 2$-vel. Mi változik?
+      <details><summary>Megoldás</summary>Most minden pont mag, amelynek van szomszédja 1-en belül: 0, 1, 2, 6, 7. Klaszterek: {0, 1, 2} és {6, 7}; zaj: 15.</details></li>
+    <li>Miért nem kell a DBSCAN-nek megadni a klaszterek számát?
+      <details><summary>Megoldás</summary>Mert a klasztereket a magpontok összefüggő láncai adják – annyi klaszter lesz, ahány egymástól elválasztott sűrű tartomány van az adott $\varepsilon$ és minPts mellett.</details></li>
+    <li>Két hold alakú pontfelhő: mit ad a k-közép ($k = 2$) és mit a DBSCAN (jó $\varepsilon$-nal)?
+      <details><summary>Megoldás</summary>A k-közép egyenessel vágja ketté a síkot, mindkét holdból levág egy darabot. A DBSCAN a holdak mentén lépkedve mindkét holdat egészben megtalálja, mert a hold belsejében sűrű, a két hold között ritkás az adat.</details></li>
+    <li>(nehezebb) Egy adatban egy sűrű (pontok közti távolság kb. 0,1) és egy ritkás (kb. 1) csoport van, egymástól 3 egységre. Mit kapsz $\varepsilon = 0{,}2$-vel és $\varepsilon = 4$-gyel?
+      <details><summary>Megoldás</summary>$\varepsilon = 0{,}2$: a sűrű csoport klaszter, a ritkás csoport pontjai zajjá esnek szét. $\varepsilon = 4$: minden egy klaszterbe olvad. Egyetlen $\varepsilon$ nem jó; kb. 1,5 körül talán igen –
+        de ha a ritkás csoport tovább ritkul, már az sem. Ilyenkor HDBSCAN kell.</details></li>
+  </ol>
+</details>
+
+<div class="box tip">
+  <span class="box-title">💡 Kiegészítés – lágy klaszterezés: Gauss-keverék ★★★</span>
+  Eddig minden pont pontosan egy klaszterbe tartozott (<b>kemény</b> klaszterezés). A <b>Gauss-keverékmodell</b> (GMM) azt feltételezi, hogy az adat $k$ normális eloszlás keverékéből származik,
+  és minden pontra <b>valószínűségeket</b> ad: „70% az 1. klaszter, 30% a 2.”. Az illesztése az <b>EM-algoritmus</b>: a k-középhez hasonlóan váltogat egy „hozzárendelés” (E: a valószínűségek)
+  és egy „frissítés” (M: átlagok, kovarianciák, arányok) lépést. Mivel minden klaszternek saját kovarianciamátrixa van, elnyúlt, ferde ellipszisekhez is illeszkedik.
+  A k-közép ennek határesete: egyforma, gömbölyű, nagyon kicsi szórású komponensek, ahol a valószínűségek 0-ra és 1-re „keményednek” (ESL 14.3.7).
+</div>
+
+<div class="box history">
+  <span class="box-title">📜 Történet</span>
+  Az egyszerű kapcsolás ötlete lengyel matematikusoktól (K. Florek és társai, 1951) és a biológiai rendszertanból (P. Sneath, 1957) ered – a dendrogram neve is a görög <em>dendron</em>, „fa” szóból jön,
+  és a fajok rokonsági fáira emlékeztet. J. Ward 1963-ban javasolta a „legkisebb információveszteség” elvét. A DBSCAN 1996-os; 2014-ben a KDD konferencia „az idő próbáját kiállt” díjával tüntették ki,
+  mert két évtized után is az egyik leggyakrabban használt klaszterező módszer.
+</div>
+
+<div class="quiz" data-quiz="ai8-82"></div>
+</section>
+
