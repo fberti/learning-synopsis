@@ -1,0 +1,188 @@
+
+<!-- ===================================================== 9.4 -->
+<section id="s94">
+<h2>9.4 Aktivációs függvények ★★</h2>
+<p>A XOR-hálót kézzel raktuk össze, lépcsős neuronokkal. Egy valódi hálóban több ezer súly van – azokat <b>tanítani</b> kell, a gradiens módszerrel (<a href="../03-tanulas-anatomiaja/#s34-c">3.4</a>). Ehhez az aktivációs függvénynek több kell, mint „tüzel vagy nem”.</p>
+
+<h3 id="s94-a">1. lépés: a lépcsőtől a szigmoidig – sima függvény kell</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy kicsit tekerünk a súlyon</span>
+  Egy neuron bemenete $x = 0{,}9$, a torzítása $b = -1$. Növeljük óvatosan a $w$ súlyt, és nézzük a kimenetet:
+  <table style="max-width:520px;font-size:.9rem;text-align:center">
+    <tr><th>$w$</th><th>$z = 0{,}9w - 1$</th><th>lépcső</th><th>szigmoid</th></tr>
+    <tr><td>1</td><td>$-0{,}1$</td><td>0</td><td>0,4750</td></tr>
+    <tr><td>1,05</td><td>$-0{,}055$</td><td>0</td><td>0,4863</td></tr>
+    <tr><td>1,2</td><td>$0{,}08$</td><td><b>1</b></td><td>0,5200</td></tr>
+  </table>
+  A lépcső kimenete egy darabig <b>meg sem mozdul</b>, aztán hirtelen ugrik. A szigmoidé <b>kicsit, de mindig</b> változik. A gradiens módszer pont ezt használja: a derivált megmondja, merre és mennyit érdemes tekerni (<a href="../02-matematikai-eszkoztar/#s27-a">2.7</a>).
+  A lépcső deriváltja mindenhol 0 (a 0-ban nem is létezik) – semmit nem árul el.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – szigmoid és tanh, a deriváltjukkal</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Szigmoid (logisztikus függvény):</b> $\sigma(z) = \dfrac{1}{1 + e^{-z}}$, értékei a $(0;\ 1)$ nyílt intervallumban; $\sigma(-z) = 1 - \sigma(z)$; a deriváltja
+      $$\sigma'(z) = \sigma(z)\,\big(1 - \sigma(z)\big) \le 0{,}25,$$
+      a maximum a 0-ban van.</li>
+    <li><b>Tangens hiperbolikusz:</b> $\tanh z = \dfrac{e^z - e^{-z}}{e^z + e^{-z}} = 2\sigma(2z) - 1$, értékei a $(-1;\ 1)$ intervallumban, nulla középpontú; a deriváltja $\tanh'(z) = 1 - \tanh^2 z \le 1$.</li>
+  </ul>
+  <small>Miért ezek? Mindkettő a lépcső „lekerekített” változata: nagy pozitív $z$-re kb. 1, nagy negatívra kb. 0 (illetve $-1$), közben simán vált – és mindenhol deriválható, a deriváltja ráadásul a függvényértékből olcsón kiszámolható.
+  A tanh előnye, hogy a kimenetei 0 körül szóródnak, ami a következő réteg tanulását segíti.</small>
+</div>
+<details class="box">
+  <summary>📐 Honnan jön a $\sigma' = \sigma(1 - \sigma)$?</summary>
+  $\sigma(z) = (1 + e^{-z})^{-1}$, a láncszabállyal (<a href="../02-matematikai-eszkoztar/#s27-d">2.7</a>): $\sigma'(z) = -(1 + e^{-z})^{-2}\cdot(-e^{-z}) = \dfrac{e^{-z}}{(1 + e^{-z})^2} = \dfrac{1}{1 + e^{-z}}\cdot\dfrac{e^{-z}}{1 + e^{-z}} = \sigma(z)\,(1 - \sigma(z))$.
+  A szorzat $p(1 - p)$ alakú, ami $p = 0{,}5$-nél a legnagyobb: $0{,}25$.
+</details>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a szigmoid telítődik</span>
+    $z = 2$: $\sigma(2) \approx 0{,}8808$, $\sigma'(2) \approx 0{,}8808 \cdot 0{,}1192 \approx 0{,}105$.
+    $z = 4$: $\sigma(4) \approx 0{,}982$, $\sigma'(4) \approx 0{,}0177$. Messze a 0-tól a görbe szinte vízszintes: a súly változtatása alig hat – a neuron „telítődött”.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a tanh a szigmoidból</span>
+    $\tanh 0{,}5 = 2\sigma(1) - 1 = 2 \cdot 0{,}7311 - 1 \approx 0{,}4621$; a deriváltja $1 - 0{,}4621^2 \approx 0{,}786$.
+    A tanh tehát egy széthúzott, lefelé tolt szigmoid – a 0-ban négyszer meredekebb ($1$ a $0{,}25$ helyett).
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Telítődés.</b> Ha egy szigmoid vagy tanh neuron $z$-je nagy, a deriváltja szinte 0 – a neuron alig tanul. Ezért fontos a bemenetek skálázása (<a href="../03-tanulas-anatomiaja/#s36-c">3.6</a>) és a jó kezdősúlyok (10. fejezet).</li>
+    <li><b>A szigmoid sosem éri el a 0-t és az 1-et.</b> Az értékkészlete nyílt intervallum; egy könyv (DLV 13) $[0, 1]$-et ír. Ugyanott a tanh nevét „a trigonometriából” eredezteti – a hiperbolikus függvények az exponenciálisból jönnek (rokonai, nem tagjai a trigonometrikus függvényeknek).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – szigmoid és tanh</summary>
+  <ol>
+    <li>Mennyi $\sigma(0)$, $\sigma'(0)$, $\tanh 0$ és $\tanh'(0)$?
+      <details><summary>Megoldás</summary>$\sigma(0) = 0{,}5$, $\sigma'(0) = 0{,}25$, $\tanh 0 = 0$, $\tanh'(0) = 1$.</details></li>
+    <li>$\sigma(2) \approx 0{,}8808$. Számolás nélkül: mennyi $\sigma(-2)$?
+      <details><summary>Megoldás</summary>$\sigma(-2) = 1 - \sigma(2) \approx 0{,}1192$.</details></li>
+    <li>Számold ki $\sigma'(1)$-et a $\sigma(1) \approx 0{,}7311$ értékből!
+      <details><summary>Megoldás</summary>$0{,}7311 \cdot 0{,}2689 \approx 0{,}1966$.</details></li>
+    <li>$\tanh 1 \approx 0{,}7616$. Mennyi a derivált az 1-ben? Hányszorosa ez a $\sigma'(1)$-nek?
+      <details><summary>Megoldás</summary>$1 - 0{,}7616^2 \approx 0{,}420$. Kb. $0{,}420/0{,}197 \approx 2{,}1$-szerese.</details></li>
+    <li>(nehezebb) Mutasd meg, hogy $\tanh z = 2\sigma(2z) - 1$!
+      <details><summary>Megoldás</summary>$2\sigma(2z) - 1 = \dfrac{2}{1 + e^{-2z}} - 1 = \dfrac{1 - e^{-2z}}{1 + e^{-2z}}$. Szorozzuk a számlálót és a nevezőt $e^{z}$-vel: $\dfrac{e^z - e^{-z}}{e^z + e^{-z}} = \tanh z$. ✓</details></li>
+  </ol>
+</details>
+
+<h3 id="s94-b">2. lépés: ReLU – az egyszerű győztes</h3>
+<p>A szigmoid simasága áldás – a telítődése átok. Mély hálóban ez a gond rétegről rétegre <b>összeszorzódik</b>.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – tíz réteg szigmoid</span>
+  Egy tíz rétegű lánc minden rétegében egy szigmoid neuron. A láncszabály szerint (<a href="../02-matematikai-eszkoztar/#s27-d">2.7</a>) a kimenet érzékenysége a bemenetre tíz tényező szorzata, és mindegyikben ott van egy $\sigma'(z_k) \le 0{,}25$.
+  Ha a súlyok 1 körüliek, a szorzat legfeljebb kb.
+  $$0{,}25^{10} \approx 9{,}5 \cdot 10^{-7}.$$
+  Az első réteg súlyai milliomodnyi „jelet” kapnak – gyakorlatilag nem tanulnak. Ugyanez a lánc ReLU-val, ha a neuronok aktívak ($z \gt 0$): minden tényező 1, a szorzat 1. A jel átjut.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – ReLU és változatai</span>
+  <ul style="margin:.2rem 0">
+    <li><b>ReLU</b> (<em>rectified linear unit</em>, egyenirányított lineáris egység): $\mathrm{ReLU}(z) = \max(0, z)$; a deriváltja 1, ha $z \gt 0$, és 0, ha $z \lt 0$ (a 0-ban a programok megállapodás szerint 0-t vesznek).</li>
+    <li><b>Szivárgó ReLU</b> (<em>leaky ReLU</em>): $z$, ha $z \gt 0$, különben $0{,}01z$ – a negatív oldalon is van egy kis meredekség.</li>
+    <li><b>GELU:</b> $z\,\Phi(z)$, ahol $\Phi$ a standard normális eloszlásfüggvény – a ReLU sima változata. 📅 Állapot: 2026 – a nagy nyelvi modellek (Transformerek) rejtett rétegeiben ez vagy a hasonló SiLU/SwiGLU a szokásos.</li>
+  </ul>
+  <small>Miért nyert a ReLU? (1) A pozitív oldalon nem telítődik: a deriváltja 1, így mély hálóban sem zsugorodik a jel. (2) Nagyon olcsó: egy összehasonlítás, nincs exponenciális. (3) Sok neuron kimenete pontosan 0, ami gyorsítja a számolást.
+  A mély hálók áttörésében (V. Nair, G. Hinton, 2010; X. Glorot, A. Bordes, Y. Bengio, 2011 – Kiegészítés) a ReLU kulcsszerepet játszott.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy kísérlet a forrásból</span>
+    PDL 10 kísérletében (MNIST, csak 1000 tanító kép) egy 2000–1000–500 rejtett neuronos háló tesztpontossága ReLU-val 0,885, tanh-val 0,877 – <b>szigmoiddal 0,122</b>, alig jobb a 10% körüli találgatásnál.
+    Ugyanaz a háló, csak más aktiváció: a mély szigmoidos háló nem tanult meg semmit.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a halott neuron</span>
+    Egy ReLU neuron súlyai $\mathbf w = (1;\ 1)$, torzítása $b = -10$, a bemenetek a $[0;\ 1]$ tartományban vannak. Ekkor mindig $z \le -8$: a kimenet <b>mindig 0</b>, a derivált is 0 – a gradiens módszer soha nem mozdítja el.
+    A neuron „meghalt”. A szivárgó ReLU ilyenkor is ad $0{,}01$-es meredekséget.
+  </div>
+</div>
+<div class="widget" data-widget="activation-gallery"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók és forráshibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A ReLU enyhíti, nem oldja meg az eltűnő gradienst.</b> MLSYS szerint a ReLU „megoldotta” a problémát. Ha a súlyok 1-nél kisebbek, a ReLU-s lánc is elhal, ha nagyobbak, robban (próbáld ki fent: $w = 0{,}8$ vagy $w = 1{,}5$).
+      Mély hálóhoz jó kezdősúlyok, normalizálás és reziduális kapcsolatok is kellenek (10–11. fejezet). Ugyanott: Nair és Hinton nem „bevezette”, hanem népszerűsítette a ReLU-t – az egyenirányító egységek korábbiak (K. Fukushima, 1969-től).</li>
+    <li><b>Nem a „nulla alatti szorzás” a gond.</b> MLD 14 szerint az eltűnő gradiens a „nulla alatti szorzásokból” jön. A gond az 1-nél <em>kisebb abszolút értékű</em> tényezők szorzata – a $\sigma' \le 0{,}25$ ilyen.</li>
+    <li><b>A szigmoid nem halt ki.</b> HAW 2 szerint a szigmoid és a tanh „a legtöbb esetben alkalmatlan”. Rejtett rétegbe valóban ritkán teszik, de a kimeneten (valószínűség) és a kapuzott hálókban (LSTM, 12. fejezet) ma is alapeszköz.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – ReLU és a mély lánc</summary>
+  <ol>
+    <li>Mennyi a ReLU és a deriváltja a $3$, a $-2$ és a $0{,}5$ pontban? És a szivárgó ReLU a $-2$-ben?
+      <details><summary>Megoldás</summary>ReLU: 3, 0, 0,5; derivált: 1, 0, 1. Szivárgó ReLU: $0{,}01 \cdot (-2) = -0{,}02$, a deriváltja ott $0{,}01$.</details></li>
+    <li>Öt szigmoid réteg után legfeljebb mekkora a $\prod\sigma'$ szorzat (1-es súlyokkal)?
+      <details><summary>Megoldás</summary>$0{,}25^5 \approx 0{,}000\,98$ – már öt rétegnél ezredrészére zsugorodik a jel.</details></li>
+    <li>Négy tanh réteg, mindegyikben $z = 1$ körül. Kb. mekkora a deriváltak szorzata?
+      <details><summary>Megoldás</summary>$\tanh'(1) \approx 0{,}42$, $0{,}42^4 \approx 0{,}031$. Jobb, mint a szigmoid, de a mélységgel ez is gyorsan fogy.</details></li>
+    <li>Egy tíz rétegű ReLU-láncban minden súly $w$, a neuronok aktívak. Mekkora a szorzat $w = 1{,}5$-nél és $w = 0{,}8$-nál?
+      <details><summary>Megoldás</summary>$1{,}5^{10} \approx 57{,}7$ (robbanó gradiens), $0{,}8^{10} \approx 0{,}107$ (eltűnőben). A ReLU csak az aktiváció tényezőjét teszi 1-gyé; a súlyokét nem.</details></li>
+    <li>(nehezebb) Egy ReLU-rétegben a neuronok fele egy hibás tanítási lépés után „meghalt”: minden tanító mintára $z \lt 0$. Miért nem éled fel magától? Mit tehetsz?
+      <details><summary>Megoldás</summary>Mert a deriváltja minden mintán 0, így a súlyai és a torzítása sem kap frissítést – örökre 0 marad. Ellenszer: kisebb tanulási ráta (a túl nagy lépés löki át a neuronokat), szivárgó ReLU vagy GELU, gondos kezdés (10. fejezet).</details></li>
+  </ol>
+</details>
+
+<h3 id="s94-c">3. lépés: a kimeneti réteg – mit adjon ki a háló?</h3>
+<p>A rejtett rétegekben ReLU van. A <b>kimeneti</b> rétegnek viszont a feladathoz kell igazodnia: árat, valószínűséget vagy több osztály eloszlását kell adnia.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – ugyanaz a rejtett réteg, három feladat</span>
+  Legyen egy hálónak 16 rejtett neuronja. Rátehetünk:
+  <ul style="margin:.2rem 0">
+    <li><b>egy neuront aktiváció nélkül</b> → egy tetszőleges szám, pl. egy lakás ára millió forintban;</li>
+    <li><b>egy szigmoid neuront</b> → egy 0 és 1 közötti szám, pl. annak valószínűsége, hogy egy levél spam;</li>
+    <li><b>tíz neuront softmaxszal</b> → tíz pozitív szám, összegük 1: a 0–9 számjegyek valószínűsége.</li>
+  </ul>
+  A háló „teste” ugyanaz, csak a „feje” más.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – a kimeneti réteg a feladathoz igazodik</span>
+  <table style="font-size:.9rem">
+    <tr><th>feladat</th><th>kimeneti neuronok</th><th>kimeneti aktiváció</th><th>szokásos veszteség (10.1)</th></tr>
+    <tr><td>regresszió</td><td>1 (vagy annyi, ahány szám)</td><td>nincs (identitás)</td><td>átlagos négyzetes hiba</td></tr>
+    <tr><td>két osztály</td><td>1</td><td>szigmoid</td><td>bináris keresztentrópia</td></tr>
+    <tr><td>$K$ kizáró osztály</td><td>$K$</td><td>softmax</td><td>keresztentrópia</td></tr>
+    <tr><td>több címke egyszerre</td><td>$K$</td><td>$K$ külön szigmoid</td><td>$K$ bináris keresztentrópia</td></tr>
+  </table>
+  A softmax (<a href="../02-matematikai-eszkoztar/#s25-d">2.5</a>, <a href="../05-osztalyozas/#s54-b">5.4</a>): $\ p_k = \dfrac{e^{z_k}}{\sum_j e^{z_j}}$. A rejtett rétegek <b>jellemzőket tanulnak</b>, a kimeneti réteg ezeken egy <b>lineáris modell</b> – regresszió, logisztikus vagy softmax-regresszió.
+  <br><small>Miért nem ReLU a kimeneten osztályozásnál? Mert a ReLU kimenete nem korlátos és nem összegződik 1-re, tehát nem valószínűség. Regressziónál pedig azért nincs aktiváció, mert az ár bármilyen nagy (vagy negatív) lehet.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – softmax négy osztályra</span>
+    $\mathbf z = (0{,}2;\ 1{,}3;\ 0{,}8;\ 2{,}1)$ → $e^{z_k} \approx 1{,}22;\ 3{,}67;\ 2{,}23;\ 8{,}17$, összegük $15{,}28$ →
+    $\mathbf p \approx (0{,}080;\ 0{,}240;\ 0{,}146;\ 0{,}534)$ (PDL 8 példája). A legnagyobb $z$ kapja a legnagyobb valószínűséget, de a többi sem nulla.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – két osztálynál softmax = szigmoid</span>
+    $\mathbf z = (1;\ 3)$: $p_2 = \dfrac{e^3}{e^1 + e^3} = \dfrac{1}{1 + e^{-2}} = \sigma(2) \approx 0{,}8808$. Két osztálynál a softmax a <em>különbség</em> szigmoidja – ezért elég egyetlen szigmoid neuron.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók és forráshibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A softmax csak a különbségeket nézi.</b> Ha minden $z_k$-hoz ugyanazt adod, a valószínűségek nem változnak, és $p_i/p_j = e^{z_i - z_j}$. DLV 13 egy ábráján a C és B arányát „valamivel több mint 1,5-nek” mondja,
+      pedig $e^{0{,}8 - 0{,}1} = e^{0{,}7} \approx 2{,}01$; azt is írja, hogy a softmax viselkedése attól függ, 1 alattiak vagy felettiek-e a bemenetek – nem függ tőle.</li>
+    <li><b>A softmax kimenete nem feltétlenül megbízható valószínűség.</b> Összege 1, de egy háló lehet túlságosan magabiztos – ezt a kalibráció vizsgálja (<a href="../06-modellertekeles/#s62-d">6.2</a>).</li>
+    <li><b>Két osztályhoz egy kimenet elég.</b> Egy kezdőknek szóló könyv (MLAB 13) kvízében egy kétértékű címkéhez „2 kimeneti csomópont” a helyes válasz – egy szigmoid neuron is elég (a két softmax-neuron ugyanazt tudja, egy fölösleges paraméterkészlettel).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a kimeneti réteg</summary>
+  <ol>
+    <li>Milyen kimeneti réteg kell? (a) holnapi hőmérséklet; (b) visszafizeti-e az ügyfél a hitelt; (c) melyik az öt műfaj közül egy film; (d) mely címkék illenek egy fényképre („tenger”, „kutya”, „naplemente”, …).
+      <details><summary>Megoldás</summary>(a) 1 neuron, aktiváció nélkül; (b) 1 szigmoid neuron; (c) 5 neuron softmaxszal; (d) annyi szigmoid neuron, ahány címke – egy kép lehet egyszerre „tenger” és „naplemente”, a valószínűségek összege 1-nél több is lehet.</details></li>
+    <li>Mennyi a softmax a $\mathbf z = (0;\ 0;\ \ln 2)$ vektorra?
+      <details><summary>Megoldás</summary>$e^{z_k} = 1, 1, 2$, összeg 4: $\mathbf p = (0{,}25;\ 0{,}25;\ 0{,}5)$.</details></li>
+    <li>Mennyi a softmax a $(10{,}2;\ 11{,}3;\ 10{,}8;\ 12{,}1)$ vektorra? (Tipp: hasonlítsd össze a fenti példával.)
+      <details><summary>Megoldás</summary>Minden elem 10-zel nagyobb, mint a példában, így a softmax ugyanaz: $(0{,}080;\ 0{,}240;\ 0{,}146;\ 0{,}534)$. (A programok ezért vonják ki a legnagyobb $z$-t, hogy az $e^z$ ne csorduljon túl.)</details></li>
+    <li>Két osztály, $\mathbf z = (2;\ -1)$. Mekkora az első osztály valószínűsége?
+      <details><summary>Megoldás</summary>$\sigma(2 - (-1)) = \sigma(3) \approx 0{,}9526$.</details></li>
+    <li>(nehezebb) Miért nem jó a softmax helyett egyszerűen elosztani minden $z_k$-t az összegükkel?
+      <details><summary>Megoldás</summary>Mert a $z_k$ negatív is lehet (negatív „valószínűség”), az összeg lehet 0 is; és a hányados függ az eltolástól. A példán: $2{,}1/4{,}4 \approx 0{,}477$ jönne ki $0{,}534$ helyett – ráadásul $(−1;\ 2)$-re $-1$ és $2$ lenne a két „valószínűség”. Az exponenciális mindig pozitív, és csak a különbségek számítanak.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai9-94"></div>
+</section>

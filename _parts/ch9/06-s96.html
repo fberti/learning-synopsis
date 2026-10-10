@@ -1,0 +1,124 @@
+
+<!-- ===================================================== 9.6 -->
+<section id="s96">
+<h2>9.6 Előre irányuló számítás és paraméterszám ★★</h2>
+<p>Minden alkatrész megvan: neuron, réteg, aktiváció. Most egy bemenetet végigviszünk egy egész hálón – ezt csinálja a háló minden egyes jóslatnál –, és megszámoljuk, hány „csavarja” van.</p>
+
+<h3 id="s96-a">1. lépés: egy bemenet útja a hálón át</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy 2–3–2-es osztályozó</span>
+  Két bemenet, három ReLU-s rejtett neuron, két kimeneti neuron softmaxszal. A súlyok:
+  $$W_1 = \begin{pmatrix} 1 & -1 \\ 0{,}5 & 0{,}5 \\ -1 & 1 \end{pmatrix},\ \mathbf b_1 = \begin{pmatrix} 0{,}5 \\ -1 \\ 0 \end{pmatrix};\qquad W_2 = \begin{pmatrix} 1 & 2 & -1 \\ -1 & 0 & 1 \end{pmatrix},\ \mathbf b_2 = \begin{pmatrix} 0 \\ 0{,}5 \end{pmatrix}.$$
+  A bemenet $\mathbf x = (1;\ 2)$. Négy lépés:
+  <ol style="margin:.2rem 0">
+    <li>rejtett súlyozott összeg: $\mathbf z_1 = W_1\mathbf x + \mathbf b_1 = (1 - 2 + 0{,}5;\ 0{,}5 + 1 - 1;\ -1 + 2 + 0) = (-0{,}5;\ 0{,}5;\ 1)$;</li>
+    <li>rejtett aktiváció: $\mathbf h = \mathrm{ReLU}(\mathbf z_1) = (0;\ 0{,}5;\ 1)$ – az első neuron most „hallgat”;</li>
+    <li>kimeneti súlyozott összeg: $\mathbf z_2 = W_2\mathbf h + \mathbf b_2 = (0 + 1 - 1 + 0;\ 0 + 0 + 1 + 0{,}5) = (0;\ 1{,}5)$;</li>
+    <li>softmax: $\mathbf p = \left(\dfrac{1}{1 + e^{1{,}5}};\ \dfrac{e^{1{,}5}}{1 + e^{1{,}5}}\right) \approx (0{,}182;\ 0{,}818)$.</li>
+  </ol>
+  A háló 81,8%-os valószínűséggel a 2. osztályt mondja.
+</div>
+<div class="box def">
+  <span class="box-title">Algoritmus – előre irányuló számítás (forward pass)</span>
+  $\mathbf h^{(0)} = \mathbf x$, majd rétegenként $\ell = 1, \dots, L$:
+  $$\mathbf z^{(\ell)} = W^{(\ell)}\mathbf h^{(\ell-1)} + \mathbf b^{(\ell)}, \qquad \mathbf h^{(\ell)} = \varphi\big(\mathbf z^{(\ell)}\big),$$
+  az utolsó rétegben a kimeneti aktivációval ($\psi$: identitás, szigmoid vagy softmax). A kimenet $\hat{\mathbf y} = \mathbf h^{(L)}$.
+  <br><small>Miért „előre”? Mert a jel a bemenettől a kimenet felé halad, rétegről rétegre, minden réteg csak az előző eredményét használja. Tanításkor a $\mathbf z^{(\ell)}$ és $\mathbf h^{(\ell)}$ értékeket el is tároljuk: a 10. fejezet <b>visszaterjesztése</b> ezekből számolja visszafelé a gradienst.
+  Tanítás után a jóslat (<em>inference</em>, következtetés) csak ennyi: néhány mátrixszorzás és aktiváció.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – ugyanaz a háló, más bemenet</span>
+    $\mathbf x = (2;\ 0)$: $\mathbf z_1 = (2{,}5;\ 0;\ -2)$, $\mathbf h = (2{,}5;\ 0;\ 0)$, $\mathbf z_2 = (2{,}5;\ -2)$, $\mathbf p \approx (0{,}989;\ 0{,}011)$. Most csak az első rejtett neuron aktív, és a háló szinte biztosan az 1. osztályt mondja.
+    Más bemenetnél <b>más neuronok „kapcsolnak be”</b> – a ReLU-háló darabonként lineáris.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy borfelismerő (HAW 4)</span>
+    Három standardizált jellemző, két ReLU-s rejtett neuron, egy szigmoid kimenet. Az első minta $\mathbf x = (-0{,}7359;\ 0{,}9795;\ -0{,}1333)$:
+    $z_1 \approx -0{,}2028$ → $h_1 = 0$; $z_2 \approx 0{,}1720$ → $h_2 = 0{,}172$; kimenet $0{,}3031\cdot 0 - 1{,}6134\cdot 0{,}172 + 2{,}2277 \approx 1{,}950$, $\sigma \approx 0{,}8755$ → 1. osztály.
+    (Az első jellemző a nyers 12,29%-os alkoholtartalom standardizálva – a hálónak ugyanúgy előfeldolgozott bemenet kell, mint tanításkor.)
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Ugyanaz az előfeldolgozás.</b> Ha a hálót standardizált adaton tanították, a jóslatnál is ugyanazzal az átlaggal és szórással kell standardizálni (<a href="../04-adatok-es-jellemzok/#s47-b">4.7</a>) – különben a háló értelmetlen számokat kap.</li>
+    <li><b>Kerekítés.</b> Kézi számolásnál a köztes értékeket ne kerekítsd túl korán: a softmax és a szigmoid érzékeny a $z$ kis eltéréseire.</li>
+    <li><b>A forrásban is lehet hiba.</b> HAW 4 a fenti háló második mintájára 0,4883-at közöl (tehát rossz osztályt); a könyv saját súlyaival 0,5578 jön ki – lásd a gyakorlást.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – előre irányuló számítás</summary>
+  <ol>
+    <li>Egy 2–2–1-es háló: $W_1 = \begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix}$, $\mathbf b_1 = \mathbf 0$, ReLU; kimenet $y = h_1 + h_2 - 1$ (aktiváció nélkül). Mennyi $y$ az $\mathbf x = (1;\ 2)$ és az $\mathbf x = (2;\ 1)$ bemenetre?
+      <details><summary>Megoldás</summary>$(1;\ 2)$: $\mathbf z_1 = (3;\ -1)$, $\mathbf h = (3;\ 0)$, $y = 2$. $(2;\ 1)$: $\mathbf z_1 = (3;\ 1)$, $\mathbf h = (3;\ 1)$, $y = 3$. A második rejtett neuron csak akkor szól bele, ha $x_1 \gt x_2$.</details></li>
+    <li>A borfelismerő második mintája $\mathbf x = (0{,}0967;\ -1{,}2138;\ -1{,}0500)$. A rejtett súlyok: $(0{,}4716;\ 0{,}0399;\ -0{,}3902)$, torzítás $0{,}0532$, illetve $(1{,}5013;\ -0{,}0690;\ 0{,}2728)$, torzítás $1{,}3808$. Mi a kimenet?
+      <details><summary>Megoldás</summary>$z_1 \approx 0{,}0456 - 0{,}0484 + 0{,}4097 + 0{,}0532 \approx 0{,}4601$; $z_2 \approx 0{,}1452 + 0{,}0838 - 0{,}2864 + 1{,}3808 \approx 1{,}3233$; mindkettő pozitív, a ReLU nem változtat.
+        Kimenet: $0{,}3031\cdot 0{,}4601 - 1{,}6134\cdot 1{,}3233 + 2{,}2277 \approx 0{,}2322$, $\sigma \approx 0{,}5578$ → 1. osztály. A könyv 0,4883-at ír – ez a saját súlyaival nem jön ki.</details></li>
+    <li>A kiinduló példa hálója mit mond az $\mathbf x = (0;\ 0)$ bemenetre?
+      <details><summary>Megoldás</summary>$\mathbf z_1 = \mathbf b_1 = (0{,}5;\ -1;\ 0)$, $\mathbf h = (0{,}5;\ 0;\ 0)$, $\mathbf z_2 = (0{,}5;\ -0{,}5 + 0{,}5) = (0{,}5;\ 0)$, $\mathbf p = \left(\frac{e^{0{,}5}}{e^{0{,}5} + 1};\ \dots\right) \approx (0{,}622;\ 0{,}378)$. Csupa nulla bemenetnél is a torzítások döntenek.</details></li>
+    <li>Hány szorzást végez a kiinduló példa hálója egy bemeneten (a softmaxot nem számítva)?
+      <details><summary>Megoldás</summary>Az első rétegben $3 \times 2 = 6$, a másodikban $2 \times 3 = 6$: összesen 12 – pontosan annyi, ahány súly van. Minden súly mintánként egyszer „dolgozik”.</details></li>
+    <li>(nehezebb) Számold ki a kiinduló háló kimenetét egyszerre a $(1;\ 2)$ és a $(2;\ 0)$ bemenetre, mátrixosan ($X$ sorai a minták)!
+      <details><summary>Megoldás</summary>$XW_1^\top + \mathbf b_1^\top = \begin{pmatrix} -0{,}5 & 0{,}5 & 1 \\ 2{,}5 & 0 & -2 \end{pmatrix}$, ReLU: $H = \begin{pmatrix} 0 & 0{,}5 & 1 \\ 2{,}5 & 0 & 0 \end{pmatrix}$,
+        $HW_2^\top + \mathbf b_2^\top = \begin{pmatrix} 0 & 1{,}5 \\ 2{,}5 & -2 \end{pmatrix}$, soronkénti softmax: $(0{,}182;\ 0{,}818)$ és $(0{,}989;\ 0{,}011)$.</details></li>
+  </ol>
+</details>
+
+<h3 id="s96-b">2. lépés: hány csavar? A paraméterszám</h3>
+<p>A háló „tudása” a súlyaiban és torzításaiban van – ezeket hívjuk <b>paramétereknek</b>, ezeket állítja be a tanítás. Hányan vannak?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a XOR-háló csavarjai</span>
+  A 2–2–1-es XOR-háló rejtett rétegében mindkét neuronnak 2 súlya és 1 torzítása van: $2 \cdot 2 + 2 = 6$. A kimeneti neuronnak 2 súlya és 1 torzítása: $2 + 1 = 3$. Összesen <b>9</b> paraméter.
+  A bemeneti „rétegnek” nincs paramétere – csak továbbadja a két számot.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – paraméterek egy teljesen összekötött hálóban</span>
+  Egy $n_{\text{be}} \to n_{\text{ki}}$ rétegben $n_{\text{ki}}\cdot n_{\text{be}}$ súly és $n_{\text{ki}}$ torzítás van: $(n_{\text{be}} + 1)\cdot n_{\text{ki}}$ paraméter. Egy $n_0$–$n_1$–…–$n_L$ hálóban
+  $$P = \sum_{\ell=1}^{L} (n_{\ell-1} + 1)\, n_\ell.$$
+  <small>Miért fontos? (1) A <b>tárolás</b>: 32 bites számokkal paraméterenként 4 bájt. (2) A <b>számítás</b>: egy bemenet feldolgozása kb. annyi szorzás-összeadás, ahány súly van. (3) A <b>túlillesztés</b>: sok paraméter sok adatot kíván (<a href="../03-tanulas-anatomiaja/#s35-b">3.5</a>).</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – 784–128–10 (MNIST)</span>
+    Egy 28 × 28-as kép 784 pixele, 128 rejtett neuron, 10 kimenet:
+    $784 \cdot 128 + 128 = 100\,480$, és $128 \cdot 10 + 10 = 1290$. Összesen <b>101 770</b> paraméter; 32 biten kb. 407 kB, képenként kb. 101 632 szorzás-összeadás.
+    A paraméterek 98,7%-a az első rétegben van.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – 2–8–8–1 (holdak, MLD 14)</span>
+    $2 \cdot 8 + 8 = 24$, $8 \cdot 8 + 8 = 72$, $8 \cdot 1 + 1 = 9$: összesen <b>105</b>. (A könyv Keras-modelljében egy „Dropout” réteg is van – annak nincs paramétere, 10. fejezet.)
+  </div>
+</div>
+<div class="widget" data-widget="param-counter"></div>
+<div class="box tip">
+  <span class="box-title">💡 Nagyságrendek – 📅 Állapot: 2026</span>
+  A fejezet végi számjegyfelismerő 1210, egy egyszerű MNIST-háló kb. százezer, egy közepes képfelismerő több tízmillió paraméteres. A nagy nyelvi modelleké milliárdos nagyságrendű: egy 8 milliárd paraméteres modell 16 bites számokkal
+  $8 \cdot 10^9 \cdot 2\ \text{bájt} = 16$ GB memóriát foglal – már egy erős videokártyát is megtölt (16. és 22. fejezet).
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók és forráshibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A torzításokat ne felejtsd el!</b> 784–128–10-nél csak a súlyok: 101 632 – a helyes 101 770. Kevés, de a vizsgán rossz.</li>
+    <li><b>Nem a neuronokat számoljuk</b> ($784 + 128 + 10 = 922$), és <b>nem a rétegméretek szorzatát</b> ($784 \cdot 128 \cdot 10 = 1\,003\,520$).</li>
+    <li><b>A kapcsolat nem mindig paraméter.</b> Teljesen összekötött rétegben minden kapcsolatnak saját súlya van. A konvolúciós hálókban sok kapcsolat <em>közös</em> súlyt használ: ESL 11 egyik hálójában 2266 kapcsolat, de csak 1132 súly van (11. fejezet).</li>
+    <li><b>A torzítás aránya kicsi.</b> MLSYS szerint a torzítások „tipikusan a paraméterek 1–5%-át” teszik ki – a könyv saját példáiban 0,11–0,23% (pl. 784–128–64–10: 202 a 109 386-ból). Széles rétegekben a súlyok vannak túlsúlyban.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – paraméterszámolás</summary>
+  <ol>
+    <li>Hány paramétere van egy 784–100–10-es hálónak? És a 784–100–100–10-esnek?
+      <details><summary>Megoldás</summary>$78\,400 + 100 + 1000 + 10 = 79\,510$. A másodiknál egy $100 \cdot 100 + 100 = 10\,100$ paraméteres réteggel több: $89\,610$.</details></li>
+    <li>Egy 4 bemenetű, 5 rejtett és 2 kimeneti neuronos háló (MLAB 13 példája) – hány paraméter?
+      <details><summary>Megoldás</summary>$4 \cdot 5 + 5 = 25$, $5 \cdot 2 + 2 = 12$: összesen 37.</details></li>
+    <li>DLV 13 szerint egy 4 neuronos réteg után következő 3 neuronos teljesen összekötött rétegben 12 kapcsolat van. Hány paramétere van ennek a rétegnek?
+      <details><summary>Megoldás</summary>12 súly + 3 torzítás = 15.</details></li>
+    <li>Egy 3 bemenetű, 1 kimenetű háló rejtett rétegében 2, illetve 8 neuron van. Hány paraméter? (HAW 4)
+      <details><summary>Megoldás</summary>2 neuronnal: $3 \cdot 2 + 2 + 2 + 1 = 11$ (8 súly, 3 torzítás). 8 neuronnal: $3 \cdot 8 + 8 + 8 + 1 = 41$ (32 súly, 9 torzítás).</details></li>
+    <li>(nehezebb) MLSYS egy 784–1000–1000–10-es hálóra „kb. 1,8 millió paramétert” és „kb. 7 MB-ot” ír. Ellenőrizd! Melyik réteg a legnagyobb?
+      <details><summary>Megoldás</summary>$785\,000 + 1\,001\,000 + 10\,010 = 1\,796\,010$ ≈ 1,8 millió ✓; $\cdot\,4$ bájt $\approx 7{,}18$ MB ✓. A középső, $1000 \times 1000$-es réteg a legnagyobb – két széles réteg között a paraméterszám a szélesség <em>négyzetével</em> nő.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai9-96"></div>
+</section>

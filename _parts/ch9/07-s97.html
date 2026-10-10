@@ -1,0 +1,71 @@
+
+<!-- ===================================================== 9.7 -->
+<section id="s97">
+<h2>9.7 Alkalmazás: a számjegyfelismerő</h2>
+<p>Minden eszköz megvan. Előbb egy játszótéren kísérletezünk: mit tud egy kis háló, és mikor kell több neuron vagy több réteg. Aztán egy valódi, kézzel írt számjegyeken tanított hálón válaszolunk a fejezet négy kérdésére.</p>
+
+<h3 id="s97-a">A játszótér</h3>
+<p>Az alábbi játszótér a TensorFlow Playground mintájára készült. A háló tanítását – a mini-köteges gradiens módszert és a visszaterjesztést – a 10. fejezet mutatja meg; most fogadd el, hogy a „▶ Tanítás” gomb a súlyokat lépésről lépésre a kisebb veszteség felé tekeri,
+és figyeld, <b>mit tud</b> az adott szerkezet. A kis négyzetek a rejtett neuronok: az első rétegben mindegyik egy-egy „lejtő” (egy egyenes két oldala), a mélyebb rétegekben ezekből összerakott bonyolultabb alakzatok.</p>
+<div class="widget" data-widget="nn-playground"></div>
+<div class="box example">
+  <span class="box-title">Kísérletek – mit látsz?</span>
+  <ol style="margin:.2rem 0">
+    <li><b>XOR, rejtett réteg nélkül</b> (a „rejtett rétegek” − gombjával 0-ra): a kimenet egyetlen egyenes, a pontosság kb. 65–70% marad. Ez egy logisztikus regresszió (<a href="#s92-c">9.2</a>).</li>
+    <li><b>XOR, egy rejtett réteg 2, majd 3 neuronnal:</b> 2 neuronnal kb. 87–93%, 3-mal kb. 95% körül. A két rejtett négyzet két egyenest mutat – mint a <a href="#s93-a">9.3</a> VAGY és ÉS neuronja, csak tanulva.</li>
+    <li><b>Körök, 2 majd 3 rejtett neuron:</b> két egyenessel csak egy sáv vagy egy sarok vágható ki (kb. 80–85% teszten), hárommal már egy „háromszög” körbefogja a belső korongot (kb. 96–99%).</li>
+    <li><b>Spirál:</b> egy rejtett réteg 8 neuronnal sokáig küszködik (600 epoch után is gyakran 60–75%); két réteg (8–8, tanh) kb. 85–95%-ig jut. Ez a mélység előnye (<a href="#s95-c">9.5</a>).</li>
+    <li><b>Lineáris aktiváció:</b> akárhány réteg és neuron mellett is egyenes a határ – a körökön kb. 50–60% (<a href="#s93-c">9.3</a>).</li>
+    <li><b>Zaj 0,5, sok neuron (3 × 8), sokáig tanítva:</b> a tanító pontosság 85–93%, a teszt kb. 75–83% – a háló a zajt is kezdi megtanulni. A veszteséggörbén a teszt (szaggatott) a tanító fölött marad, sőt nőni kezd: túlillesztés (10. fejezet).</li>
+  </ol>
+  <small>A számok néhány futás tipikus értékei; az „↺ Új kezdés” más véletlen kezdősúlyokat ad, és a futások különböznek – ez maga is tanulság: a tanítás eredménye a kezdéstől is függ.</small>
+</div>
+
+<h3 id="s97-b">Egy kézzel írt számjegy útja</h3>
+<p>A fejezet elején bemutatott hármas egy valódi adatkészletből jön: 1797 kézzel írt számjegy, mindegyik 8 × 8 = 64 szürke mező, 0–16-os értékekkel (scikit-learn <em>digits</em>, eredetileg UCI).
+Egy <b>64–16–10-es</b> hálót tanítottunk rajta: 64 bemenet (a mezők 16-tal osztva), 16 ReLU-s rejtett neuron, 10 softmax kimenet. A képek 75%-án (1347) tanult, a maradék 450 képen mérjük.</p>
+<div class="widget" data-widget="digit-mlp"></div>
+<div class="box example">
+  <span class="box-title">A hármas útja a hálón át</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Bemenet:</b> a 64 szám (0–16) osztva 16-tal – egy 64 elemű vektor.</li>
+    <li><b>Rejtett réteg:</b> $\mathbf z_1 = W_1\mathbf x + \mathbf b_1$, ahol $W_1$ $16 \times 64$-es; ReLU után 16-ból 15 neuron aktív, a két legerősebb kimenete 5,86 és 4,87. Minden rejtett neuron egy 64 pixeles <b>sablon</b> (<a href="#s91-c">9.1</a>): a szemléltetésben a kis képek.</li>
+    <li><b>Kimeneti réteg:</b> $\mathbf z_2 = W_2\mathbf h + \mathbf b_2$, $W_2$ $10 \times 16$-os. A legnagyobb értékek: a 3-asé 3,97, a 8-asé 2,55, a 9-esé 1,60.</li>
+    <li><b>Softmax:</b> 3: 74,0%, 8: 17,8%, 9: 6,9%, 2: 1,1% – a többi elhanyagolható. A háló jól dönt, de nem teljesen biztos: a 3-as és a 8-as jobb oldala tényleg hasonlít.</li>
+  </ol>
+</div>
+<table style="max-width:700px;font-size:.9rem;text-align:center">
+  <tr><th>rejtett neuronok</th><th>0 (softmax-regresszió)</th><th>4</th><th>8</th><th>16</th><th>32</th><th>64</th></tr>
+  <tr><th>paraméterek</th><td>650</td><td>310</td><td>610</td><td><b>1210</b></td><td>2410</td><td>4810</td></tr>
+  <tr><th>tesztpontosság (3 futás átlaga)</th><td>96,9%</td><td>89,1%</td><td>95,7%</td><td><b>97,3%</b></td><td>97,0%</td><td>97,6%</td></tr>
+</table>
+<p>A 16 neuronos háló a 450 tesztképből 438-at ismer fel (97,3%); a 12 tévesztésből öt esetben 1-esnek nézte a képet (próbáld ki a szemléltetés „Egy tévesztés” gombját).
+Figyeld meg: a rejtett réteg nélküli softmax-regresszió is 96,9%-ot ér el. Ezen a kicsi, gondosan előkészített (középre igazított, méretre szabott) adaton a 64 pixel már maga is jó jellemző – a rejtett réteg csak keveset javít, a túl kevés rejtett neuron (4) pedig ront: szűk keresztmetszet.
+A rejtett rétegek igazi előnye a nagy, nyers adaton jön ki – nagyobb képeken, eltolt, elforgatott ábrákon (11. fejezet).</p>
+<details class="box">
+  <summary>🐍 Python – a számjegyháló tanítása</summary>
+<pre><code>from sklearn.datasets import load_digits
+from sklearn.model_selection import train_test_split
+from sklearn.neural_network import MLPClassifier
+
+d = load_digits()
+X, y = d.data / 16.0, d.target
+Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.25, random_state=0, stratify=y)
+net = MLPClassifier(hidden_layer_sizes=(16,), activation="relu", alpha=1e-3,
+                    max_iter=3000, random_state=1).fit(Xtr, ytr)
+print(net.score(Xte, yte))                                   # 0.9733…
+print(sum(W.size for W in net.coefs_) + sum(b.size for b in net.intercepts_))   # 1210
+</code></pre>
+  <small>A scikit-learn a súlyokat $n_{\text{be}} \times n_{\text{ki}}$ alakban tárolja (<code>coefs_[0]</code>: $64 \times 16$) – a szemléltetés ezek transzponáltját használja.</small>
+</details>
+<div class="box tip">
+  <span class="box-title">🎯 Válaszok a fejezet kérdéseire</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Mit számol egy neuron?</b> Súlyozott összeget plusz torzítást, majd egy aktivációt: $a = \varphi(\mathbf w^\top\mathbf x + b)$. Egy rejtett neuron egy 64 pixeles <b>sablonnal</b> méri, mennyire hasonlít rá a kép – egyedül egy egyenest (hipersíkot) húz a 64 dimenziós térben.</li>
+    <li><b>Miért nem elég egy?</b> Mert egy neuron csak lineárisan szétválasztható osztályokat tud elválasztani; már a XOR is kifog rajta (<a href="#s92-c">9.2</a>). A rejtett réteg <b>új jellemzőket</b> számol, és ezeken a kimeneti réteg már egyenessel dönt (<a href="#s93-a">9.3</a>) – feltéve, hogy van nemlineáris aktiváció (<a href="#s93-c">9.3</a>).</li>
+    <li><b>Hány csavar, és mit csinál velük?</b> 1210 paraméter: $64 \cdot 16 + 16$ a rejtett, $16 \cdot 10 + 10$ a kimeneti rétegben. Egy kép feldolgozása két mátrix–vektor szorzás (1184 szorzás-összeadás), egy ReLU és egy softmax (<a href="#s96">9.6</a>).</li>
+    <li><b>Miért elég „elvben” egy réteg, és miért mély mégis a gyakorlat?</b> Az univerzális közelítés tétele szerint egy rejtett réteg elég sok neuronnal bármely folytonos függvényt közelít (<a href="#s95-b">9.5</a>) – de nem mondja meg, mennyi az „elég sok”.
+      A mélység egyes függvényeket exponenciálisan kevesebb neuronból rak össze (<a href="#s95-c">9.5</a>), és a képek, hangok természetes, rétegzett szerkezetét követi. Ára: nehezebb tanítani – ez a 10. fejezet témája.</li>
+  </ol>
+</div>
+</section>

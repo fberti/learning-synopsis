@@ -1,0 +1,206 @@
+
+<!-- ===================================================== 9.1 -->
+<section id="s91">
+<h2>9.1 A mesterséges neuron ★</h2>
+<p>Egy neurális háló sok-sok egyforma kis számolóegységből áll. Mielőtt hálót építenénk, nézzük meg közelről <b>egyetlen</b> egységet: mit kap, mit számol, mit ad tovább.</p>
+
+<h3 id="s91-a">1. lépés: súlyozott összeg és torzítás</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a „középen világos” érzékelő</span>
+  Egy három pixeles képcsík minden pixele 0 (sötét) vagy 1 (világos). Szeretnénk egy számot, amely akkor nagy, ha a <b>középső</b> pixel világos, a két szélső pedig sötét.
+  Ötlet: a középső pixelt szorozzuk 2-vel, a szélsőket $-1$-gyel, adjuk össze, és vonjunk le 0,5-öt:
+  $$z = (-1)\cdot x_1 + 2\cdot x_2 + (-1)\cdot x_3 - 0{,}5.$$
+  <table style="max-width:520px;font-size:.9rem;text-align:center">
+    <tr><th>kép</th><th>$(x_1, x_2, x_3)$</th><th>$z$</th></tr>
+    <tr><td>▯▮▯ csak közép</td><td>(0, 1, 0)</td><td>$0 + 2 + 0 - 0{,}5 =$ <b>1,5</b></td></tr>
+    <tr><td>▯▮▮ közép és jobb</td><td>(0, 1, 1)</td><td>$0 + 2 - 1 - 0{,}5 = 0{,}5$</td></tr>
+    <tr><td>▮▮▮ mind világos</td><td>(1, 1, 1)</td><td>$-1 + 2 - 1 - 0{,}5 = -0{,}5$</td></tr>
+    <tr><td>▯▯▯ mind sötét</td><td>(0, 0, 0)</td><td>$-0{,}5$</td></tr>
+    <tr><td>▮▯▮ csak a szélek</td><td>(1, 0, 1)</td><td>$-1 + 0 - 1 - 0{,}5 = -2{,}5$</td></tr>
+  </table>
+  A szám pontosan a keresett mintánál a legnagyobb, és pozitív, ha a minta „eléggé hasonlít” rá. A három szorzó a <b>súly</b>, a $-0{,}5$ a <b>torzítás</b>.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – súlyozott összeg (a neuron első fele)</span>
+  Egy neuron bemenete az $\mathbf x = (x_1, \dots, x_n)$ vektor. Minden bemenethez tartozik egy $w_i$ <b>súly</b>, és a neuronnak van egy $b$ <b>torzítása</b> (eltolása). A neuron először kiszámolja a
+  $$z = w_1x_1 + w_2x_2 + \dots + w_nx_n + b = \mathbf w^\top\mathbf x + b$$
+  <b>súlyozott összeget</b> (angolul <em>pre-activation</em> vagy <em>logit</em>).
+  <br><small>Miért így? A súly megmondja, mennyire és milyen irányba számít egy bemenet: a pozitív súly „mellette”, a negatív „ellene” szavaz, a nulla súlyú bemenet nem számít.
+  A torzítás a küszöböt tolja: nagy $b$ esetén kis bemenet is elég a pozitív $z$-hez. A $\mathbf w^\top\mathbf x$ a skaláris szorzat (<a href="../02-matematikai-eszkoztar/#s22-b">2.2</a>).</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – két bemenet</span>
+    $\mathbf x = (1;\ 2)$, $\mathbf w = (0{,}5;\ -1)$, $b = 1$:
+    $$z = 0{,}5\cdot 1 + (-1)\cdot 2 + 1 = -0{,}5.$$
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – ugyanaz, nagyobb torzítással</span>
+    $\mathbf x = (1;\ 2)$, $\mathbf w = (0{,}5;\ -1)$, $b = 2$:
+    $$z = 0{,}5 - 2 + 2 = 0{,}5.$$
+    A torzítás egy egységgel nőtt – a $z$ is pontosan eggyel. A bemenetek „szavazata” ugyanaz maradt.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 A torzítás mint egy extra súly</span>
+  Írjunk a bemenet végére egy állandó 1-est: $\tilde{\mathbf x} = (x_1, \dots, x_n, 1)$, és a súlyok végére a torzítást: $\tilde{\mathbf w} = (w_1, \dots, w_n, b)$. Ekkor $z = \tilde{\mathbf w}^\top\tilde{\mathbf x}$ – egyetlen skaláris szorzat.
+  A könyvek és programok egy része ezt a „torzítás-trükköt” használja; a rajzokon ezért néha nincs külön torzítás, de attól még ott van.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A torzítás nem hiba, és nem elfogultság.</b> Az angol <em>bias</em> itt egyszerűen eltolást jelent (mint az egyenes $b$ tengelymetszete, <a href="../03-tanulas-anatomiaja/#s32-a">3.2</a>); semmi köze a torzítás–variancia felbontás torzításához (<a href="../06-modellertekeles/#s66-b">6.6</a>).</li>
+    <li><b>Csupa nulla bemenetnél sem nulla a kimenet.</b> Ilyenkor $z = b$, a neuron kimenete $\varphi(b)$ (a következő lépésben). Egy rendszerkönyv (MLSYS) azt írja, torzítás nélkül a neuron nulla bemenetre „mindig nullát ad” –
+      ez csak akkor igaz, ha az aktiváció a nullát nullába viszi; a szigmoid például $0{,}5$-öt ad.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – súlyozott összeg</summary>
+  <ol>
+    <li>$\mathbf x = (2;\ 1)$, $\mathbf w = (1;\ -3)$, $b = 0{,}5$. Mennyi $z$?
+      <details><summary>Megoldás</summary>$z = 1\cdot 2 + (-3)\cdot 1 + 0{,}5 = 2 - 3 + 0{,}5 = -0{,}5$.</details></li>
+    <li>A „középen világos” érzékelő (súlyok $-1, 2, -1$, torzítás $-0{,}5$) mennyit ad a $(0{,}5;\ 1;\ 0)$ képre (a bal pixel félig világos)?
+      <details><summary>Megoldás</summary>$z = -0{,}5 + 2 + 0 - 0{,}5 = 1$. Kisebb, mint a tökéletes mintára (1,5), de még pozitív: „nagyjából hasonlít”.</details></li>
+    <li>Négy bemenet: $\mathbf x = (1;\ 0;\ 1;\ 1)$, $\mathbf w = (0{,}2;\ 0{,}5;\ -0{,}4;\ 0{,}1)$, $b = 0{,}3$. Mennyi $z$? Melyik súly nem számít ennél a bemenetnél?
+      <details><summary>Megoldás</summary>$z = 0{,}2 + 0 - 0{,}4 + 0{,}1 + 0{,}3 = 0{,}2$. A második súly (0,5) most nem számít, mert $x_2 = 0$.</details></li>
+    <li>$\mathbf w = (2;\ 3)$. Mekkora legyen $b$, hogy az $\mathbf x = (1;\ 1)$ bemenetre éppen $z = 0$ legyen?
+      <details><summary>Megoldás</summary>$2 + 3 + b = 0$, tehát $b = -5$.</details></li>
+    <li>(nehezebb) Számold ki az első kidolgozott példát a torzítás-trükkel: $\tilde{\mathbf x} = (1;\ 2;\ 1)$, $\tilde{\mathbf w} = (0{,}5;\ -1;\ 1)$. Miért kapod ugyanazt?
+      <details><summary>Megoldás</summary>$\tilde{\mathbf w}^\top\tilde{\mathbf x} = 0{,}5 - 2 + 1 = -0{,}5$ – ugyanaz, mert a harmadik tag $b \cdot 1 = b$. A torzítás olyan súly, amelynek a bemenete mindig 1.</details></li>
+  </ol>
+</details>
+
+<h3 id="s91-b">2. lépés: az aktiváció – „tüzel” vagy nem? Logikai kapuk</h3>
+<p>A súlyozott összeg tetszőleges szám lehet. Egy idegsejt viszont vagy kisül, vagy nem. Tegyünk a $z$ után egy döntést!</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – az ÉS kapu</span>
+  Két bemenet, mindkettő 0 vagy 1. Súlyok: $w_1 = w_2 = 1$, torzítás: $b = -1{,}5$. A kimenet legyen 1, ha $z \gt 0$, különben 0. Mind a négy eset:
+  <table style="max-width:460px;font-size:.9rem;text-align:center">
+    <tr><th>$x_1$</th><th>$x_2$</th><th>$z = x_1 + x_2 - 1{,}5$</th><th>kimenet</th></tr>
+    <tr><td>0</td><td>0</td><td>$-1{,}5$</td><td>0</td></tr>
+    <tr><td>0</td><td>1</td><td>$-0{,}5$</td><td>0</td></tr>
+    <tr><td>1</td><td>0</td><td>$-0{,}5$</td><td>0</td></tr>
+    <tr><td>1</td><td>1</td><td>$0{,}5$</td><td><b>1</b></td></tr>
+  </table>
+  Csak akkor „tüzel”, ha mindkét bemenet 1: ez a logikai <b>ÉS</b>. Egy neuron – egy logikai kapu.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – mesterséges neuron, aktivációs függvény</span>
+  A <b>mesterséges neuron</b> két lépésben számol:
+  $$z = \mathbf w^\top\mathbf x + b, \qquad a = \varphi(z).$$
+  A $\varphi$ az <b>aktivációs függvény</b>, az $a$ a neuron <b>kimenete</b> (aktivációja). Három gyakori választás (a részletek a <a href="#s94">9.4</a>-ben):
+  <ul style="margin:.2rem 0">
+    <li><b>lépcsőfüggvény:</b> $\varphi(z) = 1$, ha $z \gt 0$, különben 0 – „tüzel / nem tüzel”;</li>
+    <li><b>szigmoid:</b> $\sigma(z) = \dfrac{1}{1 + e^{-z}}$ – a lépcső lekerekített változata, értéke 0 és 1 között (<a href="../05-osztalyozas/#s53-b">5.3</a>);</li>
+    <li><b>ReLU:</b> $\mathrm{ReLU}(z) = \max(0, z)$ – negatívra 0, pozitívra maga a $z$.</li>
+  </ul>
+  <small>Miért kell? Az aktiváció nélküli neuron egy egyszerű lineáris függvény. A „döntés” – a nemlinearitás – teszi lehetővé, hogy a neuronok együtt többet tudjanak, mint egy egyenes (<a href="#s93-c">9.3</a>).
+  Az első ilyen „logikai neuront” W. McCulloch és W. Pitts írta le 1943-ban.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a VAGY kapu</span>
+    Ugyanazok a súlyok, más torzítás: $w_1 = w_2 = 1$, $b = -0{,}5$. A $z = x_1 + x_2 - 0{,}5$ értékei: $-0{,}5;\ 0{,}5;\ 0{,}5;\ 1{,}5$ – a kimenet 0, 1, 1, 1.
+    Elég, ha az egyik bemenet 1. <b>Csak a torzítás változott</b>, és ÉS-ből VAGY lett.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – ugyanaz a $z$, három aktivációval</span>
+    Az 1. lépés két példája, $z = -0{,}5$ és $z = 0{,}5$:
+    <table style="font-size:.88rem;text-align:center;width:auto">
+      <tr><th></th><th>lépcső</th><th>szigmoid</th><th>ReLU</th></tr>
+      <tr><td>$z = -0{,}5$</td><td>0</td><td>0,3775</td><td>0</td></tr>
+      <tr><td>$z = 0{,}5$</td><td>1</td><td>0,6225</td><td>0,5</td></tr>
+    </table>
+    A lépcső csak az előjelet nézi; a szigmoid „fokozatosan” vált; a ReLU a pozitív részt átengedi.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabály – a torzítás a küszöb</span>
+  A lépcsős neuron akkor tüzel, ha $\mathbf w^\top\mathbf x \gt -b$. A $-b$ tehát a <b>küszöb</b>: az ÉS-nél 1,5 (mindkét szavazat kell), a VAGY-nál 0,5 (egy is elég).
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az aktivációt mindig alkalmazzuk, és a 0 is továbbmegy.</b> Egy kezdőknek szóló könyv (MLAB 13) szerint a 0 kimenet „nem kerül át a következő rétegbe”. Dehogynem: a 0 is szám, a következő neuron
+      ugyanúgy megszorozza a súlyával (csak épp nullát kap). A 0 annyit jelent, hogy ez a neuron most nem „szól bele”.</li>
+    <li><b>A szigmoid bemenete bármilyen valós szám, a kimenete 0 és 1 közötti.</b> Ugyanez a könyv fordítva írja (a szigmoid „0 és 1 közötti értéket fogad el”).</li>
+    <li><b>Egyenlőség.</b> Ha $z = 0$ pontosan, a lépcső nálunk 0-t ad. Más könyvek a $z \ge 0$ esetre adnak 1-et – a számpéldáknál mindig nézd meg, melyik a megállapodás.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – aktiváció és logikai kapuk</summary>
+  <ol>
+    <li>Ellenőrizd mind a négy bemenetre, hogy a $w_1 = w_2 = -1$, $b = 1{,}5$ lépcsős neuron a NEM-ÉS (NAND) kaput valósítja meg (kimenet 0 csak az (1, 1)-re)!
+      <details><summary>Megoldás</summary>$z$: (0, 0): 1,5 → 1; (0, 1): 0,5 → 1; (1, 0): 0,5 → 1; (1, 1): $-0{,}5$ → 0. ✓ (A NAND érdekessége: belőle bármely logikai függvény összerakható – ha több neuront köthetünk egymás után.)</details></li>
+    <li>Adj meg súlyt és torzítást egy egybemenetű lépcsős neuronhoz, amely a NEM kaput valósítja meg (0 → 1, 1 → 0)!
+      <details><summary>Megoldás</summary>Pl. $w = -1$, $b = 0{,}5$: $x = 0$ → $z = 0{,}5$ → 1; $x = 1$ → $z = -0{,}5$ → 0.</details></li>
+    <li>Mennyi a szigmoid és a ReLU kimenete $z = 1{,}5$-re és $z = -1{,}5$-re?
+      <details><summary>Megoldás</summary>$\sigma(1{,}5) = 1/(1 + e^{-1{,}5}) \approx 0{,}8176$, $\sigma(-1{,}5) \approx 0{,}1824$ (a kettő összege 1). ReLU: 1,5, illetve 0.</details></li>
+    <li>Három bemenet, $w_1 = w_2 = w_3 = 1$, $b = -1{,}5$, lépcső. Mikor tüzel? És $b = -2{,}5$-tel?
+      <details><summary>Megoldás</summary>$z = x_1 + x_2 + x_3 - 1{,}5 \gt 0$ pontosan akkor, ha legalább két bemenet 1: ez a <b>többségi szavazás</b> (a 8 esetből 4-ben tüzel). $b = -2{,}5$-tel csak mindhárom 1-nél: háromtagú ÉS.</details></li>
+    <li>(nehezebb) A „középen világos” érzékelő torzítását $-0{,}5$-ről $-1{,}5$-re változtatjuk, lépcsős aktivációval. Mely képekre tüzel a kiinduló példa öt képe közül? Mit csinált a torzítás?
+      <details><summary>Megoldás</summary>A $z$ értékek eggyel csökkennek: 0,5; $-0{,}5$; $-1{,}5$; $-1{,}5$; $-3{,}5$. Csak a tökéletes mintára (0, 1, 0) tüzel. A nagyobb küszöb „szigorúbbá” tette: a „közép és jobb” képet már nem fogadja el.</details></li>
+  </ol>
+</details>
+
+<h3 id="s91-c">3. lépés: mit lát egy neuron? Egyenes és sablon</h3>
+<p>Két bemenetnél a neuron döntését le is rajzolhatjuk. Ebből két fontos kép adódik: a neuron <b>egyenest húz</b>, és <b>mintát keres</b>.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – az ÉS kapu a síkon</span>
+  Az ÉS neuron akkor tüzel, ha $x_1 + x_2 - 1{,}5 \gt 0$. A határ a $x_1 + x_2 = 1{,}5$ egyenes: tőle jobbra fent ($z \gt 0$) a kimenet 1, balra lent 0.
+  A négy sarokpont közül csak az (1; 1) esik a pozitív oldalra. A VAGY neuron határa a $x_1 + x_2 = 0{,}5$ egyenes: ugyanilyen irányú, csak lejjebb tolva – ezt csinálta a torzítás.
+  A $\mathbf w = (1;\ 1)$ vektor merőleges mindkét egyenesre, és a pozitív oldal felé mutat.
+</div>
+<div class="box def">
+  <span class="box-title">Tétel – a neuron geometriája</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Egyenes (hipersík):</b> a $\mathbf w^\top\mathbf x + b = 0$ pontok két dimenzióban egyenest, $n$ dimenzióban hipersíkot alkotnak. A $\mathbf w$ erre merőleges, és a $z \gt 0$ oldal felé mutat.
+      A $b$ eltolja a határt, a $\mathbf w$ iránya elforgatja, a $\mathbf w$ hossza (lépcsőnél) nem változtat rajta.</li>
+    <li><b>Sablon:</b> $\mathbf w^\top\mathbf x = \lVert\mathbf w\rVert\,\lVert\mathbf x\rVert\cos\theta$ (<a href="../02-matematikai-eszkoztar/#s23-c">2.3</a>). Adott hosszúságú bemenetek közül annál nagyobb $z$-t kap, amelyik <b>jobban hasonlít a súlyvektorra</b> (kisebb a szög).
+      A súlyvektor tehát egy „sablon”, a neuron azt méri, mennyire illik rá a bemenet.</li>
+  </ol>
+  <small>Miért fontos? Az 1. tulajdonság miatt egy neuron pontosan azt tudja, amit a logisztikus regresszió: egy egyenessel kettévágja a síkot (<a href="../05-osztalyozas/#s53-d">5.3</a>). A 2. miatt a súlyok képként is
+  megjeleníthetők – a <a href="#s97-b">9.7</a>-ben a számjegyfelismerő rejtett neuronjainak „sablonjait” látod majd.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – melyik oldal?</span>
+    $\mathbf w = (2;\ -1)$, $b = 1$. A határ: $2x_1 - x_2 + 1 = 0$, azaz $x_2 = 2x_1 + 1$. A $(0;\ 0)$ pontban $z = 1 \gt 0$ – az origó a pozitív oldalon van, az egyenes „alatt”.
+    A $(0;\ 3)$ pontban $z = -2$: az egyenes felett negatív.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a tökéletes minta</span>
+    A „középen világos” érzékelő súlyvektora $\mathbf w = (-1;\ 2;\ -1)$, $\lVert\mathbf w\rVert = \sqrt6$. Az 1 hosszúságú bemenetek közül a $\mathbf w/\sqrt6$ irányú adja a legnagyobb $z$-t:
+    $\sqrt6 - 0{,}5 \approx 1{,}95$. Ez a „kép” középen világos, a széleken „negatív fényű” – a súlyvektor maga a keresett minta.
+  </div>
+</div>
+<div class="widget" data-widget="neuron-lab"></div>
+<div class="box tip">
+  <span class="box-title">💡 Logisztikus regresszió = egyetlen neuron</span>
+  Az <a href="../05-osztalyozas/#s53-b">5.3</a> modellje, $\hat p = \sigma(\mathbf w^\top\mathbf x + b)$, pontosan egy szigmoid aktivációjú neuron. A softmax-regresszió (<a href="../05-osztalyozas/#s54-b">5.4</a>) pedig $K$ neuron egymás mellett,
+  közös softmax kimenettel. Amit eddig „lineáris osztályozónak” hívtunk, az egy egyrétegű neurális háló.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktató – a neuron nem idegsejt</span>
+  A név a biológiából jön, de a hasonlóság laza. Egy valódi idegsejt elektromos impulzusokat küld, az időzítés számít, kémiai jelek szabályozzák, a kapcsolatai folyamatosan átalakulnak; az emberi agyban nagyjából
+  86 milliárd van belőlük, sejtenként több ezer kapcsolattal. A mesterséges neuron egyetlen képlet: szorzás, összeadás, egy függvény. Egy könyv (DLV 13) hasonlata szerint úgy viszonyul az igazihoz, mint a pálcikaember az emberi testhez.
+  Egy másik (HAW 4) szerint a biológiai neuron inkább villanykapcsoló (tüzel vagy nem), a mai mesterséges neuron inkább fényerő-szabályzó (ReLU, szigmoid).
+  <b>A háló nem agy</b> – ezért abból, hogy „neurális”, semmilyen emberi képesség nem következik.
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – egyenes és sablon</summary>
+  <ol>
+    <li>Az ÉS neuron ($w_1 = w_2 = 1$, $b = -1{,}5$) mit mond a $(2;\ 0)$ és a $(0{,}7;\ 0{,}7)$ pontra (lépcsővel)?
+      <details><summary>Megoldás</summary>$(2;\ 0)$: $z = 0{,}5 \gt 0$ → 1. $(0{,}7;\ 0{,}7)$: $z = -0{,}1$ → 0. A neuron nem „tudja”, hogy ÉS kapu: a sík minden pontjára dönt, az egyenes melyik oldalán van.</details></li>
+    <li>Írd fel a $\mathbf w = (1;\ 2)$, $b = -4$ neuron határegyenesét $x_2 = \dots$ alakban! Melyik oldal a pozitív?
+      <details><summary>Megoldás</summary>$x_1 + 2x_2 - 4 = 0$ → $x_2 = 2 - 0{,}5x_1$. A $(0;\ 3)$ pontban $z = 2 \gt 0$: az egyenes feletti oldal a pozitív (a $\mathbf w = (1;\ 2)$ is felfelé mutat).</details></li>
+    <li>Adj meg lépcsős neuront, amely pontosan akkor tüzel, ha $x_1 \gt 3$ (a $x_2$ nem számít)!
+      <details><summary>Megoldás</summary>$\mathbf w = (1;\ 0)$, $b = -3$: $z = x_1 - 3 \gt 0 \iff x_1 \gt 3$. A határ a $x_1 = 3$ függőleges egyenes.</details></li>
+    <li>Megszorozzuk egy neuron összes súlyát és a torzítását 10-zel. Változik-e a határegyenes? És a kimenet szigmoiddal, a $z = 0{,}05$-ös pontban?
+      <details><summary>Megoldás</summary>Az egyenes nem változik ($10(\mathbf w^\top\mathbf x + b) = 0$ ugyanott nulla), a lépcsős döntés sem. A szigmoid viszont meredekebb lesz: $\sigma(0{,}05) \approx 0{,}5125$, de $\sigma(0{,}5) \approx 0{,}6225$. A súlyok nagysága a „magabiztosságot” állítja.</details></li>
+    <li>(nehezebb) $\mathbf w = (-1;\ 2;\ -1)$, $b = 0$. Melyik bemenetre a legnagyobb $z$: $(1;\ 1;\ 0)$, $(0;\ 1;\ 0)$, $(1;\ 0;\ 1)$? És ha minden bemenetet előbb 1 hosszúra normálunk?
+      <details><summary>Megoldás</summary>Nyersen: 1, 2, $-2$ → a (0; 1; 0). Normálva: $(1;\ 1;\ 0)/\sqrt2$ → $1/\sqrt2 \approx 0{,}71$; $(0;\ 1;\ 0)$ → 2; $(1;\ 0;\ 1)/\sqrt2$ → $-\sqrt2 \approx -1{,}41$. Mindkétszer a (0; 1; 0) nyer: az hasonlít legjobban a sablonra.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai9-91"></div>
+</section>

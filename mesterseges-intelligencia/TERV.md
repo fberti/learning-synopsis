@@ -635,6 +635,15 @@ felismerni egy arcot?*
 ### Kvízek
 `ai9-91`, `ai9-92`, `ai9-93`, `ai9-94`, `ai9-96`, `ai9-final`.
 
+> ✅ **Elkészült** (`09-neuralis-halozatok/`). Eltérések a tervtől: kvíz minden szakaszhoz (`ai9-91` … `ai9-96`, `ai9-final`); minden szakasz három lépés
+> (9.1: súlyozott összeg, aktiváció + logikai kapuk, geometria/sablon · 9.2: szabály, konvergenciatétel (Block–Novikoff, kiegészítés), XOR-ciklus + történet · 9.3: XOR 2 rejtett neuronnal, mátrixos alak, összeomlás aktiváció nélkül ·
+> 9.4: szigmoid/tanh, ReLU + eltűnő gradiens, kimeneti réteg · 9.5: ReLU-zsanérok, a tétel (Cybenko/Hornik/Leshno), mélység vs. szélesség (Telgarsky-féle hajtogatás) · 9.6: forward pass, paraméterszám), 9.7 Alkalmazás.
+> Kidolgozott perceptron-példa a VAGY-ra (4 javítás); az ÉS 6 epoch/10 javítás, fordított sorrendben más egyenes; XOR-on a 2. epochtól ciklus. Futó példa: 8×8-as *digits*, 64–16–10-es háló (1210 paraméter, 97,3%; softmax-regresszió 96,9%).
+> Új közös modul: `assets/ml.js` (rng, adatkészletek, aktivációk, MLP + Adam) – a 10. fejezet is erre épülhet. Szemléltetések: `neuron-lab`, `perceptron-train`, `hidden-space`, `activation-gallery`, `relu-sum`, `param-counter`, `nn-playground`, `digit-mlp` (előre tanított súlyok: `digit-net.js`).
+> A forrásokból jelzett hibák az oldalon: DLV (összeomlás 78A+86B → 60A+80B, softmax-arány, „összeadás és szorzás lineáris”, tanh „trigonometria”, Mark I évszám, egybefolyó MI-tél), HAW (borháló 2. mintája 0,4883 → 0,5578, Minsky–Papert „két réteg”, szigmoid „alkalmatlan”),
+> MLAB (önkényes perceptron-frissítés, „a 0 nem megy tovább”, szigmoid értelmezési tartomány, kétkimenetes bináris kvíz), MLD (lépcső = „lineáris”, „két perceptron” a XOR-hoz, UAT „bármi”, „nulla alatti szorzás”, perceptron „pontosan a határon”),
+> PDL (első tél oka „lineáris aktiváció”, transzponálás „kommutativitás”, UAT „megtanul”), MLSYS (4 pixeles számpélda, alak-ellentmondás, torzítás „1–5%”, ReLU „megoldotta”, UAT „learn any function”, torzítás nélkül „nulla kimenet”).
+
 ### Csapdák
 Aktiváció nélkül a sok réteg is csak egy lineáris függvény · a háló nem „agy” · több réteg nem mindig jobb ·
 a torzítás (bias) paramétereit el szokták felejteni a paraméterszámolásnál.

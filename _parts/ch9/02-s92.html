@@ -1,0 +1,195 @@
+
+<!-- ===================================================== 9.2 -->
+<section id="s92">
+<h2>9.2 A perceptron ★</h2>
+<p>A 9.1-ben mi találtuk ki a súlyokat: az ÉS-hez $b = -1{,}5$, a VAGY-hoz $b = -0{,}5$. De mi van, ha nem tudjuk, milyen súly kell – csak példáink vannak a helyes válaszra?
+F. Rosenblatt 1957–58-ban erre adott választ: a <b>perceptron</b> egy lépcsős neuron, amely a hibáiból tanul.</p>
+
+<h3 id="s92-a">1. lépés: a tanulási szabály – javíts, ha tévedsz</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a perceptron megtanulja a VAGY-ot</span>
+  Kezdjünk csupa nullával: $\mathbf w = (0;\ 0)$, $b = 0$. Menjünk végig sorban a négy mintán. Ha a jóslat ($\hat y = 1$, ha $z \gt 0$) <b>jó</b>, nem nyúlunk semmihez.
+  Ha <b>1-et kellett volna mondani, de 0-t mondott</b>, adjuk hozzá a bemenetet a súlyokhoz (és 1-et a torzításhoz); ha <b>0-t kellett volna, de 1-et mondott</b>, vonjuk le.
+  <div style="overflow-x:auto">
+  <table style="font-size:.86rem;text-align:center">
+    <tr><th>epoch</th><th>$\mathbf x$</th><th>$y$</th><th>$z$</th><th>$\hat y$</th><th>teendő</th><th>új $\mathbf w$, $b$</th></tr>
+    <tr><td>1</td><td>(0, 0)</td><td>0</td><td>0</td><td>0</td><td>jó</td><td>(0; 0), 0</td></tr>
+    <tr><td>1</td><td>(0, 1)</td><td>1</td><td>0</td><td>0</td><td>+ bemenet</td><td>(0; 1), 1</td></tr>
+    <tr><td>1</td><td>(1, 0)</td><td>1</td><td>1</td><td>1</td><td>jó</td><td>(0; 1), 1</td></tr>
+    <tr><td>1</td><td>(1, 1)</td><td>1</td><td>2</td><td>1</td><td>jó</td><td>(0; 1), 1</td></tr>
+    <tr><td>2</td><td>(0, 0)</td><td>0</td><td>1</td><td>1</td><td>− bemenet</td><td>(0; 1), 0</td></tr>
+    <tr><td>2</td><td>(0, 1)</td><td>1</td><td>1</td><td>1</td><td>jó</td><td>(0; 1), 0</td></tr>
+    <tr><td>2</td><td>(1, 0)</td><td>1</td><td>0</td><td>0</td><td>+ bemenet</td><td>(1; 1), 1</td></tr>
+    <tr><td>2</td><td>(1, 1)</td><td>1</td><td>3</td><td>1</td><td>jó</td><td>(1; 1), 1</td></tr>
+    <tr><td>3</td><td>(0, 0)</td><td>0</td><td>1</td><td>1</td><td>− bemenet</td><td>(1; 1), 0</td></tr>
+    <tr><td>3</td><td>(0, 1), (1, 0), (1, 1)</td><td>1</td><td>1, 1, 2</td><td>1</td><td>jó</td><td>(1; 1), 0</td></tr>
+    <tr><td>4</td><td>mind a négy</td><td></td><td>0, 1, 1, 2</td><td>0, 1, 1, 1</td><td>mind jó → <b>vége</b></td><td>(1; 1), 0</td></tr>
+  </table>
+  </div>
+  Négy javítás után a perceptron hibátlan: $z = x_1 + x_2$, és „1, ha $z \gt 0$” – ez a VAGY. (A torzítás most 0, mert a lépcső nálunk a $z = 0$-ra 0-t ad.)
+</div>
+<div class="box def">
+  <span class="box-title">Algoritmus – a perceptron tanulási szabálya (Rosenblatt)</span>
+  Adottak a $(\mathbf x_i, y_i)$ minták, $y_i \in \{0, 1\}$. Kezdés: $\mathbf w = \mathbf 0$, $b = 0$ (vagy kis véletlen számok). Ismételd epochonként, mintánként:
+  <ol style="margin:.2rem 0">
+    <li>jóslat: $\hat y = 1$, ha $\mathbf w^\top\mathbf x_i + b \gt 0$, különben 0;</li>
+    <li>frissítés: $\quad\mathbf w \leftarrow \mathbf w + \eta\,(y_i - \hat y)\,\mathbf x_i, \qquad b \leftarrow b + \eta\,(y_i - \hat y)$;</li>
+  </ol>
+  amíg egy teljes epoch hiba nélkül le nem fut. Az $\eta \gt 0$ a <b>tanulási ráta</b>. Az $y_i - \hat y$ csak 0, $+1$ vagy $-1$ lehet: jó jóslatnál nincs változás.
+  <br><small>Miért jó irány? Ha a perceptron 0-t mondott, de 1 kellett ($y - \hat y = +1$), a frissítés után ugyanerre a bemenetre
+  $z_{\text{új}} = z_{\text{régi}} + \eta\,(\lVert\mathbf x_i\rVert^2 + 1)$ – a $z$ nőtt, a jóslat az 1 felé mozdult. Fordított hibánál ugyanennyivel csökken. Minden javítás az éppen elrontott minta felé billenti az egyenest.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy javítás</span>
+    $\mathbf w = (1;\ 0)$, $b = -1$, $\eta = 1$. Minta: $\mathbf x = (0;\ 1)$, $y = 1$. Jóslat: $z = 0 + 0 - 1 = -1$, $\hat y = 0$ – hiba, $y - \hat y = 1$.
+    Frissítés: $\mathbf w = (1;\ 0) + (0;\ 1) = (1;\ 1)$, $b = -1 + 1 = 0$. Most ugyanerre $z = 1$, $\hat y = 1$. ✓
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – jó jóslat, kisebb ráta</span>
+    $\mathbf w = (1;\ 1)$, $b = 0$, $\eta = 0{,}5$. Minta: $\mathbf x = (1;\ 0)$, $y = 1$: $z = 1$, $\hat y = 1$ – jó, nincs változás.
+    Minta: $\mathbf x = (0;\ 0)$, $y = 1$: $z = 0$, $\hat y = 0$, hiba. A bemenet nulla, így csak a torzítás változik: $b = 0 + 0{,}5 = 0{,}5$.
+  </div>
+</div>
+<div class="widget" data-widget="perceptron-train"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Előjel:</b> $y - \hat y$, nem fordítva. Ha elrontod, a perceptron a hibái felé fut.</li>
+    <li><b>A torzítás is tanul.</b> Ha kifelejted, a határ mindig átmegy az origón – az ÉS-t így meg sem tudná tanulni: az (1, 0) és a (0, 1) miatt $w_1 \le 0$ és $w_2 \le 0$ kellene, az (1, 1) miatt viszont $w_1 + w_2 \gt 0$.</li>
+    <li><b>Nullából indulva az $\eta$ nem számít.</b> Minden frissítés $\eta$-szoros, így minden súly $\eta$-szorosa annak, amit $\eta = 1$-gyel kapnál – a jóslatok ugyanazok. (Ezt egy könyv, MLD 10 is elhallgatja, amikor az $\eta$ szerepét magyarázza.)</li>
+    <li><b>Nem minden „frissítés” a perceptron szabálya.</b> Egy kezdőknek szóló könyv (MLAB 13) példájában egyetlen súlyt önkényesen megváltoztatnak, célcímke és tanulási ráta nélkül (és a számolásba is hiba csúszik: „12 + (−16) = 4”).
+      A valódi szabály minden súlyt a $\eta(y - \hat y)x_i$-vel mozdít.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a tanulási szabály</summary>
+  <ol>
+    <li>$\mathbf w = (2;\ -1)$, $b = 0$, $\eta = 1$. Minta: $\mathbf x = (1;\ 3)$, $y = 1$. Mi a jóslat, és mik az új súlyok?
+      <details><summary>Megoldás</summary>$z = 2 - 3 = -1$ → $\hat y = 0$, hiba. $\mathbf w = (2 + 1;\ -1 + 3) = (3;\ 2)$, $b = 1$. Ellenőrzés: $z = 3 + 6 + 1 = 10 \gt 0$.</details></li>
+    <li>$\mathbf w = (1;\ 1)$, $b = 0{,}5$, $\eta = 0{,}5$. Minta: $\mathbf x = (1;\ 1)$, $y = 0$. Mi történik?
+      <details><summary>Megoldás</summary>$z = 2{,}5$ → $\hat y = 1$, de 0 kellett: $y - \hat y = -1$. $\mathbf w = (1 - 0{,}5;\ 1 - 0{,}5) = (0{,}5;\ 0{,}5)$, $b = 0{,}5 - 0{,}5 = 0$.</details></li>
+    <li>Futtasd a perceptront az ÉS függvényre (kezdés: csupa 0, $\eta = 1$, sorrend: (0, 0), (0, 1), (1, 0), (1, 1)) két epochon át!
+      <details><summary>Megoldás</summary>1. epoch: az első három minta jó ($z = 0$ → 0); az (1, 1)-nél $z = 0$, hiba → $\mathbf w = (1;\ 1)$, $b = 1$.
+        2. epoch: (0, 0): $z = 1$ → hiba → $b = 0$. (0, 1): $z = 1$ → hiba → $\mathbf w = (1;\ 0)$, $b = -1$. (1, 0): $z = 0$ → jó. (1, 1): $z = 0$ → hiba → $\mathbf w = (2;\ 1)$, $b = 0$. Még nincs vége (a szemléltetésben folytathatod).</details></li>
+    <li>Miért nem számít nullás kezdésnél az $\eta$ a jóslatok szempontjából? Mutasd meg az első frissítésen!
+      <details><summary>Megoldás</summary>Az első hibánál $\mathbf w = \eta(y - \hat y)\mathbf x$, $b = \eta(y - \hat y)$: minden $\eta$-val arányos. A $z$ így szintén $\eta$-szoros, az előjele – és így a jóslat – nem függ $\eta$-tól.
+        Teljes indukcióval: ha eddig minden $\eta$-szoros volt, a következő frissítés is az, tehát az egész futás ugyanaz, csak felnagyítva.</details></li>
+    <li>(nehezebb) Az ÉS-t a perceptron 6 epoch és 10 javítás után a $\mathbf w = (2;\ 1)$, $b = -2$ súlyokkal tanulja meg. Ellenőrizd, hogy hibátlan! Mi a különös az (1, 0) pontban?
+      <details><summary>Megoldás</summary>$z$: (0, 0): $-2$; (0, 1): $-1$; (1, 0): $0$; (1, 1): $1$. Jóslatok: 0, 0, 0, 1 – hibátlan. Az (1, 0) pontosan a határon van ($z = 0$): csak azért jó, mert a lépcső nálunk a nullára 0-t ad.
+        A perceptron nem törekszik nagy biztonsági sávra – amint nincs hiba, megáll (következő lépés).</details></li>
+  </ol>
+</details>
+
+<h3 id="s92-b">2. lépés: mikor áll meg? A konvergenciatétel</h3>
+<p>A VAGY-nál négy, az ÉS-nél tíz javítás kellett. Biztos, hogy egyszer vége lesz? És ha igen, melyik egyenesnél áll meg?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – ugyanaz az adat, más sorrend</span>
+  Futtassuk az ÉS-t kétszer: előbb a szokásos sorrendben, aztán fordítva ((1, 1), (1, 0), (0, 1), (0, 0)).
+  <table style="max-width:560px;font-size:.88rem;text-align:center">
+    <tr><th>sorrend</th><th>epoch</th><th>javítás</th><th>eredmény</th><th>határ</th></tr>
+    <tr><td>előre</td><td>6</td><td>10</td><td>$\mathbf w = (2;\ 1)$, $b = -2$</td><td>$2x_1 + x_2 = 2$</td></tr>
+    <tr><td>visszafelé</td><td>6</td><td>12</td><td>$\mathbf w = (1;\ 2)$, $b = -2$</td><td>$x_1 + 2x_2 = 2$</td></tr>
+  </table>
+  Mindkettő hibátlan, de <b>két különböző egyenes</b>. A perceptron megáll – de az első jó egyenesnél, nem a „legjobbnál”.
+</div>
+<div class="box thm">
+  <span class="box-title">Tétel – a perceptron konvergenciatétele (H. D. Block, A. Novikoff, 1962) – Kiegészítés</span>
+  Ha az adat <b>lineárisan szétválasztható</b> (<a href="../05-osztalyozas/#s56-a">5.6</a>), a perceptron <b>véges sok javítás után</b> hibátlan egyenest talál, és megáll.
+  Pontosabban: ha minden kiegészített bemenetre $\lVert\tilde{\mathbf x}_i\rVert \le R$, és van egy 1 hosszú $\tilde{\mathbf w}^*$, amely minden mintát legalább $\gamma \gt 0$ „biztonsági sávval” jó oldalra tesz, akkor a javítások száma legfeljebb
+  $$\left(\frac{R}{\gamma}\right)^2.$$
+  <small>Miért? Minden javítás legalább $\gamma$-val növeli a $\tilde{\mathbf w}$ vetületét a $\tilde{\mathbf w}^*$ irányára, de a hosszát (négyzetesen) legfeljebb $R^2$-tel. $k$ javítás után a vetület $\ge k\gamma$,
+  a hossz $\le \sqrt k R$ – a vetület nem lehet nagyobb a hossznál, ezért $k\gamma \le \sqrt k R$, azaz $k \le (R/\gamma)^2$. A tétel a forrásainkban csak gyakorlatként szerepel (ESL 4. fejezet), ezért kiegészítésként jelöljük.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a korlát a VAGY-ra</span>
+    A kiegészített bemenetek: $(x_1, x_2, 1)$, a leghosszabb $(1, 1, 1)$, $R = \sqrt3$. A $(1;\ 1;\ -0{,}5)$ elválasztó 1 hosszúra normálva ($\lVert\cdot\rVert = 1{,}5$) a legszűkebb sávja $0{,}5/1{,}5 = 1/3$.
+    A korlát: $3 / (1/9) = 27$ javítás. A valóságban 4 kellett – a korlát csak garancia, nem jóslat.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – szűk sáv, sok javítás</span>
+    Ha két osztály között a legszélesebb sáv feleakkora, a korlát négyszeres; ha tizedakkora, százszoros. Az egymáshoz nagyon közel eső, de még szétválasztható osztályokon a perceptron sokáig „ide-oda billeg”.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Nem a legjobb egyenes.</b> A perceptron bármelyik hibátlan egyenesnél megáll, akár a pontokat súrolónál is. A legszélesebb sávot az SVM keresi meg (<a href="../07-fak-svm-egyuttes/#s76-a">7.6</a>).
+      Egy könyv (MLD 10) szerint a perceptron „pontosan a határon” áll meg – nincs egyetlen határ, csak egy a sok jó közül.</li>
+    <li><b>Az eredmény függ a sorrendtől és a kezdéstől.</b> Ugyanabból az adatból más sorrenddel más súlyok jönnek ki.</li>
+    <li><b>A tétel csak szétválasztható adatra szól.</b> Ha nincs hibátlan egyenes, a garancia elvész (következő lépés).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – konvergencia</summary>
+  <ol>
+    <li>Egy adatkészletre $R = 2$, $\gamma = 0{,}5$. Legfeljebb hány javítás kell? És ha $\gamma = 0{,}1$?
+      <details><summary>Megoldás</summary>$(2/0{,}5)^2 = 16$; $(2/0{,}1)^2 = 400$. Ötször szűkebb sáv – huszonötször nagyobb korlát.</details></li>
+    <li>Számold ki a korlátot az ÉS-re a $(1;\ 1;\ -1{,}5)$ elválasztóval!
+      <details><summary>Megoldás</summary>$\lVert(1;\ 1;\ -1{,}5)\rVert = \sqrt{4{,}25} \approx 2{,}06$. A legszűkebb sáv: az (1, 1), (0, 1), (1, 0) pontoknál $|z| = 0{,}5$, normálva $\gamma \approx 0{,}243$. $R = \sqrt3$, a korlát $3/0{,}243^2 \approx 51$. A tényleges 10 javítás jóval kevesebb.</details></li>
+    <li>Igaz-e: „ha a perceptron megállt, az adat lineárisan szétválasztható”?
+      <details><summary>Megoldás</summary>Igen: csak akkor áll meg, ha egy teljes epoch hibátlan – vagyis talált egy hibátlan egyenest. (A fordítottja a tétel: ha szétválasztható, meg is áll.)</details></li>
+    <li>Melyik egyenes „biztonságosabb” az ÉS-re: $2x_1 + x_2 = 2$ vagy $x_1 + x_2 = 1{,}5$? Miért?
+      <details><summary>Megoldás</summary>Az első átmegy az (1, 0) ponton – egy kis zaj is átbillentheti. A második mindhárom közeli ponttól ($(0, 1)$, $(1, 0)$, $(1, 1)$) egyforma, $0{,}5/\sqrt2 \approx 0{,}35$ távolságra van: ez a maximális margójú határ.</details></li>
+    <li>(nehezebb) Miért nem garantál a tétel semmit arra, hogy a megtalált egyenes <em>új</em> pontokon is jól dönt?
+      <details><summary>Megoldás</summary>Mert csak a tanító pontokról szól: hibátlan rajtuk. Egy pontokat súroló egyenes új, kicsit eltolt pontokon könnyen hibázik. Az általánosításhoz nagy margó, regularizáció, validáció kell (6. és 7. fejezet).</details></li>
+  </ol>
+</details>
+
+<h3 id="s92-c">3. lépés: a XOR – és az első neuronháló-tél</h3>
+<p>A konvergenciatétel feltétele a szétválaszthatóság. Az <a href="../05-osztalyozas/#s56-a">5.6</a>-ban bebizonyítottuk, hogy a XOR (a lépcsőházi kapcsoló) <b>nem</b> szétválasztható. Mit csinál ilyenkor a perceptron?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a perceptron a XOR-on</span>
+  Kezdés csupa nullával, $\eta = 1$, a szokásos sorrend.
+  <ul style="margin:.2rem 0">
+    <li>1. epoch: a (0, 1)-nél hiba → $\mathbf w = (0;\ 1)$, $b = 1$; az (1, 1)-nél hiba → $\mathbf w = (-1;\ 0)$, $b = 0$.</li>
+    <li>2. epoch: a (0, 1), az (1, 0) és az (1, 1) is hiba → a végén $\mathbf w = (-1;\ 0)$, $b = 1$.</li>
+    <li>3. epoch: mind a négy minta hiba; a súlyok $(-1;\ 0), 0 \to (-1;\ 1), 1 \to (0;\ 1), 2 \to (-1;\ 0), 1$ – <b>pontosan ott vagyunk, ahol a 2. epoch végén</b>.</li>
+  </ul>
+  Innentől minden epoch ugyanezt a négy javítást ismétli, örökké. Futtasd a fenti szemléltetésben a XOR-t: a hibaszám sosem lesz nulla.
+</div>
+<div class="box def">
+  <span class="box-title">Tétel – nem szétválasztható adaton a perceptron nem áll meg</span>
+  Ha nincs hibátlan egyenes, minden epochban marad legalább egy hiba, így a szabály <b>soha nem áll meg</b>: a súlyok ciklusba kerülnek (mint a XOR-nál) vagy korlátos tartományban bolyonganak.
+  Egyetlen lépcsős neuron <b>egyetlen egyenest</b> tud – a XOR-hoz kettő kellene.
+  <br><small>Miért? A perceptron jóslata mindig egy egyenes két oldala. Ha bármelyik egyenes hibázik legalább egy mintán, akkor a mindenkori súlyok is hibáznak, és a következő epochban jön egy javítás. (Gyakorlatban ilyenkor egy epochszám után leállítják, vagy megtartják az eddigi legjobb súlyokat – ez a „zsebalgoritmus”.)</small>
+</div>
+<div class="box history">
+  <span class="box-title">📜 Történet – lelkesedés, könyv, tél</span>
+  <ul style="margin:.2rem 0">
+    <li><b>1957–58:</b> F. Rosenblatt (Cornell Aeronautical Laboratory) leírja a perceptront, és egy IBM 704-es számítógépen szimulálja. A sajtó szerint a haditengerészet egy olyan gép „embrióját” mutatta be, amely egyszer „járni, beszélni, látni, írni” fog (New York Times, 1958).</li>
+    <li><b>1960:</b> elkészül a <b>Mark I Perceptron</b> hardver: 20 × 20 = 400 fotocella a „retina”, a súlyok motorral forgatott potenciométerek.</li>
+    <li><b>1969:</b> M. Minsky és S. Papert <em>Perceptrons</em> című könyve matematikailag megmutatja, mit <em>nem</em> tud az egyrétegű perceptron: a XOR-t és általában a paritást, a „összefüggő-e az alakzat” kérdést.
+      Azt is tudták, hogy több réteg segítene – de a rejtett rétegek tanítására akkor nem volt módszer.</li>
+    <li><b>1970-es évek:</b> a pénzek elapadnak, a neuronhálós kutatás évtizedre visszaszorul (a Lighthill-jelentés, 1973, az egész MI-t sújtja) – ez az első „MI-tél” része (<a href="../01-mi-a-mesterseges-intelligencia/#s14-b">1.4</a>).</li>
+    <li><b>1986:</b> D. Rumelhart, G. Hinton és R. Williams cikke népszerűsíti a <b>visszaterjesztést</b>, amellyel a rejtett rétegek is taníthatók (az ötlet korábbi, pl. P. Werbos, 1974) – erről szól a 10. fejezet.</li>
+  </ul>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Forráshibák – amit a könyvek pontatlanul írnak</span>
+  <ul style="margin:.2rem 0">
+    <li><b>„Az első tél oka a lineáris aktiváció volt”</b> (PDL 8). Nem: a perceptron nemlineáris lépcsőfüggvényt használt. A korlát a <b>rejtett réteg hiánya</b> volt.</li>
+    <li><b>„Minsky és Papert az egy- és kétrétegű hálókról is kimutatta…”</b> (HAW 2). A könyv az egyrétegű (egy tanítható rétegű) perceptronokat elemezte.</li>
+    <li><b>Évszámok.</b> A Mark I-et egyik könyv 1957-re (HAW), másik „a Cornell Egyetemen 1958”-ra (DLV) teszi: 1957 a jelentés, 1958 a szimuláció, 1960 a Cornell Aeronautical Laboratory hardvere.
+      Az „MI-tél nagyjából az 1970-es és 1990-es évek között” (DLV 13) két külön tél (kb. 1974–80 és 1987–93) összemosása.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a XOR és a perceptron határai</summary>
+  <ol>
+    <li>Ellenőrizd: ha egy epochot a $\mathbf w = (-1;\ 0)$, $b = 1$ súlyokkal kezdesz a XOR-on, a végén ugyanide jutsz!
+      <details><summary>Megoldás</summary>(0, 0): $z = 1$ → hiba → $b = 0$. (0, 1): $z = 0$ → hiba → $\mathbf w = (-1;\ 1)$, $b = 1$. (1, 0): $z = 0$ → hiba → $\mathbf w = (0;\ 1)$, $b = 2$. (1, 1): $z = 3$ → hiba → $\mathbf w = (-1;\ 0)$, $b = 1$. ✓ Ciklus.</details></li>
+    <li>Két bemenetű logikai függvényből 16 van (minden lehetséges 0/1 kimenetnégyes). Melyik kettőt nem tudja megtanulni egyetlen perceptron?
+      <details><summary>Megoldás</summary>A XOR-t (0, 1, 1, 0) és a tagadását, az XNOR-t (1, 0, 0, 1). A másik 14 (pl. ÉS, VAGY, NAND, „csak $x_1$”, a két konstans) lineárisan szétválasztható.</details></li>
+    <li>Az „átfedő felhő” adaton a perceptron nem áll meg. Mondj két gyakorlati megoldást!
+      <details><summary>Megoldás</summary>(1) Állítsd le adott számú epoch után, és tartsd meg az eddigi legkevesebbet hibázó súlyokat (zsebalgoritmus). (2) Használj olyan modellt, amely valószínűséget ad és veszteséget minimalizál, nem hibátlanságra törekszik – pl. logisztikus regresszió (<a href="../05-osztalyozas/#s53-e">5.3</a>).</details></li>
+    <li>Három bemenetnél a paritás: a kimenet 1, ha páratlan sok bemenet 1. Szétválasztható-e lineárisan?
+      <details><summary>Megoldás</summary>Nem. Ha az $x_3 = 0$ pontokra szűkítünk, a paritás éppen a XOR($x_1$, $x_2$) – ha egy sík elválasztaná a 8 pontot, a 4 pontos részt is elválasztaná, ami lehetetlen.</details></li>
+    <li>(nehezebb) Miért nem lehetett 1969-ben egyszerűen több perceptront egymás után kötni, és mindegyiket a perceptron-szabállyal tanítani?
+      <details><summary>Megoldás</summary>A szabályhoz minden neuronnál kell a „helyes válasz” ($y$). A kimeneti neuronnál ez megvan, a rejtett neuronoknál nincs: senki nem mondja meg, mit kellett volna kiadniuk. Ráadásul a lépcső deriváltja 0, így a hibát nem lehet „visszavezetni” rájuk.
+        A megoldás a sima aktiváció (<a href="#s94-a">9.4</a>) és a visszaterjesztés (10. fejezet).</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai9-92"></div>
+</section>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>9. Neurális hálózatok – Mesterséges intelligencia – Synopsis</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="../../assets/common.js"></script>
+  <script defer src="../../assets/quiz.js"></script>
+  <script defer src="../../assets/calc.js"></script>
+  <script defer src="../../assets/ml.js"></script>
+  <script defer src="digit-net.js"></script>
+  <script defer src="widgets.js"></script>
+  <script defer src="quizzes.js"></script>
+</head>
+<body>
+<div class="progressbar"></div>
+<header class="topbar">
+  <a class="brand" href="../../">📚 Synopsis</a>
+  <span class="crumbs"><a href="../../">Tartalomjegyzék</a> › <a href="../">Mesterséges intelligencia</a> › 9. fejezet</span>
+  <button class="icon-btn" data-theme-toggle title="Téma váltása">🌙</button>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <div class="toc-title">9. fejezet</div>
+  <ol>
+    <li><a href="#s91">9.1 A mesterséges neuron</a></li>
+    <li><a href="#s92">9.2 A perceptron</a></li>
+    <li><a href="#s93">9.3 Rétegek: a többrétegű perceptron</a></li>
+    <li><a href="#s94">9.4 Aktivációs függvények</a></li>
+    <li><a href="#s95">9.5 Miért működik? Univerzális közelítés</a></li>
+    <li><a href="#s96">9.6 Előre irányuló számítás és paraméterszám</a></li>
+    <li><a href="#s97">9.7 Alkalmazás: a számjegyfelismerő</a>
+      <ol>
+        <li><a href="#s97-a">A játszótér</a></li>
+        <li><a href="#s97-b">Egy kézzel írt számjegy útja</a></li>
+      </ol>
+    </li>
+    <li><a href="#s-sum">Összefoglalás</a></li>
+    <li><a href="#s-check">Ellenőrző kérdések</a></li>
+    <li><a href="#s-ex">Vegyes gyakorló feladatok</a></li>
+    <li><a href="#s-final">Fejezetzáró teszt</a></li>
+    <li><a href="#s-gloss">Szómagyarázó</a></li>
+  </ol>
+</nav>
+
+<main class="content">
+
+<section class="hero" style="padding-top:.5rem">
+  <div class="kicker">Mesterséges intelligencia · 9. fejezet · ★★</div>
+  <h1>Neurális hálózatok</h1>
+  <p class="lead">Az <a href="../05-osztalyozas/#s56-c">5.6</a>-ban megkérdeztük: ki találja ki a jó jellemzőket? Az ember, egy matematikai trükk (a kernel, <a href="../07-fak-svm-egyuttes/#s76-c">7.6</a>) – vagy maga a modell?
+  Ebben a fejezetben a harmadik utat járjuk végig. Egyetlen, nagyon egyszerű építőkőből indulunk: a <b>mesterséges neuron</b> összeszoroz, összead és „tüzel”.
+  Ilyen neuronokat <b>rétegekbe</b> kötünk, és megnézzük, miért tud egy ilyen háló – elvben – bármilyen összefüggést leírni, és mit számol, amikor egy képet „lát”.</p>
+</section>
+
+<div class="box tip">
+  <span class="box-title">Mit fogsz megtanulni?</span>
+  <ul style="margin:.2rem 0">
+    <li>mit számol egy <b>mesterséges neuron</b> (súlyozott összeg, torzítás, aktiváció), és miben <em>nem</em> hasonlít az agy idegsejtjére;</li>
+    <li>hogyan tanul a <b>perceptron</b>, mikor áll meg biztosan, és miért nem tanulja meg soha a <b>XOR</b>-t;</li>
+    <li>hogyan oldja meg ugyanezt két <b>rejtett neuron</b>, és hogyan írható fel egy réteg <b>mátrixszal</b>: $\mathbf h = \varphi(W\mathbf x + \mathbf b)$;</li>
+    <li>miért kell <b>nemlineáris aktiváció</b>, és miért lett a <b>ReLU</b> a nyerő a szigmoid helyett;</li>
+    <li>mit mond az <b>univerzális közelítés tétele</b> – és mit nem –, és miért segít a <b>mélység</b>;</li>
+    <li>hogyan megy végig egy bemenet a hálón (<b>előre irányuló számítás</b>), és hogyan számolod meg a <b>paramétereket</b>.</li>
+  </ul>
+</div>
+
+<div class="box">
+  <span class="box-title">🔁 Amit használni fogunk</span>
+  A <a href="../02-matematikai-eszkoztar/">2. fejezetből</a>: a skaláris szorzat mint súlyozott összeg (<a href="../02-matematikai-eszkoztar/#s22-b">2.2</a>), a mátrix–vektor és a mátrix–mátrix szorzat (<a href="../02-matematikai-eszkoztar/#s22-c">2.2</a>, <a href="../02-matematikai-eszkoztar/#s22-d">2.2</a>),
+  a koszinusz-hasonlóság (<a href="../02-matematikai-eszkoztar/#s23-c">2.3</a>), a softmax (<a href="../02-matematikai-eszkoztar/#s25-d">2.5</a>), a derivált és a láncszabály (<a href="../02-matematikai-eszkoztar/#s27-a">2.7</a>, <a href="../02-matematikai-eszkoztar/#s27-d">2.7</a>).
+  A <a href="../03-tanulas-anatomiaja/">3. fejezetből</a>: a gradiens módszer és az epoch (<a href="../03-tanulas-anatomiaja/#s34-c">3.4</a>, <a href="../03-tanulas-anatomiaja/#s34-d">3.4</a>), a túlillesztés (<a href="../03-tanulas-anatomiaja/#s35-b">3.5</a>).
+  Az <a href="../05-osztalyozas/">5. fejezetből</a>: a szigmoid és a logisztikus regresszió (<a href="../05-osztalyozas/#s53-b">5.3</a>), a softmax-regresszió (<a href="../05-osztalyozas/#s54-b">5.4</a>), a XOR-probléma és a lineáris szétválaszthatóság (<a href="../05-osztalyozas/#s56-a">5.6</a>).
+  A <a href="../07-fak-svm-egyuttes/">7. fejezetből</a>: a maximális margó (<a href="../07-fak-svm-egyuttes/#s76-a">7.6</a>).
+  <br><small>Jelölések: ★ alap · ★★ közép · ★★★ haladó (kihagyható). A 📐 jelű lenyílók levezetéseket rejtenek, a 🐍 jelűek rövid Python-kódot –
+  a továbbhaladáshoz egyik sem kell. Vektorok félkövérrel ($\mathbf x$), mátrixok nagybetűvel ($W$).</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">🎯 A fejezet kérdése – hogyan ismer fel egy háló egy kézzel írt számjegyet?</span>
+  Egy kis szkennelt kép 8 × 8 = 64 szürke mezőből áll; minden mező értéke 0 (fehér) és 16 (fekete) között van. Íme egy hármas:
+  <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin:.4rem 0">
+  <table style="font-size:.74rem;text-align:center;width:auto;font-family:var(--mono)">
+    <tr><td>0</td><td>0</td><td>11</td><td>15</td><td>16</td><td>10</td><td>0</td><td>0</td></tr>
+    <tr><td>0</td><td>8</td><td>16</td><td>8</td><td>15</td><td>16</td><td>0</td><td>0</td></tr>
+    <tr><td>0</td><td>5</td><td>6</td><td>10</td><td>16</td><td>8</td><td>0</td><td>0</td></tr>
+    <tr><td>0</td><td>0</td><td>4</td><td>16</td><td>11</td><td>1</td><td>0</td><td>0</td></tr>
+    <tr><td>0</td><td>0</td><td>2</td><td>15</td><td>9</td><td>0</td><td>0</td><td>0</td></tr>
+    <tr><td>0</td><td>0</td><td>0</td><td>9</td><td>16</td><td>2</td><td>0</td><td>0</td></tr>
+    <tr><td>0</td><td>0</td><td>0</td><td>8</td><td>16</td><td>5</td><td>0</td><td>0</td></tr>
+    <tr><td>0</td><td>0</td><td>13</td><td>16</td><td>15</td><td>0</td><td>0</td><td>0</td></tr>
+  </table>
+  <span>A gép csak ezt a 64 számot kapja. Nincs benne „ív”, „vonal” vagy „hurok” – csak számok.</span>
+  </div>
+  Egy agyi idegsejt nagyjából annyit tud, hogy összegzi a bemeneteit, és ha elég nagy a jel, „tüzel”. Négy kérdés:
+  <ol style="margin:.3rem 0">
+    <li>Mit számol <b>egyetlen</b> mesterséges neuron, és mit lehet vele felismerni?</li>
+    <li>Miért <b>nem elég</b> egy neuron – és mit ad hozzá egy <b>rejtett réteg</b>?</li>
+    <li>Hány „csavarja” (<b>paramétere</b>) van egy számjegyfelismerő hálónak, és mit csinál velük, amíg ezt a 64 számot feldolgozza?</li>
+    <li>Miért elég „elvben” <b>egyetlen</b> rejtett réteg – és miért használnak a gyakorlatban mégis <b>mély</b> hálókat?</li>
+  </ol>
+  A fejezet végén (<a href="#s97">9.7</a>) egy valódi, 97%-os pontosságú hálón válaszolunk mindegyikre – és te is rajzolhatsz neki számjegyet.
+</div>
+
+<p><b>Útiterv</b> – lépésről lépésre, az egyszerűtől a bonyolultig:</p>
+<ol>
+  <li><b>Egy neuron</b>
+    <ol>
+      <li><a href="#s91">A mesterséges neuron</a>: súlyozott összeg és torzítás; aktiváció és logikai kapuk; a neuron mint egyenes és mint sablon.</li>
+      <li><a href="#s92">A perceptron</a>: a tanulási szabály; mikor áll meg; a XOR és az első „neuronháló-tél”.</li>
+    </ol></li>
+  <li><b>Sok neuron</b>
+    <ol start="3">
+      <li><a href="#s93">Rétegek</a>: a XOR két rejtett neuronnal; a mátrixos alak; miért kell a nemlinearitás.</li>
+      <li><a href="#s94">Aktivációs függvények</a>: a lépcsőtől a szigmoidig; ReLU; a kimeneti réteg.</li>
+    </ol></li>
+  <li><b>Mit tud egy háló?</b>
+    <ol start="5">
+      <li><a href="#s95">Univerzális közelítés</a>: görbe ReLU-darabokból; a tétel; mélység vagy szélesség.</li>
+      <li><a href="#s96">Előre irányuló számítás és paraméterszám</a>: egy bemenet útja; a csavarok megszámolása.</li>
+    </ol></li>
+  <li><b>Összerakva</b>
+    <ol start="7">
+      <li><a href="#s97">Alkalmazás</a>: játszótér, és egy valódi számjegyfelismerő.</li>
+    </ol></li>
+</ol>

@@ -1,0 +1,2099 @@
+                                                  4.4 Logistic Regression     127
+
+(Friedman et al., 2010) can fit coefficient paths for very large logistic re-
+gression problems efficiently (large in N or p). Their algorithms can exploit
+sparsity in the predictor matrix X, which allows for even larger problems.
+See Section 18.4 for more details, and a discussion of L1 -regularized multi-
+nomial models.
+
+
+4.4.5 Logistic Regression or LDA?
+In Section 4.3 we find that the log-posterior odds between class k and K
+are linear functions of x (4.9):
+          Pr(G = k|X = x)                πk  1
+    log                        =   log      − (µk + µK )T Σ−1 (µk − µK )
+          Pr(G = K|X = x)                πK  2
+                                     +xT Σ−1 (µk − µK )
+                               =   αk0 + αkT x.                             (4.33)
+This linearity is a consequence of the Gaussian assumption for the class
+densities, as well as the assumption of a common covariance matrix. The
+linear logistic model (4.17) by construction has linear logits:
+                          Pr(G = k|X = x)
+                    log                   = βk0 + βkT x.                    (4.34)
+                          Pr(G = K|X = x)
+It seems that the models are the same. Although they have exactly the same
+form, the difference lies in the way the linear coefficients are estimated. The
+logistic regression model is more general, in that it makes less assumptions.
+We can write the joint density of X and G as
+                    Pr(X, G = k) = Pr(X)Pr(G = k|X),                        (4.35)
+where Pr(X) denotes the marginal density of the inputs X. For both LDA
+and logistic regression, the second term on the right has the logit-linear
+form                                             T
+                                          eβk0 +βk x
+                 Pr(G = k|X = x) =       PK−1 β +β T x ,            (4.36)
+                                     1 + ℓ=1 e ℓ0 ℓ
+where we have again arbitrarily chosen the last class as the reference.
+   The logistic regression model leaves the marginal density of X as an arbi-
+trary density function Pr(X), and fits the parameters of Pr(G|X) by max-
+imizing the conditional likelihood—the multinomial likelihood with proba-
+bilities the Pr(G = k|X). Although Pr(X) is totally ignored, we can think
+of this marginal density as being estimated in a fully nonparametric and
+unrestricted fashion, using the empirical distribution function which places
+mass 1/N at each observation.
+   With LDA we fit the parameters by maximizing the full log-likelihood,
+based on the joint density
+                      Pr(X, G = k) = φ(X; µk , Σ)πk ,                       (4.37)
+128     4. Linear Methods for Classification
+
+where φ is the Gaussian density function. Standard normal theory leads
+easily to the estimates µ̂k ,Σ̂, and π̂k given in Section 4.3. Since the linear
+parameters of the logistic form (4.33) are functions of the Gaussian param-
+eters, we get their maximum-likelihood estimates by plugging in the corre-
+sponding estimates. However, unlike in the conditional case, the marginal
+density Pr(X) does play a role here. It is a mixture density
+
+                                  K
+                                  X
+                        Pr(X) =         πk φ(X; µk , Σ),                (4.38)
+                                  k=1
+
+
+which also involves the parameters.
+   What role can this additional component/restriction play? By relying
+on the additional model assumptions, we have more information about the
+parameters, and hence can estimate them more efficiently (lower variance).
+If in fact the true fk (x) are Gaussian, then in the worst case ignoring this
+marginal part of the likelihood constitutes a loss of efficiency of about 30%
+asymptotically in the error rate (Efron, 1975). Paraphrasing: with 30%
+more data, the conditional likelihood will do as well.
+   For example, observations far from the decision boundary (which are
+down-weighted by logistic regression) play a role in estimating the common
+covariance matrix. This is not all good news, because it also means that
+LDA is not robust to gross outliers.
+   From the mixture formulation, it is clear that even observations without
+class labels have information about the parameters. Often it is expensive
+to generate class labels, but unclassified observations come cheaply. By
+relying on strong model assumptions, such as here, we can use both types
+of information.
+   The marginal likelihood can be thought of as a regularizer, requiring
+in some sense that class densities be visible from this marginal view. For
+example, if the data in a two-class logistic regression model can be per-
+fectly separated by a hyperplane, the maximum likelihood estimates of the
+parameters are undefined (i.e., infinite; see Exercise 4.5). The LDA coeffi-
+cients for the same data will be well defined, since the marginal likelihood
+will not permit these degeneracies.
+   In practice these assumptions are never correct, and often some of the
+components of X are qualitative variables. It is generally felt that logistic
+regression is a safer, more robust bet than the LDA model, relying on fewer
+assumptions. It is our experience that the models give very similar results,
+even when LDA is used inappropriately, such as with qualitative predictors.
+                                             4.5 Separating Hyperplanes       129
+
+
+
+
+FIGURE 4.14. A toy example with two classes separable by a hyperplane. The
+orange line is the least squares solution, which misclassifies one of the training
+points. Also shown are two blue separating hyperplanes found by the perceptron
+learning algorithm with different random starts.
+
+
+
+4.5 Separating Hyperplanes
+We have seen that linear discriminant analysis and logistic regression both
+estimate linear decision boundaries in similar but slightly different ways.
+For the rest of this chapter we describe separating hyperplane classifiers.
+These procedures construct linear decision boundaries that explicitly try
+to separate the data into different classes as well as possible. They provide
+the basis for support vector classifiers, discussed in Chapter 12. The math-
+ematical level of this section is somewhat higher than that of the previous
+sections.
+  Figure 4.14 shows 20 data points in two classes in IR2 . These data can be
+separated by a linear boundary. Included in the figure (blue lines) are two
+of the infinitely many possible separating hyperplanes. The orange line is
+the least squares solution to the problem, obtained by regressing the −1/1
+response Y on X (with intercept); the line is given by
+
+                         {x : β̂0 + β̂1 x1 + β̂2 x2 = 0}.                  (4.39)
+
+This least squares solution does not do a perfect job in separating the
+points, and makes one error. This is the same boundary found by LDA,
+in light of its equivalence with linear regression in the two-class case (Sec-
+tion 4.3 and Exercise 4.2).
+   Classifiers such as (4.39), that compute a linear combination of the input
+features and return the sign, were called perceptrons in the engineering liter-
+130     4. Linear Methods for Classification
+
+
+
+
+                                x0                 x
+
+
+                                               β0 + β T x = 0
+                           β∗
+
+
+
+
+       FIGURE 4.15. The linear algebra of a hyperplane (affine set).
+
+
+ature in the late 1950s (Rosenblatt, 1958). Perceptrons set the foundations
+for the neural network models of the 1980s and 1990s.
+   Before we continue, let us digress slightly and review some vector algebra.
+Figure 4.15 depicts a hyperplane or affine set L defined by the equation
+f (x) = β0 + β T x = 0; since we are in IR2 this is a line.
+   Here we list some properties:
+
+  1. For any two points x1 and x2 lying in L, β T (x1 − x2 ) = 0, and hence
+     β ∗ = β/||β|| is the vector normal to the surface of L.
+
+  2. For any point x0 in L, β T x0 = −β0 .
+
+  3. The signed distance of any point x to L is given by
+                                                1
+                        β ∗ T (x − x0 )   =          (β T x + β0 )
+                                              kβk
+                                                    1
+                                          =       ′
+                                                          f (x).       (4.40)
+                                              ||f (x)||
+
+Hence f (x) is proportional to the signed distance from x to the hyperplane
+defined by f (x) = 0.
+
+
+4.5.1 Rosenblatt’s Perceptron Learning Algorithm
+The perceptron learning algorithm tries to find a separating hyperplane by
+minimizing the distance of misclassified points to the decision boundary. If
+                                              4.5 Separating Hyperplanes     131
+
+a response yi = 1 is misclassified, then xTi β + β0 < 0, and the opposite for
+a misclassified response with yi = −1. The goal is to minimize
+                                     X
+                      D(β, β0 ) = −      yi (xTi β + β0 ),            (4.41)
+                                        i∈M
+
+where M indexes the set of misclassified points. The quantity is non-
+negative and proportional to the distance of the misclassified points to
+the decision boundary defined by β T x + β0 = 0. The gradient (assuming
+M is fixed) is given by
+
+                            D(β, β0 )             X
+                        ∂               =     −         yi x i ,           (4.42)
+                              ∂β
+                                                  i∈M
+                            D(β, β0 )             X
+                        ∂               =     −         yi .               (4.43)
+                              ∂β0
+                                                  i∈M
+
+The algorithm in fact uses stochastic gradient descent to minimize this
+piecewise linear criterion. This means that rather than computing the sum
+of the gradient contributions of each observation followed by a step in the
+negative gradient direction, a step is taken after each observation is visited.
+Hence the misclassified observations are visited in some sequence, and the
+parameters β are updated via
+                                                 
+                           β         β         yi x i
+                               ←         +ρ             .               (4.44)
+                           β0       β0          yi
+
+Here ρ is the learning rate, which in this case can be taken to be 1 without
+loss in generality. If the classes are linearly separable, it can be shown that
+the algorithm converges to a separating hyperplane in a finite number of
+steps (Exercise 4.6). Figure 4.14 shows two solutions to a toy problem, each
+started at a different random guess.
+   There are a number of problems with this algorithm, summarized in
+Ripley (1996):
+
+   • When the data are separable, there are many solutions, and which
+     one is found depends on the starting values.
+
+   • The “finite” number of steps can be very large. The smaller the gap,
+     the longer the time to find it.
+
+   • When the data are not separable, the algorithm will not converge,
+     and cycles develop. The cycles can be long and therefore hard to
+     detect.
+
+  The second problem can often be eliminated by seeking a hyperplane not
+in the original space, but in a much enlarged space obtained by creating
+132     4. Linear Methods for Classification
+
+many basis-function transformations of the original variables. This is anal-
+ogous to driving the residuals in a polynomial regression problem down
+to zero by making the degree sufficiently large. Perfect separation cannot
+always be achieved: for example, if observations from two different classes
+share the same input. It may not be desirable either, since the resulting
+model is likely to be overfit and will not generalize well. We return to this
+point at the end of the next section.
+   A rather elegant solution to the first problem is to add additional con-
+straints to the separating hyperplane.
+
+
+4.5.2 Optimal Separating Hyperplanes
+The optimal separating hyperplane separates the two classes and maximizes
+the distance to the closest point from either class (Vapnik, 1996). Not only
+does this provide a unique solution to the separating hyperplane problem,
+but by maximizing the margin between the two classes on the training data,
+this leads to better classification performance on test data.
+  We need to generalize criterion (4.41). Consider the optimization problem
+
+                               max          M
+                            β,β0 ,||β||=1
+                                                                      (4.45)
+               subject to yi (xTi β + β0 ) ≥ M, i = 1, . . . , N.
+
+  The set of conditions ensure that all the points are at least a signed
+distance M from the decision boundary defined by β and β0 , and we seek
+the largest such M and associated parameters. We can get rid of the ||β|| =
+1 constraint by replacing the conditions with
+                             1
+                                 yi (xTi β + β0 ) ≥ M,                (4.46)
+                           ||β||
+
+(which redefines β0 ) or equivalently
+
+                           yi (xTi β + β0 ) ≥ M ||β||.                (4.47)
+
+Since for any β and β0 satisfying these inequalities, any positively scaled
+multiple satisfies them too, we can arbitrarily set ||β|| = 1/M . Thus (4.45)
+is equivalent to
+                                  1
+                           min ||β||2
+                           β,β0 2                                     (4.48)
+                subject to yi (xTi β + β0 ) ≥ 1, i = 1, . . . , N.
+
+In light of (4.40), the constraints define an empty slab or margin around the
+linear decision boundary of thickness 1/||β||. Hence we choose β and β0 to
+maximize its thickness. This is a convex optimization problem (quadratic
+                                                   4.5 Separating Hyperplanes     133
+
+criterion with linear inequality constraints). The Lagrange (primal) func-
+tion, to be minimized w.r.t. β and β0 , is
+                                      XN
+                           1
+               LP    =       ||β||2 −     αi [yi (xTi β + β0 ) − 1].            (4.49)
+                           2          i=1
+
+Setting the derivatives to zero, we obtain:
+                                         N
+                                         X
+                                β   =          αi yi x i ,                      (4.50)
+                                         i=1
+                                         N
+                                         X
+                                0 =            αi yi ,                          (4.51)
+                                         i=1
+
+and substituting these in (4.49) we obtain the so-called Wolfe dual
+                          N
+                          X              N     N
+                                       1 XX
+               LD    =          αi −         αi αk yi yk xTi xk
+                          i=1
+                                       2 i=1
+                                             k=1
+                                                             N
+                                                             X
+                          subject to αi ≥ 0 and                    αi yi = 0.   (4.52)
+                                                             i=1
+
+The solution is obtained by maximizing LD in the positive orthant, a sim-
+pler convex optimization problem, for which standard software can be used.
+In addition the solution must satisfy the Karush–Kuhn–Tucker conditions,
+which include (4.50), (4.51), (4.52) and
+
+                         αi [yi (xTi β + β0 ) − 1] = 0 ∀i.                      (4.53)
+
+From these we can see that
+   • if αi > 0, then yi (xTi β + β0 ) = 1, or in other words, xi is on the
+     boundary of the slab;
+   • if yi (xTi β + β0 ) > 1, xi is not on the boundary of the slab, and αi = 0.
+From (4.50) we see that the solution vector β is defined in terms of a linear
+combination of the support points xi —those points defined to be on the
+boundary of the slab via αi > 0. Figure 4.16 shows the optimal separating
+hyperplane for our toy example; there are three support points. Likewise,
+β0 is obtained by solving (4.53) for any of the support points.
+  The optimal separating hyperplane produces a function fˆ(x) = xT β̂ + β̂0
+for classifying new observations:
+
+                                Ĝ(x) = signfˆ(x).                              (4.54)
+
+Although none of the training observations fall in the margin (by con-
+struction), this will not necessarily be the case for test observations. The
+134      4. Linear Methods for Classification
+
+
+
+
+FIGURE 4.16. The same data as in Figure 4.14. The shaded region delineates
+the maximum margin separating the two classes. There are three support points
+indicated, which lie on the boundary of the margin, and the optimal separating
+hyperplane (blue line) bisects the slab. Included in the figure is the boundary found
+using logistic regression (red line), which is very close to the optimal separating
+hyperplane (see Section 12.3.3).
+
+
+
+intuition is that a large margin on the training data will lead to good
+separation on the test data.
+   The description of the solution in terms of support points seems to sug-
+gest that the optimal hyperplane focuses more on the points that count,
+and is more robust to model misspecification. The LDA solution, on the
+other hand, depends on all of the data, even points far away from the de-
+cision boundary. Note, however, that the identification of these support
+points required the use of all the data. Of course, if the classes are really
+Gaussian, then LDA is optimal, and separating hyperplanes will pay a price
+for focusing on the (noisier) data at the boundaries of the classes.
+   Included in Figure 4.16 is the logistic regression solution to this prob-
+lem, fit by maximum likelihood. Both solutions are similar in this case.
+When a separating hyperplane exists, logistic regression will always find
+it, since the log-likelihood can be driven to 0 in this case (Exercise 4.5).
+The logistic regression solution shares some other qualitative features with
+the separating hyperplane solution. The coefficient vector is defined by a
+weighted least squares fit of a zero-mean linearized response on the input
+features, and the weights are larger for points near the decision boundary
+than for those further away.
+   When the data are not separable, there will be no feasible solution to
+this problem, and an alternative formulation is needed. Again one can en-
+large the space using basis transformations, but this can lead to artificial
+                                                                        Exercises        135
+
+separation through over-fitting. In Chapter 12 we discuss a more attractive
+alternative known as the support vector machine, which allows for overlap,
+but minimizes a measure of the extent of this overlap.
+
+
+Bibliographic Notes
+Good general texts on classification include Duda et al. (2000), Hand
+(1981), McLachlan (1992) and Ripley (1996). Mardia et al. (1979) have
+a concise discussion of linear discriminant analysis. Michie et al. (1994)
+compare a large number of popular classifiers on benchmark datasets. Lin-
+ear separating hyperplanes are discussed in Vapnik (1996). Our account of
+the perceptron learning algorithm follows Ripley (1996).
+
+
+Exercises
+
+Ex. 4.1 Show how to solve the generalized eigenvalue problem max aT Ba
+subject to aT Wa = 1 by transforming to a standard eigenvalue problem.
+Ex. 4.2 Suppose we have features x ∈ IRp , a two-class response, with class
+sizes N1 , N2 , and the target coded as −N/N1 , N/N2 .
+ (a) Show that the LDA rule classifies to class 2 if
+               −1                    1                 −1
+       xT Σ̂        (µ̂2 − µ̂1 ) >     (µ̂2 + µ̂1 )T Σ̂ (µ̂2 − µ̂1 ) − log(N2 /N1 ),
+                                     2
+     and class 1 otherwise.
+ (b) Consider minimization of the least squares criterion
+                                       N
+                                       X
+                                              (yi − β0 − xTi β)2 .                     (4.55)
+                                        i=1
+
+     Show that the solution β̂ satisfies
+                 h                     i
+                   (N − 2)Σ̂ + N Σ̂B β = N (µ̂2 − µ̂1 )                                (4.56)
+
+     (after simplification), where Σ̂B = NN1 N2 2 (µ̂2 − µ̂1 )(µ̂2 − µ̂1 )T .
+
+ (c) Hence show that Σ̂B β is in the direction (µ̂2 − µ̂1 ) and thus
+                                                  −1
+                                        β̂ ∝ Σ̂        (µ̂2 − µ̂1 ).                   (4.57)
+
+     Therefore the least-squares regression coefficient is identical to the
+     LDA coefficient, up to a scalar multiple.
+388   10. Boosting and Additive Trees
+                                                                                This is page 389
+                                                                                Printer: Opaque this
+
+
+11
+Neural Networks
+
+
+
+
+11.1 Introduction
+In this chapter we describe a class of learning methods that was developed
+separately in different fields—statistics and artificial intelligence—based
+on essentially identical models. The central idea is to extract linear com-
+binations of the inputs as derived features, and then model the target as
+a nonlinear function of these features. The result is a powerful learning
+method, with widespread applications in many fields. We first discuss the
+projection pursuit model, which evolved in the domain of semiparamet-
+ric statistics and smoothing. The rest of the chapter is devoted to neural
+network models.
+
+
+11.2 Projection Pursuit Regression
+As in our generic supervised learning problem, assume we have an input
+vector X with p components, and a target Y . Let ωm , m = 1, 2, . . . , M, be
+unit p-vectors of unknown parameters. The projection pursuit regression
+(PPR) model has the form
+                                  M
+                                  X
+                                             T
+                        f (X) =         gm (ωm X).                    (11.1)
+                                  m=1
+                                                              T
+This is an additive model, but in the derived features Vm = ωm  X rather
+than the inputs themselves. The functions gm are unspecified and are esti-
+ 390    Neural Networks
+
+
+
+
+g(V )                                            g(V )
+
+
+
+
+           X2                      X1                             X2     X1
+ FIGURE 11.1. Perspective plots of two ridge functions.         √
+ (Left:) g(V ) = 1/[1 + exp(−5(V − 0.5))], where V = (X1 + X2 )/ 2.
+ (Right:) g(V ) = (V + 0.1) sin(1/(V /3 + 0.1)), where V = X1 .
+
+
+ mated along with the directions ωm using some flexible smoothing method
+ (see below).
+    The function gm (ωm  T
+                           X) is called a ridge function in IRp . It varies only
+                                                                                T
+ in the direction defined by the vector ωm . The scalar variable Vm = ωm          X
+ is the projection of X onto the unit vector ωm , and we seek ωm so that
+ the model fits well, hence the name “projection pursuit.” Figure 11.1  √ shows
+ some examples of ridge functions. In the example on the left ω = (1/ 2)(1, 1)T ,
+ so that the function only varies in the direction X1 + X2 . In the example
+ on the right, ω = (1, 0).
+    The PPR model (11.1) is very general, since the operation of forming
+ nonlinear functions of linear combinations generates a surprisingly large
+ class of models. For example, the product X1 · X2 can be written as [(X1 +
+ X2 )2 − (X1 − X2 )2 ]/4, and higher-order products can be represented simi-
+ larly.
+    In fact, if M is taken arbitrarily large, for appropriate choice of gm the
+ PPR model can approximate any continuous function in IRp arbitrarily
+ well. Such a class of models is called a universal approximator. However
+ this generality comes at a price. Interpretation of the fitted model is usually
+ difficult, because each input enters into the model in a complex and multi-
+ faceted way. As a result, the PPR model is most useful for prediction, and
+ not very useful for producing an understandable model for the data. The
+ M = 1 model, known as the single index model in econometrics, is an
+ exception. It is slightly more general than the linear regression model, and
+ offers a similar interpretation.
+    How do we fit a PPR model, given training data (xi , yi ), i = 1, 2, . . . , N ?
+ We seek the approximate minimizers of the error function
+
+                        N
+                              "          M
+                                                             #2
+                        X                X
+                                                    T
+                                  yi −         gm (ωm xi )                (11.2)
+                        i=1              m=1
+                                                 11.2 Projection Pursuit Regression                    391
+
+over functions gm and direction vectors ωm , m = 1, 2, . . . , M . As in other
+smoothing problems, we need either explicitly or implicitly to impose com-
+plexity constraints on the gm , to avoid overfit solutions.
+  Consider just one term (M = 1, and drop the subscript). Given the
+direction vector ω, we form the derived variables vi = ω T xi . Then we have
+a one-dimensional smoothing problem, and we can apply any scatterplot
+smoother, such as a smoothing spline, to obtain an estimate of g.
+  On the other hand, given g, we want to minimize (11.2) over ω. A Gauss–
+Newton search is convenient for this task. This is a quasi-Newton method,
+in which the part of the Hessian involving the second derivative of g is
+discarded. It can be simply derived as follows. Let ωold be the current
+estimate for ω. We write
+
+              g(ω T xi ) ≈ g(ωold
+                              T
+                                  xi ) + g ′ (ωold
+                                               T
+                                                   xi )(ω − ωold )T xi                            (11.3)
+
+to give
+
+N
+X                               N
+                                X                                                                     2
+              T
+                       2              ′  T                           yi − g(ωoldT
+                                                                                     xi )
+       yi − g(ω xi )        ≈         g (ωold x i )2         T
+                                                            ωold xi +         T x )
+                                                                                                   T
+                                                                                                − ω xi        .
+i=1                             i=1
+                                                                        g ′ (ωold  i
+                                                                              (11.4)
+    To minimize the right-hand side, we carry out a least squares regression
+              T
+with target ωold             T
+                 xi +(yi −g(ωold xi ))/g ′ (ωold
+                                             T
+                                                 xi ) on the input xi , with weights
+  ′  T      2
+g (ωold xi ) and no intercept (bias) term. This produces the updated coef-
+ficient vector ωnew .
+    These two steps, estimation of g and ω, are iterated until convergence.
+With more than one term in the PPR model, the model is built in a forward
+stage-wise manner, adding a pair (ωm , gm ) at each stage.
+    There are a number of implementation details.
+
+      • Although any smoothing method can in principle be used, it is conve-
+        nient if the method provides derivatives. Local regression and smooth-
+        ing splines are convenient.
+
+      • After each step the gm ’s from previous steps can be readjusted using
+        the backfitting procedure described in Chapter 9. While this may
+        lead ultimately to fewer terms, it is not clear whether it improves
+        prediction performance.
+
+      • Usually the ωm are not readjusted (partly to avoid excessive compu-
+        tation), although in principle they could be as well.
+
+      • The number of terms M is usually estimated as part of the forward
+        stage-wise strategy. The model building stops when the next term
+        does not appreciably improve the fit of the model. Cross-validation
+        can also be used to determine M .
+392    Neural Networks
+
+   There are many other applications, such as density estimation (Friedman
+et al., 1984; Friedman, 1987), where the projection pursuit idea can be used.
+In particular, see the discussion of ICA in Section 14.7 and its relationship
+with exploratory projection pursuit. However the projection pursuit re-
+gression model has not been widely used in the field of statistics, perhaps
+because at the time of its introduction (1981), its computational demands
+exceeded the capabilities of most readily available computers. But it does
+represent an important intellectual advance, one that has blossomed in its
+reincarnation in the field of neural networks, the topic of the rest of this
+chapter.
+
+
+
+11.3 Neural Networks
+The term neural network has evolved to encompass a large class of models
+and learning methods. Here we describe the most widely used “vanilla” neu-
+ral net, sometimes called the single hidden layer back-propagation network,
+or single layer perceptron. There has been a great deal of hype surrounding
+neural networks, making them seem magical and mysterious. As we make
+clear in this section, they are just nonlinear statistical models, much like
+the projection pursuit regression model discussed above.
+   A neural network is a two-stage regression or classification model, typ-
+ically represented by a network diagram as in Figure 11.2. This network
+applies both to regression or classification. For regression, typically K = 1
+and there is only one output unit Y1 at the top. However, these networks
+can handle multiple quantitative responses in a seamless fashion, so we will
+deal with the general case.
+   For K-class classification, there are K units at the top, with the kth
+unit modeling the probability of class k. There are K target measurements
+Yk , k = 1, . . . , K, each being coded as a 0 − 1 variable for the kth class.
+   Derived features Zm are created from linear combinations of the inputs,
+and then the target Yk is modeled as a function of linear combinations of
+the Zm ,
+                                         T
+                         Zm = σ(α0m + αm   X), m = 1, . . . , M,
+                     Tk = β0k + βkT Z, k = 1, . . . , K,               (11.5)
+                 fk (X) = gk (T ), k = 1, . . . , K,
+where Z = (Z1 , Z2 , . . . , ZM ), and T = (T1 , T2 , . . . , TK ).
+  The activation function σ(v) is usually chosen to be the sigmoid σ(v) =
+1/(1 + e−v ); see Figure 11.3 for a plot of 1/(1 + e−v ). Sometimes Gaussian
+radial basis functions (Chapter 6) are used for the σ(v), producing what is
+known as a radial basis function network.
+  Neural network diagrams like Figure 11.2 are sometimes drawn with an
+additional bias unit feeding into every unit in the hidden and output layers.
+                                                          11.3 Neural Networks     393
+
+              1
+              0
+              0
+              1             Y1    Y2           YK
+
+
+
+
+                      Z1    Z2    Z3                        ZmM
+
+
+
+
+         X1           X2          X3                       Xp-1         Xp
+
+
+FIGURE 11.2. Schematic of a single hidden layer, feed-forward neural network.
+
+Thinking of the constant “1” as an additional input feature, this bias unit
+captures the intercepts α0m and β0k in model (11.5).
+  The output function gk (T ) allows a final transformation of the vector of
+outputs T . For regression we typically choose the identity function gk (T ) =
+Tk . Early work in K-class classification also used the identity function, but
+this was later abandoned in favor of the softmax function
+
+                                        eT k
+                             gk (T ) = PK             .                          (11.6)
+                                                 Tℓ
+                                         ℓ=1 e
+
+This is of course exactly the transformation used in the multilogit model
+(Section 4.4), and produces positive estimates that sum to one. In Sec-
+tion 4.2 we discuss other problems with linear activation functions, in par-
+ticular potentially severe masking effects.
+   The units in the middle of the network, computing the derived features
+Zm , are called hidden units because the values Zm are not directly ob-
+served. In general there can be more than one hidden layer, as illustrated
+in the example at the end of this chapter. We can think of the Zm as a
+basis expansion of the original inputs X; the neural network is then a stan-
+dard linear model, or linear multilogit model, using these transformations
+as inputs. There is, however, an important enhancement over the basis-
+expansion techniques discussed in Chapter 5; here the parameters of the
+basis functions are learned from the data.
+394    Neural Networks
+
+
+
+
+                            1.0
+            1/(1 + e−v )
+
+                            0.5
+                            0.0
+                                  -10       -5      0          5       10
+
+                                                    v
+
+FIGURE 11.3. Plot of the sigmoid function σ(v) = 1/(1+exp(−v)) (red curve),
+commonly used in the hidden layer of a neural network. Included are σ(sv) for
+s = 21 (blue curve) and s = 10 (purple curve). The scale parameter s controls
+the activation rate, and we can see that large s amounts to a hard activation at
+v = 0. Note that σ(s(v − v0 )) shifts the activation threshold from 0 to v0 .
+
+   Notice that if σ is the identity function, then the entire model collapses
+to a linear model in the inputs. Hence a neural network can be thought of
+as a nonlinear generalization of the linear model, both for regression and
+classification. By introducing the nonlinear transformation σ, it greatly
+enlarges the class of linear models. In Figure 11.3 we see that the rate of
+activation of the sigmoid depends on the norm of αm , and if kαm k is very
+small, the unit will indeed be operating in the linear part of its activation
+function.
+   Notice also that the neural network model with one hidden layer has
+exactly the same form as the projection pursuit model described above.
+The difference is that the PPR model uses nonparametric functions gm (v),
+while the neural network uses a far simpler function based on σ(v), with
+three free parameters in its argument. In detail, viewing the neural network
+model as a PPR model, we identify
+                                T                       T
+                           gm (ωm X)    =   βm σ(α0m + αm X)
+                                                              T
+                                        =   βm σ(α0m + kαm k(ωm X)),        (11.7)
+
+where ωm = αm /kαm k is the mth unit-vector. Since σβ,α0 ,s (v) = βσ(α0 +
+sv) has lower complexity than a more general nonparametric g(v), it is not
+surprising that a neural network might use 20 or 100 such functions, while
+the PPR model typically uses fewer terms (M = 5 or 10, for example).
+  Finally, we note that the name “neural networks” derives from the fact
+that they were first developed as models for the human brain. Each unit
+represents a neuron, and the connections (links in Figure 11.2) represent
+synapses. In early models, the neurons fired when the total signal passed to
+that unit exceeded a certain threshold. In the model above, this corresponds
+                                             11.4 Fitting Neural Networks      395
+
+to use of a step function for σ(Z) and gm (T ). Later the neural network was
+recognized as a useful tool for nonlinear statistical modeling, and for this
+purpose the step function is not smooth enough for optimization. Hence the
+step function was replaced by a smoother threshold function, the sigmoid
+in Figure 11.3.
+
+
+
+
+11.4 Fitting Neural Networks
+The neural network model has unknown parameters, often called weights,
+and we seek values for them that make the model fit the training data well.
+We denote the complete set of weights by θ, which consists of
+
+             {α0m , αm ; m = 1, 2, . . . , M } M (p + 1) weights,
+                                                                             (11.8)
+               {β0k , βk ; k = 1, 2, . . . , K} K(M + 1) weights.
+
+For regression, we use sum-of-squared errors as our measure of fit (error
+function)
+
+                             K X
+                             X N
+                    R(θ) =             (yik − fk (xi ))2 .                   (11.9)
+                             k=1 i=1
+
+
+For classification we use either squared error or cross-entropy (deviance):
+
+                                 N X
+                                 X K
+                      R(θ) = −              yik log fk (xi ),               (11.10)
+                                 i=1 k=1
+
+
+and the corresponding classifier is G(x) = argmaxk fk (x). With the softmax
+activation function and the cross-entropy error function, the neural network
+model is exactly a linear logistic regression model in the hidden units, and
+all the parameters are estimated by maximum likelihood.
+   Typically we don’t want the global minimizer of R(θ), as this is likely
+to be an overfit solution. Instead some regularization is needed: this is
+achieved directly through a penalty term, or indirectly by early stopping.
+Details are given in the next section.
+   The generic approach to minimizing R(θ) is by gradient descent, called
+back-propagation in this setting. Because of the compositional form of the
+model, the gradient can be easily derived using the chain rule for differen-
+tiation. This can be computed by a forward and backward sweep over the
+network, keeping track only of quantities local to each unit.
+396     Neural Networks
+
+  Here is back-propagation in detail for squared error loss. Let zmi =
+          T
+σ(α0m + αm  xi ), from (11.5) and let zi = (z1i , z2i , . . . , zM i ). Then we have
+                                    N
+                                    X
+                       R(θ) ≡             Ri
+                                    i=1
+                                    N X
+                                    X K
+                               =               (yik − fk (xi ))2 ,          (11.11)
+                                    i=1 k=1
+
+with derivatives
+        ∂Ri
+            = −2(yik − fk (xi ))gk′ (βkT zi )zmi ,
+       ∂βkm
+               XK                                                           (11.12)
+        ∂Ri
+            =−     2(yik − fk (xi ))gk′ (βkT zi )βkm σ ′ (αm
+                                                           T
+                                                             xi )xiℓ .
+       ∂αmℓ
+                   k=1
+
+  Given these derivatives, a gradient descent update at the (r + 1)st iter-
+ation has the form
+                                                  N
+                                                  X
+                           (r+1)      (r)           ∂Ri
+                         βkm       = βkm − γr           (r)
+                                                              ,
+                                                  i=1 ∂βkm
+                                                                            (11.13)
+                                                  N
+                                                  X
+                          (r+1) (r)                 ∂Ri
+                         αmℓ = αmℓ − γr                 (r)
+                                                              ,
+                                                  i=1 ∂αmℓ
+
+where γr is the learning rate, discussed below.
+  Now write (11.12) as
+                                ∂Ri
+                                     = δki zmi ,
+                               ∂βkm
+                                                                            (11.14)
+                                ∂Ri
+                                     = smi xiℓ .
+                               ∂αmℓ
+The quantities δki and smi are “errors” from the current model at the
+output and hidden layer units, respectively. From their definitions, these
+errors satisfy
+                                         K
+                                         X
+                      smi = σ ′ (αm
+                                  T
+                                    xi )   βkm δki ,               (11.15)
+                                                k=1
+
+known as the back-propagation equations. Using this, the updates in (11.13)
+can be implemented with a two-pass algorithm. In the forward pass, the
+current weights are fixed and the predicted values fˆk (xi ) are computed
+from formula (11.5). In the backward pass, the errors δki are computed,
+and then back-propagated via (11.15) to give the errors smi . Both sets of
+errors are then used to compute the gradients for the updates in (11.13),
+via (11.14).
+                         11.5 Some Issues in Training Neural Networks     397
+
+   This two-pass procedure is what is known as back-propagation. It has
+also been called the delta rule (Widrow and Hoff, 1960). The computational
+components for cross-entropy have the same form as those for the sum of
+squares error function, and are derived in Exercise 11.3.
+   The advantages of back-propagation are its simple, local nature. In the
+back propagation algorithm, each hidden unit passes and receives infor-
+mation only to and from units that share a connection. Hence it can be
+implemented efficiently on a parallel architecture computer.
+   The updates in (11.13) are a kind of batch learning, with the parame-
+ter updates being a sum over all of the training cases. Learning can also
+be carried out online—processing each observation one at a time, updat-
+ing the gradient after each training case, and cycling through the training
+cases many times. In this case, the sums in equations (11.13) are replaced
+by a single summand. A training epoch refers to one sweep through the
+entire training set. Online training allows the network to handle very large
+training sets, and also to update the weights as new observations come in.
+   The learning rate γr for batch learning is usually taken to be a con-
+stant, and can also be optimized by a line search that minimizes the error
+function at each update. With online learning γr should decrease to zero
+as the iteration r → ∞. This learning is a form of stochastic approxima-
+tion (Robbins
+         P      and Munro,P1951); results in this field ensure convergence if
+γr → 0, r γr = ∞, and r γr2 < ∞ (satisfied, for example, by γr = 1/r).
+   Back-propagation can be very slow, and for that reason is usually not
+the method of choice. Second-order techniques such as Newton’s method
+are not attractive here, because the second derivative matrix of R (the
+Hessian) can be very large. Better approaches to fitting include conjugate
+gradients and variable metric methods. These avoid explicit computation
+of the second derivative matrix while still providing faster convergence.
+
+
+
+11.5 Some Issues in Training Neural Networks
+There is quite an art in training neural networks. The model is generally
+overparametrized, and the optimization problem is nonconvex and unstable
+unless certain guidelines are followed. In this section we summarize some
+of the important issues.
+
+
+11.5.1 Starting Values
+Note that if the weights are near zero, then the operative part of the sigmoid
+(Figure 11.3) is roughly linear, and hence the neural network collapses into
+an approximately linear model (Exercise 11.2). Usually starting values for
+weights are chosen to be random values near zero. Hence the model starts
+out nearly linear, and becomes nonlinear as the weights increase. Individual
+398    Neural Networks
+
+units localize to directions and introduce nonlinearities where needed. Use
+of exact zero weights leads to zero derivatives and perfect symmetry, and
+the algorithm never moves. Starting instead with large weights often leads
+to poor solutions.
+
+
+11.5.2 Overfitting
+Often neural networks have too many weights and will overfit the data at
+the global minimum of R. In early developments of neural networks, either
+by design or by accident, an early stopping rule was used to avoid over-
+fitting. Here we train the model only for a while, and stop well before we
+approach the global minimum. Since the weights start at a highly regular-
+ized (linear) solution, this has the effect of shrinking the final model toward
+a linear model. A validation dataset is useful for determining when to stop,
+since we expect the validation error to start increasing.
+   A more explicit method for regularization is weight decay, which is anal-
+ogous to ridge regression used for linear models (Section 3.4.1). We add a
+penalty to the error function R(θ) + λJ(θ), where
+                                X           X
+                                      2           2
+                        J(θ) =      βkm   +      αmℓ                     (11.16)
+                                km         mℓ
+
+and λ ≥ 0 is a tuning parameter. Larger values of λ will tend to shrink
+the weights toward zero: typically cross-validation is used to estimate λ.
+The effect of the penalty is to simply add terms 2βkm and 2αmℓ to the
+respective gradient expressions (11.13). Other forms for the penalty have
+been proposed, for example,
+                             X       2
+                                    βkm     X α2
+                                                mℓ
+                    J(θ) =             2  +       2 ,                   (11.17)
+                                  1 + βkm    1 + αmℓ
+                             km              mℓ
+
+known as the weight elimination penalty. This has the effect of shrinking
+smaller weights more than (11.16) does.
+   Figure 11.4 shows the result of training a neural network with ten hidden
+units, without weight decay (upper panel) and with weight decay (lower
+panel), to the mixture example of Chapter 2. Weight decay has clearly
+improved the prediction. Figure 11.5 shows heat maps of the estimated
+weights from the training (grayscale versions of these are called Hinton
+diagrams.) We see that weight decay has dampened the weights in both
+layers: the resulting weights are spread fairly evenly over the ten hidden
+units.
+
+
+11.5.3 Scaling of the Inputs
+Since the scaling of the inputs determines the effective scaling of the weights
+in the bottom layer, it can have a large effect on the quality of the final
+                                                                              11.5 Some Issues in Training Neural Networks                                                                                                                                                                                                                            399
+
+                                              Neural Network - 10 Units, No Weight Decay
+
+                .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                   oo
+                 .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                        oo
+                  ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                         o
+                    .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                         o o         oo oo               o
+                     .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                      .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                     o o o oo
+                       .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                   o o o.. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                 o oo       o          o
+                                    o oo
+                         .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                          .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                              o                          oo
+                           ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                     o           o o oo               o ooo
+                                                      o
+                             .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                                      o
+                              .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                        o     o   o o
+                           o o ooo oo               o
+                               .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+
+                            oo                                    oo       o
+                                .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                             o
+                                 .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                          o o          o
+                              ooooooo oo          o     oo     o o o       o
+                                  .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                   .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                    o o                                                                                                                                                                                                                                                                                     o
+                 o                o o ooo              o        o          oo
+                                    ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                                                    o o o oo o
+                                        oo o   oooo ooooo
+                                      .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                       o    o                                          o
+                                       .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                        o o     o      o
+                                        .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                   o oo o o                              o o
+                                         .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+
+                                      o oo  o oo o oo o o o
+                                          .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                           .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                 o        o            o   o
+                                            .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                            o             oo o o
+                                             ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                                    o     oooo o ooo oo               o
+                                               .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                              o ooo
+                                                .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                 .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                  o                    o   o
+                                                  .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                    o
+                                o o o o o                   oo
+                                                   ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                                                                  o
+                                                     .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                      .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                        o         o       oo oo o
+                                                       .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                        .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                  ooo    ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                                                   o o o oo o
+                                                           .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                            .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                               o                  oo
+                                                             .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                              .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                                   o
+                                                               .. ..Training
+                                                                           .. .. .. .. .. .. .. .. Error: .. .. .. .. .. .. 0.100 .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                    o                o
+                                                                ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                                                                  .. ..Test . . . . .. .. .. .. .. .. .. .. .. .. 0.259            .....................................................
+                                                                   .. .. ... ... ... ... Error:
+                                                                                          .. .. .. .. .. .. .. .. .. .. ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                                                                    .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                    Bayes Error:                                                         0.210                                                                                                                                                                        o
+
+
+
+                                     Neural Network - 10 Units, Weight Decay=0.02
+
+                .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                   oo
+                 .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                        oo
+                  ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                        o
+                    .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                        o o          oo oo                o
+                     .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                      .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                     oo o o
+                       ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                   o o o
+                                    o oo o   o
+                         .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                 o oo      o
+                          .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                           .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                             o                            oo
+                                o o oo
+                            .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                    o                                  o ooo
+                                                       o
+                             .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                                        o
+                              .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                        o     o   o o
+                          o o ooo oo                o
+                               ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                                                             o      oo        o
+                                 .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                           oo           o o o o ooo
+                                  .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                          o                      o  o  o      o
+                             oooo  .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                    o                                                                                                                                                                                                                                                                                                       o
+                                 oooo ooo           oooo o oo                 oo
+                                    .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                 o                   .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                          o        o o
+                      o    o            oo o   oooo ooooo
+                                      ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                                                                  o      oo
+                                        .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                  o oo o o              o     o
+                                         .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                                            o o
+                                          .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                            o         o        o
+                                           .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                               o
+                                      o oooo oo ooo        o
+                                                           o
+                                                          o o o
+                                                                   oo
+                                            .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                             .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                    o     oooo o ooo oo
+                                              ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                                                                        o
+                                                .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                              o ooo
+                                                 .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                  .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                  o                  o o oo
+                                                   .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                                    o
+                              o o o o o                     o
+                                                    .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                     .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                      ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                                        o         o       oo     o  o
+                                                        .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                                o
+                                                  ooo    .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                          .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                   o o o oo o
+                                                           .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                            .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                               o                    oo
+                                                             .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                              ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                                                                     o
+                                                                .. ..Training
+                                                                           . . . . . . . . Error:        . . . . . . 0.160       .....................................................
+                                                     o                 o
+                                                                 .. .. ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                                                                  .. ..Test. . . . .. .. .. .. .. .. .. .. .. .. 0.223          .....................................................
+                                                                   .. .. ... ... ... ... Error:
+                                                                                         .. .. .. .. .. .. .. .. .. .. ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                    Bayes Error:                                    .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                                                         0.210                                                                                                                                                                        o
+
+
+
+
+FIGURE 11.4. A neural network on the mixture example of Chapter 2. The
+upper panel uses no weight decay, and overfits the training data. The lower panel
+uses weight decay, and achieves close to the Bayes error rate (broken purple
+boundary). Both use the softmax activation function and cross-entropy error.
+400            Neural Networks
+
+
+                          No weight decay                                                 Weight decay
+          y2                                                          y2
+          y1                                                          y1
+
+
+
+
+                z10
+
+
+
+
+                                                                            z10
+                 z1
+                 z2
+                 z3
+                 z1
+                 z5
+                 z6
+                 z7
+                 z8
+                 z9
+
+
+
+
+                                                                             z1
+                                                                             z2
+                                                                             z3
+                                                                             z1
+                                                                             z5
+                                                                             z6
+                                                                             z7
+                                                                             z8
+                                                                             z9
+                  1
+
+
+
+
+                                                                              1
+      x2                                                          x2
+      x1                                                          x1
+      1                                                           1
+
+
+
+
+                                                            z10
+
+
+
+
+                                                                                                                        z10
+               z1
+                    z2
+                         z3
+                              z1
+                                   z5
+                                        z6
+                                             z7
+                                                  z8
+                                                       z9
+
+
+
+
+                                                                           z1
+                                                                                z2
+                                                                                     z3
+                                                                                          z1
+                                                                                               z5
+                                                                                                    z6
+                                                                                                         z7
+                                                                                                              z8
+                                                                                                                   z9
+FIGURE 11.5. Heat maps of the estimated weights from the training of neural
+networks from Figure 11.4. The display ranges from bright green (negative) to
+bright red (positive).
+
+
+solution. At the outset it is best to standardize all inputs to have mean zero
+and standard deviation one. This ensures all inputs are treated equally in
+the regularization process, and allows one to choose a meaningful range for
+the random starting weights. With standardized inputs, it is typical to take
+random uniform weights over the range [−0.7, +0.7].
+
+
+11.5.4 Number of Hidden Units and Layers
+Generally speaking it is better to have too many hidden units than too few.
+With too few hidden units, the model might not have enough flexibility to
+capture the nonlinearities in the data; with too many hidden units, the
+extra weights can be shrunk toward zero if appropriate regularization is
+used. Typically the number of hidden units is somewhere in the range of
+5 to 100, with the number increasing with the number of inputs and num-
+ber of training cases. It is most common to put down a reasonably large
+number of units and train them with regularization. Some researchers use
+cross-validation to estimate the optimal number, but this seems unneces-
+sary if cross-validation is used to estimate the regularization parameter.
+Choice of the number of hidden layers is guided by background knowledge
+and experimentation. Each layer extracts features of the input for regres-
+sion or classification. Use of multiple hidden layers allows construction of
+hierarchical features at different levels of resolution. An example of the
+effective use of multiple layers is given in Section 11.6.
+
+
+11.5.5 Multiple Minima
+The error function R(θ) is nonconvex, possessing many local minima. As a
+result, the final solution obtained is quite dependent on the choice of start-
+                                          11.6 Example: Simulated Data        401
+
+ing weights. One must at least try a number of random starting configura-
+tions, and choose the solution giving lowest (penalized) error. Probably a
+better approach is to use the average predictions over the collection of net-
+works as the final prediction (Ripley, 1996). This is preferable to averaging
+the weights, since the nonlinearity of the model implies that this averaged
+solution could be quite poor. Another approach is via bagging, which aver-
+ages the predictions of networks training from randomly perturbed versions
+of the training data. This is described in Section 8.7.
+
+
+11.6 Example: Simulated Data
+We generated data from two additive error models Y = f (X) + ε:
+
+             Sum of sigmoids: Y      =   σ(aT1 X) + σ(aT2 X) + ε1 ;
+                                          10
+                                          Y
+                       Radial: Y     =         φ(Xm ) + ε2 .
+                                         m=1
+
+Here X T = (X1 , X2 , . . . , Xp ), each Xj being a standard Gaussian variate,
+with p = 2 in the first model, and p = 10 in the second.
+  For the sigmoid model, a1 = (3, 3), a2 = (3, −3); for the radial model,
+φ(t) = (1/2π)1/2 exp(−t2 /2). Both ε1 and ε2 are Gaussian errors, with
+variance chosen so that the signal-to-noise ratio
+                      Var(E(Y |X))     Var(f (X))
+                                     =                                    (11.18)
+                    Var(Y − E(Y |X))    Var(ε)
+is 4 in both models. We took a training sample of size 100 and a test sample
+of size 10, 000. We fit neural networks with weight decay and various num-
+bers of hidden units, and recorded the average test error ETest (Y − fˆ(X))2
+for each of 10 random starting weights. Only one training set was gen-
+erated, but the results are typical for an “average” training set. The test
+errors are shown in Figure 11.6. Note that the zero hidden unit model refers
+to linear least squares regression. The neural network is perfectly suited to
+the sum of sigmoids model, and the two-unit model does perform the best,
+achieving an error close to the Bayes rate. (Recall that the Bayes rate for
+regression with squared error is the error variance; in the figures, we report
+test error relative to the Bayes error). Notice, however, that with more hid-
+den units, overfitting quickly creeps in, and with some starting weights the
+model does worse than the linear model (zero hidden unit) model. Even
+with two hidden units, two of the ten starting weight configurations pro-
+duced results no better than the linear model, confirming the importance
+of multiple starting values.
+   A radial function is in a sense the most difficult for the neural net, as it is
+spherically symmetric and with no preferred directions. We see in the right
+402                Neural Networks
+
+                        Sum of Sigmoids                                      Radial
+
+
+             3.0
+
+
+
+
+                                                              30
+                                                              25
+             2.5
+
+
+
+
+                                                              20
+Test Error
+
+
+
+
+                                                 Test Error
+             2.0
+
+
+
+
+                                                              15
+                                                              10
+             1.5
+
+
+
+
+                                                              5
+             1.0
+
+
+
+
+                                                              0
+                    0 1 2 3 4 5 6 7 8 9 10                         0 1 2 3 4 5 6 7 8 9 10
+                        Number of Hidden Units                        Number of Hidden Units
+
+
+FIGURE 11.6. Boxplots of test error, for simulated data example, relative to
+the Bayes error (broken horizontal line). True function is a sum of two sigmoids
+on the left, and a radial function is on the right. The test error is displayed for
+10 different starting weights, for a single hidden layer neural network with the
+number of units as indicated.
+
+
+
+panel of Figure 11.6 that it does poorly in this case, with the test error
+staying well above the Bayes error (note the different vertical scale from
+the left panel). In fact, since a constant fit (such as the sample average)
+achieves a relative error of 5 (when the SNR is 4), we see that the neural
+networks perform increasingly worse than the mean.
+  In this example we used a fixed weight decay parameter of 0.0005, rep-
+resenting a mild amount of regularization. The results in the left panel of
+Figure 11.6 suggest that more regularization is needed with greater num-
+bers of hidden units.
+  In Figure 11.7 we repeated the experiment for the sum of sigmoids model,
+with no weight decay in the left panel, and stronger weight decay (λ = 0.1)
+in the right panel. With no weight decay, overfitting becomes even more
+severe for larger numbers of hidden units. The weight decay value λ = 0.1
+produces good results for all numbers of hidden units, and there does not
+appear to be overfitting as the number of units increase. Finally, Figure 11.8
+shows the test error for a ten hidden unit network, varying the weight decay
+parameter over a wide range. The value 0.1 is approximately optimal.
+  In summary, there are two free parameters to select: the weight decay λ
+and number of hidden units M . As a learning strategy, one could fix either
+parameter at the value corresponding to the least constrained model, to
+ensure that the model is rich enough, and use cross-validation to choose
+the other parameter. Here the least constrained values are zero weight decay
+and ten hidden units. Comparing the left panel of Figure 11.7 to Figure
+11.8, we see that the test error is less sensitive to the value of the weight
+                                                              11.6 Example: Simulated Data                   403
+
+
+
+                      No Weight Decay                                               Weight Decay=0.1
+
+             3.0
+
+
+
+
+                                                                       3.0
+             2.5
+
+
+
+
+                                                                       2.5
+Test Error
+
+
+
+
+                                                        Test Error
+             2.0
+
+
+
+
+                                                                       2.0
+             1.5
+
+
+
+
+                                                                       1.5
+             1.0
+
+
+
+
+                                                                       1.0
+                   0 1 2 3 4 5 6 7 8 9 10                                    0 1 2 3 4 5 6 7 8 9 10
+                      Number of Hidden Units                                        Number of Hidden Units
+
+
+FIGURE 11.7. Boxplots of test error, for simulated data example, relative to the
+Bayes error. True function is a sum of two sigmoids. The test error is displayed
+for ten different starting weights, for a single hidden layer neural network with
+the number units as indicated. The two panels represent no weight decay (left)
+and strong weight decay λ = 0.1 (right).
+
+
+
+
+                                 Sum of Sigmoids, 10 Hidden Unit Model
+             2.2
+             2.0
+             1.8
+Test Error
+
+             1.6
+             1.4
+             1.2
+             1.0
+
+
+
+
+                    0.00     0.02      0.04      0.06                0.08    0.10        0.12      0.14
+
+                                               Weight Decay Parameter
+
+
+
+FIGURE 11.8. Boxplots of test error, for simulated data example. True function
+is a sum of two sigmoids. The test error is displayed for ten different starting
+weights, for a single hidden layer neural network with ten hidden units and weight
+decay parameter value as indicated.
+404    Neural Networks
+
+
+
+
+FIGURE 11.9. Examples of training cases from ZIP code data. Each image is
+a 16 × 16 8-bit grayscale representation of a handwritten digit.
+
+decay parameter, and hence cross-validation of this parameter would be
+preferred.
+
+
+
+11.7 Example: ZIP Code Data
+This example is a character recognition task: classification of handwritten
+numerals. This problem captured the attention of the machine learning and
+neural network community for many years, and has remained a benchmark
+problem in the field. Figure 11.9 shows some examples of normalized hand-
+written digits, automatically scanned from envelopes by the U.S. Postal
+Service. The original scanned digits are binary and of different sizes and
+orientations; the images shown here have been deslanted and size normal-
+ized, resulting in 16 × 16 grayscale images (Le Cun et al., 1990). These 256
+pixel values are used as inputs to the neural network classifier.
+   A black box neural network is not ideally suited to this pattern recogni-
+tion task, partly because the pixel representation of the images lack certain
+invariances (such as small rotations of the image). Consequently early at-
+tempts with neural networks yielded misclassification rates around 4.5%
+on various examples of the problem. In this section we show some of the
+pioneering efforts to handcraft the neural network to overcome some these
+deficiencies (Le Cun, 1989), which ultimately led to the state of the art in
+neural network performance(Le Cun et al., 1998)1 .
+   Although current digit datasets have tens of thousands of training and
+test examples, the sample size here is deliberately modest in order to em-
+
+  1 The figures and tables in this example were recreated from Le Cun (1989).
+                                                  11.7 Example: ZIP Code Data            405
+
+                                                                           10
+
+                                                  10                    4x4
+                             10
+
+                                                     12
+                                                                           8x8
+
+
+
+
+                             16x16                   16x16                  16x16
+               Net-1                      Net-2                   Net-3
+                                                             Local Connectivity
+
+                        10                                            10
+
+
+                       4x4                                                       4x4x4
+
+
+
+
+                                  8x8x2                                       8x8x2
+
+
+
+
+                         16x16                                          16x16
+
+              Net-4                 Shared Weights
+                                                              Net-5
+
+FIGURE 11.10. Architecture of the five networks used in the ZIP code example.
+
+phasize the effects. The examples were obtained by scanning some actual
+hand-drawn digits, and then generating additional images by random hor-
+izontal shifts. Details may be found in Le Cun (1989). There are 320 digits
+in the training set, and 160 in the test set.
+   Five different networks were fit to the data:
+ Net-1: No hidden layer, equivalent to multinomial logistic regression.
+ Net-2: One hidden layer, 12 hidden units fully connected.
+ Net-3: Two hidden layers locally connected.
+ Net-4: Two hidden layers, locally connected with weight sharing.
+ Net-5: Two hidden layers, locally connected, two levels of weight sharing.
+These are depicted in Figure 11.10. Net-1 for example has 256 inputs, one
+each for the 16 × 16 input pixels, and ten output units for each of the digits
+0–9. The predicted value fˆk (x) represents the estimated probability that
+an image x has digit class k, for k = 0, 1, 2, . . . , 9.
+406                            Neural Networks
+
+
+                                100
+                                                                                     Net-5
+                                                                             Net-4
+
+                                90
+      % Correct on Test Data
+                                                                             Net-3
+
+                                                                             Net-2
+
+                                80
+
+                                                                             Net-1
+
+                                70
+
+
+
+
+                                60
+
+                                      0      5   10         15          20    25             30
+
+                                                      Training Epochs
+
+
+FIGURE 11.11. Test performance curves, as a function of the number of train-
+ing epochs, for the five networks of Table 11.1 applied to the ZIP code data.
+(Le Cun, 1989)
+
+
+   The networks all have sigmoidal output units, and were all fit with the
+sum-of-squares error function. The first network has no hidden layer, and
+hence is nearly equivalent to a linear multinomial regression model (Exer-
+cise 11.4). Net-2 is a single hidden layer network with 12 hidden units, of
+the kind described above.
+   The training set error for all of the networks was 0%, since in all cases
+there are more parameters than training observations. The evolution of the
+test error during the training epochs is shown in Figure 11.11. The linear
+network (Net-1) starts to overfit fairly quickly, while test performance of
+the others level off at successively superior values.
+   The other three networks have additional features which demonstrate
+the power and flexibility of the neural network paradigm. They introduce
+constraints on the network, natural for the problem at hand, which allow
+for more complex connectivity but fewer parameters.
+   Net-3 uses local connectivity: this means that each hidden unit is con-
+nected to only a small patch of units in the layer below. In the first hidden
+layer (an 8 × 8 array), each unit takes inputs from a 3 × 3 patch of the input
+layer; for units in the first hidden layer that are one unit apart, their recep-
+tive fields overlap by one row or column, and hence are two pixels apart.
+In the second hidden layer, inputs are from a 5 × 5 patch, and again units
+that are one unit apart have receptive fields that are two units apart. The
+weights for all other connections are set to zero. Local connectivity makes
+each unit responsible for extracting local features from the layer below, and
+                                        11.7 Example: ZIP Code Data       407
+
+
+TABLE 11.1. Test set performance of five different neural networks on a hand-
+written digit classification example (Le Cun, 1989).
+
+              Network Architecture       Links    Weights    % Correct
+     Net-1:   Single layer network        2570      2570        80.0%
+     Net-2:   Two layer network           3214      3214        87.0%
+     Net-3:   Locally connected           1226      1226        88.5%
+     Net-4:   Constrained network 1       2266      1132        94.0%
+     Net-5:   Constrained network 2       5194      1060        98.4%
+
+
+reduces considerably the total number of weights. With many more hidden
+units than Net-2, Net-3 has fewer links and hence weights (1226 vs. 3214),
+and achieves similar performance.
+   Net-4 and Net-5 have local connectivity with shared weights. All units
+in a local feature map perform the same operation on different parts of the
+image, achieved by sharing the same weights. The first hidden layer of Net-
+4 has two 8×8 arrays, and each unit takes input from a 3×3 patch just like
+in Net-3. However, each of the units in a single 8 × 8 feature map share the
+same set of nine weights (but have their own bias parameter). This forces
+the extracted features in different parts of the image to be computed by
+the same linear functional, and consequently these networks are sometimes
+known as convolutional networks. The second hidden layer of Net-4 has
+no weight sharing, and is the same as in Net-3. The gradient of the error
+function R with respect to a shared weight is the sum of the gradients of
+R with respect to each connection controlled by the weights in question.
+   Table 11.1 gives the number of links, the number of weights and the
+optimal test performance for each of the networks. We see that Net-4 has
+more links but fewer weights than Net-3, and superior test performance.
+Net-5 has four 4 × 4 feature maps in the second hidden layer, each unit
+connected to a 5 × 5 local patch in the layer below. Weights are shared
+in each of these feature maps. We see that Net-5 does the best, having
+errors of only 1.6%, compared to 13% for the “vanilla” network Net-2.
+The clever design of network Net-5, motivated by the fact that features of
+handwriting style should appear in more than one part of a digit, was the
+result of many person years of experimentation. This and similar networks
+gave better performance on ZIP code problems than any other learning
+method at that time (early 1990s). This example also shows that neural
+networks are not a fully automatic tool, as they are sometimes advertised.
+As with all statistical models, subject matter knowledge can and should be
+used to improve their performance.
+   This network was later outperformed by the tangent distance approach
+(Simard et al., 1993) described in Section 13.3.3, which explicitly incorpo-
+rates natural affine invariances. At this point the digit recognition datasets
+become test beds for every new learning procedure, and researchers worked
+408      Neural Networks
+
+hard to drive down the error rates. As of this writing, the best error rates on
+a large database (60, 000 training, 10, 000 test observations), derived from
+standard NIST2 databases, were reported to be the following: (Le Cun et
+al., 1998):
+
+      • 1.1% for tangent distance with a 1-nearest neighbor classifier (Sec-
+        tion 13.3.3);
+
+      • 0.8% for a degree-9 polynomial SVM (Section 12.3);
+
+      • 0.8% for LeNet-5, a more complex version of the convolutional net-
+        work described here;
+
+      • 0.7% for boosted LeNet-4. Boosting is described in Chapter 8. LeNet-
+        4 is a predecessor of LeNet-5.
+
+Le Cun et al. (1998) report a much larger table of performance results, and
+it is evident that many groups have been working very hard to bring these
+test error rates down. They report a standard error of 0.1% on the error
+estimates, which is based on a binomial average with N = 10, 000 and
+p ≈ 0.01. This implies that error rates within 0.1—0.2% of one another
+are statistically equivalent. Realistically the standard error is even higher,
+since the test data has been implicitly used in the tuning of the various
+procedures.
+
+
+
+11.8 Discussion
+Both projection pursuit regression and neural networks take nonlinear func-
+tions of linear combinations (“derived features”) of the inputs. This is a
+powerful and very general approach for regression and classification, and
+has been shown to compete well with the best learning methods on many
+problems.
+   These tools are especially effective in problems with a high signal-to-noise
+ratio and settings where prediction without interpretation is the goal. They
+are less effective for problems where the goal is to describe the physical pro-
+cess that generated the data and the roles of individual inputs. Each input
+enters into the model in many places, in a nonlinear fashion. Some authors
+(Hinton, 1989) plot a diagram of the estimated weights into each hidden
+unit, to try to understand the feature that each unit is extracting. This
+is limited however by the lack of identifiability of the parameter vectors
+αm , m = 1, . . . , M . Often there are solutions with αm spanning the same
+linear space as the ones found during training, giving predicted values that
+
+   2 The National Institute of Standards and Technology maintain large databases, in-
+
+cluding handwritten character databases; http://www.nist.gov/srd/.
+              11.9 Bayesian Neural Nets and the NIPS 2003 Challenge       409
+
+are roughly the same. Some authors suggest carrying out a principal com-
+ponent analysis of these weights, to try to find an interpretable solution. In
+general, the difficulty of interpreting these models has limited their use in
+fields like medicine, where interpretation of the model is very important.
+   There has been a great deal of research on the training of neural net-
+works. Unlike methods like CART and MARS, neural networks are smooth
+functions of real-valued parameters. This facilitates the development of
+Bayesian inference for these models. The next sections discusses a success-
+ful Bayesian implementation of neural networks.
+
+
+
+
+11.9 Bayesian Neural Nets and the NIPS 2003
+     Challenge
+A classification competition was held in 2003, in which five labeled train-
+ing datasets were provided to participants. It was organized for a Neural
+Information Processing Systems (NIPS) workshop. Each of the data sets
+constituted a two-class classification problems, with different sizes and from
+a variety of domains (see Table 11.2). Feature measurements for a valida-
+tion dataset were also available.
+   Participants developed and applied statistical learning procedures to
+make predictions on the datasets, and could submit predictions to a web-
+site on the validation set for a period of 12 weeks. With this feedback,
+participants were then asked to submit predictions for a separate test set
+and they received their results. Finally, the class labels for the validation
+set were released and participants had one week to train their algorithms
+on the combined training and validation sets, and submit their final pre-
+dictions to the competition website. A total of 75 groups participated, with
+20 and 16 eventually making submissions on the validation and test sets,
+respectively.
+   There was an emphasis on feature extraction in the competition. Arti-
+ficial “probes” were added to the data: these are noise features with dis-
+tributions resembling the real features but independent of the class labels.
+The percentage of probes that were added to each dataset, relative to the
+total set of features, is shown on Table 11.2. Thus each learning algorithm
+had to figure out a way of identifying the probes and downweighting or
+eliminating them.
+   A number of metrics were used to evaluate the entries, including the
+percentage correct on the test set, the area under the ROC curve, and a
+combined score that compared each pair of classifiers head-to-head. The
+results of the competition are very interesting and are detailed in Guyon et
+al. (2006). The most notable result: the entries of Neal and Zhang (2006)
+were the clear overall winners. In the final competition they finished first
+410     Neural Networks
+
+
+TABLE 11.2. NIPS 2003 challenge data sets. The column labeled p is the number
+of features. For the Dorothea dataset the features are binary. Ntr , Nval and Nte
+are the number of training, validation and test cases, respectively
+ Dataset    Domain                Feature   p         Percent    Ntr    Nval    Nte
+                                  Type                Probes
+ Arcene     Mass spectrometry     Dense     10,000    30         100    100     700
+ Dexter     Text classification   Sparse    20,000    50         300    300     2000
+ Dorothea   Drug discovery        Sparse    100,000   50         800    350     800
+ Gisette    Digit recognition     Dense     5000      30         6000   1000    6500
+ Madelon    Artificial            Dense     500       96         2000   600     1800
+
+
+in three of the five datasets, and were 5th and 7th on the remaining two
+datasets.
+  In their winning entries, Neal and Zhang (2006) used a series of pre-
+processing feature-selection steps, followed by Bayesian neural networks,
+Dirichlet diffusion trees, and combinations of these methods. Here we focus
+only on the Bayesian neural network approach, and try to discern which
+aspects of their approach were important for its success. We rerun their
+programs and compare the results to boosted neural networks and boosted
+trees, and other related methods.
+
+
+11.9.1 Bayes, Boosting and Bagging
+Let us first review briefly the Bayesian approach to inference and its appli-
+cation to neural networks. Given training data Xtr , ytr , we assume a sam-
+pling model with parameters θ; Neal and Zhang (2006) use a two-hidden-
+layer neural network, with output nodes the class probabilities Pr(Y |X, θ)
+for the binary outcomes. Given a prior distribution Pr(θ), the posterior
+distribution for the parameters is
+                                       Pr(θ)Pr(ytr |Xtr , θ)
+                Pr(θ|Xtr , ytr ) = R                                           (11.19)
+                                       Pr(θ)Pr(ytr |Xtr , θ)dθ
+  For a test case with features Xnew , the predictive distribution for the
+label Ynew is
+                                 Z
+    Pr(Ynew |Xnew , Xtr , ytr ) = Pr(Ynew |Xnew , θ)Pr(θ|Xtr , ytr )dθ (11.20)
+
+(c.f. equation 8.24). Since the integral in (11.20) is intractable, sophisticated
+Markov Chain Monte Carlo (MCMC) methods are used to sample from the
+posterior distribution Pr(Ynew |Xnew , Xtr , ytr ). A few hundred values θ are
+generated and then a simple average of these values estimates the integral.
+Neal and Zhang (2006) use diffuse Gaussian priors for all of the parame-
+ters. The particular MCMC approach that was used is called hybrid Monte
+Carlo, and may be important for the success of the method. It includes
+an auxiliary momentum vector and implements Hamiltonian dynamics in
+which the potential function is the target density. This is done to avoid
+              11.9 Bayesian Neural Nets and the NIPS 2003 Challenge       411
+
+random walk behavior; the successive candidates move across the sample
+space in larger steps. They tend to be less correlated and hence converge
+to the target distribution more rapidly.
+   Neal and Zhang (2006) also tried different forms of pre-processing of the
+features:
+
+  1. univariate screening using t-tests, and
+
+  2. automatic relevance determination.
+
+In the latter method (ARD), the weights (coefficients) for the jth feature
+to each of the first hidden layer units all share a common prior variance
+σj2 , and prior mean zero. The posterior distributions for each variance σj2
+are computed, and the features whose posterior variance concentrates on
+small values are discarded.
+   There are thus three main features of this approach that could be im-
+portant for its success:
+
+ (a) the feature selection and pre-processing,
+
+ (b) the neural network model, and
+
+ (c) the Bayesian inference for the model using MCMC.
+
+    According to Neal and Zhang (2006), feature screening in (a) is carried
+out purely for computational efficiency; the MCMC procedure is slow with
+a large number of features. There is no need to use feature selection to avoid
+overfitting. The posterior average (11.20) takes care of this automatically.
+    We would like to understand the reasons for the success of the Bayesian
+method. In our view, power of modern Bayesian methods does not lie in
+their use as a formal inference procedure; most people would not believe
+that the priors in a high-dimensional, complex neural network model are
+actually correct. Rather the Bayesian/MCMC approach gives an efficient
+way of sampling the relevant parts of model space, and then averaging the
+predictions for the high-probability models.
+    Bagging and boosting are non-Bayesian procedures that have some simi-
+larity to MCMC in a Bayesian model. The Bayesian approach fixes the data
+and perturbs the parameters, according to current estimate of the poste-
+rior distribution. Bagging perturbs the data in an i.i.d fashion and then
+re-estimates the model to give a new set of model parameters. At the end,
+a simple average of the model predictions from different bagged samples is
+computed. Boosting is similar to bagging, but fits a model that is additive
+in the models of each individual base learner, which are learned using non
+i.i.d. samples. We can write all of these models in the form
+                                   L
+                                   X
+                     fˆ(xnew ) =         wℓ E(Ynew |xnew , θ̂ℓ )      (11.21)
+                                   ℓ=1
+412    Neural Networks
+
+In all cases the θ̂ℓ are a large collection of model parameters. For the
+Bayesian model the wℓ = 1/L, and the average estimates the posterior
+mean (11.21) by sampling θℓ from the posterior distribution. For bagging,
+wℓ = 1/L as well, and the θ̂ℓ are the parameters refit to bootstrap re-
+samples of the training data. For boosting, the weights are all equal to
+1, but the θ̂ℓ are typically chosen in a nonrandom sequential fashion to
+constantly improve the fit.
+
+
+
+11.9.2 Performance Comparisons
+Based on the similarities above, we decided to compare Bayesian neural
+networks to boosted trees, boosted neural networks, random forests and
+bagged neural networks on the five datasets in Table 11.2. Bagging and
+boosting of neural networks are not methods that we have previously used
+in our work. We decided to try them here, because of the success of Bayesian
+neural networks in this competition, and the good performance of bagging
+and boosting with trees. We also felt that by bagging and boosting neural
+nets, we could assess both the choice of model as well as the model search
+strategy.
+   Here are the details of the learning methods that were compared:
+
+ Bayesian neural nets. The results here are taken from Neal and Zhang
+     (2006), using their Bayesian approach to fitting neural networks. The
+     models had two hidden layers of 20 and 8 units. We re-ran some
+     networks for timing purposes only.
+
+ Boosted trees. We used the gbm package (version 1.5-7) in the R language.
+     Tree depth and shrinkage factors varied from dataset to dataset. We
+     consistently bagged 80% of the data at each boosting iteration (the
+     default is 50%). Shrinkage was between 0.001 and 0.1. Tree depth was
+     between 2 and 9.
+
+ Boosted neural networks. Since boosting is typically most effective with
+     “weak” learners, we boosted a single hidden layer neural network with
+     two or four units, fit with the nnet package (version 7.2-36) in R.
+
+ Random forests. We used the R package randomForest (version 4.5-16)
+    with default settings for the parameters.
+
+ Bagged neural networks. We used the same architecture as in the Bayesian
+     neural network above (two hidden layers of 20 and 8 units), fit using
+     both Neal’s C language package “Flexible Bayesian Modeling” (2004-
+     11-10 release), and Matlab neural-net toolbox (version 5.1).
+                                   11.9 Bayesian Neural Nets and the NIPS 2003 Challenge                                                   413
+
+
+                           Univariate Screened Features                                                ARD Reduced Features
+
+                                     Bayesian neural nets
+                                     boosted trees
+                                     boosted neural nets
+                                     random forests
+                                     bagged neural networks
+                  25
+
+
+
+
+                                                                                         25
+Test Error (%)
+
+
+
+
+                                                                        Test Error (%)
+                  15
+
+
+
+
+                                                                                         15
+                  5
+
+
+
+
+                                                                                         5
+
+
+                       Arcene   Dexter   Dorothea   Gisette   Madelon                         Arcene    Dexter   Dorothea   Gisette   Madelon
+
+
+
+
+FIGURE 11.12. Performance of different learning methods on five problems,
+using both univariate screening of features (top panel) and a reduced feature set
+from automatic relevance determination. The error bars at the top of each plot
+have width equal to one standard error of the difference between two error rates.
+On most of the problems several competitors are within this error bound.
+
+
+   This analysis was carried out by Nicholas Johnson, and full details may
+be found in Johnson (2008)3 . The results are shown in Figure 11.12 and
+Table 11.3.
+   The figure and table show Bayesian, boosted and bagged neural networks,
+boosted trees, and random forests, using both the screened and reduced
+features sets. The error bars at the top of each plot indicate one standard
+error of the difference between two error rates. Bayesian neural networks
+again emerge as the winner, although for some datasets the differences
+between the test error rates is not statistically significant. Random forests
+performs the best among the competitors using the selected feature set,
+while the boosted neural networks perform best with the reduced feature
+set, and nearly match the Bayesian neural net.
+   The superiority of boosted neural networks over boosted trees suggest
+that the neural network model is better suited to these particular prob-
+lems. Specifically, individual features might not be good predictors here
+
+                 3 We also thank Isabelle Guyon for help in preparing the results of this section.
+414    Neural Networks
+
+
+TABLE 11.3. Performance of different methods. Values are average rank of test
+error across the five problems (low is good), and mean computation time and
+standard error of the mean, in minutes.
+                               Screened Features    ARD Reduced Features
+          Method              Average    Average    Average     Average
+                               Rank        Time      Rank        Time
+  Bayesian neural networks         1.5 384(138)         1.6      600(186)
+  Boosted trees                    3.4 3.03(2.5)        4.0     34.1(32.4)
+  Boosted neural networks          3.8    9.4(8.6)      2.2     35.6(33.5)
+  Random forests                   2.7    1.9(1.7)      3.2      11.2(9.3)
+  Bagged neural networks           3.6    3.5(1.1)      4.0       6.4(4.4)
+
+
+and linear combinations of features work better. However the impressive
+performance of random forests is at odds with this explanation, and came
+as a surprise to us.
+   Since the reduced feature sets come from the Bayesian neural network
+approach, only the methods that use the screened features are legitimate,
+self-contained procedures. However, this does suggest that better methods
+for internal feature selection might help the overall performance of boosted
+neural networks.
+   The table also shows the approximate training time required for each
+method. Here the non-Bayesian methods show a clear advantage.
+   Overall, the superior performance of Bayesian neural networks here may
+be due to the fact that
+
+ (a) the neural network model is well suited to these five problems, and
+
+ (b) the MCMC approach provides an efficient way of exploring the im-
+     portant part of the parameter space, and then averaging the resulting
+     models according to their quality.
+
+The Bayesian approach works well for smoothly parametrized models like
+neural nets; it is not yet clear that it works as well for non-smooth models
+like trees.
+
+
+
+11.10 Computational Considerations
+With N observations, p predictors, M hidden units and L training epochs, a
+neural network fit typically requires O(N pM L) operations. There are many
+packages available for fitting neural networks, probably many more than
+exist for mainstream statistical methods. Because the available software
+varies widely in quality, and the learning problem for neural networks is
+sensitive to issues such as input scaling, such software should be carefully
+chosen and tested.
+                                                           Exercises    415
+
+Bibliographic Notes
+Projection pursuit was proposed by Friedman and Tukey (1974), and spe-
+cialized to regression by Friedman and Stuetzle (1981). Huber (1985) gives
+a scholarly overview, and Roosen and Hastie (1994) present a formulation
+using smoothing splines. The motivation for neural networks dates back
+to McCulloch and Pitts (1943), Widrow and Hoff (1960) (reprinted in An-
+derson and Rosenfeld (1988)) and Rosenblatt (1962). Hebb (1949) heavily
+influenced the development of learning algorithms. The resurgence of neural
+networks in the mid 1980s was due to Werbos (1974), Parker (1985) and
+Rumelhart et al. (1986), who proposed the back-propagation algorithm.
+Today there are many books written on the topic, for a broad range of
+audiences. For readers of this book, Hertz et al. (1991), Bishop (1995) and
+Ripley (1996) may be the most informative. Bayesian learning for neural
+networks is described in Neal (1996). The ZIP code example was taken from
+Le Cun (1989); see also Le Cun et al. (1990) and Le Cun et al. (1998).
+   We do not discuss theoretical topics such as approximation properties of
+neural networks, such as the work of Barron (1993), Girosi et al. (1995)
+and Jones (1992). Some of these results are summarized by Ripley (1996).
+
+
+
+Exercises
+
+Ex. 11.1 Establish the exact correspondence between the projection pur-
+suit regression model (11.1) and the neural network (11.5). In particular,
+show that the single-layer regression network is equivalent to a PPR model
+           T                        T
+with gm (ωm  x) = βm σ(α0m + sm (ωm   x)), where ωm is the mth unit vector.
+Establish a similar equivalence for a classification network.
+
+Ex. 11.2 Consider a neural network for a quantitative outcome as in (11.5),
+using squared-error loss and identity output function gk (t) = t. Suppose
+that the weights αm from the input to hidden layer are nearly zero. Show
+that the resulting model is nearly linear in the inputs.
+
+Ex. 11.3 Derive the forward and backward propagation equations for the
+cross-entropy loss function.
+
+Ex. 11.4 Consider a neural network for a K class outcome that uses cross-
+entropy loss. If the network has no hidden layer, show that the model is
+equivalent to the multinomial logistic model described in Chapter 4.
+
+Ex. 11.5
+
+ (a) Write a program to fit a single hidden layer neural network (ten hidden
+     units) via back-propagation and weight decay.
+416    Neural Networks
+
+ (b) Apply it to 100 observations from the model
+
+                         Y = σ(aT1 X) + (aT2 X)2 + 0.30 · Z,
+
+      where σ is the sigmoid function, Z is standard normal, X T = (X1 , X2 ),
+      each Xj being independent standard normal, and a1 = (3, 3), a2 =
+      (3, −3). Generate a test sample of size 1000, and plot the training and
+      test error curves as a function of the number of training epochs, for
+      different values of the weight decay parameter. Discuss the overfitting
+      behavior in each case.
+
+ (c) Vary the number of hidden units in the network, from 1 up to 10, and
+      determine the minimum number needed to perform well for this task.
+
+Ex. 11.6 Write a program to carry out projection pursuit regression, using
+cubic smoothing splines with fixed degrees of freedom. Fit it to the data
+from the previous exercise, for various values of the smoothing parameter
+and number of model terms. Find the minimum number of model terms
+necessary for the model to perform well and compare this to the number
+of hidden units from the previous exercise.
+
+Ex. 11.7 Fit a neural network to the spam data of Section 9.1.2, and compare
+the results to those for the additive model given in that chapter. Compare
+both the classification performance and interpretability of the final model.
+136     4. Linear Methods for Classification
+
+ (d) Show that this result holds for any (distinct) coding of the two classes.
+
+ (e) Find the solution β̂0 (up to the same scalar multiple as in (c), and
+      hence the predicted value fˆ(x) = β̂0 + xT β̂. Consider the following
+      rule: classify to class 2 if fˆ(x) > 0 and class 1 otherwise. Show this is
+      not the same as the LDA rule unless the classes have equal numbers
+      of observations.
+(Fisher, 1936; Ripley, 1996)
+
+Ex. 4.3 Suppose we transform the original predictors X to Ŷ via linear
+regression. In detail, let Ŷ = X(XT X)−1 XT Y = XB̂, where Y is the
+indicator response matrix. Similarly for any input x ∈ IRp , we get a trans-
+formed vector ŷ = B̂T x ∈ IRK . Show that LDA using Ŷ is identical to
+LDA in the original space.
+Ex. 4.4 Consider the multilogit model with K classes (4.17). Let β be the
+(p + 1)(K − 1)-vector consisting of all the coefficients. Define a suitably
+enlarged version of the input vector x to accommodate this vectorized co-
+efficient matrix. Derive the Newton-Raphson algorithm for maximizing the
+multinomial log-likelihood, and describe how you would implement this
+algorithm.
+Ex. 4.5 Consider a two-class logistic regression problem with x ∈ IR. Char-
+acterize the maximum-likelihood estimates of the slope and intercept pa-
+rameter if the sample xi for the two classes are separated by a point x0 ∈ IR.
+Generalize this result to (a) x ∈ IRp (see Figure 4.16), and (b) more than
+two classes.
+Ex. 4.6 Suppose we have N points xi in IRp in general position, with class
+labels yi ∈ {−1, 1}. Prove that the perceptron learning algorithm converges
+to a separating hyperplane in a finite number of steps:
+ (a) Denote a hyperplane by f (x) = β1T x + β0 = 0, or in more compact
+     notation β T x∗ = 0, where x∗ = (x, 1) and β = (β1 , β0 ). Let zi =
+     x∗i /||x∗i ||. Show that separability implies the existence of a βsep such
+                  T
+     that yi βsep    zi ≥ 1 ∀i
+ (b) Given a current βold , the perceptron algorithm identifies a point zi that
+      is misclassified, and produces the update βnew ← βold + yi zi . Show
+      that ||βnew −βsep ||2 ≤ ||βold −βsep ||2 −1, and hence that the algorithm
+      converges to a separating hyperplane in no more than ||βstart − βsep ||2
+      steps (Ripley, 1996).
+Ex. 4.7 Consider the criterion
+                                       N
+                                       X
+                        ∗
+                      D (β, β0 ) = −         yi (xTi β + β0 ),           (4.58)
+                                       i=1
+

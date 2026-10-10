@@ -1,0 +1,1240 @@
+                                         IN THIS CHAPTER
+
+                                         »» Upgrading the perceptron to the
+                                            interconnection paradigm
+
+                                         »» Structuring neural architectures
+                                            made of nodes and connections
+
+                                         »» Getting a glimpse of the
+                                            backpropagation algorithm
+
+                                         »» Understanding what deep learning is
+                                            and what it can achieve
+
+
+
+
+Chapter   14
+Hitting Complexity with
+Neural Networks
+
+      A
+             s you journey in the world of machine learning, you often see metaphors
+             from the natural world to explain the details of algorithms. This chapter
+             presents a family of learning algorithms that directly derives inspiration
+      from how the brain works. They are neural networks, the core algorithms of the
+      connectionists’ tribe (see the “Specifying the Role of Statistics in Machine
+      Learning” section of Chapter 2 for a listing of the various tribes).
+
+      Starting with the idea of reverse-engineering how a brain processes signals, the
+      connectionists base neural networks on biological analogies and their compo-
+      nents, using brain terms such as neurons and axons as names. However, you’ll
+      discover that neural networks resemble nothing more than a sophisticated, non-
+      linear kind of linear regression when you check their math formulations. Yet,
+      these algorithms are extraordinarily effective against complex problems such as
+      image and sound recognition, or machine language translation. They also can
+      execute quickly when predicting (depending on their size, because some of the
+      recent neural network models are huge).
+
+
+
+
+                      CHAPTER 14 Hitting Complexity with Neural Networks          271
+              Well-devised, large neural networks use the name deep learning and are behind
+              such power tools as Siri and other digital assistants. They are behind the more
+              astonishing machine learning applications as well. For instance, you see them at
+              work in this incredible demonstration by Microsoft CEO Rick Rashid, who is
+              speaking in English while being simultaneously translated into Chinese: https://
+              www.youtube.com/watch?v=Nu-nlQqFCKg. If an AI revolution is about to happen,
+              the increased learning capabilities of neural networks will likely drive it.
+
+              You don’t have to type the source code for this chapter manually. In fact, using the
+              downloadable source is a lot easier. You can find the source for this chapter in the
+              ML4D2E folder of the downloadable source for Python code and the ML4D2ER folder
+              of the downloadable source for the R code. The example files for this chapter will
+              begin with ML4D2E; 14; (for Python) or ML4D2E_R; 14; (for R). See the Introduc-
+              tion for details on how to find these source files.
+
+
+
+
+Revising the Perceptron
+              The core neural network algorithm is the neuron (also called a unit). Many neurons
+              arranged in an interconnected structure make up a neural network, with each
+              neuron linking to the inputs and outputs of other neurons. Thus, a neuron can
+              input features from examples or the results of other neurons, depending on its
+              location in the neural network.
+
+              Something similar to the neuron, the perceptron, appears earlier in this book,
+              although it uses a simpler structure and function. When the psychologist Rosen-
+              blatt conceived the perceptron, he thought of it as a simplified mathematical ver-
+              sion of a brain neuron. A perceptron follows these steps:
+
+              1.   Takes values as inputs from the nearby environment (the dataset).
+
+              2.   Weights these values (as brain cells do with electric signals, based on the
+                   strength of the in-bound connections).
+
+              3.   Sums all the weighted values.
+
+              4.   Activates when the sum exceeds a threshold.
+
+              This threshold outputs a value of 1; otherwise, its prediction is 0. Unfortunately, a
+              perceptron can’t learn when the classes it tries to process aren’t linearly separa-
+              ble. However, scholars discovered that even though a single perceptron couldn’t
+              learn the logical operation XOR shown in Figure 14-1 (the exclusive or, which is
+              true only when the inputs are dissimilar), two perceptrons working together
+              could.
+
+
+
+
+272   PART 4 Learning from Smart and Big Data
+     FIGURE 14-1:
+   Learning logical
+       XOR using a
+ single separating
+line isn’t possible.
+
+
+
+                       Neurons in a neural network are a further evolution of the perceptron: They take
+                       many weighted values as inputs, sum them, and provide the summation as the
+                       result, just as a perceptron does. However, they also provide a more sophisticated
+                       transformation of the summation, something that the perceptron can’t do. In
+                       observing nature, scientists noticed that neurons receive signals but don’t always
+                       release a signal of their own. It depends on the amount of signal received. When a
+                       neuron acquires enough stimuli, it fires an answer; otherwise it remains silent. In
+                       a similar fashion, algorithmic neurons, after receiving weighted values, sum them
+                       and use an activation function to evaluate the result, which transforms it in a non-
+                       linear way. For instance, the activation function can release a zero value unless
+                       the input achieves a certain threshold, or it can dampen or enhance a value by
+                       nonlinearly rescaling it, thus transmitting a rescaled signal.
+
+                       A neural network has different activation functions, as shown in Figure 14-2. The
+                       linear function (labeled Binary step) doesn’t apply any transformation, and it’s
+                       seldom used because it reduces a neural network to a regression with polynomial
+                       transformations. Neural networks commonly use the sigmoid (also known as
+                       logistic) or the hyperbolic tangent (labeled TanH), or the ReLU (which is by far the
+                       more common today) activation functions.
+
+
+
+
+     FIGURE 14-2:
+Plots of different
+       activation
+       functions.
+
+
+
+                       The figure shows how an input (expressed on the horizontal axis) can transform
+                       an output into something else (expressed on the vertical axis). The examples show
+                       a binary step, a logistic, a tangent hyperbolic, and a ReLU activation function.
+
+
+
+
+                                        CHAPTER 14 Hitting Complexity with Neural Networks            273
+                     You learn more about activation functions later in the chapter, but note for now
+                     that activation functions clearly work well in certain ranges of input values. As
+                     you can see from Figure 14-2, they output end-of-scale values outside certain
+                     input boundaries. For this reason, you should always rescale inputs to a neural
+                     network using statistical standardization (zero mean and unit variance) or nor-
+                     malize the input in the range from 0 to 1 or from –1 to +1.
+
+
+
+                     Pushing forth with feed-forward
+                     In a neural network, you have first to consider the architecture, which is how the
+                     neural network components are arranged. Contrary to other algorithms, which
+                     have a fixed pipeline that determines how algorithms receive and process data,
+                     neural networks require you to decide how information flows by fixing the num-
+                     ber of units (the neurons) and their distribution in layers, as shown in
+                     Figure 14-3.
+
+
+
+
+      FIGURE 14-3:
+   An example of
+ the architecture
+      of a neural
+        network.
+
+
+
+                     The figure shows a simple neural architecture. Note how the layers filter informa-
+                     tion in a progressive way. This is a feed-forward input because data feeds forward
+                     into the network in a single direction. Connections exclusively link the units in
+                     one layer with the units in the following layers (information flow from left to
+                     right). No connections exist between units in the same layer or with units outside
+                     the next layers. The information usually pushes forward to the next layer, but it
+                     can skip to additional layers forward. The example of Figure 14-3 shows the con-
+                     nections from the left to the right, but in other representations, you may find
+                     connections from top to bottom or bottom to top. Processed data never returns to
+                     previous neuron layers.
+
+                     Neural networks are also seen as graphs. A graph is simply a set of vertexes, nodes,
+                     or points connected by edges, arcs, or lines. In the case of neural networks, the
+                     graph is called a Directed Acyclic Graph (DAG) because:
+
+
+
+
+274       PART 4 Learning from Smart and Big Data
+ »» You can’t get from one vertex to another and back to the beginning vertex
+     using any route.
+
+ »» There is a predictable set of routes moving from one vertex to the next one.
+There are kinds of neural networks that actually allow loops, though the loops
+occur inside certain neurons (not between layers) and they’re limited to the size
+of the input they receive. Such networks are called Recurrent Neural Networks
+(RNNs), and they are briefly illustrated at the end of this chapter.
+
+Using a neural network is like using a stratified filtering system for water: You
+pour the water from above and the water is filtered at the bottom. The water has
+no way to go back; it just goes forward and straight down, and never laterally. In
+the same way, neural networks force data features to flow through the network
+and mix with each other only according to the network’s architecture. By using
+the best architecture to mix features, the neural network creates new composed
+features at every layer and helps achieve better predictions. Unfortunately, there
+is no way to determine the best architecture without empirically (or systemati-
+cally) trying different solutions and testing whether output data helps predict
+your target values after flowing through the network.
+
+The first and last layers play an important role. The first layer, called the input
+layer, picks up the features from each data example processed by the network. The
+last layer, called the output layer, releases the results.
+
+A neural network can process only numeric, continuous information; it can’t be
+constrained to work with qualitative features (for example, labels indicating a
+quality such as red, blue, or green in an image). You can process qualitative fea-
+tures by transforming them into a continuous numeric value, such as a series of
+binary values, as discussed in Chapter 7 in the material about working with data.
+When a neural network processes a binary feature, the neuron treats the feature
+as a generic number and turns the binary values into other values, even negative
+ones, by processing across units.
+
+Note the limitation of dealing only with numeric values, because you can’t expect
+the last layer to output a nonnumeric label prediction. When dealing with a regres-
+sion problem, the last layer is a single unit. Likewise, when you’re working with a
+classification and you have output that must choose from a number of classes, you
+should have an equivalent number of terminal units, each one representing a
+score linked to the probability of the represented class. Therefore, when classify-
+ing a multiclass problem (as discussed in the “Handling multiple classes” section
+in Chapter 13), such as a penguin species, the final layer has as many units as spe-
+cies. To see how this works, review the Palmer Penguins dataset demonstration in
+the “Experimenting with K-means reliability” section of Chapter 12. You have
+three units representing one of the three Penguin species: Adele, Chinstrap, or
+
+
+
+                 CHAPTER 14 Hitting Complexity with Neural Networks                275
+              Gentoo). For each example, the predicted class is the one that gets the higher
+              score at the end.
+
+              If the classes you predict can coexist (where a training example can be a member
+              of multiple classes), you have a multilabel classification, and your terminal output
+              neurons will provide probability estimates for each class independently from the
+              other. A typical example of multilabel classification occurs when a neural network
+              has to guess all the objects in a photo. All the possible objects are classes for the
+              neural network, and each one receives a probability score of being in the photo. All
+              the objects whose score exceeds a threshold are thus deemed to be in the photo.
+
+              As a contrast to multilabel classification, when the classes you predict are mutu-
+              ally exclusive (your problem is multiclass classification, as in the Penguins dataset),
+              the sum of the probabilities derived from your output neurons should equal
+              100 percent. There is a special final layer, called Softmax layer, which can adjust
+              the probability of each class in such a way that the sum of the resulting probabili-
+              ties equals to 1.0 (or 100 percent).
+
+              In classification, the final layer may represent both a partition of probabilities
+              thanks to a Softmax layer (and you have a multiclass problem in which total prob-
+              abilities sum to 100 percent) or an independent score prediction (because an
+              example can have more classes, which is a multilabel problem in which summed
+              probabilities can be more than 100 percent). When the classification problem is a
+              binary classification, a single node suffices.
+
+              Contrary to other algorithms discussed so far, neural networks can have multiple
+              output units as part of a regression problem, with each one representing a differ-
+              ent regression problem. (For instance, in forecasting, you can have different pre-
+              dictions for the next day, week, month, and so on.)
+
+
+
+              Going even deeper down the rabbit hole
+              Neural networks have different layers, each one having its own weights. Because
+              the neural network segregates computations by layers, knowing the reference layer
+              (the one used for the computation) is important because it provides the means for
+              accounting for certain units and connections. Thus, you can refer to every layer
+              using a specific number and generically talk about each layer using the letter l (so
+              that the first layer would be l1, the second l2, and so on).
+
+              Each layer can have a different number of units, and the number of units located
+              between two layers dictates the number of connections. By multiplying the num-
+              ber of units in the starting layer with the number in the following layer, you can
+              determine the total number of connections between the two: number of connections(l)
+              = units(l) * units(l+1).
+
+
+
+276   PART 4 Learning from Smart and Big Data
+A matrix of weights, usually named with the uppercase Greek letter theta (Θ),
+represents the connections. For ease of reading, the book uses the capital letter W,
+which is a fine choice because it is a matrix. Thus, you can use W1 to refer to the
+connection weights from layer 1 to layer 2, W2 for the connections from layer 2 to
+layer 3, and so on.
+
+You may see references to the layers between the input and the output as hidden
+layers and count layers starting from the first hidden layer. This is just a different
+convention from the one used in the book. The examples in the book always start
+counting from the input layer, so the first hidden layer is layer number 2.
+
+Weights represent the strength of the connection between neurons in the net-
+work. When the weight of the connection between two layers is small, it means
+that the network dumps values flowing between them and signals that taking this
+route won’t likely influence the final prediction. On the contrary, a large positive
+or negative value affects the values that the next layer receives, thus determining
+certain predictions. This approach is clearly analogous to brain cells, which don’t
+stand alone but are in connection with other cells. As someone grows in experi-
+ence, connections between neurons tend to strengthen or weaken to activate or
+deactivate certain cell regions of the brain network, causing additional neural
+processing or an activity with strong connections (a reaction to a danger, for
+instance, if the processed information signals a life-threatening situation).
+
+Now that you know some conventions regarding layers, units, and connections,
+you can start examining the operations that neural networks execute in detail. To
+begin, you can call inputs and outputs in different ways:
+
+
+ »» a: The result stored in a unit in the neural network after being processed by
+     the activation function (called g). This is the final output that is sent further
+     along the network.
+
+ »» z: The multiplication between a and the weights from the W matrix, followed
+     by the addition of a bias value. z represents the signal going through the
+     connections, analogous to water in pipes that flows at a higher or lower
+     pressure depending on the pipe thickness. In the same way, the values
+     received from the previous layer get higher or lower values because of the
+     connection weights used to transmit them.
+
+
+Each successive layer of units in a neural network progressively processes the
+values taken from the features. Think of it as a conveyor belt. As data transits
+the network, it arrives into each unit as a value produced by the summation of the
+values present in the previous layer and weighted by connections represented in
+the matrix W. When the data with added bias exceeds a certain threshold, the
+activation function increases the value stored in the unit; otherwise, it extin-
+guishes the signal by reducing or cancelling it. After processing by the activation
+
+
+
+                  CHAPTER 14 Hitting Complexity with Neural Networks                     277
+                     function, the result is ready to push forward to the connection linked to the next
+                     layer. These steps repeat for each layer until the values reach the end and you have
+                     a result, as shown in Figure 14-4.
+
+
+
+
+      FIGURE 14-4:
+   A detail of the
+    feed-forward
+     process in a
+ neural network.
+
+
+
+                     The figure shows a detail of the process that involves two units pushing their
+                     results to another unit. This event happens in every part of the network. When you
+                     understand the passage from two neurons to one, you can understand the entire
+                     feed-forward process, even when more layers and neurons are involved. For more
+                     explanation, here are the seven steps used to produce a prediction in a neural net-
+                     work made of four layers (like the one shown earlier in the chapter in
+                     Figure 14-3):
+
+                     1.   The first layer (notice the superscript 1 on a) loads the value of each feature in
+                          a different unit:
+
+                             a(1)= X
+
+                     2.   The weights of the connections bridging the input layer with the second layer
+                          are multiplied by the values of the units in the first layer. A matrix multiplica-
+                          tion weights and sums the inputs for the second layer together. The algorithm
+                          adds a bias constant to layer two before running the activation function in the
+                          following step.
+
+                             z(2)=W(1)a(1) + bias(1)
+
+                     3.   The activation function transforms the second-layer inputs. The resulting
+                          values are ready to pass to the connections.
+
+                             a(2) = g(z(2))
+
+                     4.   The third-layer connections weigh and sum the outputs of layer two. The
+                          algorithm adds a bias constant to layer three before proceeding to run the
+                          activation function.
+
+                             z(3) = W(2)a(2) + bias(2)
+
+
+278       PART 4 Learning from Smart and Big Data
+5.   The activation function transforms the layer-three inputs.
+
+        a(3) = g(z(3))
+
+6.   The layer-three outputs are weighted and summed by the connections to the
+     output layer. Finally, the algorithm adds a bias constant to layer four before
+     proceeding to run the activation function in the next step.
+
+        z(4) = W(3)a(3) + bias(3)
+
+7.   The output units receive their inputs and transform the input using the
+     activation function. After this final transformation, the output units are ready
+     to release the resulting predictions of the neural network.
+
+        a(4) = g(z(4))
+
+The activation function plays the role of a signal filter, helping to select the rele-
+vant signals and avoid the weak and noisy ones (because it discards values below
+a certain threshold). Activation functions also provide nonlinearity to the output
+because they enhance or damp the values passing through them in a nonpropor-
+tional way.
+
+From another perspective, the weights of the connections provide a way to mix
+and compose the features in a new way, creating new features in a way not too
+different from a polynomial expansion. The activation renders nonlinear the
+resulting recombination of the features by the connections. Both of these neural
+network components enable the algorithm to learn complex target functions that
+represent the relationship between the input features and the target outcome.
+
+Feeding data forward from the input to the output layer is what exclusively
+­happens when you predict. When you train a neural network, you have both a
+ feed-forward and a backpropagation phase. The backpropagation phase helps you
+ to refine the correct sets of weights in your network. Because the feed-forward
+ phase depends on weight multiplication, you have to start with some weights or
+ you won’t be able to run your network at all. Initialization provides some initial,
+ randomly estimated weights.
+
+How such initial weights are set matters because you can’t use numbers that are
+too small — there will be too little signal for the network to work. However, you
+must also avoid numbers that are too big because the calculations become too
+cumbersome to handle. Sometimes they fail, which causes the exploding gradient
+problem (see the article at https://machinelearningmastery.com/exploding-
+gradients-in-neural-networks/ for details) or, more often, causes saturation of
+the neurons, which means that you can’t correctly train a network because all the
+neurons are always activated.
+
+
+                 CHAPTER 14 Hitting Complexity with Neural Networks                     279
+              Initializing your network using all zeros is always a bad idea because if all the
+              neurons have the same value, they’ll react in the same way to the training input.
+              No matter how many neurons the architecture contains, they operate as a single
+              neuron. A simple solution is to start with initial random weights in the range
+              required for the activation functions, which are the transformation functions that
+              add flexibility to solving problems using the network. Another possible simple
+              solution is to set the weights to zero mean and one standard deviation (a standard
+              normal distribution, in statistics).
+
+              There are smarter weight initializations for more complex networks, such as those
+              found in this article: https://towardsdatascience.com/weightinitialization-
+              techniques-in-neural-networks-26c649eb3b78.
+
+
+
+              Pulling back with backpropagation
+              From an architectural perspective, a neural network does a great job of mixing
+              signals from examples and turning them into new features to achieve an approx-
+              imation of complex nonlinear functions (functions that you can’t represent as a
+              straight line in the features’ space). To create this capability, neural networks
+              work as universal approximators (for more details, go to https://www.techleer.
+              com/articles/449-the-universal-approximation-theorem-for-neural-
+              networks/), which means that they can guess any target function. However, you
+              have to consider that one aspect of this feature is the capacity to model complex
+              functions (representation capability), and another aspect is the capability to learn
+              from data effectively. Learning occurs in a brain because of the formation and
+              modification of synapses between neurons, based on stimuli received by trial-
+              and-error experience. Neural networks provide a way to replicate this process as
+              a mathematical formulation called backpropagation.
+
+              Since its early appearance in the 1970s, the backpropagation algorithm has been
+              given many fixes. Each neural network learning process improvement resulted in
+              new applications and a renewed interest in the technique. In addition, the current
+              deep learning revolution, a revival of neural networks that were abandoned at the
+              beginning of the 1990s, is the result of key advances in the way neural networks
+              learn from their errors. As seen in other algorithms, the cost function activates
+              the necessity to learn certain examples better (large errors correspond to high
+              costs). When an example with a large error occurs, the cost function outputs a
+              high value that is minimized by changing the parameters in the algorithm.
+
+              In linear regression, finding an update rule to apply to each parameter (the vector
+              of beta coefficients) is straightforward; you can manage it using gradient descent
+              or by an analytical approach. However, in a neural network, things are a bit more
+              complicated. The architecture is variable and the parameter coefficients (the con-
+              nections) relate to each other because the connections in a layer depend on how
+
+
+
+280   PART 4 Learning from Smart and Big Data
+the connections in the previous layers recombined the inputs. The solution to this
+problem is the backpropagation algorithm. Backpropagation is a smart way to
+propagate the errors back into the network and make each connection adjust its
+weights accordingly. If you initially feed-forward propagated information to the
+network, it’s time to go backward and give feedback on what went wrong in the
+forward phase.
+
+Discovering how backpropagation works isn’t complicated, even though demon-
+strating how it works using formulas and mathematics requires derivatives and
+the proving of some formulations, which is quite tricky and beyond the scope of
+this book. To get a sense of how backpropagation operates, start from the end of
+the network, just at the moment when an example has been processed and you
+have a prediction as an output. At this point, you can compare it with the real
+result and, by subtracting the two results, get an offset, which is the error. Now
+that you know the mismatch of the results at the output layer, you can progress
+backward in order to distribute it along all the units in the network.
+
+The cost function of a neural network for classification is based on cross-entropy
+(as seen in logistic regression):
+
+     Cost     y * log( h w ( X )) (1 y ) * log(1 h w ( X ))
+
+This is a formulation involving logarithms. It refers to the prediction produced by
+the neural network and expressed as hW(X) (which reads as the result of the net-
+work given connections W and X as input). To make things easier, when ponder-
+ing the cost, it helps to simply think of the formulation as computing the offset
+between the expected results and the neural network output.
+
+The first step in transmitting the error back into the network relies on backward
+multiplication. Because the values fed to the output layer are made of the contri-
+butions of all units, proportional to the weight of their connections, you can redis-
+tribute the error according to each contribution. For instance, the vector of errors
+of a layer n in the network, a vector indicated by the Greek letter delta (δ), is the
+result of the following formulation:
+       (n)
+              W ( n )T *   ( n+1)
+
+
+
+This formula says that, starting from the final delta, you can continue redistribut-
+ing delta going backward in the network and using the weights you used to push
+forward the value to partition the error to the different units. In this way, you can
+get the terminal error redistributed to each neural unit, and you can use it to
+recalculate a more appropriate weight for each network connection to minimize
+the error. To update the weights W of layer l, you just apply the following formula:
+
+     W ( 1)   W ( 1)       *
+                               ( 1)         (1)
+                                      * g’(z ) * a
+                                                   (1)
+
+
+
+
+                       CHAPTER 14 Hitting Complexity with Neural Networks       281
+              It may appear to be a puzzling formula at first sight, but it is a summation, and you
+              can discover how it works by looking at its elements. First, look at the function g'.
+              It’s the first derivative of the activation function g, evaluated by the input values z.
+              In fact, derivatives are a key component of the gradient descent optimization
+              method (see the article at https://towardsdatascience.com/understanding-
+              the-mathematics-behind-gradient-descent-dde5dc9be06e for details). Gradi-
+              ent descent determines how to reduce the error measure by finding, among the
+              possible combinations of values, the weights that most reduce the error.
+
+              The Greek letter eta (η), sometimes also called alpha (α) or epsilon (ε) depending
+              on the textbook you consult, is the learning rate. As found in other algorithms,
+              using similar learning strategies, it reduces the effect of the update suggested by
+              the gradient descent derivative. In fact, the direction provided by the weight
+              updates may be only partially correct or just roughly correct (because of noise or
+              errors in the data or because of the composition of the processed batch of exam-
+              ples). By taking multiple small steps in the descent, the algorithm can take a more
+              precise direction toward the global minimum error, which is the target you want
+              to achieve (that is, a neural network producing the least possible prediction error).
+
+              Different methods are available for setting the right eta value, because the opti-
+              mization largely depends on it. One method sets the eta value starting high and
+              reduces it during the optimization process. Another method variably increases or
+              decreases eta based on the improvements obtained by the algorithm: Large
+              improvements call a larger eta (because the descent is easy and straight); smaller
+              improvements call a smaller eta so that the optimization will move slower, look-
+              ing for the best opportunities to descend. Think of it as being on a tortuous path
+              in the mountains: You slow down and try not to fall or be thrown off the road as
+              you descend.
+
+              Most implementations offer an automatic setting of the correct eta. You need to
+              note this setting’s relevance when training a neural network because it’s one of
+              the important parameters to tweak to obtain better predictions, together with the
+              layer architecture.
+
+              Weight updates can happen in different ways with respect to the training set of
+              examples:
+
+
+                »» Online mode: The weight update happens after every example traverses the
+                   network. In this way, the algorithm treats the learning examples as a stream
+                   from which to learn in real time. This mode is perfect when you have to learn
+                   out-of-core, that is, when the training set can’t fit into RAM memory. However,
+                   this method is sensitive to outliers, so you have to keep your learning rate low.
+                   (Consequently, the algorithm is slow to converge to a solution.)
+
+
+
+
+282   PART 4 Learning from Smart and Big Data
+        »» Batch mode: The weight update happens after seeing all the examples in the
+            training set. This technique makes optimization fast and less subject to having
+            too much process variance because of variability in the example stream. On
+            the other end, in batch mode, you need to keep all your examples in-memory
+            (actually in RAM, rather than being streamed). In fact, in batch mode, the
+            backpropagation considers the summed gradients of all examples.
+
+        »» Mini-batch (or stochastic) mode: The weight update happens after the
+            network has processed a subsample of randomly selected training set
+            examples. This approach mixes the advantages of online mode (low memory
+            usage) and batch mode (a rapid convergence), while introducing a random
+            element (the subsampling) to avoid having the gradient descent stuck in a
+            local minima (a drop in the cost function that isn’t the true minimum).
+
+
+
+
+Representing the Way of Learning
+of a Network
+       Given the neural network architecture, you can imagine how easily the algorithm
+       could learn almost anything from data, especially if you added too many layers. In
+       fact, the algorithm does so well that its predictions are often affected by a high
+       estimate variance called overfitting. Overfitting causes the neural network to learn
+       every detail of the training examples, which makes it possible to replicate them in
+       the prediction phase. However, in case of overfitting, apart from great results
+       using the training set, it won’t ever correctly predict anything different. The fol-
+       lowing sections discuss some of the issues with overfitting in more detail.
+
+
+
+       Understanding the problem
+       with overfitting
+       When you use a neural network for a real problem, you have to take some caution-
+       ary steps in a much stricter way than you do with other algorithms. Neural net-
+       works are frailer and more prone to relevant errors than other machine learning
+       solutions.
+
+       First, you carefully split your data into training, validation, and test sets. Before the
+       algorithm learns from data, you must evaluate the goodness of your parameters:
+
+
+        »» Architecture (the number of layers and neurons in them): Using the right
+            architecture offers great opportunities to create powerful predictive models at
+            a high risk of overfitting.
+
+
+                        CHAPTER 14 Hitting Complexity with Neural Networks                283
+                       »» Initialization: Controlling how fast a network learns from data, but it may not
+                           suffice in preventing overfitting the training data.
+
+                       »» Activation functions: Examining the data multiple times to best learn the
+                           patterns (an epoch or iteration marks each passage of the data through the
+                           neural network).
+
+                       »» Learning parameters: Avoiding random noise or direct memorization of
+                           some parts of examples.
+
+                       »» Number of iterations: Defining the number of useful epochs. The more
+                           times this happens, the higher the risk that overfitting may occur.
+
+
+                      You have two possible solutions to solve data goodness issues. The first is regular-
+                      ization, as in linear and logistic regression. You can sum all connection coeffi-
+                      cients, squared or in absolute value, to penalize models with too many coefficients
+                      with high values (achieved by L2 regularization) or with values different from zero
+                      (achieved by L1 regularization). The second solution is also effective because it
+                      controls when overfitting happens. It’s called early stop (as shown in Figure 14-5)
+                      and works by checking the cost function on the validation set as the algorithm
+                      learns from the training set.
+
+
+
+
+     FIGURE 14-5:
+Overfitting occurs
+  when there are
+         too many
+           learning
+    iterations on
+          the data.
+
+
+
+                      You may not realize when your model starts overfitting. The cost function calcu-
+                      lated using the training set keeps improving as optimization progresses. However,
+                      as soon as you start recording noise from the data and stop learning general rules,
+                      you can check the cost function on out-of-sample (the validation sample) data. At
+                      some point, you’ll notice that it stops improving and starts worsening, which
+                      means that your model has reached its learning limit.
+
+
+
+
+284       PART 4 Learning from Smart and Big Data
+Choosing a framework
+The best way to learn how to build a neural network is to build one, and if you are
+going to get your hands dirty, especially with deep learning, the most straightfor-
+ward way is to leverage the functionalities offered by a framework. Using a deep
+learning framework can greatly reduce the time, cost, and complexity of develop-
+ing a deep learning solution. Even though deep learning frameworks have many
+characteristics of frameworks in general (consistent domain solutions), they also
+provide specific functionality: specialized hardware access for GPUs or TPUs, and
+inclusion of computations designed for use in deep learning.
+
+Python offers a wealth of possible frameworks for neural networks and deep
+learning. At the time of the publication of this book, there are quite a few deep
+learning frameworks around, such as
+
+
+ »» TensorFlow (https://www.tensorflow.org/): This product is at the top
+     of the heap with regard to deep learning frameworks. TensorFlow’s success
+     stems from many reasons, but mainly it comes from providing a robust
+     environment in a relatively easy-to-use package.
+
+ »» PyTorch (https://pytorch.org/): Initially developed by Facebook, many
+     other organizations use it today, including Twitter, Salesforce, and the
+     University of Oxford. It’s particularly popular with academics because of its
+     flexibility and ease of experimentation.
+
+ »» MXNet (https://mxnet.apache.org/): An Apache product that supports
+     a host of languages, including Python, Julia, C++, R, and JavaScript. Numerous
+     large organizations use it, including Microsoft, Intel, and Amazon Web
+     Services.
+
+ »» Chainer (https://chainer.org/): Written purely in Python that relies on
+     the NumPy (https://www.numpy.org/) and CuPy (https://cupy.dev/)
+     libraries. It’s very popular in Japan.
+
+
+ The research at the following site helps you understand the strengths and
+ weaknesses of each deep learning framework: https://towardsdatascience.
+ ­
+ com/which-deep-learning-framework-is-growing-fastest-3f77f14aa318 .
+TensorFlow is our choice for the examples in this book, as well as in other
+­Dummies books on the topic (such as Deep Learning For Dummies and Data Science
+ Programming All-in-One For Dummies, both by John Mueller and Luca Massaron
+ [Wiley]), because of its diffusion, ease of use, robustness in various applications,
+ and excellent support from Google (TensorFlow for instance is part of Colab).
+
+Google also bundled the Keras package inside TensorFlow version 2.0 and above.
+Keras is a package that allows you to build complex neural networks using a few
+simple command sequences. The biggest selling point of Keras is that it puts the
+
+
+
+                 CHAPTER 14 Hitting Complexity with Neural Networks                   285
+              process of creating applications using a deep learning framework into a paradigm
+              that most people can understand well. Keras started a few years ago as a stand-
+              alone package developed by Francois Chollet. Over the years, it has enjoyed a large
+              popularity among practitioners because of its practicality and ease of use, which
+              also makes it the easy solution for reducing TensorFlow complexity.
+
+              Originally, Keras was less of a framework and more of an API (a set of interface
+              specifications that you can use with multiple frameworks as backends). The
+              multi-backend stand-alone Keras was recently discontinued, and your only choice
+              for the future is to use Keras as part of the Keras module bundled with TensorFlow
+              (tf.keras).
+
+
+
+              Getting your copy of TensorFlow and Keras
+              Your copy of Python that comes with Anaconda doesn’t include a copy of Tensor-
+              Flow with Keras; you must install this product separately. To avoid problems with
+              integrating TensorFlow with the Anaconda tools, don’t follow the instructions
+              found at https://www.tensorflow.org/install for installing the product.
+
+              Some readers have noted that TensorFlow doesn’t install correctly on some plat-
+              forms, most notably Windows 10. If you encounter problems getting a good install,
+              you can still work through most of the examples using Google Colab, the product
+              explained in Chapter 6. The text in Chapter 6 also explains differences between
+              Notebook and Colab, along with some limitations of using Colab.
+
+
+
+
+              REDUCING CONDA AND PIP ERRORS
+              Before you do too much with your Anaconda installation, it helps to update both Conda
+              and Package Installer for Python (PIP) — the two applications you use to install new fea-
+              tures in the Python environment. Using an outdated version of either package manager
+              could cause you considerable pain in trying to get anything to install correctly. In fact, as
+              you install various packages, they tell you when your copy of the package manager you
+              use is outdated in many cases. To update Conda and PIP, you use these commands at
+              the Anaconda prompt:
+
+                 conda update conda
+                 python -m pip install --upgrade pip
+
+              Whenever you’re in doubt about the status of either package manager, perform an
+              update before you try to install a new package. The process takes only a few minutes
+              and will save you considerable time later.
+
+
+
+
+286   PART 4 Learning from Smart and Big Data
+                      To ensure that your copies of TensorFlow and Keras are available with Notebook,
+                      you must open an Anaconda prompt, not a standard command prompt or a termi-
+                      nal window. Otherwise, you can’t ensure that you have the appropriate paths set
+                      up. The following steps will get you started with your installation.
+
+                      1. At the Anaconda prompt, type python --version and press Enter.
+                           You see the currently installed Python version, which should be version 3.8.3
+                           for this book, as shown in Figure 14-6. The path you see in the window is a
+                           function of your operating system, which is Windows in this case, but you may
+                           see a different path when using the Anaconda prompt. Notice the (base) part
+                           of the prompt. This is an indicator of which environment you’re using, and
+                           (base) is the default.
+
+
+
+
+     FIGURE 14-6:
+   Be sure to use
+    the Anaconda
+   prompt for the
+  installation and
+check the Python
+           version.
+
+
+
+                      2. Type conda update --all and press Enter.
+                           Before you attempt to install TensorFlow and Keras, make sure that the conda
+                           environment is up to date. Otherwise, you might find that some dependencies
+                           are outdated and that your installation won’t work. Conda will perform an
+                           analysis of your system and then provide a list of steps to take. When asked
+                           whether you should proceed, type Y and press Enter. This step will take a
+                           while — time to refill your coffee cup.
+
+                           The next step is to create an environment in which to execute code that relies
+                           on TensorFlow and Keras. The advantage of using an environment is that you
+                           maintain a pristine environment for later use with other libraries. You use
+                           Conda, rather than another environment product such as virtualenv, to ensure
+                           that the software integrates with the Anaconda tools. If you use a product such
+                           as virtualenv, the resulting installation will work, but you’ll have to perform a lot
+                           of other steps to access it, and these steps don’t appear in the book. The name
+                           of the environment for this book is TF_env.
+
+
+
+
+                                        CHAPTER 14 Hitting Complexity with Neural Networks                    287
+              3. Type conda create -n TF_env python=3.7 tensorflow anaconda nb_conda and
+                   press Enter.
+
+                   The conda utility will require some time to solve the environment and look for
+                   conflicts. You may see a warning message about the availability of a newer
+                   version of Conda. Ignoring this message generally isn’t safe, especially when
+                   working with a Windows 10 system. When asked whether you should proceed,
+                   exit the installation process by typing N and pressing Enter. Update your copy
+                   of Conda using the information in the “Reducing Conda and PIP errors”
+                   sidebar, and then restart the installation process. If you don’t see an error
+                   message, type Y and press Enter when asked to proceed.
+
+                   Notice that this installation is actually using Python 3.7. The Python 3.8.3
+                   version used for the other examples in the book is incompatible with the 2.1
+                   version of TensorFlow.
+
+                   This step requires substantial time to complete, so be patient. You see the
+                   Anaconda prompt return after all the required steps are complete. In the
+                   meantime, reading a good technical article or getting coffee can help pass the
+                   time.
+
+              4. Type conda activate TF_env and press Enter.
+                   The prompt changes to show the TF_env environment rather than the base or
+                   root environment. Any tasks you perform now will affect the TensorFlow
+                   environment rather than the original base environment.
+
+              5. Type python -m pip install --upgrade pip and press Enter.
+                   Note that this step upgrades the copy of pip used for TF_env, rather than the
+                   base environment. If the copy of PIP is current in this environment, the
+                   upgrade exits after telling you that PIP is up to date. This step requires a little
+                   time, but not nearly as long as creating the environment. The purpose of this
+                   step is to ensure that you have the most current version of PIP installed so that
+                   later commands (some of which appear in the book’s code) don’t fail.
+
+              6. Type conda install pyarrow and press Enter.
+                   The code relies on PyArrow (http://arrow.apache.org/docs/python/
+                   install.html) to read the .feather files used to store the datasets for this
+                   book. You must install it in each of the environments you create.
+
+              7. Type conda deactivate and press Enter.
+                   Deactivating an environment returns you to the base environment. You
+                   perform this step to ensure that you always end a session in the base
+                   environment.
+
+              8. Close the Anaconda Prompt.
+                   Your TensorFlow with Keras installations are now ready for use.
+
+
+
+288   PART 4 Learning from Smart and Big Data
+                   In order to work with the TensorFlow examples in the book, you must now choose
+                   a different environment in Anaconda Navigator. Open a copy of Anaconda
+                   Navigator and you see the environment near the top in the Applications On
+                   ­
+                   ­drop-down list. When you click this drop-down list, you see the list of environ-
+                    ments available to you, with the current environment selected, as shown in
+                    Figure 14-7. Click the TF_env entry to work with TensorFlow examples. The tran-
+                    sition takes a few seconds, but you see a change in the Anaconda Navigator setup
+                    that shows that the new environment is in place. After the change in environment
+                    completes, you can start Jupyter Notebook.
+
+
+
+
+  FIGURE 14-7:
+Use the TF_env
+ channel for all
+    TensorFlow
+      examples
+   in the book.
+
+
+
+                   Opening the black box
+                   It’s time to see how to use the TensorFlow framework to work through a problem.
+                   For this example, you start with a very simple bidimensional problem inspired by
+                   the TensorFlow Neural Network Playground (you can find the playground website
+                   at this address: http://playground.tensorflow.org), trying to divide two
+                   clouds of points shaped as opposing half-moons positioned in a Cartesian plane:
+
+                     import numpy as np
+                     from sklearn.datasets import make_moons
+                     from sklearn.model_selection import train_test_split
+                     import matplotlib.pyplot as plt
+                     np.random.seed(0)
+                     coord, cl = make_moons(500, noise=0.05)
+                     X, Xt, y, yt = train_test_split(coord, cl,
+                                                     test_size=0.30,
+                                                     random_state=0)
+                     cmap_set1 = plt.cm.Set1
+                     fig, ax = plt.subplots(dpi=90)
+                     ax.scatter(X[:,0], X[:,1], s=25, c=y, cmap=cmap_set1)
+                     plt.show()
+
+                   Looking at Figure 14-8, you can see that the task requires formulating a nonlinear
+                   separation because no straight line can separate the two clouds of points exactly.
+
+
+
+
+                                   CHAPTER 14 Hitting Complexity with Neural Networks           289
+  FIGURE 14-8:
+           The
+ bidimensional
+     half-moon
+      problem.
+
+
+
+                 Experimenting with the TensorFlow Neural Network Playground can help you
+                 understand visually how a neural network works and gain understanding about
+                 how the different parameters and hyper-parameters of a network have an impact
+                 on the generated results.
+
+                 After setting up the data for the example, the code creates a neural network solu-
+                 tion by defining the architecture of the network that processes the data:
+
+                   import tensorflow.keras as keras
+
+                   model = keras.models.Sequential()
+                   model.add(keras.layers.Input(2,))
+                   model.add(keras.layers.Dense(8, activation='relu'))
+                   model.add(keras.layers.Dense(8, activation='relu'))
+                   model.add(keras.layers.Dropout(0.2))
+                   model.add(keras.layers.Dense(1, activation='sigmoid'))
+
+                   model.compile(optimizer='adam',
+                                 loss='binary_crossentropy',
+                                 metrics=['acc'])
+
+                   model.summary()
+
+                 In some cases, importing the required package will generate some warning mes-
+                 sages that you can safely ignore because the code will run as expected. The errors
+                 are generated by the package and not by the example code. When you run this
+                 code, you see the following output, which shows the neural network makeup:
+
+                   Model: "sequential"
+                   _____________________________________________________
+
+
+
+290   PART 4 Learning from Smart and Big Data
+  Layer (type)          Output Shape             Param #
+  =====================================================
+  dense (Dense)         (None, 8)                24
+  _____________________________________________________
+  dense_1 (Dense)       (None, 8)                72
+  _____________________________________________________
+  dropout (Dropout)     (None, 8)                0
+  _____________________________________________________
+  dense_2 (Dense)       (None, 1)                9
+  =====================================================
+  Total params: 105
+  Trainable params: 105
+  Non-trainable params: 0
+  _____________________________________________________
+
+The code specifies a model using the Sequential() function after importing Keras
+from TensorFlow. The function works as a pipeline of layers and operations to
+execute from the first to the last. To define these layers, you call add() to define
+the next operation, as you would do with building blocks stacked one upon the
+other. You start with the Input layer, which feeds your data into the neural net-
+work. The only requirement for this layer is to define the expected shape of your
+data. Because the network normally expects the data to be divided into smaller
+chunks, called batches, it cares only about other dimensions apart from the num-
+ber of rows, namely the dimension of columns, but it can handle as many dimen-
+sions as needed, marking a difference from other machine learning algorithms
+that accept only matrices of cases by features as an input.
+
+The Input layer handles the input, without applying any transformation. Because
+neural networks rely on gradient descent, you usually standardize (by subtracting
+the mean and dividing by the standard deviation) or normalize the inputs (forcing
+them into a specific range of values such as between 0 and +1 or between
+–1 and +1) beforehand. Also, you have to test which procedure, standardization or
+normalization, works the best with your data and your network.
+
+Two dense layers activated by ReLU activation follow the input layer. Here the
+inputs combine and the activation functions reproduce nonlinear mappings
+between the inputs and the results. A ReLU, or Rectified Linear Units, whose func-
+tion is (A(x) = max(0, x)), provides an output in the range of zero to infinity:
+When the input is above zero, it behaves similarly to a linear function, except for
+the flat zero output when the inputs are zero or negative. In its simplicity, this
+activation function is enough to approximate even complex nonlinear functions if
+you stack enough layers of ReLU-activated neurons.
+
+
+
+
+                 CHAPTER 14 Hitting Complexity with Neural Networks            291
+                      An advantage of ReLU is that it requires less processing power because fewer neu-
+                      rons fire a nonzero number. However, this advantage can also become a disadvan-
+                      tage because when you have too many inactive neurons, you get a problem called
+                      the dying ReLU. In fact, you can’t backpropagate any error to a neuron whose
+                      output is zero, and the network stops learning or even working if there are many
+                      dying ReLUs.
+
+                      The two dense layers are followed by a dropout layer, whose purpose is to prevent
+                      overfitting by randomly switching off some incoming connections between the
+                      two processing layers and the last output neuron. This implementation randomly
+                      excludes 20 percent of the incoming signals at each training iteration, with the
+                      result shown in Figure 14-9.
+
+
+
+
+     FIGURE 14-9:
+          Dropout
+ temporarily rules
+  out a proportion
+             of the
+­connections from
+      the training.
+
+
+
+                      As depicted on the left side of Figure 14-9, the weights normally operate by mul-
+                      tiplying their inputs into outputs for the activations. To switch off activation, the
+                      code multiplies a mask made of a random mix of ones and zeros with the results.
+                      If the neuron is multiplied by one, the network passes its signal. When a neuron
+                      is multiplied by zero, the network stops its signal, forcing other neurons not to
+                      rely on it in the process.
+
+                      Finally the network is completed with an output neuron, activated by a sigmoid
+                      function, which releases results in the range 0 to 1 that can be interpreted as prob-
+                      abilities. (If the output is over 0.5, there is more than 50 percent probability that
+                      the example is of the positive class.) The model is at last compiled (the final prep-
+                      aration step) using an optimizer (in this case, the Adam optimizer, a general scope
+                      and automatic optimizer based on the gradient descent), a cost function, and an
+                      error measure to monitor.
+
+                      Even if there seem to be too many parameters for the number of examples that
+                      you have prepared for training (the rule of thumb in statistics is to have at least 10
+
+
+292       PART 4 Learning from Smart and Big Data
+                  or more examples of every model parameter), techniques such as dropout help to
+                  keep overfitting under control. As a general approach, when using neural net-
+                  works you shouldn’t be afraid of using complex architectures. You start with
+                  medium-sized networks and you then determine whether reducing or increasing
+                  the complexity of the architecture of the layers improves your results.
+
+                  At this point, you can start the training by specifying the number of complete
+                  iterations through the data. The more iterations, the more the neurons will acquire
+                  information from the data, which risks overfitting. You also specify the batch,
+                  which is the size of the data chunks to feed the optimizer, and you decide whether
+                  you want to shuffle the input data at each iteration to inject randomization into
+                  the process that may help the optimization.
+
+                    history = model.fit(X, y, epochs=1000, batch_size=64,
+                                        shuffle=True, verbose=0)
+
+                  The training may take a while, but it won’t last too long. When completed, you can
+                  ask for the accuracy on the test set and see that the neural network will work per-
+                  fectly because the accuracy (that is, the ratio of correct classifications) is 1.0,
+                  meaning that it’s a perfect fit.
+
+                    from sklearn.metrics import accuracy_score
+                    predictions = (model.predict(Xt)>=0.5).astype(int)
+                    test_accuracy = accuracy_score(yt, predictions)
+                    print(f"Accuracy on test set: {test_accuracy}")
+
+                  Given the simplicity of the problem, which is the mapping of clouds of points on
+                  a Cartesian plane, you can also visualize the decision boundaries that separate one
+                  cloud from the other, as produced by the neural network (see Figure 14-10).
+
+
+
+
+ FIGURE 14-10:
+       Decision
+   boundaries
+ display how a
+neural network
+     solves the
+    half-moon
+      problem.
+
+
+
+
+                                  CHAPTER 14 Hitting Complexity with Neural Networks            293
+              To produce the chart in Figure 14-10, representing how the neural network
+              mapped a function that cuts through the plane, separating the two clouds of
+              points, you have to test the neural network across a range of possible input values
+              and then plot the results using different colors:
+
+                steps = 100
+                x_min, x_max = coord[:,0].min(), coord[:,0].max()
+                y_min, y_max = coord[:,1].min(), coord[:,1].max()
+
+                x_range = np.linspace(x_min, x_max, steps)
+                y_range = np.linspace(y_min, y_max, steps)
+
+                xx, yy = np.meshgrid(x_range, y_range)
+                xy = np.stack([np.ravel(xx), np.ravel(yy)], axis=1)
+                zz = model.predict(xy)
+                zz = zz.reshape(xx.shape)
+
+              The NumPy functions linspace() and meshgrid() help you produce the range of
+              input abscissa and ordinate values and to combine them thoroughly. You then
+              pass the combinations to the evaluation of the neural network and get a vector of
+              predictions. Finally, you print the results as a contour plot, combined with your
+              original scatterplot of the data points:
+
+                cmap_rb = plt.get_cmap('RdBu')
+                fig, ax = plt.subplots(dpi=90)
+                ax.contourf(xx, yy, zz, cmap=cmap_rb,
+                            alpha=0.3, levels=3)
+                ax.scatter(coord[:,0], coord[:,1],
+                           s=25, c=cl, cmap=cmap_set1)
+                plt.show()
+
+              For all your experiments on bidimensional toy datasets, you can visualize the
+              decision boundaries. To use this approach for other machine learning algorithms,
+              adapt and use the previous two code snippets.
+
+
+
+
+Introducing Deep Learning
+              After backpropagation, the next improvement in neural networks led to deep
+              learning. Research continued in spite of AI winter, and neural networks started to
+              take advantage of the developments in CPUs and GPUs (the graphic processing
+              units better known for their application in gaming but which are actually powerful
+
+
+
+
+294   PART 4 Learning from Smart and Big Data
+computing units for matrix and vector calculations). These technologies make
+training larger neural networks an achievable task in a shorter time and accessible
+to more people. Research also opened a world of new applications. Neural net-
+works can learn from huge amounts of data, and because they’re more prone to
+high variance than to bias, they can take advantage of big data, creating models
+that continuously perform better, depending on the amounts of data you feed
+them. The following sections provide you with an overview of deep learning.
+
+
+
+Understanding some deep
+learning essentials
+If you perceive deep learning to be only something that involves using larger net-
+works than before, you miss an important point. Deep learning isn’t simply a
+rebranding of an old technology; it works better than that technology because of
+the extra sophistication it adds through the use of powerful computers and the
+availability of better (not just more) data. Deep learning also implies a profound
+qualitative change in the capabilities offered by the technology, along with new
+and astonishing applications. The presence of these capabilities modernizes old
+but good neural networks, transforming them into something new.
+
+Because it uses many layers, deep learning can map more complex target func-
+tions and solve problems that are out of reach of preexisting machine learning
+techniques. These problems include image recognition, machine translation, and
+speech recognition. When fitted with only a few layers, a neural network is a per-
+fect universal function approximator, which is a system that can recreate any
+possible mathematical function. When fitted with many more layers, a neural
+network becomes capable of creating, inside its internal chain of matrix multipli-
+cations, not only sophisticated target functions but also a sophisticated system of
+feature representations suitable to solve complex problems.
+
+One of the earliest deep learning achievements that made the public aware of its
+potential is the cat neuron. The Google Brain team, run at that time by Andrew Ng
+and Jeff Dean, put together 16,000 computers to calculate a deep learning network
+with more than a billion weights, thus enabling unsupervised learning from You-
+Tube videos. The computer network could even determine, without human inter-
+vention, what a cat is, and Google scientists managed to dig out of the network a
+representation of how the network itself expected a cat to look (see the Wired
+article at https://www.wired.com/2012/06/google-x-neural-network/). How-
+ever, you need large, complex networks to successfully tackle certain applications
+(to learn complex features, such as the characteristics of a series of images).
+Therefore, previous neural networks incurred problems like the vanishing gradi-
+ent as soon as people tried to make them larger.
+
+
+
+
+                CHAPTER 14 Hitting Complexity with Neural Networks            295
+              A vanishing gradient occurs when you try to transmit a signal through a neural
+              network and the signal quickly fades to near zero values; it can’t get through the
+              activation functions. This happens because neural networks are chained multipli-
+              cations. Each below-zero multiplication decreases the incoming values rapidly,
+              and activation functions need large enough values to let the signal pass. The far-
+              ther the neuron layers are from the output, the more likely they are to get locked
+              out of updates because the signals are too small; the activation functions will stop
+              them. Consequently, your network stops learning as a whole, or it learns at an
+              incredibly slow pace.
+
+              In fact, when training a large network, the error redistributes among the neurons
+              favoring the layers nearest to the output layer. Layers that are further away receive
+              smaller errors, sometimes too small, making training slow if not impossible.
+              Today, deep networks are possible thanks to the studies of scholars from the Uni-
+              versity of Toronto in Canada, such as Geoffrey Hinton (https://www.utoronto.
+              ca/news/artificial-intelligence-u-t), who insisted on working on neural
+              networks even when they seemed to most to be an old-fashioned machine learn-
+              ing approach.
+
+              Professor Hinton, a veteran of the field of neural networks (he contributed to
+              defining the backpropagation algorithm), and his team in Toronto devised a few
+              methods to circumvent the problem of vanishing gradients. He opened the field to
+              rethinking new solutions that made neural networks a crucial tool in machine
+              learning and AI again. The chapter has already examined some of his ideas, such
+              as the ReLU activation and dropout. He also introduced smarter initializations and
+              presented the idea of pretraining — a way of using the weights computed by a
+              neural network trained for a similar problem — as a way to bootstrap a better
+              solution.
+
+              Deep learning is a complex and fascinating part of machine learning that is
+              blooming just now. Deep Learning For Dummies, by John Paul Mueller and Luca
+              Massaron (Wiley) thoroughly examines the concepts and practicalities of deep
+              learning.
+
+
+

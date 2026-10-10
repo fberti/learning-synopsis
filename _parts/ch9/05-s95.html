@@ -1,0 +1,174 @@
+
+<!-- ===================================================== 9.5 -->
+<section id="s95">
+<h2>9.5 Miért működik? Univerzális közelítés ★★</h2>
+<p>Két rejtett neuron megoldotta a XOR-t, három a háromváltozós paritást. Meddig mehetünk el? Meglepő a válasz: elég sok neuronnal <b>egyetlen rejtett réteg</b> bármilyen folytonos összefüggést tetszőlegesen jól közelít.
+Előbb egy dimenzióban, ReLU-val, kézzel rakjuk össze – aztán kimondjuk, mit állít (és mit nem) a tétel.</p>
+
+<h3 id="s95-a">1. lépés: görbe ReLU-darabokból</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – zsanérokból sátor és parabola</span>
+  Egy ReLU-neuron egy bemenettel, $c\cdot\mathrm{ReLU}(x - t)$, egy <b>zsanér</b>: a $t$ pontig 0, utána $c$ meredekséggel emelkedik. Zsanérokat összeadva törött vonalakat kapunk:
+  <ul style="margin:.2rem 0">
+    <li>$\mathrm{ReLU}(x) + \mathrm{ReLU}(-x) = |x|$ – két neuron, egy „V”;</li>
+    <li>$\mathrm{ReLU}(x) - 2\,\mathrm{ReLU}(x - 1) + \mathrm{ReLU}(x - 2)$ – egy „sátor”: $x = 0$-ban 0, $x = 1$-ben 1, $x = 2$-től újra 0 ($2 - 2 = 0$, $3 - 4 + 1 = 0$);</li>
+    <li>$g(x) = \mathrm{ReLU}(x) + 2\,\mathrm{ReLU}(x - 1)$ a $[0;\ 2]$ szakaszon: $g(0) = 0$, $g(1) = 1$, $g(2) = 2 + 2 = 4$ – pontosan az $x^2$ értékei a 0, 1, 2 pontokban, közöttük egyenes szakaszokkal.</li>
+  </ul>
+  Az $x^2$-től a legnagyobb eltérés $0{,}25$ (az $x = 0{,}5$ és az $x = 1{,}5$ pontban). Két neuron – egy durva, de felismerhető parabola.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – törött vonal egy rejtett réteggel</span>
+  Válassz a $[a;\ b]$ szakaszon $n + 1$ osztópontot, $t_0 = a \lt t_1 \lt \dots \lt t_n = b$, és legyen $s_k$ az $f$ húrjának meredeksége a $[t_k;\ t_{k+1}]$ darabon. Ekkor
+  $$g(x) = f(t_0) + \sum_{k=0}^{n-1} c_k\,\mathrm{ReLU}(x - t_k), \qquad c_0 = s_0,\quad c_k = s_k - s_{k-1},$$
+  a $[a;\ b]$-n az $f$ osztópontokon átmenő törött vonala. Ez egy rejtett rétegű háló $n$ ReLU-neuronnal: a $k$-adik neuron súlya 1, torzítása $-t_k$; a kimeneti súlyok a $c_k$-k, a kimeneti torzítás $f(t_0)$.
+  <br><small>Miért? A $k$-adik zsanér a $t_k$ pontban „bekapcsol”, és onnantól $c_k$-val megváltoztatja a meredekséget. Az első darabon a meredekség $c_0 = s_0$, a másodikon $c_0 + c_1 = s_1$, és így tovább.
+  Minél sűrűbbek az osztópontok, annál jobban simul a törött vonal a görbéhez – folytonos $f$-nél a hiba tetszőlegesen kicsi lehet.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – négy neuron, negyedannyi hiba</span>
+    Az $x^2$ a $[0;\ 2]$-n, osztópontok $0;\ 0{,}5;\ 1;\ 1{,}5;\ 2$. A meredekségek $0{,}5;\ 1{,}5;\ 2{,}5;\ 3{,}5$, így $c = 0{,}5;\ 1;\ 1;\ 1$:
+    $$g(x) = 0{,}5\,\mathrm{ReLU}(x) + \mathrm{ReLU}(x - 0{,}5) + \mathrm{ReLU}(x - 1) + \mathrm{ReLU}(x - 1{,}5).$$
+    A legnagyobb hiba $0{,}0625$. Általában $n$ darabbal pontosan $1/n^2$: kétszer annyi neuron – negyedannyi hiba.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a szinusz</span>
+    A $\sin x$ a $[0;\ 2\pi]$-n egyenlő darabokkal: 4 neuronnal a legnagyobb hiba kb. $0{,}21$, 10-zel $0{,}049$, 20-szal $0{,}012$. A hullám alakja 10 darabnál már szemmel alig különbözik az eredetitől.
+  </div>
+</div>
+<div class="widget" data-widget="relu-sum"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Csak a szakaszon belül.</b> A $[a;\ b]$-n kívül a $g$ egyenes: az $x^2$ kétneuronos közelítése $x = 3$-ban $g(3) = 3 + 2\cdot 2 = 7$, a valódi érték 9. Egy háló a tanító adat tartományán kívül nem „tudja” a függvényt (<a href="../06-modellertekeles/#s64-c">6.4</a>).</li>
+    <li><b>Ugrást nem tud pontosan.</b> Folytonos darabokból folytonos függvény jön ki; a szemléltetés „lépcső” célfüggvényénél a legnagyobb hiba sosem csökken 0,5 alá.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – ReLU-darabok</summary>
+  <ol>
+    <li>Mennyi a „sátor”, $\mathrm{ReLU}(x) - 2\,\mathrm{ReLU}(x - 1) + \mathrm{ReLU}(x - 2)$, értéke a $0{,}5$, az $1{,}5$ és a $-1$ pontban?
+      <details><summary>Megoldás</summary>$0{,}5$: $0{,}5 - 0 + 0 = 0{,}5$. $1{,}5$: $1{,}5 - 1 + 0 = 0{,}5$. $-1$: $0$. A sátor csúcsa az 1-ben van (1), a $[0;\ 2]$-n kívül 0.</details></li>
+    <li>Adj meg egy ReLU-hálót, amelynek törött vonala átmegy a $(0;\ 1)$, $(1;\ 3)$, $(2;\ 2)$, $(3;\ 2)$ pontokon!
+      <details><summary>Megoldás</summary>Meredekségek: $2;\ -1;\ 0$, tehát $c_0 = 2$, $c_1 = -3$, $c_2 = 1$: $g(x) = 1 + 2\,\mathrm{ReLU}(x) - 3\,\mathrm{ReLU}(x - 1) + \mathrm{ReLU}(x - 2)$. Ellenőrzés: $g(2) = 1 + 4 - 3 = 2$, $g(3) = 1 + 6 - 6 + 1 = 2$. ✓</details></li>
+    <li>Az $x^2$ közelítésének hibája a $[0;\ 2]$-n $n$ egyenlő darabbal $1/n^2$. Mennyi 5 neuronnal? Hány neuron kell, hogy a hiba legfeljebb 0,0001 legyen?
+      <details><summary>Megoldás</summary>5 neuronnal $1/25 = 0{,}04$. $1/n^2 \le 0{,}0001 \iff n \ge 100$.</details></li>
+    <li>A négyneuronos $x^2$-közelítés (fenti példa) mennyit ad az $x = 3$-ban? Mennyi a hiba?
+      <details><summary>Megoldás</summary>$0{,}5\cdot 3 + 2{,}5 + 2 + 1{,}5 = 7{,}5$; a valódi érték 9, a hiba 1,5 – a tartományon belüli hiba 24-szerese. A darabok számának növelése ezen nem segít.</details></li>
+    <li>(nehezebb) Írd fel ReLU-kkal a „levágott rámpát”, amely $x \le 0$-ra 0, $0 \le x \le 1$-re $x$, $x \ge 1$-re 1! Hogyan közelít ebből egy meredek változat egy lépcsőt?
+      <details><summary>Megoldás</summary>$\mathrm{ReLU}(x) - \mathrm{ReLU}(x - 1)$. A meredek változat: $\mathrm{ReLU}(kx) - \mathrm{ReLU}(kx - 1)$, amely $0$ és $1/k$ között emelkedik 0-ról 1-re. Nagy $k$-nál ez szinte lépcső – a hiba csak a $[0;\ 1/k]$ keskeny sávban nagy.</details></li>
+  </ol>
+</details>
+
+<h3 id="s95-b">2. lépés: a tétel – mit állít, és mit nem?</h3>
+<p>Egy dimenzióban ReLU-val kézzel megcsináltuk. Igaz-e ez több bemenettel, más aktivációval is? Igen – ezt mondja ki az univerzális közelítés tétele.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két bemenet, egy „domb”</span>
+  Két bemenetnél egy rejtett neuron nem zsanért, hanem egy „lejtőt” ad: egy egyenes mentén kezd emelkedni (<a href="#s91-c">9.1</a>). Négy lejtőből – két párhuzamos pár, egymásra merőlegesen – egy keskeny „domb” rakható össze, amely egy kis tartományban magas, máshol alacsony
+  (egy kimeneti küszöbbel a négy lejtő „ÉS”-éből). Ilyen dombokból, mint legókockákból, bármilyen felület felépíthető – csak elég sok kell belőlük.
+</div>
+<div class="box thm">
+  <span class="box-title">Tétel – univerzális közelítés (G. Cybenko, 1989; K. Hornik, 1991; M. Leshno és társai, 1993) – Kiegészítés</span>
+  Legyen $f$ egy <b>folytonos</b> függvény egy korlátos, zárt $K \subset \mathbb R^n$ halmazon, és $\varepsilon \gt 0$. Ha az aktivációs függvény folytonos és <b>nem polinom</b> (pl. szigmoid, tanh, ReLU), akkor van olyan
+  <b>egy rejtett rétegű</b> háló, amelyre minden $\mathbf x \in K$ esetén
+  $$\big|f(\mathbf x) - g(\mathbf x)\big| \lt \varepsilon.$$
+  <small>Miért igaz? A 9.5 1. lépésének gondolata általánosítható: a rejtett neuronokból „dombok” rakhatók össze, és a dombokból bármely folytonos felület tetszőlegesen jól közelíthető. Cybenko szigmoidra bizonyította, Hornik általánosabb aktivációkra; Leshno és társai megmutatták, hogy pontosan a polinom aktivációk a kivételek (polinomok összege polinom – ez nem lehet tetszőleges).
+  A tételt a forrásaink csak említik vagy pontatlanul mondják ki, ezért kiegészítésként jelöljük.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – amit a tétel ígér</span>
+    A $\sin x$ a $[0;\ 2\pi]$-n, $\varepsilon = 0{,}05$: a tétel szerint létezik ilyen pontosságú háló. Az 1. lépés konstrukciója meg is adja: 10 ReLU-neuron (hiba $0{,}049$).
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – amit nem ígér</span>
+    A tétel nem mondja meg, <b>hány</b> neuron kell. Egy dimenzióban 10 darab elég volt; ha minden irányban 10 darabot akarunk, $n$ bemenetnél ez kb. $10^n$ „domb” – 64 pixelnél csillagászati szám.
+    A tétel azt sem mondja meg, hogyan <b>találjuk meg</b> a súlyokat, sem azt, hogy a véges adatból tanult háló <b>új adaton</b> is jól működik.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabály – „létezik”, nem „megtanulja”</span>
+  Az univerzális közelítés <b>létezési</b> tétel: van jó háló. Hogy a tanítás megtalálja-e (10. fejezet), és hogy új adaton is jó-e (6. fejezet), az külön kérdés. Egy polinom vagy egy nagyon mély döntési fa is „univerzális” – a neurális hálót nem ez teszi különlegessé.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Forráshibák – a tétel túlzó változatai</span>
+  <ul style="margin:.2rem 0">
+    <li>MLD 14: néhány réteg „tökéletes univerzális közelítő”, amely „bármilyen lehetséges matematikai függvényt” megtanul. – Csak <b>folytonos</b> függvényt, csak <b>korlátos tartományon</b>, csak <b>közelítőleg</b>, és csak a <b>létezést</b> állítja.</li>
+    <li>PDL 8: „bebizonyították, hogy egy elég sok csomópontú rejtett réteg bármilyen leképezést meg tud tanulni”. – Közelíteni tud, megtanulni nem feltétlenül.</li>
+    <li>MLSYS: a hálók „elméletben bármilyen függvényt megtanulhatnak”. Ugyanez a könyv máshol helyesen fogalmaz („kompakt tartományon folytonos függvényt közelít”, és „nem mondja meg, hány neuron kell”) – a két megfogalmazás ellentmond egymásnak. Ugyanitt Hornik cikkét egyszer 1989-re, egyszer 1991-re teszi: mindkettő létezik (Hornik–Stinchcombe–White 1989, Hornik 1991).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – igaz vagy hamis?</summary>
+  <ol>
+    <li>„Egy rejtett rétegű háló elég sok neuronnal bármely folytonos függvényt tetszőleges pontossággal közelít a $[0;\ 1]$ szakaszon.”
+      <details><summary>Megoldás</summary>Igaz – ez maga a tétel (a $[0;\ 1]$ korlátos és zárt).</details></li>
+    <li>„A tétel megmondja, hány rejtett neuron kell egy adott pontossághoz.”
+      <details><summary>Megoldás</summary>Hamis. Csak a létezést állítja; a szükséges szám nagy dimenzióban óriási lehet.</details></li>
+    <li>„Lineáris aktivációval is igaz a tétel.”
+      <details><summary>Megoldás</summary>Hamis. Lineáris aktivációval az egész háló lineáris (<a href="#s93-c">9.3</a>); a lineáris függvény polinom, tehát kivétel.</details></li>
+    <li>„Ha egy háló a tanító adaton tökéletes, a tétel garantálja, hogy új adaton is az.”
+      <details><summary>Megoldás</summary>Hamis. A tétel a függvény közelíthetőségéről szól, nem az általánosításról. Egy nagy háló a zajt is megtanulhatja (túlillesztés, <a href="../03-tanulas-anatomiaja/#s35-b">3.5</a>).</details></li>
+    <li>(nehezebb) Miért nem lehet $x^2$ aktivációjú (polinom) neuronokból univerzális közelítőt építeni?
+      <details><summary>Megoldás</summary>Egy rejtett rétegben a kimenet $\sum_k c_k(\mathbf w_k^\top\mathbf x + b_k)^2 + c$ – ez egy legfeljebb másodfokú polinom, akárhány neuron van. Egy másodfokú polinom pedig pl. a $\sin x$-et a $[0;\ 2\pi]$-n nem közelítheti tetszőlegesen jól.</details></li>
+  </ol>
+</details>
+
+<h3 id="s95-c">3. lépés: mélység vagy szélesség?</h3>
+<p>Ha egy rejtett réteg is elég, miért használ mindenki <b>mély</b> hálót, sok réteggel? Mert a mélység bizonyos függvényeket <b>sokkal kevesebb</b> neuronból rak össze.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a hajtogatás</span>
+  Két ReLU-neuron: $T(x) = 2\,\mathrm{ReLU}(x) - 4\,\mathrm{ReLU}(x - 0{,}5)$. A $[0;\ 1]$-en ez egy sátor: $T(0) = 0$, $T(0{,}5) = 1$, $T(1) = 2 - 2 = 0$. A szakaszt középen „összehajtja”, és kinyújtja a $[0;\ 1]$-re.
+  <table style="max-width:640px;font-size:.86rem;text-align:center">
+    <tr><th>$x$</th><td>0</td><td>1/8</td><td>2/8</td><td>3/8</td><td>4/8</td><td>5/8</td><td>6/8</td><td>7/8</td><td>1</td></tr>
+    <tr><th>$T(x)$</th><td>0</td><td>0,25</td><td>0,5</td><td>0,75</td><td>1</td><td>0,75</td><td>0,5</td><td>0,25</td><td>0</td></tr>
+    <tr><th>$T(T(x))$</th><td>0</td><td>0,5</td><td>1</td><td>0,5</td><td>0</td><td>0,5</td><td>1</td><td>0,5</td><td>0</td></tr>
+    <tr><th>$T(T(T(x)))$</th><td>0</td><td>1</td><td>0</td><td>1</td><td>0</td><td>1</td><td>0</td><td>1</td><td>0</td></tr>
+  </table>
+  Egy réteg (2 neuron): 2 egyenes darab. Két réteg egymás után (4 neuron): 4 darab. Három réteg (6 neuron): 8 darabos fűrészfog. Minden új réteg <b>megduplázza</b> a darabok számát.
+</div>
+<div class="box thm">
+  <span class="box-title">Tétel – a mélység szorozza, a szélesség összeadja a darabokat (M. Telgarsky, 2016 – Kiegészítés)</span>
+  <ul style="margin:.2rem 0">
+    <li>$L$ rétegben rétegenként 2 ReLU-neuronnal (összesen $2L$ neuron) előállítható egy $2^L$ lineáris darabból álló fűrészfog a $[0;\ 1]$-en.</li>
+    <li>Egy rejtett rétegű, egybemenetű ReLU-háló minden neuronja legfeljebb <b>egy</b> töréspontot ad, így $2^L$ darabhoz legalább $2^L - 1$ neuron kell.</li>
+  </ul>
+  <small>Miért? Egy rétegben a zsanérok csak összeadódnak: $n$ neuron legfeljebb $n$ törés. Rétegeket egymás után kötve viszont a második réteg az első réteg <em>minden</em> darabján újra töréseket csinál – a darabok száma szorzódik.
+  $L = 10$-nél: 20 neuron mélyen, legalább 1023 szélesen.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy kísérlet: azonos méret, több réteg</span>
+    PDL 10 kísérletében (MNIST, 1000 tanító kép) a közel azonos paraméterszámú hálók közül (pl. 1000 rejtett neuron egy rétegben: 795 010 paraméter; 700–350 két rétegben: 798 360; 660–330–165 háromban: 792 505)
+    az egyrétegűtől a kétrétegűig nagyot, a háromrétegűig kisebbet javult a pontosság. A szerző óvatos: „lesznek esetek, amikor ez nem működik” – de a több réteg <em>segíthet</em>.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a hierarchia</span>
+    Egy kép felismerésénél a természetes leírás is rétegzett: pixelek → élek → ívek, sarkok → hurkok, vonalak → számjegyek. Egy mély háló minden rétege az előző réteg jellemzőiből épít bonyolultabbakat;
+    egy sekély hálónak mindezt egyetlen lépésben kellene „felsorolnia” (11. fejezet).
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktató – több réteg nem mindig jobb</span>
+  A mélység <b>képességet</b> ad, nem garanciát. A mélyebb hálót nehezebb tanítani (eltűnő gradiens, <a href="#s94-b">9.4</a>), és több adat kell hozzá. HAW 4 egy 1600 bemenetű feladaton egy 100–50-es kétrétegű hálóval 75,8%-ot, egy egyrétegű, 400 neuronossal 77,0%-ot mért;
+  a legjobb hálója (77,4%) is alulmaradt egy véletlen erdővel (83,3%) szemben. Táblázatos adatokon gyakran a fák nyernek (<a href="../07-fak-svm-egyuttes/#s77-b">7.7</a>).
+  A mély hálók igazi terepe a nagy, nyers adat: kép, hang, szöveg.
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – mélység és szélesség</summary>
+  <ol>
+    <li>Mennyi $T(0{,}3)$, $T(T(0{,}3))$?
+      <details><summary>Megoldás</summary>$T(0{,}3) = 0{,}6$ (az emelkedő ágon $2x$). $T(0{,}6) = 2\cdot 0{,}6 - 4\cdot 0{,}1 = 0{,}8$ (a csökkenő ágon $2 - 2x$).</details></li>
+    <li>Hány lineáris darabja van $T$ ötszörös egymásutánjának? Hány neuron kell hozzá mélyen, és legalább hány egy rétegben?
+      <details><summary>Megoldás</summary>$2^5 = 32$ darab; mélyen $2 \cdot 5 = 10$ neuron; egy rétegben legalább $31$.</details></li>
+    <li>Egy rejtett rétegű, egybemenetű ReLU-hálónak 7 rejtett neuronja van. Legfeljebb hány lineáris darabból állhat a kimenete?
+      <details><summary>Megoldás</summary>Legfeljebb 7 töréspont, tehát legfeljebb 8 darab.</details></li>
+    <li>Melyik nagyobb háló: egy 1000 neuronos egy rejtett rétegű vagy a 700–350-es kétrétegű, ha mindkettőnek 784 bemenete és 10 kimenete van? (A paraméterszámolás a <a href="#s96-b">9.6</a>-ban jön; most elég a fenti példa.)
+      <details><summary>Megoldás</summary>Szinte ugyanakkorák: 795 010, illetve 798 360 paraméter. Ezért értelmes az összevetésük: a különbség a szerkezetből, nem a méretből jön.</details></li>
+    <li>(nehezebb) Ha a mélység ennyire hatékony, miért nem használunk mindig 100 réteget?
+      <details><summary>Megoldás</summary>Mert (1) a mély hálót nehéz tanítani: a gradiens eltűnhet vagy robbanhat, kellenek a 10–11. fejezet trükkjei (jó kezdés, normalizálás, reziduális kapcsolat); (2) több paraméter több adatot és számítást kíván, és könnyebben túlilleszt;
+        (3) sok feladathoz nem kell ilyen bonyolult függvény – kis adaton egy egyszerű modell gyakran jobb.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai9-95"></div>
+</section>
