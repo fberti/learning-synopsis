@@ -534,6 +534,18 @@ MLD 9; MLQ 25–29; DMLS 6.
 ### Kvízek
 `ai7-71`, `ai7-72`, `ai7-73`, `ai7-75`, `ai7-final`.
 
+> ✅ **Elkészült** (`07-fak-svm-egyuttes/`). Eltérések a tervtől: a fa két szakaszra bomlott – 7.1 döntési fák (olvasás, Gini, entrópia, számjellemző + mohó CART), 7.2 a fa korlátai (mélység és metszés,
+> regressziós fa, instabilitás) –, így 7.3 bagging és véletlen erdő (szavazás, bootstrap, $m$, OOB, fontosság), 7.4 boosting (AdaBoost, gradiens boosting, XGBoost/LightGBM/CatBoost), 7.5 szavazás és stacking,
+> 7.6 SVM (max. margó, puha margó, kernel, gyakorlat), 7.7 mikor melyik, 7.8 Alkalmazás; kvíz minden szakaszhoz (`ai7-71` … `ai7-77`, `ai7-final`).
+> Futó példa a „teniszezünk-e?” helyett: tíz reggel – „vigyél-e esernyőt?” (ég, előrejelzés, szél, páratartalom; 4 esős nap). Gyökér: előrejelzés (G 0,16, IG 0,61), utána „tiszta az ég?” → hibátlan kétkérdéses fa;
+> egy 11. reggel (R11) a páratartalmat teszi a gyökérbe (instabilitás); a 7.8-ban 500 fás erdő ugyanerre és az emlőrák-adatokon tíz modell CV-vel (a logisztikus regresszió nyer, 97,9%; SVM nyers 92,1% vs skálázva 97,7%).
+> További kézi példák: ESL 400/400 vágás, XOR mint a mohóság csapdája, fagylalt-regressziós fa (nem extrapolál), 3 körös AdaBoost (ESL-szerű 10 pont), gradiens boosting 4 ponton ($\nu = 1$ és $0{,}5$),
+> XGBoost-levél $\sum r/(n + \lambda)$, keverési súly validáción, 1D/2D margó, betolakodós puha margó ($C = 1$ vs $10$), polinomiális kernel ellenőrzése.
+> Szemléltetések: `split-picker`, `tree-builder` (kézi és automatikus, mélység–pontosság görbe), `forest-vote`, `boosting-steps`, `kernel-lift`, `svm-margin` (saját SMO), `classifier-zoo` (6 modell × 4 adatkészlet).
+> A forrásokból jelzett hibák az oldalon: MLAB (levél = „csomópont”, RF „gyengén felügyelt”, gradiens boosting mint átsúlyozás, modellvödör a teszten, C-értelmezés), PDL (fánkénti jellemzősorsolás, sávosítás, $\gamma$-alapérték,
+> hangolás a tanító adaton), MLD (C és $\gamma$ iránya fordítva, keverhetetlen AdaBoost-képletek, LightGBM „mélységi”, kernel mint vektor, `ccp_alpha` a teszten), DLV (Gini mint hibaarány, súlyozatlan entrópiaösszeg,
+> „mintáról mintára” növő fa, C iránya, bagging csak fákra), AAMLP (`max_voting` hiba, „az átlag jobb” a saját eredményeivel szemben, XGBoost alapmélység).
+
 ### Csapdák
 Mély fa = túlillesztés · a jellemzőfontosság nem ok-okozat · SVM skálázás nélkül · a boosting érzékeny a zajos címkékre.
 

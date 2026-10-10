@@ -43,7 +43,8 @@ synopsis/
     ├── 03-tanulas-anatomiaja/      ← index.html, widgets.js (a calc.js-re épül), quizzes.js
     ├── 04-adatok-es-jellemzok/     ← index.html, widgets.js (a calc.js-re épül), quizzes.js
     ├── 05-osztalyozas/             ← index.html, widgets.js (a calc.js-re épül), quizzes.js
-    └── 06-modellertekeles/         ← index.html, widgets.js (a calc.js-re épül), quizzes.js
+    ├── 06-modellertekeles/         ← index.html, widgets.js (a calc.js-re épül), quizzes.js
+    └── 07-fak-svm-egyuttes/        ← index.html, widgets.js (a calc.js-re épül), quizzes.js
 ```
 
 ## Közzététel GitHub Pages-en

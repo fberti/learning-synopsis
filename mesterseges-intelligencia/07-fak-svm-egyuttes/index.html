@@ -1,0 +1,2099 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>7. Döntési fák, szupport vektor gépek, együttes módszerek – Mesterséges intelligencia – Synopsis</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="../../assets/common.js"></script>
+  <script defer src="../../assets/quiz.js"></script>
+  <script defer src="../../assets/calc.js"></script>
+  <script defer src="widgets.js"></script>
+  <script defer src="quizzes.js"></script>
+</head>
+<body>
+<div class="progressbar"></div>
+<header class="topbar">
+  <a class="brand" href="../../">📚 Synopsis</a>
+  <span class="crumbs"><a href="../../">Tartalomjegyzék</a> › <a href="../">Mesterséges intelligencia</a> › 7. fejezet</span>
+  <button class="icon-btn" data-theme-toggle title="Téma váltása">🌙</button>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <div class="toc-title">7. fejezet</div>
+  <ol>
+    <li><a href="#s71">7.1 Döntési fák</a></li>
+    <li><a href="#s72">7.2 A fa korlátai</a></li>
+    <li><a href="#s73">7.3 Bagging és véletlen erdő</a></li>
+    <li><a href="#s74">7.4 Boosting</a></li>
+    <li><a href="#s75">7.5 Szavazás és stacking</a></li>
+    <li><a href="#s76">7.6 Szupport vektor gépek</a></li>
+    <li><a href="#s77">7.7 Mikor melyik?</a></li>
+    <li><a href="#s78">7.8 Alkalmazás: esernyő</a>
+      <ol>
+        <li><a href="#s78-a">Tíz reggel, egy fa, sok fa</a></li>
+        <li><a href="#s78-b">Nagyban: egy valódi adaton</a></li>
+      </ol>
+    </li>
+    <li><a href="#s-sum">Összefoglalás</a></li>
+    <li><a href="#s-check">Ellenőrző kérdések</a></li>
+    <li><a href="#s-ex">Vegyes gyakorló feladatok</a></li>
+    <li><a href="#s-final">Fejezetzáró teszt</a></li>
+    <li><a href="#s-gloss">Szómagyarázó</a></li>
+  </ol>
+</nav>
+
+<main class="content">
+
+<section class="hero" style="padding-top:.5rem">
+  <div class="kicker">Mesterséges intelligencia · 7. fejezet · ★★</div>
+  <h1>Döntési fák, szupport vektor gépek, együttes módszerek</h1>
+  <p class="lead">Az <a href="../05-osztalyozas/">5. fejezetben</a> egyenessel (logisztikus regresszió) és szomszédokkal (kNN) osztályoztunk, a
+  <a href="../06-modellertekeles/">6. fejezetben</a> megtanultuk becsületesen mérni őket. Most jön a klasszikus gépi tanulás három nagy családja.
+  A <b>döntési fa</b> kérdéseket tesz fel, mint egy jó orvos. Az <b>együttes módszerek</b> sok fát szavaztatnak – ezek a táblázatos adatok mai bajnokai.
+  A <b>szupport vektor gép</b> a lehető legszélesebb „utcát” húzza a két osztály közé, és egy matematikai trükkel görbe határt is tud.</p>
+</section>
+
+<div class="box tip">
+  <span class="box-title">Mit fogsz megtanulni?</span>
+  <ul style="margin:.2rem 0">
+    <li>hogyan olvass és építs <b>döntési fát</b>, és hogyan választ kérdést a <b>Gini-index</b> és az <b>információnyereség</b>;</li>
+    <li>miért illeszt túl a mély fa, mit tesz a <b>metszés</b>, hogyan működik a <b>regressziós fa</b>, és miért <b>instabil</b> egy fa;</li>
+    <li>miért jobb sok fa szavazata, mint egyé: <b>bootstrap</b>, <b>bagging</b>, <b>véletlen erdő</b>, <b>OOB-hiba</b>, <b>jellemzőfontosság</b>;</li>
+    <li>hogyan tanul a <b>boosting</b> a hibáiból (<b>AdaBoost</b>, <b>gradiens boosting</b>), és mit tud az XGBoost, a LightGBM és a CatBoost;</li>
+    <li>hogyan vonj össze különböző modelleket <b>szavazással</b> és <b>stackinggel</b> – szivárgás nélkül;</li>
+    <li>mi a <b>maximális margó</b>, a <b>szupportvektor</b>, a <b>puha margó</b> ($C$) és a <b>kernel trükk</b>;</li>
+    <li>melyik modellt <b>mikor</b> válaszd – és miért kezdd mindig egy egyszerűvel.</li>
+  </ul>
+</div>
+
+<div class="box">
+  <span class="box-title">🔁 Amit használni fogunk</span>
+  Az <a href="../05-osztalyozas/">5. fejezetből</a>: a küszöbszabály (<a href="../05-osztalyozas/#s51-b">5.1</a>), a kNN (<a href="../05-osztalyozas/#s52-b">5.2</a>), a logisztikus
+  regresszió és a döntési határ (<a href="../05-osztalyozas/#s53-d">5.3</a>), a XOR és a nemlineáris határ (<a href="../05-osztalyozas/#s56-a">5.6</a>).
+  A <a href="../06-modellertekeles/">6. fejezetből</a>: a keresztvalidáció (<a href="../06-modellertekeles/#s65-a">6.5</a>), a torzítás–variancia (<a href="../06-modellertekeles/#s66-b">6.6</a>),
+  a regularizáció (<a href="../06-modellertekeles/#s67-a">6.7</a>), a hangolás (<a href="../06-modellertekeles/#s68-a">6.8</a>) és a bootstrap (<a href="../06-modellertekeles/#s69-b">6.9</a>).
+  A <a href="../02-matematikai-eszkoztar/">2. fejezetből</a>: az entrópia (<a href="../02-matematikai-eszkoztar/#s26-b">2.6</a>), a skaláris szorzat (<a href="../02-matematikai-eszkoztar/#s22-b">2.2</a>) és a
+  vektor hossza (<a href="../02-matematikai-eszkoztar/#s23-a">2.3</a>). A <a href="../04-adatok-es-jellemzok/">4. fejezetből</a>: a one-hot kódolás (<a href="../04-adatok-es-jellemzok/#s43-b">4.3</a>) és a skálázás
+  (<a href="../04-adatok-es-jellemzok/#s44-a">4.4</a>).
+  <br><small>Jelölések: ★ alap · ★★ közép · ★★★ haladó (kihagyható). A 📐 jelű lenyílók levezetéseket rejtenek, a 🐍 jelűek rövid Python-kódot –
+  a továbbhaladáshoz egyik sem kell.</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">🎯 A fejezet kérdése – vigyél-e esernyőt?</span>
+  Egy barátod tíz reggelen át feljegyezte, milyen volt az ég, mit mondott az előrejelzés, fújt-e erős szél, mennyi volt a páratartalom – és hogy esett-e aznap.
+  <div style="overflow-x:auto">
+  <table style="font-size:.86rem;text-align:center">
+    <tr><th>reggel</th><th>ég</th><th>előrejelzés</th><th>szél</th><th>páratartalom</th><th>esett?</th></tr>
+    <tr><td>R1</td><td>tiszta</td><td>nincs eső</td><td>gyenge</td><td>45%</td><td>nem</td></tr>
+    <tr><td>R2</td><td>tiszta</td><td>nincs eső</td><td>erős</td><td>55%</td><td>nem</td></tr>
+    <tr><td>R3</td><td>tiszta</td><td>eső</td><td>gyenge</td><td>78%</td><td>nem</td></tr>
+    <tr><td>R4</td><td>felhős</td><td>eső</td><td>erős</td><td>85%</td><td><b>igen</b></td></tr>
+    <tr><td>R5</td><td>felhős</td><td>nincs eső</td><td>gyenge</td><td>62%</td><td>nem</td></tr>
+    <tr><td>R6</td><td>felhős</td><td>eső</td><td>gyenge</td><td>74%</td><td><b>igen</b></td></tr>
+    <tr><td>R7</td><td>borult</td><td>eső</td><td>gyenge</td><td>90%</td><td><b>igen</b></td></tr>
+    <tr><td>R8</td><td>borult</td><td>eső</td><td>erős</td><td>92%</td><td><b>igen</b></td></tr>
+    <tr><td>R9</td><td>borult</td><td>nincs eső</td><td>erős</td><td>88%</td><td>nem</td></tr>
+    <tr><td>R10</td><td>felhős</td><td>nincs eső</td><td>erős</td><td>70%</td><td>nem</td></tr>
+  </table>
+  </div>
+  4 esős és 6 száraz nap. Három kérdés:
+  <ol style="margin:.3rem 0">
+    <li>Reggel csak <b>két kérdést</b> akarsz feltenni magadnak. Melyik legyen az első, melyik a második?</li>
+    <li>Egy ismerősöd szerint egy kérdéssor kevés: építs belőle <b>500-at</b>, és szavaztasd meg őket. Miért lenne az jobb?</li>
+    <li>Egy harmadik ötlet: felejtsd el a kérdéseket, és húzz egy „vonalat” a számok között (<b>szupport vektor gép</b>). Melyik utat válaszd?</li>
+  </ol>
+  A fejezet végén (<a href="#s78">7.8</a>) mindhárom kérdésre válaszolunk – és megnézzük, mi a helyzet egy valódi, 569 soros adatkészleten.
+</div>
+
+<p><b>Útiterv</b> – lépésről lépésre, az egyszerűtől a bonyolultig:</p>
+<ol>
+  <li><b>Egy fa</b>
+    <ol>
+      <li><a href="#s71">Döntési fák</a>: kérdések sorozata; melyik kérdés a jobb – Gini-index, entrópia; számjellemzők és a mohó építés.</li>
+      <li><a href="#s72">A fa korlátai</a>: mély fa = túlillesztés, metszés; regressziós fa; egy új reggel az egész fát átírja.</li>
+    </ol></li>
+  <li><b>Sok fa</b>
+    <ol start="3">
+      <li><a href="#s73">Bagging és véletlen erdő</a>: ha egy fa szeszélyes, átlagoljunk sokat – párhuzamosan.</li>
+      <li><a href="#s74">Boosting</a>: minden új fa az előzők hibáit javítja – egymás után.</li>
+      <li><a href="#s75">Szavazás és stacking</a>: különböző modellek összefogása.</li>
+    </ol></li>
+  <li><b>Egy másik út</b>
+    <ol start="6">
+      <li><a href="#s76">Szupport vektor gépek</a>: a legszélesebb utca, puha margó, kernel trükk.</li>
+    </ol></li>
+  <li><b>Döntés</b>
+    <ol start="7">
+      <li><a href="#s77">Mikor melyik?</a>: hat modell ugyanazon az adaton; döntési szempontok.</li>
+      <li><a href="#s78">Alkalmazás</a>: az esernyő-kérdés, és nagyban.</li>
+    </ol></li>
+</ol>
+
+<!-- ===================================================== 7.1 -->
+<section id="s71">
+<h2>7.1 Döntési fák ★</h2>
+<p>Az <a href="../05-osztalyozas/#s51-b">5.1</a>-ben egyetlen küszöbszabállyal osztályoztunk: „ha a felkiáltójelek száma legalább 3, akkor spam”. Egy kérdés gyakran kevés.
+Mit csinál egy orvos, egy szerelő vagy te reggel az ajtóban? <b>Kérdések sorozatát</b> teszi fel, és a következő kérdés az előző válaszától függ. Pontosan ez a döntési fa.</p>
+
+<h3 id="s71-a">1. lépés: kérdések sorozata – hogyan olvasd a fát?</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két kérdés az ajtóban</span>
+  Próbáljuk ki ezt a kérdéssort a tíz reggelen:
+  <ol style="margin:.2rem 0">
+    <li><b>Esőt mond az előrejelzés?</b> Ha nem: ne vigyél esernyőt.</li>
+    <li>Ha igen: <b>tiszta az ég?</b> Ha igen: ne vigyél. Ha nem: vigyél.</li>
+  </ol>
+  <table style="max-width:640px;font-size:.88rem;text-align:center">
+    <tr><th>reggelek</th><th>1. kérdés</th><th>2. kérdés</th><th>döntés</th><th>esett?</th></tr>
+    <tr><td>R1, R2, R5, R9, R10</td><td>nem</td><td>–</td><td>nem kell</td><td>nem ✓</td></tr>
+    <tr><td>R3</td><td>igen</td><td>igen (tiszta)</td><td>nem kell</td><td>nem ✓</td></tr>
+    <tr><td>R4, R6, R7, R8</td><td>igen</td><td>nem</td><td>kell</td><td>igen ✓</td></tr>
+  </table>
+  Mind a tíz reggelen jó döntést hoz. Rajzold le, és egy fejjel lefelé álló fát kapsz:
+  <svg viewBox="0 0 560 210" style="width:100%;max-width:560px;display:block;margin:.6rem auto;font:13px system-ui,sans-serif" role="img" aria-label="A két kérdéses döntési fa">
+    <g style="stroke:var(--muted);stroke-width:1.5;fill:none">
+      <path d="M280 42 L120 112"/><path d="M280 42 L400 112"/><path d="M400 140 L300 182"/><path d="M400 140 L500 182"/>
+    </g>
+    <g style="fill:var(--muted)">
+      <text x="180" y="72">nem</text><text x="352" y="72">igen</text><text x="322" y="160">igen</text><text x="458" y="160">nem</text>
+    </g>
+    <rect x="160" y="12" width="240" height="30" rx="8" style="fill:var(--card);stroke:var(--accent);stroke-width:2"/>
+    <text x="280" y="32" text-anchor="middle" style="fill:var(--text);font-weight:600">Esőt mond az előrejelzés?</text>
+    <rect x="20" y="112" width="200" height="30" rx="15" style="fill:var(--card);stroke:var(--setA);stroke-width:2"/>
+    <text x="120" y="132" text-anchor="middle" style="fill:var(--text)">nem kell (5 nap: 0 eső)</text>
+    <rect x="310" y="112" width="180" height="28" rx="8" style="fill:var(--card);stroke:var(--accent);stroke-width:2"/>
+    <text x="400" y="131" text-anchor="middle" style="fill:var(--text);font-weight:600">Tiszta az ég?</text>
+    <rect x="215" y="182" width="170" height="26" rx="13" style="fill:var(--card);stroke:var(--setA);stroke-width:2"/>
+    <text x="300" y="200" text-anchor="middle" style="fill:var(--text)">nem kell (1 nap: 0 eső)</text>
+    <rect x="405" y="182" width="150" height="26" rx="13" style="fill:var(--card);stroke:var(--setB);stroke-width:2"/>
+    <text x="480" y="200" text-anchor="middle" style="fill:var(--text)">kell (4 nap: 4 eső)</text>
+  </svg>
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – döntési fa</span>
+  A <b>döntési fa</b> kérdések elágazó sorozata.
+  <ul style="margin:.2rem 0">
+    <li>A <b>gyökér</b> a legelső kérdés (felül van – a fa fejjel lefelé áll).</li>
+    <li>A <b>belső csomópontok</b> további kérdések (<b>vágások</b>), pl. „$x_j \lt t$?” vagy „tiszta az ég?”. A válaszok az <b>ágak</b>.</li>
+    <li>A <b>levelek</b> a végpontok: itt nincs több kérdés, csak egy döntés. Osztályozásnál a levél a benne lévő tanító minták <b>többségi osztályát</b> mondja,
+      valószínűségként pedig az osztályok arányát.</li>
+    <li>A fa <b>mélysége</b> a leghosszabb út hossza a gyökértől egy levélig (kérdésekben mérve). A fenti fa mélysége 2, és 3 levele van.</li>
+  </ul>
+  Minden levélhez egy <b>szabály</b> tartozik: a hozzá vezető válaszok „és”-sel összekötve. A fa tehát egy szabálygyűjtemény, amelyben minden mintára pontosan egy szabály illik.
+  <br><small>Miért kell? Mert sok döntés természetesen így épül fel: a második kérdés értelme az első válaszától függ. Egy egyenes (<a href="../05-osztalyozas/#s53-d">5.3</a>)
+  minden mintánál ugyanazokat a súlyokat használja, a fa viszont mintánként más-más kérdéseket tesz fel. Az egyetlen kérdésből álló fa – a <b>döntési tönk</b> – éppen az 5.1 küszöbszabálya.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy új reggel</span>
+    Borult az ég, az előrejelzés esőt mond, gyenge a szél, a páratartalom 80%. Út: <em>esőt mond?</em> igen → <em>tiszta az ég?</em> nem → <b>vigyél esernyőt</b>.
+    A szelet és a páratartalmat meg sem kérdeztük.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a fa mint szabálylista</span>
+    <ol style="margin:.2rem 0">
+      <li>HA nem mond esőt az előrejelzés, AKKOR nem kell esernyő.</li>
+      <li>HA esőt mond ÉS tiszta az ég, AKKOR nem kell.</li>
+      <li>HA esőt mond ÉS nem tiszta az ég, AKKOR kell.</li>
+    </ol>
+    A szél és a páratartalom egyik szabályban sem szerepel: a fa maga választja ki, mely jellemzőket használja (beépített jellemzőkiválasztás, <a href="../04-adatok-es-jellemzok/#s46-b">4.6</a>).
+  </div>
+</div>
+<div class="box example">
+  <span class="box-title">Példa – számjellemzők: téglalapok a síkon</span>
+  Ha a kérdések számokra vonatkoznak, a fa a síkot <b>téglalapokra</b> vágja. Legyen $x_1$ a páratartalom (%), $x_2$ a légnyomás (hPa), és a fa:
+  „$x_1 \lt 80$? igen → nem esik; nem → $x_2 \lt 1010$? igen → esik; nem → nem esik”.
+  <svg viewBox="0 0 300 190" style="width:100%;max-width:330px;display:block;margin:.5rem auto;font:12px system-ui,sans-serif" role="img" aria-label="Három téglalap a síkon">
+    <rect x="40" y="10" width="160" height="150" style="fill:var(--setA);opacity:.18"/>
+    <rect x="200" y="10" width="90" height="80" style="fill:var(--setA);opacity:.18"/>
+    <rect x="200" y="90" width="90" height="70" style="fill:var(--setB);opacity:.3"/>
+    <g style="stroke:var(--text);stroke-width:2"><path d="M200 10 V160"/><path d="M200 90 H290"/></g>
+    <g style="stroke:var(--muted);fill:none"><path d="M40 160 H290"/><path d="M40 160 V10"/></g>
+    <g style="fill:var(--text)">
+      <text x="120" y="88" text-anchor="middle">nem esik</text><text x="245" y="54" text-anchor="middle">nem esik</text><text x="245" y="130" text-anchor="middle">esik</text>
+      <text x="200" y="176" text-anchor="middle">80%</text><text x="290" y="176" text-anchor="end">páratartalom →</text>
+      <text x="36" y="94" text-anchor="end">1010</text><text x="44" y="22">nyomás ↑</text>
+    </g>
+  </svg>
+  Minden határvonal <b>párhuzamos valamelyik tengellyel</b>, mert minden kérdés csak egy jellemzőt néz.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A levél nem csomópont-kérdés.</b> A levélben már nincs döntési pont, csak válasz. Egy kezdőknek szóló könyv (MLAB 14) a leveleket „csomópontoknak” nevezi,
+      „amelyek döntési pontokat alkotnak” – ez a belső csomópontokra igaz, a levelekre nem.</li>
+    <li><b>Ferde határhoz lépcső kell.</b> Ha a valódi határ átlós (pl. „esik, ha a páratartalom nagy <em>és</em> a nyomás alacsony, a kettő együtt számít”), a fa sok kis lépcsővel
+      közelíti. Ezt a 7.7-ben látni is fogod.</li>
+    <li><b>A levél aránya csak durva valószínűség.</b> Egy 1 mintás levél „100%-ot” mond – ez nem bizonyosság, hanem kevés adat.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a fa olvasása</summary>
+  <ol>
+    <li>Mit mond a fa erre a reggelre: tiszta ég, az előrejelzés esőt mond, erős szél, 60% páratartalom?
+      <details><summary>Megoldás</summary>Esőt mond → igen; tiszta az ég → igen → <b>nem kell</b> esernyő. Pontosan ilyen volt R3 is (ott sem esett).</details></li>
+    <li>Hány kérdést tesz fel a fa legfeljebb, és legalább? Hány levele van, és mekkora a mélysége?
+      <details><summary>Megoldás</summary>Legfeljebb 2, legalább 1 kérdést (ha az előrejelzés nem mond esőt, ott megáll). 3 levél, mélység 2.</details></li>
+    <li>Legfeljebb hány levele lehet egy $d$ mélységű <em>bináris</em> fának (minden kérdésre két válasz)? Mennyi ez $d = 3$-ra és $d = 20$-ra?
+      <details><summary>Megoldás</summary>Minden szinten megduplázódhat a levelek száma: legfeljebb $2^d$. $d = 3$: 8; $d = 20$: $2^{20} = 1\,048\,576$. Ezért elég húsz igen–nem kérdés,
+        hogy egymillió dolog közül kitaláld, mire gondol valaki („barkochba”).</details></li>
+    <li>Írd fel szabálylistaként ezt a fát: „$x_1 \lt 3$? igen → A; nem → $x_2 \lt 2$? igen → B; nem → A”.
+      <details><summary>Megoldás</summary>HA $x_1 \lt 3$, AKKOR A. HA $x_1 \ge 3$ ÉS $x_2 \lt 2$, AKKOR B. HA $x_1 \ge 3$ ÉS $x_2 \ge 2$, AKKOR A.</details></li>
+    <li>(nehezebb) Az előző fa a $[0, 6] \times [0, 6]$ négyzetet téglalapokra vágja. Mekkora a „B” terület, és a négyzet hányad része? Lehet-e ugyanezt a felosztást egy
+      <em>másik</em> fával leírni?
+      <details><summary>Megoldás</summary>„B”: $3 \le x_1 \le 6$, $0 \le x_2 \lt 2$ – egy $3 \times 2$-es téglalap, területe 6, a négyzet $6/36 = 1/6$ része. Igen: pl. „$x_2 \lt 2$? igen → $x_1 \lt 3$? igen → A,
+        nem → B; nem → A” ugyanazt a felosztást adja más sorrendben. Egy felosztást több fa is leírhat – ezért a fa szerkezetéből óvatosan következtess arra, melyik jellemző „fontosabb”.</details></li>
+  </ol>
+</details>
+
+<h3 id="s71-b">2. lépés: melyik kérdés a jobb? – a Gini-index</h3>
+<p>A fenti fát mi találtuk ki. De honnan tudja egy algoritmus, hogy az előrejelzéssel kell kezdeni, és nem a széllel? Nézzük meg, mit csinál három lehetséges első kérdés a tíz reggellel!</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – három jelölt az első kérdésre</span>
+  <table style="max-width:640px;font-size:.88rem;text-align:center">
+    <tr><th>kérdés</th><th>„igen” ág (eső : száraz)</th><th>„nem” ág (eső : száraz)</th></tr>
+    <tr><td>Esőt mond az előrejelzés?</td><td>4 : 1 (R3–R8 közül öt nap)</td><td>0 : 5</td></tr>
+    <tr><td>Erős a szél?</td><td>2 : 3</td><td>2 : 3</td></tr>
+    <tr><td>Tiszta az ég?</td><td>0 : 3</td><td>4 : 3</td></tr>
+  </table>
+  Az egész csoport 4 : 6. A szél szerinti két ág <em>pontosan ugyanolyan vegyes</em>, mint az egész – ez a kérdés semmit nem árul el. Az előrejelzés két ága szinte „tiszta”:
+  az egyikben csak száraz napok vannak, a másikban szinte csak esősek. Egy jó kérdés után az ágak <b>tisztábbak</b>, mint előtte. Ezt kell egy számmal mérni.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – Gini-index (szennyezettség)</span>
+  Ha egy csomópontban a $k$-adik osztály aránya $p_k$, a csomópont <b>Gini-indexe</b>
+  $$G = 1 - \sum_k p_k^2, \qquad \text{két osztálynál } G = 1 - p^2 - (1 - p)^2 = 2p(1 - p).$$
+  $G = 0$, ha a csomópont tiszta (egyetlen osztály); két osztálynál a legnagyobb értéke $0{,}5$ (fele-fele).
+  <br>Egy vágás után a gyerekek Gini-indexét a <b>méretükkel súlyozva</b> átlagoljuk:
+  $$G_{\text{vágás}} = \frac{n_{\text{bal}}}{n}\,G_{\text{bal}} + \frac{n_{\text{jobb}}}{n}\,G_{\text{jobb}}, \qquad \Delta G = G_{\text{szülő}} - G_{\text{vágás}}.$$
+  Azt a kérdést választjuk, amelyiknél a <b>Gini-csökkenés</b> ($\Delta G$) a legnagyobb – vagyis a súlyozott Gini a legkisebb.
+  <br><small>Miért ez a képlet? Húzz a csomópontból visszatevéssel két mintát: $\sum p_k^2$ annak az esélye, hogy egyforma a címkéjük, a Gini tehát annak az esélye, hogy <b>különböznek</b>.
+  Másképp: ha a csomópont mintáit a saját arányaik szerint, véletlenszerűen címkéznéd, ennyi lenne a hibaarány. Tiszta csomópontban 0.</small>
+</div>
+<div class="box example">
+  <span class="box-title">Példa – a három jelölt Gini-indexe</span>
+  A gyökér: $p = 4/10$, $G = 1 - 0{,}16 - 0{,}36 = 0{,}48$.
+  <table style="max-width:700px;font-size:.88rem;text-align:center">
+    <tr><th>kérdés</th><th>„igen” ág</th><th>„nem” ág</th><th>súlyozott Gini</th><th>$\Delta G$</th></tr>
+    <tr><td>előrejelzés</td><td>4 : 1 → $1 - 0{,}8^2 - 0{,}2^2 = 0{,}32$</td><td>0 : 5 → 0</td><td>$0{,}5\cdot0{,}32 + 0{,}5\cdot0 = 0{,}16$</td><td><b>0,32</b></td></tr>
+    <tr><td>szél</td><td>2 : 3 → 0,48</td><td>2 : 3 → 0,48</td><td>0,48</td><td>0</td></tr>
+    <tr><td>tiszta ég</td><td>0 : 3 → 0</td><td>4 : 3 → $1 - \frac{16 + 9}{49} \approx 0{,}490$</td><td>$0{,}7\cdot0{,}490 \approx 0{,}343$</td><td>0,137</td></tr>
+  </table>
+  Az előrejelzés nyer: utána a súlyozott szennyezettség a harmadára esik.
+</div>
+<div class="box example">
+  <span class="box-title">Példa – miért nem egyszerűen a hibaarány?</span>
+  400 „A” és 400 „B” minta. Két lehetséges vágás (ESL 9.2.3):
+  <div class="two-col">
+    <div><b>1. vágás:</b> (300 A, 100 B) és (100 A, 300 B). Hibaarány (a többséget mondva): $200/800 = 25\%$. Gini: mindkét ág $1 - 0{,}75^2 - 0{,}25^2 = 0{,}375$, súlyozva <b>0,375</b>.</div>
+    <div><b>2. vágás:</b> (200 A, 400 B) és (200 A, 0 B). Hibaarány szintén $200/800 = 25\%$. Gini: $0{,}75\cdot\frac49 + 0{,}25\cdot0 \approx$ <b>0,333</b>.</div>
+  </div>
+  A hibaarány szerint a két vágás egyforma, a Gini a másodikat választja – azt, amelyik egy <b>teljesen tiszta</b> ágat hoz létre. Ez az ág már kész, a fa a másikon dolgozhat tovább.
+  A Gini (és az entrópia) érzékenyebb a tisztaság javulására, ezért ezekkel növesztjük a fát.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Súlyozz a mérettel!</b> Egy 1 mintás tiszta ág semmit sem ér, ha a másik ág ugyanolyan vegyes marad. A „páratartalom &lt; 50%?” kérdés csak R1-et választja le (tiszta),
+      a maradék 9 nap 4 : 5 – súlyozott Gini $0{,}9 \cdot 0{,}494 \approx 0{,}444$, a csökkenés csak 0,036.</li>
+    <li><b>A Gini nem a hibaarány.</b> Egy népszerű vizuális könyv (DLV 11) egy 10 : 90 arányú levélnél azzal magyarázza a Gini-indexet, hogy „10% eséllyel tévedünk” – ez a hibaarány.
+      A Gini ott $1 - 0{,}1^2 - 0{,}9^2 = 0{,}18$.</li>
+    <li><b>A legkisebb súlyozott Gini = a legnagyobb csökkenés.</b> Egy gyakorlati könyv (PDL 6) a „legkisebb Gini-indexű” szabályt választja – ezt a gyerekek súlyozott átlagára kell érteni, nem egy-egy ágra.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – Gini-index</summary>
+  <ol>
+    <li>Mennyi egy 3 : 1 arányú csomópont Gini-indexe?
+      <details><summary>Megoldás</summary>$p = 3/4$: $1 - \frac{9}{16} - \frac{1}{16} = \frac{6}{16} = 0{,}375$. (Vagy $2 \cdot 0{,}75 \cdot 0{,}25 = 0{,}375$.)</details></li>
+    <li>Három osztály: egy csomópontban 50–50–50 virág van (az írisz-adatok gyökere). Mennyi a Gini? És a 0–50–50 csomóponté?
+      <details><summary>Megoldás</summary>50–50–50: $1 - 3\cdot\left(\frac13\right)^2 = \frac23 \approx 0{,}667$. 0–50–50: $1 - 0 - 0{,}25 - 0{,}25 = 0{,}5$. $K$ osztálynál a legnagyobb érték $1 - 1/K$.</details></li>
+    <li>Egy 4 : 6 csomópontot így vágunk: (3 : 1) és (1 : 5). Mennyi a súlyozott Gini és a csökkenés?
+      <details><summary>Megoldás</summary>$G_{\text{bal}} = 0{,}375$, $G_{\text{jobb}} = 1 - \frac{1 + 25}{36} \approx 0{,}278$. Súlyozva: $0{,}4 \cdot 0{,}375 + 0{,}6 \cdot 0{,}278 \approx 0{,}317$. $\Delta G \approx 0{,}48 - 0{,}317 = 0{,}163$.</details></li>
+    <li>A tíz reggelnél mennyi a „Borult az ég?” kérdés súlyozott Gini-indexe? Jobb vagy rosszabb, mint a „Tiszta az ég?”?
+      <details><summary>Megoldás</summary>Borult: R7, R8, R9 → 2 : 1, $G = 4/9 \approx 0{,}444$. A többi 7 nap: 2 : 5, $G = 1 - \frac{4 + 25}{49} \approx 0{,}408$.
+        Súlyozva $0{,}3 \cdot 0{,}444 + 0{,}7 \cdot 0{,}408 \approx 0{,}419$, $\Delta G \approx 0{,}061$. Rosszabb, mint a „tiszta?” (0,343, $\Delta G \approx 0{,}137$).</details></li>
+    <li>(nehezebb) Mutasd meg, hogy két osztálynál $1 - p^2 - (1 - p)^2 = 2p(1 - p)$, és hogy ez $p = 0{,}5$-nél a legnagyobb!
+      <details><summary>Megoldás</summary>$1 - p^2 - (1 - 2p + p^2) = 2p - 2p^2 = 2p(1 - p)$. Ez egy lefelé nyíló parabola, gyökei 0 és 1, a csúcsa félúton: $p = 0{,}5$-nél $2 \cdot 0{,}25 = 0{,}5$.</details></li>
+  </ol>
+</details>
+
+<h3 id="s71-c">3. lépés: a másik mérce – entrópia és információnyereség</h3>
+<p>A Gini nem az egyetlen lehetséges mérce. A <a href="../02-matematikai-eszkoztar/#s26-b">2.6</a>-ban az entrópiával mértük a bizonytalanságot: hány bit kell átlagosan egy kimenet leírásához.
+Egy jó kérdés éppen bizonytalanságot szüntet meg.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – mennyi bizonytalanságot old fel az előrejelzés?</span>
+  A tíz reggel előtt: $p = 0{,}4$, $H = -0{,}4\log_2 0{,}4 - 0{,}6\log_2 0{,}6 \approx 0{,}971$ bit – majdnem egy teljes érmedobásnyi bizonytalanság.
+  Az előrejelzés után:
+  <ul style="margin:.2rem 0">
+    <li>„esőt mond” ág (4 : 1): $H(0{,}8) \approx 0{,}722$ bit;</li>
+    <li>„nem mond” ág (0 : 5): $H = 0$ – itt már semmi kétség.</li>
+  </ul>
+  Átlagosan, a napok számával súlyozva: $0{,}5 \cdot 0{,}722 + 0{,}5 \cdot 0 \approx 0{,}361$ bit maradt. A kérdés tehát $0{,}971 - 0{,}361 \approx 0{,}610$ bitnyi bizonytalanságot szüntetett meg.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – információnyereség</span>
+  Egy vágás <b>információnyeresége</b> a szülő entrópiájának és a gyerekek súlyozott átlagos entrópiájának különbsége:
+  $$IG = H(\text{szülő}) - \sum_j \frac{n_j}{n}\,H(\text{gyerek}_j), \qquad H = -\sum_k p_k\log_2 p_k.$$
+  A legnagyobb információnyereségű kérdést választjuk. Ez a Gini-csökkenés „bitben mért” párja.
+  <br><small>Miért ez is? Mert a kérdés pontosan azt teszi, amit az entrópia mér: csökkenti a bizonytalanságot. A $\log_2$ miatt a nyereség bitben értendő: 1 bit = egy pénzfeldobás kimenetele.</small>
+</div>
+<div class="box example">
+  <span class="box-title">Példa – a jelöltek mindkét mércével</span>
+  <table style="max-width:640px;font-size:.88rem;text-align:center">
+    <tr><th>kérdés</th><th>súlyozott Gini</th><th>$\Delta G$</th><th>súlyozott entrópia</th><th>$IG$ (bit)</th></tr>
+    <tr><td>esőt mond az előrejelzés?</td><td>0,160</td><td><b>0,320</b></td><td>0,361</td><td><b>0,610</b></td></tr>
+    <tr><td>milyen az ég? (3 ág)</td><td>0,333</td><td>0,147</td><td>0,675</td><td>0,295</td></tr>
+    <tr><td>tiszta az ég?</td><td>0,343</td><td>0,137</td><td>0,690</td><td>0,281</td></tr>
+    <tr><td>erős a szél?</td><td>0,480</td><td>0</td><td>0,971</td><td>0</td></tr>
+  </table>
+  A sorrend mindkét mércével ugyanaz. A háromágú „milyen az ég?”: tiszta (0 : 3) → 0, felhős (2 : 2) → 1 bit, borult (2 : 1) → 0,918 bit; súlyozva $0{,}4 \cdot 1 + 0{,}3 \cdot 0{,}918 \approx 0{,}675$.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a két mérce egy levélen</span>
+    Egy 10 : 90 arányú levél: hibaarány 0,1; Gini $1 - 0{,}01 - 0{,}81 = 0{,}18$; entrópia $\approx 0{,}469$ bit. Mindhárom 0 a tiszta levélnél, és a fele-fele esetben a legnagyobb.
+    Az alakjuk hasonló, ezért a gyakorlatban <b>szinte mindig ugyanazt a vágást</b> választják.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a „dátum” mint jellemző</span>
+    Tegyük fel, hogy a táblázatban a dátum is szerepel. A „melyik nap volt?” kérdés tíz ágra bont, mindegyikben egy nap – mind tiszta. $IG = 0{,}971 - 0 = 0{,}971$ bit,
+    a lehető legnagyobb! Mégis haszontalan: egy új napra (új dátumra) semmit nem tud mondani.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Algoritmusok és nevek</span>
+  <ul style="margin:.2rem 0">
+    <li><b>ID3</b> és utódja, a <b>C4.5</b> (J. R. Quinlan, 1986, 1993): entrópia, egy kategóriás kérdésnek annyi ága lehet, ahány értéke van.</li>
+    <li><b>CART</b> (<em>Classification and Regression Trees</em>; L. Breiman és társai, 1984): Gini-index, mindig <b>bináris</b> vágások.</li>
+    <li>A scikit-learn <code>DecisionTreeClassifier</code>-e CART-típusú: <code>criterion="gini"</code> (alapértelmezés), <code>"entropy"</code> vagy <code>"log_loss"</code>, csak bináris vágással.
+      A kategóriás jellemzőket előbb számmá kell alakítani, pl. one-hot kódolással (<a href="../04-adatok-es-jellemzok/#s43-b">4.3</a>) – így lesz a „milyen az ég?”-ből három igen–nem kérdés.</li>
+  </ul>
+</div>
+<div class="widget" data-widget="split-picker"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Súlyozott átlag, nem összeg.</b> Egy vizuális könyv (DLV 11) a gyerekek entrópiáit egyszerűen összeadja. Egy 50 : 50 szülőből (1 bit) a 40 : 10 és 10 : 40 gyerekek
+      0,722–0,722 bitet hoznak: összegük 1,444 – mintha a vágás <em>növelné</em> a bizonytalanságot. A helyes, súlyozott átlag 0,722, a nyereség 0,278 bit.</li>
+    <li><b>Az információnyereség a sokértékű jellemzőket kedveli.</b> Egy azonosító vagy dátum „tökéletes” vágást ad. A C4.5 ezért a nyereséget elosztja a vágás saját entrópiájával
+      (<em>nyereségarány</em>, <em>gain ratio</em>); a bináris CART kevésbé érzékeny erre. Az ilyen oszlopokat amúgy is ki kell hagyni (<a href="../04-adatok-es-jellemzok/#s47-c">4.7</a>).</li>
+    <li><b>A logaritmus alapja mindegy a választásnál.</b> Egy elméleti könyv (ESL) természetes alapú logaritmust használ (a legnagyobb érték ott $\ln 2 \approx 0{,}693$, nem 1),
+      de mivel minden érték ugyanazzal a számmal szorzódik, a sorrend nem változik.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – entrópia és információnyereség</summary>
+  <ol>
+    <li>Mennyi egy 3 : 1 arányú csomópont entrópiája?
+      <details><summary>Megoldás</summary>$H = -0{,}75\log_2 0{,}75 - 0{,}25\log_2 0{,}25 \approx 0{,}75 \cdot 0{,}415 + 0{,}25 \cdot 2 \approx 0{,}811$ bit.</details></li>
+    <li>A tíz reggelnél mennyi a „Borult az ég?” kérdés információnyeresége?
+      <details><summary>Megoldás</summary>Borult (2 : 1): $H \approx 0{,}918$. A többi (2 : 5): $H(2/7) \approx 0{,}863$. Súlyozva $0{,}3 \cdot 0{,}918 + 0{,}7 \cdot 0{,}863 \approx 0{,}880$. $IG \approx 0{,}971 - 0{,}880 = 0{,}091$ bit.</details></li>
+    <li>Egy 50 : 50 csomópontot 40 : 10 és 10 : 40 részre vágunk. Mennyi a nyereség? Mit kapnál, ha (hibásan) összeadnád a gyerekek entrópiáit?
+      <details><summary>Megoldás</summary>$H(0{,}8) \approx 0{,}722$ mindkét gyereknél, súlyozva 0,722; $IG = 1 - 0{,}722 = 0{,}278$ bit. Összeadva 1,444 lenne, „negatív nyereség” – a jó vágás rossznak látszana.</details></li>
+    <li>Miért nem jó, ha egy fa a „dátum” oszlop szerint vág, pedig az információnyeresége a legnagyobb?
+      <details><summary>Megoldás</summary>Mert minden dátum egyszer fordul elő: a fa a tanító napokat „bemagolja”, de egy új dátumhoz nincs ága. Az összefüggést (pl. előrejelzés → eső) nem tanulja meg.
+        Ez a túlillesztés szélsőséges esete.</details></li>
+    <li>(nehezebb) Egy szülő 6 : 6. A vágás A: (5 : 1) és (1 : 5); vágás B: (6 : 3) és (0 : 3). Melyiket választja a Gini, és melyiket az entrópia?
+      <details><summary>Megoldás</summary>A: Gini mindkét ágban $1 - \frac{25 + 1}{36} \approx 0{,}278$, súlyozva 0,278; entrópia $H(1/6) \approx 0{,}650$. B: Gini $0{,}75 \cdot \frac49 + 0 \approx 0{,}333$;
+        entrópia $0{,}75 \cdot H(1/3) \approx 0{,}75 \cdot 0{,}918 \approx 0{,}689$. Mindkét mérce az <b>A</b>-t választja (kisebb érték). A két mérce csak ritkán dönt eltérően.</details></li>
+  </ol>
+</details>
+
+<h3 id="s71-d">4. lépés: számjellemzők és a mohó építés</h3>
+<p>Az igen–nem kérdéseket könnyű végigpróbálni. De a páratartalom szám: „kisebb-e 72%-nál?”, „kisebb-e 80%-nál?” – végtelen sok küszöb lehetséges. Melyiket próbáljuk ki?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – küszöb a páratartalomra</span>
+  Rendezzük sorba a tíz reggelt páratartalom szerint (e = esett, n = nem):
+  <p style="text-align:center;font-family:var(--mono);font-size:.9rem">45 n · 55 n · 62 n · 70 n · <b>74 e</b> · 78 n · <b>85 e</b> · 88 n · <b>90 e</b> · <b>92 e</b></p>
+  Két szomszédos érték között bármely küszöb ugyanígy vágja ketté a tíz napot, ezért elég a <b>felezőpontokat</b> kipróbálni: 50; 58,5; 66; 72; 76; 81,5; 86,5; 89; 91 – kilenc jelölt.
+  <table style="max-width:600px;font-size:.88rem;text-align:center">
+    <tr><th>küszöb</th><th>alatta (e : n)</th><th>fölötte (e : n)</th><th>súlyozott Gini</th></tr>
+    <tr><td>66</td><td>0 : 3</td><td>4 : 3</td><td>0,343</td></tr>
+    <tr><td><b>72</b></td><td>0 : 4</td><td>4 : 2</td><td><b>0,267</b></td></tr>
+    <tr><td>76</td><td>1 : 4</td><td>3 : 2</td><td>0,400</td></tr>
+    <tr><td>81,5</td><td>1 : 5</td><td>3 : 1</td><td>0,317</td></tr>
+    <tr><td>89</td><td>2 : 6</td><td>2 : 0</td><td>0,300</td></tr>
+  </table>
+  A legjobb páratartalom-kérdés a „$\lt 72\%$?” (0,267) – de az előrejelzés (0,160) még ennél is jobb, ezért marad a gyökérben. Az „esőt mond” ágban (R3, R4, R6, R7, R8) a „tiszta az ég?”
+  két tiszta ágat ad (Gini 0), a páratartalom legjobbja ott csak 0,2 – így áll elő a fejezet elején látott kétkérdéses fa.
+</div>
+<div class="box def">
+  <span class="box-title">Algoritmus – a fa mohó építése (CART)</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Megállás:</b> ha a csomópont tiszta, túl kicsi, vagy elérte a megengedett mélységet → <b>levél</b> (a többségi osztállyal).</li>
+    <li><b>Keresés:</b> különben minden jellemzőre és minden jelölt küszöbre (szomszédos értékek felezőpontjai; kategóriás jellemzőnél az igen–nem kérdések) kiszámoljuk a
+      súlyozott Gini-indexet (vagy entrópiát), és a legjobbat választjuk.</li>
+    <li><b>Vágás és ismétlés:</b> a csomópontot kettévágjuk, és mindkét gyerekre ugyanezt csináljuk (rekurzió).</li>
+  </ol>
+  <small>Miért „mohó”? Mert minden lépésben a <em>pillanatnyilag</em> legjobb kérdést választja, és nem néz előre. A globálisan legjobb (pl. legkevesebb levelű, hibátlan) fa megtalálása
+  nagyon nehéz feladat (NP-teljes, L. Hyafil és R. Rivest, 1976 – <b>Kiegészítés</b>), a mohó építés viszont gyors és a gyakorlatban jól működik.
+  $n$ minta és $p$ jellemző esetén egy csomópontban legfeljebb $p\,(n - 1)$ küszöböt kell kipróbálni.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – ahol a mohóság elakad: XOR</span>
+    Négy pont (<a href="../05-osztalyozas/#s56-a">5.6</a>): (0; 0) és (1; 1) „−”, (0; 1) és (1; 0) „+”. Bármelyik első vágás (pl. $x_1 \lt 0{,}5$) mindkét ágba egy „+”-t és egy „−”-t tesz:
+    a Gini 0,5 marad, a nyereség <b>0</b>. Egy „csak javulásnál vágok” szabály itt meg sem mozdulna – pedig egy 2 mélységű fa hibátlan. A második kérdés értékét az első nem látja előre.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a fát nem érdekli a skála</span>
+    Ha a páratartalmat 0–1 skálán (0,72), vagy a logaritmusát adjuk meg, a sorrend nem változik, így ugyanazok a vágások jönnek ki, csak más küszöbszámmal.
+    A kNN-nek (<a href="../05-osztalyozas/#s52-c">5.2</a>) skálázni kell, a fának <b>nem</b>: minden kérdés csak egy jellemző <em>sorrendjét</em> használja.
+  </div>
+</div>
+<div class="widget" data-widget="tree-builder"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A fa nem „mintáról mintára” nő.</b> Egy könyv (DLV 11) úgy írja le az építést, mintha a fa egyenként fogadná a mintákat, és ehhez igazodna. A CART egy csomópontban az
+      <em>összes</em> odajutó mintát egyszerre nézi, és a legjobb vágást keresi; a „mohó” a rövidlátásra utal, nem a minták sorrendjére.</li>
+    <li><b>A scikit-learn nem sávosít.</b> Egy gyakorlati könyv (PDL 6) szerint a folytonos értékeket előbb sávokba kell sorolni, és ezt a scikit-learn „megcsinálja helyettünk”.
+      A <code>DecisionTreeClassifier</code> a pontos felezőpontokat próbálja ki; sávosítást (hisztogramot) a gyors boosting-könyvtárak használnak (<a href="#s74-c">7.4</a>).</li>
+    <li><b>A címkekódolt kategória sorrendet sugall.</b> Ha az „ég” oszlopot 0, 1, 2 számokká alakítod, a fa „ég $\lt 1{,}5$?” kérdéseket tesz fel – két kérdéssel bármelyik kategóriát
+      le tudja választani, de a sorrend önkényes. A one-hot kódolás tisztább, sok kategóriánál viszont sok oszlopot ad (<a href="../04-adatok-es-jellemzok/#s43-c">4.3</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – számjellemzők és mohó építés</summary>
+  <ol>
+    <li>Egy jellemző értékei: 3, 5, 5, 8, 8, 8. Mely küszöböket kell kipróbálni?
+      <details><summary>Megoldás</summary>A különböző értékek: 3, 5, 8 – a felezőpontok: 4 és 6,5. Csak két jelölt.</details></li>
+    <li>Ellenőrizd a táblázat 81,5-es sorát: alatta 1 : 5, fölötte 3 : 1. Mennyi a súlyozott Gini?
+      <details><summary>Megoldás</summary>Alatta $1 - \frac{1 + 25}{36} \approx 0{,}278$, fölötte $0{,}375$. Súlyozva $0{,}6 \cdot 0{,}278 + 0{,}4 \cdot 0{,}375 \approx 0{,}317$.</details></li>
+    <li>Az „esőt mond” ágban (R3 78% n, R4 85% e, R6 74% e, R7 90% e, R8 92% e) mennyi a „páratartalom $\lt 81{,}5$?” kérdés súlyozott Gini-indexe? Miért győz mégis a „tiszta az ég?”?
+      <details><summary>Megoldás</summary>Alatta R6, R3 (1 : 1, $G = 0{,}5$), fölötte R4, R7, R8 (3 : 0, $G = 0$). Súlyozva $0{,}4 \cdot 0{,}5 = 0{,}2$. A „tiszta?” két tiszta ágat ad: 0. A kisebb nyer.</details></li>
+    <li>Hány küszöböt próbál ki a mohó algoritmus a gyökérben, ha 1000 minta és 20 számjellemző van, minden érték különböző?
+      <details><summary>Megoldás</summary>Jellemzőnként 999 felezőpont, összesen $20 \cdot 999 = 19\,980$ vágás. A rendezés után mindegyik kiértékelése gyors (a darabszámokat léptetve frissítjük), ezért a fa építése a nagy adaton is gyors.</details></li>
+    <li>(nehezebb) Egy kNN-modell és egy döntési fa ugyanazon az adaton tanul, egyszer Celsius-, egyszer Fahrenheit-fokban megadott hőmérséklettel ($F = 1{,}8C + 32$), a többi jellemző változatlan.
+      Melyik modell jóslatai változhatnak meg?
+      <details><summary>Megoldás</summary>A fáé nem: a $1{,}8C + 32$ szigorúan növő, a sorrend és így a vágások ugyanazok (a küszöbök átszámolódnak). A kNN-é igen: a hőmérséklet-különbségek 1,8-szeresükre nőnek,
+        ezért a távolságban nagyobb súlyt kapnak, és más szomszédok lehetnek a legközelebbiek.</details></li>
+  </ol>
+</details>
+<div class="box history">
+  <span class="box-title">📜 Történet</span>
+  Az első döntésifa-algoritmusok a társadalomtudományokból jöttek (J. Morgan és J. Sonquist AID-módszere, 1963). Az 1980-as években két irány nőtt fel egymástól függetlenül:
+  a statisztikusok CART-ja (Breiman, Friedman, Olshen, Stone, 1984) és a gépi tanulásban J. R. Quinlan ID3-a (1986), majd C4.5-je (1993). Egy 2008-as szakmai felmérés
+  („Top 10 algorithms in data mining”) a C4.5-öt sorolta az első helyre; a mai könyvtárak többsége a CART-ra épül.
+</div>
+<div class="quiz" data-quiz="ai7-71"></div>
+</section>
+
+<!-- ===================================================== 7.2 -->
+<section id="s72">
+<h2>7.2 A fa korlátai: mélység, metszés, regressziós fa, instabilitás ★★</h2>
+<p>A mohó algoritmus addig vág, amíg minden levél tiszta. A tíz reggelnél ez két kérdés után megtörtént. De mi van, ha az adat zajos – ha ugyanolyan reggelen egyszer esik, egyszer nem?
+Akkor a fa addig kérdez, amíg minden egyes tanító mintát „megmagyaráz”. Ebben a szakaszban megnézzük, mibe kerül ez, hogyan fékezzük meg, hogyan jósol a fa számot, és miért ilyen
+szeszélyes – ez utóbbi vezet majd az együttes módszerekhez.</p>
+
+<h3 id="s72-a">1. lépés: a fa, amely mindent megjegyez – mélység és metszés</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egyre mélyebb fák zajos adaton</span>
+  Az <a href="../05-osztalyozas/#s52-b">5.2</a> zajos „holdjain” (200 tanító pont, 2000 tesztpont) egyre mélyebb fákat növesztettünk:
+  <table style="max-width:600px;font-size:.88rem;text-align:center">
+    <tr><th>max. mélység</th><th>levelek</th><th>tanító pontosság</th><th>teszt pontosság</th></tr>
+    <tr><td>1</td><td>2</td><td>82,5%</td><td>77,4%</td></tr>
+    <tr><td>2</td><td>4</td><td>90,0%</td><td><b>86,1%</b></td></tr>
+    <tr><td>4</td><td>10</td><td>91,0%</td><td>84,8%</td></tr>
+    <tr><td>6</td><td>21</td><td>95,0%</td><td>84,4%</td></tr>
+    <tr><td>8</td><td>28</td><td>99,5%</td><td>81,6%</td></tr>
+    <tr><td>korlát nélkül</td><td>29</td><td><b>100%</b></td><td>81,8%</td></tr>
+  </table>
+  A tanító pontosság 100%-ig kúszik, a teszt pontosság a 2-es mélységnél a legjobb, aztán romlik. A korlát nélküli fa minden zajos pontnak saját kis téglalapot vág – ez a
+  <b>túlillesztés</b> (<a href="../03-tanulas-anatomiaja/#s35-b">3.5</a>), a 6.6 nyelvén: nagy <b>variancia</b> (<a href="../06-modellertekeles/#s66-b">6.6</a>).
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – előmetszés és utómetszés</span>
+  <b>Előmetszés</b> (korai megállás): már növesztés közben korlátozzuk a fát. A scikit-learn hiperparaméterei:
+  <ul style="margin:.2rem 0">
+    <li><code>max_depth</code> – legnagyobb mélység;</li>
+    <li><code>min_samples_leaf</code> – legalább ennyi minta legyen minden levélben; <code>min_samples_split</code> – csak ennyi mintától vágunk;</li>
+    <li><code>max_leaf_nodes</code> – legfeljebb ennyi levél; <code>min_impurity_decrease</code> – csak akkora javulásnál vágunk.</li>
+  </ul>
+  <b>Utómetszés</b>: előbb nagy fát növesztünk, aztán visszavágjuk. A <b>költség-komplexitás metszés</b> minden $T$ fát így pontoz:
+  $$C_\alpha(T) = R(T) + \alpha\,|T|,$$
+  ahol $R(T)$ a tanító hiba (pl. a hibás minták száma a levelekben), $|T|$ a levelek száma, $\alpha \ge 0$ pedig a „levéladó”. $\alpha = 0$-nál a teljes fa a legjobb; $\alpha$ növelésével egyre
+  kisebb fák nyernek. Az $\alpha$-t keresztvalidációval választjuk (<a href="../06-modellertekeles/#s65-a">6.5</a>, <a href="../06-modellertekeles/#s68-a">6.8</a>).
+  <br><small>Miért kell? A levélszám a fa bonyolultsága. A $C_\alpha$ ugyanaz a „hiba + bonyolultsági büntetés” gondolat, mint a ridge-regresszióé (<a href="../06-modellertekeles/#s67-a">6.7</a>).
+  Hogy miért nem elég az előmetszés: egy értéktelennek látszó vágás alatt jöhet egy nagyon jó (lásd a XOR-t az <a href="#s71-d">előző lépésben</a>) – az utómetszés ezt nem vágja le idő előtt.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a „levéladó” kézzel</span>
+    Egy részfának 3 levele van, és 20 tanító mintájából 2-t hibáz. Ha egyetlen levéllé vonjuk össze, 5-öt hibázna.
+    <br>Részfa: $C_\alpha = 2 + 3\alpha$. Összevonva: $C_\alpha = 5 + \alpha$.
+    <br>A kettő egyenlő, ha $2 + 3\alpha = 5 + \alpha$, azaz $\alpha = 1{,}5$. Ennél nagyobb „adónál” a metszett változat nyer: a 2 levél megspórolása többet ér, mint 3 hiba.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – minimális levélméret</span>
+    <code>min_samples_leaf = 10</code>-zel egy 200 mintás adaton legfeljebb 20 levél lehet, és egyetlen levél sem dönthet egy-két „furcsa” minta alapján.
+    Egy 1 mintás levél „100%-os” biztonsággal jósol – egyetlen esetből. Ez inkább anekdota, mint statisztika.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A 100%-os tanító pontosság semmit nem bizonyít.</b> Egy korlátlan fa szinte mindig eléri (kivéve, ha két egyforma jellemzőjű mintának más a címkéje).</li>
+    <li><b>Ne a teszt halmazon válaszd a mélységet vagy az $\alpha$-t!</b> Egy könyv (MLD 10) a <code>ccp_alpha</code>-t a teszt halmazon választja ki, aztán ugyanott közli a pontosságot –
+      ez optimista becslés (<a href="../06-modellertekeles/#s64-a">6.4</a>). A mélység is hiperparaméter: keresztvalidáció a tanító halmazon.</li>
+    <li><b>A „csak javulásnál vágok” szabály rövidlátó.</b> Ezért ajánlja egy klasszikus tankönyv (ESL 9.2) a „nagyra növeszt, aztán metsz” stratégiát.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – mélység és metszés</summary>
+  <ol>
+    <li>A holdak táblázata alapján melyik mélységet választanád? Miért nem a 8-asat, amelyik a tanító pontokon majdnem hibátlan?
+      <details><summary>Megoldás</summary>A 2-eset (86,1% a teszten). A 8-as a tanító adaton 99,5%, de a teszten csak 81,6% – a különbség a zaj megjegyzéséből jön. (A valóságban a mélységet keresztvalidációval
+        választanánk, nem a teszt halmazon – itt csak szemléltetünk.)</details></li>
+    <li>Egy fa tanító pontossága 100%, a validációs 78%. Egy 3 mélységű fáé 88% és 86%. Mi a diagnózis?
+      <details><summary>Megoldás</summary>A mély fa túlilleszt (nagy rés, nagy variancia). A sekély fánál a két szám közel van, és a validációs eredménye is jobb – ezt érdemes választani, vagy a kettő között keresni.</details></li>
+    <li>Egy 4 levelű részfa 1 hibát vét, összevonva 7 hibát vétene. Melyik $\alpha$ felett éri meg metszeni?
+      <details><summary>Megoldás</summary>$1 + 4\alpha = 7 + \alpha$ → $\alpha = 2$. Ha $\alpha \gt 2$, a metszett változat költsége kisebb.</details></li>
+    <li>Legfeljebb hány levele lehet egy fának 1000 mintán <code>min_samples_leaf = 25</code>-tel? És <code>max_depth = 4</code>-gyel?
+      <details><summary>Megoldás</summary>$1000/25 = 40$ levél (ha mind pontosan 25 mintás). <code>max_depth = 4</code>: legfeljebb $2^4 = 16$ levél.</details></li>
+    <li>(nehezebb) 200 tanító minta között 3 olyan pár van, amelyeknek minden jellemzője egyezik, de a címkéjük különbözik. Legfeljebb mekkora lehet a korlátlan fa tanító pontossága?
+      <details><summary>Megoldás</summary>Egy pár két tagja mindig ugyanabba a levélbe kerül, és a levél csak az egyiket mondhatja: páronként legalább egy hiba. Legfeljebb $197/200 = 98{,}5\%$.</details></li>
+  </ol>
+</details>
+
+<h3 id="s72-b">2. lépés: regressziós fa – levelenként egy átlag</h3>
+<p>Eddig a fa osztályt mondott. Mi van, ha a címke szám – pl. hány gombóc fagylaltot ad el a büfé? A szerkezet ugyanaz, csak a levél és a mérce változik.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – fagylalt és hőmérséklet</span>
+  <table style="max-width:560px;font-size:.88rem;text-align:center">
+    <tr><th>hőmérséklet (°C)</th><td>15</td><td>18</td><td>22</td><td>25</td><td>28</td><td>31</td></tr>
+    <tr><th>eladott gombóc</th><td>20</td><td>24</td><td>40</td><td>44</td><td>70</td><td>74</td></tr>
+  </table>
+  Kérdés nélkül a legjobb jóslat egyetlen szám, az <b>átlag</b>: 45,3 (<a href="../03-tanulas-anatomiaja/#s34-a">3.4</a>). A négyzetes hibák összege (SSE) ekkor 2557,3.
+  Próbáljuk ki az öt lehetséges vágást – mindkét oldalon a saját átlagát mondjuk:
+  <table style="max-width:560px;font-size:.88rem;text-align:center">
+    <tr><th>vágás</th><th>bal átlag</th><th>jobb átlag</th><th>SSE</th></tr>
+    <tr><td>$\lt 16{,}5$</td><td>20</td><td>50,4</td><td>1787,2</td></tr>
+    <tr><td>$\lt 20$</td><td>22</td><td>57</td><td>924</td></tr>
+    <tr><td>$\lt 23{,}5$</td><td>28</td><td>62,7</td><td>754,7</td></tr>
+    <tr><td><b>$\lt 26{,}5$</b></td><td>32</td><td>72</td><td><b>424</b></td></tr>
+    <tr><td>$\lt 29{,}5$</td><td>39,6</td><td>74</td><td>1571,2</td></tr>
+  </table>
+  A legjobb kérdés: „hidegebb-e 26,5 °C-nál?” – utána a hiba hatodára esik.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – regressziós fa</span>
+  A <b>regressziós fa</b> levele a benne lévő tanító címkék <b>átlagát</b> jósolja (ez minimalizálja a négyzetes hibát). A vágást a súlyozott Gini helyett a <b>négyzetes hibaösszeg</b> csökkenése alapján választjuk:
+  $$\text{SSE}_{\text{vágás}} = \sum_{i \in \text{bal}} (y_i - \bar y_{\text{bal}})^2 + \sum_{i \in \text{jobb}} (y_i - \bar y_{\text{jobb}})^2 .$$
+  A jóslat így egy <b>lépcsős függvény</b>: minden levélhez egy vízszintes szakasz tartozik.
+  <br><small>Miért az átlag? Mert a 3.4 szerint a négyzetes hibát egy konstanssal az átlag minimalizálja. A scikit-learnben ez a <code>DecisionTreeRegressor</code> (<code>criterion="squared_error"</code>).</small>
+</div>
+<div class="box example">
+  <span class="box-title">Példa – még egy szint</span>
+  A bal oldalon (15, 18, 22, 25 °C: 20, 24, 40, 44) a legjobb vágás a „$\lt 20$?”: 22 és 42, SSE $8 + 8 = 16$. Ha csak a bal oldalt vágjuk tovább, a fa:
+  „$\lt 20$ → 22; 20–26,5 → 42; 26,5 fölött → 72”, SSE $16 + 8 = 24$ (3 levél). Ha a jobb oldalt (70, 74) is kettévágnánk, négy levél jutna hat pontra – a fa itt már közel jár a bemagoláshoz.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – 40 °C: a fa nem extrapolál</span>
+    A fa szerint 40 °C-on is <b>72</b> gombóc fogy – ugyanannyi, mint 31 °C-on. A legjobb levél a „legmelegebb” levél; ennél többet a fa sosem mond, hiszen csak a látott címkéket átlagolja.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – 40 °C: az egyenes extrapolál</span>
+    A legkisebb négyzetes egyenes: $\hat y \approx 3{,}64x - 38{,}9$. 40 °C-on kb. <b>106,5</b> gombóc – folytatja a trendet. Viszont 10 °C-on $-2{,}5$-öt mond, ami nyilvánvaló képtelenség; a fa ott 22-t.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A fák (és a fákból álló erdők, boosting-modellek) nem extrapolálnak.</b> Ha az árak évről évre nőnek, egy fa a jövőre a múlt legnagyobb levélátlagát mondja. Ilyenkor a trendet érdemes
+      külön kezelni: pl. a változást vagy az arányt jósolni, nem a szintet (<a href="../04-adatok-es-jellemzok/#s45-b">4.5</a>).</li>
+    <li><b>Egyetlen kiugró érték saját levelet kaphat.</b> A négyzetes hiba miatt a kiugró pontokat a fa szívesen leválasztja – ezért itt is kell a <code>min_samples_leaf</code>.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – regressziós fa</summary>
+  <ol>
+    <li>Mennyi a {20, 24} levél jóslata és SSE-je?
+      <details><summary>Megoldás</summary>Átlag 22; SSE $(20 - 22)^2 + (24 - 22)^2 = 8$.</details></li>
+    <li>Ellenőrizd a „$\lt 20$” sort a fagylaltos táblázatban!
+      <details><summary>Megoldás</summary>Bal: {20, 24}, átlag 22, SSE 8. Jobb: {40, 44, 70, 74}, átlag 57, SSE $289 + 169 + 169 + 289 = 916$. Összesen 924.</details></li>
+    <li>Mit jósol a 2 mélységű fa (22 / 42 / 72) 23 °C-ra és 12 °C-ra?
+      <details><summary>Megoldás</summary>23 °C: $23 \lt 26{,}5$, de nem $\lt 20$ → 42. 12 °C: $\lt 20$ → 22 – akkor is, ha valójában sokkal kevesebb fogyna.</details></li>
+    <li>Pontok: $x = 1, 2, 3, 4$, $y = 1, 2, 4, 7$. Melyik a legjobb első vágás, és mekkora az SSE?
+      <details><summary>Megoldás</summary>$x \lt 1{,}5$: {1} és {2, 4, 7} → $0 + 12{,}67$; $x \lt 2{,}5$: {1, 2} és {4, 7} → $0{,}5 + 4{,}5 = 5$; $x \lt 3{,}5$: {1, 2, 4} és {7} → $4{,}67 + 0$.
+        A legjobb az $x \lt 3{,}5$ (SSE ≈ 4,67), levelek: $7/3 \approx 2{,}33$ és 7. (Ezzel a példával a 7.4-ben még találkozunk.)</details></li>
+    <li>(nehezebb) Egy webshop napi forgalmát egy regressziós erdővel jósolják. A forgalom két év alatt a duplájára nőtt. Mire számíts a következő hónapra, és mit javasolsz?
+      <details><summary>Megoldás</summary>A modell legfeljebb a tanító időszak legnagyobb levélátlagait mondhatja, ezért a további növekedést nem fogja követni – szisztematikusan alábecsül. Javaslat: a trendet
+        egy egyszerű modellel (pl. lineárisan) leválasztani, és a fákkal csak a maradékot vagy az arányt (pl. a 4 héttel korábbi forgalomhoz képest) jósolni.</details></li>
+  </ol>
+</details>
+
+<h3 id="s72-c">3. lépés: egy új reggel mindent átír – a fa instabilitása</h3>
+<p>A fa érthető és gyors. Van viszont egy kellemetlen tulajdonsága, és ez vezet el a következő szakaszokhoz.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a tizenegyedik reggel</span>
+  A barátod feljegyez még egy napot: <b>R11</b>: borult ég, az előrejelzés <em>nem</em> mond esőt, erős szél, 93% páratartalom – és <b>esett</b>. Számoljuk újra a gyökeret (11 nap, 5 eső):
+  <ul style="margin:.2rem 0">
+    <li>előrejelzés: „esőt mond” 4 : 1 ($G = 0{,}32$), „nem mond” 1 : 5 ($G \approx 0{,}278$) → súlyozva $\frac5{11}\cdot0{,}32 + \frac6{11}\cdot0{,}278 \approx 0{,}297$;</li>
+    <li>páratartalom $\lt 72$: alatta 0 : 4, fölötte 5 : 2 ($G \approx 0{,}408$) → súlyozva $\frac7{11}\cdot0{,}408 \approx 0{,}260$.</li>
+  </ul>
+  Most a <b>páratartalom</b> nyer! A gyökér megváltozott, és vele az egész fa: a scikit-learn 11 napra egy 4 mélységű, 5 levelű fát növeszt (páratartalom → tiszta ég → előrejelzés → páratartalom),
+  a 10 naposra egy 2 mélységűt. Egyetlen új nap a tizenegyből átírta a teljes szabályrendszert.
+</div>
+<div class="box def">
+  <span class="box-title">Tény – a fa nagy varianciájú modell</span>
+  A döntési fa <b>instabil</b>: a tanító adat kis változása (egy pont hozzáadása, elhagyása, egy kicsit más minta) teljesen más fát adhat. Ennek oka a hierarchia: a gyökérben
+  két közel azonos jóságú kérdés közül a „jobbik” nyer, és a fölső kérdés minden alatta lévőt meghatároz – egy fenti változás lefelé végiggyűrűzik.
+  <br>A 6.6 nyelvén: a fa <b>torzítása kicsi</b> (elég mélyen bármilyen határt követ), a <b>varianciája nagy</b>.
+  <br><small>Miért fontos? Mert a variancia ellen van orvosság: <b>átlagolni</b>. Ha sok, egymástól kissé eltérő fa véleményét összegezzük, a szeszélyek kioltják egymást – ez a 7.3 témája.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – ezer újramintázott adatkészlet</span>
+    A tíz reggelből ezerszer húztunk visszatevéssel tíz napot (bootstrap, <a href="../06-modellertekeles/#s69-b">6.9</a>), és mindegyikre fát növesztettünk. A gyökérkérdés:
+    előrejelzés 58%, páratartalom 31%, „tiszta az ég?” 6%, egyéb 5%. Az esetek <b>több mint 40%-ában más</b> a gyökér, mint az eredeti fában.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a stabil ellenpélda</span>
+    Egy egyenes (<a href="../03-tanulas-anatomiaja/#s34-b">3.4</a>) a fagylaltos adathoz egy hetedik pontot hozzáadva csak kicsit fordul el: a meredekség és a tengelymetszet folytonosan változik.
+    A fa diszkrét döntései („ez vagy az a kérdés”) viszont ugrásszerűen.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 A döntési fa erényei és gyengéi</span>
+  <div class="two-col">
+    <div><b>Erények</b>
+      <ul style="margin:.2rem 0">
+        <li>érthető, szabályokká alakítható;</li>
+        <li>nem kell skálázni, a monoton átalakítás nem számít;</li>
+        <li>számot és kategóriát vegyesen kezel;</li>
+        <li>magától talál kölcsönhatást („esőt mond <em>és</em> nem tiszta”);</li>
+        <li>gyorsan tanul és jósol.</li>
+      </ul></div>
+    <div><b>Gyengék</b>
+      <ul style="margin:.2rem 0">
+        <li>instabil, nagy varianciájú;</li>
+        <li>könnyen túlilleszt (metszeni kell);</li>
+        <li>lépcsős, tengelyekkel párhuzamos határ;</li>
+        <li>nem extrapolál;</li>
+        <li>egyedül gyakran pontatlanabb, mint más modellek.</li>
+      </ul></div>
+  </div>
+  Egy gyakorlati könyv (PDL 7) ezerszer ismételt keresztvalidációjában az emlőrák-adatokon az egyetlen fa (92,6%) a legegyszerűbb, legközelebbi centroid módszernél (93,0%) is gyengébb volt,
+  az 50 fás erdő viszont 95,9%-ot ért el.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktató</span>
+  <b>Ne olvass túl sokat egyetlen fa szerkezetébe.</b> „A fa szerint a szél nem számít” – lehet, hogy csak <em>ebben</em> a tíz napban. Ha a gyökér egy új nap miatt átfordul, a gyökérben álló
+  jellemző sem feltétlenül „a legfontosabb”. Ehhez sok fa kell (<a href="#s73-d">7.3</a>).
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – instabilitás</summary>
+  <ol>
+    <li>Ellenőrizd: a 11 napos adaton mennyi a „Tiszta az ég?” kérdés súlyozott Gini-indexe? (Tiszta: R1–R3, mind száraz.)
+      <details><summary>Megoldás</summary>Tiszta: 0 : 3 → 0. A többi 8 nap: 5 : 3 → $1 - \frac{25 + 9}{64} \approx 0{,}469$. Súlyozva $\frac8{11} \cdot 0{,}469 \approx 0{,}341$ – rosszabb, mint a páratartalom (0,260).</details></li>
+    <li>Miért nem változott meg a páratartalom legjobb küszöbe (72) az R11 hozzáadásával?
+      <details><summary>Megoldás</summary>R11 páratartalma 93%, a legnagyobb – a 72 fölötti ágba kerül, és ott az esős napok számát növeli (4 : 2 → 5 : 2). A 72 alatti ág (0 : 4) változatlanul tiszta marad.</details></li>
+    <li>Melyik modell stabil, melyik instabil: (a) lineáris regresszió; (b) 1-NN; (c) 50-NN; (d) korlátlan mélységű fa; (e) döntési tönk (egy vágás)?
+      <details><summary>Megoldás</summary>Stabil: (a), (c) – sok pont átlagolódik bennük. Instabil: (b), (d) – egy pont is megváltoztatja a jóslatot. A tönk (e) közepes: egyetlen küszöb, de a küszöb helye ugrálhat.</details></li>
+    <li>Az ezer bootstrap-fánál a gyökér 58%-ban az előrejelzés volt. Mit jelent ez arra nézve, mennyire bízhatsz az eredeti fa gyökerében?
+      <details><summary>Megoldás</summary>Csak mérsékelten: egy kicsit más tíz nap esetén az esetek 42%-ában más kérdéssel kezdene a fa. A gyökér „győzelme” itt nem erős – a páratartalom szoros második.</details></li>
+    <li>(nehezebb) Egy kórházban egy döntési fát használnak a sürgősségi osztályon, és minden hónapban újratanítják. Az orvosok panaszkodnak, hogy a szabályok havonta „összevissza” változnak.
+      Mit javasolsz?
+      <details><summary>Megoldás</summary>A fa varianciáját kell csökkenteni: erősebb metszés (kisebb mélység, nagyobb <code>min_samples_leaf</code>), több adat (pl. gördülő 12 hónap egy helyett). Ha a pontosság fontosabb
+        az érthetőségnél, sok fa átlaga (véletlen erdő, 7.3) – az stabil, de nem olvasható szabálylista. Ha az érthetőség kell: stabil, egyszerű pontozótábla (pl. logisztikus regresszió kevés jellemzővel).</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai7-72"></div>
+</section>
+
+<!-- ===================================================== 7.3 -->
+<section id="s73">
+<h2>7.3 Bagging és véletlen erdő ★★</h2>
+<p>Egy fa szeszélyes: egy új reggel átírja. Mi lenne, ha nem egy fát kérdeznénk meg, hanem százat, és többségi szavazással döntenénk? Előbb nézzük meg, mikor jobb egy „tömeg”, mint egyetlen szakértő.</p>
+
+<h3 id="s73-a">1. lépés: a tömeg bölcsessége – többségi szavazás</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – három barát jósol</span>
+  Három barátod minden reggel tippel, esik-e. Mindegyik a napok <b>70%-ában</b> talál, és egymástól függetlenül tévednek. Ha a többség véleményét fogadod el, milyen gyakran döntesz jól?
+  Soroljuk fel mind a nyolc esetet (✓ = jól tippel):
+  <table style="max-width:560px;font-size:.88rem;text-align:center">
+    <tr><th>A</th><th>B</th><th>C</th><th>valószínűség</th><th>többség</th></tr>
+    <tr><td>✓</td><td>✓</td><td>✓</td><td>$0{,}7^3 = 0{,}343$</td><td>jó</td></tr>
+    <tr><td>✓</td><td>✓</td><td>✗</td><td>$0{,}7^2 \cdot 0{,}3 = 0{,}147$</td><td>jó</td></tr>
+    <tr><td>✓</td><td>✗</td><td>✓</td><td>0,147</td><td>jó</td></tr>
+    <tr><td>✗</td><td>✓</td><td>✓</td><td>0,147</td><td>jó</td></tr>
+    <tr><td colspan="3">egy vagy nulla ✓ (4 eset)</td><td>$3 \cdot 0{,}063 + 0{,}027 = 0{,}216$</td><td>rossz</td></tr>
+  </table>
+  A többség $0{,}343 + 3 \cdot 0{,}147 = 0{,}784$ valószínűséggel dönt jól – jobban, mint bármelyik barát egyedül.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció és tétel – többségi szavazás</span>
+  <b>Együttes modell</b> (<em>ensemble</em>): több modell jóslatát vonjuk össze – osztályozásnál <b>többségi szavazással</b>, regressziónál <b>átlagolással</b>.
+  <br>Ha $B$ osztályozó (páratlan számú) egymástól <b>függetlenül</b> téved, és mindegyik $p$ valószínűséggel talál, a többség pontossága
+  $$P(\text{többség jó}) = \sum_{k \gt B/2} \binom{B}{k} p^k (1 - p)^{B - k}.$$
+  Ha $p \gt 0{,}5$, ez $B$ növelésével 1-hez tart; ha $p \lt 0{,}5$, akkor 0-hoz (Condorcet esküdtszék-tétele).
+  <br><small>Miért? A helyes szavazatok száma binomiális eloszlású (<a href="../../valoszinusegszamitas/04-nevezetes-eloszlasok/">Valószínűségszámítás 4.</a>), várható értéke $Bp$. Ha $p \gt 0{,}5$,
+  a nagy számok törvénye szerint egyre biztosabban a szavazatok több mint fele helyes. A kulcsszó a <b>függetlenség</b>: a tévedéseknek különbözniük kell.</small>
+</div>
+<div class="box example">
+  <span class="box-title">Példa – több szavazó, rossz szavazók, egyforma szavazók</span>
+  <table style="max-width:620px;font-size:.88rem;text-align:center">
+    <tr><th>szavazók</th><th>egyéni pontosság</th><th>a többség pontossága</th></tr>
+    <tr><td>3 független</td><td>70%</td><td>78,4%</td></tr>
+    <tr><td>5 független</td><td>70%</td><td>83,7%</td></tr>
+    <tr><td>11 független</td><td>70%</td><td>92,2%</td></tr>
+    <tr><td>3 független</td><td>40%</td><td><b>35,2%</b> – rosszabb!</td></tr>
+    <tr><td>3 <em>egyforma</em> (ugyanazt mondják)</td><td>70%</td><td>70% – semmi nyereség</td></tr>
+  </table>
+  A szavazás csak akkor segít, ha a szavazók <b>jobbak a véletlennél</b>, és <b>más-más hibát</b> követnek el.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Egyforma modellek szavazata = egy modell.</b> Ha mind ugyanazon az adaton, ugyanazzal az eljárással tanul, ugyanazt mondja. Változatosság kell – ezt adja a következő lépés.</li>
+    <li><b>Páros számú szavazónál döntetlen lehet.</b> Két osztálynál ezért páratlan számú tagot szokás választani, vagy a valószínűségeket átlagolni (<a href="#s75-a">7.5</a>).</li>
+    <li><b>A szavazás nem javítja meg a rossz modellt.</b> 50% alatti tagok többsége még rosszabb (egy klasszikus tankönyv, ESL 8.7 példájában a 40%-os osztályozó szavazata 0%-ra romlik).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – többségi szavazás</summary>
+  <ol>
+    <li>Három független osztályozó egyenként 80%-os. Mennyi a többség pontossága?
+      <details><summary>Megoldás</summary>$0{,}8^3 + 3 \cdot 0{,}8^2 \cdot 0{,}2 = 0{,}512 + 0{,}384 = 0{,}896$.</details></li>
+    <li>Három független osztályozó 60%, 70% és 80%-os. Mennyi a többség pontossága?
+      <details><summary>Megoldás</summary>Mindhárom jó: $0{,}6 \cdot 0{,}7 \cdot 0{,}8 = 0{,}336$. Pontosan kettő: $0{,}6 \cdot 0{,}7 \cdot 0{,}2 + 0{,}6 \cdot 0{,}3 \cdot 0{,}8 + 0{,}4 \cdot 0{,}7 \cdot 0{,}8 = 0{,}084 + 0{,}144 + 0{,}224 = 0{,}452$.
+        Összesen 0,788 – kevesebb, mint a legjobb tag (80%)! Ha a tagok nagyon eltérő erősségűek, a sima szavazás le is ronthatja a legjobbat.</details></li>
+    <li>Számold ki a képlettel: 5 független, 70%-os szavazó.
+      <details><summary>Megoldás</summary>$k = 3, 4, 5$: $10 \cdot 0{,}343 \cdot 0{,}09 + 5 \cdot 0{,}2401 \cdot 0{,}3 + 0{,}16807 = 0{,}3087 + 0{,}36015 + 0{,}16807 \approx 0{,}837$.</details></li>
+    <li>Két modell szavaz két osztály között. Mi a gond?
+      <details><summary>Megoldás</summary>Ha nem értenek egyet, döntetlen. Ilyenkor kell egy szabály (pl. a valószínűségek átlaga), és két szavazóval a többség semmivel sem jobb, mint az egyik tag.</details></li>
+    <li>(nehezebb) Az A és B modell mindig ugyanazt mondja (70%), C tőlük független, szintén 70%-os. Mennyi a három többségének pontossága?
+      <details><summary>Megoldás</summary>Mivel A és B mindig egyetért, a többség mindig az ő válaszuk: 70%. C hiába független – ketten „leszavazzák”. A korrelált tagok elveszik a szavazás hasznát.</details></li>
+  </ol>
+</details>
+
+<h3 id="s73-b">2. lépés: bagging – sok fa bootstrap-mintákon</h3>
+<p>Szavazókra van szükség, amelyek más-más hibát követnek el. De csak <em>egy</em> adatkészletünk van. Honnan vegyünk különböző fákat? A 6.9-ből ismerős trükkel: a <b>bootstrap</b>-pal.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy bootstrap-minta hat reggelből</span>
+  Az R1–R6 reggelekből visszatevéssel hatszor húzunk. Egy lehetséges eredmény: <b>R2, R5, R2, R6, R1, R5</b>. R2 és R5 kétszer szerepel, <b>R3 és R4 egyszer sem</b> – ők a
+  <b>zsákon kívüli</b> (<em>out-of-bag</em>, OOB) minták.
+  <br>Mekkora eséllyel marad ki egy adott reggel? Egy húzásnál $5/6$ eséllyel nem őt húzzuk, hat függetlennél $(5/6)^6 \approx 0{,}335$.
+  Általában $n$ mintából $(1 - 1/n)^n$, ami nagy $n$-re $1/e \approx 0{,}368$-hoz tart: <b>minden fa a minták kb. 63%-át látja</b>, a többit nem.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – bagging</span>
+  A <b>bagging</b> (<em>bootstrap aggregating</em>, L. Breiman, 1996):
+  <ol style="margin:.2rem 0">
+    <li>Készíts $B$ bootstrap-mintát (mindegyik $n$ elemű, visszatevéssel húzva).</li>
+    <li>Mindegyiken tanítsd ugyanazt a modellt – tipikusan egy <b>mély, metszetlen fát</b>.</li>
+    <li>Jóslás: többségi szavazás (vagy a valószínűségek átlaga), regressziónál átlag.</li>
+  </ol>
+  <b>Miért működik?</b> Ha $B$ egyforma eloszlású becslés varianciája egyenként $\sigma^2$, és bármely kettő korrelációja $\rho$, az átlaguk varianciája
+  $$\operatorname{Var}(\text{átlag}) = \rho\,\sigma^2 + \frac{1 - \rho}{B}\,\sigma^2 .$$
+  A második tag $B$ növelésével eltűnik, az első marad. A torzítás nem változik – az átlag ugyanoda „céloz”, mint egy fa.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a variancia képlete számokkal</span>
+    $\sigma^2 = 1$. Független fák ($\rho = 0$), $B = 10$: 0,1. Korrelált fák ($\rho = 0{,}3$): $B = 10$ → 0,37; $B = 100$ → 0,307; $B \to \infty$ → 0,3.
+    A sok fa a varianciát legfeljebb $\rho\sigma^2$-ig viszi le – a <b>korreláció</b> a padló.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – emlőrák-adatok</span>
+    569 daganat, 30 jellemző, 5-szörös keresztvalidáció (a 6.5 adatain): egyetlen fa <b>92,6%</b>, 300 fa baggingje <b>95,4%</b>. Ugyanaz az algoritmus, csak sokszor és átlagolva.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A bootstrap-minta nem „kis részhalmaz”.</b> Ugyanakkora, mint az eredeti, csak ismétlődésekkel. Két forrás (AAMLP, DLV 12) „kis részhalmazokról” beszél – az a <em>pasting</em> nevű rokon módszer.</li>
+    <li><b>A bagging bármilyen modellel működik</b>, nem csak fával (a scikit-learnben <code>BaggingClassifier</code>). Egy könyv (DLV 12) szerint csak fákra – ez téves. Viszont csak az
+      <b>instabil</b> modelleken segít: egy lineáris regresszió baggingje szinte ugyanazt az egyenest adja.</li>
+    <li><b>A torzítást nem javítja.</b> Ha a fák túl egyszerűek (pl. tönkök egy átlós határon), az átlaguk is az. Ezért mély fákat zsákolunk.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – bootstrap és bagging</summary>
+  <ol>
+    <li>Nyolc elemből (1–8) a bootstrap-minta: 3, 7, 3, 1, 8, 8, 2, 3. Melyek az OOB elemek, és arányuk?
+      <details><summary>Megoldás</summary>A mintában: 1, 2, 3, 7, 8. Kimaradt: 4, 5, 6 → $3/8 = 37{,}5\%$ – közel az elméleti 34–37%-hoz.</details></li>
+    <li>Mennyi $(1 - 1/n)^n$ értéke $n = 2$-re és $n = 3$-ra?
+      <details><summary>Megoldás</summary>$n = 2$: $0{,}5^2 = 0{,}25$; $n = 3$: $(2/3)^3 \approx 0{,}296$. Növekszik, és $1/e \approx 0{,}368$-hoz tart.</details></li>
+    <li>1000 mintából húzott bootstrap-mintában várhatóan hány <em>különböző</em> minta van?
+      <details><summary>Megoldás</summary>$1000 \cdot (1 - 0{,}999^{1000}) \approx 1000 \cdot 0{,}632 = 632$.</details></li>
+    <li>$\sigma^2 = 1$, $\rho = 0{,}5$, $B = 10$. Mennyi az átlag varianciája? Mennyi lenne végtelen sok fával?
+      <details><summary>Megoldás</summary>$0{,}5 + 0{,}5/10 = 0{,}55$. Végtelen sok fával 0,5 – a felére csökken, de nem tovább.</details></li>
+    <li>(nehezebb) Miért mély fákat zsákolunk, és nem döntési tönköket?
+      <details><summary>Megoldás</summary>A bagging a varianciát csökkenti, a torzítást nem. A tönk torzítása nagy (egyetlen vágás), varianciája kicsi – az átlaguk is pontatlan marad. A mély fa torzítása kicsi,
+        varianciája nagy: pont ezt javítja az átlagolás. (Egy klasszikus kísérletben – ESL 8.7 – egy átlós határon a zsákolt tönkök 16,6%-ot hibáztak, a boosting 6,5%-ot.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s73-c">3. lépés: véletlen erdő – minden vágásnál más jellemzők</h3>
+<p>A bagging fái nem elég különbözők. A tíz reggel bootstrap-mintáin a fák 58%-a az előrejelzéssel kezd – egy erős jellemző szinte minden fát ugyanabba az irányba visz. A korreláció ($\rho$) nagy marad,
+és a 2. lépés szerint ez a variancia padlója. Hogyan tegyük a fákat még különbözőbbé?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – tiltott kérdések</span>
+  Kódoljuk a tíz reggelt hat jellemzővel: előrejelzés, „tiszta?”, „felhős?”, „borult?”, „erős szél?”, páratartalom ($p = 6$). Minden vágásnál csak <b>két véletlenszerűen kiválasztott</b>
+  jellemző közül választhat a fa ($m = 2$). Mekkora eséllyel szerepel a jelöltek között az előrejelzés? A $\binom62 = 15$ párból $\binom52 = 10$-ben nincs benne:
+  $$P = 1 - \frac{10}{15} = \frac13.$$
+  A gyökérvágások kétharmadánál az előrejelzés <em>meg sem kérdezhető</em> – a fa a páratartalommal, az éggel vagy a széllel kénytelen kezdeni. Így a fák jobban különböznek, és a többi jellemzőben rejlő információ is szóhoz jut.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – véletlen erdő</span>
+  A <b>véletlen erdő</b> (<em>random forest</em>, L. Breiman, 2001) bagging egy csavarral: minden vágásnál a $p$ jellemző közül csak $m$ <b>véletlenszerűen választott</b> jellemző a jelölt,
+  és a legjobb vágást ezek közül keressük. A fák mélyek és metszetlenek.
+  <br>Szokásos kiindulás: osztályozásnál $m = \lfloor\sqrt p\,\rfloor$, regressziónál $m = \lfloor p/3 \rfloor$ – de ez hangolandó hiperparaméter (<code>max_features</code>).
+  $m = p$ esetén a véletlen erdő éppen a bagging.
+  <br><small>Miért segít? Kisebb $m$ → különbözőbb fák → kisebb $\rho$ → kisebb $\rho\sigma^2$ padló. Az egyes fák kicsit gyengébbek lesznek (nem mindig a legjobb kérdést tehetik fel), de az átlaguk jobb.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – emlőrák-adatok</span>
+    $p = 30$, $m = \lfloor\sqrt{30}\rfloor = 5$: egy adott jellemző csak a vágások $5/30 = 1/6$-ánál jelölt. 5-szörös CV: fa 92,6%, bagging 95,4%, <b>véletlen erdő 95,8%</b>.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – sok zajos jellemző</span>
+    6 hasznos és 100 zajos jellemző, $m = 10$: annak esélye, hogy a 10 jelölt közt <em>legalább egy</em> hasznos van, $1 - \binom{100}{10}/\binom{106}{10} \approx 0{,}46$ (ESL 15.3.4).
+    A vágások több mint felénél csak zaj közül választhat – itt nagyobb $m$ kell.
+  </div>
+</div>
+<div class="widget" data-widget="forest-vote"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Vágásonként sorsolunk, nem fánként.</b> Egy gyakorlati könyv (PDL 6) szerint minden fa egyszer választ $\sqrt n$ jellemzőt, és azokból épül – ez a rokon „véletlen altér” módszer
+      (T. K. Ho, 1998), nem Breiman véletlen erdeje.</li>
+    <li><b>„A véletlen erdő nem illeszt túl” – csak félig igaz.</b> Több fa hozzáadása nem okoz túlillesztést, de a sok mély fa átlaga maga is lehet túl gazdag (ESL 15.3.4). A
+      <code>min_samples_leaf</code> és az $m$ hangolása itt is számít.</li>
+    <li><b>Felügyelt tanulás marad.</b> Egy kezdőkönyv (MLAB 14) „gyengén felügyeltnek” nevezi a véletlen erdőt, mert a fák a jellemzők egy részét látják – ennek semmi köze a felügyelet mértékéhez:
+      minden fa a teljes címkézett bootstrap-mintán tanul.</li>
+    <li><b>Kevésbé korrelált ≠ független.</b> A fák ugyanabból az adatból nőnek, ezért a $\rho$ sosem 0 (MLD 16 szerint „függetlenné válnak” – nem válnak).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – véletlen erdő</summary>
+  <ol>
+    <li>$p = 9$, $m = 3$. Mekkora eséllyel jelölt egy adott jellemző egy vágásnál?
+      <details><summary>Megoldás</summary>$3/9 = 1/3$ (a 3 jelölt egyenletesen sorsolódik a 9 közül).</details></li>
+    <li>Mennyi az alapértelmezett $m$ egy 100 jellemzős osztályozásnál és egy 100 jellemzős regressziónál?
+      <details><summary>Megoldás</summary>Osztályozás: $\lfloor\sqrt{100}\rfloor = 10$. Regresszió (ESL ajánlása): $\lfloor 100/3 \rfloor = 33$. (A scikit-learn regresszióban újabban alapból mind a 100-at használja – mindig nézd meg a dokumentációt!)</details></li>
+    <li>Mi lesz a véletlen erdőből $m = p$-vel, és mi $m = 1$-gyel?
+      <details><summary>Megoldás</summary>$m = p$: bagging (minden vágásnál minden jellemző jelölt). $m = 1$: minden vágásnál véletlen a jellemző, csak a küszöböt optimalizáljuk – nagyon különböző, de egyenként gyenge fák.</details></li>
+    <li>Miért nem kell a véletlen erdőhöz skálázni a jellemzőket?
+      <details><summary>Megoldás</summary>Mert fákból áll, és minden fa csak a jellemzők sorrendjét használja (<a href="#s71-d">7.1</a>).</details></li>
+    <li>(nehezebb) Egy 1000 jellemzős génadatban 5 gén számít. $m = \lfloor\sqrt{1000}\rfloor = 31$. Mekkora eséllyel van a jelöltek közt legalább egy hasznos? Mit tennél?
+      <details><summary>Megoldás</summary>$1 - \binom{995}{31}/\binom{1000}{31} \approx 1 - (1 - 31/1000)^5 \approx 0{,}146$. A vágások kb. 85%-a csak zajból választ. Nagyobb $m$-et érdemes kipróbálni
+        (keresztvalidációval), vagy előzetesen szűrni a jellemzőket – a szűrést a hajtásokon belül (<a href="../06-modellertekeles/#s65-d">6.5</a>)!</details></li>
+  </ol>
+</details>
+
+<h3 id="s73-d">4. lépés: ingyen validáció és jellemzőfontosság</h3>
+<p>A bootstrap mellékterméke egy ajándék: minden fa a minták kb. 37%-át nem látta. Ezeken a mintákon a fa úgy jósol, mintha validálnánk.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – négy fa, öt reggel</span>
+  Négy fa, mindegyiknél felírjuk, mely reggelek maradtak ki a mintájából (OOB), és mit mond rájuk:
+  <table style="max-width:600px;font-size:.88rem;text-align:center">
+    <tr><th>fa</th><th>OOB reggelek és a fa jóslata</th></tr>
+    <tr><td>T1</td><td>P2: nem · P5: igen</td></tr>
+    <tr><td>T2</td><td>P1: igen · P5: igen</td></tr>
+    <tr><td>T3</td><td>P2: igen · P3: igen</td></tr>
+    <tr><td>T4</td><td>P2: nem · P4: nem</td></tr>
+  </table>
+  A valóság: P1 igen, P2 nem, P3 igen, P4 nem, P5 nem. Minden reggelre csak azok a fák szavaznak, amelyek <em>nem látták</em>: P1 → igen ✓; P2 → nem (2 : 1) ✓; P3 → igen ✓; P4 → nem ✓;
+  P5 → igen (2 : 0) ✗. <b>OOB-pontosság: 4/5 = 80%</b> – külön validációs halmaz nélkül.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – OOB-hiba és jellemzőfontosság</span>
+  <b>OOB-becslés:</b> minden mintára csak azoknak a fáknak a szavazatát vesszük, amelyek mintájában nem szerepelt; az így kapott pontosság (hiba) a modell teljesítményének becslése.
+  Nagy $B$-nél nagyjából a keresztvalidációval egyezik, de ingyen van (scikit-learn: <code>oob_score=True</code>).
+  <br><b>Jellemzőfontosság</b>, kétféle:
+  <ul style="margin:.2rem 0">
+    <li><b>szennyezettség-csökkenés</b> (MDI): egy jellemző összes vágásának Gini-csökkenése, a fákra átlagolva (scikit-learn: <code>feature_importances_</code>) – gyors, de a tanító adaton számol;</li>
+    <li><b>permutációs fontosság</b>: egy validációs (vagy OOB) halmazon <em>összekeverjük</em> a jellemző oszlopát, és megnézzük, mennyit romlik a pontosság. Ha semennyit, a modell nem használja.</li>
+  </ul>
+  <small>Miért keverés? Mert így a jellemző eloszlása megmarad, csak a kapcsolata a címkével (és a többi jellemzővel) szakad meg. Ez olcsóbb, mint a modellt a jellemző nélkül újratanítani.</small>
+</div>
+<div class="box example">
+  <span class="box-title">Példa – permutációs fontosság a kétkérdéses fán</span>
+  A tíz reggelen a fa pontossága 100%. Fordítsuk meg az előrejelzés oszlopát (R1 kapja R10 értékét, R2 az R9-ét, …): R5 most „esőt mond” (felhős → a fa esőt jósol, de nem esett), R6 „nem mond”
+  (a fa szárazat jósol, de esett) – a pontosság <b>80%</b>-ra esik. Az összes lehetséges keverésre átlagolva: előrejelzés → 65% (fontosság 0,35), ég → 81% (0,19), szél → 100% (0).
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A fontosság nem ok-okozat.</b> Azt méri, mennyire támaszkodik <em>a modell</em> egy jellemzőre, nem azt, hogy a jellemző okozza-e a címkét. A napszemüveg-eladás „fontos” a fagylalteladás
+      jóslásában – mindkettőt a napsütés okozza.</li>
+    <li><b>Korrelált jellemzők osztoznak.</b> Ha a hőmérséklet Celsiusban és Fahrenheitben is szerepel, az erdő hol az egyiket, hol a másikat használja, és a fontosság megfeleződik.
+      A permutációs fontosság is alacsony lehet: ha az egyiket összekevered, a másik pótolja (ESL 15.3.2).</li>
+    <li><b>Az MDI a sokértékű jellemzőket kedveli.</b> Egy folytonos vagy azonosító-szerű oszlop sok küszöböt kínál, és a tanító adaton akkor is „fontosnak” látszik, ha csak zaj.
+      Döntéshez inkább validációs halmazon számolt permutációs fontosságot használj (MLD 16).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – OOB és fontosság</summary>
+  <ol>
+    <li>Egy erdőben 500 fa van, $n = 10$. Átlagosan hány fa szavaz egy minta OOB-jóslatában?
+      <details><summary>Megoldás</summary>Egy minta egy fából $(0{,}9)^{10} \approx 0{,}349$ eséllyel marad ki: kb. $500 \cdot 0{,}349 \approx 174$ fa.</details></li>
+    <li>A kiinduló példában melyik reggel OOB-jóslata a legbizonytalanabb, és miért?
+      <details><summary>Megoldás</summary>P2-é (2 : 1) – három fa szavazott, és nem egyöntetűen. P1, P3, P4 csak egy-egy fa szavazatán múlik: ezek sem megbízhatók, csak nincs ellentmondás. Négy fa kevés; a gyakorlatban százak szavaznak.</details></li>
+    <li>Egy modell validációs pontossága 0,90. Az A jellemzőt összekeverve 0,88, a B-t keverve 0,60. Mennyi a két permutációs fontosság, és mit jelentenek?
+      <details><summary>Megoldás</summary>A: 0,02 – alig használja. B: 0,30 – nélküle sokkal rosszabb. (Ha A korrelál egy másik jellemzővel, a kis érték azt is jelentheti, hogy a másik pótolja.)</details></li>
+    <li>Miért tévesztheti meg a tanító adaton mért MDI-fontosság az elemzőt egy „ügyfélazonosító” oszlopnál?
+      <details><summary>Megoldás</summary>Mert az azonosító minden mintát megkülönböztet: a mély fák sok tiszta levelet vágnak vele a tanító adaton, ez nagy Gini-csökkenést ad. Új ügyfélen viszont semmit nem ér – validációs
+        permutációval a fontossága kb. 0 lenne.</details></li>
+    <li>(nehezebb) Egy erdő a fagylalteladást jósolja; a legfontosabb jellemző a „napszemüveg-eladás”. A vezető ezért napszemüveg-akciót akar, hogy több fagylalt fogyjon. Mit mondasz neki?
+      <details><summary>Megoldás</summary>A fontosság a modell szempontjából mér: a napszemüveg-eladás jól <em>jelzi</em> a napos időt, ami mindkettőt okozza. A napszemüveg olcsóbbá tétele nem hoz napsütést.
+        Ok-okozati kérdéshez kísérlet (A/B teszt) vagy oksági elemzés kell.</details></li>
+  </ol>
+</details>
+<div class="box history">
+  <span class="box-title">📜 Történet – a tömeg bölcsessége</span>
+  Condorcet márki 1785-ben írta le, hogy független, jobb-mint-véletlen szavazók többsége a létszámmal egyre biztosabban dönt jól. F. Galton 1907-ben egy vásáron 787 ember tippjét gyűjtötte egy
+  ökör súlyáról: a tippek mediánja 1207 font volt, a valódi súly 1198 – egyetlen szakértő sem volt ilyen pontos. Breiman a bagginggel (1996) és a véletlen erdővel (2001) ezt a gondolatot vitte át a
+  gépi tanulásba – a véletlen erdő azóta a táblázatos adatok egyik legmegbízhatóbb „első próbálkozása”.
+</div>
+<div class="quiz" data-quiz="ai7-73"></div>
+</section>
+
+<!-- ===================================================== 7.4 -->
+<section id="s74">
+<h2>7.4 Boosting ★★</h2>
+<p>A bagging fái egymástól függetlenül, párhuzamosan nőnek – egyik sem tud a másik hibáiról. Mi lenne, ha minden új fa éppen <b>az előzők hibáit</b> javítaná? Mint egy diák, aki a dolgozat után
+a rontott feladatokat gyakorolja. Ez a <b>boosting</b> („felerősítés”): sok gyenge, egyszerű modell egymás után, mindegyik a maradék hibára koncentrál.</p>
+
+<h3 id="s74-a">1. lépés: tanulás a hibákból – AdaBoost</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két hiba, új súlyok</span>
+  Tíz minta, mindegyik súlya 0,1. Egy döntési tönk (egyetlen vágás) kettőt elront: a súlyozott hiba $\varepsilon = 0{,}2$. Az AdaBoost ekkor:
+  <ul style="margin:.2rem 0">
+    <li>kiszámolja a tönk „szavazati erejét”: $\alpha = \tfrac12\ln\frac{1 - \varepsilon}{\varepsilon} = \tfrac12\ln 4 = \ln 2 \approx 0{,}693$;</li>
+    <li>a két <b>elrontott</b> minta súlyát $e^{\alpha} = 2$-vel szorozza: $0{,}1 \to 0{,}2$; a nyolc <b>eltalált</b> mintáét $e^{-\alpha} = 0{,}5$-tel: $0{,}1 \to 0{,}05$;</li>
+    <li>normál: az összeg $2 \cdot 0{,}2 + 8 \cdot 0{,}05 = 0{,}8$, ezzel osztva a két nehéz minta súlya <b>0,25</b>, a többié <b>0,0625</b>.</li>
+  </ul>
+  A két elrontott minta most együtt annyit nyom (0,5), mint a másik nyolc. A következő tönk nem engedheti meg magának, hogy ugyanezeket elrontsa.
+</div>
+<div class="box def">
+  <span class="box-title">Algoritmus – AdaBoost (Y. Freund és R. Schapire, 1995)</span>
+  Címkék: $y_i \in \{-1, +1\}$, kezdősúlyok $w_i = 1/n$. Minden $m = 1, \dots, M$ körben:
+  <ol style="margin:.2rem 0">
+    <li>Tanítsunk egy gyenge osztályozót (tipikusan döntési tönköt) $h_m(\mathbf x) \in \{-1, +1\}$ a <b>súlyozott</b> mintákon; a súlyozott hibája $\varepsilon_m$.</li>
+    <li>Szavazati erő: $\alpha_m = \tfrac12\ln\dfrac{1 - \varepsilon_m}{\varepsilon_m}$.</li>
+    <li>Új súlyok: $w_i \leftarrow w_i \cdot e^{-\alpha_m y_i h_m(\mathbf x_i)}$ (hibánál $e^{+\alpha_m}$, találatnál $e^{-\alpha_m}$), majd normálás 1 összegre.</li>
+  </ol>
+  Végső döntés: <b>súlyozott szavazás</b>, $H(\mathbf x) = \operatorname{sign}\big(\sum_m \alpha_m h_m(\mathbf x)\big)$.
+  <br><small>Miért ez az $\alpha$? A pontosabb tagok több szavazatot kapnak; $\varepsilon = 0{,}5$-nél (pénzfeldobás) $\alpha = 0$. A súlyfrissítés után az épp betanított tag súlyozott hibája
+  pontosan $1/2$ lesz – a következő tagnak tehát valami <em>újat</em> kell találnia. (Az AdaBoost valójában az $e^{-yF(\mathbf x)}$ exponenciális veszteséget minimalizálja lépésenként; ESL 10.4.)</small>
+</div>
+<div class="box example">
+  <span class="box-title">Példa – három tönk, ami egyedül egyiknek sem megy</span>
+  Tíz pont egy egyenesen: $x = 0, 1, \dots, 9$, címkék: <b>+ + + − − − + + + −</b>. Egyetlen „$x \lt t$” tönk legalább 3 hibát vét. Az AdaBoost három köre (ESL 10.1 alapján, kézzel ellenőrizhető törtekkel):
+  <table style="max-width:700px;font-size:.88rem;text-align:center">
+    <tr><th>kör</th><th>tönk</th><th>súlyozott hiba</th><th>$\alpha$</th></tr>
+    <tr><td>1</td><td>+, ha $x \lt 2{,}5$ (hibák: 6, 7, 8)</td><td>$3/10$</td><td>0,424</td></tr>
+    <tr><td>2</td><td>+, ha $x \lt 8{,}5$ (hibák: 3, 4, 5)</td><td>$3/14 \approx 0{,}214$</td><td>0,650</td></tr>
+    <tr><td>3</td><td>−, ha $x \lt 5{,}5$ (hibák: 0, 1, 2, 9)</td><td>$2/11 \approx 0{,}182$</td><td>0,752</td></tr>
+  </table>
+  A súlyozott összeg $F(x) = 0{,}424\,h_1 + 0{,}650\,h_2 + 0{,}752\,h_3$ a négy szakaszon: $x \le 2$: $+0{,}321$; $3 \le x \le 5$: $-0{,}526$; $6 \le x \le 8$: $+0{,}978$; $x = 9$: $-0{,}321$.
+  Az előjelek: + − + − – <b>mind a tíz pont helyes</b>. Három gyenge, egyenként 30% körül hibázó tönk együtt hibátlan.
+  <br><small>Az 1. körben a „+, ha $x \lt 8{,}5$” is 3 hibát ad – holtverseny; itt az elsőt választottuk.</small>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Két írásmód ugyanarra</span>
+  Egy klasszikus tankönyv (ESL 10.1, „AdaBoost.M1”) $\alpha_m = \ln\frac{1 - \varepsilon_m}{\varepsilon_m}$-mel dolgozik, és csak a hibás minták súlyát szorozza $e^{\alpha_m}$-mel. Normálás után
+  pontosan ugyanazok a súlyok jönnek ki, a végső szavazatok pedig mind kétszeresek – az előjel nem változik. A kettő tehát ugyanaz. Ami <b>nem</b> megy: az egyik könyv $\alpha$-ját a másik
+  frissítésével keverni. Egy könyv (MLD 16) ezt teszi: $\tfrac12\ln\frac{1 - \varepsilon}{\varepsilon}$, de csak a hibás minták szorzásával – a kiinduló példában a két hibás minta így a súly 50% helyett csak 33%-át kapná.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Hibás címkék.</b> Egy rosszul címkézett mintát semmilyen tönk nem talál el „jól”, ezért a súlya körről körre nő – az AdaBoost egyre inkább a zajt hajszolja. Zajos címkéknél ez komoly gyengeség (ESL 10.6).</li>
+    <li><b>A gyenge tagnak jobbnak kell lennie a véletlennél</b> ($\varepsilon \lt 0{,}5$). Ha $\varepsilon \gt 0{,}5$, $\alpha$ negatív – a tag szavazata megfordul.</li>
+    <li><b>Ne keverd a súlyokat!</b> A minták súlya ($w_i$) azt mondja meg, melyik minta mennyire számít a <em>tanításnál</em>; a tagok súlya ($\alpha_m$) azt, melyik tag mennyit számít a <em>szavazásnál</em>.
+      Egy kezdőkönyv (MLAB 15) szerint a súlyokat „az osztályozókhoz adjuk, amelyek korábban rosszul osztályoztak” – összekeveri a kettőt.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – AdaBoost</summary>
+  <ol>
+    <li>Mennyi $\alpha$, ha $\varepsilon = 0{,}25$? És ha $\varepsilon = 0{,}1$?
+      <details><summary>Megoldás</summary>$\tfrac12\ln 3 \approx 0{,}549$; $\tfrac12\ln 9 = \ln 3 \approx 1{,}099$. A pontosabb tag több szavazatot kap.</details></li>
+    <li>Négy egyforma súlyú minta, a tönk egyet ront el. Mik lesznek az új (normált) súlyok?
+      <details><summary>Megoldás</summary>$\varepsilon = 0{,}25$, $e^{\alpha} = \sqrt3$. Hibás: $0{,}25\sqrt3 \approx 0{,}433$; jók: $0{,}25/\sqrt3 \approx 0{,}144$ egyenként. Összeg $\approx 0{,}866$. Normálva: hibás <b>0,5</b>, a jók $1/6$-$1/6$.</details></li>
+    <li>Három tönk $\alpha$-ja 0,4; 0,7; 0,9. Egy pontra rendre +, −, + szavaznak. Mit mond az együttes? És ha +, +, −?
+      <details><summary>Megoldás</summary>$0{,}4 - 0{,}7 + 0{,}9 = 0{,}6 \gt 0$ → +. Második: $0{,}4 + 0{,}7 - 0{,}9 = 0{,}2 \gt 0$ → +. A második esetben a többség (2 : 1) és a súlyozott szavazás egyezik, de nem mindig így van.</details></li>
+    <li>Mi történik, ha egy tag súlyozott hibája 0,6?
+      <details><summary>Megoldás</summary>$\alpha = \tfrac12\ln(0{,}4/0{,}6) \approx -0{,}203$: negatív szavazat, azaz a tag véleményét megfordítva használjuk. Egy 40%-ban pontos osztályozó megfordítva 60%-os. (Az AdaBoost-implementációk ilyenkor általában leállnak.)</details></li>
+    <li>(nehezebb) Mutasd meg, hogy a frissítés után a hibás minták összsúlya mindig pontosan 1/2!
+      <details><summary>Megoldás</summary>Előtte a hibásak összsúlya $\varepsilon$, a jóké $1 - \varepsilon$. $e^{\alpha} = \sqrt{(1 - \varepsilon)/\varepsilon}$, ezért utána: hibás $\varepsilon\sqrt{(1 - \varepsilon)/\varepsilon} = \sqrt{\varepsilon(1 - \varepsilon)}$,
+        jó $(1 - \varepsilon)\sqrt{\varepsilon/(1 - \varepsilon)} = \sqrt{\varepsilon(1 - \varepsilon)}$. Egyenlők, tehát normálás után mindkettő 1/2.</details></li>
+  </ol>
+</details>
+
+<h3 id="s74-b">2. lépés: gradiens boosting – a maradékokra illesztett fák</h3>
+<p>Az AdaBoost súlyokkal „mutatja meg” a nehéz mintákat. Regressziónál van egy közvetlenebb út: a következő fa egyszerűen azt tanulja meg, <b>mennyit tévedtünk eddig</b>.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – négy pont, két lépés</span>
+  $x = 1, 2, 3, 4$; $y = 1, 2, 4, 7$ (a 7.2 utolsó gyakorlata).
+  <table style="max-width:700px;font-size:.88rem;text-align:center">
+    <tr><th></th><th>$x = 1$</th><th>$x = 2$</th><th>$x = 3$</th><th>$x = 4$</th><th>SSE</th></tr>
+    <tr><td>$y$</td><td>1</td><td>2</td><td>4</td><td>7</td><td></td></tr>
+    <tr><td>$F_0$ = átlag</td><td>3,5</td><td>3,5</td><td>3,5</td><td>3,5</td><td>21</td></tr>
+    <tr><td>maradék $y - F_0$</td><td>−2,5</td><td>−1,5</td><td>0,5</td><td>3,5</td><td></td></tr>
+    <tr><td>1. tönk a maradékra ($x \lt 3{,}5$)</td><td>−1,17</td><td>−1,17</td><td>−1,17</td><td>3,5</td><td></td></tr>
+    <tr><td>$F_1 = F_0 + h_1$</td><td>2,33</td><td>2,33</td><td>2,33</td><td>7</td><td>4,67</td></tr>
+    <tr><td>maradék $y - F_1$</td><td>−1,33</td><td>−0,33</td><td>1,67</td><td>0</td><td></td></tr>
+    <tr><td>2. tönk a maradékra ($x \lt 2{,}5$)</td><td>−0,83</td><td>−0,83</td><td>0,83</td><td>0,83</td><td></td></tr>
+    <tr><td>$F_2 = F_1 + h_2$</td><td>1,5</td><td>1,5</td><td>3,17</td><td>7,83</td><td><b>1,89</b></td></tr>
+  </table>
+  Minden tönk a <em>maradékra</em> tanul, nem az eredeti $y$-ra – azt próbálja megjósolni, amit az eddigi modell még nem tud. Két lépés után a hiba 21-ről 1,89-re csökkent.
+</div>
+<div class="box def">
+  <span class="box-title">Algoritmus – gradiens boosting (J. Friedman, 2001)</span>
+  <ol style="margin:.2rem 0">
+    <li>Kezdés: $F_0(\mathbf x) = \bar y$ (négyzetes hibánál az átlag).</li>
+    <li>Minden $m = 1, \dots, M$ körben: maradékok $r_i = y_i - F_{m-1}(\mathbf x_i)$; egy kis regressziós fa $h_m$ illesztése az $r_i$-kre;
+      $$F_m(\mathbf x) = F_{m-1}(\mathbf x) + \nu\,h_m(\mathbf x).$$</li>
+  </ol>
+  A $0 \lt \nu \le 1$ a <b>tanulási ráta</b> (zsugorítás): minden fának csak egy részét adjuk hozzá. A fák sekélyek (tipikusan 2–8 levél).
+  <br><small>Miért „gradiens”? Négyzetes veszteségnél $L = \tfrac12(y - F)^2$, és $-\partial L/\partial F = y - F$, a maradék. Minden fa tehát egy lépés a veszteség <b>negatív gradiense</b> irányába –
+  ugyanaz a gondolat, mint a gradiens módszer (<a href="../02-matematikai-eszkoztar/#s28-a">2.8</a>), csak nem a súlyokat, hanem magát a függvényt léptetjük. Más veszteségnél a „maradék” helyére a
+  negatív gradiens (pszeudo-maradék) kerül: abszolút hibánál $\operatorname{sign}(y - F)$, osztályozásnál (log-veszteség) $y - p$.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – fél lépésekkel ($\nu = 0{,}5$)</span>
+    Ugyanez $\nu = 0{,}5$-tel: az SSE $21 \to 8{,}75 \to 2{,}73 \to 1{,}22$. Lassabban csökken, mint $\nu = 1$-nél ($21 \to 4{,}67 \to 1{,}89 \to 0{,}96$), de a kisebb lépések több fával
+    a gyakorlatban jobban <b>általánosítanak</b>: egy fa sem „viszi el” egyedül a modellt.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – osztályozás: a maradék $y - p$</span>
+    Ha a modell egy esős napra ($y = 1$) 0,8-at mond, a maradék 0,2 – kicsi, jól megy. Egy száraz napra ($y = 0$) 0,8-at mondva a maradék $-0{,}8$ – nagy, a következő fa erre figyel.
+    Ugyanaz a „hibára koncentrálás”, mint az AdaBoost súlyainál, csak maradékokkal.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Szembeállítás – bagging és boosting</span>
+  <table style="max-width:720px;font-size:.9rem">
+    <tr><th></th><th>bagging, véletlen erdő</th><th>boosting</th></tr>
+    <tr><td>a fák viszonya</td><td>egymástól függetlenek, <b>párhuzamosan</b> taníthatók</td><td>mindegyik az előzőkre épül, <b>egymás után</b></td></tr>
+    <tr><td>a fák</td><td>mélyek, erősek</td><td>sekélyek, gyengék</td></tr>
+    <tr><td>mit csökkent?</td><td><b>varianciát</b> (átlagolás)</td><td>elsősorban <b>torzítást</b> (lépésenként javít)</td></tr>
+    <tr><td>több fa</td><td>nem árt, csak lassabb</td><td>egy pont után <b>túlilleszt</b> – korai leállítás kell</td></tr>
+    <tr><td>hangolás</td><td>kevés, jó alapbeállítások</td><td>több hiperparaméter, érzékenyebb</td></tr>
+  </table>
+</div>
+<div class="widget" data-widget="boosting-steps"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A gradiens boosting nem súlyoz át mintákat.</b> Egy kezdőkönyv (MLAB 14) a gradiens boostingot úgy írja le, hogy „a rosszul jósolt mintákra nagyobb súly kerül” – ez az AdaBoost.
+      Egy másik (MLD 16) „gradiens módszerrel optimalizált mintasúlyokról” beszél. A gradiens boosting új fát illeszt a <b>maradékokra</b>.</li>
+    <li><b>A tanító hiba mindig csökken</b> – a validációs nem. A fák számát (<code>n_estimators</code>) a validációs hibán kell eldönteni: <b>korai leállítás</b> (<em>early stopping</em>).</li>
+    <li><b>Kis tanulási ráta → sok fa.</b> Egy klasszikus ajánlás (ESL 10.12): $\nu \lt 0{,}1$, és a fák számát korai leállítással. Egy gyakorlati ökölszabály (AAMLP): ha növeled a fák mélységét, csökkentsd a tanulási rátát.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – gradiens boosting</summary>
+  <ol>
+    <li>$y = 3, 5, 10$. Mennyi $F_0$, és mik a maradékok?
+      <details><summary>Megoldás</summary>$F_0 = 6$; maradékok $-3$, $-1$, $4$.</details></li>
+    <li>Az előző maradékokra a tönk: bal {−3, −1} → −2, jobb {4} → 4. Mennyi $F_1$ $\nu = 0{,}5$-tel?
+      <details><summary>Megoldás</summary>$6 + 0{,}5 \cdot (-2) = 5$, $5$, és $6 + 0{,}5 \cdot 4 = 8$. Tehát $F_1 = (5;\ 5;\ 8)$.</details></li>
+    <li>A kiinduló példa 3. köre ($\nu = 1$): a maradékok $-0{,}5;\ 0{,}5;\ 0{,}83;\ -0{,}83$. A legjobb tönk $x \lt 3{,}5$ (bal átlag 0,28, jobb −0,83). Mennyi $F_3$ és az SSE?
+      <details><summary>Megoldás</summary>$F_3 = (1{,}5 + 0{,}28;\ 1{,}5 + 0{,}28;\ 3{,}17 + 0{,}28;\ 7{,}83 - 0{,}83) \approx (1{,}78;\ 1{,}78;\ 3{,}44;\ 7)$. Hibák: $-0{,}78;\ 0{,}22;\ 0{,}56;\ 0$ → SSE $\approx 0{,}96$.</details></li>
+    <li>Osztályozás: $y = (1, 0, 1)$, a modell valószínűségei $p = (0{,}6;\ 0{,}3;\ 0{,}9)$. Mik a pszeudo-maradékok?
+      <details><summary>Megoldás</summary>$y - p = (0{,}4;\ -0{,}3;\ 0{,}1)$. A legnagyobb javítást az első minta kéri.</details></li>
+    <li>(nehezebb) Miért csökken a tanító hiba minden körben, és miért kezd egyszer nőni a validációs hiba? Mit teszel?
+      <details><summary>Megoldás</summary>Minden fa a maradékokat közelíti, így a tanító pontokon mindig javít (vagy legalább nem ront). Egy idő után viszont már csak a zajt tanulja meg – a validációs hiba nő (túlillesztés).
+        Megoldás: korai leállítás egy validációs halmazon (a legjobb kör megtartásával), kisebb $\nu$, sekélyebb fák, mintavételezés (<code>subsample</code>).</details></li>
+  </ol>
+</details>
+
+<h3 id="s74-c">3. lépés: a táblázatos adatok bajnokai – XGBoost, LightGBM, CatBoost</h3>
+<p>A gradiens boosting ötlete 2001-es. Ami az elmúlt évtizedben a táblázatos adatok „királyává” tette, az néhány gondos mérnöki és statisztikai javítás. A legismertebb három könyvtár ezekben különbözik.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy kicsi levél zsugorítása</span>
+  Egy levélbe két minta jutott, maradékuk 2 és 4. A sima gradiens boosting a levélbe az átlagot írja: <b>3</b>. Az XGBoost (négyzetes veszteségnél) ehelyett
+  $$w^* = \frac{\sum r_i}{n + \lambda} = \frac{2 + 4}{2 + 1} = 2 \qquad (\lambda = 1).$$
+  A kevés mintás levelek értékét a 0 felé húzza – pontosan úgy, ahogy a ridge-regresszió a súlyokat (<a href="../06-modellertekeles/#s67-a">6.7</a>). Egy 100 mintás levélnél a $+1$ szinte semmit nem számít.
+</div>
+<div class="box def">
+  <span class="box-title">Áttekintés – a modern gradiens boosting <span class="muted">📅 Állapot: 2026</span></span>
+  <ul style="margin:.2rem 0">
+    <li><b>XGBoost</b> (T. Chen, C. Guestrin, 2016): regularizált cél (levélértékek $\lambda$-büntetése, levelenkénti $\gamma$-„adó”), másodrendű (Newton-)lépés a gradiens mellett,
+      beépített hiányzóérték-kezelés, oszlop- és sor-mintavételezés.</li>
+    <li><b>LightGBM</b> (Microsoft, G. Ke és társai, 2017): <b>hisztogramos</b> vágáskeresés (a számokat kb. 255 sávba sorolja), <b>levélenkénti</b> növesztés (mindig a legtöbbet javító levelet vágja,
+      nem szintenként), nagyon gyors nagy adaton.</li>
+    <li><b>CatBoost</b> (Yandex, L. Prokhorenkova és társai, 2018): a <b>kategóriás jellemzőket</b> szivárgásmentes, „rendezett” célváltozó-kódolással kezeli (<a href="../04-adatok-es-jellemzok/#s43-c">4.3</a>), szimmetrikus fák.</li>
+    <li>A scikit-learn <code>HistGradientBoostingClassifier</code>-e a LightGBM mintájára hisztogramos.</li>
+  </ul>
+  <b>A fő hiperparaméterek</b> (a nevek könyvtáranként kicsit eltérnek):
+  <table style="max-width:720px;font-size:.88rem">
+    <tr><th>gomb</th><th>mit tesz</th><th>szokásos kiindulás</th></tr>
+    <tr><td><code>n_estimators</code></td><td>a fák (körök) száma</td><td>sok, korai leállítással</td></tr>
+    <tr><td><code>learning_rate</code></td><td>$\nu$, a lépésköz</td><td>0,01–0,1</td></tr>
+    <tr><td><code>max_depth</code> / <code>num_leaves</code></td><td>a fák mérete</td><td>mélység 3–8 (XGBoost alapból 6)</td></tr>
+    <tr><td><code>min_child_weight</code> / <code>min_data_in_leaf</code></td><td>legkisebb levél</td><td>hangolandó</td></tr>
+    <tr><td><code>subsample</code>, <code>colsample_bytree</code></td><td>sor- és oszlop-mintavételezés fánként</td><td>0,5–1</td></tr>
+    <tr><td><code>reg_lambda</code>, <code>reg_alpha</code></td><td>L2 / L1 büntetés a levélértékekre</td><td>hangolandó</td></tr>
+  </table>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – hisztogram: kevesebb küszöb</span>
+    Egy jellemzőnek 1000 különböző értéke van: a pontos CART 999 küszöböt próbál ki, a hisztogramos módszer 255 sávval csak 254-et. Milliós adatnál ez sokszoros gyorsulás, a pontosság
+    alig romlik.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – emlőrák-adatok</span>
+    5-szörös CV: véletlen erdő 95,8%, gradiens boosting (scikit-learn, alapbeállítás) 96,5%, hisztogramos boosting 97,0%, AdaBoost (300 tönk) 97,7%. A boosting itt a fák közül a legjobb –
+    hogy a „legegyszerűbb” modellekhez képest hol áll, az a 7.8-ban derül ki.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Elavult alapértékek.</b> Egy gyakorlati könyv (AAMLP) szerint az XGBoost alapértelmezett mélysége 3 – ez régi változatokra igaz, ma 6. Mindig a használt verzió dokumentációját nézd.</li>
+    <li><b>A LightGBM nem „mélységi bejárással” épít</b> (MLD 16), hanem levélenként: mindig azt a levelet vágja, amelyik a legtöbbet javít, ezért gyorsan nagyon mély, aszimmetrikus fák nőhetnek –
+      a <code>num_leaves</code> korlátozása itt a fő fék.</li>
+    <li><b>Kétféle „gamma”.</b> Az XGBoost <code>gamma</code>-ja a vágás minimális nyeresége (levéladó) – semmi köze az SVM RBF-kerneljének $\gamma$-jához (<a href="#s76-c">7.6</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – XGBoost és társai</summary>
+  <ol>
+    <li>Mennyi a levélérték, ha a maradékok 2 és 4, és $\lambda = 3$?
+      <details><summary>Megoldás</summary>$6/(2 + 3) = 1{,}2$.</details></li>
+    <li>Egy levélben egyetlen minta van, maradéka 10. Mennyi a levélérték $\lambda = 0$, 1 és 9 mellett?
+      <details><summary>Megoldás</summary>10, 5 és 1. Minél kevesebb a minta, annál erősebben zsugorít ugyanaz a $\lambda$ – egyetlen mintára nem építünk nagy lépést.</details></li>
+    <li>A tanító veszteség sokkal kisebb, mint a validációs. Melyik gombokat tekernéd, és merre?
+      <details><summary>Megoldás</summary>Túlillesztés: kisebb <code>max_depth</code>/<code>num_leaves</code>, nagyobb <code>min_child_weight</code>, nagyobb <code>reg_lambda</code>, kisebb <code>subsample</code>/<code>colsample_bytree</code>,
+        kisebb <code>learning_rate</code> korai leállítással.</details></li>
+    <li>Melyik tart tovább, és miért lehet mégis jobb: 1000 fa $\nu = 0{,}01$-gyel vagy 100 fa $\nu = 0{,}1$-gyel?
+      <details><summary>Megoldás</summary>Az 1000 fás tízszer annyi ideig tanul. A kisebb lépések miatt egy-egy fa kevésbé „húzza el” a modellt, a sok kis javítás simább, és gyakran jobban általánosít (ESL 10.12).</details></li>
+    <li>(nehezebb) Korai leállítás, „türelem” 100 kör: a validációs veszteség a 100., 200., 300., 400., 500. körben 0,30; 0,26; 0,25; 0,255; 0,27. Hol áll le a tanítás, és melyik modellt tartod meg?
+      <details><summary>Megoldás</summary>A legjobb a 300. kör (0,25). Utána 100 körig nincs javulás, ezért a 400. körnél leáll, és a <b>300 fás</b> modellt tartja meg. (A korai leállításhoz használt validációs halmaz így maga is
+        „elhasználódik” – a végső mérés egy független teszt halmazon történjen.)</details></li>
+  </ol>
+</details>
+<div class="box history">
+  <span class="box-title">📜 Történet – egy elméleti kérdésből gyakorlati bajnok</span>
+  M. Kearns és L. Valiant 1988–89-ben feltette a kérdést: ha van egy osztályozó, amely csak <em>kicsit</em> jobb a véletlennél, építhető-e belőle tetszőlegesen pontos? R. Schapire 1990-ben igennel válaszolt –
+  ez volt az első boosting. Az AdaBoost (Freund és Schapire, 1995) tette gyakorlatban is használhatóvá (Gödel-díj, 2003), Friedman gradiens boostingja (2001) pedig általánossá. Az XGBoost 2014–16 körül
+  sorra nyerte a Kaggle-versenyeket; a táblázatos versenyek élmezőnyében azóta is szinte mindig gradiens boosting van.
+</div>
+<div class="quiz" data-quiz="ai7-74"></div>
+</section>
+
+<!-- ===================================================== 7.5 -->
+<section id="s75">
+<h2>7.5 Szavazás és stacking ★★</h2>
+<p>A bagging és a boosting ugyanabból a modellből (fából) épít sokat. A 7.3 szerint viszont az a jó szavazó-csapat, amelynek tagjai <b>más-más hibát</b> követnek el. Mi lenne, ha egészen
+különböző modelleket – egy fát, egy logisztikus regressziót, egy kNN-t – fognánk össze?</p>
+
+<h3 id="s75-a">1. lépés: kemény és lágy szavazás</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – három modell, egy reggel</span>
+  Három modell becsüli, mekkora eséllyel esik ma:
+  <table style="max-width:520px;font-size:.88rem;text-align:center">
+    <tr><th>modell</th><th>P(eső)</th><th>döntés (0,5-ös küszöb)</th></tr>
+    <tr><td>döntési fa</td><td>0,90</td><td>esik</td></tr>
+    <tr><td>logisztikus regresszió</td><td>0,40</td><td>nem esik</td></tr>
+    <tr><td>kNN</td><td>0,45</td><td>nem esik</td></tr>
+  </table>
+  <b>Kemény szavazás</b> (a döntéseket számoljuk): 1 : 2 → <b>nem esik</b>. <b>Lágy szavazás</b> (a valószínűségeket átlagoljuk): $(0{,}9 + 0{,}4 + 0{,}45)/3 \approx 0{,}583$ → <b>esik</b>.
+  A fa nagyon biztos, a másik kettő a határon billeg – a lágy szavazás ezt a bizonyosságot is figyelembe veszi.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – szavazó együttes</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Kemény szavazás:</b> minden modell egy osztályt mond, a legtöbb szavazatot kapó nyer.</li>
+    <li><b>Lágy szavazás:</b> a modellek osztályvalószínűségeit (súlyozottan) átlagoljuk, és az átlagot küszöböljük: $\hat p = \sum_j w_j\,\hat p_j$, $\sum_j w_j = 1$.</li>
+    <li><b>Regresszió:</b> a jóslatok (súlyozott) átlaga.</li>
+    <li><b>Rangátlag:</b> ha a modellek pontszámai más skálán vannak (pl. valószínűség és SVM-pontszám), előbb mindegyiket rangokká alakítjuk, és a rangokat átlagoljuk – AUC-hoz ideális, mert az csak a sorrendet nézi (<a href="../06-modellertekeles/#s62-c">6.2</a>).</li>
+  </ul>
+  <small>Miért különböző modellek? Mert más-más <b>induktív torzításuk</b> van (a fa téglalapokban, a logisztikus regresszió egyenesben, a kNN szomszédságban „gondolkodik”), ezért máshol hibáznak –
+  a 7.3 szerint épp ez kell a szavazáshoz. A scikit-learnben: <code>VotingClassifier(voting="hard"/"soft")</code>.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – súlyozott átlag</span>
+    Három modell 3 : 2 : 1 arányban számít, azaz $w = (0{,}5;\ 0{,}33;\ 0{,}17)$. Valószínűségeik 0,9; 0,6; 0,3: $\hat p = 0{,}45 + 0{,}2 + 0{,}05 = 0{,}70$.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – rangátlag</span>
+    Három minta. Az A modell valószínűségei 0,9; 0,2; 0,4 → rangok 3, 1, 2. A B modell pontszámai 0,6; 0,7; 0,1 → rangok 2, 3, 1. Átlagos rang: <b>2,5; 2; 1,5</b> – az első minta a legesélyesebb.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A lágy szavazáshoz összevethető valószínűségek kellenek.</b> Egy kis levelű fa 0 és 1 közeli „valószínűségeket” mond, egy SVM pedig alapból nem is ad valószínűséget. Kalibrálatlan
+      tagok közül a legmagabiztosabb uralkodhat (<a href="../06-modellertekeles/#s62-d">6.2</a>).</li>
+    <li><b>Hibás kód a forrásban.</b> Egy gyakorlati könyv (AAMLP, „Ensembling”) <code>max_voting</code> függvénye soronként a <em>legnagyobb címkét</em> adja vissza, nem a leggyakoribbat:
+      [0, 0, 1] → 1 (a többség 0 lenne). A többségi szavazás a <em>módusz</em>, nem a maximum.</li>
+    <li><b>A sima átlag nem mindig jobb a legjobb tagnál.</b> Ugyanott a könyv saját eredményei szerint az egyszerű átlag mindkét hajtáson gyengébb a legjobb modellnél (XGBoost) – a szöveg
+      mégis azt írja, hogy „az átlag jobb”. Ha a tagok nagyon eltérő erősségűek, súlyok kellenek, és azokat <b>validáción</b> kell választani.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – szavazás</summary>
+  <ol>
+    <li>Három modell valószínűségei: 0,7; 0,45; 0,45. Mit mond a kemény és mit a lágy szavazás?
+      <details><summary>Megoldás</summary>Kemény: 1 : 2 → nem esik. Lágy: $1{,}6/3 \approx 0{,}533$ → esik.</details></li>
+    <li>Öt modell szavazata három osztály között: eső, eső, hó, eső, hó. Mit mond a kemény szavazás?
+      <details><summary>Megoldás</summary>eső : hó = 3 : 2 → eső. (Három osztálynál a nyertesnek nem kell abszolút többség, csak a legtöbb szavazat.)</details></li>
+    <li>Súlyok 0,5; 0,3; 0,2, valószínűségek 0,8; 0,4; 0,1. Mennyi a súlyozott átlag?
+      <details><summary>Megoldás</summary>$0{,}4 + 0{,}12 + 0{,}02 = 0{,}54$ → 0,5-ös küszöbnél esik.</details></li>
+    <li>A modell pontszámai: 0,1; 0,5; 0,9; 0,3. B modellé: 5; 2; 8; 1. Mennyi az átlagos rang?
+      <details><summary>Megoldás</summary>A rangjai: 1, 3, 4, 2. B rangjai: 3, 2, 4, 1. Átlag: <b>2; 2,5; 4; 1,5</b>.</details></li>
+    <li>(nehezebb) Egy jó (AUC 0,93) és egy gyenge (AUC 0,85), egymással erősen korreláló modellt átlagolsz. Miért lehet az átlag rosszabb a jó modellnél, és mit tennél?
+      <details><summary>Megoldás</summary>Ha a hibáik hasonlók, az átlagolás nem olt ki sok hibát, viszont a gyenge modell „lehúzza” a jót. Validáción (vagy OOF-jóslatokon, lásd lent) választott súlyokkal érdemes próbálni –
+        és ha a legjobb súly a gyengére 0, akkor egyszerűen elhagyni.</details></li>
+  </ol>
+</details>
+
+<h3 id="s75-b">2. lépés: stacking – egy modell tanulja meg, kinek higgyen</h3>
+<p>A súlyokat eddig mi adtuk meg. Válasszuk inkább az adatból: melyik súlyozás ad a legkisebb hibát?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a legjobb keverési arány</span>
+  Négy validációs reggel ($y$ = 1, 0, 1, 0), két modell valószínűségei: A = 0,9; 0,6; 0,7; 0,2 és B = 0,5; 0,1; 0,9; 0,5. A keverék $w \cdot A + (1 - w) \cdot B$, a hiba az átlagos négyzetes eltérés:
+  <table style="max-width:560px;font-size:.88rem;text-align:center">
+    <tr><th>$w$ (A súlya)</th><td>0</td><td>0,25</td><td>0,5</td><td>0,75</td><td>1</td></tr>
+    <tr><th>hiba</th><td>0,130</td><td>0,103</td><td><b>0,094</b></td><td>0,101</td><td>0,125</td></tr>
+  </table>
+  A fele-fele keverék jobb, mint bármelyik modell egyedül – A ott hibázik (2. reggel), ahol B nem, és fordítva (3–4. reggel). Ezt a választást egy egyszerű „második szintű” modell is elvégezheti.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – stacking és blending</span>
+  <b>Stacking</b> (egymásra rétegzés, D. Wolpert, 1992):
+  <ol style="margin:.2rem 0">
+    <li>Az <b>alapmodellek</b> (0. szint) jóslatait <b>hajtáson kívül</b> (<em>out-of-fold</em>, OOF) állítjuk elő: $K$-szoros felosztásnál minden hajtásra a többi $K - 1$ hajtáson tanított modell jósol.
+      Így minden tanító mintához olyan jóslat tartozik, amelyet a modell <em>nem látott</em>.</li>
+    <li>A <b>metamodell</b> (1. szint, tipikusan logisztikus vagy lineáris regresszió) ezeken az OOF-jóslatokon tanul: bemenete az alapmodellek jóslata, célja a valódi címke.</li>
+    <li>Jósláshoz az alapmodelleket az összes tanító adaton újratanítjuk; az új mintára adott jóslataikat a metamodell vonja össze.</li>
+  </ol>
+  <b>Blending</b>: ugyanez egyetlen félretett validációs halmazzal a $K$ hajtás helyett – egyszerűbb, de kevesebb adatot használ (AAMLP).
+  <br><small>Miért kell az OOF? Mert a metamodellnek azt kell megtanulnia, mennyire bízhat az egyes alapmodellekben <em>új</em> adaton – ehhez olyan jóslatokat kell látnia, amilyeneket új adatra adnának.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – szivárgás, ha kihagyod az OOF-ot</span>
+    Egy korlátlan mélységű fa a saját tanító adatán 100%-os (<a href="#s72-a">7.2</a>). Ha a metamodell ezeken a jóslatokon tanul, azt tanulja meg: „mindig a fának higgy”. Új adaton a fa csak kb. 82%-os
+    (a holdak táblázata) – a stack nem lesz jobb a fánál. Ez a 4.7 szivárgása, más köntösben (<a href="../04-adatok-es-jellemzok/#s47-b">4.7</a>).
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a Netflix-díj</span>
+    A 2009-es Netflix-verseny győztes csapata (BellKor's Pragmatic Chaos) több száz modellt kevert össze, és 10,06%-kal javította a cég ajánlórendszerét. A Netflix a teljes keveréket mégsem
+    vezette be: a 2012-es beszámolójuk szerint a további pontosság nem érte meg a mérnöki ráfordítást. Két modellt vettek át belőle.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Ugyanazok a hajtások minden szinten</b> (AAMLP). Ha a metamodellt más felosztással értékeled, egy minta címkéje „átszivároghat” a szintek között.</li>
+    <li><b>Egyszerű metamodellt!</b> A metamodell bemenete kevés, erősen korrelált jóslat. Egy bonyolult metamodell ezekre is túlilleszt – egy (nemnegatív súlyú) lineáris vagy logisztikus modell általában elég.</li>
+    <li><b>A legjobb modellt se a teszten válaszd.</b> Egy kezdőkönyv (MLAB 15) „modellvödre” azt a modellt választja, amelyik a <em>teszt</em> adaton a legjobb – ez a teszt elhasználása (<a href="../06-modellertekeles/#s64-a">6.4</a>).
+      Egy másik (MLD 20) a stacking leírásából kihagyja, hogy a második szint OOF-jóslatokon tanul.</li>
+    <li><b>Minden modell karbantartandó.</b> Öt modell stackje ötször annyi tanítást, figyelést és hibalehetőséget jelent élesben. Csak akkor éri meg, ha a nyereség valódi (lásd a Netflixet).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – stacking</summary>
+  <ol>
+    <li>Ellenőrizd a kiinduló táblázat $w = 0{,}25$-ös oszlopát!
+      <details><summary>Megoldás</summary>Keverék: 0,6; 0,225; 0,85; 0,425. Eltérések: 0,4; 0,225; 0,15; 0,425. Négyzetek: 0,16; 0,0506; 0,0225; 0,1806 – átlag $\approx 0{,}103$.</details></li>
+    <li>3 alapmodell, 5-szörös OOF. Hány alapmodell-tanítás kell összesen (a végső újratanítással együtt)?
+      <details><summary>Megoldás</summary>OOF-hoz $3 \cdot 5 = 15$, plusz a 3 végső tanítás az összes adaton: 18.</details></li>
+    <li>Blending, 20% félretett halmazzal. Mekkora adaton tanulnak az alapmodellek, és mekkorán a metamodell?
+      <details><summary>Megoldás</summary>Az alapmodellek a 80%-on, a metamodell a 20%-on – az alapmodellek jóslataival. (Utána az alapmodellek újrataníthatók a teljes adaton.)</details></li>
+    <li>Miért nem jó, ha a metamodell egy mély fa?
+      <details><summary>Megoldás</summary>Mert kevés, egymással erősen korreláló bemenete van; egy mély fa a véletlen mintázatokra is ráilleszkedik. A metamodell feladata csak a súlyozás – erre egy egyszerű lineáris modell elég és stabilabb.</details></li>
+    <li>(nehezebb) Egy csapat stackje a saját keresztvalidációján 0,99-es AUC-t ér el, a verseny rejtett tesztjén csak 0,91-et. Mi lehetett a hiba?
+      <details><summary>Megoldás</summary>Valószínűleg szivárgás: a metamodell nem OOF-jóslatokon tanult (hanem az alapmodellek saját tanító adatán adott jóslatain), vagy a két szinten más hajtásokat használtak, vagy a súlyokat/modelleket
+        ugyanazon a validáción választották ki, amelyen mértek. Helyesen: OOF-jóslatok, közös hajtások, és a végső mérés egy érintetlen halmazon.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai7-75"></div>
+</section>
+
+<!-- ===================================================== 7.6 -->
+<section id="s76">
+<h2>7.6 Szupport vektor gépek ★★</h2>
+<p>Most egy egészen más utat járunk. Térjünk vissza az egyeneshez (<a href="../05-osztalyozas/#s53-d">5.3</a>): $f(\mathbf x) = \mathbf w^\top\mathbf x + b$, és az osztály $f$ előjele.
+Ha az adat szétválasztható, <em>végtelen sok</em> egyenes választja el a két osztályt hibátlanul. Melyiket válasszuk? A <b>szupport vektor gép</b> (SVM) válasza: azt, amelyik a lehető
+legmesszebb van mindkét osztálytól.</p>
+
+<h3 id="s76-a">1. lépés: a legszélesebb utca – maximális margó</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy egyenesen, aztán a síkon</span>
+  <b>Egy jellemző.</b> Negatív pontok: $x = 1, 2$; pozitívak: $x = 4, 5$. Az 5.1 küszöbszabálya szerint bármely 2 és 4 közötti küszöb hibátlan. A 2,1 is – de akkor egy kicsit nagyobb, 2,2-es
+  negatív pontot már tévesen pozitívnak mondanánk. A legbiztonságosabb a <b>3</b>: mindkét csoporttól 1 egységre van. Ez a „biztonsági sáv” a <b>margó</b>.
+  <br><b>Két jellemző.</b> Negatív: (1; 1), (1; 3); pozitív: (3; 1), (4; 3). Sok egyenes elválasztja őket. A legszélesebb „utca”, amely egyetlen pontot sem tartalmaz, az $x_1 = 1$ és $x_1 = 3$ egyenesek között
+  fut; a közepén, az $x_1 = 2$ egyenesen van a döntési határ. Az utca szélén három pont áll – (1; 1), (1; 3) és (3; 1) –, ők „támasztják” az utcát. A (4; 3) messzebb van, nem számít.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – maximális margójú osztályozó</span>
+  Címkék: $y_i \in \{-1, +1\}$, a döntés $\operatorname{sign} f(\mathbf x)$, ahol $f(\mathbf x) = \mathbf w^\top\mathbf x + b$. A $\mathbf w$, $b$ párt úgy skálázzuk, hogy a határhoz legközelebbi pontokra
+  $|f| = 1$ legyen. Ekkor minden pontra $y_i f(\mathbf x_i) \ge 1$, és
+  <ul style="margin:.2rem 0">
+    <li>az <b>utca</b> (margó) az $f = -1$ és az $f = +1$ egyenes közötti sáv, <b>szélessége</b> $\dfrac{2}{\|\mathbf w\|}$;</li>
+    <li>a <b>maximális margó</b>: $\displaystyle \min_{\mathbf w, b}\ \tfrac12\|\mathbf w\|^2 \quad\text{feltéve, hogy}\quad y_i(\mathbf w^\top\mathbf x_i + b) \ge 1 \text{ minden } i\text{-re};$</li>
+    <li>a <b>szupportvektorok</b> („támasztó vektorok”) az utca szélén álló pontok ($y_i f(\mathbf x_i) = 1$). A megoldás csak tőlük függ: a többi pontot el is hagyhatnánk.</li>
+  </ul>
+  <small>Miért $2/\|\mathbf w\|$? Egy pont távolsága az $f = 0$ egyenestől $|f(\mathbf x)|/\|\mathbf w\|$ (<a href="../02-matematikai-eszkoztar/#s23-b">2.3</a>). Az utca szélén $|f| = 1$, tehát a fél utca $1/\|\mathbf w\|$.
+  A szélesebb utcához kisebb $\|\mathbf w\|$ kell – ezért minimalizáljuk. Miért jó a széles utca? Mert az új pontok kicsit máshol lesznek, mint a régiek; a széles margó „tűrést” hagy nekik.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – két pont</span>
+    (0; 0) negatív, (2; 2) pozitív. A legszélesebb utca határa a két pont felező merőlegese: $x_1 + x_2 = 2$. Skálázva $\mathbf w = (0{,}5;\ 0{,}5)$, $b = -1$: $f(0; 0) = -1$, $f(2; 2) = +1$.
+    Szélesség: $2/\|\mathbf w\| = 2/0{,}707 \approx 2{,}83$ – épp a két pont távolsága.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a négy pont</span>
+    $\mathbf w = (1;\ 0)$, $b = -2$, azaz $f = x_1 - 2$. Értékek: $f(1; 1) = f(1; 3) = -1$, $f(3; 1) = +1$ (szupportvektorok), $f(4; 3) = +2$ (nem az).
+    Szélesség: $2/1 = 2$. Egy új pont, (2,5; 2): $f = 0{,}5$ → pozitív, de az utcán belül van, a határtól csak $0{,}5$ egységre.
+  </div>
+</div>
+<div class="box example">
+  <span class="box-title">Példa – mozgassunk egy pontot!</span>
+  Ha a (4; 3) pontot (5; 5)-be visszük, <b>semmi sem változik</b> – nem szupportvektor. Ha viszont (2,5; 3)-ba, az utcába lép: az új megoldás $f = \tfrac43 x_1 - \tfrac73$, a határ $x_1 = 1{,}75$-re tolódik,
+  az utca szélessége 1,5-re szűkül. Csak az utca szélén álló pontok számítanak – de azok nagyon.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Szélesség vagy fél szélesség?</b> Egyes könyvek (ESL 12) a margón a fél utcát ($1/\|\mathbf w\|$) értik, mások a teljeset ($2/\|\mathbf w\|$). Mindig nézd meg a képletet.</li>
+    <li><b>A kemény margó nagyon érzékeny.</b> Egyetlen, az utcába tévedt pont az egész megoldást elviszi (előző példa). Egy kezdőkönyv (MLAB 12) szerint az SVM „kevésbé érzékeny” a kiugró pontokra – ez csak a
+      puha margóra igaz, megfelelő $C$-vel (2. lépés).</li>
+    <li><b>Egyetlen optimalizálás.</b> Egy könyv (DLV 11) úgy írja le, mintha az algoritmus előbb megkeresné a szupportvektorokat, és utána húzná meg a határt. A kettő ugyanannak a feladatnak a megoldásából jön ki egyszerre.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – maximális margó</summary>
+  <ol>
+    <li>Negatív: $x = 0, 1$; pozitív: $x = 5, 6$. Hol a maximális margójú küszöb, mekkora az utca, és melyek a szupportvektorok?
+      <details><summary>Megoldás</summary>Küszöb 3, az utca 1-től 5-ig tart (szélesség 4), szupportvektorok: 1 és 5. ($f = 0{,}5x - 1{,}5$.)</details></li>
+    <li>$f(\mathbf x) = x_1 + x_2 - 3$. Melyik osztályba esik (1; 1) és (2; 2,5)? Milyen messze van a második a határtól?
+      <details><summary>Megoldás</summary>$f(1; 1) = -1$ → negatív. $f(2; 2{,}5) = 1{,}5$ → pozitív; távolság $1{,}5/\sqrt2 \approx 1{,}06$.</details></li>
+    <li>Mekkora az utca szélessége, ha $\mathbf w = (3;\ 4)$?
+      <details><summary>Megoldás</summary>$\|\mathbf w\| = 5$, szélesség $2/5 = 0{,}4$.</details></li>
+    <li>A négy pontos példához hozzáadunk egy negatív pontot a (0; 2)-ben. Változik a megoldás?
+      <details><summary>Megoldás</summary>Nem: $f(0; 2) = -2$, az utcán kívül, a jó oldalon van – nem szupportvektor.</details></li>
+    <li>(nehezebb) A négy pontos példához egy negatív pontot adunk a (2; 2)-ben – pont a régi határra. Egy ötlet: toljuk a határt $x_1 = 2{,}5$-re ($f = 2x_1 - 5$). Mekkora így az utca? Van-e szélesebb?
+      <details><summary>Megoldás</summary>$f = 2x_1 - 5$: $f(2; 2) = -1$, $f(3; 1) = +1$, minden feltétel teljesül, a szélesség $2/2 = 1$. De van szélesebb: a ferde utca $f = \tfrac43x_1 - \tfrac23x_2 - \tfrac73$ (azaz $4x_1 - 2x_2 = 7$).
+        Ellenőrzés: $f(2; 2) = -1$, $f(3; 1) = +1$, $f(4; 3) = +1$, a többi kívül. Szélesség $2/\|\mathbf w\| = 2/\sqrt{20/9} \approx 1{,}34$. A maximális margó nem feltétlenül tengelyirányú – a megoldó a „ferdeséget” is optimalizálja.</details></li>
+  </ol>
+</details>
+
+<h3 id="s76-b">2. lépés: puha margó – a C paraméter</h3>
+<p>A valódi adat ritkán választható szét hibátlanul, és ha igen, gyakran csak egy-két „betolakodó” miatt nagyon keskeny utcával. Engedjünk meg néhány pontot az utcában – vagy akár a rossz oldalon –, de fizessünk érte.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy betolakodó</span>
+  Negatív: $x = 1;\ 2;\ 3{,}5$; pozitív: $x = 4;\ 5$. A 3,5-ös negatív pont egészen közel van a pozitívokhoz.
+  <ul style="margin:.2rem 0">
+    <li><b>Kemény margó</b> (minden pont az utcán kívül): a határ 3,75-nél, az utca 3,5-től 4-ig tart – szélessége csak <b>0,5</b>. Ehhez $w = 4$, $b = -15$ kell, $\tfrac12 w^2 = 8$.</li>
+    <li><b>Puha margó</b>: a határ 3,5-nél, az utca 2-től 5-ig, szélessége <b>3</b> ($w = \tfrac23$, $b = -\tfrac73$). Ára: a 3,5-ös pont a határra esik, a 4-es az utcán belül van.</li>
+  </ul>
+  Melyik a jobb? Ha a 3,5-ös pont csak egy zajos mérés, a széles utca jobban általánosít. Hogy mennyire „fizetünk” a szabálysértésekért, azt egy paraméter dönti el.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – puha margó és csuklóveszteség</span>
+  Minden ponthoz tartozik egy <b>lazító változó</b> $\xi_i \ge 0$, és a feltétel $y_i f(\mathbf x_i) \ge 1 - \xi_i$. A legkisebb ilyen
+  $$\xi_i = \max\big(0,\ 1 - y_i f(\mathbf x_i)\big) \quad\text{– ez a } \textbf{csuklóveszteség } (\textit{hinge loss}).$$
+  $\xi_i = 0$: a pont jó oldalon, az utcán kívül; $0 \lt \xi_i \le 1$: az utcában, de még jó oldalon (vagy a határon); $\xi_i \gt 1$: rossz oldalon (hiba). A cél:
+  $$\min_{\mathbf w, b}\ \tfrac12\|\mathbf w\|^2 + C\sum_i \xi_i .$$
+  <b>Nagy $C$</b>: a szabálysértés drága → keskeny utca, kevés tanítóhiba, túlillesztés veszélye. <b>Kis $C$</b>: olcsó → széles utca, több sértés, erősebb regularizáció.
+  <br><small>Miért ismerős? Átírva: $\sum_i \max(0, 1 - y_i f(\mathbf x_i)) + \tfrac{\lambda}{2}\|\mathbf w\|^2$ $\lambda = 1/C$-vel – <b>veszteség + büntetés</b>, mint a ridge-nél (<a href="../06-modellertekeles/#s67-a">6.7</a>).
+  A scikit-learn logisztikus regressziójának <code>C</code>-je ugyanilyen $1/\lambda$. Az SVM tehát egy lineáris modell más veszteséggel.</small>
+</div>
+<div class="box example">
+  <span class="box-title">Példa – a két megoldás pontszáma $C = 1$ és $C = 10$ mellett</span>
+  Puha megoldás ($w = \tfrac23$, $b = -\tfrac73$): $f(1) = -\tfrac53$, $f(2) = -1$, $f(3{,}5) = 0$, $f(4) = \tfrac13$, $f(5) = 1$. Lazítók: $\xi = 0;\ 0;\ 1;\ \tfrac23;\ 0$, összegük $\tfrac53$.
+  <table style="max-width:560px;font-size:.88rem;text-align:center">
+    <tr><th></th><th>$\tfrac12 w^2$</th><th>$\sum\xi$</th><th>cél, $C = 1$</th><th>cél, $C = 10$</th></tr>
+    <tr><td>kemény ($w = 4$)</td><td>8</td><td>0</td><td>8</td><td><b>8</b></td></tr>
+    <tr><td>puha ($w = 2/3$)</td><td>$2/9 \approx 0{,}22$</td><td>$5/3$</td><td><b>$17/9 \approx 1{,}89$</b></td><td>$\approx 16{,}9$</td></tr>
+  </table>
+  $C = 1$-nél a puha, $C = 10$-nél a kemény megoldás nyer – a scikit-learn is pontosan ezt a két megoldást adja.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – csukló vagy logisztikus veszteség?</span>
+    <table style="font-size:.86rem;text-align:center">
+      <tr><th>$yf$</th><td>2</td><td>1</td><td>0,5</td><td>0</td><td>−1</td></tr>
+      <tr><th>csukló</th><td>0</td><td>0</td><td>0,5</td><td>1</td><td>2</td></tr>
+      <tr><th>logisztikus (bit)</th><td>0,18</td><td>0,45</td><td>0,68</td><td>1</td><td>1,89</td></tr>
+    </table>
+    A csuklóveszteség az utcán kívül <b>pontosan 0</b> – ezért számítanak csak a szupportvektorok. A logisztikus (<a href="../05-osztalyozas/#s53-e">5.3</a>) sosem 0: minden pont számít egy kicsit.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a C hangolása valódi adaton</span>
+    Lineáris SVM az emlőrák-adatokon, ezerszer ismételt 5-szörös CV (PDL 7):
+    <table style="font-size:.86rem;text-align:center">
+      <tr><th>$C$</th><td>0,001</td><td>0,01</td><td>0,1</td><td>1</td><td>10</td><td>100</td></tr>
+      <tr><th>pontosság</th><td>93,9%</td><td>96,7%</td><td><b>97,6%</b></td><td>97,2%</td><td>96,6%</td><td>95,7%</td></tr>
+    </table>
+    Fordított U: túl kis $C$ – alulillesztés, túl nagy – túlillesztés.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók – a C iránya</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Két forrás is fordítva írja.</b> Egy könyv (MLD 15) szerint a kis $C$ „megnövelt varianciát” jelent – éppen fordítva: a kis $C$ széles utca, erős regularizáció, <em>kisebb</em> variancia.
+      Egy másik (DLV 11) szerint $C$ csökkentésével <em>kevesebb</em> pont kerül az utcába – valójában több.</li>
+    <li><b>Kétféle C.</b> Egyes tankönyvek (pl. az MLD által is követett ISLR) a $C$-t „költségvetésként” használják: a szabálysértések összege legfeljebb $C$ – ott a nagy $C$ jelent széles utcát.
+      A szoftverekben (scikit-learn, LIBSVM) a $C$ a fenti célfüggvény szorzója: a nagy $C$ keskeny utca. Mindig nézd meg, melyikről van szó.</li>
+    <li><b>Nincs „regularizálatlan” C = 1.</b> Egy kezdőkönyv (MLAB 12) szerint „az 1 alatti C ad regularizációt” – minden véges $C$ regularizál, a kisebb csak erősebben.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – puha margó</summary>
+  <ol>
+    <li>Egy pozitív pontra ($y = +1$) $f = 1{,}5$, $f = 0{,}4$, illetve $f = -0{,}2$. Mennyi $\xi$ az egyes esetekben?
+      <details><summary>Megoldás</summary>$\max(0, 1 - 1{,}5) = 0$; $1 - 0{,}4 = 0{,}6$; $1 - (-0{,}2) = 1{,}2$ – az utolsó a rossz oldalon van (hiba).</details></li>
+    <li>Mit jelent egy pontra, ha $\xi = 0$, ha $\xi = 0{,}5$ és ha $\xi = 1{,}5$?
+      <details><summary>Megoldás</summary>$\xi = 0$: jó oldalon, az utcán kívül vagy a szélén. $\xi = 0{,}5$: jó oldalon, de az utcában. $\xi = 1{,}5$: a rossz oldalon – tanítóhiba.</details></li>
+    <li>$\|\mathbf w\| = 1$, a lazítók 0; 0,5; 1,2, és $C = 2$. Mennyi a célfüggvény?
+      <details><summary>Megoldás</summary>$\tfrac12 \cdot 1 + 2 \cdot 1{,}7 = 3{,}9$.</details></li>
+    <li>Egy RBF-SVM $C = 1000$-rel a tanító adaton 100%-os, a validáción 85%-os. Merre mozdítanád a $C$-t?
+      <details><summary>Megoldás</summary>Lefelé: túlillesztés gyanúja. Kisebb $C$ → szélesebb utca, simább határ. Az RBF-nél a $\gamma$-t is érdemes csökkenteni (3. lépés), és a kettőt együtt hangolni.</details></li>
+    <li>(nehezebb) A betolakodós példában a két jelölt közül (kemény: cél 8; puha: $\tfrac29 + C\cdot\tfrac53$) mely $C$ értékeknél jobb a puha?
+      <details><summary>Megoldás</summary>$\tfrac29 + \tfrac53C \lt 8$ → $C \lt \tfrac{70}{15} \approx 4{,}67$. (A valódi optimum köztes $C$-nél más is lehet – a megoldó minden $\mathbf w$, $b$ párt figyelembe vesz, nem csak ezt a kettőt.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s76-c">3. lépés: a kernel trükk – görbe határ egyenes számolással</h3>
+<p>Az utca eddig egyenes volt. Mi van, ha az adat egyenessel egyáltalán nem választható szét? Az <a href="../05-osztalyozas/#s56-b">5.6</a>-ban erre új jellemzőt találtunk ki ($x_1x_2$ a XOR-hoz).
+Az SVM ezt a gondolatot viszi el a végletekig – és egy trükkel olcsón.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – emeljük fel a pontokat!</span>
+  Hét pont egy egyenesen: $x = -3, -2, -1, 0, 1, 2, 3$. Pozitív, ha $|x| \le 1$ (középen), különben negatív. Egyetlen küszöb ezt nem tudja – két vágás kellene.
+  <br>Adjunk minden ponthoz egy új koordinátát: $x \mapsto (x,\ x^2)$. A pozitívak magassága 0 vagy 1, a negatívaké 4 vagy 9. Most egy <b>vízszintes egyenes</b>, $x^2 = 2{,}5$, hibátlanul elválasztja őket!
+  Visszavetítve az eredeti egyenesre ez a $|x| \lt \sqrt{2{,}5} \approx 1{,}58$ sáv – egy „görbe” (kétvégű) határ.
+</div>
+<div class="widget" data-widget="kernel-lift"></div>
+<div class="box def">
+  <span class="box-title">Definíció – kernel</span>
+  Kiderül (a feltételes optimalizálás duális alakjából, ESL 12.2.1), hogy az SVM döntése felírható <b>csak a pontok skaláris szorzataival</b>:
+  $$f(\mathbf x) = \sum_{i \in \text{SV}} \alpha_i\, y_i\, (\mathbf x_i^\top \mathbf x) + b, \qquad \alpha_i \gt 0 \text{ csak a szupportvektorokra}.$$
+  Ha a pontokat egy $\varphi$ leképezéssel nagyobb térbe emeljük, a skaláris szorzat helyére $\varphi(\mathbf x_i)^\top\varphi(\mathbf x)$ kerül. A <b>kernel</b> egy olyan $K(\mathbf x, \mathbf z)$ függvény,
+  amely ezt a szorzatot <em>közvetlenül</em> kiszámolja, $\varphi$ nélkül: $K(\mathbf x, \mathbf z) = \varphi(\mathbf x)^\top\varphi(\mathbf z)$. Ez a <b>kernel trükk</b>. A két legfontosabb:
+  <ul style="margin:.2rem 0">
+    <li><b>polinomiális:</b> $K(\mathbf x, \mathbf z) = (\mathbf x^\top\mathbf z + 1)^d$ – az összes legfeljebb $d$-ed fokú szorzatjellemző;</li>
+    <li><b>RBF (Gauss-)kernel:</b> $K(\mathbf x, \mathbf z) = e^{-\gamma\|\mathbf x - \mathbf z\|^2}$ – hasonlóság: 1, ha a két pont egybeesik, és 0-hoz tart, ahogy távolodnak. A hozzá tartozó $\varphi$ végtelen dimenziós.</li>
+  </ul>
+  <small>Miért jó? Mert a nagy térben dolgozunk, de a költség az eredeti térbeli skaláris szorzaté. Az RBF-kernellel $f(\mathbf x)$ a szupportvektorok <b>hasonlósággal súlyozott szavazata</b> –
+  egy „sima” kNN (<a href="../05-osztalyozas/#s52-b">5.2</a>), ahol a közeli szupportvektorok sokat, a távoliak alig számítanak.</small>
+</div>
+<div class="box example">
+  <span class="box-title">Példa – a polinomiális kernel ellenőrzése</span>
+  Egy jellemző, $d = 2$: $(xz + 1)^2 = x^2z^2 + 2xz + 1$, ami éppen $\varphi(x) = (x^2,\ \sqrt2\,x,\ 1)$ skaláris szorzata $\varphi(z)$-vel. $x = 2$, $z = 3$:
+  <div class="two-col">
+    <div><b>Kernellel:</b> $(2 \cdot 3 + 1)^2 = 49$ – egy szorzás, egy összeadás, egy négyzetre emelés.</div>
+    <div><b>Kiemeléssel:</b> $\varphi(2) = (4;\ 2\sqrt2;\ 1)$, $\varphi(3) = (9;\ 3\sqrt2;\ 1)$, szorzatuk $36 + 12 + 1 = 49$.</div>
+  </div>
+  100 jellemzőnél a harmadfokú $\varphi$-nek $\binom{103}{3} = 176\,851$ koordinátája lenne; a kernel ugyanezt 100 szorzással számolja.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – RBF-értékek</span>
+    <table style="font-size:.86rem;text-align:center">
+      <tr><th>$\|\mathbf x - \mathbf z\|^2$</th><td>0</td><td>1</td><td>4</td><td>9</td></tr>
+      <tr><th>$\gamma = 0{,}5$</th><td>1</td><td>0,607</td><td>0,135</td><td>0,011</td></tr>
+      <tr><th>$\gamma = 2$</th><td>1</td><td>0,135</td><td>0,0003</td><td>≈ 0</td></tr>
+    </table>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – mit tesz a $\gamma$?</span>
+    <b>Nagy $\gamma$</b>: a hasonlóság gyorsan elfogy, csak a nagyon közeli szupportvektorok számítanak → minden pont körül kis „buborék”, kacskaringós határ (túlillesztés, mint az 1-NN).
+    <b>Kis $\gamma$</b>: messzire hat → sima, majdnem egyenes határ (alulillesztés felé).
+  </div>
+</div>
+<div class="widget" data-widget="svm-margin"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A $\gamma$ irányát is fordítva írja egy forrás.</b> Az MLD 15 szerint kis $\gamma$-nál „töredezett”, nagynál „összeolvadó buborékos” a határ – fordítva van ($\gamma = 1/(2\sigma^2)$, a nagy $\gamma$ keskeny harang). A PDL 6 helyesen írja.</li>
+    <li><b>A kernel egy számot ad, nem vektort.</b> Az MLD szerint a kernel „transzformált értékek vektorát adja vissza” – éppen ez a trükk lényege, hogy nem: csak a $\varphi$-k skaláris szorzatát.</li>
+    <li><b>A kernel nem csodaszer.</b> Egy klasszikus tankönyv (ESL 12.3) kísérletében 6 zajos jellemző hozzáadásával a másodfokú kernel tesztpontossága kb. 92%-ról 85%-ra, a tizedfokúé 77%-ról 57%-ra esett:
+      a kernel nem tudja „kikapcsolni” a lényegtelen jellemzőket. Jellemzőválogatás és hangolás itt is kell.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – kernel</summary>
+  <ol>
+    <li>Számold ki $(xz + 1)^2$-et $x = 1$, $z = -1$-re, és ellenőrizd $\varphi$-vel!
+      <details><summary>Megoldás</summary>$(-1 + 1)^2 = 0$. $\varphi(1) = (1;\ \sqrt2;\ 1)$, $\varphi(-1) = (1;\ -\sqrt2;\ 1)$: $1 - 2 + 1 = 0$ ✓.</details></li>
+    <li>Két jellemző: $\mathbf x = (1;\ 2)$, $\mathbf z = (3;\ -1)$. Mennyi $(\mathbf x^\top\mathbf z + 1)^2$?
+      <details><summary>Megoldás</summary>$\mathbf x^\top\mathbf z = 3 - 2 = 1$, $(1 + 1)^2 = 4$.</details></li>
+    <li>RBF-kernel, $\gamma = 1$, a két pont távolsága 2. Mennyi $K$?
+      <details><summary>Megoldás</summary>$e^{-1 \cdot 4} = e^{-4} \approx 0{,}018$ – szinte nem „hasonlók”.</details></li>
+    <li>Melyik kernelt próbálnád: (a) egy pontfelhő, körülötte gyűrű a másik osztályból; (b) két osztály egy átlós egyenes két oldalán; (c) a XOR négy csoportja?
+      <details><summary>Megoldás</summary>(a) RBF vagy másodfokú polinom (a kör $x_1^2 + x_2^2$-ben lineáris); (b) lineáris; (c) RBF vagy másodfokú polinom (benne van az $x_1x_2$ tag).</details></li>
+    <li>(nehezebb) Most a <em>szélek</em> pozitívak: $|x| \ge 2$, a közép ($x = -1, 0, 1$) negatív. Működik-e az $(x, x^2)$ emelés? Hol a határ?
+      <details><summary>Megoldás</summary>Igen: a pozitívak magassága 4 vagy 9, a negatívaké 0 vagy 1. Ugyanaz az $x^2 = 2{,}5$ egyenes választja el őket, csak most a fölötte lévő oldal pozitív. Visszavetítve: pozitív, ha $|x| \gt 1{,}58$.</details></li>
+  </ol>
+</details>
+
+<h3 id="s76-d">4. lépés: SVM a gyakorlatban</h3>
+<p>A kernel-SVM a 2000-es évek „csúcsmodellje” volt. Ma is jó választás – ha betartod néhány szabályát.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a mértékegység dönt a hasonlóságról</span>
+  Három reggel: A (60%; 1010 hPa), B (90%; 1010 hPa), C (60%; 1013 hPa). Távolságok: A–B = 30, A–C = 3 → C sokkal „hasonlóbb” A-hoz. Írd át a nyomást pascalba (1010 hPa = 101 000 Pa):
+  A–C most 300, A–B marad 30 → most B a hasonlóbb! Ugyanazok a reggelek, más mértékegység – és az RBF-kernel (meg a kNN) egészen mást lát. A fát ez nem zavarná (<a href="#s71-d">7.1</a>).
+</div>
+<div class="box def">
+  <span class="box-title">Recept – SVM lépésről lépésre</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Standardizálj</b> (<a href="../04-adatok-es-jellemzok/#s44-a">4.4</a>) – a csővezeték részeként, a hajtásokon belül (<a href="../06-modellertekeles/#s65-d">6.5</a>).</li>
+    <li><b>Kernel:</b> sok jellemzőnél (pl. szöveg) kezdd lineárissal; kevés jellemzőnél, nemlineáris határnál RBF.</li>
+    <li><b>Hangold együtt a $C$-t és a $\gamma$-t</b>, logaritmikus rácson, keresztvalidációval (pl. $C \in \{10^{-2}, \dots, 10^3\}$, $\gamma \in \{10^{-4}, \dots, 10\}$) (<a href="../06-modellertekeles/#s68-b">6.8</a>).
+      A jó $C$ erősen függ a $\gamma$-tól (ESL 12.3).</li>
+    <li><b>Több osztály:</b> a scikit-learn <code>SVC</code>-je „egy az egy ellen” párokat tanít; <b>valószínűség</b> csak külön kérésre (<code>probability=True</code>, Platt-skálázás belső keresztvalidációval – lassabb).</li>
+    <li><b>Nagy adat:</b> a kernel-SVM tanítási ideje nagyjából $n^2$–$n^3$-nel nő; néhány tízezer minta fölött lineáris SVM (<code>LinearSVC</code>) vagy más modell (boosting) kell.</li>
+  </ol>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – emlőrák-adatok, skálázva és anélkül</span>
+    5-szörös CV, RBF-SVM alapbeállítással: nyers jellemzőkkel <b>92,1%</b>, standardizálva <b>97,7%</b>. A döntési fa mindkét esetben 92,6% – neki mindegy. Egy másik könyv (PDL 7) az MNIST
+    számjegyein lineáris SVM-mel ugyanezt látta: 84,9% nyersen, 91,7% skálázva.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – mennyi tanítás?</span>
+    Rács: 6 $C$-érték × 6 $\gamma$-érték, 5-szörös CV: $36 \cdot 5 = 180$ SVM-tanítás, plusz egy végső. Kis adaton ez percek kérdése, százezres adaton már órák.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az SVM-pontszám nem valószínűség.</b> $f(\mathbf x) = 2{,}3$ annyit jelent, hogy a pont a pozitív oldalon, az utcától kifelé van – azt nem, hogy „90% eséllyel pozitív”.</li>
+    <li><b>Elavult alapérték.</b> Egy gyakorlati könyv (PDL 6) szerint a scikit-learn alapértelmezett $\gamma$-ja $1/p$ (<code>"auto"</code>); 2019 (0.22-es verzió) óta <code>"scale"</code>, azaz $1/(p\cdot\operatorname{Var}(X))$.
+      Standardizált adaton a kettő nagyjából ugyanaz.</li>
+    <li><b>Ne a tanító adathoz igazítsd a $C$-t és a $\gamma$-t.</b> Ugyanez a könyv azt írja, hogy a paramétereket úgy kell választani, hogy a modell „a legjobban illeszkedjen a tanító adatra” – így mindig a
+      legnagyobb $C$ és $\gamma$ nyerne. Keresztvalidáció kell (a könyv 7. fejezete egyébként így is csinálja).</li>
+    <li><b>A kernel-SVM nem csak „a határt” tárolja</b> (DLV 11): minden szupportvektort meg kell őriznie, és jósláskor mindegyikkel számol – sok szupportvektornál a jóslás is lassú.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – SVM a gyakorlatban</summary>
+  <ol>
+    <li>Melyik modellnél kell skálázni: SVM, kNN, regularizált logisztikus regresszió, döntési fa, véletlen erdő, gradiens boosting?
+      <details><summary>Megoldás</summary>Kell: SVM, kNN, regularizált logisztikus regresszió (a büntetés a súlyok nagyságát nézi, az függ a mértékegységtől). Nem kell: a fák és a fákból álló együttesek.</details></li>
+    <li>Rács: 5 $C$ × 4 $\gamma$, 10-szeres CV. Hány tanítás?
+      <details><summary>Megoldás</summary>$20 \cdot 10 = 200$ (plusz egy végső).</details></li>
+    <li>Egymillió sor, 20 jellemző, nemlineáris kapcsolat. Kernel-SVM-et választanál?
+      <details><summary>Megoldás</summary>Inkább nem: a tanítás nagyjából $n^2$-tel nő, egymillió sornál ez nagyon lassú. Gradiens boosting (7.4) vagy lineáris SVM néhány képzett jellemzővel jobb választás.</details></li>
+    <li>Az A és a B mintára az SVM pontszáma 0,2 és 3,1. Mit mondhatsz, és mit nem?
+      <details><summary>Megoldás</summary>Mindkettő pozitív; A az utcán belül van (bizonytalanabb), B messze kint. Hogy „hány százalék eséllyel” pozitívak, azt nem – ahhoz kalibráció (Platt-skálázás) kellene.</details></li>
+    <li>(nehezebb) Egy kolléga a teljes adaton standardizál, aztán keresztvalidálja az SVM-et, és 97,9%-ot kap. Csővezetékkel 97,7%-ot. Melyik a becsületes szám, és miért kicsi a különbség?
+      <details><summary>Megoldás</summary>A csővezetékes 97,7%. A teljes adaton számolt átlag és szórás a validációs hajtásokból is „lát” egy keveset – enyhe szivárgás (<a href="../06-modellertekeles/#s65-d">6.5</a>). Kicsi, mert a standardizálás
+        a címkét nem használja; címkét használó lépésnél (jellemzőválasztás) a különbség nagy lehetne.</details></li>
+  </ol>
+</details>
+<div class="box history">
+  <span class="box-title">📜 Történet</span>
+  A maximális margó gondolata V. Vapnik és A. Chervonenkis 1960-as évekbeli statisztikus tanuláselméletéből ered. B. Boser, I. Guyon és V. Vapnik 1992-ben kapcsolta össze a kernel trükkel,
+  C. Cortes és V. Vapnik 1995-ben a puha margóval – ez a mai SVM. A 2000-es években az SVM volt sok feladat (kézírás-, szöveg-, génadat-osztályozás) csúcsmodellje, amíg a nagy adatkészleteken a
+  mélytanulás (9. fejezet) és a táblázatos adatokon a gradiens boosting át nem vette a helyét.
+</div>
+<div class="quiz" data-quiz="ai7-76"></div>
+</section>
+
+<!-- ===================================================== 7.7 -->
+<section id="s77">
+<h2>7.7 Mikor melyik? ★</h2>
+<p>Most már hat osztályozót ismersz: kNN, logisztikus regresszió (5. fejezet), döntési fa, véletlen erdő, gradiens boosting és SVM. Melyik a legjobb? A becsületes válasz: <b>attól függ</b>.
+Ebben a szakaszban megnézzük, mitől.</p>
+
+<h3 id="s77-a">1. lépés: ugyanaz az adat, más határ – az induktív torzítás</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – négy adatkészlet, hat modell</span>
+  Négy kétdimenziós adatkészleten (100 tanító, 400 tesztpont) tanítottuk mind a hat modellt. Tesztpontosság (az alábbi szemléltetés alapbeállításával):
+  <table style="max-width:720px;font-size:.86rem;text-align:center">
+    <tr><th>adat</th><th>kNN</th><th>logisztikus</th><th>fa</th><th>erdő</th><th>boosting</th><th>RBF-SVM</th></tr>
+    <tr><td>holdak</td><td><b>90,3</b></td><td>82,5</td><td>88,8</td><td>88,8</td><td>88,8</td><td>89,3</td></tr>
+    <tr><td>körök (gyűrű egy felhő körül)</td><td>97,5</td><td><b style="color:var(--bad)">55,3</b></td><td>91,3</td><td>96,8</td><td>97,3</td><td><b>98,3</b></td></tr>
+    <tr><td>XOR (négy csoport)</td><td>96,8</td><td><b style="color:var(--bad)">47,8</b></td><td>95,0</td><td><b>98,0</b></td><td>97,5</td><td>97,3</td></tr>
+    <tr><td>átlós határ</td><td>89,8</td><td><b>94,0</b></td><td>86,5</td><td>86,8</td><td>86,3</td><td>91,0</td></tr>
+  </table>
+  Minden sorban más a győztes. A logisztikus regresszió a körökön és a XOR-on csődöt mond (egyenes nem választja szét őket), az átlós határon viszont ő a legjobb – a fák ott lépcsőznek.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – induktív torzítás</span>
+  Egy modell <b>induktív torzítása</b> az, hogy milyen alakú szabályokat „hisz el” szívesebben – mit feltételez az adatról, mielőtt látná:
+  <table style="max-width:720px;font-size:.88rem">
+    <tr><th>modell</th><th>milyen határt szeret?</th></tr>
+    <tr><td>logisztikus regresszió, lineáris SVM</td><td>egy egyenest (síkot)</td></tr>
+    <tr><td>döntési fa</td><td>tengelyekkel párhuzamos téglalapokat</td></tr>
+    <tr><td>véletlen erdő, boosting</td><td>sok téglalap átlagát – lépcsős, de finomabb</td></tr>
+    <tr><td>kNN</td><td>„a közeli pontok hasonlók” – bármilyen alakot, helyi szavazással</td></tr>
+    <tr><td>RBF-SVM</td><td>sima, görbe határt, a szupportvektorok körüli „hasonlósági buborékokból”</td></tr>
+  </table>
+  <b>Nincs ingyen ebéd</b> (D. Wolpert, 1996 – <b>Kiegészítés</b>): az <em>összes</em> elképzelhető feladatra átlagolva minden tanuló algoritmus egyformán jó. Egy modell csak azért lehet jobb egy feladaton, mert az induktív torzítása
+  jobban illik <em>ahhoz</em> a feladathoz. A modellválasztás ezért tudás (mit sejtünk az adatról) + mérés (validáció).
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a fa és az átló</span>
+    Ha a valódi határ $x_1 + x_2 = 5$, a fának minden lépcsőfokhoz egy-egy vágás kell. 100 pontból csak néhány lépcsőt tud megbízhatóan megtanulni – ezért marad 86% körül, míg a logisztikus regresszió egyetlen egyenessel 94%-ot ér el.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a logisztikus regresszió és a kör</span>
+    A „körök” adatnál egyetlen jó jellemző elég: $r^2 = x_1^2 + x_2^2$. Ezzel a logisztikus regresszió is egyenest húzhat ($r^2 \lt c$) – mint a XOR-nál az $x_1x_2$ (<a href="../05-osztalyozas/#s56-b">5.6</a>).
+    A jó jellemző és a rugalmas modell <b>helyettesítik</b> egymást.
+  </div>
+</div>
+<div class="widget" data-widget="classifier-zoo"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Egy futás nem rangsor.</b> 400 tesztpontnál 1–2 százalékpont különbség a véletlen műve is lehet (<a href="../06-modellertekeles/#s69-a">6.9</a>). Próbáld ki a szemléltetésben az „🎲 Új adat” gombot: a sorrend a szoros esetekben megfordul.</li>
+    <li><b>A kétdimenziós kép félrevezethet.</b> A síkon jól látszik a határ, de 30 vagy 3000 jellemzőnél a modellek viselkedése más lehet (a dimenzió átka, <a href="../04-adatok-es-jellemzok/#s46-c">4.6</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – induktív torzítás</summary>
+  <ol>
+    <li>Melyik modellnek kedvez, és melyiknek nem: (a) a határ egy függőleges és egy vízszintes egyenesből áll; (b) a határ egy ferde egyenes; (c) a határ egy kör?
+      <details><summary>Megoldás</summary>(a) a fáknak kedvez (két tengelyirányú vágás), a logisztikus regressziónak nem. (b) a lineáris modelleknek kedvez, a fáknak nem (lépcső). (c) az RBF-SVM-nek, a kNN-nek, az erdőnek kedvez; a sima logisztikus regressziónak nem.</details></li>
+    <li>Miért közelít a logisztikus regresszió a XOR-on 50%-hoz?
+      <details><summary>Megoldás</summary>Mert a XOR négy csoportját egyetlen egyenes nem választja szét: bármely egyenes mindkét oldalára jut mindkét osztályból nagyjából fele-fele. Ez a véletlen szintje.</details></li>
+    <li>Mit jelent egyszerűen a „nincs ingyen ebéd” tétel?
+      <details><summary>Megoldás</summary>Hogy nincs minden feladaton legjobb modell. Ha egy modell valahol jobb, máshol szükségképpen rosszabb; azért működik, mert a feltevései illenek az adott feladathoz.</details></li>
+    <li>A „körök” adaton hogyan lehet a logisztikus regressziót is 95% fölé juttatni?
+      <details><summary>Megoldás</summary>Egy új jellemzővel: $x_1^2 + x_2^2$ (vagy a négyzetes tagokkal: $x_1^2$, $x_2^2$). Ebben a térben a kör egy egyenes. Ugyanezt csinálja „automatikusan” a másodfokú polinomiális kernel.</details></li>
+    <li>(nehezebb) Két modell a 400 pontos teszten 88,8% és 89,3%. Kimondhatod, hogy a második jobb?
+      <details><summary>Megoldás</summary>Nem: a különbség 2 pont a 400-ból. Egy 89%-os pontosság hibahatára 400 pontnál kb. $\pm 1{,}96\sqrt{0{,}89 \cdot 0{,}11/400} \approx \pm 3$ százalékpont. Több adat, ismételt CV, vagy páros összehasonlítás kell (<a href="../06-modellertekeles/#s69-b">6.9</a>).</details></li>
+  </ol>
+</details>
+
+<h3 id="s77-b">2. lépés: döntési szempontok – adat, méret, magyarázat, sebesség</h3>
+<p>A határ alakja csak az egyik szempont. A valóságban azt is kérdezni kell: milyen az adat, mennyi van belőle, kell-e magyarázni a döntést, és mennyi idő van tanításra, jóslásra.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – három megbízás</span>
+  <ol style="margin:.2rem 0">
+    <li>Egy bank hitelbírálata: 50 000 ügyfél, 40 oszlop (jövedelem, életkor, foglalkozás, hiányzó értékekkel). A törvény szerint az elutasítást meg kell indokolni.</li>
+    <li>Egy fotóapp: felismerni, hogy a képen kutya vagy macska van – 1 millió címkézett fotó.</li>
+    <li>Egy klinikai vizsgálat: 200 páciens, 15 laboreredmény; melyik betegnél hat a gyógyszer?</li>
+  </ol>
+  Az első táblázatos és nagy: <b>gradiens boosting</b>, de az indokláshoz egy érthető modell (sekély fa, pontozótábla-szerű logisztikus regresszió) is kellhet – vagy magyarázó módszerek a boostinghoz.
+  A második kép: itt a <b>mélytanulás</b> (9–11. fejezet) a nyerő, a fák nem látják a pixelek térbeli szerkezetét. A harmadik kevés adat: <b>egyszerű, erősen regularizált modell</b> (logisztikus regresszió, lineáris SVM, kis erdő) gondos keresztvalidációval.
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Döntési szempontok – összefoglaló táblázat</span>
+  <table style="font-size:.86rem">
+    <tr><th></th><th>logisztikus regr.</th><th>kNN</th><th>döntési fa</th><th>véletlen erdő</th><th>gradiens boosting</th><th>kernel-SVM</th></tr>
+    <tr><td>pontosság táblázatos adaton</td><td>közepes</td><td>közepes</td><td>gyenge</td><td>jó</td><td><b>nagyon jó</b></td><td>jó</td></tr>
+    <tr><td>értelmezhetőség</td><td><b>jó</b> (súlyok)</td><td>közepes (szomszédok)</td><td><b>jó</b> (szabályok)</td><td>gyenge</td><td>gyenge</td><td>gyenge</td></tr>
+    <tr><td>skálázás kell?</td><td>igen</td><td>igen</td><td>nem</td><td>nem</td><td>nem</td><td>igen</td></tr>
+    <tr><td>hiányzó érték, vegyes típus</td><td>előkészítés kell</td><td>előkészítés kell</td><td>jól bírja</td><td>jól bírja</td><td><b>beépítve</b> (XGBoost, LightGBM)</td><td>előkészítés kell</td></tr>
+    <tr><td>nagy adat (milliós sor)</td><td>gyors</td><td>lassú jóslás</td><td>gyors</td><td>gyors, párhuzamos</td><td>gyors (hisztogram)</td><td><b>lassú</b></td></tr>
+    <tr><td>hangolási igény</td><td>kicsi ($C$)</td><td>kicsi ($k$)</td><td>közepes</td><td>kicsi</td><td>nagyobb</td><td>közepes ($C$, $\gamma$)</td></tr>
+    <tr><td>extrapolál?</td><td>igen</td><td>nem</td><td>nem</td><td>nem</td><td>nem</td><td>részben</td></tr>
+  </table>
+  <small>Egy klasszikus tankönyv (ESL 10.7, 10.1. táblázat) hasonló összevetése szerint a fák minden „kényelmi” szempontban (vegyes adat, hiányzó érték, kiugró értékek, monoton átalakítás, lényegtelen jellemzők,
+  skálázhatóság) jók, csak a pontosságban gyengék – a boosting épp ezt javítja, a kényelem nagy részét megtartva.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – táblázatos adat: még mindig fák <span class="muted">📅 Állapot: 2026</span></span>
+    L. Grinsztajn és társai (NeurIPS 2022) 45 közepes méretű táblázatos adatkészleten hasonlították össze a módszereket: a fa alapú együttesek (XGBoost, véletlen erdő) a gondosan hangolt neurális
+    hálóknál is jobbak voltak. Kis táblázatokra (néhány ezer sorig) azóta megjelentek az előtanított „táblázatos alapmodellek” is (pl. TabPFN, N. Hollmann és társai, <em>Nature</em>, 2025), amelyek
+    hangolás nélkül is versenyképesek – ez gyorsan változó terület.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – mikor jó egy „klasszikus” modell?</span>
+    Egy gyakorlati könyv (PDL 7) négy esetet sorol fel, amikor a klasszikus modellek (fa, erdő, SVM, kNN) a jobb választás a mélytanulásnál: (1) kevés az adat; (2) kevés a számítási kapacitás
+    (pl. beágyazott eszköz); (3) magyarázni kell a döntést; (4) a bemenet „jellemzővektor”, nincs benne térbeli vagy időbeli szerkezet.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Mindig egy egyszerű alapvonallal kezdj</b> (<a href="../05-osztalyozas/#s51-b">5.1</a>, <a href="../06-modellertekeles/#s61-a">6.1</a>): többségi osztály, logisztikus regresszió, sekély fa. A 7.8-ban kiderül, hogy egy valódi adaton
+      a logisztikus regresszió minden fát megver – ezt csak akkor tudod meg, ha kipróbálod.</li>
+    <li><b>A pontosság nem az egyetlen szempont.</b> Egy 0,3 százalékponttal jobb, de tízszer lassabb és megmagyarázhatatlan modell sokszor rossz üzlet (lásd a Netflix-díjat, <a href="#s75-b">7.5</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – modellválasztás</summary>
+  <ol>
+    <li>Egy webáruház 2 millió vásárlás adataiból (30 oszlop, sok hiányzó érték, kategóriás oszlopok) akarja megjósolni, ki vásárol újra. Mivel kezdenél, és mit próbálnál utána?
+      <details><summary>Megoldás</summary>Alapvonal: többségi osztály és logisztikus regresszió (kódolással, pótlással). Utána gradiens boosting (LightGBM/CatBoost: kezeli a hiányzó értékeket és a kategóriákat, gyors a sok soron).</details></li>
+    <li>Egy orvosnak olyan modell kell, amelynek a döntését a betegnek el tudja magyarázni. Mit javasolsz?
+      <details><summary>Megoldás</summary>Sekély döntési fát vagy kevés jellemzős logisztikus regressziót (pontozótáblát). Ha egy erdő sokkal pontosabb, érdemes megnézni, mennyit veszítünk az egyszerű modellel – és ezt az orvossal együtt mérlegelni.</details></li>
+    <li>Melyik modellt <em>ne</em> válaszd, ha a jóslásnak egy kis mikrovezérlőn, 1 ms alatt kell lefutnia, és 100 000 tanító minta van?
+      <details><summary>Megoldás</summary>A kNN-t (minden jóslásnál az összes tanító pontot végig kell nézni, és tárolni is kell őket) és a sok szupportvektoros kernel-SVM-et. Egy sekély fa vagy egy lineáris modell néhány műveletből áll.</details></li>
+    <li>Egy idősorban a célváltozó évről évre nő. Miért kockázatos itt egy véletlen erdő?
+      <details><summary>Megoldás</summary>Mert a fák nem extrapolálnak (<a href="#s72-b">7.2</a>): a jövőre legfeljebb a múlt legnagyobb értékeit mondják. A trendet külön kell kezelni (különbségek, arányok, vagy lineáris trend + fák a maradékra).</details></li>
+    <li>(nehezebb) 150 sor, 5000 génkifejezési jellemző, két osztály. Mi a fő veszély, és milyen modellt választanál?
+      <details><summary>Megoldás</summary>Sokkal több jellemző, mint minta: bármelyik rugalmas modell könnyen túlilleszt, és a jellemzőválogatás könnyen szivárog. Erősen regularizált lineáris modell (lasso, <a href="../06-modellertekeles/#s67-b">6.7</a>, vagy lineáris SVM),
+        ismételt, rétegzett CV-vel, minden válogatás a hajtásokon belül (<a href="../06-modellertekeles/#s65-d">6.5</a>).</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai7-77"></div>
+</section>
+
+<!-- ===================================================== 7.8 Alkalmazás -->
+<section id="s78">
+<h2>7.8 Alkalmazás: vigyél-e esernyőt?</h2>
+<p>Minden eszköz megvan. Térjünk vissza a tíz reggelhez és a fejezet három kérdéséhez – aztán nézzük meg ugyanezeket a modelleket egy valódi, nagyobb adatkészleten is.</p>
+
+<h3 id="s78-a">Tíz reggel, egy fa, sok fa</h3>
+<p><b>1. Melyik kérdés legyen az első, melyik a második?</b> A 7.1 számolása szerint:</p>
+<table style="max-width:720px;font-size:.9rem;text-align:center">
+  <tr><th>első kérdés</th><th>súlyozott Gini</th><th>információnyereség</th><th>hol tanultuk?</th></tr>
+  <tr><td><b>esőt mond az előrejelzés?</b></td><td><b>0,160</b></td><td><b>0,610 bit</b></td><td><a href="#s71-b">7.1</a></td></tr>
+  <tr><td>páratartalom &lt; 72%?</td><td>0,267</td><td>0,420 bit</td><td><a href="#s71-d">7.1</a></td></tr>
+  <tr><td>milyen az ég? / tiszta az ég?</td><td>0,333 / 0,343</td><td>0,295 / 0,281 bit</td><td><a href="#s71-c">7.1</a></td></tr>
+  <tr><td>erős a szél?</td><td>0,480</td><td>0</td><td><a href="#s71-b">7.1</a></td></tr>
+</table>
+<ul>
+  <li>Az első kérdés az <b>előrejelzés</b>. Az „esőt mond” ágban (R3, R4, R6, R7, R8) a második kérdés: <b>tiszta az ég?</b> – két tiszta ágat ad. Ez a kétkérdéses fa mind a tíz reggelen helyes, és a szelet, a páratartalmat nem is kérdezi.</li>
+  <li><b>De csak tíz reggelből!</b> Egyetlen további nap (R11) a páratartalmat tolja a gyökérbe (<a href="#s72-c">7.2</a>), és a bootstrap-minták 42%-ában más a gyökér. Az első kérdés választása itt nem erős.</li>
+</ul>
+<p><b>2. Miért lenne jobb 500 fa?</b> Egy 500 fás véletlen erdő ($m = 2$ a 6 jellemzőből) ugyanezen a tíz napon:</p>
+<table style="max-width:760px;font-size:.9rem;text-align:center">
+  <tr><th>új reggel</th><th>a kétkérdéses fa</th><th>az erdő (esőt szavazó fák aránya)</th></tr>
+  <tr><td>felhős, nem mond esőt, erős szél, 86%</td><td>nem kell</td><td>0,36</td></tr>
+  <tr><td>tiszta, esőt mond, gyenge szél, 90%</td><td>nem kell</td><td>0,43</td></tr>
+  <tr><td>borult, esőt mond, gyenge szél, 80%</td><td>kell</td><td>0,66</td></tr>
+</table>
+<ul>
+  <li>A döntések itt egyeznek, de az erdő <b>fokozatos</b> választ ad: az első két reggelen „inkább nem, de nem biztos” – mert sok fa a páratartalom alapján (86%, 90%) esőt mond. A fa ezt nem látja, mert a páratartalmat sosem kérdezi.</li>
+  <li>Az erdő jellemzőfontossága: előrejelzés 0,34, <b>páratartalom 0,34</b>, „tiszta?” 0,15, a többi ≤ 0,06 (<a href="#s73-d">7.3</a>). A páratartalom tehát közel olyan hasznos, mint az előrejelzés – az egyetlen fa csak azért hagyta ki, mert
+    egy hajszállal rosszabb volt.</li>
+  <li>Az OOB-pontosság 70% – tíz napból ez nagyon durva becslés (egy nap = 10 százalékpont), de figyelmeztet: a fa „100%-a” a tanító napokon semmit nem garantál.</li>
+</ul>
+<details class="box">
+  <summary>🐍 Python – a tíz reggel fával és erdővel</summary>
+  <pre style="margin:.6rem 0;font-size:.85rem">import numpy as np
+from sklearn.tree import DecisionTreeClassifier, export_text
+from sklearn.ensemble import RandomForestClassifier
+
+#  előrejelzés: eső?, ég: tiszta?, felhős?, borult?, erős szél?, páratartalom
+X = np.array([[0,1,0,0,0,45], [0,1,0,0,1,55], [1,1,0,0,0,78], [1,0,1,0,1,85],
+              [0,0,1,0,0,62], [1,0,1,0,0,74], [1,0,0,1,0,90], [1,0,0,1,1,92],
+              [0,0,0,1,1,88], [0,0,1,0,1,70]])
+y = np.array([0, 0, 0, 1, 0, 1, 1, 1, 0, 0])          # esett-e (R1…R10)
+nevek = ["eso", "tiszta", "felhos", "borult", "szel", "para"]
+
+fa = DecisionTreeClassifier(random_state=0).fit(X, y)
+print(export_text(fa, feature_names=nevek))
+# |--- eso &lt;= 0.50 → class: 0
+# |--- eso &gt;  0.50 → tiszta &lt;= 0.50 → class: 1;  tiszta &gt; 0.50 → class: 0
+
+erdo = RandomForestClassifier(n_estimators=500, oob_score=True, random_state=0).fit(X, y)
+uj = np.array([[0,0,1,0,1,86], [1,1,0,0,0,90], [1,0,0,1,0,80]])
+print(fa.predict(uj), erdo.predict_proba(uj)[:, 1].round(2), erdo.oob_score_)
+# [0 0 1] [0.36 0.43 0.66] 0.7
+print({n: round(float(v), 2) for n, v in zip(nevek, erdo.feature_importances_)})
+# {'eso': 0.34, 'tiszta': 0.15, 'felhos': 0.06, 'borult': 0.06, 'szel': 0.04, 'para': 0.34}</pre>
+  <small>Az „ég” oszlopot one-hot kódoltuk (<a href="../04-adatok-es-jellemzok/#s43-b">4.3</a>), ezért lett belőle három igen–nem jellemző. Az erdő számai a <code>random_state</code>-től kicsit függnek.</small>
+</details>
+<p><b>3. És az SVM?</b> Az SVM a <em>számok terében</em> húz széles utcát – a tíz reggel öt jellemzőjéből négy igen–nem kérdés, és az egyetlen szám, a páratartalom, átfedő (a 74%-os nap esős, a 78%-os és a 88%-os száraz):
+ehhez puha margó kellene, és előtte skálázás. Tíz napon az SVM semmi olyat nem tud, amit a kétkérdéses fa ne tudna – csak kevésbé érthetően.</p>
+
+<h3 id="s78-b">Nagyban: ugyanezek a modellek egy valódi adaton</h3>
+<p>Tíz nap kevés ahhoz, hogy modelleket rangsoroljunk. A 6. fejezet emlőrák-adatain (569 daganat, 30 számjellemző, <a href="../06-modellertekeles/#s65-d">6.5</a>) viszont már igen. 5-szörös rétegzett keresztvalidáció, alapbeállítások:</p>
+<table style="max-width:760px;font-size:.9rem;text-align:center">
+  <tr><th>modell</th><th>pontosság (átlag ± szórás)</th><th>tanulság</th></tr>
+  <tr><td>döntési fa (korlát nélkül)</td><td>92,6% ± 2,4</td><td>egy fa: instabil, túlilleszt</td></tr>
+  <tr><td>döntési fa (mélység 3)</td><td>93,0% ± 2,7</td><td>a metszés kicsit segít</td></tr>
+  <tr><td>bagging (300 fa)</td><td>95,4% ± 2,9</td><td>átlagolás: +3 pont</td></tr>
+  <tr><td>véletlen erdő (300 fa)</td><td>95,8% ± 1,9</td><td>OOB-becslés: 96,5% – szinte ugyanaz, ingyen</td></tr>
+  <tr><td>gradiens boosting / hisztogramos</td><td>96,5% ± 2,1 / 97,0% ± 1,3</td><td>a fák közül a boosting a legjobb</td></tr>
+  <tr><td>AdaBoost (300 tönk)</td><td>97,7% ± 1,0</td><td>gyenge tönkökből erős modell</td></tr>
+  <tr><td>RBF-SVM, nyers jellemzők</td><td>92,1% ± 3,4</td><td>skálázás nélkül a fánál is rosszabb</td></tr>
+  <tr><td>RBF-SVM, standardizálva</td><td>97,7% ± 0,8</td><td>ugyanaz a modell, +5,6 pont</td></tr>
+  <tr><td>kNN ($k = 5$), standardizálva</td><td>96,5% ± 2,4</td><td>az 5. fejezet módszere</td></tr>
+  <tr><td><b>logisztikus regresszió</b>, standardizálva</td><td><b>97,9% ± 1,6</b></td><td>a legegyszerűbb – és a legjobb</td></tr>
+</table>
+<ul>
+  <li><b>Az együttesek megverik az egyetlen fát</b> (3–5 százalékpont) – pontosan a 7.3 és a 7.4 ígérete szerint.</li>
+  <li><b>A skálázás az SVM-nél sorsdöntő</b> (92,1% → 97,7%), a fáknál mindegy (<a href="#s76-d">7.6</a>).</li>
+  <li><b>A logisztikus regresszió nyer.</b> Ezen az adaton a két osztály standardizálás után majdnem lineárisan szétválasztható – az egyenes induktív torzítása épp illik hozzá (<a href="#s77-a">7.7</a>).
+    A legjobb négy modell (97,0–97,9%) különbsége kisebb a szórásnál: 569 mintánál 1 százalékpont kb. 6 daganat. Ezek alapján egyik sem „bizonyítottan” jobb.</li>
+</ul>
+<details class="box">
+  <summary>🐍 Python – modellek összevetése keresztvalidációval</summary>
+  <pre style="margin:.6rem 0;font-size:.85rem">from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import StratifiedKFold, cross_val_score
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
+from sklearn.svm import SVC
+
+X, y = load_breast_cancer(return_X_y=True)            # 569 daganat, 30 jellemző
+cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
+modellek = {
+    "logisztikus": make_pipeline(StandardScaler(), LogisticRegression(max_iter=5000)),
+    "fa":          DecisionTreeClassifier(random_state=0),
+    "erdő":        RandomForestClassifier(n_estimators=300, random_state=0),
+    "boosting":    HistGradientBoostingClassifier(random_state=0),
+    "SVM nyers":   SVC(),
+    "SVM skálázva": make_pipeline(StandardScaler(), SVC()),
+}
+for nev, m in modellek.items():
+    p = cross_val_score(m, X, y, cv=cv)
+    print(f"{nev:13s} {p.mean():.3f} ± {p.std(ddof=1):.3f}")
+# logisztikus   0.979 ± 0.016
+# fa            0.926 ± 0.024
+# erdő          0.958 ± 0.019
+# boosting      0.970 ± 0.013
+# SVM nyers     0.921 ± 0.034
+# SVM skálázva  0.977 ± 0.008</pre>
+  <small>A <code>StandardScaler</code> a csővezeték része, így minden hajtásban csak a tanító részből tanul. A fáknál nem kell skálázni. Egy gyakorlati könyv (PDL 7) ezerszer ismételt CV-vel hasonló sorrendet kapott:
+  lineáris SVM 97,2%, 50 fás erdő 95,9%, egyetlen fa 92,6%.</small>
+</details>
+<div class="box example">
+  <span class="box-title">🎯 Válasz a fejezet kérdésére</span>
+  <b>Melyik kérdés legyen az első?</b> Az, amelyik a legtöbb bizonytalanságot szünteti meg: „Esőt mond az előrejelzés?” (Gini-csökkenés 0,32, információnyereség 0,61 bit). A második, ha esőt mond: „Tiszta az ég?”.
+  Ez a döntési fa (<a href="#s71">7.1</a>).
+  <br><b>Miért jobb 500 fa?</b> Mert egy fa instabil – egy új nap átírhatja (<a href="#s72-c">7.2</a>). Sok, kissé különböző fa (bootstrap + véletlen jellemzők) szavazata kiátlagolja a szeszélyeket,
+  fokozatos bizonyosságot ad, és a többi jellemzőt (páratartalom) is szóhoz engedi (<a href="#s73">7.3</a>). Ha a fák egymás hibáit javítják, az a boosting (<a href="#s74">7.4</a>).
+  <br><b>És az SVM?</b> Számjellemzőkön, megfelelő skálázással és hangolással kiváló (<a href="#s76">7.6</a>) – tíz, főleg igen–nem jellegű reggelhez nem kell.
+  <br><b>Melyiket válaszd?</b> Tíz reggelre a kétkérdéses fát: érthető, és amit az adat tud, azt tudja. Ezer reggelnél gradiens boostingot vagy véletlen erdőt – de előtte mindig egy egyszerű
+  alapvonalat, mert ahogy az emlőrák-adatokon láttuk, néha a legegyszerűbb modell nyer (<a href="#s77">7.7</a>).
+</div>
+</section>
+
+<!-- ===================================================== Összefoglalás -->
+<section id="s-sum">
+<h2>Összefoglalás</h2>
+<table>
+  <tr><th>Fogalom</th><th>Lényeg</th></tr>
+  <tr><td>Döntési fa</td><td>kérdések sorozata; gyökér, belső csomópont, levél (többségi osztály / átlag); a levelek = „ÉS”-szabályok; tengelyekkel párhuzamos téglalapok</td></tr>
+  <tr><td>Gini-index</td><td>$1 - \sum p_k^2$; két osztálynál $2p(1 - p)$, legfeljebb 0,5; a vágás után méret szerint súlyozott átlag, a legnagyobb csökkenés nyer</td></tr>
+  <tr><td>Entrópia, információnyereség</td><td>$H = -\sum p_k\log_2 p_k$; $IG = H(\text{szülő}) - \sum \frac{n_j}{n}H(\text{gyerek}_j)$; a sokértékű jellemzőket kedveli</td></tr>
+  <tr><td>Mohó építés (CART)</td><td>minden jellemző, minden felezőpont-küszöb; a legjobb vágás; rekurzió; nem garantál optimális fát; skálázás nem kell</td></tr>
+  <tr><td>Mélység, metszés</td><td>mély fa → túlillesztés; előmetszés (<code>max_depth</code>, <code>min_samples_leaf</code>), utómetszés $R(T) + \alpha|T|$, $\alpha$ CV-vel</td></tr>
+  <tr><td>Regressziós fa</td><td>levél = átlag, vágás az SSE csökkenése szerint; lépcsős függvény; nem extrapolál</td></tr>
+  <tr><td>Instabilitás</td><td>kis adatváltozás → más fa; kis torzítás, nagy variancia → átlagolni kell</td></tr>
+  <tr><td>Többségi szavazás</td><td>független, $p \gt 0{,}5$ tagok többsége egyre pontosabb; korrelált tagok szavazata nem segít</td></tr>
+  <tr><td>Bootstrap, bagging</td><td>$n$ húzás visszatevéssel; kb. 63% különböző minta, 37% OOB; $\operatorname{Var} = \rho\sigma^2 + (1 - \rho)\sigma^2/B$</td></tr>
+  <tr><td>Véletlen erdő</td><td>bagging + vágásonként $m$ véletlen jellemző ($\sqrt p$ / $p/3$); kisebb $\rho$; több fa nem árt</td></tr>
+  <tr><td>OOB, jellemzőfontosság</td><td>ingyen validáció; MDI (Gini-csökkenés, torzított) vs. permutációs (validáción); fontosság ≠ ok-okozat</td></tr>
+  <tr><td>AdaBoost</td><td>$\alpha = \tfrac12\ln\frac{1 - \varepsilon}{\varepsilon}$; hibás minták súlya × $e^{\alpha}$, utána a hibásak összsúlya 1/2; $\operatorname{sign}\sum\alpha_m h_m$; zajos címkére érzékeny</td></tr>
+  <tr><td>Gradiens boosting</td><td>$F_m = F_{m-1} + \nu h_m$, $h_m$ a maradékra (negatív gradiensre) illesztett kis fa; korai leállítás</td></tr>
+  <tr><td>XGBoost, LightGBM, CatBoost</td><td>regularizált levélértékek ($\sum r/(n + \lambda)$), hisztogram, levélenkénti növesztés, kategóriák kezelése</td></tr>
+  <tr><td>Szavazás, stacking</td><td>kemény / lágy (valószínűség-átlag) / rangátlag; stacking: metamodell OOF-jóslatokon, blending: félretett halmazon</td></tr>
+  <tr><td>Maximális margó</td><td>$\min\tfrac12\|\mathbf w\|^2$, $y_i(\mathbf w^\top\mathbf x_i + b) \ge 1$; utcaszélesség $2/\|\mathbf w\|$; szupportvektorok az utca szélén</td></tr>
+  <tr><td>Puha margó</td><td>$\tfrac12\|\mathbf w\|^2 + C\sum\xi_i$, $\xi_i = \max(0, 1 - y_if(\mathbf x_i))$ (csuklóveszteség); nagy $C$ keskeny utca, kis $C$ széles</td></tr>
+  <tr><td>Kernel trükk</td><td>$K(\mathbf x, \mathbf z) = \varphi(\mathbf x)^\top\varphi(\mathbf z)$; polinomiális $(\mathbf x^\top\mathbf z + 1)^d$, RBF $e^{-\gamma\|\mathbf x - \mathbf z\|^2}$; nagy $\gamma$ kacskaringós határ</td></tr>
+  <tr><td>Induktív torzítás</td><td>minden modell más alakú határt „szeret”; nincs ingyen ebéd – alapvonal + validáció dönt</td></tr>
+</table>
+
+<div class="box tip">
+  <span class="box-title">Melyik módszer mikor? – döntési táblázat</span>
+  <table>
+    <tr><th>Ha a feladatban ez áll…</th><th>…akkor ezt használd</th></tr>
+    <tr><td>a döntést szabályokkal kell megindokolni</td><td>sekély döntési fa (metszve) vagy kevés jellemzős logisztikus regresszió</td></tr>
+    <tr><td>táblázatos adat, a pontosság a fő cél</td><td>gradiens boosting (XGBoost / LightGBM / CatBoost), korai leállítással; mellé véletlen erdő</td></tr>
+    <tr><td>gyors, jó „első próba” táblázatos adaton, kevés hangolással</td><td>véletlen erdő, OOB-becsléssel</td></tr>
+    <tr><td>a fa túlilleszt (nagy rés a tanító és a validációs hiba között)</td><td>metszés ($\alpha$, mélység, levélméret CV-vel) – vagy sok fa átlaga</td></tr>
+    <tr><td>a fa minden új adatra „összevissza” változik</td><td>bagging / véletlen erdő (variancia ↓)</td></tr>
+    <tr><td>az egyszerű modell alulillesztett, sok a torzítás</td><td>boosting (torzítás ↓)</td></tr>
+    <tr><td>zajos, hibás címkék</td><td>véletlen erdő; boostingnál robusztus veszteség, kis $\nu$ – az AdaBoostot kerüld</td></tr>
+    <tr><td>a célváltozó trendet követ, extrapolálni kell</td><td>lineáris modell (vagy trend leválasztása + fák a maradékra) – fák önmagukban nem</td></tr>
+    <tr><td>több, különböző jó modelled van</td><td>lágy szavazás vagy stacking OOF-jóslatokon</td></tr>
+    <tr><td>kevés minta, számjellemzők, nemlineáris határ</td><td>RBF-SVM standardizálva, $C$ és $\gamma$ együtt hangolva</td></tr>
+    <tr><td>sok jellemző (pl. szöveg), kevés minta</td><td>lineáris SVM vagy regularizált logisztikus regresszió</td></tr>
+    <tr><td>nagyon sok sor (százezres, milliós)</td><td>hisztogramos boosting, lineáris modell – kernel-SVM és kNN nem</td></tr>
+    <tr><td>kép, hang, szöveg nyersen</td><td>mélytanulás (9–12. fejezet)</td></tr>
+    <tr><td>melyik jellemző számít?</td><td>permutációs fontosság validáción – és ne oksági következtetésként</td></tr>
+  </table>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabályok</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Jó kérdés után tisztábbak az ágak.</b> A Gini és az entrópia ezt méri – súlyozott átlaggal.</li>
+    <li><b>Egy fa = nagy variancia.</b> Ne higgy egyetlen fa szerkezetének.</li>
+    <li><b>Bagging párhuzamos és varianciát csökkent, boosting soros és torzítást.</b></li>
+    <li><b>Több fa az erdőnek nem árt, a boostingnak igen</b> – ott korai leállítás kell.</li>
+    <li><b>A szavazás a különbözőségből él.</b> Egyforma tagok = egy tag.</li>
+    <li><b>Stackinghez csak hajtáson kívüli jóslat.</b></li>
+    <li><b>SVM előtt skálázz</b>, aztán $C$ és $\gamma$ együtt, logaritmikus rácson.</li>
+    <li><b>Kezdj egyszerűen.</b> Az alapvonal néha a végeredmény.</li>
+  </ul>
+</div>
+</section>
+
+<!-- ===================================================== Ellenőrző kérdések -->
+<section id="s-check">
+<h2>Ellenőrző kérdések</h2>
+<p>Gondold végig a választ, aztán kattints a kártyára a megfordításhoz!</p>
+<div class="flashcards">
+  <div class="flash"><div class="inner"><div class="face front">Mit mond egy döntési fa levele?</div>
+    <div class="face back">Osztályozásnál a benne lévő tanító minták többségi osztályát (és az arányokat), regressziónál a címkék átlagát.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit mér a Gini-index?</div>
+    <div class="face back">A csomópont „szennyezettségét”: annak esélyét, hogy két véletlenül húzott minta címkéje különbözik. Tiszta csomópontnál 0, két osztálynál legfeljebb 0,5.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért súlyozzuk a gyerekek Gini-indexét?</div>
+    <div class="face back">Mert egy kicsi tiszta ág keveset ér, ha a nagy ág vegyes marad. A méret szerinti súlyozás a vágás egészét értékeli.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi az információnyereség, és mi a gyengéje?</div>
+    <div class="face back">A szülő entrópiája mínusz a gyerekek súlyozott entrópiája. A sokértékű jellemzőket (azonosító, dátum) túlértékeli.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért nem kell a fához skálázni?</div>
+    <div class="face back">Mert minden vágás csak egy jellemző sorrendjét használja; a monoton átalakítás nem változtat a sorrenden.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit tesz a költség-komplexitás metszés?</div>
+    <div class="face back">$R(T) + \alpha|T|$-t minimalizál: minden levélért „adót” fizetünk; az $\alpha$-t keresztvalidáció választja.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért nem extrapolál egy regressziós fa?</div>
+    <div class="face back">Mert a levelei a látott címkék átlagai – a tanító tartományon kívül is ezeket mondja.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mikor segít a többségi szavazás?</div>
+    <div class="face back">Ha a tagok jobbak a véletlennél, és más-más hibát követnek el (kevéssé korreláltak).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a bootstrap-minták OOB része?</div>
+    <div class="face back">A mintából kimaradt pontok – egy fánál kb. 37% ($1/e$). Rajtuk a fa „validálható”: ez az OOB-becslés.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miben több a véletlen erdő a baggingnél?</div>
+    <div class="face back">Minden vágásnál csak $m$ véletlen jellemző közül választhat – így a fák kevésbé korreláltak, és az átlaguk varianciája kisebb.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a különbség a bagging és a boosting között?</div>
+    <div class="face back">Bagging: független, mély fák párhuzamosan, átlagolva – varianciát csökkent. Boosting: sekély fák egymás után, mindegyik az előzők hibáira – torzítást csökkent.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mire illeszt a gradiens boosting új fát?</div>
+    <div class="face back">A maradékokra (általában a veszteség negatív gradiensére), és a fa kimenetének csak $\nu$-szörösét adja hozzá.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért kell a stackinghez OOF-jóslat?</div>
+    <div class="face back">Mert a metamodellnek azt kell megtanulnia, mennyire bízhat a modellekben új adaton. A tanító adaton adott jóslatok túl jók (szivárgás).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mik a szupportvektorok?</div>
+    <div class="face back">Az utca szélén (vagy puha margónál az utcában, illetve a rossz oldalon) álló tanító pontok. A megoldás csak tőlük függ.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit tesz a $C$ az SVM-ben?</div>
+    <div class="face back">A szabálysértések ára. Nagy $C$: keskeny utca, kevés tanítóhiba (túlillesztés veszélye); kis $C$: széles utca, erősebb regularizáció.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a kernel trükk?</div>
+    <div class="face back">A nagy dimenziós $\varphi$ térbeli skaláris szorzatot egy $K(\mathbf x, \mathbf z)$ függvény közvetlenül számolja – a $\varphi$ kiszámítása nélkül.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit jelent a „nincs ingyen ebéd”?</div>
+    <div class="face back">Az összes elképzelhető feladatra átlagolva nincs legjobb modell. Mindig a feladathoz illő induktív torzítás nyer – ezt validációval kell kideríteni.</div></div></div>
+</div>
+</section>
+
+<!-- ===================================================== Vegyes gyakorló feladatok -->
+<section id="s-ex">
+<h2>Vegyes gyakorló feladatok</h2>
+<p>Itt már nincs megmondva, melyik szakaszhoz tartozik a feladat: neked kell eldönteni, melyik eszköz kell.</p>
+<details class="box practice">
+  <summary>✏️ Vegyes gyakorló feladatok – kattints a kinyitáshoz</summary>
+  <ol>
+    <li>Egy csomópontban 6 „igen” és 4 „nem” van. Egy vágás után: (5 igen, 1 nem) és (1 igen, 3 nem). Mennyi a Gini-csökkenés és az információnyereség?
+      <details><summary>Tipp</summary>Mindkét mércénél a gyerekek méret szerinti súlyozott átlagát vond ki a szülőből.</details>
+      <details><summary>Megoldás</summary>Gini: szülő 0,48; gyerekek $\approx 0{,}278$ és $0{,}375$; súlyozva $0{,}6 \cdot 0{,}278 + 0{,}4 \cdot 0{,}375 \approx 0{,}317$; csökkenés $\approx 0{,}163$.
+        Entrópia: szülő 0,971; gyerekek $H(1/6) \approx 0{,}650$ és $H(1/4) \approx 0{,}811$; súlyozva $\approx 0{,}715$; nyereség $\approx 0{,}256$ bit.</details></li>
+    <li>$x = 1, 2, 3, 4$, $y = 3, 4, 10, 12$. Melyik az első vágása egy regressziós fának, és mit jósolnak a levelek?
+      <details><summary>Tipp</summary>Három lehetséges vágás; mindegyiknél az SSE két oldalát add össze.</details>
+      <details><summary>Megoldás</summary>$x \lt 2{,}5$: {3, 4} → 3,5 (SSE 0,5) és {10, 12} → 11 (SSE 2); összesen 2,5 – ez a legjobb (a másik kettő: $x \lt 1{,}5$ → 34,7; $x \lt 3{,}5$ → 28,7). Levelek: 3,5 és 11.</details></li>
+    <li>Öt elemből (1–5) a bootstrap-minta: 2, 2, 5, 1, 5. Melyek az OOB elemek? Mekkora eséllyel marad ki egy adott elem egy bootstrap-mintából?
+      <details><summary>Tipp</summary>Öt független húzás, mindegyik $4/5$ eséllyel „nem ő”.</details>
+      <details><summary>Megoldás</summary>OOB: 3 és 4. Esély: $(4/5)^5 \approx 0{,}328$.</details></li>
+    <li>Öt független osztályozó, mindegyik 60%-os. Mennyi a többségi szavazás pontossága? És ha mind az öt ugyanazt mondja?
+      <details><summary>Tipp</summary>Legalább 3 helyes kell; binomiális eloszlás.</details>
+      <details><summary>Megoldás</summary>$10 \cdot 0{,}6^3 \cdot 0{,}4^2 + 5 \cdot 0{,}6^4 \cdot 0{,}4 + 0{,}6^5 = 0{,}3456 + 0{,}2592 + 0{,}07776 \approx 0{,}683$. Ha egyformák: 60% – nincs nyereség.</details></li>
+    <li>Az AdaBoost egy körében a súlyozott hiba 0,1. Mennyi $\alpha$, és mennyi lesz a hibás minták összsúlya a frissítés után?
+      <details><summary>Tipp</summary>$\alpha = \tfrac12\ln\frac{1 - \varepsilon}{\varepsilon}$; az összsúlyra emlékezz a 7.4 nevezetes tulajdonságára.</details>
+      <details><summary>Megoldás</summary>$\alpha = \tfrac12\ln 9 \approx 1{,}099$. A hibás minták összsúlya utána pontosan 0,5 (eddig 0,1 volt – ötszörösére nőtt).</details></li>
+    <li>Két pont: $x = 1$, $y = 2$ és $x = 2$, $y = 6$. Gradiens boosting tönkökkel, $\nu = 0{,}1$. Mennyi $F_1$? Hány kör után megy a maradék abszolút értéke 0,2 alá?
+      <details><summary>Tipp</summary>$F_0 = 4$, a tönk mindkét maradékot pontosan megtanulja; minden kör a maradék 10%-át tünteti el.</details>
+      <details><summary>Megoldás</summary>Maradékok $-2$ és $2$; a tönk ezeket adja, $F_1 = 4 \mp 0{,}2 = (3{,}8;\ 4{,}2)$. A maradék körönként 0,9-szeresére csökken: $2 \cdot 0{,}9^M \lt 0{,}2$ → $0{,}9^M \lt 0{,}1$ → $M \gt \ln 0{,}1/\ln 0{,}9 \approx 21{,}9$, tehát <b>22 kör</b>.</details></li>
+    <li>Negatív pontok: (0; 0) és (1; 1), pozitív: (3; 3). Hol a maximális margójú határ, mennyi $\mathbf w$, $b$ és az utca szélessége? Szupportvektor-e a (0; 0)?
+      <details><summary>Tipp</summary>A határt a két legközelebbi, ellentétes osztályú pont határozza meg.</details>
+      <details><summary>Megoldás</summary>A legközelebbi pár: (1; 1) és (3; 3); a határ a felező merőlegesük, $x_1 + x_2 = 4$. $\mathbf w = (0{,}5;\ 0{,}5)$, $b = -2$: $f(1; 1) = -1$, $f(3; 3) = +1$. Szélesség $2/\|\mathbf w\| \approx 2{,}83$.
+        $f(0; 0) = -2$ – az utcán kívül, nem szupportvektor.</details></li>
+    <li>Egy csapat két modellt hasonlít össze egy 30 számjellemzős adaton: RBF-SVM nyers jellemzőkkel 91%, véletlen erdő 95%. Arra jutnak, hogy „az SVM erre az adatra nem jó”. Mit kérdeznél tőlük?
+      <details><summary>Tipp</summary>Melyik modellnek számít a jellemzők mértékegysége? És hogyan választották a hiperparamétereket?</details>
+      <details><summary>Megoldás</summary>Standardizáltak-e (csővezetékben)? Az RBF-kernel távolságokkal dolgozik, skálázás nélkül a nagy számú jellemzők uralják – az emlőrák-adatokon ez 92,1% vs 97,7%. Hangolták-e a $C$-t és a $\gamma$-t CV-vel?
+        Ugyanazon a CV-felosztáson mértek-e, és mekkora a szórás? Csak ezek után lehet összevetni.</details></li>
+  </ol>
+</details>
+</section>
+
+<!-- ===================================================== Fejezetzáró teszt -->
+<section id="s-final">
+<h2>Fejezetzáró teszt</h2>
+<p>Vegyes feladatok az egész fejezetből. Ha legalább 80%-ot elérsz, nyugodtan továbbléphetsz a 8. fejezetre (felügyelet nélküli tanulás) – ott címkék nélkül keresünk szerkezetet az adatban.</p>
+<div class="quiz" data-quiz="ai7-final"></div>
+</section>
+
+<!-- ===================================================== Szómagyarázó -->
+<section id="s-gloss">
+<h2>Szómagyarázó</h2>
+<p>A fejezetben előforduló idegen vagy kevésbé ismert szakkifejezések, betűrendben.</p>
+<dl class="glossary">
+  <dt id="g-adaboost">AdaBoost <span class="etym">ang. <em>adaptive boosting</em> „alkalmazkodó felerősítés” (Y. Freund, R. Schapire, 1995)</span></dt>
+  <dd><p>Boosting-algoritmus, amely a rosszul osztályozott minták súlyát körről körre növeli, és a gyenge osztályozókat súlyozott szavazással egyesíti.</p></dd>
+
+  <dt id="g-bagging">bagging <span class="etym">ang. <em>bootstrap aggregating</em> „bootstrap-összesítés” (L. Breiman, 1996); szójáték a <em>bag</em> „zsák” szóval – innen az OOB, „zsákon kívüli”</span></dt>
+  <dd><p>Ugyanaz a modell sok bootstrap-mintán tanítva, a jóslatok szavazással vagy átlaggal összevonva.</p></dd>
+
+  <dt id="g-boosting">boosting <span class="etym">ang. <em>boost</em> „megemel, felerősít”</span></dt>
+  <dd><p>Együttes módszer, amelyben gyenge modellek egymás után tanulnak, mindegyik az előzők hibáira összpontosítva.</p></dd>
+
+  <dt id="g-cart">CART <span class="etym">ang. <em>Classification and Regression Trees</em> (Breiman, Friedman, Olshen, Stone, 1984)</span></dt>
+  <dd><p>Bináris vágású döntésifa-algoritmus Gini-indexszel (osztályozás) vagy négyzetes hibával (regresszió); a mai könyvtárak alapja.</p></dd>
+
+  <dt id="g-csuklo">csuklóveszteség <span class="etym">ang. <em>hinge loss</em>; <em>hinge</em> „zsanér, ajtópánt” – a grafikonja az 1-nél megtörik, mint egy kinyitott zsanér</span></dt>
+  <dd><p>$\max(0, 1 - yf(\mathbf x))$: az utcán kívül, jó oldalon lévő pontra 0, egyébként lineárisan nő. Az SVM vesztesége.</p></dd>
+
+  <dt id="g-tonk">döntési tönk <span class="etym">ang. <em>decision stump</em> „fatönk” – a fából csak egyetlen vágás maradt</span></dt>
+  <dd><p>Egyetlen kérdésből álló döntési fa; a boosting tipikus gyenge tagja.</p></dd>
+
+  <dt id="g-egyuttes">együttes modell <span class="etym">fr. <em>ensemble</em> „együtt, összhang”, lat. <em>insimul</em> „egyszerre”</span></dt>
+  <dd><p>Több modell jóslatainak összevonása (szavazás, átlag, stacking).</p></dd>
+
+  <dt id="g-gini">Gini-index <span class="etym">C. Gini (1884–1965) olasz statisztikusról, akinek egyenlőtlenségi és sokféleségi mérőszámaiból ered</span></dt>
+  <dd><p>Egy csomópont szennyezettsége: $1 - \sum_k p_k^2$, annak esélye, hogy két véletlen minta címkéje különbözik.</p></dd>
+
+  <dt id="g-induktiv">induktív torzítás <span class="etym">lat. <em>inducere</em> „bevezet”; indukció: az egyes esetekből az általánosra következtetés</span></dt>
+  <dd><p>Egy tanuló algoritmus beépített feltevései arról, milyen alakú szabályok valószínűek (egyenes, téglalap, sima görbe…).</p></dd>
+
+  <dt id="g-informacionyereseg">információnyereség <span class="etym">ang. <em>information gain</em>; az információelmélet (C. Shannon, 1948) entrópiájából</span></dt>
+  <dd><p>Az entrópia csökkenése egy vágás hatására: a szülő entrópiája mínusz a gyerekek súlyozott átlagos entrópiája.</p></dd>
+
+  <dt id="g-kernel">kernel <span class="etym">ang. „mag” (a gabonaszem belseje); a matematikában az integráltranszformációk „magfüggvényéből”, $K(x, z)$</span></dt>
+  <dd><p>Olyan függvény, amely két pont skaláris szorzatát egy (nagyobb dimenziós) jellemzőtérben közvetlenül számolja ki.</p></dd>
+
+  <dt id="g-margo">margó <span class="etym">lat. <em>margo</em> „szél, szegély”</span></dt>
+  <dd><p>Az SVM-ben a döntési határ két oldalán húzódó üres sáv („utca”); szélessége $2/\|\mathbf w\|$.</p></dd>
+
+  <dt id="g-metszes">metszés <span class="etym">a kertészeti metszésből, ang. <em>pruning</em> „nyesés”</span></dt>
+  <dd><p>A döntési fa visszavágása (vagy korlátozott növesztése), hogy ne illesszen túl.</p></dd>
+
+  <dt id="g-oob">OOB <span class="etym">ang. <em>out-of-bag</em> „zsákon kívüli”</span></dt>
+  <dd><p>Az a kb. 37% minta, amely egy bootstrap-mintából kimaradt; rajtuk ingyen becsülhető a modell hibája.</p></dd>
+
+  <dt id="g-stacking">stacking <span class="etym">ang. <em>stack</em> „halom, egymásra rak” (D. Wolpert: <em>stacked generalization</em>, 1992)</span></dt>
+  <dd><p>Együttes, amelyben egy metamodell tanulja meg az alapmodellek hajtáson kívüli jóslataiból, hogyan vonja össze őket.</p></dd>
+
+  <dt id="g-szupportvektor">szupportvektor <span class="etym">ang. <em>support vector</em>, lat. <em>supportare</em> „alátámaszt, hordoz” – ezek a pontok „támasztják meg” az utcát</span></dt>
+  <dd><p>Az SVM azon tanító pontjai, amelyek az utca szélén vagy azon belül vannak; a megoldás csak tőlük függ.</p></dd>
+
+  <dt id="g-veletlenerdo">véletlen erdő <span class="etym">ang. <em>random forest</em>; a nevet T. K. Ho (1995) használta először, a mai módszer L. Breimané (2001)</span></dt>
+  <dd><p>Bagging döntési fákkal, ahol minden vágásnál csak a jellemzők egy véletlen része közül lehet választani.</p></dd>
+
+  <dt id="g-xgboost">XGBoost <span class="etym">ang. <em>eXtreme Gradient Boosting</em> (T. Chen, C. Guestrin, 2016)</span></dt>
+  <dd><p>Regularizált, gyors gradiens boosting könyvtár; a táblázatos versenyek egyik leggyakoribb nyerőmodellje.</p></dd>
+</dl>
+</section>
+
+<nav class="pager">
+  <a href="../06-modellertekeles/">← 6. Modellértékelés és általánosítás</a>
+  <span class="next muted">8. Felügyelet nélküli tanulás (hamarosan) →</span>
+</nav>
+
+</main>
+</div>
+
+<footer class="site">
+  Források: O. Theobald: <em>Machine Learning for Absolute Beginners</em> (3. kiad.), 12., 14–15. fejezet · R. T. Kneusel: <em>Practical Deep Learning</em>, 6–7. fejezet ·
+  J. Mueller – L. Massaron: <em>Machine Learning for Dummies</em> (2. kiad.), 10., 15–16., 20. fejezet · A. Glassner: <em>Deep Learning – A Visual Approach</em>, 11–12. fejezet ·
+  Hastie – Tibshirani – Friedman: <em>The Elements of Statistical Learning</em> (2. kiad.), 8.7, 9.2, 10., 12., 15. fejezet · A. Thakur: <em>Approaching (Almost) Any Machine Learning Problem</em>, „Ensembling and stacking” ·
+  Kiegészítés: L. Breiman: <em>Bagging Predictors</em> (1996), <em>Random Forests</em> (2001) · Y. Freund – R. Schapire (1997, AdaBoost) · J. Friedman: <em>Greedy Function Approximation: A Gradient Boosting Machine</em> (2001) ·
+  T. Chen – C. Guestrin (2016, XGBoost) · G. Ke és társai (2017, LightGBM) · L. Prokhorenkova és társai (2018, CatBoost) · C. Cortes – V. Vapnik (1995, SVM) · D. Wolpert (1992, stacking; 1996, „nincs ingyen ebéd”) ·
+  L. Hyafil – R. Rivest (1976) · L. Grinsztajn – E. Oyallon – G. Varoquaux (NeurIPS 2022) · N. Hollmann és társai (<em>Nature</em>, 2025, TabPFN) · F. Galton: <em>Vox Populi</em> (1907) ·
+  emlőrák-adatok: UCI Breast Cancer Wisconsin (Diagnostic), scikit-learn.
+</footer>
+</body>
+</html>
