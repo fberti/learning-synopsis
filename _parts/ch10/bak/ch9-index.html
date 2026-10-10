@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>9. Neurális hálózatok – Mesterséges intelligencia – Synopsis</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="../../assets/common.js"></script>
+  <script defer src="../../assets/quiz.js"></script>
+  <script defer src="../../assets/calc.js"></script>
+  <script defer src="../../assets/ml.js"></script>
+  <script defer src="digit-net.js"></script>
+  <script defer src="widgets.js"></script>
+  <script defer src="quizzes.js"></script>
+</head>
+<body>
+<div class="progressbar"></div>
+<header class="topbar">
+  <a class="brand" href="../../">📚 Synopsis</a>
+  <span class="crumbs"><a href="../../">Tartalomjegyzék</a> › <a href="../">Mesterséges intelligencia</a> › 9. fejezet</span>
+  <button class="icon-btn" data-theme-toggle title="Téma váltása">🌙</button>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <div class="toc-title">9. fejezet</div>
+  <ol>
+    <li><a href="#s91">9.1 A mesterséges neuron</a></li>
+    <li><a href="#s92">9.2 A perceptron</a></li>
+    <li><a href="#s93">9.3 Rétegek: a többrétegű perceptron</a></li>
+    <li><a href="#s94">9.4 Aktivációs függvények</a></li>
+    <li><a href="#s95">9.5 Miért működik? Univerzális közelítés</a></li>
+    <li><a href="#s96">9.6 Előre irányuló számítás és paraméterszám</a></li>
+    <li><a href="#s97">9.7 Alkalmazás: a számjegyfelismerő</a>
+      <ol>
+        <li><a href="#s97-a">A játszótér</a></li>
+        <li><a href="#s97-b">Egy kézzel írt számjegy útja</a></li>
+      </ol>
+    </li>
+    <li><a href="#s-sum">Összefoglalás</a></li>
+    <li><a href="#s-check">Ellenőrző kérdések</a></li>
+    <li><a href="#s-ex">Vegyes gyakorló feladatok</a></li>
+    <li><a href="#s-final">Fejezetzáró teszt</a></li>
+    <li><a href="#s-gloss">Szómagyarázó</a></li>
+  </ol>
+</nav>
+
+<main class="content">
+
+<section class="hero" style="padding-top:.5rem">
+  <div class="kicker">Mesterséges intelligencia · 9. fejezet · ★★</div>
+  <h1>Neurális hálózatok</h1>
+  <p class="lead">Az <a href="../05-osztalyozas/#s56-c">5.6</a>-ban megkérdeztük: ki találja ki a jó jellemzőket? Az ember, egy matematikai trükk (a kernel, <a href="../07-fak-svm-egyuttes/#s76-c">7.6</a>) – vagy maga a modell?
+  Ebben a fejezetben a harmadik utat járjuk végig. Egyetlen, nagyon egyszerű építőkőből indulunk: a <b>mesterséges neuron</b> összeszoroz, összead és „tüzel”.
+  Ilyen neuronokat <b>rétegekbe</b> kötünk, és megnézzük, miért tud egy ilyen háló – elvben – bármilyen összefüggést leírni, és mit számol, amikor egy képet „lát”.</p>
+</section>
+
+<div class="box tip">
+  <span class="box-title">Mit fogsz megtanulni?</span>
+  <ul style="margin:.2rem 0">
+    <li>mit számol egy <b>mesterséges neuron</b> (súlyozott összeg, torzítás, aktiváció), és miben <em>nem</em> hasonlít az agy idegsejtjére;</li>
+    <li>hogyan tanul a <b>perceptron</b>, mikor áll meg biztosan, és miért nem tanulja meg soha a <b>XOR</b>-t;</li>
+    <li>hogyan oldja meg ugyanezt két <b>rejtett neuron</b>, és hogyan írható fel egy réteg <b>mátrixszal</b>: $\mathbf h = \varphi(W\mathbf x + \mathbf b)$;</li>
+    <li>miért kell <b>nemlineáris aktiváció</b>, és miért lett a <b>ReLU</b> a nyerő a szigmoid helyett;</li>
+    <li>mit mond az <b>univerzális közelítés tétele</b> – és mit nem –, és miért segít a <b>mélység</b>;</li>
+    <li>hogyan megy végig egy bemenet a hálón (<b>előre irányuló számítás</b>), és hogyan számolod meg a <b>paramétereket</b>.</li>
+  </ul>
+</div>
+
+<div class="box">
+  <span class="box-title">🔁 Amit használni fogunk</span>
+  A <a href="../02-matematikai-eszkoztar/">2. fejezetből</a>: a skaláris szorzat mint súlyozott összeg (<a href="../02-matematikai-eszkoztar/#s22-b">2.2</a>), a mátrix–vektor és a mátrix–mátrix szorzat (<a href="../02-matematikai-eszkoztar/#s22-c">2.2</a>, <a href="../02-matematikai-eszkoztar/#s22-d">2.2</a>),
+  a koszinusz-hasonlóság (<a href="../02-matematikai-eszkoztar/#s23-c">2.3</a>), a softmax (<a href="../02-matematikai-eszkoztar/#s25-d">2.5</a>), a derivált és a láncszabály (<a href="../02-matematikai-eszkoztar/#s27-a">2.7</a>, <a href="../02-matematikai-eszkoztar/#s27-d">2.7</a>).
+  A <a href="../03-tanulas-anatomiaja/">3. fejezetből</a>: a gradiens módszer és az epoch (<a href="../03-tanulas-anatomiaja/#s34-c">3.4</a>, <a href="../03-tanulas-anatomiaja/#s34-d">3.4</a>), a túlillesztés (<a href="../03-tanulas-anatomiaja/#s35-b">3.5</a>).
+  Az <a href="../05-osztalyozas/">5. fejezetből</a>: a szigmoid és a logisztikus regresszió (<a href="../05-osztalyozas/#s53-b">5.3</a>), a softmax-regresszió (<a href="../05-osztalyozas/#s54-b">5.4</a>), a XOR-probléma és a lineáris szétválaszthatóság (<a href="../05-osztalyozas/#s56-a">5.6</a>).
+  A <a href="../07-fak-svm-egyuttes/">7. fejezetből</a>: a maximális margó (<a href="../07-fak-svm-egyuttes/#s76-a">7.6</a>).
+  <br><small>Jelölések: ★ alap · ★★ közép · ★★★ haladó (kihagyható). A 📐 jelű lenyílók levezetéseket rejtenek, a 🐍 jelűek rövid Python-kódot –
+  a továbbhaladáshoz egyik sem kell. Vektorok félkövérrel ($\mathbf x$), mátrixok nagybetűvel ($W$).</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">🎯 A fejezet kérdése – hogyan ismer fel egy háló egy kézzel írt számjegyet?</span>
+  Egy kis szkennelt kép 8 × 8 = 64 szürke mezőből áll; minden mező értéke 0 (fehér) és 16 (fekete) között van. Íme egy hármas:
+  <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin:.4rem 0">
+  <table style="font-size:.74rem;text-align:center;width:auto;font-family:var(--mono)">
+    <tr><td>0</td><td>0</td><td>11</td><td>15</td><td>16</td><td>10</td><td>0</td><td>0</td></tr>
+    <tr><td>0</td><td>8</td><td>16</td><td>8</td><td>15</td><td>16</td><td>0</td><td>0</td></tr>
+    <tr><td>0</td><td>5</td><td>6</td><td>10</td><td>16</td><td>8</td><td>0</td><td>0</td></tr>
+    <tr><td>0</td><td>0</td><td>4</td><td>16</td><td>11</td><td>1</td><td>0</td><td>0</td></tr>
+    <tr><td>0</td><td>0</td><td>2</td><td>15</td><td>9</td><td>0</td><td>0</td><td>0</td></tr>
+    <tr><td>0</td><td>0</td><td>0</td><td>9</td><td>16</td><td>2</td><td>0</td><td>0</td></tr>
+    <tr><td>0</td><td>0</td><td>0</td><td>8</td><td>16</td><td>5</td><td>0</td><td>0</td></tr>
+    <tr><td>0</td><td>0</td><td>13</td><td>16</td><td>15</td><td>0</td><td>0</td><td>0</td></tr>
+  </table>
+  <span>A gép csak ezt a 64 számot kapja. Nincs benne „ív”, „vonal” vagy „hurok” – csak számok.</span>
+  </div>
+  Egy agyi idegsejt nagyjából annyit tud, hogy összegzi a bemeneteit, és ha elég nagy a jel, „tüzel”. Négy kérdés:
+  <ol style="margin:.3rem 0">
+    <li>Mit számol <b>egyetlen</b> mesterséges neuron, és mit lehet vele felismerni?</li>
+    <li>Miért <b>nem elég</b> egy neuron – és mit ad hozzá egy <b>rejtett réteg</b>?</li>
+    <li>Hány „csavarja” (<b>paramétere</b>) van egy számjegyfelismerő hálónak, és mit csinál velük, amíg ezt a 64 számot feldolgozza?</li>
+    <li>Miért elég „elvben” <b>egyetlen</b> rejtett réteg – és miért használnak a gyakorlatban mégis <b>mély</b> hálókat?</li>
+  </ol>
+  A fejezet végén (<a href="#s97">9.7</a>) egy valódi, 97%-os pontosságú hálón válaszolunk mindegyikre – és te is rajzolhatsz neki számjegyet.
+</div>
+
+<p><b>Útiterv</b> – lépésről lépésre, az egyszerűtől a bonyolultig:</p>
+<ol>
+  <li><b>Egy neuron</b>
+    <ol>
+      <li><a href="#s91">A mesterséges neuron</a>: súlyozott összeg és torzítás; aktiváció és logikai kapuk; a neuron mint egyenes és mint sablon.</li>
+      <li><a href="#s92">A perceptron</a>: a tanulási szabály; mikor áll meg; a XOR és az első „neuronháló-tél”.</li>
+    </ol></li>
+  <li><b>Sok neuron</b>
+    <ol start="3">
+      <li><a href="#s93">Rétegek</a>: a XOR két rejtett neuronnal; a mátrixos alak; miért kell a nemlinearitás.</li>
+      <li><a href="#s94">Aktivációs függvények</a>: a lépcsőtől a szigmoidig; ReLU; a kimeneti réteg.</li>
+    </ol></li>
+  <li><b>Mit tud egy háló?</b>
+    <ol start="5">
+      <li><a href="#s95">Univerzális közelítés</a>: görbe ReLU-darabokból; a tétel; mélység vagy szélesség.</li>
+      <li><a href="#s96">Előre irányuló számítás és paraméterszám</a>: egy bemenet útja; a csavarok megszámolása.</li>
+    </ol></li>
+  <li><b>Összerakva</b>
+    <ol start="7">
+      <li><a href="#s97">Alkalmazás</a>: játszótér, és egy valódi számjegyfelismerő.</li>
+    </ol></li>
+</ol>
+
+<!-- ===================================================== 9.1 -->
+<section id="s91">
+<h2>9.1 A mesterséges neuron ★</h2>
+<p>Egy neurális háló sok-sok egyforma kis számolóegységből áll. Mielőtt hálót építenénk, nézzük meg közelről <b>egyetlen</b> egységet: mit kap, mit számol, mit ad tovább.</p>
+
+<h3 id="s91-a">1. lépés: súlyozott összeg és torzítás</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a „középen világos” érzékelő</span>
+  Egy három pixeles képcsík minden pixele 0 (sötét) vagy 1 (világos). Szeretnénk egy számot, amely akkor nagy, ha a <b>középső</b> pixel világos, a két szélső pedig sötét.
+  Ötlet: a középső pixelt szorozzuk 2-vel, a szélsőket $-1$-gyel, adjuk össze, és vonjunk le 0,5-öt:
+  $$z = (-1)\cdot x_1 + 2\cdot x_2 + (-1)\cdot x_3 - 0{,}5.$$
+  <table style="max-width:520px;font-size:.9rem;text-align:center">
+    <tr><th>kép</th><th>$(x_1, x_2, x_3)$</th><th>$z$</th></tr>
+    <tr><td>▯▮▯ csak közép</td><td>(0, 1, 0)</td><td>$0 + 2 + 0 - 0{,}5 =$ <b>1,5</b></td></tr>
+    <tr><td>▯▮▮ közép és jobb</td><td>(0, 1, 1)</td><td>$0 + 2 - 1 - 0{,}5 = 0{,}5$</td></tr>
+    <tr><td>▮▮▮ mind világos</td><td>(1, 1, 1)</td><td>$-1 + 2 - 1 - 0{,}5 = -0{,}5$</td></tr>
+    <tr><td>▯▯▯ mind sötét</td><td>(0, 0, 0)</td><td>$-0{,}5$</td></tr>
+    <tr><td>▮▯▮ csak a szélek</td><td>(1, 0, 1)</td><td>$-1 + 0 - 1 - 0{,}5 = -2{,}5$</td></tr>
+  </table>
+  A szám pontosan a keresett mintánál a legnagyobb, és pozitív, ha a minta „eléggé hasonlít” rá. A három szorzó a <b>súly</b>, a $-0{,}5$ a <b>torzítás</b>.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – súlyozott összeg (a neuron első fele)</span>
+  Egy neuron bemenete az $\mathbf x = (x_1, \dots, x_n)$ vektor. Minden bemenethez tartozik egy $w_i$ <b>súly</b>, és a neuronnak van egy $b$ <b>torzítása</b> (eltolása). A neuron először kiszámolja a
+  $$z = w_1x_1 + w_2x_2 + \dots + w_nx_n + b = \mathbf w^\top\mathbf x + b$$
+  <b>súlyozott összeget</b> (angolul <em>pre-activation</em> vagy <em>logit</em>).
+  <br><small>Miért így? A súly megmondja, mennyire és milyen irányba számít egy bemenet: a pozitív súly „mellette”, a negatív „ellene” szavaz, a nulla súlyú bemenet nem számít.
+  A torzítás a küszöböt tolja: nagy $b$ esetén kis bemenet is elég a pozitív $z$-hez. A $\mathbf w^\top\mathbf x$ a skaláris szorzat (<a href="../02-matematikai-eszkoztar/#s22-b">2.2</a>).</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – két bemenet</span>
+    $\mathbf x = (1;\ 2)$, $\mathbf w = (0{,}5;\ -1)$, $b = 1$:
+    $$z = 0{,}5\cdot 1 + (-1)\cdot 2 + 1 = -0{,}5.$$
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – ugyanaz, nagyobb torzítással</span>
+    $\mathbf x = (1;\ 2)$, $\mathbf w = (0{,}5;\ -1)$, $b = 2$:
+    $$z = 0{,}5 - 2 + 2 = 0{,}5.$$
+    A torzítás egy egységgel nőtt – a $z$ is pontosan eggyel. A bemenetek „szavazata” ugyanaz maradt.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 A torzítás mint egy extra súly</span>
+  Írjunk a bemenet végére egy állandó 1-est: $\tilde{\mathbf x} = (x_1, \dots, x_n, 1)$, és a súlyok végére a torzítást: $\tilde{\mathbf w} = (w_1, \dots, w_n, b)$. Ekkor $z = \tilde{\mathbf w}^\top\tilde{\mathbf x}$ – egyetlen skaláris szorzat.
+  A könyvek és programok egy része ezt a „torzítás-trükköt” használja; a rajzokon ezért néha nincs külön torzítás, de attól még ott van.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A torzítás nem hiba, és nem elfogultság.</b> Az angol <em>bias</em> itt egyszerűen eltolást jelent (mint az egyenes $b$ tengelymetszete, <a href="../03-tanulas-anatomiaja/#s32-a">3.2</a>); semmi köze a torzítás–variancia felbontás torzításához (<a href="../06-modellertekeles/#s66-b">6.6</a>).</li>
+    <li><b>Csupa nulla bemenetnél sem nulla a kimenet.</b> Ilyenkor $z = b$, a neuron kimenete $\varphi(b)$ (a következő lépésben). Egy rendszerkönyv (MLSYS) azt írja, torzítás nélkül a neuron nulla bemenetre „mindig nullát ad” –
+      ez csak akkor igaz, ha az aktiváció a nullát nullába viszi; a szigmoid például $0{,}5$-öt ad.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – súlyozott összeg</summary>
+  <ol>
+    <li>$\mathbf x = (2;\ 1)$, $\mathbf w = (1;\ -3)$, $b = 0{,}5$. Mennyi $z$?
+      <details><summary>Megoldás</summary>$z = 1\cdot 2 + (-3)\cdot 1 + 0{,}5 = 2 - 3 + 0{,}5 = -0{,}5$.</details></li>
+    <li>A „középen világos” érzékelő (súlyok $-1, 2, -1$, torzítás $-0{,}5$) mennyit ad a $(0{,}5;\ 1;\ 0)$ képre (a bal pixel félig világos)?
+      <details><summary>Megoldás</summary>$z = -0{,}5 + 2 + 0 - 0{,}5 = 1$. Kisebb, mint a tökéletes mintára (1,5), de még pozitív: „nagyjából hasonlít”.</details></li>
+    <li>Négy bemenet: $\mathbf x = (1;\ 0;\ 1;\ 1)$, $\mathbf w = (0{,}2;\ 0{,}5;\ -0{,}4;\ 0{,}1)$, $b = 0{,}3$. Mennyi $z$? Melyik súly nem számít ennél a bemenetnél?
+      <details><summary>Megoldás</summary>$z = 0{,}2 + 0 - 0{,}4 + 0{,}1 + 0{,}3 = 0{,}2$. A második súly (0,5) most nem számít, mert $x_2 = 0$.</details></li>
+    <li>$\mathbf w = (2;\ 3)$. Mekkora legyen $b$, hogy az $\mathbf x = (1;\ 1)$ bemenetre éppen $z = 0$ legyen?
+      <details><summary>Megoldás</summary>$2 + 3 + b = 0$, tehát $b = -5$.</details></li>
+    <li>(nehezebb) Számold ki az első kidolgozott példát a torzítás-trükkel: $\tilde{\mathbf x} = (1;\ 2;\ 1)$, $\tilde{\mathbf w} = (0{,}5;\ -1;\ 1)$. Miért kapod ugyanazt?
+      <details><summary>Megoldás</summary>$\tilde{\mathbf w}^\top\tilde{\mathbf x} = 0{,}5 - 2 + 1 = -0{,}5$ – ugyanaz, mert a harmadik tag $b \cdot 1 = b$. A torzítás olyan súly, amelynek a bemenete mindig 1.</details></li>
+  </ol>
+</details>
+
+<h3 id="s91-b">2. lépés: az aktiváció – „tüzel” vagy nem? Logikai kapuk</h3>
+<p>A súlyozott összeg tetszőleges szám lehet. Egy idegsejt viszont vagy kisül, vagy nem. Tegyünk a $z$ után egy döntést!</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – az ÉS kapu</span>
+  Két bemenet, mindkettő 0 vagy 1. Súlyok: $w_1 = w_2 = 1$, torzítás: $b = -1{,}5$. A kimenet legyen 1, ha $z \gt 0$, különben 0. Mind a négy eset:
+  <table style="max-width:460px;font-size:.9rem;text-align:center">
+    <tr><th>$x_1$</th><th>$x_2$</th><th>$z = x_1 + x_2 - 1{,}5$</th><th>kimenet</th></tr>
+    <tr><td>0</td><td>0</td><td>$-1{,}5$</td><td>0</td></tr>
+    <tr><td>0</td><td>1</td><td>$-0{,}5$</td><td>0</td></tr>
+    <tr><td>1</td><td>0</td><td>$-0{,}5$</td><td>0</td></tr>
+    <tr><td>1</td><td>1</td><td>$0{,}5$</td><td><b>1</b></td></tr>
+  </table>
+  Csak akkor „tüzel”, ha mindkét bemenet 1: ez a logikai <b>ÉS</b>. Egy neuron – egy logikai kapu.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – mesterséges neuron, aktivációs függvény</span>
+  A <b>mesterséges neuron</b> két lépésben számol:
+  $$z = \mathbf w^\top\mathbf x + b, \qquad a = \varphi(z).$$
+  A $\varphi$ az <b>aktivációs függvény</b>, az $a$ a neuron <b>kimenete</b> (aktivációja). Három gyakori választás (a részletek a <a href="#s94">9.4</a>-ben):
+  <ul style="margin:.2rem 0">
+    <li><b>lépcsőfüggvény:</b> $\varphi(z) = 1$, ha $z \gt 0$, különben 0 – „tüzel / nem tüzel”;</li>
+    <li><b>szigmoid:</b> $\sigma(z) = \dfrac{1}{1 + e^{-z}}$ – a lépcső lekerekített változata, értéke 0 és 1 között (<a href="../05-osztalyozas/#s53-b">5.3</a>);</li>
+    <li><b>ReLU:</b> $\mathrm{ReLU}(z) = \max(0, z)$ – negatívra 0, pozitívra maga a $z$.</li>
+  </ul>
+  <small>Miért kell? Az aktiváció nélküli neuron egy egyszerű lineáris függvény. A „döntés” – a nemlinearitás – teszi lehetővé, hogy a neuronok együtt többet tudjanak, mint egy egyenes (<a href="#s93-c">9.3</a>).
+  Az első ilyen „logikai neuront” W. McCulloch és W. Pitts írta le 1943-ban.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a VAGY kapu</span>
+    Ugyanazok a súlyok, más torzítás: $w_1 = w_2 = 1$, $b = -0{,}5$. A $z = x_1 + x_2 - 0{,}5$ értékei: $-0{,}5;\ 0{,}5;\ 0{,}5;\ 1{,}5$ – a kimenet 0, 1, 1, 1.
+    Elég, ha az egyik bemenet 1. <b>Csak a torzítás változott</b>, és ÉS-ből VAGY lett.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – ugyanaz a $z$, három aktivációval</span>
+    Az 1. lépés két példája, $z = -0{,}5$ és $z = 0{,}5$:
+    <table style="font-size:.88rem;text-align:center;width:auto">
+      <tr><th></th><th>lépcső</th><th>szigmoid</th><th>ReLU</th></tr>
+      <tr><td>$z = -0{,}5$</td><td>0</td><td>0,3775</td><td>0</td></tr>
+      <tr><td>$z = 0{,}5$</td><td>1</td><td>0,6225</td><td>0,5</td></tr>
+    </table>
+    A lépcső csak az előjelet nézi; a szigmoid „fokozatosan” vált; a ReLU a pozitív részt átengedi.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabály – a torzítás a küszöb</span>
+  A lépcsős neuron akkor tüzel, ha $\mathbf w^\top\mathbf x \gt -b$. A $-b$ tehát a <b>küszöb</b>: az ÉS-nél 1,5 (mindkét szavazat kell), a VAGY-nál 0,5 (egy is elég).
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az aktivációt mindig alkalmazzuk, és a 0 is továbbmegy.</b> Egy kezdőknek szóló könyv (MLAB 13) szerint a 0 kimenet „nem kerül át a következő rétegbe”. Dehogynem: a 0 is szám, a következő neuron
+      ugyanúgy megszorozza a súlyával (csak épp nullát kap). A 0 annyit jelent, hogy ez a neuron most nem „szól bele”.</li>
+    <li><b>A szigmoid bemenete bármilyen valós szám, a kimenete 0 és 1 közötti.</b> Ugyanez a könyv fordítva írja (a szigmoid „0 és 1 közötti értéket fogad el”).</li>
+    <li><b>Egyenlőség.</b> Ha $z = 0$ pontosan, a lépcső nálunk 0-t ad. Más könyvek a $z \ge 0$ esetre adnak 1-et – a számpéldáknál mindig nézd meg, melyik a megállapodás.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – aktiváció és logikai kapuk</summary>
+  <ol>
+    <li>Ellenőrizd mind a négy bemenetre, hogy a $w_1 = w_2 = -1$, $b = 1{,}5$ lépcsős neuron a NEM-ÉS (NAND) kaput valósítja meg (kimenet 0 csak az (1, 1)-re)!
+      <details><summary>Megoldás</summary>$z$: (0, 0): 1,5 → 1; (0, 1): 0,5 → 1; (1, 0): 0,5 → 1; (1, 1): $-0{,}5$ → 0. ✓ (A NAND érdekessége: belőle bármely logikai függvény összerakható – ha több neuront köthetünk egymás után.)</details></li>
+    <li>Adj meg súlyt és torzítást egy egybemenetű lépcsős neuronhoz, amely a NEM kaput valósítja meg (0 → 1, 1 → 0)!
+      <details><summary>Megoldás</summary>Pl. $w = -1$, $b = 0{,}5$: $x = 0$ → $z = 0{,}5$ → 1; $x = 1$ → $z = -0{,}5$ → 0.</details></li>
+    <li>Mennyi a szigmoid és a ReLU kimenete $z = 1{,}5$-re és $z = -1{,}5$-re?
+      <details><summary>Megoldás</summary>$\sigma(1{,}5) = 1/(1 + e^{-1{,}5}) \approx 0{,}8176$, $\sigma(-1{,}5) \approx 0{,}1824$ (a kettő összege 1). ReLU: 1,5, illetve 0.</details></li>
+    <li>Három bemenet, $w_1 = w_2 = w_3 = 1$, $b = -1{,}5$, lépcső. Mikor tüzel? És $b = -2{,}5$-tel?
+      <details><summary>Megoldás</summary>$z = x_1 + x_2 + x_3 - 1{,}5 \gt 0$ pontosan akkor, ha legalább két bemenet 1: ez a <b>többségi szavazás</b> (a 8 esetből 4-ben tüzel). $b = -2{,}5$-tel csak mindhárom 1-nél: háromtagú ÉS.</details></li>
+    <li>(nehezebb) A „középen világos” érzékelő torzítását $-0{,}5$-ről $-1{,}5$-re változtatjuk, lépcsős aktivációval. Mely képekre tüzel a kiinduló példa öt képe közül? Mit csinált a torzítás?
+      <details><summary>Megoldás</summary>A $z$ értékek eggyel csökkennek: 0,5; $-0{,}5$; $-1{,}5$; $-1{,}5$; $-3{,}5$. Csak a tökéletes mintára (0, 1, 0) tüzel. A nagyobb küszöb „szigorúbbá” tette: a „közép és jobb” képet már nem fogadja el.</details></li>
+  </ol>
+</details>
+
+<h3 id="s91-c">3. lépés: mit lát egy neuron? Egyenes és sablon</h3>
+<p>Két bemenetnél a neuron döntését le is rajzolhatjuk. Ebből két fontos kép adódik: a neuron <b>egyenest húz</b>, és <b>mintát keres</b>.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – az ÉS kapu a síkon</span>
+  Az ÉS neuron akkor tüzel, ha $x_1 + x_2 - 1{,}5 \gt 0$. A határ a $x_1 + x_2 = 1{,}5$ egyenes: tőle jobbra fent ($z \gt 0$) a kimenet 1, balra lent 0.
+  A négy sarokpont közül csak az (1; 1) esik a pozitív oldalra. A VAGY neuron határa a $x_1 + x_2 = 0{,}5$ egyenes: ugyanilyen irányú, csak lejjebb tolva – ezt csinálta a torzítás.
+  A $\mathbf w = (1;\ 1)$ vektor merőleges mindkét egyenesre, és a pozitív oldal felé mutat.
+</div>
+<div class="box def">
+  <span class="box-title">Tétel – a neuron geometriája</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Egyenes (hipersík):</b> a $\mathbf w^\top\mathbf x + b = 0$ pontok két dimenzióban egyenest, $n$ dimenzióban hipersíkot alkotnak. A $\mathbf w$ erre merőleges, és a $z \gt 0$ oldal felé mutat.
+      A $b$ eltolja a határt, a $\mathbf w$ iránya elforgatja, a $\mathbf w$ hossza (lépcsőnél) nem változtat rajta.</li>
+    <li><b>Sablon:</b> $\mathbf w^\top\mathbf x = \lVert\mathbf w\rVert\,\lVert\mathbf x\rVert\cos\theta$ (<a href="../02-matematikai-eszkoztar/#s23-c">2.3</a>). Adott hosszúságú bemenetek közül annál nagyobb $z$-t kap, amelyik <b>jobban hasonlít a súlyvektorra</b> (kisebb a szög).
+      A súlyvektor tehát egy „sablon”, a neuron azt méri, mennyire illik rá a bemenet.</li>
+  </ol>
+  <small>Miért fontos? Az 1. tulajdonság miatt egy neuron pontosan azt tudja, amit a logisztikus regresszió: egy egyenessel kettévágja a síkot (<a href="../05-osztalyozas/#s53-d">5.3</a>). A 2. miatt a súlyok képként is
+  megjeleníthetők – a <a href="#s97-b">9.7</a>-ben a számjegyfelismerő rejtett neuronjainak „sablonjait” látod majd.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – melyik oldal?</span>
+    $\mathbf w = (2;\ -1)$, $b = 1$. A határ: $2x_1 - x_2 + 1 = 0$, azaz $x_2 = 2x_1 + 1$. A $(0;\ 0)$ pontban $z = 1 \gt 0$ – az origó a pozitív oldalon van, az egyenes „alatt”.
+    A $(0;\ 3)$ pontban $z = -2$: az egyenes felett negatív.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a tökéletes minta</span>
+    A „középen világos” érzékelő súlyvektora $\mathbf w = (-1;\ 2;\ -1)$, $\lVert\mathbf w\rVert = \sqrt6$. Az 1 hosszúságú bemenetek közül a $\mathbf w/\sqrt6$ irányú adja a legnagyobb $z$-t:
+    $\sqrt6 - 0{,}5 \approx 1{,}95$. Ez a „kép” középen világos, a széleken „negatív fényű” – a súlyvektor maga a keresett minta.
+  </div>
+</div>
+<div class="widget" data-widget="neuron-lab"></div>
+<div class="box tip">
+  <span class="box-title">💡 Logisztikus regresszió = egyetlen neuron</span>
+  Az <a href="../05-osztalyozas/#s53-b">5.3</a> modellje, $\hat p = \sigma(\mathbf w^\top\mathbf x + b)$, pontosan egy szigmoid aktivációjú neuron. A softmax-regresszió (<a href="../05-osztalyozas/#s54-b">5.4</a>) pedig $K$ neuron egymás mellett,
+  közös softmax kimenettel. Amit eddig „lineáris osztályozónak” hívtunk, az egy egyrétegű neurális háló.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktató – a neuron nem idegsejt</span>
+  A név a biológiából jön, de a hasonlóság laza. Egy valódi idegsejt elektromos impulzusokat küld, az időzítés számít, kémiai jelek szabályozzák, a kapcsolatai folyamatosan átalakulnak; az emberi agyban nagyjából
+  86 milliárd van belőlük, sejtenként több ezer kapcsolattal. A mesterséges neuron egyetlen képlet: szorzás, összeadás, egy függvény. Egy könyv (DLV 13) hasonlata szerint úgy viszonyul az igazihoz, mint a pálcikaember az emberi testhez.
+  Egy másik (HAW 4) szerint a biológiai neuron inkább villanykapcsoló (tüzel vagy nem), a mai mesterséges neuron inkább fényerő-szabályzó (ReLU, szigmoid).
+  <b>A háló nem agy</b> – ezért abból, hogy „neurális”, semmilyen emberi képesség nem következik.
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – egyenes és sablon</summary>
+  <ol>
+    <li>Az ÉS neuron ($w_1 = w_2 = 1$, $b = -1{,}5$) mit mond a $(2;\ 0)$ és a $(0{,}7;\ 0{,}7)$ pontra (lépcsővel)?
+      <details><summary>Megoldás</summary>$(2;\ 0)$: $z = 0{,}5 \gt 0$ → 1. $(0{,}7;\ 0{,}7)$: $z = -0{,}1$ → 0. A neuron nem „tudja”, hogy ÉS kapu: a sík minden pontjára dönt, az egyenes melyik oldalán van.</details></li>
+    <li>Írd fel a $\mathbf w = (1;\ 2)$, $b = -4$ neuron határegyenesét $x_2 = \dots$ alakban! Melyik oldal a pozitív?
+      <details><summary>Megoldás</summary>$x_1 + 2x_2 - 4 = 0$ → $x_2 = 2 - 0{,}5x_1$. A $(0;\ 3)$ pontban $z = 2 \gt 0$: az egyenes feletti oldal a pozitív (a $\mathbf w = (1;\ 2)$ is felfelé mutat).</details></li>
+    <li>Adj meg lépcsős neuront, amely pontosan akkor tüzel, ha $x_1 \gt 3$ (a $x_2$ nem számít)!
+      <details><summary>Megoldás</summary>$\mathbf w = (1;\ 0)$, $b = -3$: $z = x_1 - 3 \gt 0 \iff x_1 \gt 3$. A határ a $x_1 = 3$ függőleges egyenes.</details></li>
+    <li>Megszorozzuk egy neuron összes súlyát és a torzítását 10-zel. Változik-e a határegyenes? És a kimenet szigmoiddal, a $z = 0{,}05$-ös pontban?
+      <details><summary>Megoldás</summary>Az egyenes nem változik ($10(\mathbf w^\top\mathbf x + b) = 0$ ugyanott nulla), a lépcsős döntés sem. A szigmoid viszont meredekebb lesz: $\sigma(0{,}05) \approx 0{,}5125$, de $\sigma(0{,}5) \approx 0{,}6225$. A súlyok nagysága a „magabiztosságot” állítja.</details></li>
+    <li>(nehezebb) $\mathbf w = (-1;\ 2;\ -1)$, $b = 0$. Melyik bemenetre a legnagyobb $z$: $(1;\ 1;\ 0)$, $(0;\ 1;\ 0)$, $(1;\ 0;\ 1)$? És ha minden bemenetet előbb 1 hosszúra normálunk?
+      <details><summary>Megoldás</summary>Nyersen: 1, 2, $-2$ → a (0; 1; 0). Normálva: $(1;\ 1;\ 0)/\sqrt2$ → $1/\sqrt2 \approx 0{,}71$; $(0;\ 1;\ 0)$ → 2; $(1;\ 0;\ 1)/\sqrt2$ → $-\sqrt2 \approx -1{,}41$. Mindkétszer a (0; 1; 0) nyer: az hasonlít legjobban a sablonra.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai9-91"></div>
+</section>
+
+<!-- ===================================================== 9.2 -->
+<section id="s92">
+<h2>9.2 A perceptron ★</h2>
+<p>A 9.1-ben mi találtuk ki a súlyokat: az ÉS-hez $b = -1{,}5$, a VAGY-hoz $b = -0{,}5$. De mi van, ha nem tudjuk, milyen súly kell – csak példáink vannak a helyes válaszra?
+F. Rosenblatt 1957–58-ban erre adott választ: a <b>perceptron</b> egy lépcsős neuron, amely a hibáiból tanul.</p>
+
+<h3 id="s92-a">1. lépés: a tanulási szabály – javíts, ha tévedsz</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a perceptron megtanulja a VAGY-ot</span>
+  Kezdjünk csupa nullával: $\mathbf w = (0;\ 0)$, $b = 0$. Menjünk végig sorban a négy mintán. Ha a jóslat ($\hat y = 1$, ha $z \gt 0$) <b>jó</b>, nem nyúlunk semmihez.
+  Ha <b>1-et kellett volna mondani, de 0-t mondott</b>, adjuk hozzá a bemenetet a súlyokhoz (és 1-et a torzításhoz); ha <b>0-t kellett volna, de 1-et mondott</b>, vonjuk le.
+  <div style="overflow-x:auto">
+  <table style="font-size:.86rem;text-align:center">
+    <tr><th>epoch</th><th>$\mathbf x$</th><th>$y$</th><th>$z$</th><th>$\hat y$</th><th>teendő</th><th>új $\mathbf w$, $b$</th></tr>
+    <tr><td>1</td><td>(0, 0)</td><td>0</td><td>0</td><td>0</td><td>jó</td><td>(0; 0), 0</td></tr>
+    <tr><td>1</td><td>(0, 1)</td><td>1</td><td>0</td><td>0</td><td>+ bemenet</td><td>(0; 1), 1</td></tr>
+    <tr><td>1</td><td>(1, 0)</td><td>1</td><td>1</td><td>1</td><td>jó</td><td>(0; 1), 1</td></tr>
+    <tr><td>1</td><td>(1, 1)</td><td>1</td><td>2</td><td>1</td><td>jó</td><td>(0; 1), 1</td></tr>
+    <tr><td>2</td><td>(0, 0)</td><td>0</td><td>1</td><td>1</td><td>− bemenet</td><td>(0; 1), 0</td></tr>
+    <tr><td>2</td><td>(0, 1)</td><td>1</td><td>1</td><td>1</td><td>jó</td><td>(0; 1), 0</td></tr>
+    <tr><td>2</td><td>(1, 0)</td><td>1</td><td>0</td><td>0</td><td>+ bemenet</td><td>(1; 1), 1</td></tr>
+    <tr><td>2</td><td>(1, 1)</td><td>1</td><td>3</td><td>1</td><td>jó</td><td>(1; 1), 1</td></tr>
+    <tr><td>3</td><td>(0, 0)</td><td>0</td><td>1</td><td>1</td><td>− bemenet</td><td>(1; 1), 0</td></tr>
+    <tr><td>3</td><td>(0, 1), (1, 0), (1, 1)</td><td>1</td><td>1, 1, 2</td><td>1</td><td>jó</td><td>(1; 1), 0</td></tr>
+    <tr><td>4</td><td>mind a négy</td><td></td><td>0, 1, 1, 2</td><td>0, 1, 1, 1</td><td>mind jó → <b>vége</b></td><td>(1; 1), 0</td></tr>
+  </table>
+  </div>
+  Négy javítás után a perceptron hibátlan: $z = x_1 + x_2$, és „1, ha $z \gt 0$” – ez a VAGY. (A torzítás most 0, mert a lépcső nálunk a $z = 0$-ra 0-t ad.)
+</div>
+<div class="box def">
+  <span class="box-title">Algoritmus – a perceptron tanulási szabálya (Rosenblatt)</span>
+  Adottak a $(\mathbf x_i, y_i)$ minták, $y_i \in \{0, 1\}$. Kezdés: $\mathbf w = \mathbf 0$, $b = 0$ (vagy kis véletlen számok). Ismételd epochonként, mintánként:
+  <ol style="margin:.2rem 0">
+    <li>jóslat: $\hat y = 1$, ha $\mathbf w^\top\mathbf x_i + b \gt 0$, különben 0;</li>
+    <li>frissítés: $\quad\mathbf w \leftarrow \mathbf w + \eta\,(y_i - \hat y)\,\mathbf x_i, \qquad b \leftarrow b + \eta\,(y_i - \hat y)$;</li>
+  </ol>
+  amíg egy teljes epoch hiba nélkül le nem fut. Az $\eta \gt 0$ a <b>tanulási ráta</b>. Az $y_i - \hat y$ csak 0, $+1$ vagy $-1$ lehet: jó jóslatnál nincs változás.
+  <br><small>Miért jó irány? Ha a perceptron 0-t mondott, de 1 kellett ($y - \hat y = +1$), a frissítés után ugyanerre a bemenetre
+  $z_{\text{új}} = z_{\text{régi}} + \eta\,(\lVert\mathbf x_i\rVert^2 + 1)$ – a $z$ nőtt, a jóslat az 1 felé mozdult. Fordított hibánál ugyanennyivel csökken. Minden javítás az éppen elrontott minta felé billenti az egyenest.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy javítás</span>
+    $\mathbf w = (1;\ 0)$, $b = -1$, $\eta = 1$. Minta: $\mathbf x = (0;\ 1)$, $y = 1$. Jóslat: $z = 0 + 0 - 1 = -1$, $\hat y = 0$ – hiba, $y - \hat y = 1$.
+    Frissítés: $\mathbf w = (1;\ 0) + (0;\ 1) = (1;\ 1)$, $b = -1 + 1 = 0$. Most ugyanerre $z = 1$, $\hat y = 1$. ✓
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – jó jóslat, kisebb ráta</span>
+    $\mathbf w = (1;\ 1)$, $b = 0$, $\eta = 0{,}5$. Minta: $\mathbf x = (1;\ 0)$, $y = 1$: $z = 1$, $\hat y = 1$ – jó, nincs változás.
+    Minta: $\mathbf x = (0;\ 0)$, $y = 1$: $z = 0$, $\hat y = 0$, hiba. A bemenet nulla, így csak a torzítás változik: $b = 0 + 0{,}5 = 0{,}5$.
+  </div>
+</div>
+<div class="widget" data-widget="perceptron-train"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Előjel:</b> $y - \hat y$, nem fordítva. Ha elrontod, a perceptron a hibái felé fut.</li>
+    <li><b>A torzítás is tanul.</b> Ha kifelejted, a határ mindig átmegy az origón – az ÉS-t így meg sem tudná tanulni: az (1, 0) és a (0, 1) miatt $w_1 \le 0$ és $w_2 \le 0$ kellene, az (1, 1) miatt viszont $w_1 + w_2 \gt 0$.</li>
+    <li><b>Nullából indulva az $\eta$ nem számít.</b> Minden frissítés $\eta$-szoros, így minden súly $\eta$-szorosa annak, amit $\eta = 1$-gyel kapnál – a jóslatok ugyanazok. (Ezt egy könyv, MLD 10 is elhallgatja, amikor az $\eta$ szerepét magyarázza.)</li>
+    <li><b>Nem minden „frissítés” a perceptron szabálya.</b> Egy kezdőknek szóló könyv (MLAB 13) példájában egyetlen súlyt önkényesen megváltoztatnak, célcímke és tanulási ráta nélkül (és a számolásba is hiba csúszik: „12 + (−16) = 4”).
+      A valódi szabály minden súlyt a $\eta(y - \hat y)x_i$-vel mozdít.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a tanulási szabály</summary>
+  <ol>
+    <li>$\mathbf w = (2;\ -1)$, $b = 0$, $\eta = 1$. Minta: $\mathbf x = (1;\ 3)$, $y = 1$. Mi a jóslat, és mik az új súlyok?
+      <details><summary>Megoldás</summary>$z = 2 - 3 = -1$ → $\hat y = 0$, hiba. $\mathbf w = (2 + 1;\ -1 + 3) = (3;\ 2)$, $b = 1$. Ellenőrzés: $z = 3 + 6 + 1 = 10 \gt 0$.</details></li>
+    <li>$\mathbf w = (1;\ 1)$, $b = 0{,}5$, $\eta = 0{,}5$. Minta: $\mathbf x = (1;\ 1)$, $y = 0$. Mi történik?
+      <details><summary>Megoldás</summary>$z = 2{,}5$ → $\hat y = 1$, de 0 kellett: $y - \hat y = -1$. $\mathbf w = (1 - 0{,}5;\ 1 - 0{,}5) = (0{,}5;\ 0{,}5)$, $b = 0{,}5 - 0{,}5 = 0$.</details></li>
+    <li>Futtasd a perceptront az ÉS függvényre (kezdés: csupa 0, $\eta = 1$, sorrend: (0, 0), (0, 1), (1, 0), (1, 1)) két epochon át!
+      <details><summary>Megoldás</summary>1. epoch: az első három minta jó ($z = 0$ → 0); az (1, 1)-nél $z = 0$, hiba → $\mathbf w = (1;\ 1)$, $b = 1$.
+        2. epoch: (0, 0): $z = 1$ → hiba → $b = 0$. (0, 1): $z = 1$ → hiba → $\mathbf w = (1;\ 0)$, $b = -1$. (1, 0): $z = 0$ → jó. (1, 1): $z = 0$ → hiba → $\mathbf w = (2;\ 1)$, $b = 0$. Még nincs vége (a szemléltetésben folytathatod).</details></li>
+    <li>Miért nem számít nullás kezdésnél az $\eta$ a jóslatok szempontjából? Mutasd meg az első frissítésen!
+      <details><summary>Megoldás</summary>Az első hibánál $\mathbf w = \eta(y - \hat y)\mathbf x$, $b = \eta(y - \hat y)$: minden $\eta$-val arányos. A $z$ így szintén $\eta$-szoros, az előjele – és így a jóslat – nem függ $\eta$-tól.
+        Teljes indukcióval: ha eddig minden $\eta$-szoros volt, a következő frissítés is az, tehát az egész futás ugyanaz, csak felnagyítva.</details></li>
+    <li>(nehezebb) Az ÉS-t a perceptron 6 epoch és 10 javítás után a $\mathbf w = (2;\ 1)$, $b = -2$ súlyokkal tanulja meg. Ellenőrizd, hogy hibátlan! Mi a különös az (1, 0) pontban?
+      <details><summary>Megoldás</summary>$z$: (0, 0): $-2$; (0, 1): $-1$; (1, 0): $0$; (1, 1): $1$. Jóslatok: 0, 0, 0, 1 – hibátlan. Az (1, 0) pontosan a határon van ($z = 0$): csak azért jó, mert a lépcső nálunk a nullára 0-t ad.
+        A perceptron nem törekszik nagy biztonsági sávra – amint nincs hiba, megáll (következő lépés).</details></li>
+  </ol>
+</details>
+
+<h3 id="s92-b">2. lépés: mikor áll meg? A konvergenciatétel</h3>
+<p>A VAGY-nál négy, az ÉS-nél tíz javítás kellett. Biztos, hogy egyszer vége lesz? És ha igen, melyik egyenesnél áll meg?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – ugyanaz az adat, más sorrend</span>
+  Futtassuk az ÉS-t kétszer: előbb a szokásos sorrendben, aztán fordítva ((1, 1), (1, 0), (0, 1), (0, 0)).
+  <table style="max-width:560px;font-size:.88rem;text-align:center">
+    <tr><th>sorrend</th><th>epoch</th><th>javítás</th><th>eredmény</th><th>határ</th></tr>
+    <tr><td>előre</td><td>6</td><td>10</td><td>$\mathbf w = (2;\ 1)$, $b = -2$</td><td>$2x_1 + x_2 = 2$</td></tr>
+    <tr><td>visszafelé</td><td>6</td><td>12</td><td>$\mathbf w = (1;\ 2)$, $b = -2$</td><td>$x_1 + 2x_2 = 2$</td></tr>
+  </table>
+  Mindkettő hibátlan, de <b>két különböző egyenes</b>. A perceptron megáll – de az első jó egyenesnél, nem a „legjobbnál”.
+</div>
+<div class="box thm">
+  <span class="box-title">Tétel – a perceptron konvergenciatétele (H. D. Block, A. Novikoff, 1962) – Kiegészítés</span>
+  Ha az adat <b>lineárisan szétválasztható</b> (<a href="../05-osztalyozas/#s56-a">5.6</a>), a perceptron <b>véges sok javítás után</b> hibátlan egyenest talál, és megáll.
+  Pontosabban: ha minden kiegészített bemenetre $\lVert\tilde{\mathbf x}_i\rVert \le R$, és van egy 1 hosszú $\tilde{\mathbf w}^*$, amely minden mintát legalább $\gamma \gt 0$ „biztonsági sávval” jó oldalra tesz, akkor a javítások száma legfeljebb
+  $$\left(\frac{R}{\gamma}\right)^2.$$
+  <small>Miért? Minden javítás legalább $\gamma$-val növeli a $\tilde{\mathbf w}$ vetületét a $\tilde{\mathbf w}^*$ irányára, de a hosszát (négyzetesen) legfeljebb $R^2$-tel. $k$ javítás után a vetület $\ge k\gamma$,
+  a hossz $\le \sqrt k R$ – a vetület nem lehet nagyobb a hossznál, ezért $k\gamma \le \sqrt k R$, azaz $k \le (R/\gamma)^2$. A tétel a forrásainkban csak gyakorlatként szerepel (ESL 4. fejezet), ezért kiegészítésként jelöljük.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a korlát a VAGY-ra</span>
+    A kiegészített bemenetek: $(x_1, x_2, 1)$, a leghosszabb $(1, 1, 1)$, $R = \sqrt3$. A $(1;\ 1;\ -0{,}5)$ elválasztó 1 hosszúra normálva ($\lVert\cdot\rVert = 1{,}5$) a legszűkebb sávja $0{,}5/1{,}5 = 1/3$.
+    A korlát: $3 / (1/9) = 27$ javítás. A valóságban 4 kellett – a korlát csak garancia, nem jóslat.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – szűk sáv, sok javítás</span>
+    Ha két osztály között a legszélesebb sáv feleakkora, a korlát négyszeres; ha tizedakkora, százszoros. Az egymáshoz nagyon közel eső, de még szétválasztható osztályokon a perceptron sokáig „ide-oda billeg”.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Nem a legjobb egyenes.</b> A perceptron bármelyik hibátlan egyenesnél megáll, akár a pontokat súrolónál is. A legszélesebb sávot az SVM keresi meg (<a href="../07-fak-svm-egyuttes/#s76-a">7.6</a>).
+      Egy könyv (MLD 10) szerint a perceptron „pontosan a határon” áll meg – nincs egyetlen határ, csak egy a sok jó közül.</li>
+    <li><b>Az eredmény függ a sorrendtől és a kezdéstől.</b> Ugyanabból az adatból más sorrenddel más súlyok jönnek ki.</li>
+    <li><b>A tétel csak szétválasztható adatra szól.</b> Ha nincs hibátlan egyenes, a garancia elvész (következő lépés).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – konvergencia</summary>
+  <ol>
+    <li>Egy adatkészletre $R = 2$, $\gamma = 0{,}5$. Legfeljebb hány javítás kell? És ha $\gamma = 0{,}1$?
+      <details><summary>Megoldás</summary>$(2/0{,}5)^2 = 16$; $(2/0{,}1)^2 = 400$. Ötször szűkebb sáv – huszonötször nagyobb korlát.</details></li>
+    <li>Számold ki a korlátot az ÉS-re a $(1;\ 1;\ -1{,}5)$ elválasztóval!
+      <details><summary>Megoldás</summary>$\lVert(1;\ 1;\ -1{,}5)\rVert = \sqrt{4{,}25} \approx 2{,}06$. A legszűkebb sáv: az (1, 1), (0, 1), (1, 0) pontoknál $|z| = 0{,}5$, normálva $\gamma \approx 0{,}243$. $R = \sqrt3$, a korlát $3/0{,}243^2 \approx 51$. A tényleges 10 javítás jóval kevesebb.</details></li>
+    <li>Igaz-e: „ha a perceptron megállt, az adat lineárisan szétválasztható”?
+      <details><summary>Megoldás</summary>Igen: csak akkor áll meg, ha egy teljes epoch hibátlan – vagyis talált egy hibátlan egyenest. (A fordítottja a tétel: ha szétválasztható, meg is áll.)</details></li>
+    <li>Melyik egyenes „biztonságosabb” az ÉS-re: $2x_1 + x_2 = 2$ vagy $x_1 + x_2 = 1{,}5$? Miért?
+      <details><summary>Megoldás</summary>Az első átmegy az (1, 0) ponton – egy kis zaj is átbillentheti. A második mindhárom közeli ponttól ($(0, 1)$, $(1, 0)$, $(1, 1)$) egyforma, $0{,}5/\sqrt2 \approx 0{,}35$ távolságra van: ez a maximális margójú határ.</details></li>
+    <li>(nehezebb) Miért nem garantál a tétel semmit arra, hogy a megtalált egyenes <em>új</em> pontokon is jól dönt?
+      <details><summary>Megoldás</summary>Mert csak a tanító pontokról szól: hibátlan rajtuk. Egy pontokat súroló egyenes új, kicsit eltolt pontokon könnyen hibázik. Az általánosításhoz nagy margó, regularizáció, validáció kell (6. és 7. fejezet).</details></li>
+  </ol>
+</details>
+
+<h3 id="s92-c">3. lépés: a XOR – és az első neuronháló-tél</h3>
+<p>A konvergenciatétel feltétele a szétválaszthatóság. Az <a href="../05-osztalyozas/#s56-a">5.6</a>-ban bebizonyítottuk, hogy a XOR (a lépcsőházi kapcsoló) <b>nem</b> szétválasztható. Mit csinál ilyenkor a perceptron?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a perceptron a XOR-on</span>
+  Kezdés csupa nullával, $\eta = 1$, a szokásos sorrend.
+  <ul style="margin:.2rem 0">
+    <li>1. epoch: a (0, 1)-nél hiba → $\mathbf w = (0;\ 1)$, $b = 1$; az (1, 1)-nél hiba → $\mathbf w = (-1;\ 0)$, $b = 0$.</li>
+    <li>2. epoch: a (0, 1), az (1, 0) és az (1, 1) is hiba → a végén $\mathbf w = (-1;\ 0)$, $b = 1$.</li>
+    <li>3. epoch: mind a négy minta hiba; a súlyok $(-1;\ 0), 0 \to (-1;\ 1), 1 \to (0;\ 1), 2 \to (-1;\ 0), 1$ – <b>pontosan ott vagyunk, ahol a 2. epoch végén</b>.</li>
+  </ul>
+  Innentől minden epoch ugyanezt a négy javítást ismétli, örökké. Futtasd a fenti szemléltetésben a XOR-t: a hibaszám sosem lesz nulla.
+</div>
+<div class="box def">
+  <span class="box-title">Tétel – nem szétválasztható adaton a perceptron nem áll meg</span>
+  Ha nincs hibátlan egyenes, minden epochban marad legalább egy hiba, így a szabály <b>soha nem áll meg</b>: a súlyok ciklusba kerülnek (mint a XOR-nál) vagy korlátos tartományban bolyonganak.
+  Egyetlen lépcsős neuron <b>egyetlen egyenest</b> tud – a XOR-hoz kettő kellene.
+  <br><small>Miért? A perceptron jóslata mindig egy egyenes két oldala. Ha bármelyik egyenes hibázik legalább egy mintán, akkor a mindenkori súlyok is hibáznak, és a következő epochban jön egy javítás. (Gyakorlatban ilyenkor egy epochszám után leállítják, vagy megtartják az eddigi legjobb súlyokat – ez a „zsebalgoritmus”.)</small>
+</div>
+<div class="box history">
+  <span class="box-title">📜 Történet – lelkesedés, könyv, tél</span>
+  <ul style="margin:.2rem 0">
+    <li><b>1957–58:</b> F. Rosenblatt (Cornell Aeronautical Laboratory) leírja a perceptront, és egy IBM 704-es számítógépen szimulálja. A sajtó szerint a haditengerészet egy olyan gép „embrióját” mutatta be, amely egyszer „járni, beszélni, látni, írni” fog (New York Times, 1958).</li>
+    <li><b>1960:</b> elkészül a <b>Mark I Perceptron</b> hardver: 20 × 20 = 400 fotocella a „retina”, a súlyok motorral forgatott potenciométerek.</li>
+    <li><b>1969:</b> M. Minsky és S. Papert <em>Perceptrons</em> című könyve matematikailag megmutatja, mit <em>nem</em> tud az egyrétegű perceptron: a XOR-t és általában a paritást, a „összefüggő-e az alakzat” kérdést.
+      Azt is tudták, hogy több réteg segítene – de a rejtett rétegek tanítására akkor nem volt módszer.</li>
+    <li><b>1970-es évek:</b> a pénzek elapadnak, a neuronhálós kutatás évtizedre visszaszorul (a Lighthill-jelentés, 1973, az egész MI-t sújtja) – ez az első „MI-tél” része (<a href="../01-mi-a-mesterseges-intelligencia/#s14-b">1.4</a>).</li>
+    <li><b>1986:</b> D. Rumelhart, G. Hinton és R. Williams cikke népszerűsíti a <b>visszaterjesztést</b>, amellyel a rejtett rétegek is taníthatók (az ötlet korábbi, pl. P. Werbos, 1974) – erről szól a 10. fejezet.</li>
+  </ul>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Forráshibák – amit a könyvek pontatlanul írnak</span>
+  <ul style="margin:.2rem 0">
+    <li><b>„Az első tél oka a lineáris aktiváció volt”</b> (PDL 8). Nem: a perceptron nemlineáris lépcsőfüggvényt használt. A korlát a <b>rejtett réteg hiánya</b> volt.</li>
+    <li><b>„Minsky és Papert az egy- és kétrétegű hálókról is kimutatta…”</b> (HAW 2). A könyv az egyrétegű (egy tanítható rétegű) perceptronokat elemezte.</li>
+    <li><b>Évszámok.</b> A Mark I-et egyik könyv 1957-re (HAW), másik „a Cornell Egyetemen 1958”-ra (DLV) teszi: 1957 a jelentés, 1958 a szimuláció, 1960 a Cornell Aeronautical Laboratory hardvere.
+      Az „MI-tél nagyjából az 1970-es és 1990-es évek között” (DLV 13) két külön tél (kb. 1974–80 és 1987–93) összemosása.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a XOR és a perceptron határai</summary>
+  <ol>
+    <li>Ellenőrizd: ha egy epochot a $\mathbf w = (-1;\ 0)$, $b = 1$ súlyokkal kezdesz a XOR-on, a végén ugyanide jutsz!
+      <details><summary>Megoldás</summary>(0, 0): $z = 1$ → hiba → $b = 0$. (0, 1): $z = 0$ → hiba → $\mathbf w = (-1;\ 1)$, $b = 1$. (1, 0): $z = 0$ → hiba → $\mathbf w = (0;\ 1)$, $b = 2$. (1, 1): $z = 3$ → hiba → $\mathbf w = (-1;\ 0)$, $b = 1$. ✓ Ciklus.</details></li>
+    <li>Két bemenetű logikai függvényből 16 van (minden lehetséges 0/1 kimenetnégyes). Melyik kettőt nem tudja megtanulni egyetlen perceptron?
+      <details><summary>Megoldás</summary>A XOR-t (0, 1, 1, 0) és a tagadását, az XNOR-t (1, 0, 0, 1). A másik 14 (pl. ÉS, VAGY, NAND, „csak $x_1$”, a két konstans) lineárisan szétválasztható.</details></li>
+    <li>Az „átfedő felhő” adaton a perceptron nem áll meg. Mondj két gyakorlati megoldást!
+      <details><summary>Megoldás</summary>(1) Állítsd le adott számú epoch után, és tartsd meg az eddigi legkevesebbet hibázó súlyokat (zsebalgoritmus). (2) Használj olyan modellt, amely valószínűséget ad és veszteséget minimalizál, nem hibátlanságra törekszik – pl. logisztikus regresszió (<a href="../05-osztalyozas/#s53-e">5.3</a>).</details></li>
+    <li>Három bemenetnél a paritás: a kimenet 1, ha páratlan sok bemenet 1. Szétválasztható-e lineárisan?
+      <details><summary>Megoldás</summary>Nem. Ha az $x_3 = 0$ pontokra szűkítünk, a paritás éppen a XOR($x_1$, $x_2$) – ha egy sík elválasztaná a 8 pontot, a 4 pontos részt is elválasztaná, ami lehetetlen.</details></li>
+    <li>(nehezebb) Miért nem lehetett 1969-ben egyszerűen több perceptront egymás után kötni, és mindegyiket a perceptron-szabállyal tanítani?
+      <details><summary>Megoldás</summary>A szabályhoz minden neuronnál kell a „helyes válasz” ($y$). A kimeneti neuronnál ez megvan, a rejtett neuronoknál nincs: senki nem mondja meg, mit kellett volna kiadniuk. Ráadásul a lépcső deriváltja 0, így a hibát nem lehet „visszavezetni” rájuk.
+        A megoldás a sima aktiváció (<a href="#s94-a">9.4</a>) és a visszaterjesztés (10. fejezet).</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai9-92"></div>
+</section>
+
+<!-- ===================================================== 9.3 -->
+<section id="s93">
+<h2>9.3 Rétegek: a többrétegű perceptron ★★</h2>
+<p>Egy lépcsős neuron egy egyenest húz – a XOR-hoz kettő kellene. Ötlet: használjunk <b>két</b> neuront, mindegyik húzza meg a maga egyenesét, és egy <b>harmadik</b> neuron döntsön az ő kimenetükből.</p>
+
+<h3 id="s93-a">1. lépés: a XOR két rejtett neuronnal</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – „VAGY, de nem ÉS”</span>
+  A lámpa akkor ég, ha legalább az egyik kapcsoló fel van kapcsolva (VAGY), de nem mindkettő (nem ÉS). Ezt három lépcsős neuronnal rakjuk össze, a 9.1 kapuiból:
+  <ul style="margin:.2rem 0">
+    <li>$h_1 = \text{lépcső}(x_1 + x_2 - 0{,}5)$ – a VAGY neuron;</li>
+    <li>$h_2 = \text{lépcső}(x_1 + x_2 - 1{,}5)$ – az ÉS neuron;</li>
+    <li>$\hat y = \text{lépcső}(h_1 - h_2 - 0{,}5)$ – „$h_1$ igen, $h_2$ nem”.</li>
+  </ul>
+  <table style="max-width:640px;font-size:.88rem;text-align:center">
+    <tr><th>$x_1$</th><th>$x_2$</th><th>$z_1$</th><th>$h_1$</th><th>$z_2$</th><th>$h_2$</th><th>$h_1 - h_2 - 0{,}5$</th><th>$\hat y$</th><th>XOR</th></tr>
+    <tr><td>0</td><td>0</td><td>$-0{,}5$</td><td>0</td><td>$-1{,}5$</td><td>0</td><td>$-0{,}5$</td><td>0</td><td>0</td></tr>
+    <tr><td>0</td><td>1</td><td>$0{,}5$</td><td>1</td><td>$-0{,}5$</td><td>0</td><td>$0{,}5$</td><td><b>1</b></td><td>1</td></tr>
+    <tr><td>1</td><td>0</td><td>$0{,}5$</td><td>1</td><td>$-0{,}5$</td><td>0</td><td>$0{,}5$</td><td><b>1</b></td><td>1</td></tr>
+    <tr><td>1</td><td>1</td><td>$1{,}5$</td><td>1</td><td>$0{,}5$</td><td>1</td><td>$-0{,}5$</td><td>0</td><td>0</td></tr>
+  </table>
+  Hibátlan. Amit egy neuron nem tudott, azt három – két <b>rétegbe</b> rendezve – megoldja.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – többrétegű perceptron (MLP), rejtett réteg</span>
+  A <b>többrétegű perceptron</b> (<em>multilayer perceptron</em>, MLP) neuronjai <b>rétegekbe</b> rendeződnek:
+  <ul style="margin:.2rem 0">
+    <li>a <b>bemeneti réteg</b> nem számol, csak továbbadja a jellemzőket;</li>
+    <li>a <b>rejtett rétegek</b> neuronjai az előző réteg <em>összes</em> kimenetét kapják (teljesen összekötött réteg);</li>
+    <li>a <b>kimeneti réteg</b> adja a jóslatot.</li>
+  </ul>
+  A jel csak előre halad, visszacsatolás nincs (<b>előrecsatolt háló</b>, <em>feed-forward</em>). A rejtett réteget azért hívják így, mert az adatban nincs „helyes válasz” a kimenetére – kívülről nem látszik, mit kellene csinálnia.
+  <br><small>Miért működik? A rejtett réteg <b>új jellemzőket</b> számol a bemenetből ($h_1$, $h_2$), és a kimeneti neuron ezeken már lineárisan dönt. Pontosan ezt csináltuk kézzel az <a href="../05-osztalyozas/#s56-b">5.6</a>-ban az $x_1x_2$ jellemzővel –
+  csak most a jellemzőket is neuronok adják, és (a 10. fejezettől) a háló maga tanulja meg őket.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a rejtett tér</span>
+    Hová kerül a négy pont a $(h_1, h_2)$ síkon? $(0, 0) \to (0, 0)$; $(0, 1) \to (1, 0)$; $(1, 0) \to (1, 0)$; $(1, 1) \to (1, 1)$.
+    A két „ég” pont <b>ugyanoda</b> esik, a két „nem ég” a két másik sarokba. Itt már egy egyenes elválasztja őket: $h_1 - h_2 = 0{,}5$. A rejtett réteg „összehajtotta” a síkot.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – ugyanez ReLU-val (Kiegészítés)</span>
+    $h_1 = \mathrm{ReLU}(x_1 + x_2)$, $h_2 = \mathrm{ReLU}(x_1 + x_2 - 1)$, $\hat y = h_1 - 2h_2$ (a kimeneten nincs aktiváció).
+    A négy pontra: $h_1 = 0, 1, 1, 2$; $h_2 = 0, 0, 0, 1$; $\hat y = 0, 1, 1, 2 - 2 = 0$. Szintén XOR. (Egy rendszerkönyv, MLSYS, ezt a 2–2–1-es hálót említi, de súlyokat nem ad.)
+  </div>
+</div>
+<div class="widget" data-widget="hidden-space"></div>
+<div class="box tip">
+  <span class="box-title">💡 Hány rétegű ez a háló? – két számolási szokás</span>
+  A fenti háló bemeneti rétege 2, rejtett rétege 2, kimeneti rétege 1 neuronos: röviden <b>2–2–1-es háló</b>. Rétegből vagy „kettő” van (a számoló rétegek: rejtett + kimeneti; így számol pl. DLV 13 és mi is),
+  vagy „három” (a bemenetet is számolva; így számol pl. MLD 14). A félreértés elkerülésére mondd inkább: <b>egy rejtett rétegű</b> háló.
+  A „perceptron” szó szigorúan a rejtett réteg nélküli lépcsős neuront jelenti; az MLP neuronjai ma szinte sosem lépcsősek – a név történelmi maradvány.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Nem „két perceptron”.</b> Egy könyv (MLD 14) szerint két perceptron megoldja a XOR-t. Egy rétegzett hálóban <b>három</b> neuron kell: két rejtett és egy kimeneti.</li>
+    <li><b>A tanult rejtett neuronoknak nem kell „értelmes” szerepet kapniuk.</b> Mi VAGY-ot és ÉS-t választottunk, mert így könnyű érteni. Egy tanított háló rejtett neuronjai gyakran nem ilyen tiszta fogalmak – a szemléltetésben a tanítás más súlyokat talál.</li>
+    <li><b>Két rejtett neuron nem mindenre elég.</b> Két egyenesből nem lehet kört kivágni (a szemléltetés „korong” adata); ehhez legalább három kell (<a href="#s97-a">9.7</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a XOR hálója</summary>
+  <ol>
+    <li>Ugyanazzal a rejtett réteggel (VAGY, ÉS) milyen kimeneti neuron adja az XNOR-t (1, ha a két kapcsoló egyforma)? Ellenőrizd!
+      <details><summary>Megoldás</summary>A kimenet tagadása: $\hat y = \text{lépcső}(-h_1 + h_2 + 0{,}5)$. $(h_1, h_2)$: $(0, 0)$ → 0,5 → 1; $(1, 0)$ → $-0{,}5$ → 0 (ez a két „különböző” bemenet); $(1, 1)$ → 0,5 → 1. ✓</details></li>
+    <li>Egy másik XOR-háló: $h_1 = \text{lépcső}(x_1 - x_2 - 0{,}5)$, $h_2 = \text{lépcső}(-x_1 + x_2 - 0{,}5)$, $\hat y = \text{lépcső}(h_1 + h_2 - 0{,}5)$. Mit jelent a két rejtett neuron? Ellenőrizd a négy bemenetet!
+      <details><summary>Megoldás</summary>$h_1$ = „$x_1$, de nem $x_2$”, $h_2$ = „$x_2$, de nem $x_1$”, a kimenet a kettő VAGY-a. $h_1$: csak (1, 0)-ra 1; $h_2$: csak (0, 1)-re 1. $\hat y$: 0, 1, 1, 0. ✓ Ugyanaz a függvény, más rejtett jellemzők.</details></li>
+    <li>A lépcsős XOR-háló (kiinduló példa) mit mond a $(0{,}5;\ 0{,}5)$ és a $(0{,}8;\ 0{,}9)$ bemenetre? Hol mond a síkon 1-et?
+      <details><summary>Megoldás</summary>$(0{,}5;\ 0{,}5)$: $z_1 = 0{,}5$ → 1, $z_2 = -0{,}5$ → 0, kimenet 1. $(0{,}8;\ 0{,}9)$: $z_1 = 1{,}2$ → 1, $z_2 = 0{,}2$ → 1, kimenet 0.
+        1-et a két párhuzamos egyenes közötti sávban mond: $0{,}5 \lt x_1 + x_2 \le 1{,}5$.</details></li>
+    <li>Számold végig a ReLU-s XOR-hálót a $(0{,}5;\ 0{,}5)$ bemenetre!
+      <details><summary>Megoldás</summary>$h_1 = \mathrm{ReLU}(1) = 1$, $h_2 = \mathrm{ReLU}(0) = 0$, $\hat y = 1$. (A $(0{,}5;\ 1)$-re: $h_1 = 1{,}5$, $h_2 = 0{,}5$, $\hat y = 0{,}5$ – a ReLU-s háló folytonos átmenetet ad a sarkok között.)</details></li>
+    <li>(nehezebb) Építs egy rejtett rétegű lépcsős hálót a háromváltozós paritásra (1, ha páratlan sok bemenet 1)! Tipp: legyen $h_k$ = „legalább $k$ bemenet 1”.
+      <details><summary>Megoldás</summary>$h_k = \text{lépcső}(x_1 + x_2 + x_3 - (k - 0{,}5))$, $k = 1, 2, 3$; $\hat y = \text{lépcső}(h_1 - h_2 + h_3 - 0{,}5)$. Ha $s$ darab 1-es van: $s = 0$: $(0, 0, 0)$ → $-0{,}5$ → 0; $s = 1$: $(1, 0, 0)$ → 0,5 → 1;
+        $s = 2$: $(1, 1, 0)$ → $-0{,}5$ → 0; $s = 3$: $(1, 1, 1)$ → 0,5 → 1. ✓ Három rejtett neuron – ezt Minsky és Papert is tudta; tanítani nem tudták.</details></li>
+  </ol>
+</details>
+
+<h3 id="s93-b">2. lépés: a mátrixos alak – egy réteg egyetlen szorzással</h3>
+<p>Neuronról neuronra számolni két neuronnál még megy, százhuszonnyolcnál már nem. A réteg összes neuronját egyszerre írhatjuk fel – ez a mátrix–vektor szorzat (<a href="../02-matematikai-eszkoztar/#s22-c">2.2</a>).</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a XOR rejtett rétege egy lépésben</span>
+  A két rejtett neuron súlyait írjuk egy mátrix soraiba, a torzításokat egy vektorba:
+  $$W = \begin{pmatrix} 1 & 1 \\ 1 & 1 \end{pmatrix}, \quad \mathbf b = \begin{pmatrix} -0{,}5 \\ -1{,}5 \end{pmatrix}, \quad \mathbf x = \begin{pmatrix} 1 \\ 0 \end{pmatrix}: \qquad
+  W\mathbf x + \mathbf b = \begin{pmatrix} 1 \\ 1 \end{pmatrix} + \begin{pmatrix} -0{,}5 \\ -1{,}5 \end{pmatrix} = \begin{pmatrix} 0{,}5 \\ -0{,}5 \end{pmatrix}.$$
+  A lépcsőt elemenként alkalmazva $\mathbf h = (1;\ 0)$. A kimeneti réteg egyetlen neuronjának súlya egy $1 \times 2$-es mátrix: $V = (1\ \ {-1})$, $c = -0{,}5$; $V\mathbf h + c = 1 - 0 - 0{,}5 = 0{,}5$ → $\hat y = 1$.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – egy réteg és egy háló mátrixos alakja</span>
+  Egy $n_{\text{be}}$ bemenetű, $n_{\text{ki}}$ neuronú teljesen összekötött réteg:
+  $$\mathbf h = \varphi(W\mathbf x + \mathbf b), \qquad W \in \mathbb R^{n_{\text{ki}} \times n_{\text{be}}},\ \mathbf b \in \mathbb R^{n_{\text{ki}}}.$$
+  A $W$ $j$-edik sora a $j$-edik neuron súlyvektora, a $\varphi$-t <b>elemenként</b> alkalmazzuk. Egy $L$ rétegű háló ezek egymásutánja:
+  $$\mathbf h^{(1)} = \varphi(W^{(1)}\mathbf x + \mathbf b^{(1)}),\ \ \mathbf h^{(2)} = \varphi(W^{(2)}\mathbf h^{(1)} + \mathbf b^{(2)}),\ \dots,\ \ \hat{\mathbf y} = \psi(W^{(L)}\mathbf h^{(L-1)} + \mathbf b^{(L)}),$$
+  ahol $\psi$ a kimeneti aktiváció (<a href="#s94-c">9.4</a>). <b>Sok minta egyszerre:</b> ha az $X$ mátrix sorai a minták ($m \times n_{\text{be}}$), akkor $H = \varphi(XW^\top + \mathbf b^\top)$, ahol a torzítás-sort minden sorhoz hozzáadjuk (broadcasting, <a href="../02-matematikai-eszkoztar/#s22-d">2.2</a>).
+  <br><small>Miért jó? Mert egy réteg egyetlen mátrixszorzás – és a mátrixszorzást a videokártyák (GPU-k) óriási sebességgel végzik. A mélytanulás gyakorlati sikerének egyik titka, hogy szinte minden számolása ilyen szorzás.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a négy XOR-bemenet egyszerre</span>
+    $X = \begin{pmatrix} 0 & 0 \\ 1 & 0 \\ 0 & 1 \\ 1 & 1 \end{pmatrix}$, $XW^\top + \mathbf b^\top = \begin{pmatrix} -0{,}5 & -1{,}5 \\ 0{,}5 & -0{,}5 \\ 0{,}5 & -0{,}5 \\ 1{,}5 & 0{,}5 \end{pmatrix}$ → lépcső →
+    $H = \begin{pmatrix} 0 & 0 \\ 1 & 0 \\ 1 & 0 \\ 1 & 1 \end{pmatrix}$. Minden sor egy minta rejtett jellemzői.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – három neuron, ReLU</span>
+    $W = \begin{pmatrix} 2 & 0 \\ 1 & -1 \\ 0 & 1 \end{pmatrix}$, $\mathbf b = \begin{pmatrix} -1 \\ 0 \\ 0{,}5 \end{pmatrix}$, $\mathbf x = \begin{pmatrix} 1 \\ 2 \end{pmatrix}$:
+    $W\mathbf x + \mathbf b = (2 - 1;\ 1 - 2;\ 2 + 0{,}5) = (1;\ -1;\ 2{,}5)$, ReLU után $\mathbf h = (1;\ 0;\ 2{,}5)$. A $W$ $3 \times 2$-es: 3 neuron, 2 bemenet.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Sor vagy oszlop? – a könyvek és a programok szokásai</span>
+  Mi oszlopvektorokat és $W\mathbf x$-et írunk (mint MDL 9). A PyTorch <code>nn.Linear</code> rétege is $n_{\text{ki}} \times n_{\text{be}}$ alakban tárolja a súlyt, de sorvektorokkal számol: $\mathbf x W^\top + \mathbf b$.
+  A scikit-learn <code>coefs_</code> tömbje fordított, $n_{\text{be}} \times n_{\text{ki}}$ alakú. A számolás mindig ugyanaz – csak azt ellenőrizd, hogy az alakok összeillenek-e.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Alakellenőrzés.</b> $(n_{\text{ki}} \times n_{\text{be}}) \cdot (n_{\text{be}} \times 1) = n_{\text{ki}} \times 1$. Ha a belső méretek nem egyeznek, rossz a sorrend. Egy rendszerkönyv (MLSYS) egy helyen $W^{(1)}X$-et ír, ahol $W^{(1)}$ $n_1 \times 784$-es, $X$ viszont $B \times 784$-es –
+      ez nem szorozható össze ($XW^{(1)\top}$ kellene), néhány sorral lejjebb pedig már harmadik szokást használ.</li>
+    <li><b>A transzponálás oka nem a „kommutativitás”.</b> Egy könyv (PDL 8) azzal indokolja a transzponálást, hogy „a skalárszorzás kommutatív”. A mátrixszorzás <em>nem</em> kommutatív; az ok az, hogy $(W\mathbf x)^\top = \mathbf x^\top W^\top$.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – mátrixos alak</summary>
+  <ol>
+    <li>Egy rétegnek 4 bemenete és 3 neuronja van. Milyen alakú a $W$ és a $\mathbf b$? És ha 784 bemenet, 128 neuron?
+      <details><summary>Megoldás</summary>$W$: $3 \times 4$, $\mathbf b$: 3 elemű. A másodiknál $W$: $128 \times 784$, $\mathbf b$: 128 elemű.</details></li>
+    <li>$W = \begin{pmatrix} 1 & 0 & -1 \\ 2 & 1 & 0 \end{pmatrix}$, $\mathbf b = (0;\ -3)$, $\mathbf x = (1;\ 2;\ 3)$. Mennyi $\mathbf h = \mathrm{ReLU}(W\mathbf x + \mathbf b)$?
+      <details><summary>Megoldás</summary>$W\mathbf x = (1 - 3;\ 2 + 2) = (-2;\ 4)$, $+\mathbf b$: $(-2;\ 1)$, ReLU: $\mathbf h = (0;\ 1)$.</details></li>
+    <li>Egy 32 képből álló köteg: $X$ $32 \times 784$-es, a réteg $W$-je $128 \times 784$-es. Milyen alakú $XW^\top$? Melyik szorzat értelmetlen: $WX$, $XW^\top$, $X^\top W$?
+      <details><summary>Megoldás</summary>$XW^\top$: $(32 \times 784)(784 \times 128) = 32 \times 128$ – minden képhez 128 rejtett érték. $WX$: $(128 \times 784)(32 \times 784)$ – nem illeszkedik. $X^\top W$: $(784 \times 32)(128 \times 784)$ – szintén nem.
+        ($WX^\top$ működne, $128 \times 32$-es eredménnyel, oszloponként egy kép.)</details></li>
+    <li>Egy könyv (MLSYS) példája: $\mathbf h = (0{,}8;\ 0{,}2;\ 0{,}9;\ 0{,}1)$, $W = \begin{pmatrix} 0{,}5 & -0{,}3 & 0{,}2 & 0{,}7 \\ 0{,}1 & 0{,}8 & -0{,}4 & 0{,}3 \\ -0{,}2 & 0{,}4 & 0{,}6 & -0{,}1 \end{pmatrix}$, torzítás nincs.
+      A könyv eredménye $(0{,}65;\ -0{,}17;\ 0{,}47)$. Számold újra!
+      <details><summary>Megoldás</summary>1. sor: $0{,}4 - 0{,}06 + 0{,}18 + 0{,}07 = 0{,}59$. 2. sor: $0{,}08 + 0{,}16 - 0{,}36 + 0{,}03 = -0{,}09$. 3. sor: $-0{,}16 + 0{,}08 + 0{,}54 - 0{,}01 = 0{,}45$.
+        Helyesen $(0{,}59;\ -0{,}09;\ 0{,}45)$, ReLU után $(0{,}59;\ 0;\ 0{,}45)$ – a könyv mindhárom értéke hibás.</details></li>
+    <li>(nehezebb) Írd fel a lépcsős XOR-háló kimenetét a négy bemenetre egyetlen mátrixképlettel, és számold ki!
+      <details><summary>Megoldás</summary>$\hat{\mathbf y} = \text{lépcső}\big(H V^\top + c\big)$, ahol $H$ a fenti $4 \times 2$-es mátrix, $V^\top = (1;\ -1)$, $c = -0{,}5$: $HV^\top = (0;\ 1;\ 1;\ 0)$, $+c$: $(-0{,}5;\ 0{,}5;\ 0{,}5;\ -0{,}5)$, lépcső: $(0;\ 1;\ 1;\ 0)$.</details></li>
+  </ol>
+</details>
+
+<h3 id="s93-c">3. lépés: aktiváció nélkül nincs értelme a rétegeknek</h3>
+<p>A rétegek között mindig ott volt a $\varphi$. Mi lenne, ha elhagynánk – ha a neuronok csak a súlyozott összeget adnák tovább?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két réteg, ami valójában egy</span>
+  Rejtett réteg aktiváció nélkül: $\mathbf h = W_1\mathbf x + \mathbf b_1$, $W_1 = \begin{pmatrix} 1 & 2 \\ 0 & 1 \end{pmatrix}$, $\mathbf b_1 = (1;\ 0)$. Kimenet: $y = W_2\mathbf h + b_2$, $W_2 = (2\ \ {-1})$, $b_2 = 3$.
+  Helyettesítsük be:
+  $$y = W_2(W_1\mathbf x + \mathbf b_1) + b_2 = \underbrace{W_2W_1}_{(2\ \ 3)}\mathbf x + \underbrace{W_2\mathbf b_1 + b_2}_{2 + 3}\; = 2x_1 + 3x_2 + 5.$$
+  Ellenőrzés az $\mathbf x = (1;\ 1)$ pontban: $\mathbf h = (1 + 2 + 1;\ 1) = (4;\ 1)$, $y = 8 - 1 + 3 = 10$; a képlet szerint $2 + 3 + 5 = 10$. ✓ A két réteg <b>pontosan egy</b> lineáris réteg.
+</div>
+<div class="box thm">
+  <span class="box-title">Tétel – lineáris rétegek egymásutánja lineáris</span>
+  Ha a rétegek között nincs nemlineáris aktiváció, akkor akárhány réteg után
+  $$W_L(\cdots(W_2(W_1\mathbf x + \mathbf b_1) + \mathbf b_2)\cdots) + \mathbf b_L = W\mathbf x + \mathbf b, \qquad W = W_L\cdots W_2W_1.$$
+  Egy ilyen „mély” háló semmivel sem tud többet, mint egyetlen réteg: a döntési határa egyenes (hipersík), a XOR-t sem tudja.
+  <br><small>Miért? Mert lineáris (pontosabban affin) függvények kompozíciója is affin: a mátrixok összeszorozhatók, a torzítások összegyűjthetők. A rétegek „ereje” teljes egészében a köztük lévő <b>nemlinearitásból</b> jön.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy könyv elszámolása</span>
+    DLV 13 öt neuronnal szemlélteti az összeomlást: $C = 2A + 4B$, $D = 3A + B$, $E = 3C + D$, $F = 4C + 2D$, $G = 2E + 3F$.
+    Behelyettesítve: $E = 9A + 13B$, $F = 14A + 18B$, $G = 18A + 26B + 42A + 54B = 60A + 80B$. A könyv „$78A + 86B$”-t ír – <b>elszámolás</b>, a lényeg (egyetlen lineáris függvény) attól még igaz.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy változó, két réteg</span>
+    Egy neuron $f(x) = 5x - 3$-at számol, egy második ugyanezt az elsőn: $f(f(x)) = 5(5x - 3) - 3 = 25x - 18$. Továbbra is egyenes – csak más meredekséggel és tengelymetszettel (PDL 8 példája nyomán).
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók és forráshibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>„Lineáris” = konstanssal szorzás és összeadás.</b> DLV 13 szerint „az összeadás és a szorzás lineáris”. A változók <em>egymással</em> való szorzása ($x_1x_2$, $x^2$) már nemlineáris – épp ilyen jellemző oldotta meg a XOR-t (<a href="../05-osztalyozas/#s56-b">5.6</a>).</li>
+    <li><b>A lépcső nem lineáris.</b> MLD 14 egy ábrán a lépcsőfüggvényt „lineáris függvénynek” nevezi, és azt írja, lineáris aktivációval a háló „polinomiális transzformációjú regresszióvá” válik. Lineáris aktivációval sima lineáris regresszió lesz belőle – polinom nélkül.</li>
+    <li><b>Majdnem lineáris is lehet.</b> A szigmoid és a tanh a 0 közelében majdnem egyenes. Ha a súlyok nagyon kicsik, minden $z$ kicsi, és a háló gyakorlatilag lineáris (ESL 11) – ezért nem nulla, hanem kis <em>véletlen</em> súlyokkal kezdünk (10. fejezet).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – miért kell a nemlinearitás?</summary>
+  <ol>
+    <li>$W_1 = \begin{pmatrix} 1 & 0 \\ 1 & 1 \end{pmatrix}$, $\mathbf b_1 = (0;\ -1)$, $W_2 = (1\ \ 2)$, $b_2 = -1$, aktiváció nélkül. Írd fel egyetlen rétegként, és ellenőrizd az $\mathbf x = (1;\ 2)$ pontban!
+      <details><summary>Megoldás</summary>$W_2W_1 = (1 + 2\ \ \ 0 + 2) = (3\ \ 2)$, $W_2\mathbf b_1 + b_2 = -2 - 1 = -3$: $y = 3x_1 + 2x_2 - 3$. Ellenőrzés: $\mathbf h = (1;\ 1 + 2 - 1) = (1;\ 2)$, $y = 1 + 4 - 1 = 4$; képlettel $3 + 4 - 3 = 4$. ✓</details></li>
+    <li>Két egyváltozós lineáris réteg: $g(x) = 3x + 1$, majd $k(u) = -2u + 4$. Mi $k(g(x))$?
+      <details><summary>Megoldás</summary>$-2(3x + 1) + 4 = -6x + 2$.</details></li>
+    <li>Lineáris-e a ReLU? Nézd meg a $\mathrm{ReLU}(1 + (-1))$ és a $\mathrm{ReLU}(1) + \mathrm{ReLU}(-1)$ értékét!
+      <details><summary>Megoldás</summary>$\mathrm{ReLU}(0) = 0$, de $\mathrm{ReLU}(1) + \mathrm{ReLU}(-1) = 1 + 0 = 1$. Nem additív, tehát nem lineáris – két egyenes darabból áll, a törés a 0-ban van. Ez a kis törés elég (<a href="#s95">9.5</a>).</details></li>
+    <li>Egy háló rejtett rétegei mind lineárisak, a kimenete egy szigmoid neuron. Melyik ismert modellel egyenértékű?
+      <details><summary>Megoldás</summary>A rejtett rétegek egyetlen $W\mathbf x + \mathbf b$-vé olvadnak, utána jön a szigmoid: $\sigma(\mathbf w^\top\mathbf x + b)$ – ez a logisztikus regresszió (<a href="../05-osztalyozas/#s53-b">5.3</a>). A XOR-t nem tudja.</details></li>
+    <li>(nehezebb) A szigmoid a 0 körül jól közelíthető egyenessel: $\sigma(z) \approx 0{,}5 + z/4$. Mennyi $\sigma(0{,}2)$ pontosan és a közelítéssel? Mit jelent ez egy kis súlyokkal induló hálóra?
+      <details><summary>Megoldás</summary>Pontosan $\sigma(0{,}2) \approx 0{,}5498$, közelítéssel $0{,}55$. Ha minden $|z|$ kicsi, minden neuron szinte lineáris, így az egész háló is majdnem lineáris; a nemlinearitás csak akkor „kapcsol be”, amikor a tanítás során a súlyok megnőnek.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai9-93"></div>
+</section>
+
+<!-- ===================================================== 9.4 -->
+<section id="s94">
+<h2>9.4 Aktivációs függvények ★★</h2>
+<p>A XOR-hálót kézzel raktuk össze, lépcsős neuronokkal. Egy valódi hálóban több ezer súly van – azokat <b>tanítani</b> kell, a gradiens módszerrel (<a href="../03-tanulas-anatomiaja/#s34-c">3.4</a>). Ehhez az aktivációs függvénynek több kell, mint „tüzel vagy nem”.</p>
+
+<h3 id="s94-a">1. lépés: a lépcsőtől a szigmoidig – sima függvény kell</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy kicsit tekerünk a súlyon</span>
+  Egy neuron bemenete $x = 0{,}9$, a torzítása $b = -1$. Növeljük óvatosan a $w$ súlyt, és nézzük a kimenetet:
+  <table style="max-width:520px;font-size:.9rem;text-align:center">
+    <tr><th>$w$</th><th>$z = 0{,}9w - 1$</th><th>lépcső</th><th>szigmoid</th></tr>
+    <tr><td>1</td><td>$-0{,}1$</td><td>0</td><td>0,4750</td></tr>
+    <tr><td>1,05</td><td>$-0{,}055$</td><td>0</td><td>0,4863</td></tr>
+    <tr><td>1,2</td><td>$0{,}08$</td><td><b>1</b></td><td>0,5200</td></tr>
+  </table>
+  A lépcső kimenete egy darabig <b>meg sem mozdul</b>, aztán hirtelen ugrik. A szigmoidé <b>kicsit, de mindig</b> változik. A gradiens módszer pont ezt használja: a derivált megmondja, merre és mennyit érdemes tekerni (<a href="../02-matematikai-eszkoztar/#s27-a">2.7</a>).
+  A lépcső deriváltja mindenhol 0 (a 0-ban nem is létezik) – semmit nem árul el.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – szigmoid és tanh, a deriváltjukkal</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Szigmoid (logisztikus függvény):</b> $\sigma(z) = \dfrac{1}{1 + e^{-z}}$, értékei a $(0;\ 1)$ nyílt intervallumban; $\sigma(-z) = 1 - \sigma(z)$; a deriváltja
+      $$\sigma'(z) = \sigma(z)\,\big(1 - \sigma(z)\big) \le 0{,}25,$$
+      a maximum a 0-ban van.</li>
+    <li><b>Tangens hiperbolikusz:</b> $\tanh z = \dfrac{e^z - e^{-z}}{e^z + e^{-z}} = 2\sigma(2z) - 1$, értékei a $(-1;\ 1)$ intervallumban, nulla középpontú; a deriváltja $\tanh'(z) = 1 - \tanh^2 z \le 1$.</li>
+  </ul>
+  <small>Miért ezek? Mindkettő a lépcső „lekerekített” változata: nagy pozitív $z$-re kb. 1, nagy negatívra kb. 0 (illetve $-1$), közben simán vált – és mindenhol deriválható, a deriváltja ráadásul a függvényértékből olcsón kiszámolható.
+  A tanh előnye, hogy a kimenetei 0 körül szóródnak, ami a következő réteg tanulását segíti.</small>
+</div>
+<details class="box">
+  <summary>📐 Honnan jön a $\sigma' = \sigma(1 - \sigma)$?</summary>
+  $\sigma(z) = (1 + e^{-z})^{-1}$, a láncszabállyal (<a href="../02-matematikai-eszkoztar/#s27-d">2.7</a>): $\sigma'(z) = -(1 + e^{-z})^{-2}\cdot(-e^{-z}) = \dfrac{e^{-z}}{(1 + e^{-z})^2} = \dfrac{1}{1 + e^{-z}}\cdot\dfrac{e^{-z}}{1 + e^{-z}} = \sigma(z)\,(1 - \sigma(z))$.
+  A szorzat $p(1 - p)$ alakú, ami $p = 0{,}5$-nél a legnagyobb: $0{,}25$.
+</details>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a szigmoid telítődik</span>
+    $z = 2$: $\sigma(2) \approx 0{,}8808$, $\sigma'(2) \approx 0{,}8808 \cdot 0{,}1192 \approx 0{,}105$.
+    $z = 4$: $\sigma(4) \approx 0{,}982$, $\sigma'(4) \approx 0{,}0177$. Messze a 0-tól a görbe szinte vízszintes: a súly változtatása alig hat – a neuron „telítődött”.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a tanh a szigmoidból</span>
+    $\tanh 0{,}5 = 2\sigma(1) - 1 = 2 \cdot 0{,}7311 - 1 \approx 0{,}4621$; a deriváltja $1 - 0{,}4621^2 \approx 0{,}786$.
+    A tanh tehát egy széthúzott, lefelé tolt szigmoid – a 0-ban négyszer meredekebb ($1$ a $0{,}25$ helyett).
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Telítődés.</b> Ha egy szigmoid vagy tanh neuron $z$-je nagy, a deriváltja szinte 0 – a neuron alig tanul. Ezért fontos a bemenetek skálázása (<a href="../03-tanulas-anatomiaja/#s36-c">3.6</a>) és a jó kezdősúlyok (10. fejezet).</li>
+    <li><b>A szigmoid sosem éri el a 0-t és az 1-et.</b> Az értékkészlete nyílt intervallum; egy könyv (DLV 13) $[0, 1]$-et ír. Ugyanott a tanh nevét „a trigonometriából” eredezteti – a hiperbolikus függvények az exponenciálisból jönnek (rokonai, nem tagjai a trigonometrikus függvényeknek).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – szigmoid és tanh</summary>
+  <ol>
+    <li>Mennyi $\sigma(0)$, $\sigma'(0)$, $\tanh 0$ és $\tanh'(0)$?
+      <details><summary>Megoldás</summary>$\sigma(0) = 0{,}5$, $\sigma'(0) = 0{,}25$, $\tanh 0 = 0$, $\tanh'(0) = 1$.</details></li>
+    <li>$\sigma(2) \approx 0{,}8808$. Számolás nélkül: mennyi $\sigma(-2)$?
+      <details><summary>Megoldás</summary>$\sigma(-2) = 1 - \sigma(2) \approx 0{,}1192$.</details></li>
+    <li>Számold ki $\sigma'(1)$-et a $\sigma(1) \approx 0{,}7311$ értékből!
+      <details><summary>Megoldás</summary>$0{,}7311 \cdot 0{,}2689 \approx 0{,}1966$.</details></li>
+    <li>$\tanh 1 \approx 0{,}7616$. Mennyi a derivált az 1-ben? Hányszorosa ez a $\sigma'(1)$-nek?
+      <details><summary>Megoldás</summary>$1 - 0{,}7616^2 \approx 0{,}420$. Kb. $0{,}420/0{,}197 \approx 2{,}1$-szerese.</details></li>
+    <li>(nehezebb) Mutasd meg, hogy $\tanh z = 2\sigma(2z) - 1$!
+      <details><summary>Megoldás</summary>$2\sigma(2z) - 1 = \dfrac{2}{1 + e^{-2z}} - 1 = \dfrac{1 - e^{-2z}}{1 + e^{-2z}}$. Szorozzuk a számlálót és a nevezőt $e^{z}$-vel: $\dfrac{e^z - e^{-z}}{e^z + e^{-z}} = \tanh z$. ✓</details></li>
+  </ol>
+</details>
+
+<h3 id="s94-b">2. lépés: ReLU – az egyszerű győztes</h3>
+<p>A szigmoid simasága áldás – a telítődése átok. Mély hálóban ez a gond rétegről rétegre <b>összeszorzódik</b>.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – tíz réteg szigmoid</span>
+  Egy tíz rétegű lánc minden rétegében egy szigmoid neuron. A láncszabály szerint (<a href="../02-matematikai-eszkoztar/#s27-d">2.7</a>) a kimenet érzékenysége a bemenetre tíz tényező szorzata, és mindegyikben ott van egy $\sigma'(z_k) \le 0{,}25$.
+  Ha a súlyok 1 körüliek, a szorzat legfeljebb kb.
+  $$0{,}25^{10} \approx 9{,}5 \cdot 10^{-7}.$$
+  Az első réteg súlyai milliomodnyi „jelet” kapnak – gyakorlatilag nem tanulnak. Ugyanez a lánc ReLU-val, ha a neuronok aktívak ($z \gt 0$): minden tényező 1, a szorzat 1. A jel átjut.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – ReLU és változatai</span>
+  <ul style="margin:.2rem 0">
+    <li><b>ReLU</b> (<em>rectified linear unit</em>, egyenirányított lineáris egység): $\mathrm{ReLU}(z) = \max(0, z)$; a deriváltja 1, ha $z \gt 0$, és 0, ha $z \lt 0$ (a 0-ban a programok megállapodás szerint 0-t vesznek).</li>
+    <li><b>Szivárgó ReLU</b> (<em>leaky ReLU</em>): $z$, ha $z \gt 0$, különben $0{,}01z$ – a negatív oldalon is van egy kis meredekség.</li>
+    <li><b>GELU:</b> $z\,\Phi(z)$, ahol $\Phi$ a standard normális eloszlásfüggvény – a ReLU sima változata. 📅 Állapot: 2026 – a nagy nyelvi modellek (Transformerek) rejtett rétegeiben ez vagy a hasonló SiLU/SwiGLU a szokásos.</li>
+  </ul>
+  <small>Miért nyert a ReLU? (1) A pozitív oldalon nem telítődik: a deriváltja 1, így mély hálóban sem zsugorodik a jel. (2) Nagyon olcsó: egy összehasonlítás, nincs exponenciális. (3) Sok neuron kimenete pontosan 0, ami gyorsítja a számolást.
+  A mély hálók áttörésében (V. Nair, G. Hinton, 2010; X. Glorot, A. Bordes, Y. Bengio, 2011 – Kiegészítés) a ReLU kulcsszerepet játszott.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy kísérlet a forrásból</span>
+    PDL 10 kísérletében (MNIST, csak 1000 tanító kép) egy 2000–1000–500 rejtett neuronos háló tesztpontossága ReLU-val 0,885, tanh-val 0,877 – <b>szigmoiddal 0,122</b>, alig jobb a 10% körüli találgatásnál.
+    Ugyanaz a háló, csak más aktiváció: a mély szigmoidos háló nem tanult meg semmit.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a halott neuron</span>
+    Egy ReLU neuron súlyai $\mathbf w = (1;\ 1)$, torzítása $b = -10$, a bemenetek a $[0;\ 1]$ tartományban vannak. Ekkor mindig $z \le -8$: a kimenet <b>mindig 0</b>, a derivált is 0 – a gradiens módszer soha nem mozdítja el.
+    A neuron „meghalt”. A szivárgó ReLU ilyenkor is ad $0{,}01$-es meredekséget.
+  </div>
+</div>
+<div class="widget" data-widget="activation-gallery"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók és forráshibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A ReLU enyhíti, nem oldja meg az eltűnő gradienst.</b> MLSYS szerint a ReLU „megoldotta” a problémát. Ha a súlyok 1-nél kisebbek, a ReLU-s lánc is elhal, ha nagyobbak, robban (próbáld ki fent: $w = 0{,}8$ vagy $w = 1{,}5$).
+      Mély hálóhoz jó kezdősúlyok, normalizálás és reziduális kapcsolatok is kellenek (10–11. fejezet). Ugyanott: Nair és Hinton nem „bevezette”, hanem népszerűsítette a ReLU-t – az egyenirányító egységek korábbiak (K. Fukushima, 1969-től).</li>
+    <li><b>Nem a „nulla alatti szorzás” a gond.</b> MLD 14 szerint az eltűnő gradiens a „nulla alatti szorzásokból” jön. A gond az 1-nél <em>kisebb abszolút értékű</em> tényezők szorzata – a $\sigma' \le 0{,}25$ ilyen.</li>
+    <li><b>A szigmoid nem halt ki.</b> HAW 2 szerint a szigmoid és a tanh „a legtöbb esetben alkalmatlan”. Rejtett rétegbe valóban ritkán teszik, de a kimeneten (valószínűség) és a kapuzott hálókban (LSTM, 12. fejezet) ma is alapeszköz.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – ReLU és a mély lánc</summary>
+  <ol>
+    <li>Mennyi a ReLU és a deriváltja a $3$, a $-2$ és a $0{,}5$ pontban? És a szivárgó ReLU a $-2$-ben?
+      <details><summary>Megoldás</summary>ReLU: 3, 0, 0,5; derivált: 1, 0, 1. Szivárgó ReLU: $0{,}01 \cdot (-2) = -0{,}02$, a deriváltja ott $0{,}01$.</details></li>
+    <li>Öt szigmoid réteg után legfeljebb mekkora a $\prod\sigma'$ szorzat (1-es súlyokkal)?
+      <details><summary>Megoldás</summary>$0{,}25^5 \approx 0{,}000\,98$ – már öt rétegnél ezredrészére zsugorodik a jel.</details></li>
+    <li>Négy tanh réteg, mindegyikben $z = 1$ körül. Kb. mekkora a deriváltak szorzata?
+      <details><summary>Megoldás</summary>$\tanh'(1) \approx 0{,}42$, $0{,}42^4 \approx 0{,}031$. Jobb, mint a szigmoid, de a mélységgel ez is gyorsan fogy.</details></li>
+    <li>Egy tíz rétegű ReLU-láncban minden súly $w$, a neuronok aktívak. Mekkora a szorzat $w = 1{,}5$-nél és $w = 0{,}8$-nál?
+      <details><summary>Megoldás</summary>$1{,}5^{10} \approx 57{,}7$ (robbanó gradiens), $0{,}8^{10} \approx 0{,}107$ (eltűnőben). A ReLU csak az aktiváció tényezőjét teszi 1-gyé; a súlyokét nem.</details></li>
+    <li>(nehezebb) Egy ReLU-rétegben a neuronok fele egy hibás tanítási lépés után „meghalt”: minden tanító mintára $z \lt 0$. Miért nem éled fel magától? Mit tehetsz?
+      <details><summary>Megoldás</summary>Mert a deriváltja minden mintán 0, így a súlyai és a torzítása sem kap frissítést – örökre 0 marad. Ellenszer: kisebb tanulási ráta (a túl nagy lépés löki át a neuronokat), szivárgó ReLU vagy GELU, gondos kezdés (10. fejezet).</details></li>
+  </ol>
+</details>
+
+<h3 id="s94-c">3. lépés: a kimeneti réteg – mit adjon ki a háló?</h3>
+<p>A rejtett rétegekben ReLU van. A <b>kimeneti</b> rétegnek viszont a feladathoz kell igazodnia: árat, valószínűséget vagy több osztály eloszlását kell adnia.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – ugyanaz a rejtett réteg, három feladat</span>
+  Legyen egy hálónak 16 rejtett neuronja. Rátehetünk:
+  <ul style="margin:.2rem 0">
+    <li><b>egy neuront aktiváció nélkül</b> → egy tetszőleges szám, pl. egy lakás ára millió forintban;</li>
+    <li><b>egy szigmoid neuront</b> → egy 0 és 1 közötti szám, pl. annak valószínűsége, hogy egy levél spam;</li>
+    <li><b>tíz neuront softmaxszal</b> → tíz pozitív szám, összegük 1: a 0–9 számjegyek valószínűsége.</li>
+  </ul>
+  A háló „teste” ugyanaz, csak a „feje” más.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – a kimeneti réteg a feladathoz igazodik</span>
+  <table style="font-size:.9rem">
+    <tr><th>feladat</th><th>kimeneti neuronok</th><th>kimeneti aktiváció</th><th>szokásos veszteség (10.1)</th></tr>
+    <tr><td>regresszió</td><td>1 (vagy annyi, ahány szám)</td><td>nincs (identitás)</td><td>átlagos négyzetes hiba</td></tr>
+    <tr><td>két osztály</td><td>1</td><td>szigmoid</td><td>bináris keresztentrópia</td></tr>
+    <tr><td>$K$ kizáró osztály</td><td>$K$</td><td>softmax</td><td>keresztentrópia</td></tr>
+    <tr><td>több címke egyszerre</td><td>$K$</td><td>$K$ külön szigmoid</td><td>$K$ bináris keresztentrópia</td></tr>
+  </table>
+  A softmax (<a href="../02-matematikai-eszkoztar/#s25-d">2.5</a>, <a href="../05-osztalyozas/#s54-b">5.4</a>): $\ p_k = \dfrac{e^{z_k}}{\sum_j e^{z_j}}$. A rejtett rétegek <b>jellemzőket tanulnak</b>, a kimeneti réteg ezeken egy <b>lineáris modell</b> – regresszió, logisztikus vagy softmax-regresszió.
+  <br><small>Miért nem ReLU a kimeneten osztályozásnál? Mert a ReLU kimenete nem korlátos és nem összegződik 1-re, tehát nem valószínűség. Regressziónál pedig azért nincs aktiváció, mert az ár bármilyen nagy (vagy negatív) lehet.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – softmax négy osztályra</span>
+    $\mathbf z = (0{,}2;\ 1{,}3;\ 0{,}8;\ 2{,}1)$ → $e^{z_k} \approx 1{,}22;\ 3{,}67;\ 2{,}23;\ 8{,}17$, összegük $15{,}28$ →
+    $\mathbf p \approx (0{,}080;\ 0{,}240;\ 0{,}146;\ 0{,}534)$ (PDL 8 példája). A legnagyobb $z$ kapja a legnagyobb valószínűséget, de a többi sem nulla.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – két osztálynál softmax = szigmoid</span>
+    $\mathbf z = (1;\ 3)$: $p_2 = \dfrac{e^3}{e^1 + e^3} = \dfrac{1}{1 + e^{-2}} = \sigma(2) \approx 0{,}8808$. Két osztálynál a softmax a <em>különbség</em> szigmoidja – ezért elég egyetlen szigmoid neuron.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók és forráshibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A softmax csak a különbségeket nézi.</b> Ha minden $z_k$-hoz ugyanazt adod, a valószínűségek nem változnak, és $p_i/p_j = e^{z_i - z_j}$. DLV 13 egy ábráján a C és B arányát „valamivel több mint 1,5-nek” mondja,
+      pedig $e^{0{,}8 - 0{,}1} = e^{0{,}7} \approx 2{,}01$; azt is írja, hogy a softmax viselkedése attól függ, 1 alattiak vagy felettiek-e a bemenetek – nem függ tőle.</li>
+    <li><b>A softmax kimenete nem feltétlenül megbízható valószínűség.</b> Összege 1, de egy háló lehet túlságosan magabiztos – ezt a kalibráció vizsgálja (<a href="../06-modellertekeles/#s62-d">6.2</a>).</li>
+    <li><b>Két osztályhoz egy kimenet elég.</b> Egy kezdőknek szóló könyv (MLAB 13) kvízében egy kétértékű címkéhez „2 kimeneti csomópont” a helyes válasz – egy szigmoid neuron is elég (a két softmax-neuron ugyanazt tudja, egy fölösleges paraméterkészlettel).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a kimeneti réteg</summary>
+  <ol>
+    <li>Milyen kimeneti réteg kell? (a) holnapi hőmérséklet; (b) visszafizeti-e az ügyfél a hitelt; (c) melyik az öt műfaj közül egy film; (d) mely címkék illenek egy fényképre („tenger”, „kutya”, „naplemente”, …).
+      <details><summary>Megoldás</summary>(a) 1 neuron, aktiváció nélkül; (b) 1 szigmoid neuron; (c) 5 neuron softmaxszal; (d) annyi szigmoid neuron, ahány címke – egy kép lehet egyszerre „tenger” és „naplemente”, a valószínűségek összege 1-nél több is lehet.</details></li>
+    <li>Mennyi a softmax a $\mathbf z = (0;\ 0;\ \ln 2)$ vektorra?
+      <details><summary>Megoldás</summary>$e^{z_k} = 1, 1, 2$, összeg 4: $\mathbf p = (0{,}25;\ 0{,}25;\ 0{,}5)$.</details></li>
+    <li>Mennyi a softmax a $(10{,}2;\ 11{,}3;\ 10{,}8;\ 12{,}1)$ vektorra? (Tipp: hasonlítsd össze a fenti példával.)
+      <details><summary>Megoldás</summary>Minden elem 10-zel nagyobb, mint a példában, így a softmax ugyanaz: $(0{,}080;\ 0{,}240;\ 0{,}146;\ 0{,}534)$. (A programok ezért vonják ki a legnagyobb $z$-t, hogy az $e^z$ ne csorduljon túl.)</details></li>
+    <li>Két osztály, $\mathbf z = (2;\ -1)$. Mekkora az első osztály valószínűsége?
+      <details><summary>Megoldás</summary>$\sigma(2 - (-1)) = \sigma(3) \approx 0{,}9526$.</details></li>
+    <li>(nehezebb) Miért nem jó a softmax helyett egyszerűen elosztani minden $z_k$-t az összegükkel?
+      <details><summary>Megoldás</summary>Mert a $z_k$ negatív is lehet (negatív „valószínűség”), az összeg lehet 0 is; és a hányados függ az eltolástól. A példán: $2{,}1/4{,}4 \approx 0{,}477$ jönne ki $0{,}534$ helyett – ráadásul $(−1;\ 2)$-re $-1$ és $2$ lenne a két „valószínűség”. Az exponenciális mindig pozitív, és csak a különbségek számítanak.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai9-94"></div>
+</section>
+
+<!-- ===================================================== 9.5 -->
+<section id="s95">
+<h2>9.5 Miért működik? Univerzális közelítés ★★</h2>
+<p>Két rejtett neuron megoldotta a XOR-t, három a háromváltozós paritást. Meddig mehetünk el? Meglepő a válasz: elég sok neuronnal <b>egyetlen rejtett réteg</b> bármilyen folytonos összefüggést tetszőlegesen jól közelít.
+Előbb egy dimenzióban, ReLU-val, kézzel rakjuk össze – aztán kimondjuk, mit állít (és mit nem) a tétel.</p>
+
+<h3 id="s95-a">1. lépés: görbe ReLU-darabokból</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – zsanérokból sátor és parabola</span>
+  Egy ReLU-neuron egy bemenettel, $c\cdot\mathrm{ReLU}(x - t)$, egy <b>zsanér</b>: a $t$ pontig 0, utána $c$ meredekséggel emelkedik. Zsanérokat összeadva törött vonalakat kapunk:
+  <ul style="margin:.2rem 0">
+    <li>$\mathrm{ReLU}(x) + \mathrm{ReLU}(-x) = |x|$ – két neuron, egy „V”;</li>
+    <li>$\mathrm{ReLU}(x) - 2\,\mathrm{ReLU}(x - 1) + \mathrm{ReLU}(x - 2)$ – egy „sátor”: $x = 0$-ban 0, $x = 1$-ben 1, $x = 2$-től újra 0 ($2 - 2 = 0$, $3 - 4 + 1 = 0$);</li>
+    <li>$g(x) = \mathrm{ReLU}(x) + 2\,\mathrm{ReLU}(x - 1)$ a $[0;\ 2]$ szakaszon: $g(0) = 0$, $g(1) = 1$, $g(2) = 2 + 2 = 4$ – pontosan az $x^2$ értékei a 0, 1, 2 pontokban, közöttük egyenes szakaszokkal.</li>
+  </ul>
+  Az $x^2$-től a legnagyobb eltérés $0{,}25$ (az $x = 0{,}5$ és az $x = 1{,}5$ pontban). Két neuron – egy durva, de felismerhető parabola.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – törött vonal egy rejtett réteggel</span>
+  Válassz a $[a;\ b]$ szakaszon $n + 1$ osztópontot, $t_0 = a \lt t_1 \lt \dots \lt t_n = b$, és legyen $s_k$ az $f$ húrjának meredeksége a $[t_k;\ t_{k+1}]$ darabon. Ekkor
+  $$g(x) = f(t_0) + \sum_{k=0}^{n-1} c_k\,\mathrm{ReLU}(x - t_k), \qquad c_0 = s_0,\quad c_k = s_k - s_{k-1},$$
+  a $[a;\ b]$-n az $f$ osztópontokon átmenő törött vonala. Ez egy rejtett rétegű háló $n$ ReLU-neuronnal: a $k$-adik neuron súlya 1, torzítása $-t_k$; a kimeneti súlyok a $c_k$-k, a kimeneti torzítás $f(t_0)$.
+  <br><small>Miért? A $k$-adik zsanér a $t_k$ pontban „bekapcsol”, és onnantól $c_k$-val megváltoztatja a meredekséget. Az első darabon a meredekség $c_0 = s_0$, a másodikon $c_0 + c_1 = s_1$, és így tovább.
+  Minél sűrűbbek az osztópontok, annál jobban simul a törött vonal a görbéhez – folytonos $f$-nél a hiba tetszőlegesen kicsi lehet.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – négy neuron, negyedannyi hiba</span>
+    Az $x^2$ a $[0;\ 2]$-n, osztópontok $0;\ 0{,}5;\ 1;\ 1{,}5;\ 2$. A meredekségek $0{,}5;\ 1{,}5;\ 2{,}5;\ 3{,}5$, így $c = 0{,}5;\ 1;\ 1;\ 1$:
+    $$g(x) = 0{,}5\,\mathrm{ReLU}(x) + \mathrm{ReLU}(x - 0{,}5) + \mathrm{ReLU}(x - 1) + \mathrm{ReLU}(x - 1{,}5).$$
+    A legnagyobb hiba $0{,}0625$. Általában $n$ darabbal pontosan $1/n^2$: kétszer annyi neuron – negyedannyi hiba.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a szinusz</span>
+    A $\sin x$ a $[0;\ 2\pi]$-n egyenlő darabokkal: 4 neuronnal a legnagyobb hiba kb. $0{,}21$, 10-zel $0{,}049$, 20-szal $0{,}012$. A hullám alakja 10 darabnál már szemmel alig különbözik az eredetitől.
+  </div>
+</div>
+<div class="widget" data-widget="relu-sum"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Csak a szakaszon belül.</b> A $[a;\ b]$-n kívül a $g$ egyenes: az $x^2$ kétneuronos közelítése $x = 3$-ban $g(3) = 3 + 2\cdot 2 = 7$, a valódi érték 9. Egy háló a tanító adat tartományán kívül nem „tudja” a függvényt (<a href="../06-modellertekeles/#s64-c">6.4</a>).</li>
+    <li><b>Ugrást nem tud pontosan.</b> Folytonos darabokból folytonos függvény jön ki; a szemléltetés „lépcső” célfüggvényénél a legnagyobb hiba sosem csökken 0,5 alá.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – ReLU-darabok</summary>
+  <ol>
+    <li>Mennyi a „sátor”, $\mathrm{ReLU}(x) - 2\,\mathrm{ReLU}(x - 1) + \mathrm{ReLU}(x - 2)$, értéke a $0{,}5$, az $1{,}5$ és a $-1$ pontban?
+      <details><summary>Megoldás</summary>$0{,}5$: $0{,}5 - 0 + 0 = 0{,}5$. $1{,}5$: $1{,}5 - 1 + 0 = 0{,}5$. $-1$: $0$. A sátor csúcsa az 1-ben van (1), a $[0;\ 2]$-n kívül 0.</details></li>
+    <li>Adj meg egy ReLU-hálót, amelynek törött vonala átmegy a $(0;\ 1)$, $(1;\ 3)$, $(2;\ 2)$, $(3;\ 2)$ pontokon!
+      <details><summary>Megoldás</summary>Meredekségek: $2;\ -1;\ 0$, tehát $c_0 = 2$, $c_1 = -3$, $c_2 = 1$: $g(x) = 1 + 2\,\mathrm{ReLU}(x) - 3\,\mathrm{ReLU}(x - 1) + \mathrm{ReLU}(x - 2)$. Ellenőrzés: $g(2) = 1 + 4 - 3 = 2$, $g(3) = 1 + 6 - 6 + 1 = 2$. ✓</details></li>
+    <li>Az $x^2$ közelítésének hibája a $[0;\ 2]$-n $n$ egyenlő darabbal $1/n^2$. Mennyi 5 neuronnal? Hány neuron kell, hogy a hiba legfeljebb 0,0001 legyen?
+      <details><summary>Megoldás</summary>5 neuronnal $1/25 = 0{,}04$. $1/n^2 \le 0{,}0001 \iff n \ge 100$.</details></li>
+    <li>A négyneuronos $x^2$-közelítés (fenti példa) mennyit ad az $x = 3$-ban? Mennyi a hiba?
+      <details><summary>Megoldás</summary>$0{,}5\cdot 3 + 2{,}5 + 2 + 1{,}5 = 7{,}5$; a valódi érték 9, a hiba 1,5 – a tartományon belüli hiba 24-szerese. A darabok számának növelése ezen nem segít.</details></li>
+    <li>(nehezebb) Írd fel ReLU-kkal a „levágott rámpát”, amely $x \le 0$-ra 0, $0 \le x \le 1$-re $x$, $x \ge 1$-re 1! Hogyan közelít ebből egy meredek változat egy lépcsőt?
+      <details><summary>Megoldás</summary>$\mathrm{ReLU}(x) - \mathrm{ReLU}(x - 1)$. A meredek változat: $\mathrm{ReLU}(kx) - \mathrm{ReLU}(kx - 1)$, amely $0$ és $1/k$ között emelkedik 0-ról 1-re. Nagy $k$-nál ez szinte lépcső – a hiba csak a $[0;\ 1/k]$ keskeny sávban nagy.</details></li>
+  </ol>
+</details>
+
+<h3 id="s95-b">2. lépés: a tétel – mit állít, és mit nem?</h3>
+<p>Egy dimenzióban ReLU-val kézzel megcsináltuk. Igaz-e ez több bemenettel, más aktivációval is? Igen – ezt mondja ki az univerzális közelítés tétele.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két bemenet, egy „domb”</span>
+  Két bemenetnél egy rejtett neuron nem zsanért, hanem egy „lejtőt” ad: egy egyenes mentén kezd emelkedni (<a href="#s91-c">9.1</a>). Négy lejtőből – két párhuzamos pár, egymásra merőlegesen – egy keskeny „domb” rakható össze, amely egy kis tartományban magas, máshol alacsony
+  (egy kimeneti küszöbbel a négy lejtő „ÉS”-éből). Ilyen dombokból, mint legókockákból, bármilyen felület felépíthető – csak elég sok kell belőlük.
+</div>
+<div class="box thm">
+  <span class="box-title">Tétel – univerzális közelítés (G. Cybenko, 1989; K. Hornik, 1991; M. Leshno és társai, 1993) – Kiegészítés</span>
+  Legyen $f$ egy <b>folytonos</b> függvény egy korlátos, zárt $K \subset \mathbb R^n$ halmazon, és $\varepsilon \gt 0$. Ha az aktivációs függvény folytonos és <b>nem polinom</b> (pl. szigmoid, tanh, ReLU), akkor van olyan
+  <b>egy rejtett rétegű</b> háló, amelyre minden $\mathbf x \in K$ esetén
+  $$\big|f(\mathbf x) - g(\mathbf x)\big| \lt \varepsilon.$$
+  <small>Miért igaz? A 9.5 1. lépésének gondolata általánosítható: a rejtett neuronokból „dombok” rakhatók össze, és a dombokból bármely folytonos felület tetszőlegesen jól közelíthető. Cybenko szigmoidra bizonyította, Hornik általánosabb aktivációkra; Leshno és társai megmutatták, hogy pontosan a polinom aktivációk a kivételek (polinomok összege polinom – ez nem lehet tetszőleges).
+  A tételt a forrásaink csak említik vagy pontatlanul mondják ki, ezért kiegészítésként jelöljük.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – amit a tétel ígér</span>
+    A $\sin x$ a $[0;\ 2\pi]$-n, $\varepsilon = 0{,}05$: a tétel szerint létezik ilyen pontosságú háló. Az 1. lépés konstrukciója meg is adja: 10 ReLU-neuron (hiba $0{,}049$).
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – amit nem ígér</span>
+    A tétel nem mondja meg, <b>hány</b> neuron kell. Egy dimenzióban 10 darab elég volt; ha minden irányban 10 darabot akarunk, $n$ bemenetnél ez kb. $10^n$ „domb” – 64 pixelnél csillagászati szám.
+    A tétel azt sem mondja meg, hogyan <b>találjuk meg</b> a súlyokat, sem azt, hogy a véges adatból tanult háló <b>új adaton</b> is jól működik.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabály – „létezik”, nem „megtanulja”</span>
+  Az univerzális közelítés <b>létezési</b> tétel: van jó háló. Hogy a tanítás megtalálja-e (10. fejezet), és hogy új adaton is jó-e (6. fejezet), az külön kérdés. Egy polinom vagy egy nagyon mély döntési fa is „univerzális” – a neurális hálót nem ez teszi különlegessé.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Forráshibák – a tétel túlzó változatai</span>
+  <ul style="margin:.2rem 0">
+    <li>MLD 14: néhány réteg „tökéletes univerzális közelítő”, amely „bármilyen lehetséges matematikai függvényt” megtanul. – Csak <b>folytonos</b> függvényt, csak <b>korlátos tartományon</b>, csak <b>közelítőleg</b>, és csak a <b>létezést</b> állítja.</li>
+    <li>PDL 8: „bebizonyították, hogy egy elég sok csomópontú rejtett réteg bármilyen leképezést meg tud tanulni”. – Közelíteni tud, megtanulni nem feltétlenül.</li>
+    <li>MLSYS: a hálók „elméletben bármilyen függvényt megtanulhatnak”. Ugyanez a könyv máshol helyesen fogalmaz („kompakt tartományon folytonos függvényt közelít”, és „nem mondja meg, hány neuron kell”) – a két megfogalmazás ellentmond egymásnak. Ugyanitt Hornik cikkét egyszer 1989-re, egyszer 1991-re teszi: mindkettő létezik (Hornik–Stinchcombe–White 1989, Hornik 1991).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – igaz vagy hamis?</summary>
+  <ol>
+    <li>„Egy rejtett rétegű háló elég sok neuronnal bármely folytonos függvényt tetszőleges pontossággal közelít a $[0;\ 1]$ szakaszon.”
+      <details><summary>Megoldás</summary>Igaz – ez maga a tétel (a $[0;\ 1]$ korlátos és zárt).</details></li>
+    <li>„A tétel megmondja, hány rejtett neuron kell egy adott pontossághoz.”
+      <details><summary>Megoldás</summary>Hamis. Csak a létezést állítja; a szükséges szám nagy dimenzióban óriási lehet.</details></li>
+    <li>„Lineáris aktivációval is igaz a tétel.”
+      <details><summary>Megoldás</summary>Hamis. Lineáris aktivációval az egész háló lineáris (<a href="#s93-c">9.3</a>); a lineáris függvény polinom, tehát kivétel.</details></li>
+    <li>„Ha egy háló a tanító adaton tökéletes, a tétel garantálja, hogy új adaton is az.”
+      <details><summary>Megoldás</summary>Hamis. A tétel a függvény közelíthetőségéről szól, nem az általánosításról. Egy nagy háló a zajt is megtanulhatja (túlillesztés, <a href="../03-tanulas-anatomiaja/#s35-b">3.5</a>).</details></li>
+    <li>(nehezebb) Miért nem lehet $x^2$ aktivációjú (polinom) neuronokból univerzális közelítőt építeni?
+      <details><summary>Megoldás</summary>Egy rejtett rétegben a kimenet $\sum_k c_k(\mathbf w_k^\top\mathbf x + b_k)^2 + c$ – ez egy legfeljebb másodfokú polinom, akárhány neuron van. Egy másodfokú polinom pedig pl. a $\sin x$-et a $[0;\ 2\pi]$-n nem közelítheti tetszőlegesen jól.</details></li>
+  </ol>
+</details>
+
+<h3 id="s95-c">3. lépés: mélység vagy szélesség?</h3>
+<p>Ha egy rejtett réteg is elég, miért használ mindenki <b>mély</b> hálót, sok réteggel? Mert a mélység bizonyos függvényeket <b>sokkal kevesebb</b> neuronból rak össze.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a hajtogatás</span>
+  Két ReLU-neuron: $T(x) = 2\,\mathrm{ReLU}(x) - 4\,\mathrm{ReLU}(x - 0{,}5)$. A $[0;\ 1]$-en ez egy sátor: $T(0) = 0$, $T(0{,}5) = 1$, $T(1) = 2 - 2 = 0$. A szakaszt középen „összehajtja”, és kinyújtja a $[0;\ 1]$-re.
+  <table style="max-width:640px;font-size:.86rem;text-align:center">
+    <tr><th>$x$</th><td>0</td><td>1/8</td><td>2/8</td><td>3/8</td><td>4/8</td><td>5/8</td><td>6/8</td><td>7/8</td><td>1</td></tr>
+    <tr><th>$T(x)$</th><td>0</td><td>0,25</td><td>0,5</td><td>0,75</td><td>1</td><td>0,75</td><td>0,5</td><td>0,25</td><td>0</td></tr>
+    <tr><th>$T(T(x))$</th><td>0</td><td>0,5</td><td>1</td><td>0,5</td><td>0</td><td>0,5</td><td>1</td><td>0,5</td><td>0</td></tr>
+    <tr><th>$T(T(T(x)))$</th><td>0</td><td>1</td><td>0</td><td>1</td><td>0</td><td>1</td><td>0</td><td>1</td><td>0</td></tr>
+  </table>
+  Egy réteg (2 neuron): 2 egyenes darab. Két réteg egymás után (4 neuron): 4 darab. Három réteg (6 neuron): 8 darabos fűrészfog. Minden új réteg <b>megduplázza</b> a darabok számát.
+</div>
+<div class="box thm">
+  <span class="box-title">Tétel – a mélység szorozza, a szélesség összeadja a darabokat (M. Telgarsky, 2016 – Kiegészítés)</span>
+  <ul style="margin:.2rem 0">
+    <li>$L$ rétegben rétegenként 2 ReLU-neuronnal (összesen $2L$ neuron) előállítható egy $2^L$ lineáris darabból álló fűrészfog a $[0;\ 1]$-en.</li>
+    <li>Egy rejtett rétegű, egybemenetű ReLU-háló minden neuronja legfeljebb <b>egy</b> töréspontot ad, így $2^L$ darabhoz legalább $2^L - 1$ neuron kell.</li>
+  </ul>
+  <small>Miért? Egy rétegben a zsanérok csak összeadódnak: $n$ neuron legfeljebb $n$ törés. Rétegeket egymás után kötve viszont a második réteg az első réteg <em>minden</em> darabján újra töréseket csinál – a darabok száma szorzódik.
+  $L = 10$-nél: 20 neuron mélyen, legalább 1023 szélesen.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy kísérlet: azonos méret, több réteg</span>
+    PDL 10 kísérletében (MNIST, 1000 tanító kép) a közel azonos paraméterszámú hálók közül (pl. 1000 rejtett neuron egy rétegben: 795 010 paraméter; 700–350 két rétegben: 798 360; 660–330–165 háromban: 792 505)
+    az egyrétegűtől a kétrétegűig nagyot, a háromrétegűig kisebbet javult a pontosság. A szerző óvatos: „lesznek esetek, amikor ez nem működik” – de a több réteg <em>segíthet</em>.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a hierarchia</span>
+    Egy kép felismerésénél a természetes leírás is rétegzett: pixelek → élek → ívek, sarkok → hurkok, vonalak → számjegyek. Egy mély háló minden rétege az előző réteg jellemzőiből épít bonyolultabbakat;
+    egy sekély hálónak mindezt egyetlen lépésben kellene „felsorolnia” (11. fejezet).
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktató – több réteg nem mindig jobb</span>
+  A mélység <b>képességet</b> ad, nem garanciát. A mélyebb hálót nehezebb tanítani (eltűnő gradiens, <a href="#s94-b">9.4</a>), és több adat kell hozzá. HAW 4 egy 1600 bemenetű feladaton egy 100–50-es kétrétegű hálóval 75,8%-ot, egy egyrétegű, 400 neuronossal 77,0%-ot mért;
+  a legjobb hálója (77,4%) is alulmaradt egy véletlen erdővel (83,3%) szemben. Táblázatos adatokon gyakran a fák nyernek (<a href="../07-fak-svm-egyuttes/#s77-b">7.7</a>).
+  A mély hálók igazi terepe a nagy, nyers adat: kép, hang, szöveg.
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – mélység és szélesség</summary>
+  <ol>
+    <li>Mennyi $T(0{,}3)$, $T(T(0{,}3))$?
+      <details><summary>Megoldás</summary>$T(0{,}3) = 0{,}6$ (az emelkedő ágon $2x$). $T(0{,}6) = 2\cdot 0{,}6 - 4\cdot 0{,}1 = 0{,}8$ (a csökkenő ágon $2 - 2x$).</details></li>
+    <li>Hány lineáris darabja van $T$ ötszörös egymásutánjának? Hány neuron kell hozzá mélyen, és legalább hány egy rétegben?
+      <details><summary>Megoldás</summary>$2^5 = 32$ darab; mélyen $2 \cdot 5 = 10$ neuron; egy rétegben legalább $31$.</details></li>
+    <li>Egy rejtett rétegű, egybemenetű ReLU-hálónak 7 rejtett neuronja van. Legfeljebb hány lineáris darabból állhat a kimenete?
+      <details><summary>Megoldás</summary>Legfeljebb 7 töréspont, tehát legfeljebb 8 darab.</details></li>
+    <li>Melyik nagyobb háló: egy 1000 neuronos egy rejtett rétegű vagy a 700–350-es kétrétegű, ha mindkettőnek 784 bemenete és 10 kimenete van? (A paraméterszámolás a <a href="#s96-b">9.6</a>-ban jön; most elég a fenti példa.)
+      <details><summary>Megoldás</summary>Szinte ugyanakkorák: 795 010, illetve 798 360 paraméter. Ezért értelmes az összevetésük: a különbség a szerkezetből, nem a méretből jön.</details></li>
+    <li>(nehezebb) Ha a mélység ennyire hatékony, miért nem használunk mindig 100 réteget?
+      <details><summary>Megoldás</summary>Mert (1) a mély hálót nehéz tanítani: a gradiens eltűnhet vagy robbanhat, kellenek a 10–11. fejezet trükkjei (jó kezdés, normalizálás, reziduális kapcsolat); (2) több paraméter több adatot és számítást kíván, és könnyebben túlilleszt;
+        (3) sok feladathoz nem kell ilyen bonyolult függvény – kis adaton egy egyszerű modell gyakran jobb.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai9-95"></div>
+</section>
+
+<!-- ===================================================== 9.6 -->
+<section id="s96">
+<h2>9.6 Előre irányuló számítás és paraméterszám ★★</h2>
+<p>Minden alkatrész megvan: neuron, réteg, aktiváció. Most egy bemenetet végigviszünk egy egész hálón – ezt csinálja a háló minden egyes jóslatnál –, és megszámoljuk, hány „csavarja” van.</p>
+
+<h3 id="s96-a">1. lépés: egy bemenet útja a hálón át</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy 2–3–2-es osztályozó</span>
+  Két bemenet, három ReLU-s rejtett neuron, két kimeneti neuron softmaxszal. A súlyok:
+  $$W_1 = \begin{pmatrix} 1 & -1 \\ 0{,}5 & 0{,}5 \\ -1 & 1 \end{pmatrix},\ \mathbf b_1 = \begin{pmatrix} 0{,}5 \\ -1 \\ 0 \end{pmatrix};\qquad W_2 = \begin{pmatrix} 1 & 2 & -1 \\ -1 & 0 & 1 \end{pmatrix},\ \mathbf b_2 = \begin{pmatrix} 0 \\ 0{,}5 \end{pmatrix}.$$
+  A bemenet $\mathbf x = (1;\ 2)$. Négy lépés:
+  <ol style="margin:.2rem 0">
+    <li>rejtett súlyozott összeg: $\mathbf z_1 = W_1\mathbf x + \mathbf b_1 = (1 - 2 + 0{,}5;\ 0{,}5 + 1 - 1;\ -1 + 2 + 0) = (-0{,}5;\ 0{,}5;\ 1)$;</li>
+    <li>rejtett aktiváció: $\mathbf h = \mathrm{ReLU}(\mathbf z_1) = (0;\ 0{,}5;\ 1)$ – az első neuron most „hallgat”;</li>
+    <li>kimeneti súlyozott összeg: $\mathbf z_2 = W_2\mathbf h + \mathbf b_2 = (0 + 1 - 1 + 0;\ 0 + 0 + 1 + 0{,}5) = (0;\ 1{,}5)$;</li>
+    <li>softmax: $\mathbf p = \left(\dfrac{1}{1 + e^{1{,}5}};\ \dfrac{e^{1{,}5}}{1 + e^{1{,}5}}\right) \approx (0{,}182;\ 0{,}818)$.</li>
+  </ol>
+  A háló 81,8%-os valószínűséggel a 2. osztályt mondja.
+</div>
+<div class="box def">
+  <span class="box-title">Algoritmus – előre irányuló számítás (forward pass)</span>
+  $\mathbf h^{(0)} = \mathbf x$, majd rétegenként $\ell = 1, \dots, L$:
+  $$\mathbf z^{(\ell)} = W^{(\ell)}\mathbf h^{(\ell-1)} + \mathbf b^{(\ell)}, \qquad \mathbf h^{(\ell)} = \varphi\big(\mathbf z^{(\ell)}\big),$$
+  az utolsó rétegben a kimeneti aktivációval ($\psi$: identitás, szigmoid vagy softmax). A kimenet $\hat{\mathbf y} = \mathbf h^{(L)}$.
+  <br><small>Miért „előre”? Mert a jel a bemenettől a kimenet felé halad, rétegről rétegre, minden réteg csak az előző eredményét használja. Tanításkor a $\mathbf z^{(\ell)}$ és $\mathbf h^{(\ell)}$ értékeket el is tároljuk: a 10. fejezet <b>visszaterjesztése</b> ezekből számolja visszafelé a gradienst.
+  Tanítás után a jóslat (<em>inference</em>, következtetés) csak ennyi: néhány mátrixszorzás és aktiváció.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – ugyanaz a háló, más bemenet</span>
+    $\mathbf x = (2;\ 0)$: $\mathbf z_1 = (2{,}5;\ 0;\ -2)$, $\mathbf h = (2{,}5;\ 0;\ 0)$, $\mathbf z_2 = (2{,}5;\ -2)$, $\mathbf p \approx (0{,}989;\ 0{,}011)$. Most csak az első rejtett neuron aktív, és a háló szinte biztosan az 1. osztályt mondja.
+    Más bemenetnél <b>más neuronok „kapcsolnak be”</b> – a ReLU-háló darabonként lineáris.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy borfelismerő (HAW 4)</span>
+    Három standardizált jellemző, két ReLU-s rejtett neuron, egy szigmoid kimenet. Az első minta $\mathbf x = (-0{,}7359;\ 0{,}9795;\ -0{,}1333)$:
+    $z_1 \approx -0{,}2028$ → $h_1 = 0$; $z_2 \approx 0{,}1720$ → $h_2 = 0{,}172$; kimenet $0{,}3031\cdot 0 - 1{,}6134\cdot 0{,}172 + 2{,}2277 \approx 1{,}950$, $\sigma \approx 0{,}8755$ → 1. osztály.
+    (Az első jellemző a nyers 12,29%-os alkoholtartalom standardizálva – a hálónak ugyanúgy előfeldolgozott bemenet kell, mint tanításkor.)
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Ugyanaz az előfeldolgozás.</b> Ha a hálót standardizált adaton tanították, a jóslatnál is ugyanazzal az átlaggal és szórással kell standardizálni (<a href="../04-adatok-es-jellemzok/#s47-b">4.7</a>) – különben a háló értelmetlen számokat kap.</li>
+    <li><b>Kerekítés.</b> Kézi számolásnál a köztes értékeket ne kerekítsd túl korán: a softmax és a szigmoid érzékeny a $z$ kis eltéréseire.</li>
+    <li><b>A forrásban is lehet hiba.</b> HAW 4 a fenti háló második mintájára 0,4883-at közöl (tehát rossz osztályt); a könyv saját súlyaival 0,5578 jön ki – lásd a gyakorlást.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – előre irányuló számítás</summary>
+  <ol>
+    <li>Egy 2–2–1-es háló: $W_1 = \begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix}$, $\mathbf b_1 = \mathbf 0$, ReLU; kimenet $y = h_1 + h_2 - 1$ (aktiváció nélkül). Mennyi $y$ az $\mathbf x = (1;\ 2)$ és az $\mathbf x = (2;\ 1)$ bemenetre?
+      <details><summary>Megoldás</summary>$(1;\ 2)$: $\mathbf z_1 = (3;\ -1)$, $\mathbf h = (3;\ 0)$, $y = 2$. $(2;\ 1)$: $\mathbf z_1 = (3;\ 1)$, $\mathbf h = (3;\ 1)$, $y = 3$. A második rejtett neuron csak akkor szól bele, ha $x_1 \gt x_2$.</details></li>
+    <li>A borfelismerő második mintája $\mathbf x = (0{,}0967;\ -1{,}2138;\ -1{,}0500)$. A rejtett súlyok: $(0{,}4716;\ 0{,}0399;\ -0{,}3902)$, torzítás $0{,}0532$, illetve $(1{,}5013;\ -0{,}0690;\ 0{,}2728)$, torzítás $1{,}3808$. Mi a kimenet?
+      <details><summary>Megoldás</summary>$z_1 \approx 0{,}0456 - 0{,}0484 + 0{,}4097 + 0{,}0532 \approx 0{,}4601$; $z_2 \approx 0{,}1452 + 0{,}0838 - 0{,}2864 + 1{,}3808 \approx 1{,}3233$; mindkettő pozitív, a ReLU nem változtat.
+        Kimenet: $0{,}3031\cdot 0{,}4601 - 1{,}6134\cdot 1{,}3233 + 2{,}2277 \approx 0{,}2322$, $\sigma \approx 0{,}5578$ → 1. osztály. A könyv 0,4883-at ír – ez a saját súlyaival nem jön ki.</details></li>
+    <li>A kiinduló példa hálója mit mond az $\mathbf x = (0;\ 0)$ bemenetre?
+      <details><summary>Megoldás</summary>$\mathbf z_1 = \mathbf b_1 = (0{,}5;\ -1;\ 0)$, $\mathbf h = (0{,}5;\ 0;\ 0)$, $\mathbf z_2 = (0{,}5;\ -0{,}5 + 0{,}5) = (0{,}5;\ 0)$, $\mathbf p = \left(\frac{e^{0{,}5}}{e^{0{,}5} + 1};\ \dots\right) \approx (0{,}622;\ 0{,}378)$. Csupa nulla bemenetnél is a torzítások döntenek.</details></li>
+    <li>Hány szorzást végez a kiinduló példa hálója egy bemeneten (a softmaxot nem számítva)?
+      <details><summary>Megoldás</summary>Az első rétegben $3 \times 2 = 6$, a másodikban $2 \times 3 = 6$: összesen 12 – pontosan annyi, ahány súly van. Minden súly mintánként egyszer „dolgozik”.</details></li>
+    <li>(nehezebb) Számold ki a kiinduló háló kimenetét egyszerre a $(1;\ 2)$ és a $(2;\ 0)$ bemenetre, mátrixosan ($X$ sorai a minták)!
+      <details><summary>Megoldás</summary>$XW_1^\top + \mathbf b_1^\top = \begin{pmatrix} -0{,}5 & 0{,}5 & 1 \\ 2{,}5 & 0 & -2 \end{pmatrix}$, ReLU: $H = \begin{pmatrix} 0 & 0{,}5 & 1 \\ 2{,}5 & 0 & 0 \end{pmatrix}$,
+        $HW_2^\top + \mathbf b_2^\top = \begin{pmatrix} 0 & 1{,}5 \\ 2{,}5 & -2 \end{pmatrix}$, soronkénti softmax: $(0{,}182;\ 0{,}818)$ és $(0{,}989;\ 0{,}011)$.</details></li>
+  </ol>
+</details>
+
+<h3 id="s96-b">2. lépés: hány csavar? A paraméterszám</h3>
+<p>A háló „tudása” a súlyaiban és torzításaiban van – ezeket hívjuk <b>paramétereknek</b>, ezeket állítja be a tanítás. Hányan vannak?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a XOR-háló csavarjai</span>
+  A 2–2–1-es XOR-háló rejtett rétegében mindkét neuronnak 2 súlya és 1 torzítása van: $2 \cdot 2 + 2 = 6$. A kimeneti neuronnak 2 súlya és 1 torzítása: $2 + 1 = 3$. Összesen <b>9</b> paraméter.
+  A bemeneti „rétegnek” nincs paramétere – csak továbbadja a két számot.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – paraméterek egy teljesen összekötött hálóban</span>
+  Egy $n_{\text{be}} \to n_{\text{ki}}$ rétegben $n_{\text{ki}}\cdot n_{\text{be}}$ súly és $n_{\text{ki}}$ torzítás van: $(n_{\text{be}} + 1)\cdot n_{\text{ki}}$ paraméter. Egy $n_0$–$n_1$–…–$n_L$ hálóban
+  $$P = \sum_{\ell=1}^{L} (n_{\ell-1} + 1)\, n_\ell.$$
+  <small>Miért fontos? (1) A <b>tárolás</b>: 32 bites számokkal paraméterenként 4 bájt. (2) A <b>számítás</b>: egy bemenet feldolgozása kb. annyi szorzás-összeadás, ahány súly van. (3) A <b>túlillesztés</b>: sok paraméter sok adatot kíván (<a href="../03-tanulas-anatomiaja/#s35-b">3.5</a>).</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – 784–128–10 (MNIST)</span>
+    Egy 28 × 28-as kép 784 pixele, 128 rejtett neuron, 10 kimenet:
+    $784 \cdot 128 + 128 = 100\,480$, és $128 \cdot 10 + 10 = 1290$. Összesen <b>101 770</b> paraméter; 32 biten kb. 407 kB, képenként kb. 101 632 szorzás-összeadás.
+    A paraméterek 98,7%-a az első rétegben van.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – 2–8–8–1 (holdak, MLD 14)</span>
+    $2 \cdot 8 + 8 = 24$, $8 \cdot 8 + 8 = 72$, $8 \cdot 1 + 1 = 9$: összesen <b>105</b>. (A könyv Keras-modelljében egy „Dropout” réteg is van – annak nincs paramétere, 10. fejezet.)
+  </div>
+</div>
+<div class="widget" data-widget="param-counter"></div>
+<div class="box tip">
+  <span class="box-title">💡 Nagyságrendek – 📅 Állapot: 2026</span>
+  A fejezet végi számjegyfelismerő 1210, egy egyszerű MNIST-háló kb. százezer, egy közepes képfelismerő több tízmillió paraméteres. A nagy nyelvi modelleké milliárdos nagyságrendű: egy 8 milliárd paraméteres modell 16 bites számokkal
+  $8 \cdot 10^9 \cdot 2\ \text{bájt} = 16$ GB memóriát foglal – már egy erős videokártyát is megtölt (16. és 22. fejezet).
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók és forráshibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A torzításokat ne felejtsd el!</b> 784–128–10-nél csak a súlyok: 101 632 – a helyes 101 770. Kevés, de a vizsgán rossz.</li>
+    <li><b>Nem a neuronokat számoljuk</b> ($784 + 128 + 10 = 922$), és <b>nem a rétegméretek szorzatát</b> ($784 \cdot 128 \cdot 10 = 1\,003\,520$).</li>
+    <li><b>A kapcsolat nem mindig paraméter.</b> Teljesen összekötött rétegben minden kapcsolatnak saját súlya van. A konvolúciós hálókban sok kapcsolat <em>közös</em> súlyt használ: ESL 11 egyik hálójában 2266 kapcsolat, de csak 1132 súly van (11. fejezet).</li>
+    <li><b>A torzítás aránya kicsi.</b> MLSYS szerint a torzítások „tipikusan a paraméterek 1–5%-át” teszik ki – a könyv saját példáiban 0,11–0,23% (pl. 784–128–64–10: 202 a 109 386-ból). Széles rétegekben a súlyok vannak túlsúlyban.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – paraméterszámolás</summary>
+  <ol>
+    <li>Hány paramétere van egy 784–100–10-es hálónak? És a 784–100–100–10-esnek?
+      <details><summary>Megoldás</summary>$78\,400 + 100 + 1000 + 10 = 79\,510$. A másodiknál egy $100 \cdot 100 + 100 = 10\,100$ paraméteres réteggel több: $89\,610$.</details></li>
+    <li>Egy 4 bemenetű, 5 rejtett és 2 kimeneti neuronos háló (MLAB 13 példája) – hány paraméter?
+      <details><summary>Megoldás</summary>$4 \cdot 5 + 5 = 25$, $5 \cdot 2 + 2 = 12$: összesen 37.</details></li>
+    <li>DLV 13 szerint egy 4 neuronos réteg után következő 3 neuronos teljesen összekötött rétegben 12 kapcsolat van. Hány paramétere van ennek a rétegnek?
+      <details><summary>Megoldás</summary>12 súly + 3 torzítás = 15.</details></li>
+    <li>Egy 3 bemenetű, 1 kimenetű háló rejtett rétegében 2, illetve 8 neuron van. Hány paraméter? (HAW 4)
+      <details><summary>Megoldás</summary>2 neuronnal: $3 \cdot 2 + 2 + 2 + 1 = 11$ (8 súly, 3 torzítás). 8 neuronnal: $3 \cdot 8 + 8 + 8 + 1 = 41$ (32 súly, 9 torzítás).</details></li>
+    <li>(nehezebb) MLSYS egy 784–1000–1000–10-es hálóra „kb. 1,8 millió paramétert” és „kb. 7 MB-ot” ír. Ellenőrizd! Melyik réteg a legnagyobb?
+      <details><summary>Megoldás</summary>$785\,000 + 1\,001\,000 + 10\,010 = 1\,796\,010$ ≈ 1,8 millió ✓; $\cdot\,4$ bájt $\approx 7{,}18$ MB ✓. A középső, $1000 \times 1000$-es réteg a legnagyobb – két széles réteg között a paraméterszám a szélesség <em>négyzetével</em> nő.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai9-96"></div>
+</section>
+
+<!-- ===================================================== 9.7 -->
+<section id="s97">
+<h2>9.7 Alkalmazás: a számjegyfelismerő</h2>
+<p>Minden eszköz megvan. Előbb egy játszótéren kísérletezünk: mit tud egy kis háló, és mikor kell több neuron vagy több réteg. Aztán egy valódi, kézzel írt számjegyeken tanított hálón válaszolunk a fejezet négy kérdésére.</p>
+
+<h3 id="s97-a">A játszótér</h3>
+<p>Az alábbi játszótér a TensorFlow Playground mintájára készült. A háló tanítását – a mini-köteges gradiens módszert és a visszaterjesztést – a 10. fejezet mutatja meg; most fogadd el, hogy a „▶ Tanítás” gomb a súlyokat lépésről lépésre a kisebb veszteség felé tekeri,
+és figyeld, <b>mit tud</b> az adott szerkezet. A kis négyzetek a rejtett neuronok: az első rétegben mindegyik egy-egy „lejtő” (egy egyenes két oldala), a mélyebb rétegekben ezekből összerakott bonyolultabb alakzatok.</p>
+<div class="widget" data-widget="nn-playground"></div>
+<div class="box example">
+  <span class="box-title">Kísérletek – mit látsz?</span>
+  <ol style="margin:.2rem 0">
+    <li><b>XOR, rejtett réteg nélkül</b> (a „rejtett rétegek” − gombjával 0-ra): a kimenet egyetlen egyenes, a pontosság kb. 65–70% marad. Ez egy logisztikus regresszió (<a href="#s92-c">9.2</a>).</li>
+    <li><b>XOR, egy rejtett réteg 2, majd 3 neuronnal:</b> 2 neuronnal kb. 87–93%, 3-mal kb. 95% körül. A két rejtett négyzet két egyenest mutat – mint a <a href="#s93-a">9.3</a> VAGY és ÉS neuronja, csak tanulva.</li>
+    <li><b>Körök, 2 majd 3 rejtett neuron:</b> két egyenessel csak egy sáv vagy egy sarok vágható ki (kb. 80–85% teszten), hárommal már egy „háromszög” körbefogja a belső korongot (kb. 96–99%).</li>
+    <li><b>Spirál:</b> egy rejtett réteg 8 neuronnal sokáig küszködik (600 epoch után is gyakran 60–75%); két réteg (8–8, tanh) kb. 85–95%-ig jut. Ez a mélység előnye (<a href="#s95-c">9.5</a>).</li>
+    <li><b>Lineáris aktiváció:</b> akárhány réteg és neuron mellett is egyenes a határ – a körökön kb. 50–60% (<a href="#s93-c">9.3</a>).</li>
+    <li><b>Zaj 0,5, sok neuron (3 × 8), sokáig tanítva:</b> a tanító pontosság 85–93%, a teszt kb. 75–83% – a háló a zajt is kezdi megtanulni. A veszteséggörbén a teszt (szaggatott) a tanító fölött marad, sőt nőni kezd: túlillesztés (10. fejezet).</li>
+  </ol>
+  <small>A számok néhány futás tipikus értékei; az „↺ Új kezdés” más véletlen kezdősúlyokat ad, és a futások különböznek – ez maga is tanulság: a tanítás eredménye a kezdéstől is függ.</small>
+</div>
+
+<h3 id="s97-b">Egy kézzel írt számjegy útja</h3>
+<p>A fejezet elején bemutatott hármas egy valódi adatkészletből jön: 1797 kézzel írt számjegy, mindegyik 8 × 8 = 64 szürke mező, 0–16-os értékekkel (scikit-learn <em>digits</em>, eredetileg UCI).
+Egy <b>64–16–10-es</b> hálót tanítottunk rajta: 64 bemenet (a mezők 16-tal osztva), 16 ReLU-s rejtett neuron, 10 softmax kimenet. A képek 75%-án (1347) tanult, a maradék 450 képen mérjük.</p>
+<div class="widget" data-widget="digit-mlp"></div>
+<div class="box example">
+  <span class="box-title">A hármas útja a hálón át</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Bemenet:</b> a 64 szám (0–16) osztva 16-tal – egy 64 elemű vektor.</li>
+    <li><b>Rejtett réteg:</b> $\mathbf z_1 = W_1\mathbf x + \mathbf b_1$, ahol $W_1$ $16 \times 64$-es; ReLU után 16-ból 15 neuron aktív, a két legerősebb kimenete 5,86 és 4,87. Minden rejtett neuron egy 64 pixeles <b>sablon</b> (<a href="#s91-c">9.1</a>): a szemléltetésben a kis képek.</li>
+    <li><b>Kimeneti réteg:</b> $\mathbf z_2 = W_2\mathbf h + \mathbf b_2$, $W_2$ $10 \times 16$-os. A legnagyobb értékek: a 3-asé 3,97, a 8-asé 2,55, a 9-esé 1,60.</li>
+    <li><b>Softmax:</b> 3: 74,0%, 8: 17,8%, 9: 6,9%, 2: 1,1% – a többi elhanyagolható. A háló jól dönt, de nem teljesen biztos: a 3-as és a 8-as jobb oldala tényleg hasonlít.</li>
+  </ol>
+</div>
+<table style="max-width:700px;font-size:.9rem;text-align:center">
+  <tr><th>rejtett neuronok</th><th>0 (softmax-regresszió)</th><th>4</th><th>8</th><th>16</th><th>32</th><th>64</th></tr>
+  <tr><th>paraméterek</th><td>650</td><td>310</td><td>610</td><td><b>1210</b></td><td>2410</td><td>4810</td></tr>
+  <tr><th>tesztpontosság (3 futás átlaga)</th><td>96,9%</td><td>89,1%</td><td>95,7%</td><td><b>97,3%</b></td><td>97,0%</td><td>97,6%</td></tr>
+</table>
+<p>A 16 neuronos háló a 450 tesztképből 438-at ismer fel (97,3%); a 12 tévesztésből öt esetben 1-esnek nézte a képet (próbáld ki a szemléltetés „Egy tévesztés” gombját).
+Figyeld meg: a rejtett réteg nélküli softmax-regresszió is 96,9%-ot ér el. Ezen a kicsi, gondosan előkészített (középre igazított, méretre szabott) adaton a 64 pixel már maga is jó jellemző – a rejtett réteg csak keveset javít, a túl kevés rejtett neuron (4) pedig ront: szűk keresztmetszet.
+A rejtett rétegek igazi előnye a nagy, nyers adaton jön ki – nagyobb képeken, eltolt, elforgatott ábrákon (11. fejezet).</p>
+<details class="box">
+  <summary>🐍 Python – a számjegyháló tanítása</summary>
+<pre><code>from sklearn.datasets import load_digits
+from sklearn.model_selection import train_test_split
+from sklearn.neural_network import MLPClassifier
+
+d = load_digits()
+X, y = d.data / 16.0, d.target
+Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.25, random_state=0, stratify=y)
+net = MLPClassifier(hidden_layer_sizes=(16,), activation="relu", alpha=1e-3,
+                    max_iter=3000, random_state=1).fit(Xtr, ytr)
+print(net.score(Xte, yte))                                   # 0.9733…
+print(sum(W.size for W in net.coefs_) + sum(b.size for b in net.intercepts_))   # 1210
+</code></pre>
+  <small>A scikit-learn a súlyokat $n_{\text{be}} \times n_{\text{ki}}$ alakban tárolja (<code>coefs_[0]</code>: $64 \times 16$) – a szemléltetés ezek transzponáltját használja.</small>
+</details>
+<div class="box tip">
+  <span class="box-title">🎯 Válaszok a fejezet kérdéseire</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Mit számol egy neuron?</b> Súlyozott összeget plusz torzítást, majd egy aktivációt: $a = \varphi(\mathbf w^\top\mathbf x + b)$. Egy rejtett neuron egy 64 pixeles <b>sablonnal</b> méri, mennyire hasonlít rá a kép – egyedül egy egyenest (hipersíkot) húz a 64 dimenziós térben.</li>
+    <li><b>Miért nem elég egy?</b> Mert egy neuron csak lineárisan szétválasztható osztályokat tud elválasztani; már a XOR is kifog rajta (<a href="#s92-c">9.2</a>). A rejtett réteg <b>új jellemzőket</b> számol, és ezeken a kimeneti réteg már egyenessel dönt (<a href="#s93-a">9.3</a>) – feltéve, hogy van nemlineáris aktiváció (<a href="#s93-c">9.3</a>).</li>
+    <li><b>Hány csavar, és mit csinál velük?</b> 1210 paraméter: $64 \cdot 16 + 16$ a rejtett, $16 \cdot 10 + 10$ a kimeneti rétegben. Egy kép feldolgozása két mátrix–vektor szorzás (1184 szorzás-összeadás), egy ReLU és egy softmax (<a href="#s96">9.6</a>).</li>
+    <li><b>Miért elég „elvben” egy réteg, és miért mély mégis a gyakorlat?</b> Az univerzális közelítés tétele szerint egy rejtett réteg elég sok neuronnal bármely folytonos függvényt közelít (<a href="#s95-b">9.5</a>) – de nem mondja meg, mennyi az „elég sok”.
+      A mélység egyes függvényeket exponenciálisan kevesebb neuronból rak össze (<a href="#s95-c">9.5</a>), és a képek, hangok természetes, rétegzett szerkezetét követi. Ára: nehezebb tanítani – ez a 10. fejezet témája.</li>
+  </ol>
+</div>
+</section>
+
+<!-- ===================================================== Összefoglalás -->
+<section id="s-sum">
+<h2>Összefoglalás</h2>
+<table>
+  <tr><th>Fogalom</th><th>Lényeg</th></tr>
+  <tr><td>Mesterséges neuron</td><td>$z = \mathbf w^\top\mathbf x + b$ (súlyozott összeg + torzítás), $a = \varphi(z)$ (aktiváció); a súly a bemenet szavazata, a $-b$ a küszöb</td></tr>
+  <tr><td>A neuron geometriája</td><td>a $\mathbf w^\top\mathbf x + b = 0$ hipersík a határ, $\mathbf w$ merőleges rá; a súlyvektor sablon: $\mathbf w^\top\mathbf x$ a hasonlóságot méri</td></tr>
+  <tr><td>Logikai kapuk</td><td>lépcsős neuron: ÉS ($w = (1, 1)$, $b = -1{,}5$), VAGY ($b = -0{,}5$), NEM, NAND (McCulloch–Pitts, 1943)</td></tr>
+  <tr><td>Perceptron</td><td>$\mathbf w \leftarrow \mathbf w + \eta(y - \hat y)\mathbf x$, $b \leftarrow b + \eta(y - \hat y)$; csak hibánál módosít (Rosenblatt, 1957–58)</td></tr>
+  <tr><td>Konvergenciatétel</td><td>szétválasztható adaton legfeljebb $(R/\gamma)^2$ javítás; bármelyik hibátlan egyenesnél megáll (nem a max. margójúnál); sorrendfüggő</td></tr>
+  <tr><td>XOR és az első tél</td><td>nem szétválasztható adaton a perceptron sosem áll meg (ciklus); Minsky–Papert (1969): az egyrétegű perceptron korlátai</td></tr>
+  <tr><td>Többrétegű perceptron (MLP)</td><td>bemeneti, rejtett és kimeneti rétegek, teljesen összekötött, előrecsatolt; a rejtett réteg új jellemzőket számol; XOR = VAGY, de nem ÉS</td></tr>
+  <tr><td>Mátrixos alak</td><td>$\mathbf h = \varphi(W\mathbf x + \mathbf b)$, $W$: $n_{\text{ki}} \times n_{\text{be}}$; kötegben $H = \varphi(XW^\top + \mathbf b^\top)$</td></tr>
+  <tr><td>Nemlinearitás</td><td>aktiváció nélkül a rétegek egyetlen lineáris réteggé olvadnak: $W_2(W_1\mathbf x + \mathbf b_1) + \mathbf b_2 = W\mathbf x + \mathbf b$</td></tr>
+  <tr><td>Szigmoid, tanh</td><td>sima lépcső; $\sigma' = \sigma(1 - \sigma) \le 0{,}25$, $\tanh' = 1 - \tanh^2 \le 1$; telítődnek</td></tr>
+  <tr><td>ReLU és társai</td><td>$\max(0, z)$, derivált 0 vagy 1; olcsó, nem telítődik pozitívan; halott neuron; szivárgó ReLU, GELU</td></tr>
+  <tr><td>Eltűnő gradiens</td><td>a deriváltak szorzata a mélységgel zsugorodik ($0{,}25^{10} \approx 10^{-6}$); a ReLU enyhíti, nem oldja meg</td></tr>
+  <tr><td>Kimeneti réteg</td><td>regresszió: identitás; két osztály: 1 szigmoid; $K$ osztály: softmax; több címke: $K$ szigmoid</td></tr>
+  <tr><td>Univerzális közelítés</td><td>egy rejtett réteg elég sok neuronnal bármely folytonos függvényt közelít korlátos zárt halmazon (nem polinom aktivációval) – létezési tétel</td></tr>
+  <tr><td>Mélység vs. szélesség</td><td>ReLU-hálóban a rétegek szorozzák, a neuronok összeadják a lineáris darabokat: $2L$ neuron mélyen $2^L$ darab</td></tr>
+  <tr><td>Előre irányuló számítás</td><td>rétegenként $\mathbf z^{(\ell)} = W^{(\ell)}\mathbf h^{(\ell-1)} + \mathbf b^{(\ell)}$, $\mathbf h^{(\ell)} = \varphi(\mathbf z^{(\ell)})$</td></tr>
+  <tr><td>Paraméterszám</td><td>$\sum_\ell (n_{\ell-1} + 1)\,n_\ell$; 784–128–10: 101 770; tárolás $\times 4$ bájt; mintánként kb. annyi szorzás, ahány súly</td></tr>
+</table>
+
+<div class="box tip">
+  <span class="box-title">Melyik eszköz mikor? – döntési táblázat</span>
+  <table>
+    <tr><th>Ha a feladatban ez áll…</th><th>…akkor ezt használd</th></tr>
+    <tr><td>egy neuron kimenetét kell kiszámolni</td><td>$z = \mathbf w^\top\mathbf x + b$, majd az aktiváció (lépcső: $z \gt 0$ → 1)</td></tr>
+    <tr><td>egy logikai függvényt kell egy neuronnal megvalósítani</td><td>súlyok a „szavazatok”, $-b$ a küszöb; ha a függvény nem szétválasztható (XOR, paritás) – rejtett réteg kell</td></tr>
+    <tr><td>a perceptron egy lépését kell követni</td><td>jóslat → ha hibás, $\mathbf w \mathrel{+}= \eta(y - \hat y)\mathbf x$, $b \mathrel{+}= \eta(y - \hat y)$</td></tr>
+    <tr><td>megáll-e a perceptron?</td><td>szétválasztható → igen, legfeljebb $(R/\gamma)^2$ javítás; nem szétválasztható → soha</td></tr>
+    <tr><td>egy réteg kimenete sok neuronra / sok mintára</td><td>$\varphi(W\mathbf x + \mathbf b)$, illetve $\varphi(XW^\top + \mathbf b^\top)$ – előbb ellenőrizd az alakokat</td></tr>
+    <tr><td>„mit tud egy háló aktiváció nélkül?”</td><td>szorozd össze a mátrixokat: egyetlen lineáris modell</td></tr>
+    <tr><td>rejtett réteg aktivációja</td><td>ReLU (alapértelmezés), szivárgó ReLU / GELU; szigmoid és tanh inkább kimenetre, kapukba</td></tr>
+    <tr><td>kimeneti réteg</td><td>regresszió: identitás · két osztály: 1 szigmoid · $K$ osztály: softmax · több címke: $K$ szigmoid</td></tr>
+    <tr><td>egy függvényt ReLU-hálóval kell közelíteni</td><td>osztópontok, húrmeredekségek, $c_k = s_k - s_{k-1}$ – zsanérok összege</td></tr>
+    <tr><td>„elég-e egy rejtett réteg?”</td><td>elvben igen (univerzális közelítés), de lehet, hogy óriási kell; mély háló kevesebb neuronnal</td></tr>
+    <tr><td>a háló méretét kell megbecsülni</td><td>$\sum (n_{\text{be}} + 1)\,n_{\text{ki}}$; memória: $\times 4$ (32 bit) vagy $\times 2$ (16 bit) bájt</td></tr>
+    <tr><td>táblázatos adat, kevés minta</td><td>gyakran fák vagy lineáris modell (<a href="../07-fak-svm-egyuttes/#s77-b">7.7</a>); a háló a nagy, nyers adatnál (kép, hang, szöveg) erős</td></tr>
+  </table>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabályok</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Egy neuron = egy egyenes.</b> Ami nem választható szét egy egyenessel, ahhoz rejtett réteg kell.</li>
+    <li><b>Nemlinearitás nélkül a mélység semmit nem ér.</b> Lineáris rétegek szorzata lineáris.</li>
+    <li><b>Rejtett rétegbe ReLU, a kimenetre a feladathoz illő függvény.</b></li>
+    <li><b>A torzítás is paraméter.</b> Rétegenként $n_{\text{ki}}$ darab – ne felejtsd ki a számolásból.</li>
+    <li><b>Az univerzális közelítés azt mondja, hogy létezik jó háló – nem azt, hogy megtalálod, vagy hogy általánosít.</b></li>
+    <li><b>A háló nem agy.</b> A „neurális” név történelmi; a működés lineáris algebra és egy kis nemlinearitás.</li>
+  </ul>
+</div>
+</section>
+
+<!-- ===================================================== Ellenőrző kérdések -->
+<section id="s-check">
+<h2>Ellenőrző kérdések</h2>
+<p>Gondold végig a választ, aztán kattints a kártyára a megfordításhoz!</p>
+<div class="flashcards">
+  <div class="flash"><div class="inner"><div class="face front">Mit számol egy mesterséges neuron?</div>
+    <div class="face back">A bemenetek súlyozott összegét plusz a torzítást, $z = \mathbf w^\top\mathbf x + b$, majd ezt átengedi egy aktivációs függvényen: $a = \varphi(z)$.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit csinál a torzítás (bias)?</div>
+    <div class="face back">Eltolja a döntési határt (a küszöböt), nem forgatja el. A lépcsős neuron akkor tüzel, ha $\mathbf w^\top\mathbf x \gt -b$.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért mondhatjuk, hogy a súlyvektor egy „sablon”?</div>
+    <div class="face back">Mert $\mathbf w^\top\mathbf x = \lVert\mathbf w\rVert\lVert\mathbf x\rVert\cos\theta$: adott hosszúságú bemenetek közül az kapja a legnagyobb $z$-t, amelyik a legjobban hasonlít $\mathbf w$-re.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a perceptron tanulási szabálya?</div>
+    <div class="face back">Hibás jóslatnál $\mathbf w \leftarrow \mathbf w + \eta(y - \hat y)\mathbf x$ és $b \leftarrow b + \eta(y - \hat y)$; jó jóslatnál nincs változás.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit mond a perceptron konvergenciatétele?</div>
+    <div class="face back">Lineárisan szétválasztható adaton véges sok (legfeljebb $(R/\gamma)^2$) javítás után hibátlan egyenest talál. Hogy melyiket, az a sorrendtől és a kezdéstől függ.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit csinál a perceptron a XOR-on?</div>
+    <div class="face back">Soha nem áll meg: minden epochban hibázik, a súlyok ciklusba kerülnek. Egy egyenes nem választja szét a XOR-t.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Hogyan old meg egy 2–2–1-es háló a XOR-t?</div>
+    <div class="face back">Az egyik rejtett neuron VAGY, a másik ÉS; a kimenet „VAGY, de nem ÉS”. A rejtett térben a pontok már egy egyenessel szétválnak.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Milyen alakú egy 784 → 128 réteg súlymátrixa, és mit tartalmaz egy sora?</div>
+    <div class="face back">$128 \times 784$; a $j$-edik sor a $j$-edik neuron 784 súlya.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért kell nemlineáris aktiváció?</div>
+    <div class="face back">Mert lineáris rétegek egymásutánja is lineáris: $W_2(W_1\mathbf x + \mathbf b_1) + \mathbf b_2 = W\mathbf x + \mathbf b$. A rétegek ereje a nemlinearitásból jön.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért nem tanítható gradiens módszerrel a lépcsős neuron?</div>
+    <div class="face back">Mert a lépcső deriváltja mindenhol 0: a súly kis változása nem változtat a kimeneten, a gradiens nem ad irányt.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi az eltűnő gradiens?</div>
+    <div class="face back">Mély hálóban a rétegenkénti deriváltak szorzódnak; ha 1-nél kisebbek (szigmoidnál $\le 0{,}25$), a jel a háló elejére szinte nullára zsugorodik, és az első rétegek nem tanulnak.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért lett a ReLU a rejtett rétegek alapértelmezése?</div>
+    <div class="face back">Pozitív tartományban a deriváltja 1 (nem telítődik), nagyon olcsó, és sok neuron pontosan 0-t ad. Hátránya a „halott” neuron.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Milyen kimeneti réteg kell $K$ kizáró osztályhoz, és milyen több címkéhez?</div>
+    <div class="face back">Kizáró osztályokhoz $K$ neuron softmaxszal (összeg 1); több címkéhez $K$ külön szigmoid (az összeg 1-nél több is lehet).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit állít az univerzális közelítés tétele – és mit nem?</div>
+    <div class="face back">Állítja: egy rejtett rétegű háló (nem polinom aktivációval) elég sok neuronnal bármely folytonos függvényt tetszőlegesen jól közelít korlátos zárt halmazon. Nem mondja meg, hány neuron kell, hogyan találjuk meg a súlyokat, és hogy általánosít-e.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miben segít a mélység?</div>
+    <div class="face back">Egyes függvényeket exponenciálisan kevesebb neuronból rak össze: ReLU-hálóban a rétegek szorozzák a lineáris darabok számát ($2L$ neuron → $2^L$ darab), egy réteg neuronjai csak összeadják.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Hogyan számolod egy teljesen összekötött háló paramétereit?</div>
+    <div class="face back">Rétegenként $(n_{\text{be}} + 1)\cdot n_{\text{ki}}$ (súlyok + torzítások), összeadva. A bemeneti rétegnek nincs paramétere.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Logisztikus regresszió és neurális háló – mi a kapcsolat?</div>
+    <div class="face back">A logisztikus regresszió egyetlen szigmoid neuron, a softmax-regresszió egy rejtett réteg nélküli háló. Egy MLP kimeneti rétege a rejtett jellemzőkön futó ilyen modell.</div></div></div>
+</div>
+</section>
+
+<!-- ===================================================== Vegyes gyakorló feladatok -->
+<section id="s-ex">
+<h2>Vegyes gyakorló feladatok</h2>
+<p>Itt már nincs megmondva, melyik szakaszhoz tartozik a feladat: neked kell eldönteni, melyik eszköz kell.</p>
+<details class="box practice">
+  <summary>✏️ Vegyes gyakorló feladatok – kattints a kinyitáshoz</summary>
+  <ol>
+    <li>Taníts perceptront a NEM-ÉS (NAND) függvényre: kezdés csupa 0, $\eta = 1$, sorrend (0, 0), (0, 1), (1, 0), (1, 1). Mik a súlyok az első epoch végén? Meg fog-e állni?
+      <details><summary>Tipp</summary>A NAND kimenete 1, 1, 1, 0. Csak hibánál módosíts; a megálláshoz gondolj a konvergenciatételre.</details>
+      <details><summary>Megoldás</summary>(0, 0): $z = 0$ → 0, de 1 kell → $b = 1$. (0, 1) és (1, 0): $z = 1$ → jó. (1, 1): $z = 1$ → 1, de 0 kell → $\mathbf w = (-1;\ -1)$, $b = 0$.
+        A NAND lineárisan szétválasztható, tehát meg fog állni (a 6. epochban, 11 javítás után, a $\mathbf w = (-2;\ -1)$, $b = 3$ súlyokkal).</details></li>
+    <li>Építs egy rejtett rétegű lépcsős hálót, amely három bemenetre akkor ad 1-et, ha <em>pontosan egy</em> bemenet 1!
+      <details><summary>Tipp</summary>Használd a „legalább $k$ bemenet 1” neuronokat a paritásos feladatból.</details>
+      <details><summary>Megoldás</summary>$h_1 = \text{lépcső}(x_1 + x_2 + x_3 - 0{,}5)$ („legalább egy”), $h_2 = \text{lépcső}(x_1 + x_2 + x_3 - 1{,}5)$ („legalább kettő”), $\hat y = \text{lépcső}(h_1 - h_2 - 0{,}5)$.
+        $s = 0$: $(0, 0)$ → 0; $s = 1$: $(1, 0)$ → 1; $s = 2$ vagy 3: $(1, 1)$ → 0. ✓</details></li>
+    <li>$\mathbf x = (2;\ -1)$, $W_1 = \begin{pmatrix} 1 & 1 \\ 2 & 0 \end{pmatrix}$, $\mathbf b_1 = (0;\ -3)$, ReLU; a kimenet $\sigma(h_1 - h_2 + 0{,}5)$. Mennyi a kimenet?
+      <details><summary>Tipp</summary>Rétegenként: súlyozott összeg, aktiváció.</details>
+      <details><summary>Megoldás</summary>$\mathbf z_1 = (2 - 1;\ 4 - 3) = (1;\ 1)$, $\mathbf h = (1;\ 1)$, $z_2 = 1 - 1 + 0{,}5 = 0{,}5$, $\sigma(0{,}5) \approx 0{,}6225$.</details></li>
+    <li>Hány paramétere van egy 100–50–50–3-as hálónak? Melyik kimeneti aktiváció kell, ha a három kimenet három kizáró osztály?
+      <details><summary>Tipp</summary>Rétegenként $(n_{\text{be}} + 1)\,n_{\text{ki}}$.</details>
+      <details><summary>Megoldás</summary>$5050 + 2550 + 153 = 7753$. Kizáró osztályokhoz softmax.</details></li>
+    <li>Három egymás utáni, aktiváció nélküli egyváltozós réteg: $2x + 1$, aztán $3u - 2$, aztán $-v + 4$. Mit számol a háló összesen? Mit jelent ez?
+      <details><summary>Tipp</summary>Helyettesíts be belülről kifelé.</details>
+      <details><summary>Megoldás</summary>$3(2x + 1) - 2 = 6x + 1$, majd $-(6x + 1) + 4 = -6x + 3$. Egyetlen egyenes – a három réteg nem tud többet egynél.</details></li>
+    <li>Mennyi a softmax az $(1;\ 2;\ 3)$ vektorra? És a $(101;\ 102;\ 103)$-ra?
+      <details><summary>Tipp</summary>Csak a különbségek számítanak.</details>
+      <details><summary>Megoldás</summary>$(0{,}090;\ 0{,}245;\ 0{,}665)$ – mindkettőre ugyanaz, mert a második minden eleme 100-zal nagyobb.</details></li>
+    <li>Adj meg egy ReLU-hálót, amely a $[0;\ 2]$-n pontosan az $|x - 1|$ függvényt számolja!
+      <details><summary>Tipp</summary>Osztópontok: 0, 1, 2; a meredekség $-1$, aztán $+1$.</details>
+      <details><summary>Megoldás</summary>$g(x) = 1 - \mathrm{ReLU}(x) + 2\,\mathrm{ReLU}(x - 1)$. Ellenőrzés: $g(0) = 1$, $g(1) = 0$, $g(2) = 1 - 2 + 2 = 1$. ✓ (Itt a törött vonal pontos, mert a függvény maga is törött vonal.)</details></li>
+    <li>Egy csapat ezt írja a beszámolójába: „Tíz rejtett rétegű, szigmoidos hálót építettünk a 2000 soros ügyféltáblázatunkra. Mivel a neurális háló univerzális közelítő, biztosan jobb lesz, mint a véletlen erdő.” Mit kérdeznél tőlük?
+      <details><summary>Tipp</summary>Gondolj az eltűnő gradiensre, a tétel valódi tartalmára és a táblázatos adatok tapasztalataira.</details>
+      <details><summary>Megoldás</summary>(1) Tíz szigmoid réteg: hogyan kezelik az eltűnő gradienst (miért nem ReLU, hogyan inicializálnak)? (2) Az univerzális közelítés csak azt mondja, hogy <em>létezik</em> jó háló – nem azt, hogy a tanítás megtalálja, sem azt, hogy 2000 soron általánosít.
+        (3) Hány paramétere van a hálónak a 2000 sorhoz képest – nem fog-e túlilleszteni? (4) Táblázatos adaton a fák gyakran jobbak (<a href="../07-fak-svm-egyuttes/#s77-b">7.7</a>): hasonlították-e össze ugyanazon a validációs felosztáson (<a href="../06-modellertekeles/#s65-a">6.5</a>)?</details></li>
+  </ol>
+</details>
+</section>
+
+<!-- ===================================================== Fejezetzáró teszt -->
+<section id="s-final">
+<h2>Fejezetzáró teszt</h2>
+<p>Vegyes feladatok az egész fejezetből. Ha legalább 80%-ot elérsz, nyugodtan továbbléphetsz a 10. fejezetre – ott derül ki, hogyan találja meg a tanítás a háló több ezer (vagy milliárd) súlyát.</p>
+<div class="quiz" data-quiz="ai9-final"></div>
+</section>
+
+<!-- ===================================================== Szómagyarázó -->
+<section id="s-gloss">
+<h2>Szómagyarázó</h2>
+<p>A fejezetben előforduló idegen vagy kevésbé ismert szakkifejezések, betűrendben.</p>
+<dl class="glossary">
+  <dt id="g-aktivacio">aktivációs függvény <span class="etym">lat. <em>activus</em> „cselekvő, tevékeny”; a neuron „működésbe lépését” írja le</span></dt>
+  <dd><p>A súlyozott összegre alkalmazott (általában nemlineáris) függvény: lépcső, szigmoid, tanh, ReLU, GELU. Nélküle a rétegek egyetlen lineáris réteggé olvadnának.</p></dd>
+
+  <dt id="g-elore">előre irányuló számítás <span class="etym">ang. <em>forward pass</em> „előremenet”</span></dt>
+  <dd><p>A bemenet végigvitele a hálón rétegről rétegre a kimenetig; minden jóslat ennyi. A tanításhoz ezt követi a visszafelé menet (10. fejezet).</p></dd>
+
+  <dt id="g-gelu">GELU <span class="etym">ang. <em>Gaussian Error Linear Unit</em> „Gauss-hibafüggvényes lineáris egység” (D. Hendrycks, K. Gimpel, 2016)</span></dt>
+  <dd><p>A ReLU sima változata, $z\,\Phi(z)$; a Transformer-alapú nyelvi modellek gyakori aktivációja.</p></dd>
+
+  <dt id="g-hipersik">hipersík <span class="etym">gör. <em>hyper</em> „fölött, túl” + sík</span></dt>
+  <dd><p>Az egyenes és a sík általánosítása $n$ dimenzióban: a $\mathbf w^\top\mathbf x + b = 0$ pontok halmaza. Egy neuron döntési határa.</p></dd>
+
+  <dt id="g-logit">logit <span class="etym">a <em>logisztikus</em> szóból, a <em>probit</em> mintájára (J. Berkson, 1944)</span></dt>
+  <dd><p>Eredetileg a log-esély; a mélytanulásban általában a kimeneti réteg aktiváció előtti értékei ($\mathbf z$), amelyekből a softmax valószínűséget csinál.</p></dd>
+
+  <dt id="g-mlp">MLP – többrétegű perceptron <span class="etym">ang. <em>multilayer perceptron</em></span></dt>
+  <dd><p>Rétegekbe rendezett, teljesen összekötött, előrecsatolt neurális háló legalább egy rejtett réteggel. A neuronjai ma szinte sosem lépcsősek – a név történelmi.</p></dd>
+
+  <dt id="g-neuron">neuron <span class="etym">gör. <em>neuron</em> „ín, ideg”; az idegsejt neve H. Waldeyertől (1891)</span></dt>
+  <dd><p>A biológiában idegsejt; a gépi tanulásban a súlyozott összeget és aktivációt számoló egység (más néven csomópont, egység).</p></dd>
+
+  <dt id="g-parameter">paraméter <span class="etym">gör. <em>para</em> „mellett” + <em>metron</em> „mérték”</span></dt>
+  <dd><p>A háló tanítással beállított számai: a súlyok és a torzítások. Nem tévesztendő össze a hiperparaméterrel (rétegszám, tanulási ráta), amelyet a tanítás előtt mi választunk.</p></dd>
+
+  <dt id="g-perceptron">perceptron <span class="etym">lat. <em>percipere</em> „érzékel, felfog” (<em>perceptio</em> „észlelés”) + <em>-tron</em> (gépnév-képző, mint az elektron, ciklotron); F. Rosenblatt, 1957</span></dt>
+  <dd><p>Lépcsős aktivációjú neuron a hibákból tanuló szabállyal; rejtett réteg nélkül csak lineárisan szétválasztható osztályokat tud elválasztani.</p></dd>
+
+  <dt id="g-rejtett">rejtett réteg <span class="etym">ang. <em>hidden layer</em> – a kimenete kívülről nem látszik, és nincs rá „helyes válasz” az adatban</span></dt>
+  <dd><p>A bemeneti és a kimeneti réteg közötti réteg; új jellemzőket számol, amelyeken a következő réteg dönt.</p></dd>
+
+  <dt id="g-relu">ReLU <span class="etym">ang. <em>rectified linear unit</em> „egyenirányított lineáris egység”; lat. <em>rectus</em> „egyenes”, az egyenirányító (<em>rectifier</em>) a villamosságtanból: csak az egyik irányt engedi át</span></dt>
+  <dd><p>$\max(0, z)$: a negatív bemenetet 0-ra vágja, a pozitívat átengedi. A rejtett rétegek alapértelmezett aktivációja.</p></dd>
+
+  <dt id="g-softmax">softmax <span class="etym">ang. <em>soft</em> „lágy” + <em>max</em>; a legnagyobb elem „lágy” kiválasztása (J. Bridle, 1990)</span></dt>
+  <dd><p>A $\mathbf z$ vektorból valószínűség-eloszlást képez: $p_k = e^{z_k}/\sum_j e^{z_j}$. Kizáró osztályok kimeneti aktivációja.</p></dd>
+
+  <dt id="g-szigmoid">szigmoid <span class="etym">gör. <em>sigma</em> (a görög S betű) + <em>-eidés</em> „alakú”: „S alakú”</span></dt>
+  <dd><p>A $\sigma(z) = 1/(1 + e^{-z})$ logisztikus függvény; értékei 0 és 1 között; deriváltja $\sigma(1 - \sigma)$.</p></dd>
+
+  <dt id="g-tanh">tangens hiperbolikusz <span class="etym">lat. <em>tangens</em> „érintő”; gör. <em>hyperbolé</em> „túlvetés” – a hiperbolához kötött függvények (J. H. Lambert, 1768)</span></dt>
+  <dd><p>$\tanh z = (e^z - e^{-z})/(e^z + e^{-z}) = 2\sigma(2z) - 1$; értékei $-1$ és $1$ között, nulla középpontú.</p></dd>
+
+  <dt id="g-torzitas">torzítás <span class="etym">ang. <em>bias</em>, ófr. <em>biais</em> „ferde, rézsútos”; itt: eltolás</span></dt>
+  <dd><p>A neuron súlyozott összegéhez adott állandó; a döntési határt tolja el (a lépcsős neuron küszöbe $-b$). Paraméter, a tanítás állítja.</p></dd>
+
+  <dt id="g-univerzalis">univerzális közelítés <span class="etym">lat. <em>universalis</em> „egyetemes”</span></dt>
+  <dd><p>A tétel, amely szerint egy rejtett rétegű háló (nem polinom aktivációval) elég sok neuronnal bármely folytonos függvényt tetszőleges pontossággal közelít egy korlátos zárt halmazon (Cybenko 1989, Hornik 1991, Leshno és társai 1993).</p></dd>
+
+  <dt id="g-xor">XOR <span class="etym">ang. <em>exclusive or</em> „kizáró vagy”</span></dt>
+  <dd><p>Az a logikai függvény, amely akkor 1, ha pontosan az egyik bemenet 1. Lineárisan nem szétválasztható – a perceptron korlátjának jelképe.</p></dd>
+</dl>
+</section>
+
+<nav class="pager">
+  <a href="../08-felugyelet-nelkuli-tanulas/">← 8. Felügyelet nélküli tanulás</a>
+  <span class="next muted">10. A háló tanítása (hamarosan) →</span>
+</nav>
+
+</main>
+</div>
+
+<footer class="site">
+  Források: A. Glassner: <em>Deep Learning – A Visual Approach</em>, 13. fejezet · R. T. Kneusel: <em>How AI Works</em>, 2. és 4. fejezet · R. T. Kneusel: <em>Practical Deep Learning</em>, 8–10. fejezet ·
+  R. T. Kneusel: <em>Math for Deep Learning</em>, 9. fejezet · J. Mueller – L. Massaron: <em>Machine Learning for Dummies</em> (2. kiad.), 10. és 14. fejezet · O. Theobald: <em>Machine Learning for Absolute Beginners</em> (3. kiad.), 13. fejezet ·
+  Hastie – Tibshirani – Friedman: <em>The Elements of Statistical Learning</em> (2. kiad.), 4.5 és 11. fejezet · V. J. Reddi és társai: <em>Machine Learning Systems</em> (<em>DL Primer</em>, <em>DNN Architectures</em>) ·
+  S. Raschka: <em>Machine Learning and AI Beyond the Basics</em>, 11–12. fejezet ·
+  Kiegészítés: W. McCulloch – W. Pitts (1943) · F. Rosenblatt (1957, 1958) · H. D. Block (1962), A. Novikoff (1962, konvergenciatétel) · M. Minsky – S. Papert: <em>Perceptrons</em> (1969) · D. Rumelhart – G. Hinton – R. Williams (1986) ·
+  G. Cybenko (1989) · K. Hornik (1991) · M. Leshno – V. Lin – A. Pinkus – S. Schocken (1993) · V. Nair – G. Hinton (2010) · X. Glorot – A. Bordes – Y. Bengio (2011) · M. Telgarsky (2016) · D. Hendrycks – K. Gimpel (2016, GELU) ·
+  adatok: scikit-learn <em>digits</em> (UCI Optical Recognition of Handwritten Digits).
+</footer>
+</body>
+</html>

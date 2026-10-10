@@ -1,0 +1,1547 @@
+                          14
+               BAC K P R O PAG AT I O N
+
+
+
+
+            As we’ve seen, a neural network is just a col-
+            lection of neurons, each doing its own little
+           calculation and then passing on its results to
+       other neurons. How can we train such a thing
+to produce the results we want? And how can we do it
+efficiently?
+     The answer is backpropagation, or simply backprop. Without backprop, we
+wouldn’t have today’s widespread use of deep learning because we wouldn’t
+be able to train big networks in reasonable amounts of time. Every mod-
+ern deep learning library provides a stable and efficient implementation
+of backprop. Even though most people will never implement backprop, it’s
+important to understand the algorithm because so much of deep learning
+depends on it.
+     Most introductions to backprop are presented mathematically, as a col-
+lection of equations with associated discussion (Fullér 2010). As usual, we
+skip the mathematics here and focus instead on the concepts. The middle of
+this chapter, where we discuss the core of backprop, is the most detailed part
+of this book. You might want to read it lightly the first time to get the big
+                    picture for what’s going on and how the pieces fit together. Then, if you like,
+                    you can come back and take it more slowly, following the individual steps.
+
+
+      A High-Level Overview of Training
+                    Networks learn by minimizing their mistakes. The process begins with a
+                    number called a cost, loss, or penalty, for each mistake. During training, the
+                    network reduces the cost, resulting in outputs closer to what we want.
+
+                    Punishing Error
+                    Suppose we have a classifier that identifies each input as one of five classes,
+                    numbered 1 to 5. The class that has the largest value is the network’s pre-
+                    diction for each input’s class. Our classifier is brand-new and has had no
+                    training, so all of the weights have small random values. Figure 14-1 shows
+                    the network classifying its first input sample.
+
+                           1       2         3        4         5
+                       0.35       0.2      0.15      0.1       0.2     Outputs
+
+
+
+                                        Network
+
+
+
+
+                       3                                     Sample
+
+                    Label               Features
+                    Figure 14-1: A neural network processing a sample and assigning it
+                    to class 1. We want it to be assigned to class 3.
+
+                         In this example, the network has decided that the sample belongs to
+                    class 1 because the largest output, 0.35, is from output 1 (we’re assuming we
+                    have a softmax layer at the end of the network, so the outputs add up to 1).
+                    Unfortunately, the sample was labeled as belonging to class 3. We shouldn’t
+                    have expected the right answer. The network can easily have thousands, or
+                    even millions, of weights, and they currently all have their initial, random
+                    values. Therefore, the outputs are just random values as well. Even if the
+                    network had predicted class 3 for this sample, it would have been pure luck.
+                         When a prediction doesn’t match that sample’s label, we can come up
+                    with a single number to tell us just how wrong this answer is. For example,
+                    if class 3 were to get almost the largest score, we say the network would be
+                    more correct (or less wrong) relative to assigning class 3 the smallest score.
+                    We call this number describing the mismatch between the label and the pre-
+                    diction the error score, or error, or sometimes the penalty, or loss (if the word
+
+352    Chapter 14
+loss seems like a strange synonym for “error,” it may help to think of it as
+describing how much information is “lost” because we have a wrong answer).
+      The error (or loss) is a floating-point number that can take on any value,
+though often we set things up so that it’s always positive. The larger the error,
+the more “wrong” our network’s prediction is for the label of this input. An
+error of zero means that the network predicted the sample’s label correctly.
+In a perfect world, we’d get the error down to zero for every sample in the
+training set. In practice, we usually settle for getting as close as we can.
+      Although in this chapter we focus on reducing the error on specific
+samples (or groups of samples), our overall goal is to minimize the total
+error for the entire training set, which is usually just the sum of the indi-
+vidual errors.
+      The way we choose to determine the error gives us tremendous flexibil-
+ity in guiding the network’s learning process. The thinking can seem a little
+backward, however, because the error tells the network what not to do. It’s
+like the apocryphal quote about sculpting: to carve an elephant, you simply
+start with a block of stone and chip away everything that doesn’t look like
+an elephant (Quote Investigator 2020).
+      In our case, we start with an initialized network and then use the error
+term to chip away all the behavior we don’t want. In other words, we don’t
+really teach the network to find the correct answers. Instead, we penalize
+incorrect answers by assigning them a positive amount of error. The only
+way the network can reduce the overall error is to avoid incorrect answers,
+so that’s what it learns to do. This is a powerful idea: to get the behavior we
+want, we penalize the behavior we don’t want.
+      If we want to penalize several things at once, we compute a value, or
+term, for each one and add them up to get the total error. For instance, we
+might want our classifier to predict the correct class and assign it a score
+that is at least twice as large as the score for the next-closest class. We can
+compute numbers representing both desires and use their sum as our error
+term. The only way for the network to drive the error down to zero (or as
+close to zero as it can get) is to change its weights to achieve both goals.
+      A popular error term comes from the observation that learning is often
+the most efficient when the weights in the network are all in a small range,
+such as [–1, 1]. To enforce this, we can include an error term that has a
+large value when the weights get too far from this range. This is called regu-
+larization. In order to minimize the error, the network learns to keep the
+weights small.
+      All of this raises the natural question of how on earth the network is
+able to accomplish the goal of minimizing the error. That’s the point of this
+chapter.
+      To keep things simple, we’ll use an error measure with just one term
+that punishes a mismatch between the network’s prediction and the label.
+Everything we see in the rest of this chapter works identically when there
+are more terms in the error. Our first algorithm for teaching the network
+is just a thought experiment since it would be absurdly slow on today’s com-
+puters. But the ideas resulting from this experiment form the conceptual
+basis for the more efficient techniques we discuss later in this chapter.
+
+                                                               Backpropagation   353
+                   A Slow Way to Learn
+                   Let’s stick with our running example of a classifier trained with supervised
+                   learning. We’ll give the network a sample and compare the system’s predic-
+                   tion with the sample’s label. If the network gets it right and predicts the cor-
+                   rect label, we won’t change anything and we’ll move on to the next sample
+                   (as the proverb goes, “If it ain’t broke, don’t fix it” [Seung 2005]). But if the
+                   result for a particular sample is incorrect, we’ll try to improve things.
+                        Let’s make this improvement in a simple way. We’ll pick one weight at
+                   random from the whole network and freeze all the other values so they can’t
+                   change. We already know the error associated with the weight’s current
+                   value, so we create a small random value centered around zero, which we’ll
+                   call m, add that to that weight, and reevaluate the same sample again. This
+                   change to one weight causes a ripple effect through the rest of the network,
+                   as every neuron that depends on a computation involving that neuron’s
+                   output also changes. The result is a new set of predictions, and thus a new
+                   error for that sample.
+                        If the new error is less than the previous error, then we’ve made things
+                   better and we keep this change. If the results didn’t get better, then we need
+                   to undo the change. Now we pick another weight at random, modify it by
+                   another random amount, reevaluate the network to see if we want to keep
+                   that change, pick another weight, modify it, and so on, again and again.
+                        We can continue nudging weights until the results improve by a cer-
+                   tain amount, we decide we’ve tried enough times, or we decide to stop for
+                   any other reason. At this point, we select the next sample and tune lots of
+                   weights again. When we’ve used all the samples in our training set, we just
+                   go through them all again (maybe in a different order), over and over. The
+                   idea is that each little improvement brings us closer to a network that accu-
+                   rately predicts the label for every sample.
+                        With this technique, we expect the network to slowly improve, though
+                   there may be setbacks along the way. For example, later samples may cause
+                   changes that ruin the improvements we just made for earlier samples.
+                        Given enough time and resources, we expect that the network will even-
+                   tually improve to the point where it’s predicting every sample as well as it
+                   can. The important word in that last sentence is eventually. As in, “The water
+                   will boil, eventually,” or “The Andromeda galaxy will collide with our Milky
+                   Way galaxy, eventually” (NASA 2012). Although the concepts are right, this
+                   technique is definitely not practical. Modern networks can have millions of
+                   weights. Trying to find the best values for all those weights with this algo-
+                   rithm is just not realistic.
+                        Our goal in the rest of this chapter is to take this rough idea and
+                   restructure it into a vastly more practical algorithm.
+                        Before we move on, it’s worth noting that because we’re focusing on
+                   weights, we’re automatically adjusting the influence of each neuron’s bias,
+                   thanks to the bias trick we saw in Chapter 13. That means we don’t have to
+                   think about the bias terms, which makes everything simpler.
+                        Let’s now consider how we might improve our incredibly slow weight-
+                   changing algorithm.
+
+
+354   Chapter 14
+                   Gradient Descent
+                   The algorithm of the last section improved our network, but at a glacial
+                   pace. One big source of inefficiency was that half of our adjustments to the
+                   weights were in the wrong direction: we added a value when we should have
+                   subtracted it, and vice versa. That’s why we had to undo our changes when
+                   the error went up. Another problem is that we tuned each weight one by
+                   one, which required us to evaluate an immense number of samples. Let’s
+                   solve these problems.
+                        We can double our training speed if we know beforehand whether we
+                   want to nudge each weight in a positive or negative direction. We can get
+                   exactly that information from the gradient of the error with respect to that
+                   weight. Recall that we met the gradient in Chapter 5, where it told us how
+                   the height of a surface changes as each of its parameters changes. Let’s nar-
+                   row that down for the present case.
+                        As before, we’re going to freeze the whole network except for one
+                   weight. If we plot the value of that weight on a horizontal axis, we can plot
+                   the network’s error for that weight vertically. The errors, taken together,
+                   form a curve called the error curve. In this situation, we can find the gradi-
+                   ent (or derivative) of the error at any particular value of the weight by find-
+                   ing the slope of the error curve above that weight.
+                        If the gradient directly above the weight is positive (that is, the line goes
+                   up as we move to the right), then increasing the value of the weight (moving
+                   it to the right) causes the error to go up. Similarly, and more usefully for us,
+                   decreasing the value of the weight (moving it to the left) causes the error to
+                   go down. If the slope of the error is negative, the situations are reversed.
+                        Figure 14-2 shows two examples.
+
+                     Error                                                       Error
+
+
+
+
+                        0                                                           0
+                       (a)                                                        (b)
+Figure 14-2: The gradient tells us what happens to the error (the black curves) if we make a weight smaller
+or larger, for two different error curves. Each figure shows the gradient at two weights.
+
+                        The error curve for every weight in the network is different because
+                   every weight has a different effect on the final error. But if we can find the
+                   gradient for a specific weight, we’ve solved the problem of guessing whether
+                   it needs to increase or decrease in order to reduce the error. If we can find
+                   the gradients for all the weights, we can adjust them all at once, rather than
+                   one by one. If we can adjust every weight simultaneously, using its own
+
+                                                                                          Backpropagation     355
+                    specific gradient to tell us whether to make it bigger or smaller, we have an
+                    efficient way to improve our network.
+                         This is just what we do. Because we use the gradient to move each weight
+                    to produce a lower value on the error curve, we call the algorithm gradient
+                    descent.
+                         Before we dig into gradient descent, notice that this algorithm makes
+                    the assumption that tweaking all the weights independently and simultane-
+                    ously after we evaluate an incorrect sample leads to a reduction in the error,
+                    not just for that sample, but for the entire training set, and by extension,
+                    all data that we see after the network is released. This is a bold assumption
+                    because we’ve already noted how changing one weight can cause ripple
+                    effects through the rest of the network. Changing the output of one neuron
+                    changes the inputs, and thus the outputs, of all neurons that use that value,
+                    which in turn changes their gradients. If we’re unlucky, some weights that
+                    had a positive gradient might now have a negative gradient, or vice versa.
+                    That means if we stick with the gradients we computed, changing those
+                    weights makes the error bigger, not smaller. To control this problem, we
+                    usually make small changes to every weight in the hopes that any such mis-
+                    takes won’t drown out our improvements.
+
+
+      Getting Started
+                    Let’s reduce the overall error by adjusting the network’s weights in two
+                    steps. In the first step, called backpropagation or backprop, we visit each neu-
+                    ron where we calculate and store a number that is related to the network’s
+                    error. Once we have this value for every neuron, we use it to update every
+                    weight coming into that neuron. This second step is called the update step,
+                    or the optimization step. It’s not typically considered part of backpropaga-
+                    tion, but sometimes people casually roll the two steps together and call the
+                    whole thing backpropagation. This chapter focuses on just the first step.
+                    Chapter 15 focuses on optimization.
+                        In this discussion, we’re going to ignore activation functions. Their
+                    nonlinear nature is essential to making neural networks work, but that
+                    same nature introduces a lot of detail that isn’t relevant to understand-
+                    ing the essence of backprop. Despite this simplification for the point of a
+                    clearer discussion, activation functions are definitely accounted for in any
+                    implementation of backprop.
+                        With this simplification in place, we can make an important observa-
+                    tion: When any neuron output in our network changes, the final output
+                    error changes by a proportional amount.
+                        Let’s unpack that. We only care about two types of values in a neural
+                    network: weights (which we can set and change as we please), and neuron
+                    outputs (which are computed automatically and are beyond our direct
+                    control). Except for the very first layer, a neuron’s input values are each
+                    the output of a previous neuron times the weight of the edge that output
+                    travels on. Each neuron’s output is just the sum of all of these weighted
+                    inputs. Without an activation function, every change in a neuron’s output
+
+
+356    Chapter 14
+is proportional to the changes in its inputs, or the weights on those inputs.
+If the inputs themselves are constant, the only way for a neuron’s output
+to change (and thus affect the final error) is if the weights on its inputs
+change.
+      Imagine we’re looking at a neuron whose output has just changed.
+What happens to the network’s error as a result? Without activation func-
+tions, the only operations in our network are multiplication and addition. If
+we write down the math (which we won’t do), it turns out that the change in
+the final error is always proportional to the change in the neuron’s output.
+      The connection between any change in the neuron’s output and the
+resulting change in the final error is just the neuron’s change multiplied by
+some number. This number goes by various names, but the most popular
+is the lowercase Greek letter δ (delta), though sometimes the uppercase
+version, Δ, is used. Mathematicians often use the delta character to mean
+“change” of some sort, so this was a natural (if terse) choice of name.
+      Every neuron has a delta, or δ, associated with it as a result of evaluat-
+ing the current network with the current sample. This is a real number
+that can be big or small, positive or negative. Assuming the network’s input
+doesn’t change and the rest of the network is frozen, if a neuron’s output
+changes by a particular amount, we can multiply that change by the neu-
+ron’s delta to see how the entire network’s output will change.
+      To illustrate the idea, let’s focus just on one neuron’s output for a
+moment. Let’s add some arbitrary number to its output just before that
+value emerges. Figure 14-3 shows the idea graphically, where we use the
+­letter m (for “modification”) for this extra value.
+
+  A      AD
+
+         BD                                                          Output
+ B                                                                   of D
+         CD
+
+ C                                                                   Change in error
+                                    m
+                                                                     due to m
+
+
+
+                                                 δ
+                                    D
+
+Figure 14-3: Computing the change in the network’s final error due to a change in
+a neuron’s output
+
+    Because the output will change by m, we know the change in the final
+error is m times the neuron’s δ.
+    In Figure 14-3, we changed the output directly by placing the value m
+inside the neuron. Alternatively, we can cause a change in the output by
+
+                                                                     Backpropagation   357
+                    changing one of the inputs. Let’s change the value that’s coming in from
+                    any other neuron. The same logic holds as for Figure 14-3 and is shown in
+                    Figure 14-4. We can instead add m to the value coming in from neurons A
+                    or C if we prefer; all that matters is that the output of D changes by m. Since
+                    we’re still just changing the output by m, we find the change in the final
+                    error by multiplying it by the same value of δ as in Figure 14-3.
+
+                                            A        AD
+
+                          BD                                                              Output
+                     B
+                                                                                          of D
+                                                     CD
+                                            C
+                                                                   D
+
+
+
+
+                                   m                                                      Change in error
+                                                                                          due to m
+
+
+
+                                                 δ
+                    Figure 14-4: A variation of Figure 14-3, where we add m to the output of B (after it has
+                    been multiplied by the weight BD)
+
+                         Figure 14-3 and Figure 14-4 illustrate that the change in the network’s
+                    final output can be predicted from either a change to any neuron’s output
+                    or any weight in the network.
+                         We can use the delta associated with each neuron to tell us whether
+                    each of its incoming weights should be nudged in the positive or negative
+                    direction.
+                         Let’s walk through an example.
+                         This is where things start to get detailed. The basic idea is that the
+                    error will give us a gradient for every weight, and then we can use this gra-
+                    dient to adjust each weight by a little bit so that the overall error decreases.
+                    The mechanics for this aren’t super complicated, but there are some new
+                    ideas, some new names, and a bunch of details to keep straight. If it feels
+                    like too much to take in, you might want to skim this part of the chapter
+                    on first reading (up to, say, the section “Backprop on a Larger Network”),
+                    and return here later for a more complete understanding of the process.
+
+
+      Backprop on a Tiny Neural Network
+                    To get a handle on backprop, we’ll use a tiny network that classifies 2D
+                    points into two categories, which we’ll call class 1 and class 2. If the points
+
+358    Chapter 14
+can be separated by a straight line, then we can do this job with just one
+neuron, but let’s use a little network because it lets us see the general princi-
+ples. Let’s begin by looking at the network and giving a label to everything
+we care about. This will make later discussions simpler and easier to follow.
+Figure 14-5 shows our little network, along with a name for each of its eight
+weights. For simplicity, we’ll leave out the usual softmax step after neurons
+C and D.
+
+
+X                A                   C               P1
+
+
+
+Y                B                   D               P2
+
+Figure 14-5: A simple neural network with four neurons
+
+     Finally, we want to refer to the output and delta for every neuron. For
+this, let’s make little two-letter names by combining the neuron’s name with
+the value we want to refer to. So Ao and Bo are the names of the outputs of
+neurons A and B, and Aδ and Bδ are the delta values for those two neurons.
+     Figure 14-6 shows these values stored with their neurons.
+
+
+X                  Ao, Aδ                      Co, Cδ                   P1
+
+
+
+Y                  Bo, Bδ                      Do, Dδ                   P2
+
+Figure 14-6: Our simple network with the output and delta values for each neuron
+
+     We can watch what happens when neuron outputs change, causing
+changes to the error. Let’s label the change in the output of neuron A due
+to a change by an amount m as Am, the network’s final error as E, and the
+resulting change to the error as Em.
+     Now we can be more precise about what happens to the error when a
+neuron’s output changes. If we have a change Am in the output of neuron
+A, then multiplying that change by Aδ gives us the change in the error.
+That is, the change Em is given by Am × Aδ. We think of the action of Aδ as
+multiplying, or scaling, the change in the output of neuron A, giving us the
+corresponding change in the error. Figure 14-7 shows the schematic setup
+we use in this chapter for visualizing the way changes in a neuron’s output
+are scaled by its delta to produce changes to the error.
+
+
+
+
+                                                                     Backpropagation   359
+                                                                    Em = change
+                                                                    in error
+                          Am = change
+                              in output
+                                                    Aδ                                         New error =
+                                                                                               E + Em
+
+New output =
+   Ao + Am
+                              Ao =
+                           starting
+                            output                                      E = starting
+                                                                        error
+
+
+
+                       Neuron A                                             Network
+                        output                                               error
+
+Figure 14-7: Our schematic for visualizing how changes in a neuron’s output can change the network’s error
+
+                        At the left of Figure 14-7 we start with neuron A. We see the starting
+                    output of A, or Ao, a change in output Am, and its new output Ao + Am. The
+                    arrow inside the box for Am shows that this change is positive. This change
+                    is multiplied by Aδ to give us Em, the change in the error. We show this
+                    operation as a wedge, illustrating the amplification of Am. Adding Em to the
+                    previous value of the error, E, gives us the new error E + Em. In this case,
+                    both Am and Aδ are positive, so the change in the error Am × Aδ is also
+                    positive, increasing the error. When either (but not both) of Am or Aδ is
+                    negative, the error decreases.
+                        Now that we’ve labeled everything, we’re finally ready to look at the
+                    backpropagation algorithm.
+
+                    Finding Deltas for the Output Neurons
+                    Backpropagation is all about finding the delta value for each neuron. To
+                    do that, we find gradients of the error at the end of the network and then
+                    propagate, or move, those gradients backward to the start. So, we begin at
+                    the end: the output layer.
+
+                    Calculating the Network Error
+                    The outputs of neuron C and D in our tiny network give us the probabilities
+                    that the input is in class 1 or class 2, respectively. In a perfect world, a sam-
+                    ple that belongs to class 1 would produce a value of 1.0 for P1 and 0.0 for
+                    P2, meaning that the system is certain that it belongs to class 1 and simulta-
+                    neously certain that it does not belong to class 2. If the system’s a little less
+                    certain, we might get P1 = 0.8 and P2 = 0.2, telling us that it’s much more
+                    likely that the sample is in class 1.
+
+
+360    Chapter 14
+     We want to come up with a single number to represent the network’s
+error. To do that, we compare the values of P1 and P2 with the label for this
+sample. The easiest way to make that comparison is if the label is one-hot
+encoded, as we saw in Chapter 10. Recall that one-hot encoding makes a
+list of zeros as long as the number of classes, except for a 1 in the entry cor-
+responding to the correct class. In our case, we have only two classes, so
+our labels are (1, 0) for a sample in class 1, and (0, 1) for a sample in class 2.
+Sometimes this form of label is also called a target.
+     Let’s put the predictions P1 and P2 into a list as well: (P1, P2). Now we
+can just compare the lists. We almost always use cross entropy for this, as
+discussed in Chapter 6. Figure 14-8 shows the idea.
+
+                                   Prediction                    Label
+
+
+X            A             C           P1                          L1
+                                                   Error
+                                                 formula
+Y            B             D           P2                          L2
+
+
+                                                  Error
+
+Figure 14-8: Finding the error from a sample
+
+    Every deep learning library provides a built-in cross entropy function to
+help us find the error in a classifier such as this one. In addition to comput-
+ing the network’s error, the function also provides a gradient to tell us how
+the error will change if we increase any one of its four inputs.
+    Using the error gradient, we can look at the value coming out of every
+neuron in the output layer, and determine if we’d like that value to become
+more positive or more negative. We will later nudge each neuron in the
+direction that causes the error to decrease.
+
+Drawing Our Error
+Let’s look at an error curve. We’ll also draw the gradient with respect to one
+particular output or weight in the network. Remember that this is just the
+slope of the error at that point.
+    Let’s look at how the error varies with changes in the prediction P1,
+shown in Figure 14-9. Suppose P1 has the value –1.
+    In Figure 14-9 we’ve marked the value P1 = −1 with an orange dot, and
+we’ve drawn the derivative at the location on the curve directly above this
+value of P1 with a green line. That derivative (or gradient) tells us that if we
+make P1 more positive (that is, we move right from −1), the error in the net-
+work will decrease.
+
+
+
+
+                                                                Backpropagation   361
+                   Figure 14-9: How the error depends on different values of P1
+
+                        If we knew the black curve representing the error, we wouldn’t need
+                   the gradient, since we’d just find the curve’s minimum. Unfortunately, the
+                   math doesn’t give us the black curve (we’re drawing it here just for refer-
+                   ence). But the day is saved because the math gives us enough information
+                   to find the curve’s derivative at any location.
+                        The derivative in Figure 14-9 tells us what happens to the error if we
+                   increase or decrease P1 by a little bit. After we’ve changed P1, we can find the
+                   derivative at its new location and repeat. The derivative, or gradient, accu-
+                   rately predicts the new error after each change to P1 as long as we keep that
+                   change small. The bigger the change, the less accurate the prediction is.
+                        We can see this characteristic in Figure 14-9. Suppose we move P1 by
+                   one unit to the right from −1. According to the derivative, we now expect
+                   an error of 0. But at P1 = 0, the error (the value of the black curve) is really
+                   about 1. We moved P1 too far. In the interests of clear figures that are easy
+                   to read, we’ll sometimes make large moves, but in practice, we change our
+                   weights by small amounts.
+                        Let’s use the derivative to predict the numerical change in the error
+                   due to a change in P1. What’s the slope of the green line in Figure 14-9?
+                   The left end is at about (−2, 8), and the right end is at about (0, 0). Thus,
+                   the line descends about four units for every one unit we move to the right,
+                   for a slope of −4/1 or −4. If P1 changed by 0.5 (that is, it changed from −1 to
+                   −0.5), we’d predict that the error would go down by 0.5 × −4 = −2.
+                        Remember that our goal is to find Cδ. We’ve just done it! P1 in this dis-
+                   cussion is just another name for Co, the output of neuron C. We’ve found
+                   that when P1 = –1, a change of 1 in Co (or P1) would result in a change of
+
+
+
+362   Chapter 14
+−4 in the error. As we discussed, we shouldn’t have too much confidence in
+this prediction after such a big change in P1. But for small moves, the pro-
+portion is right. For instance, if we increase P1 by 0.01, then we expect the
+error to change by −4 × 0.01 = −0.04, and for such a small change in P1, the
+predicted change in the error should be pretty accurate. If we increase P1
+by 0.02, then we expect the error to change by −4 × 0.02 = −0.08.
+     The same thinking holds if we decrease the value of P1, or move it to
+the left. If P1 changes from −1 to, say, −1.1, we expect the error to change by
+−0.1 × −4 = 0.4, so the error would increase by 0.4.
+     We’ve found that for any amount of change in Co, we can predict the
+change in the error by multiplying Co by −4. That’s exactly what we’ve been
+looking for! The value of Cδ is −4. Note that as soon as the value of P1
+changes, for any reason, the error curve changes and the value of Cδ has to
+be computed all over again.
+     We’ve just found our first delta value, which tells us how much the error
+will change if there’s a change to the output of C. It’s just the derivative of
+the error function measured at P1 (or Co). Figure 14-10 shows all of this
+visually using our error diagram.
+
+4
+                                                  Em
+3
+                                     Cδ
+2
+                                                                         New
+                                                                         error
+                        Cm
+1
+                         New
+                         output
+0
+
+          Neuron C                                         Network
+           output                                           error
+
+Figure 14-10: Our error diagram illustrating the change in the error from a
+change in the output of neuron C due to a small increase, Cm
+
+     The original output is the green bar at the far left of Figure 14-10. We
+imagine that due to a change in one of the input weights, the output of C
+increases by an amount Cm. This is amplified by multiplying it by Cδ, which
+gives us the change in the error, Em. That is, Em = Cm × Cδ. Here the value
+of Cm is about 1/4 (the upward arrow in the box for Cm tells us that the
+change is positive), and the value of Cδ is −4 (the arrow in that box tells us
+the value is negative). So Em = −4 × 1/4 = −1. The new error, at the far right,
+is the previous error plus Em, or 4 + (−1) = 3.
+     Remember that at this point, we’re not yet doing anything with this
+delta value. Our goal right now is just to find the deltas for our neurons.
+We’ll use them later to change the weights.
+
+
+                                                                       Backpropagation   363
+                   Finding Dδ
+                   Let’s repeat this whole process for P2, to get the value of Dδ, or the delta for
+                   neuron D.
+                        Let’s start with a recap of Cδ. On the left of Figure 14-11 we show the
+                   error curve for P1. As a result of also moving all of the other weights to bet-
+                   ter values, the error curve for P1 now has a minimum of around 2.
+
+
+
+
+                   Figure 14-11: Left: The error for different values of P1. Right: The error for different values of P2.
+
+                         If we use the new value and error curve for P1, it looks like a change
+                   of about 0.5 in P1 will result in a change of about −1.5 in the error, so Cδ is
+                   about −1.5 / 0.5 = −3. Instead of changing P1, what if we change P2?
+                         Take a look at the graph on the right of Figure 14-11. A change of about
+                   −0.5 (moving left this time, toward the minimum of the bowl) results in
+                   a change of about −1.25 in the error, so Dδ is about 1.25 / −0.5 = 2.5. The
+                   positive result here tells us that moving P2 to the right causes the error to
+                   go up, so we want to move P2 to the left.
+                         There are some interesting things to observe here. First, although both
+                   curves are bowl shaped, the bottoms of the bowls are at different weight val-
+                   ues. Second, because the current values of P1 and P2 are on opposite sides
+                   of the bottom of their respective bowls, their derivatives have opposite signs
+                   (one is positive, the other is negative).
+                         The most important observation is that we cannot currently get the
+                   error down to 0. In this example, the curves never get lower than about 2.
+                   That’s because each curve looks at changing just one value, while the other
+                   is fixed. So even if P1 got to a value of 1, where its curve is a minimum,
+                   there would still be error in the result because P2 is not at its ideal value of
+                   0, and vice versa. This means that if we change just one of these two values,
+                   we can’t get down to the minimum error of 0. Getting an error of 0 is ideal,
+                   but, more generally, our goal is to move each weight, a little bit at a time,
+                   until we’ve pushed the error to as small a value as possible. For some net-
+                   works, we may never be able to get to 0.
+                         Note that we may not want to get the error to 0, even if we could. As we
+                   saw in Chapter 9, when a network is overfitting, its training error continues
+                   to decrease, but its ability to handle new data gets worse. We really want
+                   to minimize the error as much as possible without overfitting. In casual
+
+364   Chapter 14
+discussions, we usually say that we want to get down to zero error, with the
+understanding that it’s better to stop with some error than to keep training
+and overfit.
+    We’ll see later that we can improve all the weights in the network at the
+same time, as long as we take very small steps. Then we have to evaluate the
+errors again to find new curves and then new derivatives and deltas before
+we can make another adjustment. Rather than take many steps after each
+sample, we usually adjust the weights only once, and then evaluate another
+sample, adjust the weights once again, and so on.
+
+Measuring Error
+We mentioned earlier that we often compute the error in a classifier using
+cross entropy. For this discussion, let’s use a simpler formula that makes it
+easy to find the delta for each output neuron. This error measure is called
+the quadratic cost function, or the mean squared error (MSE) (Nielsen 2015).
+As usual, we won’t get into the mathematics of this equation. We chose
+it because it lets us find the delta for an output neuron as the difference
+between the neuron’s value and the corresponding label entry (Seung
+2005). Figure 14-12 shows the idea graphically.
+
+
+              Label       L1      L2
+
+
+
+           Co
+  C                   L1 – Co
+
+           Cδ
+
+                Do
+  D                            L2 – Do
+
+                Dδ
+Figure 14-12: When we use the quadratic cost function, the delta
+for any output neuron is just the value in the label minus the output of
+that neuron. As shown in red, we save that delta value with its neuron.
+
+     Remember that Co and P1 are two names for the same value, as are Do
+and P2.
+     Let’s consider Co (or P1) when the first label is 1. If Co = 1, then the
+value of Cδ = 1 – Co = 0, so any change in Co gets multiplied by 0, resulting
+in no change to the output error.
+     Now suppose that Co = 2. Then the difference is Cδ = 1 – Co = −1, tell-
+ing us that a change to Co changes the error by the same amount, but with
+the opposite sign. If Co is much larger, say Co = 5, then 1 – Co = −4, which
+tells us that any change to Co is amplified by a factor of −4 in the change to
+
+                                                                           Backpropagation   365
+                   the error. We’ve been using large numbers for convenience, but remember
+                   that the derivative only accurately predicts what happens if we take a very
+                   small step.
+                        The same thought process holds for neuron D, and its output Do (or P2).
+                        We’ve now completed the first step in backpropagation: we found
+                   the delta values for all the neurons in the output layer. We know from
+                   Figure 14-12 that the delta for an output neuron depends on the value
+                   in the label and the neuron’s output. When we change the values of the
+                   weights going into that neuron, its delta changes as well. The delta is a tem-
+                   porary value that changes with every change to the network or its inputs.
+                   This is another reason we adjust the weights only once per sample. Since we
+                   have to recompute all the deltas after each update, we might as well evaluate
+                   a new sample first, and make use of the extra information it provides us.
+                        Remember that our big goal is to find changes for the weights. When
+                   we know the deltas for all the neurons in a layer, we can update all the
+                   weights feeding into that layer. Let’s see how that’s done.
+
+                   Using Deltas to Change Weights
+                   We’ve seen how to find a delta value for every neuron in the output layer.
+                   We know that a change to the neuron’s output must come from a change in
+                   an input, which in turn can come from either a change in a previous neu-
+                   ron’s output or the weight connecting that output to this neuron. Let’s look
+                   at these cases.
+                        For convenience, let’s say that a neuron’s output or a weight is changed
+                   by a value of 1. Figure 14-13 shows that every change of 1 in the weight AC,
+                   which multiplies the output of neuron A before it’s received by neuron C,
+                   leads to a corresponding change of Ao × Cδ in the network error in our net-
+                   work. Subtracting that value leads to a change of –Ao × Cδ in the error. So,
+                   if we want to reduce the network’s error by subtracting Ao × Cδ from it, we
+                   can change the value of weight AC by –1 to accomplish this.
+
+                                   Change in
+                                  network error
+
+
+                              Ao × Cδ
+
+                      –1                                              Change
+                                                             1        in AC
+                                                              0
+                                             –Ao × Cδ
+
+                   Figure 14-13: When AC changes by 1, the network error changes by Ao × Cδ.
+
+
+366   Chapter 14
+     We can summarize this process visually with an additional convention
+for our diagrams. We’ve been drawing the outputs of neurons as arrows
+coming out of a circle to the right. Let’s draw deltas using arrows coming
+out of the circles to the left, as in Figure 14-14.
+
+
+Cδ               C               Co
+Figure 14-14: Neuron C has an output Co, drawn with an arrow
+pointing right, and a delta Cδ, drawn with an arrow pointing left.
+
+    With this convention, the whole process for finding the updated value
+for weight AC, or AC – (Ao × Cδ), is summarized in Figure 14-15. Showing
+subtraction in a diagram like this is hard, because if we have a “minus” node
+with two incoming arrows, it’s not clear which value is being subtracted from
+the other (that is, if the inputs are x and y, are we computing x − y or y − x?).
+To sidestep that problem, we compute AC − (Ao × Cδ) by finding Ao × Cδ,
+multiplying that by −1, and then adding that result to AC.
+
+                                     -1
+
+
+
+
+          Ao                                                 Cδ
+  A                                 AC                                C
+
+Figure 14-15: Updating the value of weight AC to the new value AC – (Ao × Cδ)
+
+    Let’s walk through this figure. We start with the output Ao from neuron
+A and the delta Cδ from output neuron C, and multiply them together (at
+the top of the figure). We want to subtract this from the current value of
+AC. To show this clearly in the diagram, we multiply the product by −1 and
+then add it to the weight AC. The green arrow is the update step, where this
+result becomes the new value of AC.
+    Figure 14-15 is big news! We’ve found out how to change the weights
+coming into the output neurons in order to reduce the network’s error. We
+can apply this to all four weights going into the output neurons (that is,
+AC, BC, AD, and BD). We’ve just trained our neural network a little bit by
+improving four of its weights.
+
+
+
+                                                                     Backpropagation   367
+                        Sticking with the output layer, if we change the weights for both output
+                   neurons C and D to reduce the error by 1 from each neuron, we’d expect the
+                   error to go down by −2. We can predict this because the neurons sharing the
+                   same layer don’t rely on each other’s outputs. Since C and D are both in the
+                   output layer, C doesn’t depend on Do and D doesn’t depend on Co. They do
+                   depend on the outputs of neurons on previous layers, but right now we’re just
+                   focusing on the effect of changing weights for C and D.
+                        It’s wonderful that we know how to adjust the weights on edges going
+                   into the output layer, but how about all the other weights? Our next goal is
+                   to figure out the deltas for all the neurons in all the preceding layers. Once
+                   we have a delta for every neuron in the network, we can use Figure 14-15 to
+                   adjust every weight in the network to reduce the error.
+                        And this brings us to the remarkable trick of backpropagation: we can
+                   use the neuron deltas at one layer to find the neuron deltas for its preced-
+                   ing layer. Let’s see how.
+
+                   Other Neuron Deltas
+                   Now that we have the delta values for the output neurons, we can use them
+                   to compute the deltas for neurons on the layer just before the output layer.
+                   In our simple model, that layer is the hidden layer containing neurons A
+                   and B. Let’s focus for the moment just on neuron A and its connection to
+                   neuron C.
+                        What happens if Ao, the output of A, changes for some reason? Let’s say
+                   it goes up by Am. Figure 14-16 follows the chain of actions using arbitrary
+                   values for AC and Cδ.
+
+                   4
+                                                                                Em
+                   3
+                            Am
+                                                                   Cδ
+                   2
+                                      AC                                  Previous                     New
+                                                                             error                     error
+                   1                                  Cm
+
+
+                   0
+                         Neuron A                   Neuron C
+                          output                     output                                  Network
+                                                                                              error
+
+                   Figure 14-16: Following the results if we change the output of neuron A
+
+                       If we read the diagram in Figure 14-16 from left to right, the change
+                   to A, shown as Am, is multiplied by the weight AC and then added to the
+                   values accumulated by neuron C. This raises the output of C by Cm. As we
+                   know, this change in C can be multiplied by Cδ to find the change in the
+                   network error.
+
+368   Chapter 14
+     So now we have a chain of operations from neuron A to neuron C and
+then to the error. The first step of the chain says that if we multiply the
+change in Ao (that is, Am) by the weight AC, giving us Am × AC, we get Cm,
+the change in the output of C. And we know from earlier that if we multiply
+this value of Cm by Cδ, forming Cm × Cδ, we get the change in the error.
+     So, mushing this all together, we find that the change in the error due
+to a change Am in the output of A is Am × AC × Cδ. We just found the delta
+for A! It’s just Aδ = AC × Cδ.
+     Figure 14-17 shows this visually.
+
+4
+                                             Em
+3                    AC Cδ
+          Am
+2
+                                        Previous                      New
+                                           error                      error
+1
+
+
+0
+       Neuron A
+        output                                          Network
+                                                         error
+
+Figure 14-17: We can mush together the operations in Figure 14-16 into a
+more succinct diagram.
+
+     This is kind of amazing. Neuron C has disappeared. It’s literally out of
+the picture in Figure 14-17. All we needed was its delta, Cδ, and from that
+we could find Aδ, the delta for A. And now that we know Aδ, we can update
+all of the weights that feed into neuron A, and then . . . no, wait a second.
+     We don’t really have Aδ yet. We just have one piece of it.
+     At the start of this discussion we said we’d focus on neurons A and
+C, and that was fine. But if we now remember the rest of the network in
+Figure 14-8, we can see that neuron D also uses the output of A. If Ao
+changes due to Am, then the output of D changes as well, and that also
+affects the error.
+     To find the change in the error due to neuron D caused by a change in
+the output of neuron A, we can repeat the analysis we just went through by
+just replacing neuron C with neuron D. If Ao changes by Am, and nothing else
+changes, the change in the error due to the change in D is given by AD × Dδ.
+     Figure 14-18 shows these two outputs from A at the same time. This fig-
+ure is set up slightly differently from previous figures of this type that we’ve
+seen earlier. Here, the effect of a change in A on the error due to a change
+in C is shown by the path from the center of the diagram moving to the
+right. The effect of a change in A on the error due to a change in D is
+shown by the path from the center of the diagram and moving left.
+
+                                                                     Backpropagation   369
+                   6
+
+                                       Em
+                   5                  (AD)
+
+
+
+
+                                                     AD Dδ
+                   4
+                                                                                                Em
+
+                                                                           AC Cδ
+                                                                                               (AC)
+                   3
+                                                                 Am
+                   2
+                       New                   Previous                               Previous                New
+                       error                 error                                     error                error
+                   1
+
+
+                   0
+                                                                Neuron A
+                                  Network                        output                           Network
+                                   error                                                           error
+
+
+                                  Change from A followed by D              Change from A followed by C
+
+                   Figure 14-18: The output of neuron A is used by both neuron C and neuron D.
+
+                       Figure 14-18 shows two separate changes to the error. Since neurons C
+                   and D don’t influence each other, their effects on the error are indepen-
+                   dent. To find the total change to the error, we just add up the two changes.
+                   Figure 14-19 shows the result of adding the change in error via neuron C
+                   and the change via neuron D.
+                   6
+                                       Em
+                                      (AC)   Change from AC
+                   5
+                                       Em
+                                      (AD)   Change from AD
+                   4
+
+
+                   3
+
+
+                   2
+
+
+                   1
+
+
+                   0
+                       Starting              New
+                        error                error
+
+                   Figure 14-19: When the output of neuron A is used by both neuron C and
+                   neuron D, the resulting changes to the error add together.
+
+                        Now that we’ve handled all the paths from A to the outputs, we can finally
+                   write the value for Aδ. Since the errors add together, as in Fig­ure 14-19, we can
+                   just add up the factors that scale Am. If we write it out, this is Aδ = (AC × Cδ) +
+                   (AD × Dδ).
+
+
+370   Chapter 14
+     Now that we’ve found the value of delta for neuron A, we can repeat the
+process for neuron B to find its delta.
+     What we’ve just done is actually far better than finding the delta for
+just neurons A and B. We’ve found out how to get the value of delta for
+every neuron in any network, no matter how many layers it has or how many
+neurons there are! That’s because everything we’ve done involves nothing
+more than a neuron, the deltas of all the neurons in the next layer that use
+its value as an input, and the weights that join them. With nothing more
+than these values, we can find the effect of a neuron’s change on the net-
+work’s error, even if the output layer is dozens of layers away.
+     To summarize this visually, let’s expand on our convention for drawing
+outputs and deltas as right-pointing and left-pointing arrows to include the
+weights, as in Figure 14-20. Let’s say that the weight on a connection multi-
+plies either the output moving to the right, or the delta moving to the left,
+depending on which step we’re thinking about.
+
+
+                                          AC                                 AC
+Aδ         A          Ao           A                  C            A                     C
+
+                                         Ao AC                         Cδ AC
+          (a)                               (b)                              (c)
+Figure 14-20: Drawing the values associated with neuron A. (a) The output Ao is an arrow
+coming out of the right of the neuron, and the delta Aδ as an arrow coming out of the left.
+(b) Ao is multiplied by AC on its way to being used by C. (c) Cδ is multiplied by AC on its
+way to being used by A.
+
+     Here’s a way to think about Figure 14-20. There is one connection with
+one weight joining neurons A and C. If the arrow points to the right, then
+the weight multiplies Ao, the output of A, as it heads into neuron C. If the
+arrow points to the left, the weight multiplies Cδ, the delta of C, as it heads
+into neuron A.
+     When we evaluate a sample, we use the feed-forward, left-to-right style
+of flow, where the output value from neuron A to neuron C travels over a
+connection with weight AC. The result is that the value Ao × AC arrives at
+neuron C where it’s added to other incoming values, as in Figure 14-20(b).
+     When we later want to compute Aδ, we follow the flow from right to left.
+Then the delta leaving neuron C travels over a connection with weight AC.
+The result is that the value Cδ × AC arrives at neuron A where it’s added to
+other incoming values, as in Figure 14-20(c).
+     Now we can summarize both the processing of a sample input and the
+computation of the deltas for some arbitrary neuron named H (remember,
+we’re ignoring the activation function), as in Figure 14-21.
+
+
+
+
+                                                                       Backpropagation   371
+                                Calculating Ho                                 Calculating Hδ
+
+                       Ao        AH                                                         HJ         Jδ
+
+                               BH                                                                HK
+                       Bo                               Ho             Hδ                              Kδ
+                                            H                                       H
+                                 CH                                                         HL
+                       Co                                                                              Lδ
+
+                    Figure 14-21: Left: To calculate Ho, we scale the output of each preceding neuron by the
+                    weight of its connection and add the results together. Right: To calculate Hδ, we scale the
+                    delta of each following neuron by the connection’s weight and add the results together.
+                    As usual, we’re ignoring activation functions.
+
+                         This is pleasingly symmetrical. It also reveals an important practical
+                    result: calculating deltas is often as efficient as calculating output values.
+                    Even when the number of incoming connections is different from the num-
+                    ber of outgoing connections, the amount of work involved is still close in
+                    both directions.
+                         Note that Figure 14-21 doesn’t require anything of neuron H except
+                    that it has inputs from a neighbor layer that travel on connections with
+                    weights and deltas. We can apply the left half of Figure 14-21 and calculate
+                    the output of neuron H as soon as the outputs from the previous layer are
+                    available. We can apply the right half of Figure 14-21 and calculate the delta
+                    of neuron H as soon as the deltas from the following layer are available.
+                         The dependence of Hδ on the deltas of the following neurons shows
+                    why we had to treat the output layer neurons as special cases: there are no
+                    “next layer” deltas to be used.
+                         Throughout this discussion we’ve left out activation functions. It turns
+                    out that we can fit them into Figure 14-21 without changing the basic
+                    approach. Though the process is conceptually straightforward, the mechan-
+                    ics involve a lot of details, so we won’t go into them here.
+                         This process of finding the delta for every neuron in the network is the
+                    heart of the backpropagation algorithm. Let’s get a feeling for how back-
+                    prop works in a larger network.
+
+
+      Backprop on a Larger Network
+                    In the last section we saw the backpropagation algorithm, which lets us
+                    compute the delta for every neuron in a network. Because that calculation
+                    depended on the deltas in the following neurons and the output neurons
+                    don’t have any of those, and because the changes to the output neurons are
+                    driven directly by the loss function, we treat the output neurons as a special
+                    case. Once all the neuron deltas for any layer (including the output layer)
+                    have been found, we can then step backward one layer (toward the inputs),
+                    and find the deltas for all the neurons on that layer. Then we step backward
+
+
+372    Chapter 14
+again, compute all the deltas, step back again, and so on, until we reach the
+input layer. Once we have the delta for every neuron, we can adjust the val-
+ues of the weights going into that neuron, thereby training our network.
+     Let’s walk through the process of using backprop to find the deltas for
+all the neurons in a slightly larger network.
+     In Figure 14-22 we show a network with four layers. There are still two
+inputs and outputs, but now we have three hidden layers of two, four, and
+three neurons.
+
+
+
+
+X                                                                                P1
+
+
+
+Y                                                                                P2
+
+
+
+
+Figure 14-22: A new classifier network with two inputs, two outputs, and three hidden layers
+
+     We start things off by evaluating a sample. We provide the values of its
+X and Y features to the inputs, and eventually the network produces the
+output predictions P1 and P2.
+     Now we can start backpropagation by finding the error in the first of
+the output neurons, as shown in the upper part of Figure 14-23.
+     We’ve begun arbitrarily with the upper neuron, which gives us the
+prediction we’ve labeled P1 (the probability that the sample is in class 1).
+From the values of P1 and P2 and the label, we can compute the error in
+the network’s output. Let’s suppose the network didn’t predict this sample
+perfectly, so the error is greater than zero.
+     Using the error, the label, and the values of P1 and P2, we can compute
+the value of delta for this neuron. If we’re using the quadratic cost function,
+this delta is just the value of the label minus the value of the neuron, as
+we saw in Figure 14-12. But if we’re using some other function, it might be
+more complicated, so we’ll discuss the general case.
+     We save this delta with its neuron, and then repeat this process for all
+the other neurons in the output layer (here we have only one more), as
+shown in the lower part of Figure 14-23. That finishes up the output layer,
+since we now have a delta for every neuron in the output layer.
+     At this point, we could start adjusting the weights coming into the out-
+put layer, but we usually first find all the neuron deltas first, and then adjust
+all the weights. Let’s follow that typical sequence here.
+
+                                                                        Backpropagation   373
+                                                                              Label
+
+
+X                                                       δ          P1
+                                                                                               Sensitivity
+                                                                                  Error        of error to
+                                                                                                   P1
+Y                                                                  P2
+
+
+
+
+                                                                                  Label
+
+
+X                                                                  P1
+                                                                                               Sensitivity
+                                                                                  Error        of error to
+                                                                                                   P2
+Y                                                       δ          P2
+
+
+
+
+Figure 14-23: Summarizing the steps for finding the delta for both output neurons
+
+                        We move backward one step to the third hidden layer (the one with
+                    three neurons). Let’s consider finding the value of delta for the topmost of
+                    these three, as in the left image of Figure 14-24.
+
+
+                    δ
+X                               P1      X                               P1    X                              P1
+
+                                                            δ
+Y                               P2      Y                               P2    Y                              P2
+
+                                                                                               δ
+
+
+Figure 14-24: Using backpropagation to find the deltas for the next-to-last layer of neurons
+
+
+374    Chapter 14
+                        To find the delta for this neuron, we follow the recipe of Figure 14-18 to
+                   get the individual contributions, and then the recipe of Figure 14-19 to add
+                   them together to get the delta for this neuron.
+                        Now we just work our way through the layer, applying the same process to
+                   each neuron. When we’ve completed all the neurons in this three-neuron layer,
+                   we take a step backward and start on the preceding hidden layer with four neu-
+                   rons. This is where things really become beautiful. To find the deltas for each
+                   neuron in this layer, we need only the weights to each neuron that uses that
+                   neuron’s output and the deltas for those neurons, which we just computed.
+                        The other layers are irrelevant. We don’t care about the output layer
+                   anymore now.
+                        Figure 14-25 shows how we compute the deltas for the four neurons in
+                   the second hidden layer.
+
+
+                 δ
+
+X                                             P1           X                 δ                        P1
+
+
+
+Y                                             P2           Y                                          P2
+
+
+
+
+X                                              P1          X                                          P1
+
+
+
+Y                δ                             P2          Y                                          P2
+
+
+
+                                                                             δ
+
+Figure 14-25: Using backprop to find the delta values for the second hidden layer
+
+                        When all four neurons have had deltas assigned to them, that layer is
+                   finished, and we take another step backward. Now we’re at the first hidden
+                   layer with two neurons. Each of these connects to the four neurons on the
+                   next layer. Once again, all we care about are the deltas in that next layer
+                   and the weights that connect the two layers. For each neuron, we find the
+                   deltas for all the neurons that consume that neuron’s output, multiply those
+                   by the weights, and add up the results, as shown in Figure 14-26.
+
+                                                                                    Backpropagation   375
+X      δ                                         P1          X                                    P1
+
+
+
+Y                                                P2          Y      δ                             P2
+
+
+
+
+Figure 14-26: Using backprop to find the deltas for the first hidden layer
+
+                         When Figure 14-26 is complete, we’ve found the delta for every neuron
+                    in the network.
+                         Now let’s adjust the weights. We can run through the connections
+                    between neurons and use the technique we saw in Figure 14-15 to update
+                    every weight to a new and improved value.
+                         Figure 14-23 through Figure 14-26 show why the algorithm is called
+                    backward propagation. We’re taking the deltas from any layer and propagat-
+                    ing, or moving, their delta (or gradient) information backward one layer at
+                    a time, modifying it as we go. As we’ve seen, computing each of these delta
+                    values is fast. Even when we put the activation function steps in, that doesn’t
+                    add much to the computational cost.
+                         Backprop becomes highly efficient when we use parallel hardware like
+                    a GPU, because we can use a GPU to multiply all the deltas and weights for
+                    an entire layer simultaneously. The tremendous efficiency boost that comes
+                    from this parallelism is a key reason why backprop has made learning prac-
+                    tical for huge neural networks.
+                         Now we have all of the deltas, and we can update the weights. That’s the
+                    core process of training a neural network.
+                         Before we leave the discussion, though, let’s return to the issue of how
+                    much we should move each weight.
+
+
+      The Learning Rate
+                    As we’ve mentioned, changing a weight by a lot in a single step is often a
+                    recipe for trouble. The derivative is only an accurate predictor of the shape
+                    of a curve for very tiny changes in the input value. If we change a weight by
+                    too much, we can jump right over the smallest value of the error and even
+                    find ourselves increasing the error.
+                         On the other hand, if we change a weight by too little, we might see
+                    only the tiniest bit of learning, requiring us to spend more time learning
+                    than we should actually require. Still, that inefficiency is usually better than
+                    a system that’s constantly overreacting to errors.
+
+
+
+
+376    Chapter 14
+    In practice, we control the amount of change to the weights during
+every update with a hyperparameter called the learning rate, usually sym-
+bolized by the lowercase Greek letter η (eta). This is a number between 0
+and 1, and it tells the weights how much of each neuron’s newly computed
+change to use when it updates.
+    When we set the learning rate to 0, the weights don’t change at all.
+Our system never changes and never learns. If we set the learning rate
+to 1, the system applies big changes to the weights and may cause them to
+increase the error, not decrease it. If this happens a lot, the network can
+spend its time constantly overshooting and then compensating, with
+the weights bouncing around and never settling into their best values.
+Therefore, we usually set the learning rate somewhere between these
+extremes. In practice, we usually set it to be only slightly larger than 0.
+    Figure 14-27 shows how the learning rate is applied. Starting with
+Figure 14-15, we insert an extra step to scale the value of −(Ao × Cδ) by η
+before adding it back in to AC.
+
+                                     -1
+
+
+
+
+                         η
+
+
+
+
+           Ao                                                Cd
+  A                                 AC                                  C
+
+Figure 14-27: The learning rate helps us control how fast the network learns by controlling
+the amount by which weights change on each update.
+
+     The best value to use for the learning rate is dependent on the spe-
+cific network we’ve built and the data we’re training on. Finding a good
+choice of learning rate can be essential to getting the network to learn at
+all. Once the system is learning, changing this value can affect whether
+that process goes quickly or slowly. Usually we have to hunt for the best
+value of η using trial and error. Happily, some algorithms automate the
+search for a good starting value for the learning rate and others fine-
+tune the learning rate as learning progresses. As a general rule of thumb,
+and if none of our other choices direct us to a particular learning rate,
+
+
+                                                                       Backpropagation   377
+                   we often start with a value around 0.001 and then train the network for
+                   a while, watching how well it learns. Then we raise or lower it from that
+                   value and train again, over and over, hunting for the value that learns
+                   most efficiently. We’ll look at techniques for controlling the learning rate
+                   more closely in Chapter 15.
+                       Let’s see how the choice of learning rate affects the performance of
+                   backprop, and thus learning.
+
+                   Building a Binary Classifier
+                   Let’s build a classifier to find the boundary between two crescent moons.
+                   We will use about 1,500 points of training data, shown in Figure 14-28.
+
+
+
+
+                   Figure 14-28: About 1,500 points assigned to two classes
+
+                        Because we have only two classes, we only need a binary classifier. This
+                   lets us skip the whole one-hot encoding of labels and dealing with multiple
+                   outputs and instead lets us use just one output neuron. If the value is near
+                   0, the input is in one class. If the output is near 1, the input is in the other
+                   class.
+                        Our classifier will have just two hidden layers, each with four neurons.
+                   These are essentially arbitrary choices we’ve made that give us a network
+                   that’s just complex enough for our discussion. As shown in Figure 14-29,
+                   both layers are fully connected.
+                        This network uses ReLU activation functions for the neurons in the
+                   hidden layers and a sigmoid activation function on the output neuron.
+
+
+
+
+378   Chapter 14
+  X
+
+                                                      Output
+
+  Y
+
+
+
+
+Figure 14-29: Our binary classifier with two inputs, four neurons in
+each of the two hidden layers, and a single output neuron
+
+     How many weights are in our network? There are four coming out of
+each of the two inputs, then four times four between the layers, and then
+four going into the output neuron. That gives us (2 × 4) + (4 × 4) + 4 = 28.
+Each of the nine neurons also has a bias term, so our network has a total of
+28 + 9 = 37 weights. They are all initialized as small random numbers. Our
+goal is to use backprop to adjust those 37 weights so that the number that
+comes out of the final neuron always matches the label for that sample.
+     As we discussed earlier, we evaluate one sample, calculate the error,
+and if the error is not zero, we compute the deltas with backprop and then
+update the weights using the learning rate. Then we move on to the next
+sample. Note that if the error is 0, then we don’t change anything, since the
+network gave us the answer we wanted. Each time we process all the sam-
+ples in the training set, we say we’ve completed one epoch of training.
+     Running backprop successfully relies on making small changes to the
+weights. There are two reasons for this. The first, which we’ve discussed, is
+because the gradient is only accurate very near the point we’re evaluating.
+If we move too far, we may find ourselves increasing the error rather than
+decreasing it.
+     The second reason for taking small steps is that changes in weights near
+the start of the network cause changes in the outputs of neurons in later
+layers, which change their deltas. To prevent everything from turning into
+a terrible snarl of conflicting changes, we adjust the weights only by small
+amounts.
+     But what is “small”? For every network and dataset, we have to experi-
+ment to find out. As we saw earlier, the size of our step is controlled by the
+learning rate, or eta (η). The bigger this value, the more each weight moves
+toward its new value.
+
+Picking a Learning Rate
+Let’s start with an unusually large learning rate of 0.5. Figure 14-30 shows
+the boundaries computed by our network for our test data, using a different
+background color for each class.
+
+
+
+
+                                                                       Backpropagation   379
+                    Figure 14-30: The boundaries computed by our network using a learning rate of 0.5
+
+                         This is terrible: there don’t seem to be any boundaries at all! Everything
+                    is being assigned to a single class, shown by the light orange background.
+                    If we look at the accuracy and error (or loss) after each epoch, we get the
+                    graphs of Figure 14-31.
+
+
+
+
+Figure 14-31: Accuracy and loss for our half-moons data with a learning rate of 0.5
+
+                         Things are looking bad. As we’d expect, the accuracy is just about
+                    0.5, meaning that half the points are being misclassified. This makes
+                    sense, since the red and blue points are roughly evenly divided. If we
+
+
+
+
+380    Chapter 14
+assign them all to one class, as we’re doing here, half of those assign-
+ments will be wrong. The loss, or error, starts high and doesn’t fall. If we
+let the network run for hundreds of epochs, it continues on in this way,
+never improving.
+     What are the weights doing? Figure 14-32 shows the values of all
+37 weights during training.
+
+
+
+
+Figure 14-32: The weights of our network when using a learning rate of 0.5. One weight
+is constantly changing and overshooting its goal, while the others are making changes
+too small to show on this graph.
+
+     The graph is dominated by one weight that’s jumping all over. That
+weight is one of those going into the output neuron, trying to move its out-
+put around to match the label. That weight goes up, then down, then up,
+jumping too far almost every time, then overcorrecting by too much, then
+overcorrecting for that, and so on. The other neurons are changing too, but
+at too small a scale to see in this graph.
+     These results are disappointing, but they’re not shocking, because a
+learning rate of 0.5 is big. That’s what’s causing all the erratic bouncing
+around in Figure 14-32.
+     Let’s reduce the training rate by a factor of 10 to a more reasonable
+(though still big) value of 0.05. We’ll change absolutely nothing else about
+the network or the data, and we’ll even reuse the same sequence of pseudo-
+random numbers to initialize the weights. The new boundaries are shown
+in Figure 14-33.
+
+
+
+
+                                                                    Backpropagation   381
+                    Figure 14-33: The decision boundaries when we use a learning rate of 0.05
+
+                         This is much better! Looking at the graphs in Figure 14-34 reveals
+                    that we’ve reached 100 percent accuracy on both the training and test
+                    sets after about 16 epochs. Using a smaller learning rate gave us a huge
+                    improvement.
+
+
+
+
+Figure 14-34: Accuracy and loss for our network when using a learning rate of 0.05
+
+
+
+
+382    Chapter 14
+   This shows us the importance of tuning the learning rate for every new
+combination of network and data. If a network refuses to learn, we can
+sometimes make things better by simply reducing the learning rate.
+   What are the weights doing now? Figure 14-35 shows us their history.
+
+
+
+
+Figure 14-35: The weights in our network over time, using a learning rate of 0.05
+
+     Overall, this is way better, because lots of weights are changing. They’re
+getting pretty large, which can itself inhibit or slow down learning. We usu-
+ally want our weights to be in a small range, typically [–1, 1]. We’ll see some
+ways to control weight values when we discuss regularization in Chapter 15.
+     Figure 14-33 and Figure 14-34 are pictures of success. Our network
+has learned to perfectly classify the data, and it did it in only 16 epochs,
+which is nice and fast (in fact, the graphs show us that it really took only 10
+epochs). On a late 2014 iMac without GPU support, the whole training pro-
+cess for 16 epochs took less than 10 seconds.
+
+An Even Smaller Learning Rate
+What if we lower the learning rate down to 0.01? Now the weights change
+even more slowly. Does this produce better results?
+    Figure 14-36 shows the decision boundary resulting from these tiny
+steps. The boundary seems simpler than the boundary in Figure 14-33, but
+both boundaries separate the sets perfectly.
+
+
+
+
+                                                                      Backpropagation   383
+                    Figure 14-36: The decision boundaries for a learning rate of 0.01
+
+                        Figure 14-37 shows our accuracy and loss graphs. Because our learning
+                    rate is so much slower, our network takes around 170 epochs to get to 100
+                    percent accuracy, rather than the 16 in Figure 14-35.
+
+
+
+
+Figure 14-37: The accuracy and learning rate for our network using a learning rate of 0.01
+
+                        These graphs show an interesting learning behavior. After an initial
+                    jump, both the training and test accuracies reach about 90 percent and
+                    plateau there. At the same time, the losses plateau as well. Then around
+                    epoch 170, things improve rapidly again, with the accuracy climbing to 100
+                    percent and the errors dropping to zero.
+
+
+384    Chapter 14
+     This pattern of alternating improvement and plateaus is not unusual,
+and we can even see a hint of a plateau in Figure 14-34 between epochs 3
+and 8. These plateaus come from the weights finding themselves on nearly
+flat regions of the error surface, resulting in near-zero gradients, and thus
+their updates are very small.
+     Though our weights might be getting stuck in a local minimum, it’s
+more common for them to get caught in a flat region of a saddle, like those
+we saw in Chapter 5 (Dauphin et al. 2014). Sometimes it takes a long time
+for one of the weights to move into a region where the gradient is large
+enough to give it a good push. When one weight gets moving, it’s com-
+mon to see the others kick in as well, thanks to the cascading effect of that
+weight’s changes on the rest of the network.
+     The values of the weights follow almost the same pattern over time,
+as shown in Figure 14-38. The interesting thing is that at least some of the
+weights are not flat or on a plateau near the middle of our training process.
+They’re changing, but slowly. The system is getting better, but in tiny steps
+that don’t show up in the performance graphs until the changes become
+bigger around epoch 170.
+
+
+
+
+Figure 14-38: The history of our weights using a learning rate of 0.01
+
+     So, was there any benefit to lowering the learning rate down to 0.01? In
+this case, not really. Even at 0.05, the classification was already perfect on
+both the training and test data. For this network and this data, the smaller
+learning rate just meant the network took longer to learn. This investiga-
+tion has shown us how sensitive the network is to our choice of learning
+rate. We want to find a value that’s not too big, or too small, but just right
+(Pyle 1918).
+
+                                                                         Backpropagation   385
+                        We usually do this kind of experimenting with the learning rate as
+                    part of developing nearly every deep learning network. We need to find a
+                    value that does the best job on each specific network and data. Happily, in
+                    Chapter 15 we’ll see algorithms that can automatically adjust the learning
+                    rate for us in sophisticated ways.
+
+
+      Summary
+                    This chapter was all about backpropagation. We saw that we can predict
+                    how the error of a network will change in response to a change in each
+                    weight. If we can determine whether each weight should increase or
+                    decrease in value, we can reduce the error.
+                        To find how we should change each weight, we started by assigning a
+                    delta value to each neuron. This value tells us the relationship between
+                    a change in a weight’s value and a change in the final error. This enabled
+                    us to determine how to change each weight in order to reduce the error.
+                        The computation of these deltas proceeds from the final layer back-
+                    ward to the first. Because the gradient information needed to compute the
+                    delta for each neuron is propagated backward one layer at a time, we get
+                    the name backpropagation. Backprop can be implemented on a GPU, where
+                    we can carry out the calculations for many neurons simultaneously.
+                        It’s important to keep in mind that backprop is propagating the gradi-
+                    ent of the error, which is the information that tells us how the error changes
+                    when the weight changes. Some authors casually speak of backprop as prop-
+                    agating the error, but that’s a misleading simplification. We’re propagating
+                    the gradient, which tells us how to manipulate the weights to improve the
+                    network’s output.
+                        Now that we know whether each weight should be adjusted to be larger
+                    or smaller, we need to decide how big a change to actually make. That’s
+                    exactly what we’ll figure out in the next chapter.
+
+
+
+
+386    Chapter 14
+

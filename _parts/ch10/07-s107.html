@@ -1,0 +1,214 @@
+
+<!-- ===================================================== 10.7 -->
+<section id="s107">
+<h2>10.7 Regularizáció ★★</h2>
+<p>Egy háló könnyen <b>bemagolja</b> a tanítóadatot: a számjegyhálónak 1210 paramétere van, egy 64 rejtett neuronos változatnak 4810 – ha csak 100 tanítóképet kap, mindet hibátlanul megjegyzi.
+A cél viszont az új kép (<a href="../03-tanulas-anatomiaja/#s35">3.5</a>, <a href="../06-modellertekeles/#s66-a">6.6</a>). A <b>regularizáció</b> minden olyan fogás, amely a tanítóadaton elért eredmény helyett az általánosítást javítja. Négyet nézünk meg – a legolcsóbbtól a leghatásosabbig.</p>
+
+<h3 id="s107-a">1. lépés: korai leállítás – figyeld a validációs görbét</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – 100 kép, 4810 paraméter</span>
+  64–64–10-es háló, csak 100 tanítóképen, Adam, $\eta = 0{,}01$, $B = 16$. A validációs halmaz 300 másik kép.
+  <table style="max-width:620px;font-size:.86rem;text-align:center">
+    <tr><th>epoch</th><td>1</td><td>5</td><td>9</td><td>13</td><td>16</td><td>19</td><td>25</td><td>50</td><td>100</td><td>150</td></tr>
+    <tr><th>tanító veszteség</th><td>1,688</td><td>0,440</td><td>0,147</td><td>0,071</td><td>0,040</td><td>0,027</td><td>0,014</td><td>0,004</td><td>0,001</td><td>0,000</td></tr>
+    <tr><th>validációs veszteség</th><td>2,010</td><td>0,829</td><td>0,534</td><td>0,468</td><td>0,468</td><td><b>0,462</b></td><td>0,493</td><td>0,523</td><td>0,576</td><td>0,611</td></tr>
+    <tr><th>validációs pontosság</th><td>22,3%</td><td>74,7%</td><td>87,0%</td><td>88,3%</td><td>88,3%</td><td>89,0%</td><td>88,7%</td><td>89,0%</td><td>89,3%</td><td>89,3%</td></tr>
+  </table>
+  A 9. epochtól a tanítóképeken már 100%. A validációs veszteség a 19. epochban a legkisebb, utána <b>nő</b>, miközben a tanító tovább csökken – ez a túlillesztés jele (<a href="../06-modellertekeles/#s66-a">6.6</a>).
+  Figyeld meg: a validációs <em>pontosság</em> közben alig változik. A háló ugyanazokat a képeket rontja el, csak egyre magabiztosabban – ezt csak a veszteség mutatja.
+</div>
+<div class="box def">
+  <span class="box-title">Algoritmus – korai leállítás türelemmel</span>
+  Minden epoch után mérd a validációs veszteséget. Ha jobb az eddigi legjobbnál, <b>mentsd el a súlyokat</b>. Ha $p$ epochon át (a <b>türelem</b>) nem javult, állj meg, és <b>töltsd vissza</b> a legjobb súlyokat.
+  <br><small>Miért működik? A tanítás elején a háló az adat általános szerkezetét tanulja, később egyre inkább az egyes tanítóképek véletlen részleteit. A validációs görbe minimuma jelzi, hol fordul át az egyik a másikba.
+  Az epochszám így egy hiperparaméter, amelyet a validációs halmaz választ ki – nem kell előre eltalálni.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – türelem 3</span>
+    A legjobb érték a 13. epochban 0,468; a 14–16. epoch nem jobb nála (0,486; 0,495; 0,468 – a 16. csak hajszálnyival rosszabb). A 16. epoch után megáll, és a 13. epoch súlyait tölti vissza. A zajos görbe miatt kicsit korán: a 19. még jobb lett volna.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – türelem 10</span>
+    Átvészeli a zajt: a 19. epochban talál 0,462-t, a 29. epoch után megáll, és a 19. súlyait adja vissza. 120 felesleges epochot spórolt, és nem a 150. epoch túltanult hálóját kaptuk.
+  </div>
+</div>
+<div class="widget" data-widget="train-monitor"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A legjobb validációs eredménynél állj meg, ne ott, ahol a tanító és a validációs görbe a legközelebb van.</b> Egy könyv (MLQ 6) az utóbbit írja – de a két görbe a tanítás legelején van a legközelebb, amikor a háló még semmit sem tud.</li>
+    <li><b>A leállításra használt validációs halmaz már „elhasználódott”.</b> Az eredményét ne jelentsd végső pontosságként: arra a külön tesztkészlet való (<a href="../06-modellertekeles/#s64-a">6.4</a>).</li>
+    <li><b>Nem elég leállni – vissza is kell tölteni</b> a legjobb súlyokat; különben a türelem idejére már romlott hálót kapsz.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – korai leállítás</summary>
+  <ol>
+    <li>Validációs veszteségek epochonként: 0,90; 0,62; 0,48; 0,41; 0,38; 0,37; 0,38; 0,40; 0,43; 0,47. Türelem 3: hol áll meg, és melyik epoch súlyait adja vissza?
+      <details><summary>Megoldás</summary>Legjobb a 6. epoch (0,37). A 7., 8., 9. nem javít → a 9. után megáll, és a 6. epoch súlyait tölti vissza.</details></li>
+    <li>Ugyanez türelem 5-tel?
+      <details><summary>Megoldás</summary>A 7–10. epoch nem javít, de ez csak 4 epoch – a 10. epoch végén még fut (ha lenne 11. is, utána állna meg). A legjobb továbbra is a 6.</details></li>
+    <li>A tanító veszteség 0,01, a validációs 0,6 és nő. A validációs pontosság 89%, és nem változik. Túlillesztés-e ez?
+      <details><summary>Megoldás</summary>Igen: a tanító–validációs rés nagy, és a validációs veszteség nő. A pontosság azért nem esik, mert ugyanazokat a képeket rontja el, csak egyre magabiztosabban – a valószínűségei rosszabbak lettek (kalibráció, <a href="../06-modellertekeles/#s62-d">6.2</a>).</details></li>
+    <li>Miért kell a legjobb súlyokat <em>menteni</em>, nem elég megjegyezni, melyik epochban voltak?
+      <details><summary>Megoldás</summary>Mert a súlyok tovább változnak: a türelem lejártakor a háló már a későbbi (rosszabb) állapotban van. A 13. epoch hálóját csak akkor kapod vissza, ha akkor elmentetted.</details></li>
+    <li>(nehezebb) Mi lehet a baj, ha a validációs veszteség már az első epochtól folyamatosan nő?
+      <details><summary>Megoldás</summary>Valószínűleg nem túlillesztés, hanem hiba: túl nagy tanulási ráta (szétszálló tanítás – ilyenkor a tanító veszteség is nő), szivárgás vagy eltérő előfeldolgozás a tanító és a validációs adat között, rossz címkék a validációs halmazban.</details></li>
+  </ol>
+</details>
+
+<h3 id="s107-b">2. lépés: L2-büntetés és súlycsökkentés</h3>
+<p>A korai leállítás a tanítás <em>idejét</em> korlátozza. A második eszköz magát a célt módosítja: a nagy súlyokat büntetjük, ahogy a ridge regresszió (<a href="../06-modellertekeles/#s67-a">6.7</a>).</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy felesleges súly sorsa</span>
+  Egy súly értéke 2, de a veszteségre már nem hat (a gradiense 0). Sima gradiens módszerrel örökre 2 marad. Adjunk a veszteséghez $\frac{\lambda}{2}w^2$-et, $\lambda = 0{,}01$, $\eta = 0{,}1$: a gradiens $\lambda w$, így minden lépés
+  $$w \leftarrow w - \eta\lambda w = (1 - 0{,}001)\,w = 0{,}999\,w.$$
+  1000 lépés után $2 \cdot 0{,}999^{1000} \approx 0{,}735$. A haszontalan súly lassan elkopik – a hasznosakat a veszteség gradiense „életben tartja”.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – L2-büntetés = súlycsökkentés (SGD-nél)</span>
+  $$L_{\text{reg}} = L + \frac{\lambda}{2}\sum_i w_i^2 \qquad\Rightarrow\qquad w \leftarrow w - \eta(g + \lambda w) = (1 - \eta\lambda)\,w - \eta g.$$
+  Minden lépés előbb kicsit összehúzza a súlyt ($1 - \eta\lambda$-szorosára), aztán a gradiens szerint lép. Ezért hívják <b>súlycsökkentésnek</b> (weight decay). A torzításokat általában nem büntetjük.
+  <br><small>Miért segít? A kis súlyú háló „simább” függvényt számol (a bemenet kis változására kicsit változik), kevésbé tud egyes tanítóképekre szabott, éles kanyarokat leírni. A $\lambda$ hiperparaméter: validációval választjuk (<a href="../06-modellertekeles/#s68-a">6.8</a>).</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy klasszikus mérés (ESL 11.5)</span>
+    Egy 10 rejtett neuronos háló kétosztályos szimulált adaton: súlycsökkentés nélkül a tanító hiba 0,100, a teszt 0,259; $\lambda = 0{,}02$-vel a tanító hiba 0,160, a teszt 0,223 (az elérhető legjobb 0,210).
+    A tanítón rosszabb, az új adaton jobb – a regularizáció tipikus „cseréje”.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a 100 képes számjegyháló</span>
+    A kiinduló példa hálója $\lambda = 0{,}001$-gyel: a validációs veszteség a 150. epochban 0,471 (büntetés nélkül 0,611) – nem kúszik fel. A pontosság itt is alig változik (88–89%).
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktató – Adamnál az L2 nem súlycsökkentés: AdamW (Kiegészítés)</span>
+  Az Adam minden gradienst a saját tipikus nagyságával oszt (<a href="#s105-b">10.5</a>) – a $\lambda w$ büntetőtagot is. Így a büntetés ereje szinte eltűnik a skálázásban.
+  Egy kis próbán (a súly 1, a veszteség gradiense 0, 100 lépés, $\eta = 0{,}01$) Adam + L2 után $w = 0{,}224$ – <b>mind $\lambda = 0{,}001$-gyel, mind $\lambda = 0{,}1$-gyel</b>: a $\lambda$ nem számít.
+  A megoldás az <b>AdamW</b> (I. Loshchilov, F. Hutter, 2019): a súlycsökkentést a skálázáson kívül, külön lépésben végzi, $w \leftarrow (1 - \eta\lambda)w$ – ugyanitt $\lambda = 0{,}1$-gyel $w = 0{,}905$. A mai nagy modellek AdamW-vel tanulnak.
+  Több könyv (PDL 9, MLQ 6) „funkcionálisan azonosnak” mondja az L2-t és a súlycsökkentést – ez csak a sima (és a momentumos) SGD-re igaz.
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – L2 és súlycsökkentés</summary>
+  <ol>
+    <li>$\eta = 0{,}01$, $\lambda = 0{,}0005$. Mennyivel szorzódik egy súly lépésenként a büntetés miatt? Mennyi marad egy 1-es súlyból 10 000 lépés alatt, ha a gradiense 0?
+      <details><summary>Megoldás</summary>$1 - 0{,}01 \cdot 0{,}0005 = 0{,}999995$. $0{,}999995^{10\,000} \approx e^{-0{,}05} \approx 0{,}951$.</details></li>
+    <li>$w = 1$, $g = 0{,}3$, $\eta = 0{,}1$, $\lambda = 0{,}5$. Mennyi az új súly büntetéssel és nélküle?
+      <details><summary>Megoldás</summary>Nélküle: $1 - 0{,}03 = 0{,}97$. Büntetéssel: $(1 - 0{,}05)\cdot 1 - 0{,}03 = 0{,}92$.</details></li>
+    <li>Hol van egyensúlyban egy súly, ha a veszteség gradiense állandóan $g = -0{,}02$ (a veszteség a nagyobb súlyt szeretné), és $\lambda = 0{,}01$?
+      <details><summary>Megoldás</summary>Ahol $g + \lambda w = 0$: $w = 0{,}02/0{,}01 = 2$. A büntetés nem nullázza a hasznos súlyt, csak visszafogja.</details></li>
+    <li>Miért nem szokás a torzításokat büntetni?
+      <details><summary>Megoldás</summary>Mert a torzítás csak eltolja a neuron küszöbét, nem teszi a függvényt „élesebbé”; kevés is van belőlük. A büntetésük az illeszkedést ronthatja, általánosítási haszon nélkül.</details></li>
+    <li>(nehezebb) A scikit-learn <code>MLPClassifier</code> <code>alpha</code> paraméterét a kötegmérettel osztja. Egy könyv (PDL 10) $\alpha = 0{,}1$–$0{,}4$-et próbál 64-es köteggel, és ezt $\lambda$-nak hívja. Mekkora valójában a mintánkénti $\lambda$?
+      <details><summary>Megoldás</summary>Kb. $0{,}1/64 \approx 0{,}0016$-tól $0{,}4/64 \approx 0{,}0063$-ig – ezért nem rontják el a hálót ezek a „nagy” értékek.</details></li>
+  </ol>
+</details>
+
+<h3 id="s107-c">3. lépés: dropout – véletlenül kikapcsolt neuronok</h3>
+<p>A harmadik ötlet meglepő: tanítás közben minden lépésben kapcsoljuk ki a rejtett neuronok egy véletlen részét. A háló így nem támaszkodhat egyetlen neuronra sem.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – négy neuron, negyedük kiesik</span>
+  Egy rejtett réteg kimenete $\mathbf h = (2;\ 4;\ 6;\ 8)$. A dropout valószínűsége $p = 0{,}25$: minden neuron egymástól függetlenül 25% eséllyel kiesik. Most a második esett ki, a maszk $(1;\ 0;\ 1;\ 1)$.
+  A megmaradtakat $\frac{1}{1 - p} = \frac43$-dal felszorozzuk:
+  $$\tilde{\mathbf h} = (2;\ 0;\ 6;\ 8)\cdot\tfrac43 = (2{,}667;\ 0;\ 8;\ 10{,}667).$$
+  Miért a felszorzás? A harmadik neuron 75% eséllyel 8-at, 25% eséllyel 0-t ad: átlagosan $0{,}75 \cdot 8 = 6$ – pontosan az eredeti érték. Így kiértékeléskor, amikor <b>senki nem esik ki</b>, a következő réteg ugyanakkora jeleket kap, mint tanításkor átlagosan.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – (fordított) dropout</span>
+  <ul style="margin:.2rem 0">
+    <li><b>tanításkor</b> minden lépésben, minden mintára és minden rejtett neuronra külön: $\tilde h = h\cdot m/(1 - p)$, ahol $m = 0$ $p$ valószínűséggel, különben 1;</li>
+    <li><b>kiértékeléskor</b> nincs dropout: $\tilde h = h$.</li>
+  </ul>
+  A visszafelé menetben a kiesett neuronon át nem folyik gradiens (a maszk ugyanúgy szoroz). Tipikus $p$: 0,1–0,5. (G. Hinton és társai, 2012; N. Srivastava és társai, 2014.)
+  <br><small>Miért segít? (1) Egy neuron nem „specializálódhat” arra, hogy egy másik neuron hibáit javítsa – mindegyiknek önmagában is hasznosnak kell lennie. (2) Minden lépés egy véletlen <b>részhálót</b> tanít; egy 16 rejtett neuronos rétegnek $2^{16} = 65\,536$ részhálója van.
+  A kiértékelés (dropout nélkül, a felszorzással kiegyensúlyozva) nagyjából ezek átlaga – mint egy együttes modell (<a href="../07-fak-svm-egyuttes/#s75">7.5</a>), egyetlen háló áráért.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – $p = 0{,}5$</span>
+    $\mathbf h = (1;\ 3)$, maszk $(0;\ 1)$: $\tilde{\mathbf h} = (0;\ 6)$. Kiértékeléskor $(1;\ 3)$. A második neuron várható értéke tanításkor $0{,}5 \cdot 6 = 3$ ✓.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a 200 képes számjegyháló</span>
+    64 rejtett neuron, 200 tanítókép, Adam: dropout nélkül a legjobb validációs veszteség 0,213 (teszt 93,1%), $p = 0{,}5$-tel 0,168 (teszt 94,0%). Mérsékelt, de valódi javulás – a dropout a nagy, sokáig tanított hálóknál ér igazán sokat.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Kiértékeléskor kapcsold ki</b> (PyTorch: <code>net.eval()</code>). Különben minden jóslat véletlenszerű lesz, és rosszabb.</li>
+    <li><b>Felszorzás nélkül eltolódik a jel.</b> Egy népszerű könyv (DLV 15) a dropoutot felszorzás nélkül írja le: ha tanításkor kiesik a neuronok fele, kiértékeléskor viszont mind dolgozik, a következő réteg kétszer akkora jelet kap. Az eredeti cikk ezt kiértékeléskor a súlyok $(1 - p)$-szeresével javította; ma a fordított dropout (tanításkor $\div(1 - p)$) a szokás.</li>
+    <li><b>Mit jelent a $p$?</b> A PyTorch-ban és a Kerasban az <em>elejtés</em> valószínűsége; az eredeti cikkben a <em>megtartásé</em>. Mindig nézd meg, melyik.</li>
+    <li>A dropout nem Krizhevsky és társai 2012-es képfelismerő cikkéből (AlexNet) származik, ahogy egy könyv (PDL 9) írja – ők <em>használták</em>, Hinton és társai javasolták.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – dropout</summary>
+  <ol>
+    <li>$\mathbf h = (3;\ 1;\ 2)$, $p = 0{,}5$, maszk $(1;\ 1;\ 0)$. Mi a tanítási kimenet? És a kiértékelési?
+      <details><summary>Megoldás</summary>Tanítás: $(6;\ 2;\ 0)$. Kiértékelés: $(3;\ 1;\ 2)$.</details></li>
+    <li>$p = 0{,}2$. Mennyivel szorozzuk a megmaradó neuronokat? Átlagosan hány neuron esik ki egy 100-as rétegből?
+      <details><summary>Megoldás</summary>$1/0{,}8 = 1{,}25$-tel. Átlagosan 20 – de ez véletlen, lehet 15 vagy 24 is (mintánként külön sorsolva).</details></li>
+    <li>Ellenőrizd a várható értéket: $h = 5$, $p = 0{,}2$!
+      <details><summary>Megoldás</summary>80% eséllyel $5 \cdot 1{,}25 = 6{,}25$, 20% eséllyel 0: $0{,}8 \cdot 6{,}25 = 5$ ✓.</details></li>
+    <li>Hány különböző részhálót sorsolhat a dropout egy 8 rejtett neuronos rétegből?
+      <details><summary>Megoldás</summary>$2^8 = 256$ (minden neuron vagy bent van, vagy nincs).</details></li>
+    <li>(nehezebb) Valaki a tesztelésnél is bekapcsolva hagyja a dropoutot ($p = 0{,}5$), és ugyanazt a képet háromszor mutatja meg. Mit tapasztal? Lehet-e ebből hasznot húzni?
+      <details><summary>Megoldás</summary>Háromszor kicsit más valószínűségeket kap (más-más részháló dönt). Hibának hiba – de szándékosan is csinálják: sok dropoutos futás szórása a háló <b>bizonytalanságát</b> becsüli („Monte Carlo dropout”).</details></li>
+  </ol>
+</details>
+
+<h3 id="s107-d">4. lépés: adatbővítés – több adat, ingyen</h3>
+<p>A túlillesztés ellen a legjobb gyógyszer a <b>több adat</b> (a számjegyhálón: 100 képből 82,9%, 200-ból 91,8%, 500-ból 96,0%, 1047-ből 98,0%). Ha nincs több, néha gyárthatunk: olyan változtatásokkal, amelyek a címkét nem változtatják meg.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – eltolt számjegyek</span>
+  Egy kézzel írt 3-as egy pixellel jobbra tolva is 3-as. Ha minden tanítóképet eltolunk egy pixellel jobbra, balra, fel és le, a 100 képből 500 lesz.
+  A 64–64–10-es hálón (Adam) a legjobb validációs veszteség 0,462-ről 0,396-ra, a teszt 88,7%-ról 90,0%-ra javult; 200 képből kiindulva 0,213-ról 0,169-re (teszt 93,1% → 93,8%).
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – adatbővítés</span>
+  <b>Adatbővítés</b> (data augmentation): a tanítóminták véletlen, <b>címkét megőrző</b> átalakítása – minden epochban újra sorsolva. Képeknél: eltolás, kis forgatás, kivágás, nagyítás, tükrözés, fényerő; hangnál: zaj, sebesség; szövegnél: átfogalmazás.
+  <br><small>Miért segít? A háló sok változatban látja ugyanazt a tartalmat, így megtanulja, hogy az eltolás vagy a fényerő <em>nem</em> számít – ezt különben csak sok valódi adatból tudná meg. Egy könyv (DLV 10) példájában 6 husky-fotóból kis eltolással, forgatással és tükrözéssel 4000 tanítókép lett.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – ami jó a macskának…</span>
+    Macskás fotót vízszintesen tükrözni: továbbra is macska – jó bővítés.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – …az rossz a számjegynek</span>
+    Egy 6-ost 180°-kal elforgatni: 9-es lesz. Egy kézzel írt 2-est tükrözni: nem 2-es. A bővítésnek a <b>feladathoz</b> kell illenie – egy könyv (MLQ 5) gyakorlata épp azt mutatja, hogy rossz bővítéssel az MNIST-eredmény romlik.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabály – a regularizációk sorrendje</span>
+  <b>Több valódi adat</b> &gt; <b>adatbővítés</b> &gt; <b>súlycsökkentés, dropout, korai leállítás</b>. A gyakorlatban egyszerre többet is használnak, és az erősségüket (λ, $p$, türelem, a bővítés mértéke) hiperparaméterként hangolják.
+  Kisebb háló is regularizál – de a mai gyakorlat inkább nagy hálót tanít erős regularizációval.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Csak a tanítóadatot bővítsd.</b> A validációs és a tesztadat maradjon érintetlen, különben a mérés torz.</li>
+    <li><b>A több adat az alulillesztésen nem segít.</b> Két könyv (DLV 9, MLQ 5) szerint „gyakran gyógyítja” az alulillesztést is – de ha a modell már a tanítóadaton is rossz, nagyobb modell, jobb jellemzők vagy hosszabb tanítás kell (<a href="../06-modellertekeles/#s66-b">6.6</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – adatbővítés</summary>
+  <ol>
+    <li>1047 tanítókép, mindegyikből 4 eltolt változat is készül. Hány kép van összesen egy epochban?
+      <details><summary>Megoldás</summary>$1047 \cdot 5 = 5235$.</details></li>
+    <li>Melyik bővítés jó egy tüdőröntgen-osztályozóhoz: (a) kis forgatás; (b) vízszintes tükrözés; (c) kis fényerő-változás?
+      <details><summary>Megoldás</summary>(a) és (c) általában jó. (b) gyanús: a szív bal oldalon van, a tükrözött kép anatómiailag ritka (és ha a betegség egyoldali, a címke is sérülhet).</details></li>
+    <li>Egy hangfelismerőnél a felvételeket kicsit felgyorsítod. Mire figyelj?
+      <details><summary>Megoldás</summary>Hogy a címke ne változzon: egy szó kicsit gyorsabban is ugyanaz, de egy beszélőfelismerőnél a felgyorsítás a hangmagasságot – és így a „beszélőt” – is megváltoztathatja.</details></li>
+    <li>Miért kell a bővítést minden epochban újra sorsolni, ahelyett hogy egyszer elkészítenénk 5-szörös adatot?
+      <details><summary>Megoldás</summary>Mert így a háló minden epochban más változatokat lát – folytonos eltolásoknál, forgatásoknál végtelen sok lehetőség van. Az előre gyártott készlet véges, és azt is be lehet magolni.</details></li>
+    <li>(nehezebb) A dropout egy könyv (PDL 9) szerint „a bemeneti rétegen az adatbővítéshez hasonlít”. Miért?
+      <details><summary>Megoldás</summary>Mert a bemeneti pixelek véletlen kinullázása a kép véletlen „sérülése”: a háló megtanulja, hogy néhány hiányzó pixel nem változtat a címkén – mintha sok enyhén hiányos változatot látna ugyanabból a képből.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai10-107"></div>
+</section>

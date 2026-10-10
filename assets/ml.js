@@ -1,7 +1,8 @@
 /* =========================================================
    Synopsis – kis gépi tanulási modul (neurális hálók)
    Magolt álvéletlen-generátor, 2D adatkészletek, aktivációs függvények,
-   többrétegű perceptron (MLP) visszaterjesztéssel, SGD/Adam frissítéssel.
+   többrétegű perceptron (MLP) visszaterjesztéssel; optimalizálók: SGD,
+   momentum, RMSProp, Adam; L2-büntetés, (fordított) dropout, inicializálások.
    Nincs külső függőség; a widgetek a window.ML objektumon át érik el.
    Konvenció: a W[l] mátrix sorai a réteg neuronjai, oszlopai a bemenetek
    (W[l][j][i] = az i-edik bemenet súlya a j-edik neuronon), z = W·a + b.
@@ -113,7 +114,8 @@
 
   /* ------------------------------------------------------------------
      MLP: sizes = [bemenet, rejtett…, kimenet]
-     opts: { act: "tanh", out: "sigmoid" | "softmax" | "linear", seed }
+     opts: { act: "tanh", out: "sigmoid" | "softmax" | "linear", seed,
+             init: "auto" (He ReLU-hoz, különben LeCun) | "xavier" | "he" | "zero" | szám (szórás) }
      A kimeneti veszteség: szigmoid → bináris keresztentrópia, softmax →
      keresztentrópia, lineáris → ½·(négyzetes hiba). Mindháromnál a kimeneti
      „delta” egyszerűen ŷ − y.
@@ -123,17 +125,23 @@
       this.sizes = sizes.slice();
       this.act = opts.act || "tanh";
       this.out = opts.out || "sigmoid";
+      this.initMode = opts.init || "auto";
       this.init(opts.seed || 1);
     }
     init(seed) {
-      const r = rng(seed), S = this.sizes;
+      const r = rng(seed), S = this.sizes, mode = this.initMode;
+      this.rnd = rng(seed + 7919);                                   // a dropout-maszkokhoz
       this.W = []; this.b = [];
       for (let l = 0; l < S.length - 1; l++) {
         const nin = S[l], nout = S[l + 1];
-        const relu = this.act === "relu" || this.act === "leaky";
-        const sc = (relu && l < S.length - 2 ? Math.sqrt(2 / nin) : Math.sqrt(1 / nin));   // He / LeCun-kezdés
+        const relu = this.act === "relu" || this.act === "leaky", hid = l < S.length - 2;
+        const sc = typeof mode === "number" ? mode
+          : mode === "zero" ? 0
+          : mode === "he" ? Math.sqrt(2 / nin)
+          : mode === "xavier" ? Math.sqrt(2 / (nin + nout))
+          : (relu && hid ? Math.sqrt(2 / nin) : Math.sqrt(1 / nin));   // auto: He / LeCun-kezdés
         this.W.push(Array.from({ length: nout }, () => Array.from({ length: nin }, () => sc * gauss(r))));
-        this.b.push(Array.from({ length: nout }, () => (relu && l < S.length - 2 ? 0.05 : 0)));
+        this.b.push(Array.from({ length: nout }, () => (mode === "auto" && relu && hid ? 0.05 : 0)));
       }
       this.t = 0;
       this.mW = this.W.map(M => M.map(row => row.map(() => 0))); this.vW = this.W.map(M => M.map(row => row.map(() => 0)));
@@ -153,14 +161,31 @@
       return { A, Z };
     }
     predict(x) { const { A } = this.forwardAll(x); return A[A.length - 1]; }
+    /* előre irányuló menet tanításhoz, fordított dropouttal: a rejtett rétegek minden
+       kimenetét p valószínűséggel kinullázza, a megmaradókat 1/(1 − p)-vel szorozza.
+       Visszaadja a maszkokat is (D[l]: az l-edik rejtett réteg szorzói). */
+    forwardTrain(x, p) {
+      if (!p) return this.forwardAll(x);
+      const A = [x], Z = [], D = [], L = this.W.length, f = act[this.act].f, keep = 1 / (1 - p);
+      for (let l = 0; l < L; l++) {
+        const M = this.W[l], bb = this.b[l], a = A[l], z = new Array(M.length);
+        for (let j = 0; j < M.length; j++) { let s = bb[j]; const row = M[j]; for (let i = 0; i < row.length; i++) s += row[i] * a[i]; z[j] = s; }
+        Z.push(z);
+        if (l < L - 1) { const d = z.map(() => (this.rnd() < p ? 0 : keep)); D.push(d); A.push(z.map((v, j) => f(v) * d[j])); }
+        else A.push(this.out === "softmax" ? softmax(z) : this.out === "sigmoid" ? z.map(sigm) : z.slice());
+      }
+      return { A, Z, D };
+    }
     /* egy köteg (X, Y) átlagos veszteségének gradiense, majd egy frissítés.
-       Y: szigmoidnál [0/1] vagy szám; softmaxnál osztálysorszám; lineárisnál szám vagy tömb. */
-    trainBatch(X, Y, { lr = 0.03, opt = "adam", l2 = 0 } = {}) {
+       Y: szigmoidnál [0/1] vagy szám; softmaxnál osztálysorszám; lineárisnál szám vagy tömb.
+       opt: "sgd" | "momentum" (v ← βv + g, w ← w − ηv) | "rmsprop" | "adam"; l2: λ (a gradienshez adott λw);
+       dropout: a rejtett kimenetek elejtési valószínűsége (csak tanításkor). */
+    trainBatch(X, Y, { lr = 0.03, opt = "adam", l2 = 0, dropout = 0, beta = 0.9 } = {}) {
       const L = this.W.length, df = act[this.act].df;
       const gW = this.W.map(M => M.map(row => row.map(() => 0))), gb = this.b.map(v => v.map(() => 0));
       let loss = 0;
       for (let n = 0; n < X.length; n++) {
-        const { A, Z } = this.forwardAll(X[n]), out = A[L];
+        const { A, Z, D } = this.forwardTrain(X[n], dropout), out = A[L];
         const t = this.target(Y[n], out.length);
         loss += this.lossOf(out, t);
         let delta = out.map((o, k) => o - t[k]);
@@ -170,7 +195,7 @@
           if (l > 0) {
             const z = Z[l - 1], nd = new Array(a.length).fill(0);
             for (let j = 0; j < M.length; j++) { const row = M[j], dj = delta[j]; for (let i = 0; i < row.length; i++) nd[i] += row[i] * dj; }
-            for (let i = 0; i < nd.length; i++) nd[i] *= df(z[i]);
+            for (let i = 0; i < nd.length; i++) nd[i] *= df(z[i]) * (D ? D[l - 1][i] : 1);
             delta = nd;
           }
         }
@@ -183,6 +208,10 @@
         if (opt === "adam") {
           Mo[i][j] = b1 * Mo[i][j] + (1 - b1) * g; Ve[i][j] = b2 * Ve[i][j] + (1 - b2) * g * g;
           P[i][j] -= lr * (Mo[i][j] / c1) / (Math.sqrt(Ve[i][j] / c2) + eps);
+        } else if (opt === "momentum") {
+          Mo[i][j] = beta * Mo[i][j] + g; P[i][j] -= lr * Mo[i][j];
+        } else if (opt === "rmsprop") {
+          Ve[i][j] = 0.9 * Ve[i][j] + 0.1 * g * g; P[i][j] -= lr * g / (Math.sqrt(Ve[i][j]) + 1e-8);
         } else P[i][j] -= lr * g;
       };
       for (let l = 0; l < L; l++) {
@@ -205,12 +234,12 @@
     }
     loss(X, Y) { let s = 0; for (let n = 0; n < X.length; n++) { const o = this.predict(X[n]); s += this.lossOf(o, this.target(Y[n], o.length)); } return s / Math.max(1, X.length); }
     /* egy epoch keverve, mini-kötegekben */
-    epoch(X, Y, { batch = 10, lr, opt, l2, rnd } = {}) {
+    epoch(X, Y, { batch = 10, lr, opt, l2, dropout, beta, rnd } = {}) {
       const idx = shuffle(X.map((_, i) => i), rnd || Math.random);
       let s = 0, nb = 0;
       for (let k = 0; k < idx.length; k += batch) {
         const part = idx.slice(k, k + batch);
-        s += this.trainBatch(part.map(i => X[i]), part.map(i => Y[i]), { lr, opt, l2 }); nb++;
+        s += this.trainBatch(part.map(i => X[i]), part.map(i => Y[i]), { lr, opt, l2, dropout, beta }); nb++;
       }
       return s / Math.max(1, nb);
     }

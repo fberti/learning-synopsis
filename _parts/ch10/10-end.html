@@ -1,0 +1,244 @@
+
+<!-- ===================================================== Összefoglalás -->
+<section id="s-sum">
+<h2>Összefoglalás</h2>
+<table>
+  <tr><th>Fogalom</th><th>Lényeg</th></tr>
+  <tr><td>Veszteség</td><td>regresszió: $\tfrac12(\hat y - y)^2$; osztályozás: keresztentrópia $-\ln\hat p_y$; kötegre átlagolva; sima, ezért tanítható (a pontosság nem)</td></tr>
+  <tr><td>Miért log?</td><td>szigmoid + négyzetes hiba: $\partial L/\partial z = (\hat p - y)\hat p(1 - \hat p)$ – magabiztos tévedésnél eltűnik; keresztentrópiával $\hat p - y$</td></tr>
+  <tr><td>Kimenet + veszteség</td><td>identitás + négyzetes, szigmoid + BCE, softmax + CE: mindegyiknél $\boldsymbol\delta = \hat{\mathbf y} - \mathbf y$</td></tr>
+  <tr><td>Tanítási ciklus</td><td>keverés, kötegenként: előre → veszteség → vissza → frissítés; epoch = $\lceil n/B\rceil$ lépés</td></tr>
+  <tr><td>Kötegméret</td><td>a köteg gradiense torzítatlan, zaja $\approx\sigma/\sqrt B$; lépésenként drágább, epochonként kevesebb lépés; lineáris skálázás: $B \to kB$, $\eta \to k\eta$ (bemelegítéssel)</td></tr>
+  <tr><td>Visszaterjesztés</td><td>$\boldsymbol\delta^{(L)} = \hat{\mathbf y} - \mathbf y$; $\partial L/\partial W^{(\ell)} = \boldsymbol\delta^{(\ell)}\mathbf h^{(\ell-1)\top}$; $\boldsymbol\delta^{(\ell-1)} = (W^{(\ell)\top}\boldsymbol\delta^{(\ell)}) \odot \varphi'(\mathbf z^{(\ell-1)})$</td></tr>
+  <tr><td>Ár</td><td>1 előre + 1 vissza ≈ 3 előre menet, a paraméterszámtól függetlenül; numerikusan $2P$ menet; gradiensellenőrzés</td></tr>
+  <tr><td>Számítási gráf</td><td>elemi műveletek, lokális deriváltak; összeadás továbbad, szorzás felcserél, max irányít, elágazásnál összeadódik</td></tr>
+  <tr><td>Automatikus differenciálás</td><td>fordított mód (egy kimenet, sok bemenet) = visszaterjesztés; a keretrendszer a lefutott műveleteket deriválja</td></tr>
+  <tr><td>Momentum</td><td>$\mathbf v \leftarrow \beta\mathbf v + \mathbf g$, $\mathbf w \leftarrow \mathbf w - \eta\mathbf v$; tartós irányban $1/(1 - \beta)$-szoros lépés, cikcakkban csillapít</td></tr>
+  <tr><td>RMSProp, Adam</td><td>paraméterenként a gradiens tipikus nagyságával oszt; Adam = momentum + RMSProp + kezdeti korrekció; első lépése pontosan $\eta$</td></tr>
+  <tr><td>Ütemezés</td><td>lépcsős, koszinuszos, platón csökkentés; bemelegítés; a zajos SGD ugrálása $\eta$-val arányos</td></tr>
+  <tr><td>Kezdés</td><td>véletlen (szimmetriatörés); Xavier $\mathrm{Var}(w) = 1/n_{\text{be}}$, He $2/n_{\text{be}}$ (ReLU)</td></tr>
+  <tr><td>Eltűnő / robbanó gradiens</td><td>rétegenkénti szorzók hatványozódnak; ellenszer: jó kezdés, ReLU, normalizálás, maradékkapcsolat, gradiensvágás</td></tr>
+  <tr><td>Normalizálás</td><td>kötegnormalizálás (köteg mentén, kiértékeléskor mozgó átlag), rétegnormalizálás (mintánként, Transformer); tanult $\gamma$, $\beta$</td></tr>
+  <tr><td>Korai leállítás</td><td>a validációs veszteség minimumánál; türelem; a legjobb súlyok mentése és visszatöltése</td></tr>
+  <tr><td>L2 / súlycsökkentés</td><td>$w \leftarrow (1 - \eta\lambda)w - \eta g$ (SGD-nél azonos); Adamnál AdamW kell</td></tr>
+  <tr><td>Dropout</td><td>tanításkor $p$ eséllyel 0, a többi $\times 1/(1 - p)$; kiértékeléskor ki; sok részháló átlaga</td></tr>
+  <tr><td>Adatbővítés</td><td>címkét megőrző véletlen átalakítások, csak a tanítóadaton; a feladathoz kell illenie</td></tr>
+  <tr><td>Gyakorlat</td><td>kiinduló veszteség $\approx\ln K$; kis köteg bemagolása; $\eta$ log skálán; több mag, átlag ± szórás; Adam: 16 bájt/paraméter</td></tr>
+</table>
+
+<div class="box tip">
+  <span class="box-title">Melyik eszköz mikor? – döntési táblázat</span>
+  <table>
+    <tr><th>Ha a feladatban ez áll…</th><th>…akkor ezt használd</th></tr>
+    <tr><td>egy jóslat veszteségét kell kiszámolni</td><td>valószínűség → $-\ln\hat p_{\text{helyes}}$; szám → $\tfrac12(\hat y - y)^2$</td></tr>
+    <tr><td>a kimeneti réteg gradiense kell</td><td>kanonikus párosnál $\boldsymbol\delta = \hat{\mathbf y} - \mathbf y$ (szigmoid + négyzetes hibánál még $\times\hat p(1 - \hat p)$)</td></tr>
+    <tr><td>egy súly gradiense kell</td><td>a súlyon átfolyó bemenet × a neuron $\delta$-ja</td></tr>
+    <tr><td>egy rejtett neuron $\delta$-ja kell</td><td>a kimenő súlyokkal súlyozott „következő” $\delta$-k összege × $\varphi'(z)$</td></tr>
+    <tr><td>egy kifejezést kell deriválni lépésenként</td><td>számítási gráf: előre értékek, vissza lokális deriváltak; elágazásnál összeadás</td></tr>
+    <tr><td>lépésszám, epoch, köteg</td><td>epoch $= \lceil n/B\rceil$ lépés; GPU-k: tényleges köteg = GPU-k × helyi köteg</td></tr>
+    <tr><td>nagyobb köteg kell / fér el</td><td>$\eta$ arányosan nő, bemelegítéssel; gradiensgyűjtésnél $\eta$ nem változik</td></tr>
+    <tr><td>cikcakk, lassú haladás egy völgyben</td><td>momentum ($\beta = 0{,}9$; a lépés $\eta/(1 - \beta)$ is lehet)</td></tr>
+    <tr><td>nagyon eltérő nagyságú gradiensek, kevés hangolási idő</td><td>Adam / AdamW, $\eta \approx 10^{-3}$</td></tr>
+    <tr><td>a veszteség a végén zajosan ugrál</td><td>tanulási ráta csökkentése (lépcsős, koszinusz, platón)</td></tr>
+    <tr><td>a veszteség nem mozdul / felrobban</td><td>kezdés ($\ln K$?), $\eta$ nagyságrendje, gradiensvágás, normalizálás</td></tr>
+    <tr><td>mély háló, a jel elhal</td><td>He-kezdés ReLU-hoz, normalizálás, maradékkapcsolat</td></tr>
+    <tr><td>a tanító veszteség csökken, a validációs nő</td><td>korai leállítás; súlycsökkentés, dropout, adatbővítés; több adat</td></tr>
+    <tr><td>két modellt kell összehasonlítani</td><td>több maggal futtatni, átlag ± szórás; egyetlen futás nem bizonyít</td></tr>
+  </table>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabályok</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Jóslat mínusz valóság.</b> A visszaterjesztés a kimeneti $\hat{\mathbf y} - \mathbf y$-ból indul, és a frissítés kivonja a gradienst.</li>
+    <li><b>Súly gradiense = bemenet × $\delta$.</b> Ami nem folyt át a súlyon (0 bemenet, halott ReLU), abból a súly nem tanul.</li>
+    <li><b>Előre $W$, vissza $W^\top$ – és ne felejtsd a $\varphi'$-t.</b></li>
+    <li><b>A tanulási ráta a legfontosabb hiperparaméter.</b> Logaritmikus skálán keresd.</li>
+    <li><b>Lépésszámban gondolkodj, ne epochban,</b> ha kötegméreteket hasonlítasz.</li>
+    <li><b>Kiértékelés előtt <code>eval()</code>:</b> dropout ki, kötegnormalizálás a mozgó átlagokkal.</li>
+    <li><b>Egy futás nem bizonyít.</b> Több mag, átlag és szórás.</li>
+  </ul>
+</div>
+</section>
+
+<!-- ===================================================== Ellenőrző kérdések -->
+<section id="s-check">
+<h2>Ellenőrző kérdések</h2>
+<p>Gondold végig a választ, aztán kattints a kártyára a megfordításhoz!</p>
+<div class="flashcards">
+  <div class="flash"><div class="inner"><div class="face front">Miért nem a pontosságot csökkenti a tanítás?</div>
+    <div class="face back">Mert lépcsőszerű: a súlyok kis változására szinte sosem változik, így a gradiense majdnem mindenhol 0. A veszteség sima, minden kis javulást jelez.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért keresztentrópia, és nem négyzetes hiba egy szigmoid kimenethez?</div>
+    <div class="face back">Négyzetes hibánál $\partial L/\partial z = (\hat p - y)\hat p(1 - \hat p)$, ami a magabiztos tévedésnél közel 0. Keresztentrópiánál $\hat p - y$: épp ott nagy, ahol a legnagyobb a baj.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a softmax + keresztentrópia gradiense a logitok szerint?</div>
+    <div class="face back">$\hat{\mathbf p} - \mathbf y$: a helyes osztály logitját felfelé, a többit a valószínűségével arányosan lefelé tolja. Az összege 0.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a tanítási ciklus négy lépése egy kötegen?</div>
+    <div class="face back">Előre menet, veszteség, visszafelé menet (gradiens), frissítés ($\mathbf w \leftarrow \mathbf w - \eta\mathbf g$). Keretrendszerben előtte a gradiensek nullázása.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Hogyan függ a köteg gradiensének zaja a kötegmérettől?</div>
+    <div class="face back">Kb. $\sigma/\sqrt B$: négyszeres köteg – fele zaj, de négyszer drágább lépés. A köteg gradiense átlagosan pontos (torzítatlan).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit mond a lineáris skálázás szabálya?</div>
+    <div class="face back">Ha a köteget $k$-szorosára növeled, a tanulási rátát is $k$-szorosára – bemelegítéssel, és csak addig, amíg a lépés stabil.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi egy súly gradiense a visszaterjesztésben?</div>
+    <div class="face back">A súlyon átfolyó bemenet szorozva a fogadó neuron $\delta$-jával: $\partial L/\partial w_{ji} = \delta_j\,h_i$.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Hogyan kapjuk egy rejtett neuron $\delta$-ját?</div>
+    <div class="face back">A következő réteg $\delta$-inak a kimenő súlyokkal súlyozott összege, szorozva az aktiváció deriváltjával: $\boldsymbol\delta^{(\ell-1)} = (W^{(\ell)\top}\boldsymbol\delta^{(\ell)}) \odot \varphi'(\mathbf z^{(\ell-1)})$.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért olcsó a visszaterjesztés a numerikus deriváláshoz képest?</div>
+    <div class="face back">Egy előre és egy visszafelé menet (kb. 3 előre menetnyi munka) adja az összes gradienst; a numerikus deriválás paraméterenként 2 előre menetet kér.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Hogyan viselkedik visszafelé az összeadás, a szorzás, a max és az elágazás?</div>
+    <div class="face back">Összeadás: továbbadja. Szorzás: felcseréli (a másik bemenet értékével szoroz). Max: csak a nagyobbnak adja. Elágazás: a beérkező gradiensek összeadódnak.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért fordított módú az automatikus differenciálás a tanításban?</div>
+    <div class="face back">Mert egy kimenet (a veszteség) van és sok bemenet (a paraméterek): a fordított mód egy visszafelé menetben adja az összes deriváltat, az előre mód bemenetenként egy menetet kérne.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit csinál a momentum?</div>
+    <div class="face back">A korábbi gradiensek halványuló összegével lép ($\mathbf v \leftarrow \beta\mathbf v + \mathbf g$): tartós irányban felgyorsul (akár $1/(1 - \beta)$-szorosra), váltakozó irányban csillapít.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi az Adam lényege, és mekkora az első lépése?</div>
+    <div class="face back">Momentum + paraméterenkénti skálázás a gradiens tipikus nagyságával ($\hat m/\sqrt{\hat v}$), kezdeti korrekcióval. Az első lépés minden paraméternél pontosan $\eta$.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért csökkentjük menet közben a tanulási rátát, és miért van bemelegítés?</div>
+    <div class="face back">A végén a mini-köteg zaja a fő hiba, a kisebb lépés ezt csillapítja. Az elején a véletlen súlyok és az üres optimalizáló-statisztikák mellett a nagy lépés szétzilálhatja a hálót – ezért fokozatosan emeljük.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért nem indulhat a háló csupa egyforma (vagy nulla) súllyal?</div>
+    <div class="face back">Az egyforma neuronok egyforma gradienst kapnak, és örökre klónok maradnak. Csupa nullával ReLU-s hálóban szinte semmi sem tanul.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a Xavier- és a He-kezdés?</div>
+    <div class="face back">A súlyok varianciája $1/n_{\text{be}}$ (Xavier; tanh, szigmoid), illetve $2/n_{\text{be}}$ (He; ReLU), hogy a jel mérete rétegről rétegre megmaradjon.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miben különbözik a köteg- és a rétegnormalizálás?</div>
+    <div class="face back">A kötegnormalizálás neurononként a köteg mintái mentén normál (kiértékeléskor mozgó átlagokkal); a rétegnormalizálás mintánként a réteg neuronjai mentén – kötegtől független, a Transformerekben ez van.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Hogyan működik a korai leállítás?</div>
+    <div class="face back">Epochonként mérjük a validációs veszteséget, mentjük a legjobb súlyokat; ha a türelemnyi epoch alatt nem javul, megállunk, és a legjobbat töltjük vissza.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért kell Adamhoz AdamW?</div>
+    <div class="face back">Mert az Adam a $\lambda w$ büntetőtagot is a gradiens nagyságával skálázza, így a büntetés ereje elvész. Az AdamW a súlycsökkentést külön, $w \leftarrow (1 - \eta\lambda)w$ alakban végzi.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit csinál a (fordított) dropout tanításkor és kiértékeléskor?</div>
+    <div class="face back">Tanításkor a rejtett kimeneteket $p$ eséllyel nullázza, a többit $1/(1 - p)$-vel szorozza; kiértékeléskor nem csinál semmit. Így a jelek várható értéke ugyanaz.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit ellenőrizz egy új tanítás elején?</div>
+    <div class="face back">A kiinduló veszteség $\approx\ln K$-e; be tud-e magolni a háló egy kis köteget; aztán a tanulási rátát keresd logaritmikus skálán.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mennyi memória kell egy paraméterhez Adamos tanításnál?</div>
+    <div class="face back">Kb. 16 bájt (súly, gradiens, két mozgó átlag – 32 bites számokkal; vegyes pontossággal is 16), plusz a köztes értékek. 7 milliárd paraméter: 112 GB.</div></div></div>
+</div>
+</section>
+
+<!-- ===================================================== Vegyes gyakorló feladatok -->
+<section id="s-ex">
+<h2>Vegyes gyakorló feladatok</h2>
+<p>Itt már nincs megmondva, melyik szakaszhoz tartozik a feladat: neked kell eldönteni, melyik eszköz kell.</p>
+<details class="box practice">
+  <summary>✏️ Vegyes gyakorló feladatok – kattints a kinyitáshoz</summary>
+  <ol>
+    <li>Egy 1–1–1-es lineáris lánc: $h = w_1x$, $\hat y = w_2h$, $L = \tfrac12(\hat y - y)^2$. $x = 2$, $w_1 = 0{,}5$, $w_2 = 3$, $y = 1$. Mennyi a két gradiens?
+      <details><summary>Tipp</summary>Előre, aztán a kimeneti $\delta$-ból visszafelé: „bemenet × $\delta$”.</details>
+      <details><summary>Megoldás</summary>$h = 1$, $\hat y = 3$, $\delta = \hat y - y = 2$. $\partial L/\partial w_2 = \delta h = 2$. A $h$-ra jutó $\delta$: $w_2\delta = 6$ (lineáris, $\varphi' = 1$), így $\partial L/\partial w_1 = 6 \cdot x = 12$.</details></li>
+    <li>Egy softmax kimenet $\hat{\mathbf p} = (0{,}2;\ 0{,}5;\ 0{,}3)$, a helyes osztály az első. Mennyi a veszteség és a kimeneti $\boldsymbol\delta$?
+      <details><summary>Tipp</summary>Keresztentrópia és a kanonikus páros gradiense.</details>
+      <details><summary>Megoldás</summary>$L = -\ln 0{,}2 \approx 1{,}609$; $\boldsymbol\delta = (-0{,}8;\ 0{,}5;\ 0{,}3)$.</details></li>
+    <li>$f = (a + b)\cdot(b + c)$, $a = 1$, $b = 2$, $c = 3$. Mennyi $\partial f/\partial b$?
+      <details><summary>Tipp</summary>A $b$ két úton hat: elágazás.</details>
+      <details><summary>Megoldás</summary>$p = a + b = 3$, $q = b + c = 5$, $f = 15$. $\partial f/\partial p = q = 5$, $\partial f/\partial q = p = 3$. A $b$ mindkettőből kap: $5 + 3 = 8$. (Ellenőrzés: $\partial f/\partial b = q + p = 8$ ✓.)</details></li>
+    <li>Egy tanítás $B = 64$-gyel és $\eta = 0{,}05$-tel jó. Négy GPU-ra költözöl, GPU-nként 64 képpel. Mekkora a tényleges köteg, és milyen $\eta$-val kezdesz?
+      <details><summary>Tipp</summary>Adatpárhuzamosítás és lineáris skálázás.</details>
+      <details><summary>Megoldás</summary>$4 \cdot 64 = 256$; $\eta = 0{,}2$, bemelegítéssel.</details></li>
+    <li>Adam, $t = 2$, a két gradiens $g_1 = 4$, $g_2 = 4$. Mennyi a második lépés (η-ban)?
+      <details><summary>Tipp</summary>Számold ki $m$-et, $v$-t, aztán a korrekciót $t = 2$-vel.</details>
+      <details><summary>Megoldás</summary>$m = 0{,}9 \cdot 0{,}4 + 0{,}4 = 0{,}76$, $v = 0{,}999 \cdot 0{,}016 + 0{,}016 = 0{,}031984$. $\hat m = 0{,}76/0{,}19 = 4$, $\hat v = 0{,}031984/0{,}001999 = 16$. A lépés $\eta \cdot 4/4 = \eta$ – állandó gradiensnél az Adam mindig $\eta$-t lép.</details></li>
+    <li>Egy 10 rétegű, rétegenként 256 neuronos ReLU-háló súlyainak szórása $0{,}05$. Jó kezdés-e? Mekkora lenne a He-kezdés szórása?
+      <details><summary>Tipp</summary>He: $\mathrm{Var}(w) = 2/n_{\text{be}}$; hasonlítsd össze a rétegenkénti szorzót.</details>
+      <details><summary>Megoldás</summary>He: $\sqrt{2/256} \approx 0{,}088$. A $0{,}05$-tel a variancia-szorzó rétegenként $256 \cdot 0{,}0025/2 = 0{,}32$, a jel szórása rétegenként kb. $\sqrt{0{,}32} \approx 0{,}57$-szeresére esik – 10 réteg után kb. $0{,}003$-szorosára. Eltűnő jel: kevés.</details></li>
+    <li>Validációs veszteség epochonként: 0,80; 0,55; 0,47; 0,45; 0,46; 0,44; 0,45; 0,47; 0,49. Türelem 2: hol áll meg, és melyik súlyokat adja vissza? És türelem 1-gyel?
+      <details><summary>Tipp</summary>Csak az számít, hány epoch telt el a legjobb óta.</details>
+      <details><summary>Megoldás</summary>Türelem 2: a 4. epoch (0,45) után az 5. rosszabb, a 6. jobb (0,44) – a számláló újraindul; a 7. és a 8. rosszabb → a 8. után megáll, a 6. súlyait adja. Türelem 1: az 5. epoch után megáll, és a 4. súlyait adja (0,45) – a zaj miatt korán.</details></li>
+    <li>Egy csapat ezt írja: „A modellünk tanítás közben 99%-os volt a tanítóadaton, a tesztképeken 71%. Kipróbáltuk Adammal és SGD-vel is, egy-egy futással: Adam 71,4%, SGD 70,9%, tehát az Adam a jobb. A dropoutot a teszteléskor is bekapcsolva hagytuk, hogy robusztusabb legyen.” Mit tanácsolnál?
+      <details><summary>Tipp</summary>Három különböző hiba is van benne: túlillesztés, összehasonlítás, kiértékelési mód.</details>
+      <details><summary>Megoldás</summary>(1) A 99% vs. 71% erős túlillesztés: korai leállítás a validációs görbén, súlycsökkentés (Adamnál AdamW), adatbővítés, több adat (<a href="#s107">10.7</a>).
+        (2) Egy-egy futás 0,5 pontos különbsége semmit nem bizonyít: több mag, átlag ± szórás (<a href="#s108-b">10.8</a>) – és a döntést a validációs halmazon hozzák, ne a teszten.
+        (3) A dropoutot kiértékeléskor ki kell kapcsolni (<code>eval()</code>): bekapcsolva a jóslatok véletlenszerűek és rosszabbak, nem „robusztusabbak” (<a href="#s107-c">10.7</a>).</details></li>
+  </ol>
+</details>
+</section>
+
+<!-- ===================================================== Fejezetzáró teszt -->
+<section id="s-final">
+<h2>Fejezetzáró teszt</h2>
+<p>Vegyes feladatok az egész fejezetből. Ha legalább 80%-ot elérsz, nyugodtan továbbléphetsz a 11. fejezetre – ott a képek térbeli szerkezetét kihasználó konvolúciós hálók jönnek, amelyeket pontosan így tanítanak.</p>
+<div class="quiz" data-quiz="ai10-final"></div>
+</section>
+
+<!-- ===================================================== Szómagyarázó -->
+<section id="s-gloss">
+<h2>Szómagyarázó</h2>
+<p>A fejezetben előforduló idegen vagy kevésbé ismert szakkifejezések, betűrendben.</p>
+<dl class="glossary">
+  <dt id="g-adam">Adam <span class="etym">ang. <em>adaptive moment estimation</em> „alkalmazkodó momentumbecslés” (D. Kingma, J. Ba, 2014)</span></dt>
+  <dd><p>Optimalizáló: a gradiens és a négyzete mozgó átlagából paraméterenként skálázott lépés, kezdeti korrekcióval. Az AdamW változata a súlycsökkentést külön végzi.</p></dd>
+
+  <dt id="g-autodiff">automatikus differenciálás <span class="etym">gör. <em>automatos</em> „magától mozgó”; lat. <em>differentia</em> „különbség”</span></dt>
+  <dd><p>A program által ténylegesen elvégzett elemi műveletek deriválása a láncszabállyal. Fordított módja a visszaterjesztés.</p></dd>
+
+  <dt id="g-bovites">adatbővítés <span class="etym">ang. <em>data augmentation</em>; lat. <em>augere</em> „növel”</span></dt>
+  <dd><p>A tanítóminták véletlen, címkét megőrző átalakítása (eltolás, forgatás, tükrözés…) a túlillesztés ellen.</p></dd>
+
+  <dt id="g-dropout">dropout <span class="etym">ang. <em>drop out</em> „kiesik, kimarad”</span></dt>
+  <dd><p>Regularizálás: tanításkor a rejtett neuronok véletlen részét kinullázza (a többit felszorozza), kiértékeléskor kikapcsolt.</p></dd>
+
+  <dt id="g-epoch">epoch <span class="etym">gör. <em>epokhé</em> „megállás, időszak”</span></dt>
+  <dd><p>Annyi tanítási lépés, amennyi alatt a háló az összes tanítómintát egyszer látta: $\lceil n/B\rceil$ lépés.</p></dd>
+
+  <dt id="g-gradiens">gradiens <span class="etym">lat. <em>gradiens</em> „lépkedő”, a <em>gradi</em> „lépni” igéből</span></dt>
+  <dd><p>A veszteség parciális deriváltjainak vektora a paraméterek szerint; a legmeredekebb emelkedés iránya. A tanítás az ellentettje felé lép.</p></dd>
+
+  <dt id="g-hiperparameter">hiperparaméter <span class="etym">gör. <em>hyper</em> „fölött” + paraméter</span></dt>
+  <dd><p>A tanítás előtt választott beállítás (tanulási ráta, kötegméret, $\lambda$, dropout-valószínűség, rétegszám), amelyet nem a gradiens módszer, hanem a validáció alapján állítunk.</p></dd>
+
+  <dt id="g-inicializalas">inicializálás <span class="etym">lat. <em>initium</em> „kezdet”</span></dt>
+  <dd><p>A súlyok kezdőértékének megválasztása; véletlen (a szimmetria megtörésére) és jól skálázott (Xavier, He).</p></dd>
+
+  <dt id="g-keresztentropia">keresztentrópia <span class="etym">gör. <em>entropé</em> „fordulat, átalakulás” (R. Clausius, 1865); a „kereszt” két eloszlásra utal</span></dt>
+  <dd><p>Osztályozási veszteség: a helyes osztály valószínűségének negatív logaritmusa, $-\ln\hat p_y$ (a negatív log-likelihood).</p></dd>
+
+  <dt id="g-koteg">köteg (mini-köteg) <span class="etym">ang. <em>(mini-)batch</em> „adag”</span></dt>
+  <dd><p>A minták azon része, amelyen egy lépés gradiensét számoljuk; mérete $B$.</p></dd>
+
+  <dt id="g-momentum">momentum <span class="etym">lat. <em>momentum</em> „mozgatóerő, lendület” (a <em>movere</em> „mozgat” igéből)</span></dt>
+  <dd><p>Optimalizálási fogás: a lépés a korábbi gradiensek halványuló összege, így tartós irányban gyorsul, cikcakkban csillapít (B. Poljak, 1964).</p></dd>
+
+  <dt id="g-normalizalas">normalizálás (köteg-, réteg-) <span class="etym">lat. <em>norma</em> „mérce, szabály”</span></dt>
+  <dd><p>A rétegek kimenetének menet közbeni standardizálása (0 átlag, 1 szórás), majd tanult skálázása – stabilabb, gyorsabb tanításért.</p></dd>
+
+  <dt id="g-optimalizalo">optimalizáló <span class="etym">lat. <em>optimus</em> „legjobb”</span></dt>
+  <dd><p>Az a szabály, amely a gradiensből a paraméterek frissítését számolja: SGD, momentum, RMSProp, Adam, AdamW.</p></dd>
+
+  <dt id="g-regularizacio">regularizáció <span class="etym">lat. <em>regula</em> „szabály, mérővessző”</span></dt>
+  <dd><p>Minden fogás, amely a tanítóadaton elért eredmény helyett az általánosítást javítja: korai leállítás, súlycsökkentés, dropout, adatbővítés.</p></dd>
+
+  <dt id="g-rmsprop">RMSProp <span class="etym">ang. <em>root mean square propagation</em>; a név az Rprop („rugalmas visszaterjesztés”) módszerre utal (G. Hinton, 2012)</span></dt>
+  <dd><p>Optimalizáló: minden paraméter gradiensét a négyzetes gradiensek mozgó átlagának gyökével osztja.</p></dd>
+
+  <dt id="g-sgd">SGD – sztochasztikus gradiens módszer <span class="etym">ang. <em>stochastic gradient descent</em>; gör. <em>stokhasztikosz</em> „találgató”</span></dt>
+  <dd><p>Gradiens módszer, amely minden lépésben egy véletlen (mini-)köteg gradiensével lép. A gyakorlatban a mini-köteges változat.</p></dd>
+
+  <dt id="g-sulycsokkentes">súlycsökkentés <span class="etym">ang. <em>weight decay</em> „súlyelhalás”</span></dt>
+  <dd><p>Minden lépésben a súlyok kis arányú összehúzása, $w \leftarrow (1 - \eta\lambda)w$; SGD-nél azonos az L2-büntetéssel.</p></dd>
+
+  <dt id="g-szamitasi-graf">számítási gráf <span class="etym">gör. <em>graphein</em> „írni, rajzolni”</span></dt>
+  <dd><p>Egy számítás elemi műveletekre bontva, irányított, kör nélküli gráfként; rajta előre az értékek, visszafelé a gradiensek terjednek.</p></dd>
+
+  <dt id="g-tanulasi-rata">tanulási ráta <span class="etym">ang. <em>learning rate</em>; lat. <em>rata</em> „kiszámított rész”</span></dt>
+  <dd><p>A lépésköz szorzója ($\eta$) a frissítésben; a tanítás legfontosabb hiperparamétere, gyakran menet közben ütemezve.</p></dd>
+
+  <dt id="g-visszaterjesztes">visszaterjesztés <span class="etym">ang. <em>backpropagation</em>, a <em>backward propagation of errors</em> „a hibák visszafelé terjesztése” rövidítése</span></dt>
+  <dd><p>A veszteség gradiensének kiszámítása az összes paraméter szerint egyetlen visszafelé menetben, a láncszabállyal, a kimenettől a bemenet felé.</p></dd>
+</dl>
+</section>
+
+<nav class="pager">
+  <a href="../09-neuralis-halozatok/">← 9. Neurális hálózatok</a>
+  <span class="next muted">11. Konvolúciós hálók és gépi látás (hamarosan) →</span>
+</nav>
+
+</main>
+</div>
+
+<footer class="site">
+  Források: R. T. Kneusel: <em>Math for Deep Learning</em>, 7–8., 10–11. fejezet · A. Glassner: <em>Deep Learning – A Visual Approach</em>, 9., 14–15. fejezet ·
+  R. T. Kneusel: <em>Practical Deep Learning</em>, 9–10. fejezet · S. Raschka: <em>Machine Learning and AI Beyond the Basics</em>, 4–7., 10. és 27. fejezet ·
+  V. J. Reddi és társai: <em>Machine Learning Systems</em> (<em>AI Frameworks</em>, <em>AI Training</em>) · Hastie – Tibshirani – Friedman: <em>The Elements of Statistical Learning</em> (2. kiad.), 11.4–11.5 ·
+  Kiegészítés: B. Poljak (1964) · S. Linnainmaa (1970) · P. Werbos (1974) · Y. Nesterov (1983) · D. Rumelhart – G. Hinton – R. Williams (1986) · X. Glorot – Y. Bengio (2010) · J. Duchi – E. Hazan – Y. Singer (2011) ·
+  G. Hinton (2012, RMSProp) · G. Hinton és társai (2012), N. Srivastava és társai (2014, dropout) · D. Kingma – J. Ba (2014, Adam) · S. Ioffe – C. Szegedy (2015) · K. He és társai (2015) · J. Ba – J. Kiros – G. Hinton (2016) ·
+  P. Goyal és társai (2017, lineáris skálázás, bemelegítés) · I. Loshchilov – F. Hutter (2017, koszinusz; 2019, AdamW) · J. Frankle – M. Carbin (2019) ·
+  adatok: scikit-learn <em>digits</em> (UCI Optical Recognition of Handwritten Digits).
+</footer>
+</body>
+</html>

@@ -1,0 +1,183 @@
+
+<!-- ===================================================== 10.4 -->
+<section id="s104">
+<h2>10.4 Számítási gráf és automatikus differenciálás ★★★</h2>
+<p>A 10.3 képletei rétegekre szabottak. De mi van, ha a háló nem csak rétegekből áll – van benne elágazás, összeadás, maximum, figyelem (12. fejezet)? Szerencsére nem kell minden új hálóhoz új képletet levezetni.
+Elég, ha a számolást apró műveletekre bontjuk, és mindegyikről tudjuk, hogyan kell <em>rajta</em> visszafelé menni. Ez a <b>számítási gráf</b>. <small>(A szakasz kihagyható; a 10.5-től nem építünk rá.)</small></p>
+
+<h3 id="s104-a">1. lépés: előre és vissza egy kifejezésen</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – $f = (x + y)\cdot z$</span>
+  Legyen $x = 1$, $y = 2$, $z = -3$. Bontsuk két műveletre: $q = x + y$, $f = q\cdot z$.
+  <ul style="margin:.2rem 0">
+    <li><b>Előre</b> (balról jobbra): $q = 3$, $f = 3 \cdot (-3) = -9$.</li>
+    <li><b>Vissza</b> (jobbról balra), a végén $\partial f/\partial f = 1$-gyel indulva:
+      <ul>
+        <li>a szorzás: $\partial f/\partial z = q = 3$, $\;\partial f/\partial q = z = -3$;</li>
+        <li>az összeadás: $q$ mindkét bemenetével 1-es meredekséggel nő, így $\partial f/\partial x = -3 \cdot 1 = -3$, $\;\partial f/\partial y = -3 \cdot 1 = -3$.</li>
+      </ul></li>
+  </ul>
+  Ellenőrzés: $f = (x + y)z$, így $\partial f/\partial x = z = -3$ ✓ és $\partial f/\partial z = x + y = 3$ ✓.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – számítási gráf</span>
+  A <b>számítási gráf</b> irányított, kör nélküli gráf: a csúcsai elemi műveletek (összeadás, szorzás, $\exp$, ReLU, mátrixszorzás…), az élei a köztes értékek.
+  <ul style="margin:.2rem 0">
+    <li><b>előre menet:</b> a bemenetektől a kimenet felé minden csúcs kiszámolja az értékét (és eltárolja, ami a deriváláshoz kell);</li>
+    <li><b>visszafelé menet:</b> a kimenettől indulva minden csúcs a kapott „felső” gradienst megszorozza a saját <b>lokális deriváltjával</b>, és továbbadja a bemeneteinek.</li>
+  </ul>
+  <small>Miért működik? Ez a láncszabály, csúcsonként alkalmazva: $\frac{\partial f}{\partial\,\text{bemenet}} = \frac{\partial f}{\partial\,\text{kimenet}}\cdot\frac{\partial\,\text{kimenet}}{\partial\,\text{bemenet}}$. Minden csúcsnak csak a saját képletét kell ismernie – az egész gráfét nem.</small>
+</div>
+<div class="widget" data-widget="compute-graph"></div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – más számokkal</span>
+    $x = 2$, $y = -1$, $z = 4$: $q = 1$, $f = 4$. Vissza: $\partial f/\partial z = 1$, $\partial f/\partial q = 4$, így $\partial f/\partial x = \partial f/\partial y = 4$.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy szigmoid neuron mint gráf</span>
+    $a = \sigma(w\cdot x + b)$, $w = 0{,}5$, $x = 2$, $b = -1$. Előre: $u = wx = 1$, $z = u + b = 0$, $a = 0{,}5$.
+    Vissza: $\partial a/\partial z = a(1 - a) = 0{,}25$; az összeadás továbbadja: $\partial a/\partial u = \partial a/\partial b = 0{,}25$; a szorzás felcseréli: $\partial a/\partial w = 0{,}25 \cdot x = 0{,}5$, $\;\partial a/\partial x = 0{,}25 \cdot w = 0{,}125$.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktató – a visszafelé menet a kimenettől indul, 1-gyel</span>
+  A kimenet önmaga szerinti deriváltja 1. Ha a gráf végén a veszteség áll, a visszafelé menet onnan indul; ha egy köztes értéktől indulnál, annak a gradiensét kapnád, nem a veszteségét.
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – előre és vissza</summary>
+  <ol>
+    <li>$f = (x + y)\cdot z$, $x = -2$, $y = 5$, $z = -4$. Mennyi $f$ és a három parciális derivált?
+      <details><summary>Megoldás</summary>$q = 3$, $f = -12$. $\partial f/\partial z = 3$, $\partial f/\partial x = \partial f/\partial y = -4$.</details></li>
+    <li>$f = (x - y)\cdot z$, $x = 3$, $y = 1$, $z = 2$. Mi változik a kivonás miatt?
+      <details><summary>Megoldás</summary>$q = 2$, $f = 4$, $\partial f/\partial q = 2$, $\partial f/\partial z = 2$. A kivonás lokális deriváltja $x$ szerint $+1$, $y$ szerint $-1$: $\partial f/\partial x = 2$, $\partial f/\partial y = -2$.</details></li>
+    <li>$f = (a\cdot b) + c$, $a = 3$, $b = -2$, $c = 5$. Rajzold fel a gráfot, és számold ki a gradienseket!
+      <details><summary>Megoldás</summary>$p = ab = -6$, $f = -1$. Az összeadás 1-et ad tovább: $\partial f/\partial c = 1$, $\partial f/\partial p = 1$; a szorzás felcserél: $\partial f/\partial a = b = -2$, $\partial f/\partial b = a = 3$.</details></li>
+    <li>$f = \mathrm{ReLU}(w\cdot x)$, $w = -1$, $x = 2$. Mennyi $\partial f/\partial w$?
+      <details><summary>Megoldás</summary>$wx = -2 \lt 0$, $f = 0$, a ReLU lokális deriváltja 0, így minden gradiens 0. (A „halott” neuron gráfként.)</details></li>
+    <li>(nehezebb) $f = (x + y)^2$ – bontsd $q = x + y$ és $f = q^2$ műveletekre! $x = 1$, $y = 2$: mennyi $\partial f/\partial x$?
+      <details><summary>Megoldás</summary>$q = 3$, $f = 9$. A négyzetre emelés lokális deriváltja $2q = 6$, az összeadás továbbadja: $\partial f/\partial x = \partial f/\partial y = 6$.</details></li>
+  </ol>
+</details>
+
+<h3 id="s104-b">2. lépés: a kapuk szabályai és az elágazás</h3>
+<p>A visszafelé menetben a leggyakoribb csúcsok nagyon egyszerűen viselkednek – érdemes megjegyezni őket. Egy új helyzet viszont csak a gráfon látszik: ha egy érték <b>több helyre is</b> befolyik.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – $f = x\cdot y + x$</span>
+  $x = 3$, $y = 2$: $p = xy = 6$, $f = p + x = 9$. Az $x$ <b>két</b> úton hat $f$-re: a szorzáson át és közvetlenül.
+  <ul style="margin:.2rem 0">
+    <li>a szorzáson át: $\partial f/\partial p \cdot y = 1 \cdot 2 = 2$;</li>
+    <li>közvetlenül (az összeadás továbbadja): $1$.</li>
+  </ul>
+  A két út hozzájárulása <b>összeadódik</b>: $\partial f/\partial x = 2 + 1 = 3$. Ellenőrzés: $f = xy + x$, $\partial f/\partial x = y + 1 = 3$ ✓, $\;\partial f/\partial y = x = 3$.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – a kapuk viselkedése visszafelé</span>
+  <table style="font-size:.9rem">
+    <tr><th>csúcs</th><th>előre</th><th>vissza (felső gradiens: $g$)</th><th>röviden</th></tr>
+    <tr><td>összeadás</td><td>$a + b$</td><td>$a$-nak $g$, $b$-nek $g$</td><td><b>továbbadja</b></td></tr>
+    <tr><td>szorzás</td><td>$a\cdot b$</td><td>$a$-nak $g\cdot b$, $b$-nek $g\cdot a$</td><td><b>felcseréli</b> a bemeneteket</td></tr>
+    <tr><td>maximum</td><td>$\max(a, b)$</td><td>a nagyobbiknak $g$, a másiknak 0</td><td><b>irányítja</b></td></tr>
+    <tr><td>ReLU</td><td>$\max(0, z)$</td><td>$g$, ha $z \gt 0$, különben 0</td><td><b>kapu</b>: átenged vagy elzár</td></tr>
+    <tr><td>szigmoid</td><td>$\sigma(z)$</td><td>$g\cdot\sigma(z)(1 - \sigma(z))$</td><td>legfeljebb negyedére <b>csillapít</b></td></tr>
+    <tr><td><b>elágazás</b></td><td>egy érték több helyre megy</td><td>a beérkező gradiensek <b>összege</b></td><td><b>összeadódik</b></td></tr>
+  </table>
+  <small>Miért adódik össze az elágazásnál? A többváltozós láncszabály szerint ha $x$ több köztes értéken át hat $f$-re, a hatások összeadódnak – pontosan úgy, ahogy a 10.3-ban a rejtett neuron $\delta$-ja a kimeneti neuronok felől érkező tagok összege volt.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a maximum irányít</span>
+    $f = \max(x, y)\cdot z$, $x = 4$, $y = 1$, $z = 2$: $m = 4$, $f = 8$. Vissza: $\partial f/\partial z = m = 4$, $\partial f/\partial m = z = 2$; a maximum az $x$-hez küldi: $\partial f/\partial x = 2$, $\partial f/\partial y = 0$.
+    Az $y$ kis változtatása most nem számít – hiszen nem ő a nagyobb.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – önmagával szorozva</span>
+    $f = x\cdot x$, $x = 3$. A szorzás „felcseréli”: mindkét bemenet $g\cdot x = 3$-at kap, és mivel mindkettő $x$, összeadódnak: $\partial f/\partial x = 6 = 2x$ ✓.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktató – ne írd felül, add hozzá</span>
+  Ha egy programban a visszafelé menet egy elágazó érték gradiensét <em>felülírja</em> ahelyett, hogy hozzáadná, az egyik út hozzájárulása elvész. Ezért gyűjtik a keretrendszerek a gradienseket összeadással – és ezért kell a lépések között nullázni őket (<a href="#s102-a">10.2</a>).
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – kapuk és elágazás</summary>
+  <ol>
+    <li>$f = \max(x, y) + z$, $x = 1$, $y = 5$, $z = -2$. Mennyi a három gradiens?
+      <details><summary>Megoldás</summary>$f = 3$. Az összeadás 1-et ad tovább; a maximum $y$-hoz: $\partial f/\partial x = 0$, $\partial f/\partial y = 1$, $\partial f/\partial z = 1$.</details></li>
+    <li>$f = x\cdot y\cdot z$ ($p = xy$, $f = pz$), $x = 2$, $y = 3$, $z = 4$. Mennyi a három gradiens?
+      <details><summary>Megoldás</summary>$p = 6$, $f = 24$. $\partial f/\partial z = 6$, $\partial f/\partial p = 4$, $\partial f/\partial x = 4 \cdot 3 = 12$, $\partial f/\partial y = 4 \cdot 2 = 8$. (Mindegyik a másik kettő szorzata.)</details></li>
+    <li>$f = (x + y)\cdot x$, $x = 1$, $y = 2$. Mennyi $\partial f/\partial x$? Melyik két úton jön?
+      <details><summary>Megoldás</summary>$q = 3$, $f = 3$. A szorzásból: $x$ közvetlenül $g\cdot q = 3$-at kap; $q$ $g\cdot x = 1$-et, amit az összeadás $x$-nek továbbad. Összesen $3 + 1 = 4$. Ellenőrzés: $f = x^2 + xy$, $\partial f/\partial x = 2x + y = 4$ ✓.</details></li>
+    <li>Egy szigmoid csúcs bemenete $z = 2$, a felső gradiens $g = 1$. Mennyit ad tovább? És $z = 0$-nál?
+      <details><summary>Megoldás</summary>$\sigma(2) = 0{,}881$, $0{,}881 \cdot 0{,}119 \approx 0{,}105$. $z = 0$-nál $0{,}25$ – a szigmoid ennél többet sosem enged át.</details></li>
+    <li>(nehezebb) Egy nyelvi modell ugyanazt a beágyazási vektort a bemeneten és a kimeneten is használja („súlymegosztás”). Hogyan kapja meg a gradiensét?
+      <details><summary>Megoldás</summary>Ez elágazás: ugyanaz a paraméter két helyen hat a veszteségre. A visszafelé menetben mindkét helyről érkezik gradiens, és ezek összeadódnak – a frissítés az összegükkel lép.</details></li>
+  </ol>
+</details>
+
+<h3 id="s104-c">3. lépés: automatikus differenciálás – így deriválnak a keretrendszerek</h3>
+<p>Ha minden elemi műveletnek megvan a lokális deriváltja, a program maga is fel tudja építeni a gráfot, és vissza tud menni rajta. Ez az <b>automatikus differenciálás</b> (autodiff). A PyTorch, a TensorFlow és a JAX mind ezt csinálja.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a 10.3 hálója PyTorch-ban</span>
+  Ugyanaz a 2–2–1-es háló. Senki nem írt hozzá visszafelé menetet – a keretrendszer az előre menet közben feljegyzi a műveleteket, a <code>loss.backward()</code> pedig visszafelé végigmegy rajtuk:
+<pre><code>import torch
+x = torch.tensor([1., 2.]); y = torch.tensor(1.)
+W1 = torch.tensor([[0.5, 0.25], [-1., 1.]], requires_grad=True)
+b1 = torch.tensor([0., 0.5], requires_grad=True)
+w2 = torch.tensor([1., -1.], requires_grad=True)
+b2 = torch.tensor(0.5, requires_grad=True)
+
+h = torch.relu(W1 @ x + b1)                  # előre menet: a gráf közben épül
+z2 = w2 @ h + b2
+loss = torch.nn.functional.binary_cross_entropy_with_logits(z2, y)
+loss.backward()                              # visszafelé menet
+print(loss.item())                           # 0.6931…
+print(W1.grad)                               # [[-0.5, -1.0], [0.5, 1.0]]
+print(b1.grad, w2.grad, b2.grad)             # [-0.5, 0.5] [-0.5, -0.75] -0.5</code></pre>
+  Pontosan a kézzel kapott számok (<a href="#s103-b">10.3</a>).
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – előre és fordított módú automatikus differenciálás</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Előre mód:</b> az előre menettel együtt viszi végig minden érték deriváltját <em>egy kiválasztott bemenet</em> szerint. Egy menet = az összes kimenet deriváltja <b>egy</b> bemenet szerint.</li>
+    <li><b>Fordított mód</b> (a visszaterjesztés): előbb előre menet, aztán visszafelé. Egy visszafelé menet = <b>egy</b> kimenet deriváltja az <b>összes</b> bemenet szerint.</li>
+  </ul>
+  A tanításnál egyetlen kimenet van (a veszteség) és nagyon sok bemenet (a paraméterek) – ezért mindig a <b>fordított mód</b> nyer.
+  <br><small>Miért nem szimbolikus deriválás? A program nem képletet derivál, hanem a ténylegesen elvégzett műveletek sorozatát – így ciklusok, elágazások (<code>if</code>), sőt menet közben változó hálók is deriválhatók.
+  A PyTorch a gráfot menet közben építi („define-by-run”); a régi TensorFlow előre felépítette („define-then-run”).</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – hány menet kell?</span>
+    1 veszteség, $10^6$ paraméter. Előre móddal $10^6$ menet (paraméterenként egy), fordított móddal 1 előre + 1 visszafelé menet.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy kis „szalag”</span>
+    $u = xy$, $w = u + x$, $L = w^2$, $x = 2$, $y = 3$. Előre: $u = 6$, $w = 8$, $L = 64$. Vissza: $\partial L/\partial w = 16$; $w$ felől $x$ 16-ot kap, $u$ 16-ot; a szorzás felcserél: $x$ még $16 \cdot 3 = 48$-at, $y$ $16 \cdot 2 = 32$-t.
+    $\partial L/\partial x = 16 + 48 = 64$, $\;\partial L/\partial y = 32$.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók a forrásokban</span>
+  <ul style="margin:.2rem 0">
+    <li>Egy rendszerkönyv (MLSYS, <em>AI Frameworks</em>) kidolgozott példájában $f(x) = x^2\sin x$ deriváltja $x = 2$-ben „2,805”. Helyesen $f'(2) = 2\cdot 2\sin 2 + 4\cos 2 \approx 3{,}637 - 1{,}665 = 1{,}973$ – a könyv saját köztes lépése is ezt adja.</li>
+    <li>Ugyanott: a fordított mód azért gyorsabb, mert „egy menetben kezeli az összes utat”. Mindkét mód egy menetben kezeli az összes utat; a különbség az, hogy az előre mód bemenetenként, a fordított kimenetenként kér egy menetet.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – automatikus differenciálás</summary>
+  <ol>
+    <li>Melyik módot választanád: (a) egy veszteség, 1 millió paraméter; (b) egy bemenet (az idő), 1000 kimenet (egy szimuláció állapota)?
+      <details><summary>Megoldás</summary>(a) fordított mód (1 visszafelé menet); (b) előre mód (1 menet a bemenet szerint, egyszerre mind az 1000 kimenet deriváltja).</details></li>
+    <li>$f(x) = x^2\sin x$. Bontsd $a = x^2$, $b = \sin x$, $f = ab$ műveletekre, és számold ki $f'(2)$-t visszafelé!
+      <details><summary>Megoldás</summary>$a = 4$, $b = \sin 2 \approx 0{,}909$. $\partial f/\partial a = b = 0{,}909$, $\partial f/\partial b = a = 4$. $x$-hez két úton: $0{,}909 \cdot 2x = 3{,}637$ és $4\cos 2 = -1{,}665$. Összesen $\approx 1{,}973$.</details></li>
+    <li>Miért kell a PyTorch-nak <code>requires_grad=True</code> a súlyoknál, a bemenetnél nem?
+      <details><summary>Megoldás</summary>Mert csak azoknak az értékeknek a gradiensét kell kiszámolni (és a gráfban nyilvántartani), amelyeket tanítani akarunk. A bemenet gradiensére általában nincs szükség – ez memóriát és időt spórol.</details></li>
+    <li>A „szalag” példában ($x = 2$, $y = 3$) ellenőrizd az eredményt képlettel: $L = (xy + x)^2$!
+      <details><summary>Megoldás</summary>$\partial L/\partial x = 2(xy + x)(y + 1) = 2 \cdot 8 \cdot 4 = 64$ ✓; $\;\partial L/\partial y = 2(xy + x)\cdot x = 2 \cdot 8 \cdot 2 = 32$ ✓.</details></li>
+    <li>(nehezebb) Egy programban <code>if x > 0: f = x*x else: f = -x</code>. Tud-e ezen deriválni az automatikus differenciálás? Mit ad $x = 3$-nál és $x = -2$-nél?
+      <details><summary>Megoldás</summary>Igen: mindig azt az ágat deriválja, amelyik ténylegesen lefutott. $x = 3$: $f = 9$, $f' = 6$. $x = -2$: $f = 2$, $f' = -1$. (A töréspontban, $x = 0$-ban a „derivált” megállapodás kérdése – mint a ReLU-nál.)</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai10-104"></div>
+</section>

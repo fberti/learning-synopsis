@@ -1,0 +1,196 @@
+
+<!-- ===================================================== 10.3 -->
+<section id="s103">
+<h2>10.3 Visszaterjesztés kézzel ★★</h2>
+<p>A tanítási ciklus harmadik lépése a legérdekesebb: honnan tudjuk, hogy a veszteség hogyan függ <em>mind az 1210</em> súlytól? Egy kis hálón kézzel végigszámoljuk – és közben kiderül, hogy az egész csak a <b>láncszabály</b> (<a href="../02-matematikai-eszkoztar/#s27-d">2.7</a>), okos sorrendben.</p>
+
+<h3 id="s103-a">1. lépés: egyetlen neuron – a láncszabály</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy szigmoid neuron, egy lépés</span>
+  Egy bemenet $x = 2$, súly $w = 0{,}5$, torzítás $b = -1$, szigmoid kimenet, a helyes címke $y = 1$, keresztentrópia.
+  <ul style="margin:.2rem 0">
+    <li><b>Előre:</b> $z = 0{,}5 \cdot 2 - 1 = 0$, $\;\hat p = \sigma(0) = 0{,}5$, $\;L = -\ln 0{,}5 \approx 0{,}693$.</li>
+    <li><b>Vissza, láncszemenként:</b> a veszteség $z$ szerint (<a href="#s101-c">10.1</a>): $\delta = \hat p - y = -0{,}5$. A $z = wx + b$ a $w$ szerint $x$-szel nő, a $b$ szerint 1-gyel. Tehát
+      $$\frac{\partial L}{\partial w} = \delta \cdot x = -0{,}5 \cdot 2 = -1, \qquad \frac{\partial L}{\partial b} = \delta \cdot 1 = -0{,}5.$$</li>
+    <li><b>Frissítés</b> ($\eta = 0{,}5$): $w = 0{,}5 - 0{,}5\cdot(-1) = 1$, $\;b = -1 - 0{,}5\cdot(-0{,}5) = -0{,}75$.</li>
+    <li><b>Ellenőrzés:</b> $z = 2 - 0{,}75 = 1{,}25$, $\hat p = 0{,}777$, $L = 0{,}252$. A veszteség 0,693-ról 0,252-re esett.</li>
+  </ul>
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – egy neuron súlyainak gradiense</span>
+  Ha a neuron $z = \mathbf w^\top\mathbf x + b$, és ismerjük a $\delta = \partial L/\partial z$ értéket, akkor
+  $$\frac{\partial L}{\partial w_i} = \delta \cdot x_i, \qquad \frac{\partial L}{\partial b} = \delta.$$
+  <b>Hüvelykujjszabály: a súly gradiense = a súlyon átfolyó bemenet × a neuron $\delta$-ja.</b>
+  <br><small>Miért? A láncszabály szerint $\frac{\partial L}{\partial w_i} = \frac{\partial L}{\partial z}\cdot\frac{\partial z}{\partial w_i}$, és $z$-ben $w_i$ csak az $x_i w_i$ tagban szerepel, így $\partial z/\partial w_i = x_i$.
+  A $\delta$ azt méri, mennyire „érzékeny” a veszteség a neuronra; a bemenet azt, mennyire „felelős” az adott súly a neuron $z$-jéért.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – lineáris neuron, négyzetes hiba</span>
+    $\hat y = wx + b$, $x = 3$, $w = 1$, $b = 0$, $y = 5$. $\hat y = 3$, $\delta = \hat y - y = -2$ (<a href="#s101-c">10.1</a>). $\;\partial L/\partial w = -2 \cdot 3 = -6$, $\;\partial L/\partial b = -2$.
+    A súlyt felfelé kell tolni – háromszor erősebben, mint a torzítást, mert a bemenet 3.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – nulla bemenet</span>
+    Ugyanaz a neuron, de két bemenettel: $\mathbf x = (3;\ 0)$, $\delta = -2$. A gradiens $(-6;\ 0)$: a második súly <b>ebből a mintából nem tanul</b>, hiszen nem is befolyásolta a kimenetet.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Előjel: $\delta = \hat y - y$ (jóslat mínusz valóság), és a frissítés <em>kivonja</em> a gradienst.</b> Egy szemléletes könyv (DLV 14) a kimeneti hibát „címke mínusz kimenet” alakban írja, majd a súlyokból mégis kivonja – a kettő együtt felfelé menne a lejtőn.
+      Ha a „valóság mínusz jóslat” alakot használod, a frissítésben <em>összeadás</em> kell (mint a perceptronnál, <a href="../09-neuralis-halozatok/#s92-a">9.2</a>).</li>
+    <li><b>A $\delta$ a $z$ szerinti derivált, nem az $a = \varphi(z)$ szerinti.</b> A kettő között ott az aktiváció deriváltja – a következő lépésben ez fontos lesz.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – egy neuron</summary>
+  <ol>
+    <li>Szigmoid neuron, keresztentrópia: $x = 1$, $w = 0$, $b = 0$, $y = 0$. Mennyi $\hat p$, $\delta$, $\partial L/\partial w$ és $\partial L/\partial b$?
+      <details><summary>Megoldás</summary>$z = 0$, $\hat p = 0{,}5$, $\delta = 0{,}5$, $\partial L/\partial w = 0{,}5$, $\partial L/\partial b = 0{,}5$. A lépés mindkettőt csökkenti – a $\hat p$ a 0 felé megy.</details></li>
+    <li>Lineáris neuron, négyzetes hiba: $\mathbf x = (1;\ -2)$, $\mathbf w = (2;\ 1)$, $b = 1$, $y = 3$. Mennyi a gradiens?
+      <details><summary>Megoldás</summary>$\hat y = 2 - 2 + 1 = 1$, $\delta = 1 - 3 = -2$. $\nabla_{\mathbf w} L = -2\cdot(1;\ -2) = (-2;\ 4)$, $\partial L/\partial b = -2$.</details></li>
+    <li>Az előző feladatban lépj $\eta = 0{,}1$-gyel! Mennyi az új jóslat és a veszteség?
+      <details><summary>Megoldás</summary>$\mathbf w = (2{,}2;\ 0{,}6)$, $b = 1{,}2$. $\hat y = 2{,}2 - 1{,}2 + 1{,}2 = 2{,}2$, $L = \tfrac12 \cdot 0{,}8^2 = 0{,}32$ (előtte $\tfrac12\cdot 2^2 = 2$).</details></li>
+    <li>A kiinduló példában mennyi lett volna a veszteség $\eta = 1$-gyel? És $\eta = 0{,}25$-tel?
+      <details><summary>Megoldás</summary>$\eta = 1$: $w = 1{,}5$, $b = -0{,}5$, $z = 2{,}5$, $\hat p = 0{,}924$, $L = 0{,}079$. $\;\eta = 0{,}25$: $w = 0{,}75$, $b = -0{,}875$, $z = 0{,}625$, $\hat p = 0{,}651$, $L = 0{,}429$.</details></li>
+    <li>(nehezebb) Egy neuron négyzetes hibával, de <b>szigmoid</b> kimenettel: $x = 2$, $w = 0{,}5$, $b = -1$, $y = 1$. Mennyi $\partial L/\partial w$? Vesd össze a kiinduló példával!
+      <details><summary>Megoldás</summary>$\hat p = 0{,}5$; $\delta = (\hat p - y)\,\hat p(1 - \hat p) = -0{,}5 \cdot 0{,}25 = -0{,}125$ (<a href="#s101-b">10.1</a>). $\partial L/\partial w = -0{,}125 \cdot 2 = -0{,}25$ – negyede a keresztentrópiás $-1$-nek.</details></li>
+  </ol>
+</details>
+
+<h3 id="s103-b">2. lépés: két réteg – a hiba visszafelé terjed</h3>
+<p>Egy neuronnál a $\delta$-t a kimeneten egyből tudtuk. De mi a $\delta$-ja egy <b>rejtett</b> neuronnak, amelynek nincs „helyes válasza” (<a href="../09-neuralis-halozatok/#s93-a">9.3</a>)? A válasz: a rejtett neuron annyira felelős, amennyire a kimenetre hat.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy 2–2–1-es háló, egy teljes tanítási lépés</span>
+  Bemenet $\mathbf x = (1;\ 2)$, címke $y = 1$. Rejtett réteg ReLU-val, kimenet szigmoiddal, keresztentrópia:
+  $$W_1 = \begin{pmatrix} 0{,}5 & 0{,}25 \\ -1 & 1 \end{pmatrix},\quad \mathbf b_1 = \begin{pmatrix} 0 \\ 0{,}5 \end{pmatrix},\qquad \mathbf w_2 = (1;\ -1),\quad b_2 = 0{,}5.$$
+  <b>① Előre.</b> $\mathbf z_1 = W_1\mathbf x + \mathbf b_1 = (0{,}5 + 0{,}5 + 0;\ -1 + 2 + 0{,}5) = (1;\ 1{,}5)$, $\;\mathbf h = \mathrm{ReLU}(\mathbf z_1) = (1;\ 1{,}5)$.
+  $z_2 = 1\cdot 1 + (-1)\cdot 1{,}5 + 0{,}5 = 0$, $\;\hat p = 0{,}5$, $\;L = 0{,}6931$.<br>
+  <b>② A kimeneti réteg.</b> $\delta_2 = \hat p - y = -0{,}5$. A kimeneti súlyok bemenete $\mathbf h$, így $\;\partial L/\partial\mathbf w_2 = \delta_2\,\mathbf h = (-0{,}5;\ -0{,}75)$, $\;\partial L/\partial b_2 = -0{,}5$.<br>
+  <b>③ Vissza a rejtett rétegbe.</b> Az első rejtett neuron $w = 1$-gyel hat a kimenetre, a második $w = -1$-gyel. A veszteség a rejtett kimenetek szerint:
+  $\partial L/\partial\mathbf h = \mathbf w_2\,\delta_2 = (1\cdot(-0{,}5);\ (-1)\cdot(-0{,}5)) = (-0{,}5;\ 0{,}5)$.
+  Ezt még átvezetjük a ReLU-n: mindkét $z_1$ pozitív, a derivált 1, tehát $\boldsymbol\delta_1 = (-0{,}5;\ 0{,}5)$.<br>
+  <b>④ A rejtett súlyok.</b> A bemenet $\mathbf x = (1;\ 2)$, így soronként „$\delta$ × bemenet”:
+  $$\frac{\partial L}{\partial W_1} = \boldsymbol\delta_1\mathbf x^\top = \begin{pmatrix} -0{,}5 & -1 \\ 0{,}5 & 1 \end{pmatrix},\qquad \frac{\partial L}{\partial\mathbf b_1} = (-0{,}5;\ 0{,}5).$$
+  <b>⑤ Frissítés</b> $\eta = 0{,}1$-gyel: $W_1 = \begin{pmatrix} 0{,}55 & 0{,}35 \\ -1{,}05 & 0{,}9 \end{pmatrix}$, $\mathbf b_1 = (0{,}05;\ 0{,}45)$, $\mathbf w_2 = (1{,}05;\ -0{,}925)$, $b_2 = 0{,}55$.<br>
+  <b>⑥ Ellenőrzés.</b> Új előre menet: $\mathbf h = (1{,}3;\ 1{,}2)$, $z_2 = 0{,}805$, $\hat p = 0{,}691$, $L = 0{,}3696$. Egy lépés, és a veszteség majdnem a felére esett.
+  Mind a 9 paraméter egyszerre mozdult – mindegyik a saját gradiense szerint. Az első rejtett neuron (amely „mellette szól”) felerősödött, a második (amely „ellene”) gyengült.
+</div>
+<div class="box def">
+  <span class="box-title">Algoritmus – visszaterjesztés (rétegenként)</span>
+  Előre menetben rétegenként eltároljuk a $\mathbf z^{(\ell)}$ és a $\mathbf h^{(\ell)} = \varphi(\mathbf z^{(\ell)})$ értékeket ($\mathbf h^{(0)} = \mathbf x$). Aztán a kimenettől visszafelé:
+  <ol style="margin:.2rem 0">
+    <li><b>kimenet:</b> $\boldsymbol\delta^{(L)} = \hat{\mathbf y} - \mathbf y$ (a <a href="#s101-c">10.1</a> párosaival);</li>
+    <li><b>a réteg paraméterei:</b> $\dfrac{\partial L}{\partial W^{(\ell)}} = \boldsymbol\delta^{(\ell)}\,\mathbf h^{(\ell-1)\top}$, $\quad\dfrac{\partial L}{\partial\mathbf b^{(\ell)}} = \boldsymbol\delta^{(\ell)}$;</li>
+    <li><b>egy réteggel hátrébb:</b> $\boldsymbol\delta^{(\ell-1)} = \big(W^{(\ell)\top}\boldsymbol\delta^{(\ell)}\big) \odot \varphi'\big(\mathbf z^{(\ell-1)}\big)$, ahol $\odot$ az elemenkénti szorzás.</li>
+  </ol>
+  <small>Miért? A 3. sor a többváltozós láncszabály: a rejtett neuron minden kimenetre hat, a hatások összeadódnak (ez a $W^\top\boldsymbol\delta$ sorainak összege), és a $z$-ből az aktiváción át jutunk a $h$-ig (ezért a $\varphi'$).
+  Figyeld meg a szimmetriát: előre a súlyok a <b>bemeneteket</b> összegzik, visszafelé ugyanazok a súlyok a <b>következő réteg $\delta$-it</b> – csak a mátrix transzponálva szerepel. (D. Rumelhart, G. Hinton és R. Williams 1986-os cikke tette ismertté; a módszer gyökerei korábbiak, lásd a <a href="#s103-c">3. lépést</a>.)</small>
+</div>
+<div class="widget" data-widget="backprop-stepper"></div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy „halott” rejtett neuron</span>
+    Ugyanez a háló, de $\mathbf b_1 = (0;\ -2)$. Most $\mathbf z_1 = (1;\ -1)$, $\mathbf h = (1;\ 0)$, $z_2 = 1{,}5$, $\hat p = 0{,}818$, $\delta_2 = -0{,}182$.
+    A második rejtett neuron $z$-je negatív, a ReLU deriváltja ott 0, így $\boldsymbol\delta_1 = (-0{,}182;\ 0)$: <b>a második neuron bejövő súlyai ebből a mintából semmit nem tanulnak</b>, és a kimeneti súlya sem ($h_2 = 0$).
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – szigmoid a rejtett rétegben</span>
+    Ha a kiinduló példában ReLU helyett szigmoid van: $\mathbf h = (\sigma(1);\ \sigma(1{,}5)) = (0{,}731;\ 0{,}818)$, $z_2 = 0{,}413$, $\hat p = 0{,}602$, $\delta_2 = -0{,}398$.
+    A rejtett $\delta$-knál a ReLU 1-es deriváltja helyett $\sigma'(z) = h(1 - h)$ szorzik: $\boldsymbol\delta_1 = (-0{,}398 \cdot 0{,}197;\ 0{,}398 \cdot 0{,}149) = (-0{,}078;\ 0{,}059)$ – kb. hatoda a ReLU-s értéknek.
+  </div>
+</div>
+<details class="box">
+  <summary>📐 A matematika mögötte – egész köteg egyszerre</summary>
+  Egy $B$ mintás kötegben a rétegek kimenetei mátrixok: $H^{(\ell)}$ mérete $B \times n_\ell$, soronként egy minta (<a href="../09-neuralis-halozatok/#s93-b">9.3</a>). A $\delta$-k is mátrixba rendeződnek ($\Delta^{(\ell)}$, $B \times n_\ell$), és az átlagos veszteség gradiense
+  $$\frac{\partial L}{\partial W^{(\ell)}} = \frac1B\,\Delta^{(\ell)\top} H^{(\ell-1)}, \qquad \Delta^{(\ell-1)} = \big(\Delta^{(\ell)} W^{(\ell)}\big) \odot \varphi'\big(Z^{(\ell-1)}\big).$$
+  Az első képlet a mintánkénti $\boldsymbol\delta\,\mathbf h^\top$ szorzatok átlaga – egyetlen mátrixszorzásba csomagolva. Ezért szereti a GPU: a visszafelé menet is nagy mátrixszorzásokból áll.
+</details>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Ne felejtsd ki az aktiváció deriváltját.</b> Egy könyv (DLV 14) a rejtett neuron $\delta$-ját csak a „következő $\delta$-k súlyozott összegeként” adja meg, és azt írja, az aktiváció „nem változtat az alapelven”. A képletbe viszont a $\varphi'(z)$ szorzó kell – szigmoidnál ez akár hatodára is csökkenti a jelet.</li>
+    <li><b>Transzponált mátrix.</b> Előre $W$, vissza $W^\top$. Ha a méretek nem stimmelnek ($W$: $n_{\text{ki}} \times n_{\text{be}}$, $\boldsymbol\delta$: $n_{\text{ki}}$ elemű), rossz a sorrend.</li>
+    <li><b>A $\varphi'$-t a $z$-ben számold,</b> nem a $h$-ban. (Szigmoidnál és tanh-nál kényelmes, hogy $\varphi'$ a $h$-ból is kijön: $h(1 - h)$, illetve $1 - h^2$ – de ez ugyanaz a szám.)</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – két réteg</summary>
+  <ol>
+    <li>A kiinduló példában $y = 0$ a címke. Mennyi $\delta_2$ és $\boldsymbol\delta_1$?
+      <details><summary>Megoldás</summary>$\hat p = 0{,}5$, $\delta_2 = 0{,}5$. $\partial L/\partial\mathbf h = (1\cdot 0{,}5;\ -1\cdot 0{,}5) = (0{,}5;\ -0{,}5)$, ReLU-derivált 1 → $\boldsymbol\delta_1 = (0{,}5;\ -0{,}5)$. Minden gradiens előjelet vált.</details></li>
+    <li>Egy rejtett neuron két kimeneti neuronra hat $0{,}5$ és $-2$ súllyal; azok $\delta$-ja $0{,}4$ és $0{,}1$. A neuron $z$-je pozitív (ReLU). Mennyi a $\delta$-ja?
+      <details><summary>Megoldás</summary>$0{,}5 \cdot 0{,}4 + (-2)\cdot 0{,}1 = 0{,}2 - 0{,}2 = 0$, szorozva 1-gyel: $\delta = 0$. A két hatás kioltja egymást – a neuron e mintán nem változik.</details></li>
+    <li>Ugyanez, de a neuron szigmoidos, kimenete $h = 0{,}9$, és a második súly $-1$. Mennyi $\delta$?
+      <details><summary>Megoldás</summary>$0{,}5 \cdot 0{,}4 + (-1)\cdot 0{,}1 = 0{,}1$; $\sigma' = 0{,}9 \cdot 0{,}1 = 0{,}09$; $\delta = 0{,}009$. A telített szigmoid tizedére csökkentette.</details></li>
+    <li>Egy réteg 64 bemenetből 16 kimenetet számol. Mekkora a $\partial L/\partial W$ mátrix, és hány szorzás kell a kiszámolásához egy mintán?
+      <details><summary>Megoldás</summary>$16 \times 64$, mint maga a $W$ (minden súlynak van gradiense). A $\boldsymbol\delta\,\mathbf x^\top$ külső szorzat $16 \cdot 64 = 1024$ szorzás – ugyanannyi, mint az előre menetben.</details></li>
+    <li>(nehezebb) A kiinduló példa frissített hálójával ($\eta = 0{,}1$ után) tegyél még egy lépést! Mennyi lesz a veszteség? (A szemléltetéssel ellenőrizheted.)
+      <details><summary>Megoldás</summary>$\hat p = 0{,}691$, $\delta_2 = -0{,}309$; $\mathbf h = (1{,}3;\ 1{,}2)$ → $\partial L/\partial\mathbf w_2 = (-0{,}402;\ -0{,}371)$, $\partial L/\partial b_2 = -0{,}309$.
+        $\boldsymbol\delta_1 = (1{,}05 \cdot (-0{,}309);\ -0{,}925\cdot(-0{,}309)) = (-0{,}324;\ 0{,}286)$, $\partial L/\partial W_1 = \boldsymbol\delta_1\mathbf x^\top$.
+        A frissítés után $L \approx 0{,}2416$. A sorozat: 0,6931 → 0,3696 → 0,2416 → 0,1764 → 0,1374 – egyre kisebb lépésekkel, mert a $\delta_2$ is egyre kisebb.</details></li>
+  </ol>
+</details>
+
+<h3 id="s103-c">3. lépés: miért ilyen olcsó? – numerikus deriválás és gradiensellenőrzés</h3>
+<p>A gradienst ki lehetne számolni „buta” módon is: mozdítsunk meg egy súlyt egy picit, és nézzük meg, mennyit változik a veszteség. Miért nem így csinálja senki?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy súly, két kis elmozdítás</span>
+  A 2–2–1-es háló $W_1$ bal felső súlya $0{,}5$. Mozdítsuk el $\varepsilon = 0{,}01$-gyel mindkét irányba, és számoljuk ki a veszteséget előre menettel:
+  $L(0{,}51) = 0{,}68816$, $\;L(0{,}49) = 0{,}69816$. A meredekség:
+  $$\frac{L(w + \varepsilon) - L(w - \varepsilon)}{2\varepsilon} = \frac{0{,}68816 - 0{,}69816}{0{,}02} = -0{,}5000.$$
+  Pontosan az, amit a visszaterjesztés adott (<a href="#s103-b">2. lépés</a>, $\partial L/\partial W_1$ bal felső eleme). De ehhez <b>két</b> előre menet kellett – <b>egyetlen</b> súlyért.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – a visszaterjesztés ára</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Numerikus deriválás</b> (szimmetrikus különbség): paraméterenként 2 előre menet. $P$ paraméterhez $2P$ előre menet.</li>
+    <li><b>Visszaterjesztés:</b> 1 előre és 1 visszafelé menet – a visszafelé menet nagyjából kétszer annyi számolás, mint az előre (a $\boldsymbol\delta$-k és a súlygradiensek). Összesen kb. <b>3 előre menetnyi munka, a paraméterek számától függetlenül.</b></li>
+  </ul>
+  <small>Miért? Az előre menetben kiszámolt (és eltárolt) $\mathbf z$, $\mathbf h$ értékeket a visszafelé menet újrahasznosítja, és minden $\boldsymbol\delta$-t csak egyszer számol ki – ahelyett, hogy minden súlyhoz külön végigmenne a hálón.
+  Ára a <b>memória</b>: az előre menet köztes értékeit a visszafelé menetig meg kell őrizni (<a href="#s108-c">10.8</a>).</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a számjegyháló</span>
+    1210 paraméter. Numerikusan: $2 \cdot 1210 = 2420$ előre menet egy gradienshez. Visszaterjesztéssel: kb. 3 előre menetnyi munka – <b>kb. 800-szor gyorsabb</b>.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy nagy nyelvi modell</span>
+    $10^{10}$ paraméter. Numerikusan $2 \cdot 10^{10}$ előre menet – egyetlen lépéshez. Visszaterjesztéssel ugyanaz a kb. 3 menet. Visszaterjesztés nélkül nem lenne mélytanulás.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Gradiensellenőrzés</span>
+  A numerikus deriválás lassú, de megbízható. Ha saját visszaterjesztést írsz, néhány véletlen súlyon vesd össze a kettőt: a relatív eltérés legyen kicsi (pl. $10^{-6}$ alatti).
+  Ha nem az, a visszafelé menetben hiba van – leggyakrabban egy elfelejtett $\varphi'$ vagy egy transzponálás. (A ReLU töréspontjában, $z = 0$-nál a numerikus érték megtévesztő lehet: ott a függvény nem deriválható.)
+</div>
+<div class="box history">
+  <span class="box-title">📜 Történet – ki találta fel?</span>
+  A „visszafelé” deriválás ötlete többször is felbukkant. S. Linnainmaa 1970-es szakdolgozata írta le általános formában (fordított módú automatikus differenciálás, <a href="#s104-c">10.4</a>),
+  P. Werbos 1974-ben javasolta neurális hálókra, D. Rumelhart, G. Hinton és R. Williams 1986-os <em>Nature</em>-cikke pedig megmutatta, hogy rejtett rétegek tanulnak vele hasznos jellemzőket – ettől lett ismert.
+  (Több könyv, köztük az MDL 10, úgy írja, hogy Rumelhart és társai „vezették be” – pontosabb: ők tették népszerűvé.)
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktató – az egysúlyos „próbálgatás”</span>
+  Az a módszer, hogy „mozdíts meg véletlenül egy súlyt, és tartsd meg, ha javult” (egy könyv, DLV 14, ezzel kezd), működik, de reménytelenül lassú: lépésenként egy súlyról egy bitnyi információ.
+  A gradiens egyszerre mind az 1210 súlyról megmondja, merre és mennyire érdemes mozdítani.
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – az ár</summary>
+  <ol>
+    <li>Egy 784–128–10-es hálónak 101 770 paramétere van (<a href="../09-neuralis-halozatok/#s96-b">9.6</a>). Hány előre menet kell egy numerikus gradienshez?
+      <details><summary>Megoldás</summary>$2 \cdot 101\,770 = 203\,540$ – a visszaterjesztés kb. 3 menetnyi munkája helyett.</details></li>
+    <li>Az egyneuronos kiinduló példában ($x = 2$, $w = 0{,}5$, $b = -1$, $y = 1$) számold ki numerikusan a $\partial L/\partial b$-t $\varepsilon = 0{,}01$-gyel!
+      <details><summary>Megoldás</summary>$L(b = -0{,}99) = -\ln\sigma(0{,}01) \approx 0{,}68816$, $L(b = -1{,}01) = -\ln\sigma(-0{,}01) \approx 0{,}69816$. $(0{,}68816 - 0{,}69816)/0{,}02 = -0{,}5$ ✓.</details></li>
+    <li>Miért kell a visszafelé menethez eltárolni a $\mathbf z^{(\ell)}$ értékeket?
+      <details><summary>Megoldás</summary>Mert a $\boldsymbol\delta^{(\ell-1)}$ képletében ott a $\varphi'(\mathbf z^{(\ell-1)})$, a súlygradiensben pedig a $\mathbf h^{(\ell-1)}$. Ha nem tárolnánk, újra kellene számolni az előre menetet.</details></li>
+    <li>Egy saját visszaterjesztés egy súlyra $-0{,}50$-t ad, a numerikus ellenőrzés $+0{,}50$-et. Mi a valószínű hiba?
+      <details><summary>Megoldás</summary>Előjelhiba: valahol $y - \hat y$ szerepel $\hat y - y$ helyett (vagy a frissítés előjele rossz). A nagyság stimmel, csak az irány fordított.</details></li>
+    <li>(nehezebb) Egy háló minden rétege 1000 × 1000-es, 10 réteg van, köteg 100. Hány számot kell az előre menetből a visszafelé menetig megőrizni (csak a rétegek kimeneteit számolva)? Hány bájt ez 32 bites számokkal?
+      <details><summary>Megoldás</summary>Rétegenként $100 \cdot 1000 = 10^5$ kimenet (és ugyanennyi $z$), 10 rétegre $10^6$ (a $z$-kkel $2 \cdot 10^6$). 4 bájttal 4 MB (8 MB). Nagy hálóknál ez a köztes tárolás – nem a súlyok – viszi el a memória nagy részét.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai10-103"></div>
+</section>

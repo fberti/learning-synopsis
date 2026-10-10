@@ -1,0 +1,189 @@
+
+<!-- ===================================================== 10.2 -->
+<section id="s102">
+<h2>10.2 Gradiens módszer mini-kötegekkel ★★</h2>
+<p>Van egy számunk, amit csökkenteni akarunk. A módszert már ismered: a gradiens módszer lépésenként a lejtő irányába megy (<a href="../02-matematikai-eszkoztar/#s28-a">2.8</a>, <a href="../03-tanulas-anatomiaja/#s34-c">3.4</a>),
+és egy-egy lépéshez elég a minták egy kis <b>kötegén</b> számolni (<a href="../03-tanulas-anatomiaja/#s34-d">3.4</a>). Most ezt rakjuk össze egy neurális háló tanítási ciklusává, és megnézzük, mit állít a <b>kötegméret</b>.</p>
+
+<h3 id="s102-a">1. lépés: a tanítási ciklus</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a számjegyháló egy epochja</span>
+  A <a href="#s109">10.9</a>-ben a számjegyhálót 1047 képen tanítjuk, 32-es kötegekben. Egy epoch:
+  <ol style="margin:.2rem 0">
+    <li>megkeverjük az 1047 képet, és sorban 32-es kötegekre vágjuk: $\lceil 1047/32\rceil = 33$ köteg (32 teli és egy 23 képes);</li>
+    <li>minden kötegen: <b>előre</b> (a 32 kép végigmegy a hálón, <a href="../09-neuralis-halozatok/#s96-a">9.6</a>) → <b>veszteség</b> (a 32 kép átlagos keresztentrópiája) → <b>vissza</b> (mind az 1210 paraméter gradiense, <a href="#s103">10.3</a>) → <b>frissítés</b> ($\mathbf w \leftarrow \mathbf w - \eta\,\mathbf g$).</li>
+  </ol>
+  Egy epoch tehát 33 frissítés. A 9.7 hálójához hasonló, 30 epochos tanítás $30 \cdot 33 = 990$ lépés – néhány másodperc a böngészőben.
+</div>
+<div class="box def">
+  <span class="box-title">Algoritmus – mini-köteges sztochasztikus gradiens módszer (SGD)</span>
+  Kezdés: kis véletlen súlyok (<a href="#s106">10.6</a>). Minden epochban keverd meg a tanítóhalmazt, vágd $B$ méretű kötegekre, és minden kötegre:
+  <ol style="margin:.2rem 0">
+    <li><b>előre irányuló menet:</b> a köteg minden mintájára kiszámolod a kimenetet (és eltárolod a köztes értékeket);</li>
+    <li><b>veszteség:</b> $L = \frac1B\sum_{i \in \text{köteg}} L_i$;</li>
+    <li><b>visszafelé menet:</b> $\mathbf g = \nabla L$ – a veszteség gradiense az összes paraméter szerint;</li>
+    <li><b>frissítés:</b> $\mathbf w \leftarrow \mathbf w - \eta\,\mathbf g$.</li>
+  </ol>
+  Ismételd, amíg a validációs veszteség javul (<a href="#s107-a">10.7</a>), vagy amíg el nem fogy a rászánt idő.
+  <br><small>Miért kötegenként? Mert a köteg átlagos gradiense jó becslése a teljes gradiensnek (<a href="../03-tanulas-anatomiaja/#s34-d">3.4</a>), de töredék idő alatt kiszámolható – így ugyanannyi számításból sokkal több lépés lesz.
+  A „sztochasztikus” (véletlen) jelző a véletlenül választott kötegre utal: minden lépés iránya egy kicsit zajos.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – lépések száma</span>
+    $n = 60\,000$ kép, $B = 128$: $\lceil 60\,000/128\rceil = 469$ lépés egy epoch (468 teli köteg és egy 96 képes). 10 epoch: 4690 lépés.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – ugyanez PyTorch-ban</span>
+    A négy lépés egy keretrendszerben öt sor:
+    <code>opt.zero_grad()</code> · <code>out = net(xb)</code> · <code>loss = lossfn(out, yb)</code> · <code>loss.backward()</code> · <code>opt.step()</code>.
+    Az első sor a gradienseket nullázza – a <code>backward()</code> ugyanis <em>hozzáadja</em> az újakat a régiekhez.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A visszaterjesztés nem az optimalizáló.</b> A visszaterjesztés csak a gradienst <em>számolja ki</em> (3. lépés); hogy mekkorát és merre lépünk, azt az optimalizáló dönti el (4. lépés, <a href="#s105">10.5</a>).
+      A köznyelv – és egy klasszikus tankönyv (ESL 11.4) is – „backpropnak” hívja az egész tanítást, és ezért írja, hogy a visszaterjesztés „lassú”. Lassú legfeljebb a sima gradiens módszer lehet; a gyorsabb módszerek is visszaterjesztéssel kapják a gradienst.</li>
+    <li><b>Felejtsd el a gradiens nullázását,</b> és minden lépés az összes eddigi gradiens összegével lép – a tanítás szétszáll.</li>
+    <li><b>Minden epochban keverj újra.</b> Ha mindig ugyanazok a képek vannak egy kötegben, a háló a köteg sorrendjéhez is alkalmazkodik.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a tanítási ciklus</summary>
+  <ol>
+    <li>$n = 1000$, $B = 50$. Hány lépés egy epoch, és hány lépés 12 epoch?
+      <details><summary>Megoldás</summary>$1000/50 = 20$ lépés epochonként, 12 epoch 240 lépés.</details></li>
+    <li>$n = 1047$, $B = 128$. Hány köteg van egy epochban, és mekkora az utolsó?
+      <details><summary>Megoldás</summary>$\lceil 1047/128\rceil = 9$ köteg: 8 teli ($8 \cdot 128 = 1024$ kép) és egy 23 képes.</details></li>
+    <li>Tedd sorrendbe: frissítés, veszteség, előre menet, visszafelé menet, a gradiensek nullázása.
+      <details><summary>Megoldás</summary>Nullázás → előre menet → veszteség → visszafelé menet → frissítés. (A nullázás a ciklus végére is kerülhet, csak a következő <code>backward()</code> előtt meg kell történnie.)</details></li>
+    <li>Egy tanítás 3000 lépést tett, $B = 64$-gyel, 16 000 képen. Hány epoch volt ez?
+      <details><summary>Megoldás</summary>Egy epoch $16\,000/64 = 250$ lépés; $3000/250 = 12$ epoch.</details></li>
+    <li>(nehezebb) Valaki véletlenül a <code>zero_grad()</code> nélkül tanít, és a gradiens minden lépésben ugyanaz a $\mathbf g$ lenne. Mekkora a $k$-adik lépés?
+      <details><summary>Megoldás</summary>A $k$-adik lépésben a felgyűlt gradiens $k\mathbf g$, a lépés $\eta k\mathbf g$ – egyre nagyobb. 100 lépés után százszoros: a tanítás szétszáll. (Hasonlít a momentumhoz, <a href="#s105-a">10.5</a>, csak ott a régi gradiensek „elhalványulnak”.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s102-b">2. lépés: a kötegméret és a zaj</h3>
+<p>A köteg gradiense csak <em>becslése</em> a teljes gradiensnek. Mennyire pontos? Nézzük meg egy olyan kicsi esetben, ahol minden köteget fel tudunk sorolni.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – négy minta, minden lehetséges köteg</span>
+  Egy egyparaméteres modell négy mintájának gradiense az adott pontban: $-6,\ -2,\ 2,\ 10$. A teljes gradiens az átlaguk: $\bar g = 1$ – a súlyt lefelé kell mozdítani.
+  <table style="max-width:620px;font-size:.88rem;text-align:center">
+    <tr><th>$B$</th><th>a lehetséges kötegek átlagai</th><th>legkisebb … legnagyobb</th><th>szórás</th></tr>
+    <tr><td>1</td><td>$-6;\ -2;\ 2;\ 10$</td><td>$-6$ … $10$</td><td>5,92</td></tr>
+    <tr><td>2</td><td>$-4;\ -2;\ 0;\ 2;\ 4;\ 6$</td><td>$-4$ … $6$</td><td>3,42</td></tr>
+    <tr><td>3</td><td>$-2;\ 0{,}67;\ 2;\ 3{,}33$</td><td>$-2$ … $3{,}33$</td><td>1,97</td></tr>
+    <tr><td>4</td><td>$1$</td><td>$1$</td><td>0</td></tr>
+  </table>
+  Minden sor átlaga 1: a köteg gradiense <b>átlagosan pontos</b> (torzítatlan). De $B = 1$-nél a kötegek fele rossz irányba mutat (negatív), $B = 2$-nél a hatból kettő, $B = 3$-nál a négyből egy. Minél nagyobb a köteg, annál kisebb a szórás.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – a köteg gradiensének zaja</span>
+  Ha a mintánkénti gradiensek szórása $\sigma$, egy $B$ méretű véletlen köteg átlagos gradiensének szórása (nagy tanítóhalmaznál) kb.
+  $$\frac{\sigma}{\sqrt B}.$$
+  Egy lépés <b>ára</b> viszont $B$-vel arányos. Négyszer nagyobb köteg: négyszer drágább lépés, de csak <b>feleakkora</b> zaj.
+  <br><small>Miért? A köteg gradiense $B$ független minta átlaga, és $B$ független, egyforma szórású szám átlagának szórása $\sigma/\sqrt B$ – ugyanaz, mint a mintaátlagé a statisztikában.
+  (A kiinduló példában a négy mintából visszatevés nélkül húztunk, ezért ott a szórás még gyorsabban csökkent: a teljes köteg már pontos.)</small>
+</div>
+<div class="widget" data-widget="batch-size-noise"></div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – mennyi zaj marad?</span>
+    $\sigma = 8$. $B = 16$: $8/4 = 2$; $\;B = 64$: $8/8 = 1$; $\;B = 256$: $8/16 = 0{,}5$. A zaj felezéséhez mindig négyszeres köteg kell.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – ugyanannyi epoch, más köteg</span>
+    A számjegyháló SGD-vel, $\eta = 0{,}1$, 20 epoch (a <a href="#s109">10.9</a> szemléltetésével ellenőrizheted):
+    <table style="font-size:.85rem;text-align:center;width:auto">
+      <tr><th>$B$</th><td>8</td><td>32</td><td>128</td><td>1047 (teljes)</td></tr>
+      <tr><th>lépések</th><td>2620</td><td>660</td><td>180</td><td>20</td></tr>
+      <tr><th>teszt</th><td>97,6%</td><td>95,3%</td><td>88,9%</td><td>25,3%</td></tr>
+    </table>
+    A teljes köteg gradiense a legpontosabb – de 20 epoch alatt csak 20-at lép.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabály – lépésszám, nem epochszám</span>
+  Ha a kötegeket <b>ugyanannyi lépéssel</b> hasonlítod össze, a különbség nagyrészt eltűnik: 660 lépés $B = 32$-vel 95,3%, 720 lépés $B = 128$-cal 95,1%, 660 lépés teljes köteggel 94,9%.
+  A nagy köteg nem „rosszabb” – csak egy epochban kevesebbet lép. Egy kísérletsorozat (PDL 10) MNIST-en ugyanezt kapta: rögzített epochszámnál a nagy köteg sokat rontott, rögzített lépésszámnál alig.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A kötegméret nem „mindegy, csak férjen a GPU-ba”.</b> Egy népszerű könyv (DLV 15) így tanácsolja – de a kötegmérettel a zaj, a lépésszám és a jó tanulási ráta is változik (következő lépés).</li>
+    <li><b>A zaj nem csak hiba.</b> Kis kötegnél a zaj segíthet kimozdulni a lapos részekről és a nyeregpontokból (<a href="../02-matematikai-eszkoztar/#s28-c">2.8</a>). Ezért nem mindig a legnagyobb köteg a legjobb.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – kötegméret és zaj</summary>
+  <ol>
+    <li>A mintánkénti gradiensek szórása $\sigma = 12$. Mekkora a köteg gradiensének szórása $B = 9$-nél és $B = 36$-nál?
+      <details><summary>Megoldás</summary>$12/3 = 4$, illetve $12/6 = 2$.</details></li>
+    <li>Mekkora köteg kell, hogy a zaj a $B = 16$-os harmadára csökkenjen?
+      <details><summary>Megoldás</summary>A zaj $1/\sqrt B$-vel arányos: harmad zajhoz kilencszeres köteg, $B = 144$.</details></li>
+    <li>A kiinduló példa négy gradiense ($-6, -2, 2, 10$) közül hány kettes köteg ad <em>rossz</em> irányt (negatív átlagot)? És hány ad pontosan 0-t?
+      <details><summary>Megoldás</summary>Hat kettes köteg van: átlagaik $-4, -2, 0, 2, 4, 6$. Kettő negatív ($\{-6, -2\}$ és $\{-6, 2\}$), egy pontosan 0 ($\{-2, 2\}$) – ez utóbbi nem mozdít semmit.</details></li>
+    <li>Egy lépés ára a kötegmérettel arányos. Ugyanannyi számításból ($B \cdot \text{lépések} = 64\,000$ minta) hány lépést tesz a $B = 16$ és a $B = 256$?
+      <details><summary>Megoldás</summary>4000, illetve 250 lépést. A kis köteg 16-szor többet lép, mindegyiket 4-szer nagyobb zajjal.</details></li>
+    <li>(nehezebb) Miért lehet, hogy a GPU-n a $B = 32$ és a $B = 64$ lépés majdnem ugyanannyi ideig tart?
+      <details><summary>Megoldás</summary>Mert a GPU a köteg mintáit párhuzamosan számolja: amíg nincs kihasználva, a nagyobb köteg „ingyen” van. Ezért a gyakorlatban a kötegméret alsó határát gyakran a hardver kihasználtsága szabja meg – a felsőt a memória és az általánosítás.</details></li>
+  </ol>
+</details>
+
+<h3 id="s102-c">3. lépés: tanulási ráta és kötegméret együtt</h3>
+<p>A teljes köteg 20 lépése túl kevés volt. Ha nem tudunk többet lépni, lépjünk nagyobbat? Melyik tanulási ráta illik egy nagyobb köteghez?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – négyszer nagyobb köteg, négyszer nagyobb lépés</span>
+  A számjegyháló, 20 epoch, SGD:
+  <table style="max-width:560px;font-size:.88rem;text-align:center">
+    <tr><th>$B$</th><th>$\eta$</th><th>lépések</th><th>teszt</th></tr>
+    <tr><td>32</td><td>0,1</td><td>660</td><td>95,3%</td></tr>
+    <tr><td>128</td><td>0,1</td><td>180</td><td>88,9%</td></tr>
+    <tr><td>128</td><td><b>0,4</b></td><td>180</td><td><b>95,3%</b></td></tr>
+    <tr><td>1047</td><td>3,2</td><td>20</td><td>14,0%</td></tr>
+  </table>
+  Négyszeres köteghez négyszeres $\eta$: ugyanaz az eredmény, negyed annyi lépésből. De a teljes köteghez illő $\eta = 3{,}2$ már túl nagy – a háló szétszáll.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – lineáris skálázás (hüvelykujjszabály)</span>
+  Ha a kötegméretet $k$-szorosára növeled, a tanulási rátát is szorozd $k$-val: $\;B \to kB \Rightarrow \eta \to k\eta$.
+  A nagy $\eta$ eleje legyen óvatos: az első néhány száz–ezer lépésben fokozatosan emeld fel (<b>bemelegítés</b>, <a href="#s105-c">10.5</a>).
+  <br><small>Miért? $k$ kis lépés helyett egyet lépünk, $k$-szor nagyobb kötegből. Ha a gradiens ezalatt alig változik, a $k$ kis lépés összege $\approx k\eta\,\bar{\mathbf g}$ – ezt egy $k\eta$-s lépés pótolja.
+  A szabály csak addig működik, amíg a nagy lépés még stabil (<a href="../02-matematikai-eszkoztar/#s28-b">2.8</a>): egy határ fölött (a „kritikus kötegméret” fölött) a nagyobb köteg már nem gyorsít. (P. Goyal és társai, 2017.)</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy ajánlás átszámolása</span>
+    Egy cikk $B = 256$-tal $\eta = 0{,}1$-et használ. Nálad $B = 1024$ fér a gépbe: $\eta = 0{,}4$, bemelegítéssel. $B = 64$-nél: $\eta = 0{,}025$.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – gradiensgyűjtés</span>
+    Ha csak 32 kép fér a memóriába, de 128-as köteg kell: négy 32-es köteg gradiensét összegyűjtöd (mindegyik veszteségét 4-gyel osztva), és csak utána lépsz. Ez <b>pontosan</b> a 128-as köteg lépése – az $\eta$-t ilyenkor <b>nem</b> kell változtatni.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Gradiensgyűjtésnél ne szorozd meg az $\eta$-t.</b> Egy rendszerkönyv (MLSYS) négy gyűjtött lépéshez négyszeres tanulási rátát javasol – de ha a veszteséget a lépések számával osztod (ahogy ugyanott a kód teszi), a gyűjtés már maga a nagy köteg, a szorzás duplán számolna.</li>
+    <li><b>„Nagyobb köteg → gyorsabb tanulás” csak lépésenként igaz,</b> nem feldolgozott mintánként. A kritikus kötegméret fölött a több minta már nem ad jobb irányt, csak drágább lépést.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – tanulási ráta és köteg</summary>
+  <ol>
+    <li>$B = 64$, $\eta = 0{,}05$ jól működik. Mekkora $\eta$-val próbálkoznál $B = 512$-nél?
+      <details><summary>Megoldás</summary>A köteg 8-szoros, így $\eta = 0{,}4$ (bemelegítéssel).</details></li>
+    <li>Egy rendszerkönyv táblázata: $B = 512$ → $\eta = 0{,}1$, $\;B = 4096$ → $\eta = 0{,}8$. Követi-e a lineáris skálázást?
+      <details><summary>Megoldás</summary>Igen: $4096/512 = 8$ és $0{,}8/0{,}1 = 8$.</details></li>
+    <li>8 GPU-n tanítasz, mindegyik 32 képet dolgoz fel, és a gradienseket átlagolják. Mekkora a tényleges kötegméret?
+      <details><summary>Megoldás</summary>$8 \cdot 32 = 256$. Az átlagolt gradiens ugyanaz, mint egy 256-os kötegé (<a href="#s108-c">10.8</a>).</details></li>
+    <li>Miért szállt szét a teljes köteg $\eta = 3{,}2$-vel, ha a négyszeres skálázás még működött?
+      <details><summary>Megoldás</summary>Mert a szabály csak addig érvényes, amíg a lépés stabil. Egy lépés legfeljebb akkora lehet, amekkorát a veszteség legmeredekebb iránya elbír (<a href="../02-matematikai-eszkoztar/#s28-b">2.8</a>) – a $3{,}2$ efölött van, a háló első lépései átugranak a völgyön.</details></li>
+    <li>(nehezebb) Egy GPU-ra 16 kép fér, de $B = 256$-os köteget szeretnél. Hány lépésnyi gradienst gyűjtesz, mennyivel osztod a veszteséget, és hány frissítést teszel egy 25 600 képes epochban?
+      <details><summary>Megoldás</summary>$256/16 = 16$ részköteget gyűjtesz, mindegyik veszteségét 16-tal osztod. Egy epoch $25\,600/256 = 100$ frissítés (1600 előre–vissza menettel).</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai10-102"></div>
+</section>

@@ -689,6 +689,17 @@ egyetlen visszafelé menetben mindegyikről megmondja.*
 ### Kvízek
 `ai10-101`, `ai10-102`, `ai10-103`, `ai10-105`, `ai10-107`, `ai10-final`.
 
+> ✅ **Elkészült** (`10-halo-tanitasa/`). Eltérések a tervtől: kvíz minden szakaszhoz (`ai10-101` … `ai10-108`, `ai10-final`); minden szakasz három lépés (10.7 négy), 10.9 Alkalmazás.
+> 10.1: −ln p, szigmoid + négyzetes hiba vs. keresztentrópia (z = −4: −0,0173 vs. −0,982), kanonikus párok δ = ŷ − y · 10.2: tanítási ciklus, kötegzaj σ/√B (négy minta összes kötege), lineáris skálázás (digits: B = 128, η = 0,4 = B = 32, η = 0,1), gradiensgyűjtés ·
+> 10.3: egy neuron, majd 2–2–1-es ReLU/szigmoid háló minden számmal (x = (1; 2), L 0,6931 → 0,3696), numerikus deriválás, gradiensellenőrzés, történet (Linnainmaa, Werbos, Rumelhart–Hinton–Williams) · 10.4 (★★★): (x + y)·z, kapuszabályok, elágazás, előre/fordított mód, PyTorch-ellenőrzés ·
+> 10.5: momentum a 2.8 tálján (3 lépés: 1,061 vs. 0,684), RMSProp/Adam (első lépés = η, korrekció nélkül 3,16η), ütemezés (zajos tál: ugrálás η/(2 − η)), bemelegítés · 10.6 (★★★): szimmetria, nulla kezdés (digits: 2,303), Var(z) = n·Var(w)·E(x²), Xavier/He, vágás, köteg-/rétegnormalizálás, maradékkapcsolat ·
+> 10.7: korai leállítás valódi görbével (100 kép, 64 rejtett: legjobb a 19. epoch, 0,462 → 0,611), L2 és AdamW (Kiegészítés), fordított dropout, adatbővítés (eltolás: 0,462 → 0,396) · 10.8: első ellenőrzések (ln K), η keresése, 10 mag (95,8–98,0%), 16 bájt/paraméter, párhuzamosítás, lottószelvény (kitekintés).
+> Futó példa: a 9.7 64–16–10-es számjegyhálója, 1047/300/450-es felosztás (`digits-data.js`), a böngészőben tanítva (Adam 0,01: teszt 98,0%). `assets/ml.js` bővült: momentum, RMSProp, fordított dropout, választható kezdés.
+> Szemléltetések: `loss-compare`, `batch-size-noise`, `backprop-stepper`, `compute-graph`, `optimizer-race`, `deep-signal`, `train-monitor`, `digit-trainer`.
+> A forrásokból jelzett hibák az oldalon: DLV (kimeneti δ előjele, rejtett δ φ′ nélkül, AdaGrad gyök nélkül, dropout felszorzás nélkül, kötegnormalizálás csak regularizálóként, η „0 és 1 között”, „a kötegméret mindegy”, több adat az alulillesztésre, LSTM „elkerüli” a gradiensproblémát),
+> MDL (Adam t = 0-tól és v̂ elírás, momentum mellett csökkentett η valójában nagyobb lépés, „Rumelhart vezette be”), PDL (momentum előjele, dropout AlexNetnek tulajdonítva, L2 = súlycsökkentés Adamnál is, sklearn alpha, a szigmoidos hálók kudarcának oka),
+> MLQ (korai leállítás „ahol a görbék a legközelebb”, lottószelvény „desztilláció”, FFT/Winograd „közelítés”, több adat az alulillesztésre), MLSYS (f′(2) = 2,805 → 1,973, előre/fordított mód magyarázata, optimalizálók memóriája gradiens nélkül, vegyes pontosság „felezi”, gradiensgyűjtésnél η szorzása, „10–20 mrd paraméter egy GPU-n”), ESL („a visszaterjesztés lassú”).
+
 ### Csapdák
 Túl nagy tanulási ráta · a gradiens előjele · a dropout kiértékeléskor ki van kapcsolva · ha a validációs veszteség nő,
 miközben a tanító csökken: túlillesztés · nullára inicializált súlyok szimmetriája (minden neuron ugyanazt tanulja).

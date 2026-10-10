@@ -1,0 +1,575 @@
+                                             11.4 Fitting Neural Networks      395
+
+to use of a step function for σ(Z) and gm (T ). Later the neural network was
+recognized as a useful tool for nonlinear statistical modeling, and for this
+purpose the step function is not smooth enough for optimization. Hence the
+step function was replaced by a smoother threshold function, the sigmoid
+in Figure 11.3.
+
+
+
+
+11.4 Fitting Neural Networks
+The neural network model has unknown parameters, often called weights,
+and we seek values for them that make the model fit the training data well.
+We denote the complete set of weights by θ, which consists of
+
+             {α0m , αm ; m = 1, 2, . . . , M } M (p + 1) weights,
+                                                                             (11.8)
+               {β0k , βk ; k = 1, 2, . . . , K} K(M + 1) weights.
+
+For regression, we use sum-of-squared errors as our measure of fit (error
+function)
+
+                             K X
+                             X N
+                    R(θ) =             (yik − fk (xi ))2 .                   (11.9)
+                             k=1 i=1
+
+
+For classification we use either squared error or cross-entropy (deviance):
+
+                                 N X
+                                 X K
+                      R(θ) = −              yik log fk (xi ),               (11.10)
+                                 i=1 k=1
+
+
+and the corresponding classifier is G(x) = argmaxk fk (x). With the softmax
+activation function and the cross-entropy error function, the neural network
+model is exactly a linear logistic regression model in the hidden units, and
+all the parameters are estimated by maximum likelihood.
+   Typically we don’t want the global minimizer of R(θ), as this is likely
+to be an overfit solution. Instead some regularization is needed: this is
+achieved directly through a penalty term, or indirectly by early stopping.
+Details are given in the next section.
+   The generic approach to minimizing R(θ) is by gradient descent, called
+back-propagation in this setting. Because of the compositional form of the
+model, the gradient can be easily derived using the chain rule for differen-
+tiation. This can be computed by a forward and backward sweep over the
+network, keeping track only of quantities local to each unit.
+396     Neural Networks
+
+  Here is back-propagation in detail for squared error loss. Let zmi =
+          T
+σ(α0m + αm  xi ), from (11.5) and let zi = (z1i , z2i , . . . , zM i ). Then we have
+                                    N
+                                    X
+                       R(θ) ≡             Ri
+                                    i=1
+                                    N X
+                                    X K
+                               =               (yik − fk (xi ))2 ,          (11.11)
+                                    i=1 k=1
+
+with derivatives
+        ∂Ri
+            = −2(yik − fk (xi ))gk′ (βkT zi )zmi ,
+       ∂βkm
+               XK                                                           (11.12)
+        ∂Ri
+            =−     2(yik − fk (xi ))gk′ (βkT zi )βkm σ ′ (αm
+                                                           T
+                                                             xi )xiℓ .
+       ∂αmℓ
+                   k=1
+
+  Given these derivatives, a gradient descent update at the (r + 1)st iter-
+ation has the form
+                                                  N
+                                                  X
+                           (r+1)      (r)           ∂Ri
+                         βkm       = βkm − γr           (r)
+                                                              ,
+                                                  i=1 ∂βkm
+                                                                            (11.13)
+                                                  N
+                                                  X
+                          (r+1) (r)                 ∂Ri
+                         αmℓ = αmℓ − γr                 (r)
+                                                              ,
+                                                  i=1 ∂αmℓ
+
+where γr is the learning rate, discussed below.
+  Now write (11.12) as
+                                ∂Ri
+                                     = δki zmi ,
+                               ∂βkm
+                                                                            (11.14)
+                                ∂Ri
+                                     = smi xiℓ .
+                               ∂αmℓ
+The quantities δki and smi are “errors” from the current model at the
+output and hidden layer units, respectively. From their definitions, these
+errors satisfy
+                                         K
+                                         X
+                      smi = σ ′ (αm
+                                  T
+                                    xi )   βkm δki ,               (11.15)
+                                                k=1
+
+known as the back-propagation equations. Using this, the updates in (11.13)
+can be implemented with a two-pass algorithm. In the forward pass, the
+current weights are fixed and the predicted values fˆk (xi ) are computed
+from formula (11.5). In the backward pass, the errors δki are computed,
+and then back-propagated via (11.15) to give the errors smi . Both sets of
+errors are then used to compute the gradients for the updates in (11.13),
+via (11.14).
+                         11.5 Some Issues in Training Neural Networks     397
+
+   This two-pass procedure is what is known as back-propagation. It has
+also been called the delta rule (Widrow and Hoff, 1960). The computational
+components for cross-entropy have the same form as those for the sum of
+squares error function, and are derived in Exercise 11.3.
+   The advantages of back-propagation are its simple, local nature. In the
+back propagation algorithm, each hidden unit passes and receives infor-
+mation only to and from units that share a connection. Hence it can be
+implemented efficiently on a parallel architecture computer.
+   The updates in (11.13) are a kind of batch learning, with the parame-
+ter updates being a sum over all of the training cases. Learning can also
+be carried out online—processing each observation one at a time, updat-
+ing the gradient after each training case, and cycling through the training
+cases many times. In this case, the sums in equations (11.13) are replaced
+by a single summand. A training epoch refers to one sweep through the
+entire training set. Online training allows the network to handle very large
+training sets, and also to update the weights as new observations come in.
+   The learning rate γr for batch learning is usually taken to be a con-
+stant, and can also be optimized by a line search that minimizes the error
+function at each update. With online learning γr should decrease to zero
+as the iteration r → ∞. This learning is a form of stochastic approxima-
+tion (Robbins
+         P      and Munro,P1951); results in this field ensure convergence if
+γr → 0, r γr = ∞, and r γr2 < ∞ (satisfied, for example, by γr = 1/r).
+   Back-propagation can be very slow, and for that reason is usually not
+the method of choice. Second-order techniques such as Newton’s method
+are not attractive here, because the second derivative matrix of R (the
+Hessian) can be very large. Better approaches to fitting include conjugate
+gradients and variable metric methods. These avoid explicit computation
+of the second derivative matrix while still providing faster convergence.
+
+
+
+11.5 Some Issues in Training Neural Networks
+There is quite an art in training neural networks. The model is generally
+overparametrized, and the optimization problem is nonconvex and unstable
+unless certain guidelines are followed. In this section we summarize some
+of the important issues.
+
+
+11.5.1 Starting Values
+Note that if the weights are near zero, then the operative part of the sigmoid
+(Figure 11.3) is roughly linear, and hence the neural network collapses into
+an approximately linear model (Exercise 11.2). Usually starting values for
+weights are chosen to be random values near zero. Hence the model starts
+out nearly linear, and becomes nonlinear as the weights increase. Individual
+398    Neural Networks
+
+units localize to directions and introduce nonlinearities where needed. Use
+of exact zero weights leads to zero derivatives and perfect symmetry, and
+the algorithm never moves. Starting instead with large weights often leads
+to poor solutions.
+
+
+11.5.2 Overfitting
+Often neural networks have too many weights and will overfit the data at
+the global minimum of R. In early developments of neural networks, either
+by design or by accident, an early stopping rule was used to avoid over-
+fitting. Here we train the model only for a while, and stop well before we
+approach the global minimum. Since the weights start at a highly regular-
+ized (linear) solution, this has the effect of shrinking the final model toward
+a linear model. A validation dataset is useful for determining when to stop,
+since we expect the validation error to start increasing.
+   A more explicit method for regularization is weight decay, which is anal-
+ogous to ridge regression used for linear models (Section 3.4.1). We add a
+penalty to the error function R(θ) + λJ(θ), where
+                                X           X
+                                      2           2
+                        J(θ) =      βkm   +      αmℓ                     (11.16)
+                                km         mℓ
+
+and λ ≥ 0 is a tuning parameter. Larger values of λ will tend to shrink
+the weights toward zero: typically cross-validation is used to estimate λ.
+The effect of the penalty is to simply add terms 2βkm and 2αmℓ to the
+respective gradient expressions (11.13). Other forms for the penalty have
+been proposed, for example,
+                             X       2
+                                    βkm     X α2
+                                                mℓ
+                    J(θ) =             2  +       2 ,                   (11.17)
+                                  1 + βkm    1 + αmℓ
+                             km              mℓ
+
+known as the weight elimination penalty. This has the effect of shrinking
+smaller weights more than (11.16) does.
+   Figure 11.4 shows the result of training a neural network with ten hidden
+units, without weight decay (upper panel) and with weight decay (lower
+panel), to the mixture example of Chapter 2. Weight decay has clearly
+improved the prediction. Figure 11.5 shows heat maps of the estimated
+weights from the training (grayscale versions of these are called Hinton
+diagrams.) We see that weight decay has dampened the weights in both
+layers: the resulting weights are spread fairly evenly over the ten hidden
+units.
+
+
+11.5.3 Scaling of the Inputs
+Since the scaling of the inputs determines the effective scaling of the weights
+in the bottom layer, it can have a large effect on the quality of the final
+                                                                              11.5 Some Issues in Training Neural Networks                                                                                                                                                                                                                            399
+
+                                              Neural Network - 10 Units, No Weight Decay
+
+                .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                   oo
+                 .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                        oo
+                  ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                         o
+                    .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                         o o         oo oo               o
+                     .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                      .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                     o o o oo
+                       .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                   o o o.. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                 o oo       o          o
+                                    o oo
+                         .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                          .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                              o                          oo
+                           ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                     o           o o oo               o ooo
+                                                      o
+                             .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                                      o
+                              .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                        o     o   o o
+                           o o ooo oo               o
+                               .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+
+                            oo                                    oo       o
+                                .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                             o
+                                 .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                          o o          o
+                              ooooooo oo          o     oo     o o o       o
+                                  .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                   .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                    o o                                                                                                                                                                                                                                                                                     o
+                 o                o o ooo              o        o          oo
+                                    ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                                                    o o o oo o
+                                        oo o   oooo ooooo
+                                      .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                       o    o                                          o
+                                       .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                        o o     o      o
+                                        .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                   o oo o o                              o o
+                                         .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+
+                                      o oo  o oo o oo o o o
+                                          .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                           .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                 o        o            o   o
+                                            .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                            o             oo o o
+                                             ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                                    o     oooo o ooo oo               o
+                                               .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                              o ooo
+                                                .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                 .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                  o                    o   o
+                                                  .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                    o
+                                o o o o o                   oo
+                                                   ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                                                                  o
+                                                     .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                      .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                        o         o       oo oo o
+                                                       .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                        .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                  ooo    ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                                                   o o o oo o
+                                                           .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                            .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                               o                  oo
+                                                             .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                              .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                                   o
+                                                               .. ..Training
+                                                                           .. .. .. .. .. .. .. .. Error: .. .. .. .. .. .. 0.100 .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                    o                o
+                                                                ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                                                                  .. ..Test . . . . .. .. .. .. .. .. .. .. .. .. 0.259            .....................................................
+                                                                   .. .. ... ... ... ... Error:
+                                                                                          .. .. .. .. .. .. .. .. .. .. ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                                                                    .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                    Bayes Error:                                                         0.210                                                                                                                                                                        o
+
+
+
+                                     Neural Network - 10 Units, Weight Decay=0.02
+
+                .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                   oo
+                 .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                        oo
+                  ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                        o
+                    .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                        o o          oo oo                o
+                     .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                      .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                     oo o o
+                       ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                   o o o
+                                    o oo o   o
+                         .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                 o oo      o
+                          .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                           .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                             o                            oo
+                                o o oo
+                            .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                    o                                  o ooo
+                                                       o
+                             .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                                        o
+                              .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                        o     o   o o
+                          o o ooo oo                o
+                               ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                                                             o      oo        o
+                                 .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                           oo           o o o o ooo
+                                  .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                          o                      o  o  o      o
+                             oooo  .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                    o                                                                                                                                                                                                                                                                                                       o
+                                 oooo ooo           oooo o oo                 oo
+                                    .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                 o                   .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                          o        o o
+                      o    o            oo o   oooo ooooo
+                                      ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                                                                  o      oo
+                                        .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                  o oo o o              o     o
+                                         .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                                            o o
+                                          .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                            o         o        o
+                                           .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                               o
+                                      o oooo oo ooo        o
+                                                           o
+                                                          o o o
+                                                                   oo
+                                            .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                             .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                    o     oooo o ooo oo
+                                              ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                                                                        o
+                                                .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                              o ooo
+                                                 .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                  .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                  o                  o o oo
+                                                   .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                                    o
+                              o o o o o                     o
+                                                    .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                     .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                      ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                                        o         o       oo     o  o
+                                                        .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                                o
+                                                  ooo    .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                          .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                   o o o oo o
+                                                           .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                            .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                               o                    oo
+                                                             .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                              ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                                                                     o
+                                                                .. ..Training
+                                                                           . . . . . . . . Error:        . . . . . . 0.160       .....................................................
+                                                     o                 o
+                                                                 .. .. ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                                                                  .. ..Test. . . . .. .. .. .. .. .. .. .. .. .. 0.223          .....................................................
+                                                                   .. .. ... ... ... ... Error:
+                                                                                         .. .. .. .. .. .. .. .. .. .. ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...
+                    Bayes Error:                                    .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. .. ..
+                                                                                         0.210                                                                                                                                                                        o
+
+
+
+
+FIGURE 11.4. A neural network on the mixture example of Chapter 2. The
+upper panel uses no weight decay, and overfits the training data. The lower panel
+uses weight decay, and achieves close to the Bayes error rate (broken purple
+boundary). Both use the softmax activation function and cross-entropy error.
+400            Neural Networks
+
+
+                          No weight decay                                                 Weight decay
+          y2                                                          y2
+          y1                                                          y1
+
+
+
+
+                z10
+
+
+
+
+                                                                            z10
+                 z1
+                 z2
+                 z3
+                 z1
+                 z5
+                 z6
+                 z7
+                 z8
+                 z9
+
+
+
+
+                                                                             z1
+                                                                             z2
+                                                                             z3
+                                                                             z1
+                                                                             z5
+                                                                             z6
+                                                                             z7
+                                                                             z8
+                                                                             z9
+                  1
+
+
+
+
+                                                                              1
+      x2                                                          x2
+      x1                                                          x1
+      1                                                           1
+
+
+
+
+                                                            z10
+
+
+
+
+                                                                                                                        z10
+               z1
+                    z2
+                         z3
+                              z1
+                                   z5
+                                        z6
+                                             z7
+                                                  z8
+                                                       z9
+
+
+
+
+                                                                           z1
+                                                                                z2
+                                                                                     z3
+                                                                                          z1
+                                                                                               z5
+                                                                                                    z6
+                                                                                                         z7
+                                                                                                              z8
+                                                                                                                   z9
+FIGURE 11.5. Heat maps of the estimated weights from the training of neural
+networks from Figure 11.4. The display ranges from bright green (negative) to
+bright red (positive).
+
+
+solution. At the outset it is best to standardize all inputs to have mean zero
+and standard deviation one. This ensures all inputs are treated equally in
+the regularization process, and allows one to choose a meaningful range for
+the random starting weights. With standardized inputs, it is typical to take
+random uniform weights over the range [−0.7, +0.7].
+
+
+11.5.4 Number of Hidden Units and Layers
+Generally speaking it is better to have too many hidden units than too few.
+With too few hidden units, the model might not have enough flexibility to
+capture the nonlinearities in the data; with too many hidden units, the
+extra weights can be shrunk toward zero if appropriate regularization is
+used. Typically the number of hidden units is somewhere in the range of
+5 to 100, with the number increasing with the number of inputs and num-
+ber of training cases. It is most common to put down a reasonably large
+number of units and train them with regularization. Some researchers use
+cross-validation to estimate the optimal number, but this seems unneces-
+sary if cross-validation is used to estimate the regularization parameter.
+Choice of the number of hidden layers is guided by background knowledge
+and experimentation. Each layer extracts features of the input for regres-
+sion or classification. Use of multiple hidden layers allows construction of
+hierarchical features at different levels of resolution. An example of the
+effective use of multiple layers is given in Section 11.6.
+
+
+11.5.5 Multiple Minima
+The error function R(θ) is nonconvex, possessing many local minima. As a
+result, the final solution obtained is quite dependent on the choice of start-
+                                          11.6 Example: Simulated Data        401
+
+ing weights. One must at least try a number of random starting configura-
+tions, and choose the solution giving lowest (penalized) error. Probably a
+better approach is to use the average predictions over the collection of net-
+works as the final prediction (Ripley, 1996). This is preferable to averaging
+the weights, since the nonlinearity of the model implies that this averaged
+solution could be quite poor. Another approach is via bagging, which aver-
+ages the predictions of networks training from randomly perturbed versions
+of the training data. This is described in Section 8.7.
+
+
+11.6 Example: Simulated Data
+We generated data from two additive error models Y = f (X) + ε:
+
+             Sum of sigmoids: Y      =   σ(aT1 X) + σ(aT2 X) + ε1 ;
+                                          10
+                                          Y
+                       Radial: Y     =         φ(Xm ) + ε2 .
+                                         m=1
+
+Here X T = (X1 , X2 , . . . , Xp ), each Xj being a standard Gaussian variate,
+with p = 2 in the first model, and p = 10 in the second.
+  For the sigmoid model, a1 = (3, 3), a2 = (3, −3); for the radial model,
+φ(t) = (1/2π)1/2 exp(−t2 /2). Both ε1 and ε2 are Gaussian errors, with
+variance chosen so that the signal-to-noise ratio
+                      Var(E(Y |X))     Var(f (X))
+                                     =                                    (11.18)
+                    Var(Y − E(Y |X))    Var(ε)
+is 4 in both models. We took a training sample of size 100 and a test sample
+of size 10, 000. We fit neural networks with weight decay and various num-
+bers of hidden units, and recorded the average test error ETest (Y − fˆ(X))2
+for each of 10 random starting weights. Only one training set was gen-
+erated, but the results are typical for an “average” training set. The test
+errors are shown in Figure 11.6. Note that the zero hidden unit model refers
+to linear least squares regression. The neural network is perfectly suited to
+the sum of sigmoids model, and the two-unit model does perform the best,
+achieving an error close to the Bayes rate. (Recall that the Bayes rate for
+regression with squared error is the error variance; in the figures, we report
+test error relative to the Bayes error). Notice, however, that with more hid-
+den units, overfitting quickly creeps in, and with some starting weights the
+model does worse than the linear model (zero hidden unit) model. Even
+with two hidden units, two of the ten starting weight configurations pro-
+duced results no better than the linear model, confirming the importance
+of multiple starting values.
+   A radial function is in a sense the most difficult for the neural net, as it is
+spherically symmetric and with no preferred directions. We see in the right
+

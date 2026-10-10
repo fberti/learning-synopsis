@@ -1,0 +1,68 @@
+
+<!-- ===================================================== 10.9 -->
+<section id="s109">
+<h2>10.9 Alkalmazás: tanítsd be a számjegyfelismerőt!</h2>
+<p>Most minden eszközt együtt használunk. A <a href="../09-neuralis-halozatok/#s97-b">9.7</a> 64–16–10-es hálóját tanítjuk a 8 × 8-as számjegyeken: 1047 tanítókép, 300 validációs kép (a korai leállításhoz és a hangoláshoz) és 450 tesztkép (a végső méréshez) – ugyanaz a tesztkészlet, mint a 9. fejezetben.</p>
+
+<h3 id="s109-a">A tanítás a böngészőben</h3>
+<div class="widget" data-widget="digit-trainer"></div>
+<div class="box example">
+  <span class="box-title">Kísérletek – mindegyik egy szakasz egy gondolata</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Alapbeállítás</b> (Adam, $\eta = 0{,}01$, $B = 32$, 30 epoch): a kiinduló veszteség 2,40 (≈ ln 10, <a href="#s108-a">10.8</a>), az 1. epoch után a validációs pontosság 75%, a végén a teszt <b>98,0%</b>.</li>
+    <li><b>Optimalizálók</b> (<a href="#s105">10.5</a>): SGD ($\eta = 0{,}1$) lassabban indul (az 1. epoch után 40%, a 90%-hoz 10 epoch kell), a végén 97,1%; momentum 97,6%, RMSProp 98,2%.</li>
+    <li><b>Kötegméret</b> (<a href="#s102">10.2</a>): SGD-vel, 20 epoch után a teljes köteg ($B = 1047$) csak 20-at lép – a validációs pontosság 25%.</li>
+    <li><b>Kezdés</b> (<a href="#s106">10.6</a>): csupa nullával a veszteség 2,303-on ragad, a pontosság 10%; túl nagy kezdő súlyokkal (szórás 1) a kiinduló veszteség 12,9.</li>
+    <li><b>Túlillesztés</b> (<a href="#s107">10.7</a>): a „Túltanulás-kísérlet” gomb (64 rejtett neuron, 100 kép, 150 epoch) – a tanító veszteség 0, a validációs a 19. epochban a legkisebb (0,462), aztán 0,611-ig nő. Próbáld ki az L2-t és a dropoutot!</li>
+  </ol>
+</div>
+<details class="box">
+  <summary>🐍 Python – ugyanez PyTorch-ban</summary>
+<pre><code>import torch, torch.nn as nn
+from sklearn.datasets import load_digits
+from sklearn.model_selection import train_test_split
+
+torch.manual_seed(1)
+d = load_digits()
+X, y = torch.tensor(d.data / 16.0, dtype=torch.float32), torch.tensor(d.target)
+Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.25, random_state=0, stratify=y)
+Xtr, Xva, ytr, yva = train_test_split(Xtr, ytr, test_size=300, random_state=0, stratify=ytr)
+
+net = nn.Sequential(nn.Linear(64, 16), nn.ReLU(), nn.Linear(16, 10))   # a logitokat adja
+lossfn = nn.CrossEntropyLoss()                                         # softmax + keresztentrópia
+opt = torch.optim.Adam(net.parameters(), lr=0.01)
+
+best, best_state = float("inf"), None
+for epoch in range(30):
+    net.train()
+    for idx in torch.randperm(len(Xtr)).split(32):                     # keverés, 32-es kötegek
+        opt.zero_grad()
+        loss = lossfn(net(Xtr[idx]), ytr[idx])
+        loss.backward()
+        opt.step()
+    net.eval()
+    with torch.no_grad():
+        val = lossfn(net(Xva), yva).item()
+    if val < best:                                                     # korai leállítás: a legjobb mentése
+        best, best_state = val, {k: v.clone() for k, v in net.state_dict().items()}
+net.load_state_dict(best_state)
+with torch.no_grad():
+    print(round(best, 3), (net(Xte).argmax(1) == yte).float().mean().item())   # 0.134 0.9688…</code></pre>
+  <small>Négy maggal futtatva a teszteredmény 96,9%, 97,3%, 96,9% és 97,1% – a böngészős változattal egyezően 97% körül. (A PyTorch más kezdő súlyokat sorsol, ezért a számok nem bitre azonosak.)</small>
+</details>
+
+<h3 id="s109-b">Válaszok a fejezet kérdéseire</h3>
+<div class="box tip">
+  <span class="box-title">🎯 Ki állította be az 1210 súlyt?</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Hogyan mérjük egy számmal, mennyire rossz?</b> A <b>keresztentrópiával</b>: a helyes számjegy valószínűségének negatív logaritmusa, kötegre átlagolva (<a href="#s101-a">10.1</a>). Tanítás előtt kb. 2,30, a végén a validációs képeken kb. 0,17.
+      A pontosság helyett azért ez, mert sima: minden kis javulást jelez, és a magabiztos tévedést erősen bünteti (<a href="#s101-b">10.1</a>).</li>
+    <li><b>Hogyan tudjuk mind az 1210 súlyra egyszerre, merre kell tekerni?</b> A <b>visszaterjesztéssel</b>: a kimeneten $\delta = \hat{\mathbf p} - \mathbf y$, rétegről rétegre visszafelé $\boldsymbol\delta^{(\ell-1)} = (W^{(\ell)\top}\boldsymbol\delta^{(\ell)}) \odot \varphi'$, és minden súly gradiense „bemenet × $\delta$” (<a href="#s103">10.3</a>).
+      Egy előre és egy visszafelé menet – kb. 3 előre menet ára – adja mind az 1210 gradienst; a numerikus deriválás 2420 előre menetet kérne (<a href="#s103-c">10.3</a>). A keretrendszerek ezt számítási gráfon, automatikusan csinálják (<a href="#s104">10.4</a>).</li>
+    <li><b>Mekkorát és merre lépjünk, honnan induljunk?</b> Mini-kötegekben (32 kép, epochonként 33 lépés, <a href="#s102">10.2</a>), Adammal vagy momentummal (<a href="#s105">10.5</a>), jól választott tanulási rátával – ez számít a legtöbbet (<a href="#s108-a">10.8</a>).
+      A kezdés véletlen (különben a neuronok klónok maradnak) és jól skálázott (He: $\mathrm{Var}(w) = 2/64$), hogy a jel se el ne haljon, se fel ne robbanjon (<a href="#s106">10.6</a>).</li>
+    <li><b>Hogyan ne magolja be a tanítóképeket?</b> A validációs veszteség figyelésével és <b>korai leállítással</b>; kevés adatnál <b>súlycsökkentéssel</b>, <b>dropouttal</b> és <b>adatbővítéssel</b> (<a href="#s107">10.7</a>). A legtöbbet a több adat ér: 100 képből 83%, 1047-ből 98%.
+      A végeredmény 97–98% a 450 tesztképen – a futások között kb. ±0,7 pont szórással (<a href="#s108-b">10.8</a>).</li>
+  </ol>
+</div>
+</section>

@@ -1,0 +1,176 @@
+
+<!-- ===================================================== 10.8 -->
+<section id="s108">
+<h2>10.8 A tanítás gyakorlata ★★</h2>
+<p>Megvan minden eszköz. Egy valódi tanításnál mégis a legtöbb idő azzal megy el, hogy kiderüljön: <em>miért nem</em> tanul a háló, melyik beállítás számít, és mennyire bízhatunk egy eredményben. Ez a szakasz a „műhelytitkokat” gyűjti össze.</p>
+
+<h3 id="s108-a">1. lépés: első ellenőrzések és a tanulási ráta</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két gyors próba a számjegyhálón</span>
+  <ol style="margin:.2rem 0">
+    <li><b>A kiinduló veszteség.</b> Tíz osztálynál a tanítás előtti háló nagyjából egyenletesen tippel, a veszteség kb. $\ln 10 = 2{,}303$ (<a href="#s101-a">10.1</a>). A számjegyháló He-kezdéssel <b>2,398</b>-at mutat – rendben.
+      Ha 12,9-et látnánk, a kezdés túl nagy (<a href="#s106-b">10.6</a>); ha pontosan 2,303 marad, gyanús, hogy a háló meg sem mozdul (<a href="#s106-a">10.6</a>).</li>
+    <li><b>Be tudja-e magolni?</b> Egy kis, 100 képes részhalmazon a 64 rejtett neuronos háló a 9. epochra minden tanítóképet eltalál, a tanító veszteség 0-hoz megy (<a href="#s107-a">10.7</a>). A modell, a veszteség és a visszaterjesztés tehát működik – ha a teljes adaton mégsem tanulna, a hiba máshol van (adat, tanulási ráta).</li>
+  </ol>
+</div>
+<div class="box def">
+  <span class="box-title">Recept – egy tanítás beállítása</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Ellenőrizd a kezdést:</b> kiinduló veszteség $\approx \ln K$ ($K$ osztály), a jóslatok nem mind egyformák.</li>
+    <li><b>Magoltass be egy kis köteget:</b> 10–100 mintán a tanító veszteségnek közel 0-ra kell mennie. Ha nem megy, hiba van.</li>
+    <li><b>Keresd meg a tanulási rátát:</b> logaritmikus skálán ($10^{-4}, 3\cdot 10^{-4}, 10^{-3}, \dots, 10^{-1}$), rövid futásokkal. Ez a <b>legfontosabb</b> hiperparaméter.</li>
+    <li><b>Aztán a többi:</b> kötegméret (a hardverhez), a háló mérete, majd a regularizáció ereje (súlycsökkentés, dropout, bővítés), az ütemezés.</li>
+    <li><b>Mindig a validációs halmazon döntsd el,</b> egyszerre egy dolgot változtass, és a végén egyszer mérj a teszten (<a href="../06-modellertekeles/#s68-a">6.8</a>).</li>
+  </ol>
+  <small>Miért ilyen sorrendben? Az első kettő olcsó, és a legtöbb programhibát kiszűri. A tanulási ráta mindent befolyásol, ezért előbb azt kell nagyjából eltalálni – a többi hiperparaméter hatása csak jó $\eta$ mellett látszik.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy MNIST-kísérlet (PDL 10)</span>
+    Rögzített 50 epoch, SGD, különböző tanulási rátákkal: $10^{-4}$: 91,9%; $\;10^{-3}$: 96,0%; $\;10^{-2}$: 97,3%; $\;0{,}1$: <b>97,6%</b>; $\;0{,}2$: 94,8%. Ezerszeres tartományban kell keresni – egy-két nagyságrend tévedés is sokat ront.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a számjegyháló Adammal</span>
+    30 epoch, $B = 32$: $\eta = 0{,}003$: teszt 98,2%; $\;0{,}01$: 98,0%; $\;0{,}03$: 97,1%, és a validációs veszteség ugrál. Az Adam alapértéke körül ($10^{-3}$–$10^{-2}$) széles a jó tartomány.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabály – a veszteséggörbe olvasása</span>
+  <b>Nem csökken:</b> túl kicsi $\eta$, rossz kezdés, vagy hiba. · <b>Felrobban, NaN:</b> túl nagy $\eta$ (vagy robbanó gradiens – vágás, <a href="#s106-b">10.6</a>). · <b>Csökken, de nagyon zajos:</b> nagy $\eta$ vagy kis köteg – csökkentsd $\eta$-t menet közben (<a href="#s105-c">10.5</a>).
+  <b>A tanító csökken, a validációs nő:</b> túlillesztés – regularizálj (<a href="#s107">10.7</a>). · <b>Mindkettő magas, és alig mozdul:</b> alulillesztés – nagyobb háló, hosszabb tanítás.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Ne a teszten hangolj.</b> Ha a teszteredmény alapján választod az $\eta$-t, a teszt már nem független (<a href="../06-modellertekeles/#s64-a">6.4</a>).</li>
+    <li><b>Egyszerre egy dolgot.</b> Ha az optimalizálót és az $\eta$-t is egyszerre cseréled, nem tudod, melyik segített. (Egy könyv, MDL 11, a momentum bekapcsolásával együtt az $\eta$-t is módosítja – így a tényleges lépésköz is megváltozott, <a href="#s105-a">10.5</a>.)</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – első ellenőrzések</summary>
+  <ol>
+    <li>Egy 1000 osztályos képosztályozó kiinduló vesztesége 6,9. Rendben van-e?
+      <details><summary>Megoldás</summary>Igen: $\ln 1000 \approx 6{,}908$.</details></li>
+    <li>Egy kétosztályos (szigmoidos) háló kiinduló vesztesége 0,69. Mire számítottál?
+      <details><summary>Megoldás</summary>$\ln 2 \approx 0{,}693$ – rendben.</details></li>
+    <li>A háló 20 mintát sem tud bemagolni: 500 epoch után is 1,5 a tanító veszteség. Mi lehet a baj? Mondj hármat!
+      <details><summary>Megoldás</summary>Például: túl kicsi (vagy túl nagy) $\eta$; a címkék nem illenek a mintákhoz (elcsúszott sorrend); a gradiens nem jut el a súlyokhoz (elfelejtett nullázás, rossz előjel, hiányzó aktiváció-derivált); a kimenet és a veszteség rossz párosa (dupla softmax, <a href="#s101-c">10.1</a>).</details></li>
+    <li>Melyik $\eta$-sorozat jobb kereséshez: $0{,}01;\ 0{,}02;\ 0{,}03;\ 0{,}04$ vagy $0{,}0001;\ 0{,}001;\ 0{,}01;\ 0{,}1$?
+      <details><summary>Megoldás</summary>A második: a jó $\eta$ nagyságrendjét kell először megtalálni, ezért logaritmikus skálán keresünk (<a href="../06-modellertekeles/#s68-b">6.8</a>). Utána lehet finomítani.</details></li>
+    <li>(nehezebb) A tanító veszteség az 50. lépésnél hirtelen „NaN” lesz. Mit próbálnál először?
+      <details><summary>Megoldás</summary>Kisebb $\eta$-t (vagy bemelegítést), gradiensvágást; ellenőrizném a $\ln 0$-t (a keresztentrópia logitokból számolódik-e), és hogy van-e végtelen vagy hiányzó érték az adatban.</details></li>
+  </ol>
+</details>
+
+<h3 id="s108-b">2. lépés: a véletlenség forrásai és a reprodukálhatóság</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – ugyanaz a háló, tíz futás</span>
+  A számjegyháló (Adam, $\eta = 0{,}01$, 30 epoch) tízszer, csak a véletlenmag más. A teszteredmények:
+  95,8%; 96,2%; 96,4%; 96,4%; 96,7%; 96,9%; 97,1%; 97,3%; 97,8%; 98,0%. Átlag 96,9%, szórás 0,7 százalékpont.
+  Ugyanaz a kód, ugyanaz az adat – és a legrosszabb meg a legjobb futás között több mint 2 százalékpont.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – honnan jön a véletlen, és mit tegyél vele?</span>
+  A véletlen forrásai: a <b>kezdő súlyok</b>; az <b>adat felosztása</b>; a kötegek <b>sorrendje</b> (keverés); a <b>dropout</b>-maszkok és az <b>adatbővítés</b>; egyes <b>GPU-műveletek</b>, amelyek a lebegőpontos összeadások sorrendjét futásonként változtatják.
+  <ul style="margin:.2rem 0">
+    <li><b>Reprodukálhatóság:</b> rögzíts minden véletlenmagot (Python, NumPy, PyTorch), és kapcsold be a determinisztikus algoritmusokat – így ugyanazon a gépen ugyanazt kapod. (Különböző hardveren a bitre azonos eredmény nem garantált.)</li>
+    <li><b>Összehasonlítás:</b> egy futás nem bizonyít. Két modellt <b>több maggal</b> futtass, és az átlagot meg a szórást hasonlítsd össze (<a href="../06-modellertekeles/#s69-a">6.9</a>).</li>
+  </ul>
+  <small>Miért ekkora a szórás? A nem konvex veszteségnek sok jó völgye van (<a href="../02-matematikai-eszkoztar/#s28-c">2.8</a>); más kezdésből és más kötegsorrendből más völgybe jut a tanítás. Kis tesztkészletnél (450 kép) ráadásul egyetlen kép is 0,2 százalékpont.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – „az enyém jobb”</span>
+    Egy futás: A modell 97,3%, B 96,8%. A különbség 0,5 pont – kisebb, mint egyetlen modell futásainak szórása (0,7 pont). Ebből semmi nem következik; tíz-tíz futás átlaga már mondhat valamit.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy gondos összehasonlítás (MDL 11)</span>
+    Egy könyv 22–22 futással hasonlítja össze a momentumos és a momentum nélküli tanítást (Fashion-MNIST): az átlagos MCC 0,8641 vs. 0,8578, és a különbség statisztikai próbával is szignifikáns. Így kell – egy futás helyett.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A legjobb futást ne jelentsd úgy, mintha tipikus lenne.</b> A tíz futásból a 98,0%-ot kiválasztani a véletlen kihasználása.</li>
+    <li><b>A GPU-s eltérés nem „közelítés”.</b> Egy könyv (MLQ 10) a konvolúció gyors (FFT-s, Winograd-) algoritmusait közelítésnek hívja – matematikailag pontosak; az eltérés a kerekítésből és az összeadások sorrendjéből jön.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – véletlenség</summary>
+  <ol>
+    <li>Sorold fel a véletlen négy forrását egy dropoutos, adatbővítéses tanításban!
+      <details><summary>Megoldás</summary>Kezdő súlyok, a kötegek keverése, a dropout-maszkok, a bővítés (eltolás, forgatás) sorsolása – és ha a felosztás is véletlen, az is.</details></li>
+    <li>Mennyi a 450 képes tesztkészleten egy kép hozzájárulása a pontossághoz?
+      <details><summary>Megoldás</summary>$1/450 \approx 0{,}22$ százalékpont.</details></li>
+    <li>A tíz futás átlaga 96,9%, szórása 0,7 pont. Mekkora az átlag standard hibája?
+      <details><summary>Megoldás</summary>$0{,}7/\sqrt{10} \approx 0{,}22$ pont. Az átlag tehát sokkal pontosabb, mint egy futás.</details></li>
+    <li>Rögzítetted a PyTorch magját, de a NumPy-ét nem, és a keverést NumPy végzi. Mi lesz?
+      <details><summary>Megoldás</summary>A kezdő súlyok azonosak, de a kötegsorrend futásonként más – az eredmények eltérnek. Minden használt véletlenforrás magját rögzíteni kell.</details></li>
+    <li>(nehezebb) Két modell átlaga 10–10 futásból 97,0% és 96,6%, a szórások 0,7 és 0,6 pont. Elég meggyőző-e a különbség?
+      <details><summary>Megoldás</summary>A különbség standard hibája $\sqrt{0{,}7^2/10 + 0{,}6^2/10} \approx 0{,}29$ pont; a 0,4 pontos különbség ennek kb. 1,4-szerese – ez még nem meggyőző (kb. 2-szeres kellene, <a href="../06-modellertekeles/#s69-a">6.9</a>). Több futás vagy nagyobb tesztkészlet kell.</details></li>
+  </ol>
+</details>
+
+<h3 id="s108-c">3. lépés: memória, GPU és több gép</h3>
+<p>A számjegyháló a böngészőben is tanul. Egy nagy nyelvi modell viszont egyetlen gépre sem fér rá. Mi foglalja a memóriát, és hogyan osztják szét a munkát?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – mennyi memória kell egy paraméterhez?</span>
+  Adammal, 32 bites számokkal egy paraméterhez a tanítás alatt:
+  4 bájt a súly + 4 bájt a gradiens + 4 + 4 bájt az Adam két mozgó átlaga ($m$, $v$) = <b>16 bájt</b>.
+  <ul style="margin:.2rem 0">
+    <li>a számjegyháló: $1210 \cdot 16 \approx 19$ kB – semmiség;</li>
+    <li>egy 7 milliárd paraméteres nyelvi modell: $7 \cdot 10^9 \cdot 16 = 112$ GB – több, mint egy 80 GB-os GPU, és ebben még nincsenek benne a köztes értékek (<a href="#s103-c">10.3</a>).</li>
+  </ul>
+  Csak a futtatáshoz (következtetéshez) elég a súly: 16 bites számokkal $7 \cdot 10^9 \cdot 2 = 14$ GB.
+</div>
+<div class="box def">
+  <span class="box-title">Áttekintés – hogyan osztják el a tanítást?</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Adatpárhuzamosítás:</b> minden GPU-n a teljes modell egy példánya, mindegyik a köteg egy részét számolja, aztán a gradienseket <b>átlagolják</b>. Ez pontosan egy nagy köteg lépése: 8 GPU × 32 kép = 256-os köteg (<a href="#s102-c">10.2</a>).</li>
+    <li><b>Modellpárhuzamosítás:</b> ha a modell nem fér egy GPU-ra, szétvágják – <b>rétegek szerint</b> (csővezeték: az egyik GPU az első rétegeket számolja, a másik a következőket, a köteg kis darabjaival átfedve) vagy <b>rétegen belül</b> (tenzorpárhuzamosítás: egy nagy mátrixszorzás részei más-más GPU-n).</li>
+    <li><b>Memóriatrükkök:</b> vegyes pontosság (16 bites számolás, 32 bites „mester” súlyokkal), gradiensgyűjtés (<a href="#s102-c">10.2</a>), ellenőrzőpontos újraszámolás (a köztes értékek egy részét eldobja, és visszafelé újraszámolja), az optimalizáló-állapotok szétosztása a GPU-k között.</li>
+  </ul>
+  <small>A nagy nyelvi modellek tanítása mindhármat egyszerre használja, több ezer GPU-n. A részletek a 22. fejezetben jönnek.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – SGD vs. Adam memóriája</span>
+    Momentumos SGD: súly + gradiens + sebesség = 12 bájt/paraméter; Adam: 16 bájt. 1 milliárd paraméternél 12 GB vs. 16 GB. Néha ez dönti el, melyik fér a gépbe (MLQ 7, gyakorlat).
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – vegyes pontosság</span>
+    A modellállapot ettől nem lesz kisebb: 2 (16 bites súly) + 2 (gradiens) + 4 (32 bites mester-súly) + 4 + 4 (Adam) = szintén 16 bájt/paraméter. A nyereség a gyorsabb számolás és a kisebb köztes értékek.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók a forrásokban</span>
+  <ul style="margin:.2rem 0">
+    <li>Egy rendszerkönyv (MLSYS, <em>AI Training</em>) szerint az optimalizálók memóriaigénye „SGD 1×, momentum 2×, Adam 3×” – ebből kimarad a gradiens: helyesen 2×, 3×, 4× a súlyok méretének.</li>
+    <li>Ugyanott a vegyes pontosság „felezi” a memóriát – a modellállapotra ez nem igaz (lásd a példát), csak a köztes értékekre.</li>
+    <li>Ugyanott: „10–20 milliárd paraméter elfér egy GPU-n”. Adammal tanítva 80 GB-ba legfeljebb kb. 5 milliárd fér – köztes értékek nélkül.</li>
+  </ul>
+</div>
+<div class="box tip">
+  <span class="box-title">🔭 Kitekintés ★★★ – a lottószelvény-hipotézis</span>
+  J. Frankle és M. Carbin (2018–19) érdekes kísérlete: tanítsd be a hálót, töröld a súlyok 80–90%-át (a legkisebbeket), a <b>maradékot állítsd vissza az eredeti kezdő értékére</b>, és tanítsd újra.
+  A kis háló ugyanolyan jó lesz, mint a nagy – de csak az <em>eredeti</em> kezdéssel; új véletlen kezdéssel nem. Mintha a nagy háló sok „lottószelvény” lenne, és a tanítás a nyerőt találná meg.
+  Gyakorlati haszna korlátozott (a nyerő szelvényhez előbb a nagy hálót kell betanítani), de jól mutatja, mennyit számít a kezdés, és hogy a nagy hálók sok fölösleges paramétert hordoznak.
+  (Egy könyv, MLQ 6, úgy írja, hogy a módszer „tudásdesztillációt alkalmaz” – nem: metszést és visszaállítást.)
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – memória és párhuzamosítás</summary>
+  <ol>
+    <li>Hány GB kell egy 1,5 milliárd paraméteres modell Adamos tanításához (16 bájt/paraméter, köztes értékek nélkül)?
+      <details><summary>Megoldás</summary>$1{,}5 \cdot 10^9 \cdot 16 = 24$ GB.</details></li>
+    <li>4 GPU, mindegyiken 64 kép. Mekkora a tényleges köteg? Milyen $\eta$-val kezdenél, ha egy GPU-n, 64-es köteggel $\eta = 0{,}1$ volt a jó?
+      <details><summary>Megoldás</summary>256; a lineáris skálázás szerint $\eta = 0{,}4$, bemelegítéssel (<a href="#s102-c">10.2</a>).</details></li>
+    <li>Melyik párhuzamosítás kell: (a) a modell elfér egy GPU-n, de gyorsítani akarsz; (b) a modell egyetlen rétege sem fér el egy GPU-n?
+      <details><summary>Megoldás</summary>(a) adatpárhuzamosítás; (b) tenzorpárhuzamosítás (a rétegen belüli szétvágás).</details></li>
+    <li>Csak futtatni akarsz egy 70 milliárd paraméteres modellt 16 bites súlyokkal. Mennyi memória kell a súlyokhoz?
+      <details><summary>Megoldás</summary>$70 \cdot 10^9 \cdot 2 = 140$ GB – két 80 GB-os GPU-ra már elfér (a futtatás köztes értékei nélkül).</details></li>
+    <li>(nehezebb) Csővezetékes párhuzamosításnál 4 GPU (szakasz) dolgozik egymás után. Ha a köteget 4 részre vágják, az idő kb. $\frac{4 - 1}{4 + 4 - 1}$ része üresjárat. Mennyi ez, és mennyi 16 részre vágva?
+      <details><summary>Megoldás</summary>$3/7 \approx 43\%$; $\;3/(16 + 3) = 3/19 \approx 16\%$. Minél több kis darab, annál jobban átfednek a szakaszok.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai10-108"></div>
+</section>

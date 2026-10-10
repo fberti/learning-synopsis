@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>10. A háló tanítása – Mesterséges intelligencia – Synopsis</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="../../assets/common.js"></script>
+  <script defer src="../../assets/quiz.js"></script>
+  <script defer src="../../assets/calc.js"></script>
+  <script defer src="../../assets/ml.js"></script>
+  <script defer src="digits-data.js"></script>
+  <script defer src="widgets.js"></script>
+  <script defer src="quizzes.js"></script>
+</head>
+<body>
+<div class="progressbar"></div>
+<header class="topbar">
+  <a class="brand" href="../../">📚 Synopsis</a>
+  <span class="crumbs"><a href="../../">Tartalomjegyzék</a> › <a href="../">Mesterséges intelligencia</a> › 10. fejezet</span>
+  <button class="icon-btn" data-theme-toggle title="Téma váltása">🌙</button>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <div class="toc-title">10. fejezet</div>
+  <ol>
+    <li><a href="#s101">10.1 Veszteségfüggvények</a></li>
+    <li><a href="#s102">10.2 Gradiens módszer mini-kötegekkel</a></li>
+    <li><a href="#s103">10.3 Visszaterjesztés kézzel</a></li>
+    <li><a href="#s104">10.4 Számítási gráf, automatikus differenciálás</a></li>
+    <li><a href="#s105">10.5 Optimalizálók</a></li>
+    <li><a href="#s106">10.6 Inicializálás, eltűnő és robbanó gradiens</a></li>
+    <li><a href="#s107">10.7 Regularizáció</a></li>
+    <li><a href="#s108">10.8 A tanítás gyakorlata</a></li>
+    <li><a href="#s109">10.9 Alkalmazás: tanítsd be a számjegyfelismerőt!</a>
+      <ol>
+        <li><a href="#s109-a">A tanítás a böngészőben</a></li>
+        <li><a href="#s109-b">Válaszok a fejezet kérdéseire</a></li>
+      </ol>
+    </li>
+    <li><a href="#s-sum">Összefoglalás</a></li>
+    <li><a href="#s-check">Ellenőrző kérdések</a></li>
+    <li><a href="#s-ex">Vegyes gyakorló feladatok</a></li>
+    <li><a href="#s-final">Fejezetzáró teszt</a></li>
+    <li><a href="#s-gloss">Szómagyarázó</a></li>
+  </ol>
+</nav>
+
+<main class="content">
+
+<section class="hero" style="padding-top:.5rem">
+  <div class="kicker">Mesterséges intelligencia · 10. fejezet · ★★–★★★</div>
+  <h1>A háló tanítása: visszaterjesztés, optimalizálók, regularizáció</h1>
+  <p class="lead">A <a href="../09-neuralis-halozatok/#s97-b">9.7</a> számjegyfelismerője 1210 számmal dolgozott – és ezeket senki nem írta be kézzel. A háló kis véletlen számokkal indult, és néhány másodperc tanítás után a tesztképek 97%-át felismerte.
+  Ebben a fejezetben megnézzük, mi történt közben. Megmérjük a <b>hibát</b>, kiszámoljuk, hogy <b>melyik súlyt merre</b> kell tekerni – mind az 1210-et egyszerre, egyetlen visszafelé menetben –, és megtanuljuk, hogyan lesz ebből <b>gyors, stabil és általánosító</b> tanítás.</p>
+</section>
+
+<div class="box tip">
+  <span class="box-title">Mit fogsz megtanulni?</span>
+  <ul style="margin:.2rem 0">
+    <li>milyen <b>veszteséget</b> használ a háló, és miért a <b>logaritmus</b> az osztályozásnál;</li>
+    <li>hogyan épül fel a <b>tanítási ciklus</b>, és mit csinál a <b>kötegméret</b>;</li>
+    <li>hogyan számolja ki a <b>visszaterjesztés</b> az összes súly gradiensét – kézzel, egy kis hálón, számokkal;</li>
+    <li>mi a <b>számítási gráf</b>, és hogyan deriválnak a keretrendszerek (PyTorch) „maguktól”;</li>
+    <li>mit tud a <b>momentum</b>, az <b>RMSProp</b> és az <b>Adam</b> a sima gradiens módszerhez képest, és miért csökkentjük menet közben a <b>tanulási rátát</b>;</li>
+    <li>miért nem indulhat a háló csupa nullából, mi az <b>eltűnő és a robbanó gradiens</b>, és mit segít a <b>normalizálás</b>;</li>
+    <li>hogyan véd a túlillesztés ellen a <b>korai leállítás</b>, az <b>L2-büntetés</b>, a <b>dropout</b> és az <b>adatbővítés</b>;</li>
+    <li>mire figyelj egy valódi tanításnál: első ellenőrzések, <b>véletlenség</b>, memória, több GPU.</li>
+  </ul>
+</div>
+
+<div class="box">
+  <span class="box-title">🔁 Amit használni fogunk</span>
+  A <a href="../02-matematikai-eszkoztar/">2. fejezetből</a>: a keresztentrópia (<a href="../02-matematikai-eszkoztar/#s26-c">2.6</a>), a softmax (<a href="../02-matematikai-eszkoztar/#s25-d">2.5</a>), a derivált, a gradiens és a <b>láncszabály</b> (<a href="../02-matematikai-eszkoztar/#s27-a">2.7</a>, <a href="../02-matematikai-eszkoztar/#s27-c">2.7</a>, <a href="../02-matematikai-eszkoztar/#s27-d">2.7</a>),
+  a gradiens módszer, a tanulási ráta és a hosszúkás tál (<a href="../02-matematikai-eszkoztar/#s28-a">2.8</a>, <a href="../02-matematikai-eszkoztar/#s28-b">2.8</a>, <a href="../02-matematikai-eszkoztar/#s28-c">2.8</a>).
+  A <a href="../03-tanulas-anatomiaja/">3. fejezetből</a>: az MSE (<a href="../03-tanulas-anatomiaja/#s33-b">3.3</a>), a köteg, az iteráció és az epoch (<a href="../03-tanulas-anatomiaja/#s34-d">3.4</a>), a skálázás (<a href="../03-tanulas-anatomiaja/#s36-c">3.6</a>).
+  Az <a href="../05-osztalyozas/">5. fejezetből</a>: a logisztikus regresszió tanítása (<a href="../05-osztalyozas/#s53-e">5.3</a>), a kategoriális keresztentrópia (<a href="../05-osztalyozas/#s54-c">5.4</a>).
+  A <a href="../06-modellertekeles/">6. fejezetből</a>: a tanító- és validációs hiba (<a href="../06-modellertekeles/#s66-a">6.6</a>), a ridge-büntetés (<a href="../06-modellertekeles/#s67-a">6.7</a>), a hiperparaméter-hangolás (<a href="../06-modellertekeles/#s68-a">6.8</a>).
+  A <a href="../09-neuralis-halozatok/">9. fejezetből</a>: a neuron, a rétegek mátrixos alakja (<a href="../09-neuralis-halozatok/#s93-b">9.3</a>), az aktivációk és a deriváltjuk (<a href="../09-neuralis-halozatok/#s94">9.4</a>), az előre irányuló számítás (<a href="../09-neuralis-halozatok/#s96-a">9.6</a>).
+  <br><small>Jelölések: ★ alap · ★★ közép · ★★★ haladó (kihagyható). A 📐 jelű lenyílók levezetéseket rejtenek, a 🐍 jelűek rövid Python-kódot – a továbbhaladáshoz egyik sem kell.
+  Vektorok félkövérrel ($\mathbf x$), mátrixok nagybetűvel ($W$); $\eta$ a tanulási ráta, $L$ a veszteség, $\delta$ a veszteség deriváltja egy neuron $z$ értéke szerint.</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">🎯 A fejezet kérdése – ki állította be az 1210 súlyt?</span>
+  A <a href="../09-neuralis-halozatok/#s97-b">9.7</a> hálója 64 pixelből 10 valószínűséget számol: 1024 + 16 súly a rejtett, 160 + 10 a kimeneti rétegben. Tanítás előtt ezek kis véletlen számok, és a háló minden képre nagyjából egyformán tippel:
+  minden számjegyre kb. 10%-ot. A tanítás végén a 3-asra már 74%-kal a 3-ast mondja. Négy kérdés:
+  <ol style="margin:.3rem 0">
+    <li>Hogyan mérjük <b>egyetlen számmal</b>, mennyire rossz a háló? (És miért nem elég, hogy „eltalálta-e”?)</li>
+    <li>Ha egy súlyt kicsit elmozdítunk, hogyan változik ez a szám? És hogyan tudjuk ezt <b>mind az 1210 súlyra egyszerre</b>, olcsón?</li>
+    <li>Mekkorát és merre lépjünk, hogy <b>gyorsan</b> és <b>biztosan</b> jussunk lefelé? Honnan induljunk?</li>
+    <li>Hogyan érjük el, hogy a háló ne csak a tanítóképeket <b>magolja be</b>, hanem új képekre is jó legyen?</li>
+  </ol>
+  A fejezet végén (<a href="#s109">10.9</a>) a böngésződben tanítod be ugyanezt a hálót – és mindegyik kérdésre számokkal válaszolunk.
+</div>
+
+<p><b>Útiterv</b> – lépésről lépésre, az egyszerűtől a bonyolultig:</p>
+<ol>
+  <li><b>Mit csökkentünk, és hogyan?</b>
+    <ol>
+      <li><a href="#s101">Veszteségfüggvények</a>: egy minta hibája; miért a logaritmus; a kimenet és a veszteség párosa.</li>
+      <li><a href="#s102">Gradiens módszer mini-kötegekkel</a>: a tanítási ciklus; a kötegméret és a zaj; tanulási ráta és kötegméret együtt.</li>
+    </ol></li>
+  <li><b>A gradiens kiszámolása</b>
+    <ol start="3">
+      <li><a href="#s103">Visszaterjesztés kézzel</a>: egy neuron; két réteg, minden számmal; miért ilyen olcsó.</li>
+      <li><a href="#s104">Számítási gráf</a>: előre és vissza egy kifejezésen; a kapuk szabályai; így deriválnak a keretrendszerek. ★★★</li>
+    </ol></li>
+  <li><b>Jobb lépések</b>
+    <ol start="5">
+      <li><a href="#s105">Optimalizálók</a>: momentum; RMSProp és Adam; a tanulási ráta ütemezése.</li>
+      <li><a href="#s106">Inicializálás és normalizálás</a>: a szimmetria csapdája; a jel mérete rétegről rétegre; köteg- és rétegnormalizálás. ★★★</li>
+    </ol></li>
+  <li><b>Általánosítás és gyakorlat</b>
+    <ol start="7">
+      <li><a href="#s107">Regularizáció</a>: korai leállítás; L2-büntetés; dropout; adatbővítés.</li>
+      <li><a href="#s108">A tanítás gyakorlata</a>: első ellenőrzések és hiperparaméterek; véletlenség; memória és több GPU.</li>
+    </ol></li>
+  <li><b>Összerakva</b>
+    <ol start="9">
+      <li><a href="#s109">Alkalmazás</a>: a számjegyfelismerő tanítása a böngészőben.</li>
+    </ol></li>
+</ol>

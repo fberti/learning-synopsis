@@ -1,0 +1,1952 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>10. A háló tanítása – Mesterséges intelligencia – Synopsis</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="../../assets/common.js"></script>
+  <script defer src="../../assets/quiz.js"></script>
+  <script defer src="../../assets/calc.js"></script>
+  <script defer src="../../assets/ml.js"></script>
+  <script defer src="digits-data.js"></script>
+  <script defer src="widgets.js"></script>
+  <script defer src="quizzes.js"></script>
+</head>
+<body>
+<div class="progressbar"></div>
+<header class="topbar">
+  <a class="brand" href="../../">📚 Synopsis</a>
+  <span class="crumbs"><a href="../../">Tartalomjegyzék</a> › <a href="../">Mesterséges intelligencia</a> › 10. fejezet</span>
+  <button class="icon-btn" data-theme-toggle title="Téma váltása">🌙</button>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <div class="toc-title">10. fejezet</div>
+  <ol>
+    <li><a href="#s101">10.1 Veszteségfüggvények</a></li>
+    <li><a href="#s102">10.2 Gradiens módszer mini-kötegekkel</a></li>
+    <li><a href="#s103">10.3 Visszaterjesztés kézzel</a></li>
+    <li><a href="#s104">10.4 Számítási gráf, automatikus differenciálás</a></li>
+    <li><a href="#s105">10.5 Optimalizálók</a></li>
+    <li><a href="#s106">10.6 Inicializálás, eltűnő és robbanó gradiens</a></li>
+    <li><a href="#s107">10.7 Regularizáció</a></li>
+    <li><a href="#s108">10.8 A tanítás gyakorlata</a></li>
+    <li><a href="#s109">10.9 Alkalmazás: tanítsd be a számjegyfelismerőt!</a>
+      <ol>
+        <li><a href="#s109-a">A tanítás a böngészőben</a></li>
+        <li><a href="#s109-b">Válaszok a fejezet kérdéseire</a></li>
+      </ol>
+    </li>
+    <li><a href="#s-sum">Összefoglalás</a></li>
+    <li><a href="#s-check">Ellenőrző kérdések</a></li>
+    <li><a href="#s-ex">Vegyes gyakorló feladatok</a></li>
+    <li><a href="#s-final">Fejezetzáró teszt</a></li>
+    <li><a href="#s-gloss">Szómagyarázó</a></li>
+  </ol>
+</nav>
+
+<main class="content">
+
+<section class="hero" style="padding-top:.5rem">
+  <div class="kicker">Mesterséges intelligencia · 10. fejezet · ★★–★★★</div>
+  <h1>A háló tanítása: visszaterjesztés, optimalizálók, regularizáció</h1>
+  <p class="lead">A <a href="../09-neuralis-halozatok/#s97-b">9.7</a> számjegyfelismerője 1210 számmal dolgozott – és ezeket senki nem írta be kézzel. A háló kis véletlen számokkal indult, és néhány másodperc tanítás után a tesztképek 97%-át felismerte.
+  Ebben a fejezetben megnézzük, mi történt közben. Megmérjük a <b>hibát</b>, kiszámoljuk, hogy <b>melyik súlyt merre</b> kell tekerni – mind az 1210-et egyszerre, egyetlen visszafelé menetben –, és megtanuljuk, hogyan lesz ebből <b>gyors, stabil és általánosító</b> tanítás.</p>
+</section>
+
+<div class="box tip">
+  <span class="box-title">Mit fogsz megtanulni?</span>
+  <ul style="margin:.2rem 0">
+    <li>milyen <b>veszteséget</b> használ a háló, és miért a <b>logaritmus</b> az osztályozásnál;</li>
+    <li>hogyan épül fel a <b>tanítási ciklus</b>, és mit csinál a <b>kötegméret</b>;</li>
+    <li>hogyan számolja ki a <b>visszaterjesztés</b> az összes súly gradiensét – kézzel, egy kis hálón, számokkal;</li>
+    <li>mi a <b>számítási gráf</b>, és hogyan deriválnak a keretrendszerek (PyTorch) „maguktól”;</li>
+    <li>mit tud a <b>momentum</b>, az <b>RMSProp</b> és az <b>Adam</b> a sima gradiens módszerhez képest, és miért csökkentjük menet közben a <b>tanulási rátát</b>;</li>
+    <li>miért nem indulhat a háló csupa nullából, mi az <b>eltűnő és a robbanó gradiens</b>, és mit segít a <b>normalizálás</b>;</li>
+    <li>hogyan véd a túlillesztés ellen a <b>korai leállítás</b>, az <b>L2-büntetés</b>, a <b>dropout</b> és az <b>adatbővítés</b>;</li>
+    <li>mire figyelj egy valódi tanításnál: első ellenőrzések, <b>véletlenség</b>, memória, több GPU.</li>
+  </ul>
+</div>
+
+<div class="box">
+  <span class="box-title">🔁 Amit használni fogunk</span>
+  A <a href="../02-matematikai-eszkoztar/">2. fejezetből</a>: a keresztentrópia (<a href="../02-matematikai-eszkoztar/#s26-c">2.6</a>), a softmax (<a href="../02-matematikai-eszkoztar/#s25-d">2.5</a>), a derivált, a gradiens és a <b>láncszabály</b> (<a href="../02-matematikai-eszkoztar/#s27-a">2.7</a>, <a href="../02-matematikai-eszkoztar/#s27-c">2.7</a>, <a href="../02-matematikai-eszkoztar/#s27-d">2.7</a>),
+  a gradiens módszer, a tanulási ráta és a hosszúkás tál (<a href="../02-matematikai-eszkoztar/#s28-a">2.8</a>, <a href="../02-matematikai-eszkoztar/#s28-b">2.8</a>, <a href="../02-matematikai-eszkoztar/#s28-c">2.8</a>).
+  A <a href="../03-tanulas-anatomiaja/">3. fejezetből</a>: az MSE (<a href="../03-tanulas-anatomiaja/#s33-b">3.3</a>), a köteg, az iteráció és az epoch (<a href="../03-tanulas-anatomiaja/#s34-d">3.4</a>), a skálázás (<a href="../03-tanulas-anatomiaja/#s36-c">3.6</a>).
+  Az <a href="../05-osztalyozas/">5. fejezetből</a>: a logisztikus regresszió tanítása (<a href="../05-osztalyozas/#s53-e">5.3</a>), a kategoriális keresztentrópia (<a href="../05-osztalyozas/#s54-c">5.4</a>).
+  A <a href="../06-modellertekeles/">6. fejezetből</a>: a tanító- és validációs hiba (<a href="../06-modellertekeles/#s66-a">6.6</a>), a ridge-büntetés (<a href="../06-modellertekeles/#s67-a">6.7</a>), a hiperparaméter-hangolás (<a href="../06-modellertekeles/#s68-a">6.8</a>).
+  A <a href="../09-neuralis-halozatok/">9. fejezetből</a>: a neuron, a rétegek mátrixos alakja (<a href="../09-neuralis-halozatok/#s93-b">9.3</a>), az aktivációk és a deriváltjuk (<a href="../09-neuralis-halozatok/#s94">9.4</a>), az előre irányuló számítás (<a href="../09-neuralis-halozatok/#s96-a">9.6</a>).
+  <br><small>Jelölések: ★ alap · ★★ közép · ★★★ haladó (kihagyható). A 📐 jelű lenyílók levezetéseket rejtenek, a 🐍 jelűek rövid Python-kódot – a továbbhaladáshoz egyik sem kell.
+  Vektorok félkövérrel ($\mathbf x$), mátrixok nagybetűvel ($W$); $\eta$ a tanulási ráta, $L$ a veszteség, $\delta$ a veszteség deriváltja egy neuron $z$ értéke szerint.</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">🎯 A fejezet kérdése – ki állította be az 1210 súlyt?</span>
+  A <a href="../09-neuralis-halozatok/#s97-b">9.7</a> hálója 64 pixelből 10 valószínűséget számol: 1024 + 16 súly a rejtett, 160 + 10 a kimeneti rétegben. Tanítás előtt ezek kis véletlen számok, és a háló minden képre nagyjából egyformán tippel:
+  minden számjegyre kb. 10%-ot. A tanítás végén a 3-asra már 74%-kal a 3-ast mondja. Négy kérdés:
+  <ol style="margin:.3rem 0">
+    <li>Hogyan mérjük <b>egyetlen számmal</b>, mennyire rossz a háló? (És miért nem elég, hogy „eltalálta-e”?)</li>
+    <li>Ha egy súlyt kicsit elmozdítunk, hogyan változik ez a szám? És hogyan tudjuk ezt <b>mind az 1210 súlyra egyszerre</b>, olcsón?</li>
+    <li>Mekkorát és merre lépjünk, hogy <b>gyorsan</b> és <b>biztosan</b> jussunk lefelé? Honnan induljunk?</li>
+    <li>Hogyan érjük el, hogy a háló ne csak a tanítóképeket <b>magolja be</b>, hanem új képekre is jó legyen?</li>
+  </ol>
+  A fejezet végén (<a href="#s109">10.9</a>) a böngésződben tanítod be ugyanezt a hálót – és mindegyik kérdésre számokkal válaszolunk.
+</div>
+
+<p><b>Útiterv</b> – lépésről lépésre, az egyszerűtől a bonyolultig:</p>
+<ol>
+  <li><b>Mit csökkentünk, és hogyan?</b>
+    <ol>
+      <li><a href="#s101">Veszteségfüggvények</a>: egy minta hibája; miért a logaritmus; a kimenet és a veszteség párosa.</li>
+      <li><a href="#s102">Gradiens módszer mini-kötegekkel</a>: a tanítási ciklus; a kötegméret és a zaj; tanulási ráta és kötegméret együtt.</li>
+    </ol></li>
+  <li><b>A gradiens kiszámolása</b>
+    <ol start="3">
+      <li><a href="#s103">Visszaterjesztés kézzel</a>: egy neuron; két réteg, minden számmal; miért ilyen olcsó.</li>
+      <li><a href="#s104">Számítási gráf</a>: előre és vissza egy kifejezésen; a kapuk szabályai; így deriválnak a keretrendszerek. ★★★</li>
+    </ol></li>
+  <li><b>Jobb lépések</b>
+    <ol start="5">
+      <li><a href="#s105">Optimalizálók</a>: momentum; RMSProp és Adam; a tanulási ráta ütemezése.</li>
+      <li><a href="#s106">Inicializálás és normalizálás</a>: a szimmetria csapdája; a jel mérete rétegről rétegre; köteg- és rétegnormalizálás. ★★★</li>
+    </ol></li>
+  <li><b>Általánosítás és gyakorlat</b>
+    <ol start="7">
+      <li><a href="#s107">Regularizáció</a>: korai leállítás; L2-büntetés; dropout; adatbővítés.</li>
+      <li><a href="#s108">A tanítás gyakorlata</a>: első ellenőrzések és hiperparaméterek; véletlenség; memória és több GPU.</li>
+    </ol></li>
+  <li><b>Összerakva</b>
+    <ol start="9">
+      <li><a href="#s109">Alkalmazás</a>: a számjegyfelismerő tanítása a böngészőben.</li>
+    </ol></li>
+</ol>
+
+<!-- ===================================================== 10.1 -->
+<section id="s101">
+<h2>10.1 Veszteségfüggvények ★★</h2>
+<p>Tanítani csak azt lehet, amit mérni tudunk. Mielőtt bármelyik súlyhoz hozzányúlnánk, kell egy szám, amely megmondja, mennyire rossz most a háló. Ez a <b>veszteség</b> (<a href="../03-tanulas-anatomiaja/#s33">3.3</a>). A tanítás egyetlen célja: ezt a számot csökkenteni.</p>
+
+<h3 id="s101-a">1. lépés: egy minta hibája – négyzetes hiba és $-\ln p$</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – három háló, egy hármas</span>
+  Ugyanazt a 3-ast mutatjuk három hálónak. Mindegyik softmaxszal valószínűséget ad a tíz számjegyre; ennyit mondanak a helyes válaszra, a „3”-ra ($\hat p_3$):
+  <table style="max-width:600px;font-size:.9rem;text-align:center">
+    <tr><th>háló</th><th>$\hat p_3$</th><th>a legvalószínűbb tipp</th><th>eltalálta?</th><th>$-\ln\hat p_3$</th></tr>
+    <tr><td>A</td><td>0,74</td><td>3</td><td>igen</td><td><b>0,301</b></td></tr>
+    <tr><td>B</td><td>0,40</td><td>3</td><td>igen</td><td><b>0,916</b></td></tr>
+    <tr><td>C</td><td>0,05</td><td>8</td><td>nem</td><td><b>2,996</b></td></tr>
+  </table>
+  Az „eltalálta?” oszlop A-t és B-t egyformának látja, pedig A sokkal biztosabb. A $-\ln\hat p_3$ oszlop mindhármat megkülönbözteti: minél kisebb valószínűséget kapott a helyes válasz, annál nagyobb a szám.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – veszteség egy mintán</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Regresszió</b> (a kimenet egy szám, $\hat y$): <b>négyzetes hiba</b>, $\;L = \tfrac12(\hat y - y)^2$ (<a href="../03-tanulas-anatomiaja/#s33-b">3.3</a>).</li>
+    <li><b>Osztályozás</b> (a kimenet valószínűség-eloszlás, $\hat{\mathbf p}$): <b>keresztentrópia</b>, $\;L = -\ln \hat p_y$, ahol $\hat p_y$ a helyes osztály valószínűsége (<a href="../02-matematikai-eszkoztar/#s26-c">2.6</a>, <a href="../05-osztalyozas/#s54-c">5.4</a>).
+      Két osztálynál, egy szigmoid kimenettel ($\hat p$ = az 1-es osztály valószínűsége): $L = -[\,y\ln\hat p + (1 - y)\ln(1 - \hat p)\,]$ – a <b>bináris keresztentrópia</b>.</li>
+  </ul>
+  A tanítás a <b>kötegre</b> vagy az egész tanítóhalmazra vett <b>átlagos</b> veszteséget csökkenti: $\;L = \frac1m\sum_{i=1}^m L_i$.
+  <br><small>Miért nem a pontosság? Mert a pontosság lépcső: egy súly kis elmozdítása szinte sosem változtat rajta, így a deriváltja majdnem mindenhol 0 – ugyanaz a baj, mint a lépcsős neuronnal (<a href="../09-neuralis-halozatok/#s94-a">9.4</a>).
+  A veszteség <b>sima</b>: minden kis javulást jelez, így a gradiens módszer irányt kap. Az ½-es szorzó csak kényelmi: deriváláskor kiesik a 2-es.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a biztos és a nagyon biztos</span>
+    $-\ln 0{,}9 \approx 0{,}105$, $\;-\ln 0{,}99 \approx 0{,}010$. Ha a helyes válasz valószínűsége tízszer közelebb kerül az 1-hez, a veszteség is kb. tizedére esik. Nulla csak $p = 1$-nél lenne.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a tanítás előtti háló</span>
+    Ha a háló mind a tíz számjegyre 10%-ot mond, minden képen $L = -\ln 0{,}1 = \ln 10 \approx 2{,}303$. Ez a <b>kiinduló veszteség</b>: ha a tanítás elején ennél sokkal nagyobbat látsz, valami gyanús (<a href="#s108-a">10.8</a>).
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Természetes alapú logaritmus.</b> A gépi tanulásban a $\ln$ (e alapú) a szokás; 2-es alapú logaritmussal bitekben mérnél (<a href="../02-matematikai-eszkoztar/#s26-a">2.6</a>) – a minimum helye ugyanaz, csak a számok mások.</li>
+    <li><b>$-\ln 0 = \infty$.</b> Ha a háló a helyes válaszra pontosan 0-t mond, a veszteség végtelen. A programok ezért a logitokból számolnak, vagy a $p$-t egy kis számmal (pl. $10^{-12}$) alulról levágják.</li>
+    <li><b>A pontosság és a veszteség eltérhet.</b> A veszteség nőhet úgy is, hogy a pontosság nem változik: a háló ugyanazokat a képeket rontja el, csak egyre magabiztosabban (<a href="#s107-a">10.7</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – veszteség egy mintán</summary>
+  <ol>
+    <li>Egy háló egy 7-esre a „7”-re $\hat p_7 = 0{,}6$-ot mond. Mennyi a keresztentrópia-veszteség?
+      <details><summary>Megoldás</summary>$-\ln 0{,}6 \approx 0{,}511$.</details></li>
+    <li>Regresszió: a háló $\hat y = 2{,}5$-öt jósol, a valódi érték $y = 3$. Mennyi az $\tfrac12(\hat y - y)^2$ veszteség? És $\hat y = 4$-nél?
+      <details><summary>Megoldás</summary>$\tfrac12 \cdot 0{,}5^2 = 0{,}125$; $\;\tfrac12 \cdot 1^2 = 0{,}5$. Kétszer akkora hiba – négyszer akkora veszteség.</details></li>
+    <li>Egy köteg három képén a helyes válasz valószínűsége 0,9; 0,5 és 0,2. Mennyi a köteg átlagos vesztesége?
+      <details><summary>Megoldás</summary>$(0{,}105 + 0{,}693 + 1{,}609)/3 = 2{,}408/3 \approx 0{,}802$. A rosszul eltalált harmadik kép adja a veszteség kétharmadát.</details></li>
+    <li>Két osztály, szigmoid kimenet: $\hat p = 0{,}8$ (az 1-es osztályé). Mennyi a bináris keresztentrópia, ha $y = 1$, és mennyi, ha $y = 0$?
+      <details><summary>Megoldás</summary>$y = 1$: $-\ln 0{,}8 \approx 0{,}223$. $\;y = 0$: $-\ln(1 - 0{,}8) = -\ln 0{,}2 \approx 1{,}609$.</details></li>
+    <li>(nehezebb) Egy 100 osztályos osztályozó a tanítás elején minden osztályra kb. 1%-ot mond. Mekkora kiinduló veszteséget vársz? Mi az a $p$, amelynél a veszteség 1 alá megy?
+      <details><summary>Megoldás</summary>$\ln 100 \approx 4{,}605$. $-\ln p \lt 1 \iff p \gt e^{-1} \approx 0{,}368$: a helyes osztálynak kb. 37%-nál többet kell kapnia.</details></li>
+  </ol>
+</details>
+
+<h3 id="s101-b">2. lépés: miért a logaritmus? – a magabiztos tévedés</h3>
+<p>Valószínűségeket is mérhetnénk négyzetes hibával: $\tfrac12(\hat p - y)^2$. Miért nem így szokás? Nézzük meg, mit kap a <b>gradiens módszer</b> a két veszteségtől.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy szigmoid kimenet, kétféle veszteséggel</span>
+  Egy neuron kimenete $\hat p = \sigma(z)$, a helyes címke $y = 1$. A tanítás azt kérdezi: <b>mennyit változik a veszteség, ha $z$ nő?</b> Ez a $\partial L/\partial z$.
+  <table style="max-width:640px;font-size:.88rem;text-align:center">
+    <tr><th>$z$</th><th>$\hat p$</th><th>négyzetes $L$</th><th>$\partial L/\partial z$ (négyzetes)</th><th>keresztentrópia $L$</th><th>$\partial L/\partial z$ (keresztentrópia)</th></tr>
+    <tr><td>$-4$</td><td>0,018</td><td>0,482</td><td>$-0{,}0173$</td><td>4,018</td><td>$\mathbf{-0{,}982}$</td></tr>
+    <tr><td>$-2$</td><td>0,119</td><td>0,388</td><td>$-0{,}0925$</td><td>2,127</td><td>$-0{,}881$</td></tr>
+    <tr><td>$0$</td><td>0,5</td><td>0,125</td><td>$-0{,}125$</td><td>0,693</td><td>$-0{,}5$</td></tr>
+    <tr><td>$2$</td><td>0,881</td><td>0,007</td><td>$-0{,}0125$</td><td>0,127</td><td>$-0{,}119$</td></tr>
+  </table>
+  A $z = -4$ sor a legrosszabb helyzet: a háló <b>magabiztosan téved</b> (1,8%-ot ad a helyes válaszra). A négyzetes hiba itt alig „húz” ($-0{,}0173$), a keresztentrópia teljes erővel ($-0{,}982$) – <b>56-szor erősebben</b>.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – a két gradiens</span>
+  Szigmoid kimenetnél ($\hat p = \sigma(z)$, $\sigma'(z) = \hat p(1 - \hat p)$, <a href="../09-neuralis-halozatok/#s94-a">9.4</a>):
+  $$\text{négyzetes hiba: }\ \frac{\partial L}{\partial z} = (\hat p - y)\cdot\hat p(1 - \hat p), \qquad \text{keresztentrópia: }\ \frac{\partial L}{\partial z} = \hat p - y.$$
+  <small>Miért? A láncszabály szerint $\partial L/\partial z = \partial L/\partial\hat p \cdot \sigma'(z)$. A négyzetes hibánál $\partial L/\partial\hat p = \hat p - y$, és ott marad a $\hat p(1 - \hat p)$ szorzó, amely a görbe két szélén – épp a magabiztos tévedésnél – közel 0.
+  A keresztentrópiánál ($y = 1$-re) $\partial L/\partial\hat p = -1/\hat p$, és ez pontosan kiejti: $-\frac1{\hat p}\cdot\hat p(1 - \hat p) = \hat p - 1$. A logaritmus „kiegyenesíti” a szigmoid telítődését.</small>
+</div>
+<div class="widget" data-widget="loss-compare"></div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – bizonytalan háló</span>
+    $z = 0$, $\hat p = 0{,}5$, $y = 1$. Négyzetes: $(0{,}5 - 1)\cdot 0{,}25 = -0{,}125$. Keresztentrópia: $0{,}5 - 1 = -0{,}5$ – négyszeres. A $\hat p(1 - \hat p)$ szorzó itt a legnagyobb (0,25), mégis ennyivel gyengébb.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a valószínűségi indoklás</span>
+    A keresztentrópia a „mennyire valószínű az adat a modell szerint?” kérdés negatív logaritmusa (<b>negatív log-likelihood</b>). Három független kép, a helyes válaszok valószínűsége 0,9; 0,5; 0,2: az együttes valószínűség $0{,}09$, és $-\ln 0{,}09 \approx 2{,}408$ – pontosan a három veszteség összege.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabály</span>
+  <b>Valószínűséget kiadó háló → keresztentrópia.</b> A logaritmus a szorzatból összeget csinál (a minták veszteségei összeadhatók), és a magabiztos tévedést erősen bünteti – épp ott ad nagy gradienst, ahol a legnagyobb a baj.
+  A négyzetes hiba a regresszióé; az is valószínűségi: normális eloszlású zaj esetén ez a negatív log-likelihood.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Nem a veszteség nagysága számít, hanem a meredeksége.</b> A $z = -4$ sorban a négyzetes veszteség (0,482) nem kicsi – mégsem tanul belőle a háló, mert a <em>gradiense</em> kicsi.</li>
+    <li><b>A szigmoid nem „alkalmatlan” – csak rossz párt kapott.</b> Szigmoid + keresztentrópia jól tanul (ez a logisztikus regresszió, <a href="../05-osztalyozas/#s53-e">5.3</a>); a gond a szigmoid + négyzetes hiba párossal van.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a két gradiens</summary>
+  <ol>
+    <li>$\hat p = 0{,}2$, $y = 1$. Mennyi a $\partial L/\partial z$ a négyzetes hibával és a keresztentrópiával?
+      <details><summary>Megoldás</summary>Négyzetes: $(0{,}2 - 1)\cdot 0{,}2\cdot 0{,}8 = -0{,}128$. Keresztentrópia: $0{,}2 - 1 = -0{,}8$. Ötszörös.</details></li>
+    <li>$\hat p = 0{,}99$, $y = 0$ (magabiztos tévedés a másik irányba). Mennyi a két gradiens?
+      <details><summary>Megoldás</summary>Négyzetes: $0{,}99 \cdot 0{,}99 \cdot 0{,}01 \approx 0{,}0098$. Keresztentrópia: $0{,}99 - 0 = 0{,}99$. Százszoros.</details></li>
+    <li>Mikor egyezik meg a két gradiens arányában 1-gyel, vagyis mikor $\hat p(1 - \hat p) = 1$?
+      <details><summary>Megoldás</summary>Soha: $\hat p(1 - \hat p) \le 0{,}25$. A négyzetes hiba gradiense szigmoid kimenetnél mindig legalább négyszer kisebb – és a széleken sokkal kisebb.</details></li>
+    <li>Egy kép helyes válaszának valószínűsége a tanítás során 0,05-ről 0,5-re nő. Mennyit csökken a keresztentrópia?
+      <details><summary>Megoldás</summary>$-\ln 0{,}05 - (-\ln 0{,}5) = 2{,}996 - 0{,}693 = 2{,}303 = \ln 10$. (A valószínűség tízszereződött – a veszteség $\ln 10$-zel csökkent.)</details></li>
+    <li>(nehezebb) Igazold, hogy $y = 0$ esetén is $\partial L/\partial z = \hat p - y$ a bináris keresztentrópiánál!
+      <details><summary>Megoldás</summary>$y = 0$: $L = -\ln(1 - \hat p)$, $\partial L/\partial\hat p = \frac1{1 - \hat p}$. Szorozva $\sigma'(z) = \hat p(1 - \hat p)$-vel: $\hat p = \hat p - 0$. ✓</details></li>
+  </ol>
+</details>
+
+<h3 id="s101-c">3. lépés: a kimenet és a veszteség párosa – $\delta = \hat y - y$</h3>
+<p>Az előző lépés szépsége: a szigmoid és a keresztentrópia együtt egy nagyon egyszerű gradienst ad, $\hat p - y$. Ez nem véletlen – a többi szokásos párosnál is így van.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – softmax három osztállyal</span>
+  A kimeneti réteg logitjai $\mathbf z = (2;\ 1;\ 0)$, a helyes osztály az első. Softmax: $\hat{\mathbf p} = (0{,}665;\ 0{,}245;\ 0{,}090)$, a veszteség $-\ln 0{,}665 \approx 0{,}408$.
+  A címke „egy-forró” vektorként $\mathbf y = (1;\ 0;\ 0)$, és a veszteség gradiense a logitok szerint:
+  $$\frac{\partial L}{\partial\mathbf z} = \hat{\mathbf p} - \mathbf y = (-0{,}335;\ 0{,}245;\ 0{,}090).$$
+  A helyes osztály logitját <b>felfelé</b> kell tolni (negatív gradiens → a lépés pozitív), a két rosszét <b>lefelé</b>, a valószínűségükkel arányosan. Az összeg 0: amennyit az egyik nyer, annyit vesznek el a többiek.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – a kanonikus párok</span>
+  <table style="font-size:.9rem">
+    <tr><th>feladat</th><th>kimeneti aktiváció</th><th>veszteség</th><th>$\boldsymbol\delta = \partial L/\partial\mathbf z$</th></tr>
+    <tr><td>regresszió</td><td>identitás</td><td>$\tfrac12(\hat y - y)^2$</td><td>$\hat y - y$</td></tr>
+    <tr><td>két osztály</td><td>szigmoid</td><td>bináris keresztentrópia</td><td>$\hat p - y$</td></tr>
+    <tr><td>$K$ kizáró osztály</td><td>softmax</td><td>keresztentrópia</td><td>$\hat{\mathbf p} - \mathbf y$</td></tr>
+    <tr><td>több címke egyszerre</td><td>$K$ szigmoid</td><td>$K$ bináris keresztentrópia összege</td><td>$\hat{\mathbf p} - \mathbf y$</td></tr>
+  </table>
+  <small>Miért fontos? A visszaterjesztés (<a href="#s103">10.3</a>) a kimenettől indul, és ez az első lépése: <b>„jóslat mínusz valóság”</b>. A $\delta$ jele: a veszteség deriváltja a neuron $z$-je (aktiváció előtti értéke) szerint.
+  Ugyanezt a párosítást ajánlotta a <a href="../09-neuralis-halozatok/#s94-c">9.4</a> a kimeneti rétegre – most már látod, miért.</small>
+</div>
+<details class="box">
+  <summary>📐 A matematika mögötte – a softmax és a keresztentrópia gradiense</summary>
+  $L = -\ln\hat p_y = -z_y + \ln\sum_j e^{z_j}$. Deriválva $z_k$ szerint: $\frac{\partial L}{\partial z_k} = -[k = y] + \frac{e^{z_k}}{\sum_j e^{z_j}} = \hat p_k - y_k$, ahol $[k = y]$ értéke 1, ha $k$ a helyes osztály, különben 0.
+  A második tag a softmax maga – ezért olyan egyszerű az eredmény.
+</details>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – regresszió</span>
+    Identitás kimenet: $\hat y = 2{,}5$, $y = 3$. $\delta = 2{,}5 - 3 = -0{,}5$: a kimenetet felfelé kell tolni.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – ugyanaz a softmax, másik címke</span>
+    $\mathbf z = (2;\ 1;\ 0)$, de most a <b>második</b> osztály a helyes. $\boldsymbol\delta = (0{,}665;\ -0{,}755;\ 0{,}090)$, a veszteség $-\ln 0{,}245 \approx 1{,}408$ – a háló rossz osztályt favorizált, ezért nagyobb a gradiens is.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Ne softmaxolj kétszer.</b> A PyTorch <code>CrossEntropyLoss</code>-a a <em>logitokat</em> várja, és maga számolja a softmaxot (numerikusan stabilan). Ha a háló végére is teszel egy softmaxot, a tanítás lassú és torz lesz.</li>
+    <li><b>Kizáró osztályokhoz softmax, több címkéhez szigmoidok.</b> Ha egy képen kutya <em>és</em> macska is lehet, a softmax rossz választás, mert egymás ellen versenyezteti őket.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a kimeneti $\delta$</summary>
+  <ol>
+    <li>Szigmoid kimenet, $\hat p = 0{,}3$, $y = 0$. Mennyi $\delta$, és merre mozdul $z$ egy gradiens lépésben?
+      <details><summary>Megoldás</summary>$\delta = 0{,}3$. A lépés $-\eta\delta \lt 0$: a $z$ csökken, így $\hat p$ is – a helyes 0 felé.</details></li>
+    <li>Softmax: $\hat{\mathbf p} = (0{,}1;\ 0{,}7;\ 0{,}2)$, a helyes osztály a harmadik. Mi a $\boldsymbol\delta$?
+      <details><summary>Megoldás</summary>$\boldsymbol\delta = (0{,}1;\ 0{,}7;\ 0{,}2 - 1) = (0{,}1;\ 0{,}7;\ -0{,}8)$. Összege 0.</details></li>
+    <li>Regresszió: $\hat y = -1$, $y = 2$. Mennyi a veszteség és a $\delta$?
+      <details><summary>Megoldás</summary>$L = \tfrac12\cdot 9 = 4{,}5$, $\delta = -3$.</details></li>
+    <li>Melyik párost választanád: (a) holnapi hőmérséklet; (b) „spam-e a levél”; (c) melyik a 10 számjegy közül; (d) mely címkék illenek egy fotóra a 20-ból?
+      <details><summary>Megoldás</summary>(a) identitás + négyzetes hiba; (b) szigmoid + bináris keresztentrópia; (c) softmax + keresztentrópia; (d) 20 szigmoid + 20 bináris keresztentrópia.</details></li>
+    <li>(nehezebb) Softmax, $\mathbf z = (1;\ 2;\ 0)$, a helyes osztály az első. Számold ki $\hat{\mathbf p}$-t, a veszteséget és $\boldsymbol\delta$-t! Vesd össze a kiinduló példával!
+      <details><summary>Megoldás</summary>Ugyanazok a valószínűségek, más sorrendben: $\hat{\mathbf p} = (0{,}245;\ 0{,}665;\ 0{,}090)$. $L = -\ln 0{,}245 \approx 1{,}408$, $\boldsymbol\delta = (-0{,}755;\ 0{,}665;\ 0{,}090)$.
+        A helyes osztály most nem a favorit: a veszteség pontosan 1-gyel nagyobb ($\ln(0{,}665/0{,}245) = 2 - 1 = 1$), és az első logitot erősebben kell felfelé tolni.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai10-101"></div>
+</section>
+
+<!-- ===================================================== 10.2 -->
+<section id="s102">
+<h2>10.2 Gradiens módszer mini-kötegekkel ★★</h2>
+<p>Van egy számunk, amit csökkenteni akarunk. A módszert már ismered: a gradiens módszer lépésenként a lejtő irányába megy (<a href="../02-matematikai-eszkoztar/#s28-a">2.8</a>, <a href="../03-tanulas-anatomiaja/#s34-c">3.4</a>),
+és egy-egy lépéshez elég a minták egy kis <b>kötegén</b> számolni (<a href="../03-tanulas-anatomiaja/#s34-d">3.4</a>). Most ezt rakjuk össze egy neurális háló tanítási ciklusává, és megnézzük, mit állít a <b>kötegméret</b>.</p>
+
+<h3 id="s102-a">1. lépés: a tanítási ciklus</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a számjegyháló egy epochja</span>
+  A <a href="#s109">10.9</a>-ben a számjegyhálót 1047 képen tanítjuk, 32-es kötegekben. Egy epoch:
+  <ol style="margin:.2rem 0">
+    <li>megkeverjük az 1047 képet, és sorban 32-es kötegekre vágjuk: $\lceil 1047/32\rceil = 33$ köteg (32 teli és egy 23 képes);</li>
+    <li>minden kötegen: <b>előre</b> (a 32 kép végigmegy a hálón, <a href="../09-neuralis-halozatok/#s96-a">9.6</a>) → <b>veszteség</b> (a 32 kép átlagos keresztentrópiája) → <b>vissza</b> (mind az 1210 paraméter gradiense, <a href="#s103">10.3</a>) → <b>frissítés</b> ($\mathbf w \leftarrow \mathbf w - \eta\,\mathbf g$).</li>
+  </ol>
+  Egy epoch tehát 33 frissítés. A 9.7 hálójához hasonló, 30 epochos tanítás $30 \cdot 33 = 990$ lépés – néhány másodperc a böngészőben.
+</div>
+<div class="box def">
+  <span class="box-title">Algoritmus – mini-köteges sztochasztikus gradiens módszer (SGD)</span>
+  Kezdés: kis véletlen súlyok (<a href="#s106">10.6</a>). Minden epochban keverd meg a tanítóhalmazt, vágd $B$ méretű kötegekre, és minden kötegre:
+  <ol style="margin:.2rem 0">
+    <li><b>előre irányuló menet:</b> a köteg minden mintájára kiszámolod a kimenetet (és eltárolod a köztes értékeket);</li>
+    <li><b>veszteség:</b> $L = \frac1B\sum_{i \in \text{köteg}} L_i$;</li>
+    <li><b>visszafelé menet:</b> $\mathbf g = \nabla L$ – a veszteség gradiense az összes paraméter szerint;</li>
+    <li><b>frissítés:</b> $\mathbf w \leftarrow \mathbf w - \eta\,\mathbf g$.</li>
+  </ol>
+  Ismételd, amíg a validációs veszteség javul (<a href="#s107-a">10.7</a>), vagy amíg el nem fogy a rászánt idő.
+  <br><small>Miért kötegenként? Mert a köteg átlagos gradiense jó becslése a teljes gradiensnek (<a href="../03-tanulas-anatomiaja/#s34-d">3.4</a>), de töredék idő alatt kiszámolható – így ugyanannyi számításból sokkal több lépés lesz.
+  A „sztochasztikus” (véletlen) jelző a véletlenül választott kötegre utal: minden lépés iránya egy kicsit zajos.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – lépések száma</span>
+    $n = 60\,000$ kép, $B = 128$: $\lceil 60\,000/128\rceil = 469$ lépés egy epoch (468 teli köteg és egy 96 képes). 10 epoch: 4690 lépés.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – ugyanez PyTorch-ban</span>
+    A négy lépés egy keretrendszerben öt sor:
+    <code>opt.zero_grad()</code> · <code>out = net(xb)</code> · <code>loss = lossfn(out, yb)</code> · <code>loss.backward()</code> · <code>opt.step()</code>.
+    Az első sor a gradienseket nullázza – a <code>backward()</code> ugyanis <em>hozzáadja</em> az újakat a régiekhez.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A visszaterjesztés nem az optimalizáló.</b> A visszaterjesztés csak a gradienst <em>számolja ki</em> (3. lépés); hogy mekkorát és merre lépünk, azt az optimalizáló dönti el (4. lépés, <a href="#s105">10.5</a>).
+      A köznyelv – és egy klasszikus tankönyv (ESL 11.4) is – „backpropnak” hívja az egész tanítást, és ezért írja, hogy a visszaterjesztés „lassú”. Lassú legfeljebb a sima gradiens módszer lehet; a gyorsabb módszerek is visszaterjesztéssel kapják a gradienst.</li>
+    <li><b>Felejtsd el a gradiens nullázását,</b> és minden lépés az összes eddigi gradiens összegével lép – a tanítás szétszáll.</li>
+    <li><b>Minden epochban keverj újra.</b> Ha mindig ugyanazok a képek vannak egy kötegben, a háló a köteg sorrendjéhez is alkalmazkodik.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a tanítási ciklus</summary>
+  <ol>
+    <li>$n = 1000$, $B = 50$. Hány lépés egy epoch, és hány lépés 12 epoch?
+      <details><summary>Megoldás</summary>$1000/50 = 20$ lépés epochonként, 12 epoch 240 lépés.</details></li>
+    <li>$n = 1047$, $B = 128$. Hány köteg van egy epochban, és mekkora az utolsó?
+      <details><summary>Megoldás</summary>$\lceil 1047/128\rceil = 9$ köteg: 8 teli ($8 \cdot 128 = 1024$ kép) és egy 23 képes.</details></li>
+    <li>Tedd sorrendbe: frissítés, veszteség, előre menet, visszafelé menet, a gradiensek nullázása.
+      <details><summary>Megoldás</summary>Nullázás → előre menet → veszteség → visszafelé menet → frissítés. (A nullázás a ciklus végére is kerülhet, csak a következő <code>backward()</code> előtt meg kell történnie.)</details></li>
+    <li>Egy tanítás 3000 lépést tett, $B = 64$-gyel, 16 000 képen. Hány epoch volt ez?
+      <details><summary>Megoldás</summary>Egy epoch $16\,000/64 = 250$ lépés; $3000/250 = 12$ epoch.</details></li>
+    <li>(nehezebb) Valaki véletlenül a <code>zero_grad()</code> nélkül tanít, és a gradiens minden lépésben ugyanaz a $\mathbf g$ lenne. Mekkora a $k$-adik lépés?
+      <details><summary>Megoldás</summary>A $k$-adik lépésben a felgyűlt gradiens $k\mathbf g$, a lépés $\eta k\mathbf g$ – egyre nagyobb. 100 lépés után százszoros: a tanítás szétszáll. (Hasonlít a momentumhoz, <a href="#s105-a">10.5</a>, csak ott a régi gradiensek „elhalványulnak”.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s102-b">2. lépés: a kötegméret és a zaj</h3>
+<p>A köteg gradiense csak <em>becslése</em> a teljes gradiensnek. Mennyire pontos? Nézzük meg egy olyan kicsi esetben, ahol minden köteget fel tudunk sorolni.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – négy minta, minden lehetséges köteg</span>
+  Egy egyparaméteres modell négy mintájának gradiense az adott pontban: $-6,\ -2,\ 2,\ 10$. A teljes gradiens az átlaguk: $\bar g = 1$ – a súlyt lefelé kell mozdítani.
+  <table style="max-width:620px;font-size:.88rem;text-align:center">
+    <tr><th>$B$</th><th>a lehetséges kötegek átlagai</th><th>legkisebb … legnagyobb</th><th>szórás</th></tr>
+    <tr><td>1</td><td>$-6;\ -2;\ 2;\ 10$</td><td>$-6$ … $10$</td><td>5,92</td></tr>
+    <tr><td>2</td><td>$-4;\ -2;\ 0;\ 2;\ 4;\ 6$</td><td>$-4$ … $6$</td><td>3,42</td></tr>
+    <tr><td>3</td><td>$-2;\ 0{,}67;\ 2;\ 3{,}33$</td><td>$-2$ … $3{,}33$</td><td>1,97</td></tr>
+    <tr><td>4</td><td>$1$</td><td>$1$</td><td>0</td></tr>
+  </table>
+  Minden sor átlaga 1: a köteg gradiense <b>átlagosan pontos</b> (torzítatlan). De $B = 1$-nél a kötegek fele rossz irányba mutat (negatív), $B = 2$-nél a hatból kettő, $B = 3$-nál a négyből egy. Minél nagyobb a köteg, annál kisebb a szórás.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – a köteg gradiensének zaja</span>
+  Ha a mintánkénti gradiensek szórása $\sigma$, egy $B$ méretű véletlen köteg átlagos gradiensének szórása (nagy tanítóhalmaznál) kb.
+  $$\frac{\sigma}{\sqrt B}.$$
+  Egy lépés <b>ára</b> viszont $B$-vel arányos. Négyszer nagyobb köteg: négyszer drágább lépés, de csak <b>feleakkora</b> zaj.
+  <br><small>Miért? A köteg gradiense $B$ független minta átlaga, és $B$ független, egyforma szórású szám átlagának szórása $\sigma/\sqrt B$ – ugyanaz, mint a mintaátlagé a statisztikában.
+  (A kiinduló példában a négy mintából visszatevés nélkül húztunk, ezért ott a szórás még gyorsabban csökkent: a teljes köteg már pontos.)</small>
+</div>
+<div class="widget" data-widget="batch-size-noise"></div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – mennyi zaj marad?</span>
+    $\sigma = 8$. $B = 16$: $8/4 = 2$; $\;B = 64$: $8/8 = 1$; $\;B = 256$: $8/16 = 0{,}5$. A zaj felezéséhez mindig négyszeres köteg kell.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – ugyanannyi epoch, más köteg</span>
+    A számjegyháló SGD-vel, $\eta = 0{,}1$, 20 epoch (a <a href="#s109">10.9</a> szemléltetésével ellenőrizheted):
+    <table style="font-size:.85rem;text-align:center;width:auto">
+      <tr><th>$B$</th><td>8</td><td>32</td><td>128</td><td>1047 (teljes)</td></tr>
+      <tr><th>lépések</th><td>2620</td><td>660</td><td>180</td><td>20</td></tr>
+      <tr><th>teszt</th><td>97,6%</td><td>95,3%</td><td>88,9%</td><td>25,3%</td></tr>
+    </table>
+    A teljes köteg gradiense a legpontosabb – de 20 epoch alatt csak 20-at lép.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabály – lépésszám, nem epochszám</span>
+  Ha a kötegeket <b>ugyanannyi lépéssel</b> hasonlítod össze, a különbség nagyrészt eltűnik: 660 lépés $B = 32$-vel 95,3%, 720 lépés $B = 128$-cal 95,1%, 660 lépés teljes köteggel 94,9%.
+  A nagy köteg nem „rosszabb” – csak egy epochban kevesebbet lép. Egy kísérletsorozat (PDL 10) MNIST-en ugyanezt kapta: rögzített epochszámnál a nagy köteg sokat rontott, rögzített lépésszámnál alig.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A kötegméret nem „mindegy, csak férjen a GPU-ba”.</b> Egy népszerű könyv (DLV 15) így tanácsolja – de a kötegmérettel a zaj, a lépésszám és a jó tanulási ráta is változik (következő lépés).</li>
+    <li><b>A zaj nem csak hiba.</b> Kis kötegnél a zaj segíthet kimozdulni a lapos részekről és a nyeregpontokból (<a href="../02-matematikai-eszkoztar/#s28-c">2.8</a>). Ezért nem mindig a legnagyobb köteg a legjobb.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – kötegméret és zaj</summary>
+  <ol>
+    <li>A mintánkénti gradiensek szórása $\sigma = 12$. Mekkora a köteg gradiensének szórása $B = 9$-nél és $B = 36$-nál?
+      <details><summary>Megoldás</summary>$12/3 = 4$, illetve $12/6 = 2$.</details></li>
+    <li>Mekkora köteg kell, hogy a zaj a $B = 16$-os harmadára csökkenjen?
+      <details><summary>Megoldás</summary>A zaj $1/\sqrt B$-vel arányos: harmad zajhoz kilencszeres köteg, $B = 144$.</details></li>
+    <li>A kiinduló példa négy gradiense ($-6, -2, 2, 10$) közül hány kettes köteg ad <em>rossz</em> irányt (negatív átlagot)? És hány ad pontosan 0-t?
+      <details><summary>Megoldás</summary>Hat kettes köteg van: átlagaik $-4, -2, 0, 2, 4, 6$. Kettő negatív ($\{-6, -2\}$ és $\{-6, 2\}$), egy pontosan 0 ($\{-2, 2\}$) – ez utóbbi nem mozdít semmit.</details></li>
+    <li>Egy lépés ára a kötegmérettel arányos. Ugyanannyi számításból ($B \cdot \text{lépések} = 64\,000$ minta) hány lépést tesz a $B = 16$ és a $B = 256$?
+      <details><summary>Megoldás</summary>4000, illetve 250 lépést. A kis köteg 16-szor többet lép, mindegyiket 4-szer nagyobb zajjal.</details></li>
+    <li>(nehezebb) Miért lehet, hogy a GPU-n a $B = 32$ és a $B = 64$ lépés majdnem ugyanannyi ideig tart?
+      <details><summary>Megoldás</summary>Mert a GPU a köteg mintáit párhuzamosan számolja: amíg nincs kihasználva, a nagyobb köteg „ingyen” van. Ezért a gyakorlatban a kötegméret alsó határát gyakran a hardver kihasználtsága szabja meg – a felsőt a memória és az általánosítás.</details></li>
+  </ol>
+</details>
+
+<h3 id="s102-c">3. lépés: tanulási ráta és kötegméret együtt</h3>
+<p>A teljes köteg 20 lépése túl kevés volt. Ha nem tudunk többet lépni, lépjünk nagyobbat? Melyik tanulási ráta illik egy nagyobb köteghez?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – négyszer nagyobb köteg, négyszer nagyobb lépés</span>
+  A számjegyháló, 20 epoch, SGD:
+  <table style="max-width:560px;font-size:.88rem;text-align:center">
+    <tr><th>$B$</th><th>$\eta$</th><th>lépések</th><th>teszt</th></tr>
+    <tr><td>32</td><td>0,1</td><td>660</td><td>95,3%</td></tr>
+    <tr><td>128</td><td>0,1</td><td>180</td><td>88,9%</td></tr>
+    <tr><td>128</td><td><b>0,4</b></td><td>180</td><td><b>95,3%</b></td></tr>
+    <tr><td>1047</td><td>3,2</td><td>20</td><td>14,0%</td></tr>
+  </table>
+  Négyszeres köteghez négyszeres $\eta$: ugyanaz az eredmény, negyed annyi lépésből. De a teljes köteghez illő $\eta = 3{,}2$ már túl nagy – a háló szétszáll.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – lineáris skálázás (hüvelykujjszabály)</span>
+  Ha a kötegméretet $k$-szorosára növeled, a tanulási rátát is szorozd $k$-val: $\;B \to kB \Rightarrow \eta \to k\eta$.
+  A nagy $\eta$ eleje legyen óvatos: az első néhány száz–ezer lépésben fokozatosan emeld fel (<b>bemelegítés</b>, <a href="#s105-c">10.5</a>).
+  <br><small>Miért? $k$ kis lépés helyett egyet lépünk, $k$-szor nagyobb kötegből. Ha a gradiens ezalatt alig változik, a $k$ kis lépés összege $\approx k\eta\,\bar{\mathbf g}$ – ezt egy $k\eta$-s lépés pótolja.
+  A szabály csak addig működik, amíg a nagy lépés még stabil (<a href="../02-matematikai-eszkoztar/#s28-b">2.8</a>): egy határ fölött (a „kritikus kötegméret” fölött) a nagyobb köteg már nem gyorsít. (P. Goyal és társai, 2017.)</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy ajánlás átszámolása</span>
+    Egy cikk $B = 256$-tal $\eta = 0{,}1$-et használ. Nálad $B = 1024$ fér a gépbe: $\eta = 0{,}4$, bemelegítéssel. $B = 64$-nél: $\eta = 0{,}025$.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – gradiensgyűjtés</span>
+    Ha csak 32 kép fér a memóriába, de 128-as köteg kell: négy 32-es köteg gradiensét összegyűjtöd (mindegyik veszteségét 4-gyel osztva), és csak utána lépsz. Ez <b>pontosan</b> a 128-as köteg lépése – az $\eta$-t ilyenkor <b>nem</b> kell változtatni.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Gradiensgyűjtésnél ne szorozd meg az $\eta$-t.</b> Egy rendszerkönyv (MLSYS) négy gyűjtött lépéshez négyszeres tanulási rátát javasol – de ha a veszteséget a lépések számával osztod (ahogy ugyanott a kód teszi), a gyűjtés már maga a nagy köteg, a szorzás duplán számolna.</li>
+    <li><b>„Nagyobb köteg → gyorsabb tanulás” csak lépésenként igaz,</b> nem feldolgozott mintánként. A kritikus kötegméret fölött a több minta már nem ad jobb irányt, csak drágább lépést.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – tanulási ráta és köteg</summary>
+  <ol>
+    <li>$B = 64$, $\eta = 0{,}05$ jól működik. Mekkora $\eta$-val próbálkoznál $B = 512$-nél?
+      <details><summary>Megoldás</summary>A köteg 8-szoros, így $\eta = 0{,}4$ (bemelegítéssel).</details></li>
+    <li>Egy rendszerkönyv táblázata: $B = 512$ → $\eta = 0{,}1$, $\;B = 4096$ → $\eta = 0{,}8$. Követi-e a lineáris skálázást?
+      <details><summary>Megoldás</summary>Igen: $4096/512 = 8$ és $0{,}8/0{,}1 = 8$.</details></li>
+    <li>8 GPU-n tanítasz, mindegyik 32 képet dolgoz fel, és a gradienseket átlagolják. Mekkora a tényleges kötegméret?
+      <details><summary>Megoldás</summary>$8 \cdot 32 = 256$. Az átlagolt gradiens ugyanaz, mint egy 256-os kötegé (<a href="#s108-c">10.8</a>).</details></li>
+    <li>Miért szállt szét a teljes köteg $\eta = 3{,}2$-vel, ha a négyszeres skálázás még működött?
+      <details><summary>Megoldás</summary>Mert a szabály csak addig érvényes, amíg a lépés stabil. Egy lépés legfeljebb akkora lehet, amekkorát a veszteség legmeredekebb iránya elbír (<a href="../02-matematikai-eszkoztar/#s28-b">2.8</a>) – a $3{,}2$ efölött van, a háló első lépései átugranak a völgyön.</details></li>
+    <li>(nehezebb) Egy GPU-ra 16 kép fér, de $B = 256$-os köteget szeretnél. Hány lépésnyi gradienst gyűjtesz, mennyivel osztod a veszteséget, és hány frissítést teszel egy 25 600 képes epochban?
+      <details><summary>Megoldás</summary>$256/16 = 16$ részköteget gyűjtesz, mindegyik veszteségét 16-tal osztod. Egy epoch $25\,600/256 = 100$ frissítés (1600 előre–vissza menettel).</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai10-102"></div>
+</section>
+
+<!-- ===================================================== 10.3 -->
+<section id="s103">
+<h2>10.3 Visszaterjesztés kézzel ★★</h2>
+<p>A tanítási ciklus harmadik lépése a legérdekesebb: honnan tudjuk, hogy a veszteség hogyan függ <em>mind az 1210</em> súlytól? Egy kis hálón kézzel végigszámoljuk – és közben kiderül, hogy az egész csak a <b>láncszabály</b> (<a href="../02-matematikai-eszkoztar/#s27-d">2.7</a>), okos sorrendben.</p>
+
+<h3 id="s103-a">1. lépés: egyetlen neuron – a láncszabály</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy szigmoid neuron, egy lépés</span>
+  Egy bemenet $x = 2$, súly $w = 0{,}5$, torzítás $b = -1$, szigmoid kimenet, a helyes címke $y = 1$, keresztentrópia.
+  <ul style="margin:.2rem 0">
+    <li><b>Előre:</b> $z = 0{,}5 \cdot 2 - 1 = 0$, $\;\hat p = \sigma(0) = 0{,}5$, $\;L = -\ln 0{,}5 \approx 0{,}693$.</li>
+    <li><b>Vissza, láncszemenként:</b> a veszteség $z$ szerint (<a href="#s101-c">10.1</a>): $\delta = \hat p - y = -0{,}5$. A $z = wx + b$ a $w$ szerint $x$-szel nő, a $b$ szerint 1-gyel. Tehát
+      $$\frac{\partial L}{\partial w} = \delta \cdot x = -0{,}5 \cdot 2 = -1, \qquad \frac{\partial L}{\partial b} = \delta \cdot 1 = -0{,}5.$$</li>
+    <li><b>Frissítés</b> ($\eta = 0{,}5$): $w = 0{,}5 - 0{,}5\cdot(-1) = 1$, $\;b = -1 - 0{,}5\cdot(-0{,}5) = -0{,}75$.</li>
+    <li><b>Ellenőrzés:</b> $z = 2 - 0{,}75 = 1{,}25$, $\hat p = 0{,}777$, $L = 0{,}252$. A veszteség 0,693-ról 0,252-re esett.</li>
+  </ul>
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – egy neuron súlyainak gradiense</span>
+  Ha a neuron $z = \mathbf w^\top\mathbf x + b$, és ismerjük a $\delta = \partial L/\partial z$ értéket, akkor
+  $$\frac{\partial L}{\partial w_i} = \delta \cdot x_i, \qquad \frac{\partial L}{\partial b} = \delta.$$
+  <b>Hüvelykujjszabály: a súly gradiense = a súlyon átfolyó bemenet × a neuron $\delta$-ja.</b>
+  <br><small>Miért? A láncszabály szerint $\frac{\partial L}{\partial w_i} = \frac{\partial L}{\partial z}\cdot\frac{\partial z}{\partial w_i}$, és $z$-ben $w_i$ csak az $x_i w_i$ tagban szerepel, így $\partial z/\partial w_i = x_i$.
+  A $\delta$ azt méri, mennyire „érzékeny” a veszteség a neuronra; a bemenet azt, mennyire „felelős” az adott súly a neuron $z$-jéért.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – lineáris neuron, négyzetes hiba</span>
+    $\hat y = wx + b$, $x = 3$, $w = 1$, $b = 0$, $y = 5$. $\hat y = 3$, $\delta = \hat y - y = -2$ (<a href="#s101-c">10.1</a>). $\;\partial L/\partial w = -2 \cdot 3 = -6$, $\;\partial L/\partial b = -2$.
+    A súlyt felfelé kell tolni – háromszor erősebben, mint a torzítást, mert a bemenet 3.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – nulla bemenet</span>
+    Ugyanaz a neuron, de két bemenettel: $\mathbf x = (3;\ 0)$, $\delta = -2$. A gradiens $(-6;\ 0)$: a második súly <b>ebből a mintából nem tanul</b>, hiszen nem is befolyásolta a kimenetet.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Előjel: $\delta = \hat y - y$ (jóslat mínusz valóság), és a frissítés <em>kivonja</em> a gradienst.</b> Egy szemléletes könyv (DLV 14) a kimeneti hibát „címke mínusz kimenet” alakban írja, majd a súlyokból mégis kivonja – a kettő együtt felfelé menne a lejtőn.
+      Ha a „valóság mínusz jóslat” alakot használod, a frissítésben <em>összeadás</em> kell (mint a perceptronnál, <a href="../09-neuralis-halozatok/#s92-a">9.2</a>).</li>
+    <li><b>A $\delta$ a $z$ szerinti derivált, nem az $a = \varphi(z)$ szerinti.</b> A kettő között ott az aktiváció deriváltja – a következő lépésben ez fontos lesz.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – egy neuron</summary>
+  <ol>
+    <li>Szigmoid neuron, keresztentrópia: $x = 1$, $w = 0$, $b = 0$, $y = 0$. Mennyi $\hat p$, $\delta$, $\partial L/\partial w$ és $\partial L/\partial b$?
+      <details><summary>Megoldás</summary>$z = 0$, $\hat p = 0{,}5$, $\delta = 0{,}5$, $\partial L/\partial w = 0{,}5$, $\partial L/\partial b = 0{,}5$. A lépés mindkettőt csökkenti – a $\hat p$ a 0 felé megy.</details></li>
+    <li>Lineáris neuron, négyzetes hiba: $\mathbf x = (1;\ -2)$, $\mathbf w = (2;\ 1)$, $b = 1$, $y = 3$. Mennyi a gradiens?
+      <details><summary>Megoldás</summary>$\hat y = 2 - 2 + 1 = 1$, $\delta = 1 - 3 = -2$. $\nabla_{\mathbf w} L = -2\cdot(1;\ -2) = (-2;\ 4)$, $\partial L/\partial b = -2$.</details></li>
+    <li>Az előző feladatban lépj $\eta = 0{,}1$-gyel! Mennyi az új jóslat és a veszteség?
+      <details><summary>Megoldás</summary>$\mathbf w = (2{,}2;\ 0{,}6)$, $b = 1{,}2$. $\hat y = 2{,}2 - 1{,}2 + 1{,}2 = 2{,}2$, $L = \tfrac12 \cdot 0{,}8^2 = 0{,}32$ (előtte $\tfrac12\cdot 2^2 = 2$).</details></li>
+    <li>A kiinduló példában mennyi lett volna a veszteség $\eta = 1$-gyel? És $\eta = 0{,}25$-tel?
+      <details><summary>Megoldás</summary>$\eta = 1$: $w = 1{,}5$, $b = -0{,}5$, $z = 2{,}5$, $\hat p = 0{,}924$, $L = 0{,}079$. $\;\eta = 0{,}25$: $w = 0{,}75$, $b = -0{,}875$, $z = 0{,}625$, $\hat p = 0{,}651$, $L = 0{,}429$.</details></li>
+    <li>(nehezebb) Egy neuron négyzetes hibával, de <b>szigmoid</b> kimenettel: $x = 2$, $w = 0{,}5$, $b = -1$, $y = 1$. Mennyi $\partial L/\partial w$? Vesd össze a kiinduló példával!
+      <details><summary>Megoldás</summary>$\hat p = 0{,}5$; $\delta = (\hat p - y)\,\hat p(1 - \hat p) = -0{,}5 \cdot 0{,}25 = -0{,}125$ (<a href="#s101-b">10.1</a>). $\partial L/\partial w = -0{,}125 \cdot 2 = -0{,}25$ – negyede a keresztentrópiás $-1$-nek.</details></li>
+  </ol>
+</details>
+
+<h3 id="s103-b">2. lépés: két réteg – a hiba visszafelé terjed</h3>
+<p>Egy neuronnál a $\delta$-t a kimeneten egyből tudtuk. De mi a $\delta$-ja egy <b>rejtett</b> neuronnak, amelynek nincs „helyes válasza” (<a href="../09-neuralis-halozatok/#s93-a">9.3</a>)? A válasz: a rejtett neuron annyira felelős, amennyire a kimenetre hat.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy 2–2–1-es háló, egy teljes tanítási lépés</span>
+  Bemenet $\mathbf x = (1;\ 2)$, címke $y = 1$. Rejtett réteg ReLU-val, kimenet szigmoiddal, keresztentrópia:
+  $$W_1 = \begin{pmatrix} 0{,}5 & 0{,}25 \\ -1 & 1 \end{pmatrix},\quad \mathbf b_1 = \begin{pmatrix} 0 \\ 0{,}5 \end{pmatrix},\qquad \mathbf w_2 = (1;\ -1),\quad b_2 = 0{,}5.$$
+  <b>① Előre.</b> $\mathbf z_1 = W_1\mathbf x + \mathbf b_1 = (0{,}5 + 0{,}5 + 0;\ -1 + 2 + 0{,}5) = (1;\ 1{,}5)$, $\;\mathbf h = \mathrm{ReLU}(\mathbf z_1) = (1;\ 1{,}5)$.
+  $z_2 = 1\cdot 1 + (-1)\cdot 1{,}5 + 0{,}5 = 0$, $\;\hat p = 0{,}5$, $\;L = 0{,}6931$.<br>
+  <b>② A kimeneti réteg.</b> $\delta_2 = \hat p - y = -0{,}5$. A kimeneti súlyok bemenete $\mathbf h$, így $\;\partial L/\partial\mathbf w_2 = \delta_2\,\mathbf h = (-0{,}5;\ -0{,}75)$, $\;\partial L/\partial b_2 = -0{,}5$.<br>
+  <b>③ Vissza a rejtett rétegbe.</b> Az első rejtett neuron $w = 1$-gyel hat a kimenetre, a második $w = -1$-gyel. A veszteség a rejtett kimenetek szerint:
+  $\partial L/\partial\mathbf h = \mathbf w_2\,\delta_2 = (1\cdot(-0{,}5);\ (-1)\cdot(-0{,}5)) = (-0{,}5;\ 0{,}5)$.
+  Ezt még átvezetjük a ReLU-n: mindkét $z_1$ pozitív, a derivált 1, tehát $\boldsymbol\delta_1 = (-0{,}5;\ 0{,}5)$.<br>
+  <b>④ A rejtett súlyok.</b> A bemenet $\mathbf x = (1;\ 2)$, így soronként „$\delta$ × bemenet”:
+  $$\frac{\partial L}{\partial W_1} = \boldsymbol\delta_1\mathbf x^\top = \begin{pmatrix} -0{,}5 & -1 \\ 0{,}5 & 1 \end{pmatrix},\qquad \frac{\partial L}{\partial\mathbf b_1} = (-0{,}5;\ 0{,}5).$$
+  <b>⑤ Frissítés</b> $\eta = 0{,}1$-gyel: $W_1 = \begin{pmatrix} 0{,}55 & 0{,}35 \\ -1{,}05 & 0{,}9 \end{pmatrix}$, $\mathbf b_1 = (0{,}05;\ 0{,}45)$, $\mathbf w_2 = (1{,}05;\ -0{,}925)$, $b_2 = 0{,}55$.<br>
+  <b>⑥ Ellenőrzés.</b> Új előre menet: $\mathbf h = (1{,}3;\ 1{,}2)$, $z_2 = 0{,}805$, $\hat p = 0{,}691$, $L = 0{,}3696$. Egy lépés, és a veszteség majdnem a felére esett.
+  Mind a 9 paraméter egyszerre mozdult – mindegyik a saját gradiense szerint. Az első rejtett neuron (amely „mellette szól”) felerősödött, a második (amely „ellene”) gyengült.
+</div>
+<div class="box def">
+  <span class="box-title">Algoritmus – visszaterjesztés (rétegenként)</span>
+  Előre menetben rétegenként eltároljuk a $\mathbf z^{(\ell)}$ és a $\mathbf h^{(\ell)} = \varphi(\mathbf z^{(\ell)})$ értékeket ($\mathbf h^{(0)} = \mathbf x$). Aztán a kimenettől visszafelé:
+  <ol style="margin:.2rem 0">
+    <li><b>kimenet:</b> $\boldsymbol\delta^{(L)} = \hat{\mathbf y} - \mathbf y$ (a <a href="#s101-c">10.1</a> párosaival);</li>
+    <li><b>a réteg paraméterei:</b> $\dfrac{\partial L}{\partial W^{(\ell)}} = \boldsymbol\delta^{(\ell)}\,\mathbf h^{(\ell-1)\top}$, $\quad\dfrac{\partial L}{\partial\mathbf b^{(\ell)}} = \boldsymbol\delta^{(\ell)}$;</li>
+    <li><b>egy réteggel hátrébb:</b> $\boldsymbol\delta^{(\ell-1)} = \big(W^{(\ell)\top}\boldsymbol\delta^{(\ell)}\big) \odot \varphi'\big(\mathbf z^{(\ell-1)}\big)$, ahol $\odot$ az elemenkénti szorzás.</li>
+  </ol>
+  <small>Miért? A 3. sor a többváltozós láncszabály: a rejtett neuron minden kimenetre hat, a hatások összeadódnak (ez a $W^\top\boldsymbol\delta$ sorainak összege), és a $z$-ből az aktiváción át jutunk a $h$-ig (ezért a $\varphi'$).
+  Figyeld meg a szimmetriát: előre a súlyok a <b>bemeneteket</b> összegzik, visszafelé ugyanazok a súlyok a <b>következő réteg $\delta$-it</b> – csak a mátrix transzponálva szerepel. (D. Rumelhart, G. Hinton és R. Williams 1986-os cikke tette ismertté; a módszer gyökerei korábbiak, lásd a <a href="#s103-c">3. lépést</a>.)</small>
+</div>
+<div class="widget" data-widget="backprop-stepper"></div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy „halott” rejtett neuron</span>
+    Ugyanez a háló, de $\mathbf b_1 = (0;\ -2)$. Most $\mathbf z_1 = (1;\ -1)$, $\mathbf h = (1;\ 0)$, $z_2 = 1{,}5$, $\hat p = 0{,}818$, $\delta_2 = -0{,}182$.
+    A második rejtett neuron $z$-je negatív, a ReLU deriváltja ott 0, így $\boldsymbol\delta_1 = (-0{,}182;\ 0)$: <b>a második neuron bejövő súlyai ebből a mintából semmit nem tanulnak</b>, és a kimeneti súlya sem ($h_2 = 0$).
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – szigmoid a rejtett rétegben</span>
+    Ha a kiinduló példában ReLU helyett szigmoid van: $\mathbf h = (\sigma(1);\ \sigma(1{,}5)) = (0{,}731;\ 0{,}818)$, $z_2 = 0{,}413$, $\hat p = 0{,}602$, $\delta_2 = -0{,}398$.
+    A rejtett $\delta$-knál a ReLU 1-es deriváltja helyett $\sigma'(z) = h(1 - h)$ szorzik: $\boldsymbol\delta_1 = (-0{,}398 \cdot 0{,}197;\ 0{,}398 \cdot 0{,}149) = (-0{,}078;\ 0{,}059)$ – kb. hatoda a ReLU-s értéknek.
+  </div>
+</div>
+<details class="box">
+  <summary>📐 A matematika mögötte – egész köteg egyszerre</summary>
+  Egy $B$ mintás kötegben a rétegek kimenetei mátrixok: $H^{(\ell)}$ mérete $B \times n_\ell$, soronként egy minta (<a href="../09-neuralis-halozatok/#s93-b">9.3</a>). A $\delta$-k is mátrixba rendeződnek ($\Delta^{(\ell)}$, $B \times n_\ell$), és az átlagos veszteség gradiense
+  $$\frac{\partial L}{\partial W^{(\ell)}} = \frac1B\,\Delta^{(\ell)\top} H^{(\ell-1)}, \qquad \Delta^{(\ell-1)} = \big(\Delta^{(\ell)} W^{(\ell)}\big) \odot \varphi'\big(Z^{(\ell-1)}\big).$$
+  Az első képlet a mintánkénti $\boldsymbol\delta\,\mathbf h^\top$ szorzatok átlaga – egyetlen mátrixszorzásba csomagolva. Ezért szereti a GPU: a visszafelé menet is nagy mátrixszorzásokból áll.
+</details>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Ne felejtsd ki az aktiváció deriváltját.</b> Egy könyv (DLV 14) a rejtett neuron $\delta$-ját csak a „következő $\delta$-k súlyozott összegeként” adja meg, és azt írja, az aktiváció „nem változtat az alapelven”. A képletbe viszont a $\varphi'(z)$ szorzó kell – szigmoidnál ez akár hatodára is csökkenti a jelet.</li>
+    <li><b>Transzponált mátrix.</b> Előre $W$, vissza $W^\top$. Ha a méretek nem stimmelnek ($W$: $n_{\text{ki}} \times n_{\text{be}}$, $\boldsymbol\delta$: $n_{\text{ki}}$ elemű), rossz a sorrend.</li>
+    <li><b>A $\varphi'$-t a $z$-ben számold,</b> nem a $h$-ban. (Szigmoidnál és tanh-nál kényelmes, hogy $\varphi'$ a $h$-ból is kijön: $h(1 - h)$, illetve $1 - h^2$ – de ez ugyanaz a szám.)</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – két réteg</summary>
+  <ol>
+    <li>A kiinduló példában $y = 0$ a címke. Mennyi $\delta_2$ és $\boldsymbol\delta_1$?
+      <details><summary>Megoldás</summary>$\hat p = 0{,}5$, $\delta_2 = 0{,}5$. $\partial L/\partial\mathbf h = (1\cdot 0{,}5;\ -1\cdot 0{,}5) = (0{,}5;\ -0{,}5)$, ReLU-derivált 1 → $\boldsymbol\delta_1 = (0{,}5;\ -0{,}5)$. Minden gradiens előjelet vált.</details></li>
+    <li>Egy rejtett neuron két kimeneti neuronra hat $0{,}5$ és $-2$ súllyal; azok $\delta$-ja $0{,}4$ és $0{,}1$. A neuron $z$-je pozitív (ReLU). Mennyi a $\delta$-ja?
+      <details><summary>Megoldás</summary>$0{,}5 \cdot 0{,}4 + (-2)\cdot 0{,}1 = 0{,}2 - 0{,}2 = 0$, szorozva 1-gyel: $\delta = 0$. A két hatás kioltja egymást – a neuron e mintán nem változik.</details></li>
+    <li>Ugyanez, de a neuron szigmoidos, kimenete $h = 0{,}9$, és a második súly $-1$. Mennyi $\delta$?
+      <details><summary>Megoldás</summary>$0{,}5 \cdot 0{,}4 + (-1)\cdot 0{,}1 = 0{,}1$; $\sigma' = 0{,}9 \cdot 0{,}1 = 0{,}09$; $\delta = 0{,}009$. A telített szigmoid tizedére csökkentette.</details></li>
+    <li>Egy réteg 64 bemenetből 16 kimenetet számol. Mekkora a $\partial L/\partial W$ mátrix, és hány szorzás kell a kiszámolásához egy mintán?
+      <details><summary>Megoldás</summary>$16 \times 64$, mint maga a $W$ (minden súlynak van gradiense). A $\boldsymbol\delta\,\mathbf x^\top$ külső szorzat $16 \cdot 64 = 1024$ szorzás – ugyanannyi, mint az előre menetben.</details></li>
+    <li>(nehezebb) A kiinduló példa frissített hálójával ($\eta = 0{,}1$ után) tegyél még egy lépést! Mennyi lesz a veszteség? (A szemléltetéssel ellenőrizheted.)
+      <details><summary>Megoldás</summary>$\hat p = 0{,}691$, $\delta_2 = -0{,}309$; $\mathbf h = (1{,}3;\ 1{,}2)$ → $\partial L/\partial\mathbf w_2 = (-0{,}402;\ -0{,}371)$, $\partial L/\partial b_2 = -0{,}309$.
+        $\boldsymbol\delta_1 = (1{,}05 \cdot (-0{,}309);\ -0{,}925\cdot(-0{,}309)) = (-0{,}324;\ 0{,}286)$, $\partial L/\partial W_1 = \boldsymbol\delta_1\mathbf x^\top$.
+        A frissítés után $L \approx 0{,}2416$. A sorozat: 0,6931 → 0,3696 → 0,2416 → 0,1764 → 0,1374 – egyre kisebb lépésekkel, mert a $\delta_2$ is egyre kisebb.</details></li>
+  </ol>
+</details>
+
+<h3 id="s103-c">3. lépés: miért ilyen olcsó? – numerikus deriválás és gradiensellenőrzés</h3>
+<p>A gradienst ki lehetne számolni „buta” módon is: mozdítsunk meg egy súlyt egy picit, és nézzük meg, mennyit változik a veszteség. Miért nem így csinálja senki?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy súly, két kis elmozdítás</span>
+  A 2–2–1-es háló $W_1$ bal felső súlya $0{,}5$. Mozdítsuk el $\varepsilon = 0{,}01$-gyel mindkét irányba, és számoljuk ki a veszteséget előre menettel:
+  $L(0{,}51) = 0{,}68816$, $\;L(0{,}49) = 0{,}69816$. A meredekség:
+  $$\frac{L(w + \varepsilon) - L(w - \varepsilon)}{2\varepsilon} = \frac{0{,}68816 - 0{,}69816}{0{,}02} = -0{,}5000.$$
+  Pontosan az, amit a visszaterjesztés adott (<a href="#s103-b">2. lépés</a>, $\partial L/\partial W_1$ bal felső eleme). De ehhez <b>két</b> előre menet kellett – <b>egyetlen</b> súlyért.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – a visszaterjesztés ára</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Numerikus deriválás</b> (szimmetrikus különbség): paraméterenként 2 előre menet. $P$ paraméterhez $2P$ előre menet.</li>
+    <li><b>Visszaterjesztés:</b> 1 előre és 1 visszafelé menet – a visszafelé menet nagyjából kétszer annyi számolás, mint az előre (a $\boldsymbol\delta$-k és a súlygradiensek). Összesen kb. <b>3 előre menetnyi munka, a paraméterek számától függetlenül.</b></li>
+  </ul>
+  <small>Miért? Az előre menetben kiszámolt (és eltárolt) $\mathbf z$, $\mathbf h$ értékeket a visszafelé menet újrahasznosítja, és minden $\boldsymbol\delta$-t csak egyszer számol ki – ahelyett, hogy minden súlyhoz külön végigmenne a hálón.
+  Ára a <b>memória</b>: az előre menet köztes értékeit a visszafelé menetig meg kell őrizni (<a href="#s108-c">10.8</a>).</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a számjegyháló</span>
+    1210 paraméter. Numerikusan: $2 \cdot 1210 = 2420$ előre menet egy gradienshez. Visszaterjesztéssel: kb. 3 előre menetnyi munka – <b>kb. 800-szor gyorsabb</b>.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy nagy nyelvi modell</span>
+    $10^{10}$ paraméter. Numerikusan $2 \cdot 10^{10}$ előre menet – egyetlen lépéshez. Visszaterjesztéssel ugyanaz a kb. 3 menet. Visszaterjesztés nélkül nem lenne mélytanulás.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Gradiensellenőrzés</span>
+  A numerikus deriválás lassú, de megbízható. Ha saját visszaterjesztést írsz, néhány véletlen súlyon vesd össze a kettőt: a relatív eltérés legyen kicsi (pl. $10^{-6}$ alatti).
+  Ha nem az, a visszafelé menetben hiba van – leggyakrabban egy elfelejtett $\varphi'$ vagy egy transzponálás. (A ReLU töréspontjában, $z = 0$-nál a numerikus érték megtévesztő lehet: ott a függvény nem deriválható.)
+</div>
+<div class="box history">
+  <span class="box-title">📜 Történet – ki találta fel?</span>
+  A „visszafelé” deriválás ötlete többször is felbukkant. S. Linnainmaa 1970-es szakdolgozata írta le általános formában (fordított módú automatikus differenciálás, <a href="#s104-c">10.4</a>),
+  P. Werbos 1974-ben javasolta neurális hálókra, D. Rumelhart, G. Hinton és R. Williams 1986-os <em>Nature</em>-cikke pedig megmutatta, hogy rejtett rétegek tanulnak vele hasznos jellemzőket – ettől lett ismert.
+  (Több könyv, köztük az MDL 10, úgy írja, hogy Rumelhart és társai „vezették be” – pontosabb: ők tették népszerűvé.)
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktató – az egysúlyos „próbálgatás”</span>
+  Az a módszer, hogy „mozdíts meg véletlenül egy súlyt, és tartsd meg, ha javult” (egy könyv, DLV 14, ezzel kezd), működik, de reménytelenül lassú: lépésenként egy súlyról egy bitnyi információ.
+  A gradiens egyszerre mind az 1210 súlyról megmondja, merre és mennyire érdemes mozdítani.
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – az ár</summary>
+  <ol>
+    <li>Egy 784–128–10-es hálónak 101 770 paramétere van (<a href="../09-neuralis-halozatok/#s96-b">9.6</a>). Hány előre menet kell egy numerikus gradienshez?
+      <details><summary>Megoldás</summary>$2 \cdot 101\,770 = 203\,540$ – a visszaterjesztés kb. 3 menetnyi munkája helyett.</details></li>
+    <li>Az egyneuronos kiinduló példában ($x = 2$, $w = 0{,}5$, $b = -1$, $y = 1$) számold ki numerikusan a $\partial L/\partial b$-t $\varepsilon = 0{,}01$-gyel!
+      <details><summary>Megoldás</summary>$L(b = -0{,}99) = -\ln\sigma(0{,}01) \approx 0{,}68816$, $L(b = -1{,}01) = -\ln\sigma(-0{,}01) \approx 0{,}69816$. $(0{,}68816 - 0{,}69816)/0{,}02 = -0{,}5$ ✓.</details></li>
+    <li>Miért kell a visszafelé menethez eltárolni a $\mathbf z^{(\ell)}$ értékeket?
+      <details><summary>Megoldás</summary>Mert a $\boldsymbol\delta^{(\ell-1)}$ képletében ott a $\varphi'(\mathbf z^{(\ell-1)})$, a súlygradiensben pedig a $\mathbf h^{(\ell-1)}$. Ha nem tárolnánk, újra kellene számolni az előre menetet.</details></li>
+    <li>Egy saját visszaterjesztés egy súlyra $-0{,}50$-t ad, a numerikus ellenőrzés $+0{,}50$-et. Mi a valószínű hiba?
+      <details><summary>Megoldás</summary>Előjelhiba: valahol $y - \hat y$ szerepel $\hat y - y$ helyett (vagy a frissítés előjele rossz). A nagyság stimmel, csak az irány fordított.</details></li>
+    <li>(nehezebb) Egy háló minden rétege 1000 × 1000-es, 10 réteg van, köteg 100. Hány számot kell az előre menetből a visszafelé menetig megőrizni (csak a rétegek kimeneteit számolva)? Hány bájt ez 32 bites számokkal?
+      <details><summary>Megoldás</summary>Rétegenként $100 \cdot 1000 = 10^5$ kimenet (és ugyanennyi $z$), 10 rétegre $10^6$ (a $z$-kkel $2 \cdot 10^6$). 4 bájttal 4 MB (8 MB). Nagy hálóknál ez a köztes tárolás – nem a súlyok – viszi el a memória nagy részét.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai10-103"></div>
+</section>
+
+<!-- ===================================================== 10.4 -->
+<section id="s104">
+<h2>10.4 Számítási gráf és automatikus differenciálás ★★★</h2>
+<p>A 10.3 képletei rétegekre szabottak. De mi van, ha a háló nem csak rétegekből áll – van benne elágazás, összeadás, maximum, figyelem (12. fejezet)? Szerencsére nem kell minden új hálóhoz új képletet levezetni.
+Elég, ha a számolást apró műveletekre bontjuk, és mindegyikről tudjuk, hogyan kell <em>rajta</em> visszafelé menni. Ez a <b>számítási gráf</b>. <small>(A szakasz kihagyható; a 10.5-től nem építünk rá.)</small></p>
+
+<h3 id="s104-a">1. lépés: előre és vissza egy kifejezésen</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – $f = (x + y)\cdot z$</span>
+  Legyen $x = 1$, $y = 2$, $z = -3$. Bontsuk két műveletre: $q = x + y$, $f = q\cdot z$.
+  <ul style="margin:.2rem 0">
+    <li><b>Előre</b> (balról jobbra): $q = 3$, $f = 3 \cdot (-3) = -9$.</li>
+    <li><b>Vissza</b> (jobbról balra), a végén $\partial f/\partial f = 1$-gyel indulva:
+      <ul>
+        <li>a szorzás: $\partial f/\partial z = q = 3$, $\;\partial f/\partial q = z = -3$;</li>
+        <li>az összeadás: $q$ mindkét bemenetével 1-es meredekséggel nő, így $\partial f/\partial x = -3 \cdot 1 = -3$, $\;\partial f/\partial y = -3 \cdot 1 = -3$.</li>
+      </ul></li>
+  </ul>
+  Ellenőrzés: $f = (x + y)z$, így $\partial f/\partial x = z = -3$ ✓ és $\partial f/\partial z = x + y = 3$ ✓.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – számítási gráf</span>
+  A <b>számítási gráf</b> irányított, kör nélküli gráf: a csúcsai elemi műveletek (összeadás, szorzás, $\exp$, ReLU, mátrixszorzás…), az élei a köztes értékek.
+  <ul style="margin:.2rem 0">
+    <li><b>előre menet:</b> a bemenetektől a kimenet felé minden csúcs kiszámolja az értékét (és eltárolja, ami a deriváláshoz kell);</li>
+    <li><b>visszafelé menet:</b> a kimenettől indulva minden csúcs a kapott „felső” gradienst megszorozza a saját <b>lokális deriváltjával</b>, és továbbadja a bemeneteinek.</li>
+  </ul>
+  <small>Miért működik? Ez a láncszabály, csúcsonként alkalmazva: $\frac{\partial f}{\partial\,\text{bemenet}} = \frac{\partial f}{\partial\,\text{kimenet}}\cdot\frac{\partial\,\text{kimenet}}{\partial\,\text{bemenet}}$. Minden csúcsnak csak a saját képletét kell ismernie – az egész gráfét nem.</small>
+</div>
+<div class="widget" data-widget="compute-graph"></div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – más számokkal</span>
+    $x = 2$, $y = -1$, $z = 4$: $q = 1$, $f = 4$. Vissza: $\partial f/\partial z = 1$, $\partial f/\partial q = 4$, így $\partial f/\partial x = \partial f/\partial y = 4$.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy szigmoid neuron mint gráf</span>
+    $a = \sigma(w\cdot x + b)$, $w = 0{,}5$, $x = 2$, $b = -1$. Előre: $u = wx = 1$, $z = u + b = 0$, $a = 0{,}5$.
+    Vissza: $\partial a/\partial z = a(1 - a) = 0{,}25$; az összeadás továbbadja: $\partial a/\partial u = \partial a/\partial b = 0{,}25$; a szorzás felcseréli: $\partial a/\partial w = 0{,}25 \cdot x = 0{,}5$, $\;\partial a/\partial x = 0{,}25 \cdot w = 0{,}125$.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktató – a visszafelé menet a kimenettől indul, 1-gyel</span>
+  A kimenet önmaga szerinti deriváltja 1. Ha a gráf végén a veszteség áll, a visszafelé menet onnan indul; ha egy köztes értéktől indulnál, annak a gradiensét kapnád, nem a veszteségét.
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – előre és vissza</summary>
+  <ol>
+    <li>$f = (x + y)\cdot z$, $x = -2$, $y = 5$, $z = -4$. Mennyi $f$ és a három parciális derivált?
+      <details><summary>Megoldás</summary>$q = 3$, $f = -12$. $\partial f/\partial z = 3$, $\partial f/\partial x = \partial f/\partial y = -4$.</details></li>
+    <li>$f = (x - y)\cdot z$, $x = 3$, $y = 1$, $z = 2$. Mi változik a kivonás miatt?
+      <details><summary>Megoldás</summary>$q = 2$, $f = 4$, $\partial f/\partial q = 2$, $\partial f/\partial z = 2$. A kivonás lokális deriváltja $x$ szerint $+1$, $y$ szerint $-1$: $\partial f/\partial x = 2$, $\partial f/\partial y = -2$.</details></li>
+    <li>$f = (a\cdot b) + c$, $a = 3$, $b = -2$, $c = 5$. Rajzold fel a gráfot, és számold ki a gradienseket!
+      <details><summary>Megoldás</summary>$p = ab = -6$, $f = -1$. Az összeadás 1-et ad tovább: $\partial f/\partial c = 1$, $\partial f/\partial p = 1$; a szorzás felcserél: $\partial f/\partial a = b = -2$, $\partial f/\partial b = a = 3$.</details></li>
+    <li>$f = \mathrm{ReLU}(w\cdot x)$, $w = -1$, $x = 2$. Mennyi $\partial f/\partial w$?
+      <details><summary>Megoldás</summary>$wx = -2 \lt 0$, $f = 0$, a ReLU lokális deriváltja 0, így minden gradiens 0. (A „halott” neuron gráfként.)</details></li>
+    <li>(nehezebb) $f = (x + y)^2$ – bontsd $q = x + y$ és $f = q^2$ műveletekre! $x = 1$, $y = 2$: mennyi $\partial f/\partial x$?
+      <details><summary>Megoldás</summary>$q = 3$, $f = 9$. A négyzetre emelés lokális deriváltja $2q = 6$, az összeadás továbbadja: $\partial f/\partial x = \partial f/\partial y = 6$.</details></li>
+  </ol>
+</details>
+
+<h3 id="s104-b">2. lépés: a kapuk szabályai és az elágazás</h3>
+<p>A visszafelé menetben a leggyakoribb csúcsok nagyon egyszerűen viselkednek – érdemes megjegyezni őket. Egy új helyzet viszont csak a gráfon látszik: ha egy érték <b>több helyre is</b> befolyik.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – $f = x\cdot y + x$</span>
+  $x = 3$, $y = 2$: $p = xy = 6$, $f = p + x = 9$. Az $x$ <b>két</b> úton hat $f$-re: a szorzáson át és közvetlenül.
+  <ul style="margin:.2rem 0">
+    <li>a szorzáson át: $\partial f/\partial p \cdot y = 1 \cdot 2 = 2$;</li>
+    <li>közvetlenül (az összeadás továbbadja): $1$.</li>
+  </ul>
+  A két út hozzájárulása <b>összeadódik</b>: $\partial f/\partial x = 2 + 1 = 3$. Ellenőrzés: $f = xy + x$, $\partial f/\partial x = y + 1 = 3$ ✓, $\;\partial f/\partial y = x = 3$.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – a kapuk viselkedése visszafelé</span>
+  <table style="font-size:.9rem">
+    <tr><th>csúcs</th><th>előre</th><th>vissza (felső gradiens: $g$)</th><th>röviden</th></tr>
+    <tr><td>összeadás</td><td>$a + b$</td><td>$a$-nak $g$, $b$-nek $g$</td><td><b>továbbadja</b></td></tr>
+    <tr><td>szorzás</td><td>$a\cdot b$</td><td>$a$-nak $g\cdot b$, $b$-nek $g\cdot a$</td><td><b>felcseréli</b> a bemeneteket</td></tr>
+    <tr><td>maximum</td><td>$\max(a, b)$</td><td>a nagyobbiknak $g$, a másiknak 0</td><td><b>irányítja</b></td></tr>
+    <tr><td>ReLU</td><td>$\max(0, z)$</td><td>$g$, ha $z \gt 0$, különben 0</td><td><b>kapu</b>: átenged vagy elzár</td></tr>
+    <tr><td>szigmoid</td><td>$\sigma(z)$</td><td>$g\cdot\sigma(z)(1 - \sigma(z))$</td><td>legfeljebb negyedére <b>csillapít</b></td></tr>
+    <tr><td><b>elágazás</b></td><td>egy érték több helyre megy</td><td>a beérkező gradiensek <b>összege</b></td><td><b>összeadódik</b></td></tr>
+  </table>
+  <small>Miért adódik össze az elágazásnál? A többváltozós láncszabály szerint ha $x$ több köztes értéken át hat $f$-re, a hatások összeadódnak – pontosan úgy, ahogy a 10.3-ban a rejtett neuron $\delta$-ja a kimeneti neuronok felől érkező tagok összege volt.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a maximum irányít</span>
+    $f = \max(x, y)\cdot z$, $x = 4$, $y = 1$, $z = 2$: $m = 4$, $f = 8$. Vissza: $\partial f/\partial z = m = 4$, $\partial f/\partial m = z = 2$; a maximum az $x$-hez küldi: $\partial f/\partial x = 2$, $\partial f/\partial y = 0$.
+    Az $y$ kis változtatása most nem számít – hiszen nem ő a nagyobb.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – önmagával szorozva</span>
+    $f = x\cdot x$, $x = 3$. A szorzás „felcseréli”: mindkét bemenet $g\cdot x = 3$-at kap, és mivel mindkettő $x$, összeadódnak: $\partial f/\partial x = 6 = 2x$ ✓.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktató – ne írd felül, add hozzá</span>
+  Ha egy programban a visszafelé menet egy elágazó érték gradiensét <em>felülírja</em> ahelyett, hogy hozzáadná, az egyik út hozzájárulása elvész. Ezért gyűjtik a keretrendszerek a gradienseket összeadással – és ezért kell a lépések között nullázni őket (<a href="#s102-a">10.2</a>).
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – kapuk és elágazás</summary>
+  <ol>
+    <li>$f = \max(x, y) + z$, $x = 1$, $y = 5$, $z = -2$. Mennyi a három gradiens?
+      <details><summary>Megoldás</summary>$f = 3$. Az összeadás 1-et ad tovább; a maximum $y$-hoz: $\partial f/\partial x = 0$, $\partial f/\partial y = 1$, $\partial f/\partial z = 1$.</details></li>
+    <li>$f = x\cdot y\cdot z$ ($p = xy$, $f = pz$), $x = 2$, $y = 3$, $z = 4$. Mennyi a három gradiens?
+      <details><summary>Megoldás</summary>$p = 6$, $f = 24$. $\partial f/\partial z = 6$, $\partial f/\partial p = 4$, $\partial f/\partial x = 4 \cdot 3 = 12$, $\partial f/\partial y = 4 \cdot 2 = 8$. (Mindegyik a másik kettő szorzata.)</details></li>
+    <li>$f = (x + y)\cdot x$, $x = 1$, $y = 2$. Mennyi $\partial f/\partial x$? Melyik két úton jön?
+      <details><summary>Megoldás</summary>$q = 3$, $f = 3$. A szorzásból: $x$ közvetlenül $g\cdot q = 3$-at kap; $q$ $g\cdot x = 1$-et, amit az összeadás $x$-nek továbbad. Összesen $3 + 1 = 4$. Ellenőrzés: $f = x^2 + xy$, $\partial f/\partial x = 2x + y = 4$ ✓.</details></li>
+    <li>Egy szigmoid csúcs bemenete $z = 2$, a felső gradiens $g = 1$. Mennyit ad tovább? És $z = 0$-nál?
+      <details><summary>Megoldás</summary>$\sigma(2) = 0{,}881$, $0{,}881 \cdot 0{,}119 \approx 0{,}105$. $z = 0$-nál $0{,}25$ – a szigmoid ennél többet sosem enged át.</details></li>
+    <li>(nehezebb) Egy nyelvi modell ugyanazt a beágyazási vektort a bemeneten és a kimeneten is használja („súlymegosztás”). Hogyan kapja meg a gradiensét?
+      <details><summary>Megoldás</summary>Ez elágazás: ugyanaz a paraméter két helyen hat a veszteségre. A visszafelé menetben mindkét helyről érkezik gradiens, és ezek összeadódnak – a frissítés az összegükkel lép.</details></li>
+  </ol>
+</details>
+
+<h3 id="s104-c">3. lépés: automatikus differenciálás – így deriválnak a keretrendszerek</h3>
+<p>Ha minden elemi műveletnek megvan a lokális deriváltja, a program maga is fel tudja építeni a gráfot, és vissza tud menni rajta. Ez az <b>automatikus differenciálás</b> (autodiff). A PyTorch, a TensorFlow és a JAX mind ezt csinálja.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a 10.3 hálója PyTorch-ban</span>
+  Ugyanaz a 2–2–1-es háló. Senki nem írt hozzá visszafelé menetet – a keretrendszer az előre menet közben feljegyzi a műveleteket, a <code>loss.backward()</code> pedig visszafelé végigmegy rajtuk:
+<pre><code>import torch
+x = torch.tensor([1., 2.]); y = torch.tensor(1.)
+W1 = torch.tensor([[0.5, 0.25], [-1., 1.]], requires_grad=True)
+b1 = torch.tensor([0., 0.5], requires_grad=True)
+w2 = torch.tensor([1., -1.], requires_grad=True)
+b2 = torch.tensor(0.5, requires_grad=True)
+
+h = torch.relu(W1 @ x + b1)                  # előre menet: a gráf közben épül
+z2 = w2 @ h + b2
+loss = torch.nn.functional.binary_cross_entropy_with_logits(z2, y)
+loss.backward()                              # visszafelé menet
+print(loss.item())                           # 0.6931…
+print(W1.grad)                               # [[-0.5, -1.0], [0.5, 1.0]]
+print(b1.grad, w2.grad, b2.grad)             # [-0.5, 0.5] [-0.5, -0.75] -0.5</code></pre>
+  Pontosan a kézzel kapott számok (<a href="#s103-b">10.3</a>).
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – előre és fordított módú automatikus differenciálás</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Előre mód:</b> az előre menettel együtt viszi végig minden érték deriváltját <em>egy kiválasztott bemenet</em> szerint. Egy menet = az összes kimenet deriváltja <b>egy</b> bemenet szerint.</li>
+    <li><b>Fordított mód</b> (a visszaterjesztés): előbb előre menet, aztán visszafelé. Egy visszafelé menet = <b>egy</b> kimenet deriváltja az <b>összes</b> bemenet szerint.</li>
+  </ul>
+  A tanításnál egyetlen kimenet van (a veszteség) és nagyon sok bemenet (a paraméterek) – ezért mindig a <b>fordított mód</b> nyer.
+  <br><small>Miért nem szimbolikus deriválás? A program nem képletet derivál, hanem a ténylegesen elvégzett műveletek sorozatát – így ciklusok, elágazások (<code>if</code>), sőt menet közben változó hálók is deriválhatók.
+  A PyTorch a gráfot menet közben építi („define-by-run”); a régi TensorFlow előre felépítette („define-then-run”).</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – hány menet kell?</span>
+    1 veszteség, $10^6$ paraméter. Előre móddal $10^6$ menet (paraméterenként egy), fordított móddal 1 előre + 1 visszafelé menet.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy kis „szalag”</span>
+    $u = xy$, $w = u + x$, $L = w^2$, $x = 2$, $y = 3$. Előre: $u = 6$, $w = 8$, $L = 64$. Vissza: $\partial L/\partial w = 16$; $w$ felől $x$ 16-ot kap, $u$ 16-ot; a szorzás felcserél: $x$ még $16 \cdot 3 = 48$-at, $y$ $16 \cdot 2 = 32$-t.
+    $\partial L/\partial x = 16 + 48 = 64$, $\;\partial L/\partial y = 32$.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók a forrásokban</span>
+  <ul style="margin:.2rem 0">
+    <li>Egy rendszerkönyv (MLSYS, <em>AI Frameworks</em>) kidolgozott példájában $f(x) = x^2\sin x$ deriváltja $x = 2$-ben „2,805”. Helyesen $f'(2) = 2\cdot 2\sin 2 + 4\cos 2 \approx 3{,}637 - 1{,}665 = 1{,}973$ – a könyv saját köztes lépése is ezt adja.</li>
+    <li>Ugyanott: a fordított mód azért gyorsabb, mert „egy menetben kezeli az összes utat”. Mindkét mód egy menetben kezeli az összes utat; a különbség az, hogy az előre mód bemenetenként, a fordított kimenetenként kér egy menetet.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – automatikus differenciálás</summary>
+  <ol>
+    <li>Melyik módot választanád: (a) egy veszteség, 1 millió paraméter; (b) egy bemenet (az idő), 1000 kimenet (egy szimuláció állapota)?
+      <details><summary>Megoldás</summary>(a) fordított mód (1 visszafelé menet); (b) előre mód (1 menet a bemenet szerint, egyszerre mind az 1000 kimenet deriváltja).</details></li>
+    <li>$f(x) = x^2\sin x$. Bontsd $a = x^2$, $b = \sin x$, $f = ab$ műveletekre, és számold ki $f'(2)$-t visszafelé!
+      <details><summary>Megoldás</summary>$a = 4$, $b = \sin 2 \approx 0{,}909$. $\partial f/\partial a = b = 0{,}909$, $\partial f/\partial b = a = 4$. $x$-hez két úton: $0{,}909 \cdot 2x = 3{,}637$ és $4\cos 2 = -1{,}665$. Összesen $\approx 1{,}973$.</details></li>
+    <li>Miért kell a PyTorch-nak <code>requires_grad=True</code> a súlyoknál, a bemenetnél nem?
+      <details><summary>Megoldás</summary>Mert csak azoknak az értékeknek a gradiensét kell kiszámolni (és a gráfban nyilvántartani), amelyeket tanítani akarunk. A bemenet gradiensére általában nincs szükség – ez memóriát és időt spórol.</details></li>
+    <li>A „szalag” példában ($x = 2$, $y = 3$) ellenőrizd az eredményt képlettel: $L = (xy + x)^2$!
+      <details><summary>Megoldás</summary>$\partial L/\partial x = 2(xy + x)(y + 1) = 2 \cdot 8 \cdot 4 = 64$ ✓; $\;\partial L/\partial y = 2(xy + x)\cdot x = 2 \cdot 8 \cdot 2 = 32$ ✓.</details></li>
+    <li>(nehezebb) Egy programban <code>if x > 0: f = x*x else: f = -x</code>. Tud-e ezen deriválni az automatikus differenciálás? Mit ad $x = 3$-nál és $x = -2$-nél?
+      <details><summary>Megoldás</summary>Igen: mindig azt az ágat deriválja, amelyik ténylegesen lefutott. $x = 3$: $f = 9$, $f' = 6$. $x = -2$: $f = 2$, $f' = -1$. (A töréspontban, $x = 0$-ban a „derivált” megállapodás kérdése – mint a ReLU-nál.)</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai10-104"></div>
+</section>
+
+<!-- ===================================================== 10.5 -->
+<section id="s105">
+<h2>10.5 Optimalizálók ★★</h2>
+<p>A visszaterjesztés megmondja a gradienst. Az <b>optimalizáló</b> dönti el, mit kezdünk vele. A sima gradiens módszer ($\mathbf w \leftarrow \mathbf w - \eta\mathbf g$) két helyzetben gyenge:
+hosszúkás völgyben cikcakkban halad (<a href="../02-matematikai-eszkoztar/#s28-c">2.8</a>), és minden paraméter ugyanazzal az $\eta$-val lép, akár meredek az irány, akár lapos. A három legfontosabb javítás erre a két bajra felel.</p>
+
+<h3 id="s105-a">1. lépés: momentum – lendület a lejtőn</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a 2.8 hosszúkás tála, lendülettel</span>
+  $L(x, y) = x^2 + 3y^2$, $\nabla L = (2x;\ 6y)$, indulás $(2;\ 1)$, $\eta = 0{,}1$. A sima módszer (<a href="../02-matematikai-eszkoztar/#s28-c">2.8</a>) a lapos $x$ irányban lassan halad.
+  A <b>momentum</b> a lépésbe beleszámítja az előző lépés felét is: $\mathbf v \leftarrow 0{,}5\,\mathbf v + \nabla L$, $\;\mathbf w \leftarrow \mathbf w - \eta\mathbf v$.
+  <table style="max-width:700px;font-size:.86rem;text-align:center">
+    <tr><th>lépés</th><th>sima: pont</th><th>sima: $L$</th><th>momentum: $\mathbf v$</th><th>momentum: pont</th><th>momentum: $L$</th></tr>
+    <tr><td>0</td><td>$(2;\ 1)$</td><td>7</td><td>–</td><td>$(2;\ 1)$</td><td>7</td></tr>
+    <tr><td>1</td><td>$(1{,}6;\ 0{,}4)$</td><td>3,04</td><td>$(4;\ 6)$</td><td>$(1{,}6;\ 0{,}4)$</td><td>3,04</td></tr>
+    <tr><td>2</td><td>$(1{,}28;\ 0{,}16)$</td><td>1,715</td><td>$(2 + 3{,}2;\ 3 + 2{,}4) = (5{,}2;\ 5{,}4)$</td><td>$(1{,}08;\ -0{,}14)$</td><td>1,225</td></tr>
+    <tr><td>3</td><td>$(1{,}024;\ 0{,}064)$</td><td>1,061</td><td>$(2{,}6 + 2{,}16;\ 2{,}7 - 0{,}84) = (4{,}76;\ 1{,}86)$</td><td>$(0{,}604;\ -0{,}326)$</td><td><b>0,684</b></td></tr>
+  </table>
+  Az $x$ irányban a gradiens mindig ugyanarra mutat, ezért a lendület <b>összeadódik</b>: a momentum 3 lépés alatt kétszer annyit haladt (2 → 0,604 a 2 → 1,024 helyett).
+  Az $y$ irányban átlendült (előjelet váltott), de a következő lépésekben a váltakozó gradiensek kioltják egymást. Hat lépés után a veszteség: sima 0,275, momentum 0,028.
+</div>
+<div class="box def">
+  <span class="box-title">Algoritmus – gradiens módszer momentummal</span>
+  $$\mathbf v \leftarrow \beta\,\mathbf v + \mathbf g, \qquad \mathbf w \leftarrow \mathbf w - \eta\,\mathbf v, \qquad (\mathbf v_0 = \mathbf 0,\ \text{tipikusan } \beta = 0{,}9).$$
+  A $\mathbf v$ „sebesség” a korábbi gradiensek exponenciálisan halványuló összege: $\mathbf v_t = \mathbf g_t + \beta\mathbf g_{t-1} + \beta^2\mathbf g_{t-2} + \dots$
+  <ul style="margin:.2rem 0">
+    <li>ahol a gradiens <b>tartósan ugyanarra</b> mutat, a lépés akár $\dfrac{1}{1 - \beta}$-szoros (β = 0,9-nél tízszeres);</li>
+    <li>ahol <b>váltakozik</b> (a völgy falai között), a tagok kioltják egymást, a lépés kicsi marad.</li>
+  </ul>
+  <small>Miért „lendület”? Képzeld el, hogy egy golyó gurul le a veszteség-tájon: a gradiens a gravitáció, $\mathbf v$ a sebesség, $1 - \beta$ a súrlódás. A golyó a lapos részeken felgyorsul, a cikcakkot a tehetetlensége kisimítja.
+  (B. Poljak, 1964; neurális hálókra Rumelhart és társai, 1986.)</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – állandó gradiens</span>
+    $g = 1$ minden lépésben, $\beta = 0{,}9$: $v = 1;\ 1{,}9;\ 2{,}71;\ 3{,}44;\ 4{,}10;\ \dots \to 10$. A lépés fokozatosan tízszeresére nő: lapos lejtőn a momentum gyorsít.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – váltakozó gradiens</span>
+    $g = +1, -1, +1, -1, \dots$, $\beta = 0{,}9$: $v = 1;\ -0{,}1;\ 0{,}91;\ -0{,}18;\ 0{,}84;\ \dots$ – átlagosan kb. $1/(1 + \beta) \approx 0{,}53$ körül ingadozik, és a két irány nagyrészt kioltja egymást: a pattogás csillapodik.
+  </div>
+</div>
+<div class="widget" data-widget="optimizer-race"></div>
+<div class="box tip">
+  <span class="box-title">💡 Nesterov-momentum</span>
+  Egy finomítás (J. Nesterov, 1983): a gradienst nem a jelenlegi pontban, hanem ott számoljuk, ahová a lendület amúgy is vinne ($\mathbf w - \eta\beta\mathbf v$) – „előre néz”, és hamarabb fékez a völgy alján.
+  Zajos mini-kötegeknél a különbség gyakran kicsi.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A momentum megnöveli a tényleges lépésközt.</b> $\beta = 0{,}9$-cel tartós lejtőn tízszer akkorát lépsz. Egy könyv (MDL 11) „csökkentjük $\eta$-t 0,2-re, hogy ne lépjünk nagyot” – de $0{,}2/(1 - 0{,}9) = 2$, kétszer akkora, mint a momentum nélküli $\eta = 1$. Momentum bekapcsolásakor az $\eta$-t általában csökkenteni kell.</li>
+    <li><b>Kétféle felírás.</b> Van, ahol $\mathbf v \leftarrow \beta\mathbf v - \eta\mathbf g$, $\mathbf w \leftarrow \mathbf w + \mathbf v$ (a lépést gyűjtik, nem a gradienst). Állandó $\eta$-nál ugyanaz; csak a $\mathbf v$ jelentése más. A PyTorch a fenti alakot használja.</li>
+    <li><b>Előjel.</b> Egy könyv (PDL 9) képletében a momentumtag előjele rossz: szó szerint követve a tanítás felfelé gyorsul. A lendület mindig az <em>előző lépés</em> irányába tol.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – momentum</summary>
+  <ol>
+    <li>$\beta = 0{,}9$. Mekkora a tartós lejtőn elérhető lépés $\eta = 0{,}01$-nél? És $\beta = 0{,}99$-nél?
+      <details><summary>Megoldás</summary>$0{,}01/(1 - 0{,}9) = 0{,}1$; $\;0{,}01/(1 - 0{,}99) = 1$ – százszoros.</details></li>
+    <li>$g = 2$ minden lépésben, $\beta = 0{,}5$. Mennyi $v$ az első négy lépésben, és mi a határértéke?
+      <details><summary>Megoldás</summary>$v = 2;\ 3;\ 3{,}5;\ 3{,}75$; határérték $2/(1 - 0{,}5) = 4$.</details></li>
+    <li>Egy paraméter: $w = 1$, $\eta = 0{,}1$, $\beta = 0{,}9$, a gradiensek: 1, 1, 1. Hol lesz $w$ három lépés után, sima és momentumos módszerrel?
+      <details><summary>Megoldás</summary>Sima: $1 - 3 \cdot 0{,}1 = 0{,}7$. Momentum: $v = 1;\ 1{,}9;\ 2{,}71$ → $w = 1 - 0{,}1 \cdot (1 + 1{,}9 + 2{,}71) = 0{,}439$.</details></li>
+    <li>A kiinduló példában számold ki a 4. lépést a momentumos változattal!
+      <details><summary>Megoldás</summary>$\nabla L(0{,}604;\ -0{,}326) = (1{,}208;\ -1{,}956)$. $\mathbf v = 0{,}5\cdot(4{,}76;\ 1{,}86) + (1{,}208;\ -1{,}956) = (3{,}588;\ -1{,}026)$. Új pont: $(0{,}604 - 0{,}359;\ -0{,}326 + 0{,}103) = (0{,}245;\ -0{,}223)$, $L \approx 0{,}210$.</details></li>
+    <li>(nehezebb) Miért nem érdemes $\beta = 0{,}999$-et választani egy kis, zajos feladaton?
+      <details><summary>Megoldás</summary>Mert a $\mathbf v$ kb. az utolsó $1/(1 - \beta) = 1000$ gradiens összege: nagyon „nehéz” golyó, amely lassan reagál, ha a táj megváltozik, és a völgy alján sokáig túllendül. A tényleges lépés ráadásul ezerszeres – kis $\eta$ kellene hozzá.</details></li>
+  </ol>
+</details>
+
+<h3 id="s105-b">2. lépés: paraméterenkénti lépésköz – RMSProp és Adam</h3>
+<p>A momentum az <em>irányon</em> segít. Mi van, ha a gond a <em>méretekkel</em> van: az egyik paraméter gradiense mindig sokkal nagyobb, mint a másiké?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két paraméter, százszoros különbség</span>
+  Egy háló két paraméterének gradiense tartósan $g_1 = 10$ és $g_2 = 0{,}1$. Sima gradiens módszerrel a lépések $10\eta$ és $0{,}1\eta$. Az $\eta$-t a meredek irány korlátozza (ha az $10\eta$-val túllő, kisebb $\eta$ kell) –
+  így a második paraméter százszor lassabban tanul.
+  <br>Ötlet: osszuk el minden paraméter gradiensét <b>a saját szokásos nagyságával</b>. Ha a $g_1$ tipikus nagysága 10, a $g_2$-é 0,1, akkor $10/10 = 1$ és $0{,}1/0{,}1 = 1$: mindkettő $\eta$-t lép.
+</div>
+<div class="box def">
+  <span class="box-title">Algoritmus – RMSProp és Adam</span>
+  <b>RMSProp</b> (G. Hinton, 2012): a gradiens négyzetének mozgó átlagával skáláz – paraméterenként:
+  $$s \leftarrow \rho\,s + (1 - \rho)\,g^2, \qquad w \leftarrow w - \eta\,\frac{g}{\sqrt s + \varepsilon} \qquad (\rho = 0{,}9).$$
+  <b>Adam</b> (D. Kingma, J. Ba, 2014): momentum <em>és</em> RMSProp együtt, kezdeti korrekcióval ($t = 1, 2, \dots$ a lépésszám):
+  $$m \leftarrow \beta_1 m + (1 - \beta_1)g,\quad v \leftarrow \beta_2 v + (1 - \beta_2)g^2,\quad \hat m = \frac{m}{1 - \beta_1^t},\quad \hat v = \frac{v}{1 - \beta_2^t},\quad w \leftarrow w - \eta\,\frac{\hat m}{\sqrt{\hat v} + \varepsilon}.$$
+  Alapbeállítás: $\eta = 0{,}001$, $\beta_1 = 0{,}9$, $\beta_2 = 0{,}999$, $\varepsilon = 10^{-8}$.
+  <br><small>Miért? A $\sqrt{\hat v}$ a gradiens tipikus nagysága (négyzetes középértéke – innen az RMS név), a $\hat m$ az átlagos iránya. A hányados nagyjából „előjel × megbízhatóság”: tartós, egyirányú gradiensnél $\approx \pm 1$, zajos, ide-oda ugráló gradiensnél kicsi.
+  Így <b>minden paraméter nagyjából $\eta$-nyit</b> lép, a gradiense nagyságától függetlenül – az $\eta$ itt szinte „lépéshossz a paramétertérben”. Az $\varepsilon$ csak a nullával osztás ellen véd.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – Adam első lépése</span>
+    $g = 10$, $t = 1$: $m = 0{,}1 \cdot 10 = 1$, $v = 0{,}001 \cdot 100 = 0{,}1$. Korrekcióval $\hat m = 1/0{,}1 = 10$, $\hat v = 0{,}1/0{,}001 = 100$, a lépés $\eta \cdot 10/10 = \eta$.
+    $g = 0{,}1$-re ugyanígy pontosan $\eta$. (Három lépés után mindkét paraméter $3\eta$-t haladt.)
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – miért kell a korrekció?</span>
+    Korrekció nélkül az első lépés $\eta\cdot\dfrac{0{,}1g}{\sqrt{0{,}001}\,|g|} \approx 3{,}16\,\eta$ – mert az $m$ és a $v$ nulláról indul, és a $v$ sokkal lassabban „telik fel”. Ugyanez a túllövés történik a korrekció nélküli RMSProp első lépéseiben is ($3{,}16\eta$, $2{,}29\eta$, $1{,}92\eta$, …).
+  </div>
+</div>
+<div class="box example">
+  <span class="box-title">Példa – a számjegyháló négy optimalizálóval</span>
+  64–16–10-es háló, $B = 32$, 30 epoch, mindegyik a saját jól működő $\eta$-jával (a <a href="#s109">10.9</a> szemléltetésével kipróbálhatod):
+  <table style="max-width:640px;font-size:.88rem;text-align:center">
+    <tr><th>optimalizáló</th><th>$\eta$</th><th>validáció az 1. epoch után</th><th>hány epoch a 90%-hoz</th><th>teszt a végén</th></tr>
+    <tr><td>SGD</td><td>0,1</td><td>40,3%</td><td>10</td><td>97,1%</td></tr>
+    <tr><td>SGD</td><td>0,5</td><td>73,3%</td><td>2</td><td>98,0%</td></tr>
+    <tr><td>momentum ($\beta = 0{,}9$)</td><td>0,05</td><td>71,3%</td><td>3</td><td>97,6%</td></tr>
+    <tr><td>RMSProp</td><td>0,003</td><td>51,3%</td><td>6</td><td>98,2%</td></tr>
+    <tr><td>Adam</td><td>0,01</td><td>75,0%</td><td>3</td><td>98,0%</td></tr>
+  </table>
+  A végeredmény mind hasonló. Az Adam és a momentum az alapbeállításhoz közel gyorsan indul; a sima SGD-nél a jó $\eta$ megtalálása döntött (0,1 vs. 0,5).
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabály – melyiket?</span>
+  <b>Kezdésnek Adam</b> ($\eta \approx 10^{-3}$): kevés hangolással is jól működik, ezért a nyelvi modellek és a legtöbb új feladat alapértelmezése (súlycsökkentéssel: AdamW, <a href="#s107-b">10.7</a>).
+  <b>SGD + momentum</b> ($\beta = 0{,}9$) gondos $\eta$-ütemezéssel képfelismerésben gyakran ugyanolyan jó vagy jobb, és kevesebb memóriát kér (<a href="#s108-c">10.8</a>). Nincs mindenhol legjobb optimalizáló – a tanulási ráta többet számít, mint a választás.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az Adam $t$-je 1-ről indul.</b> Egy könyv (MDL 11) szerint „nulláról” – akkor az első lépésben $1 - \beta^0 = 0$-val osztanánk. Ugyanott a $\hat v$ képletében elírás is van ($b$ a $v$ helyett).</li>
+    <li><b>A négyzetgyök kell.</b> Az AdaGrad (az RMSProp elődje, 2011) a négyzetes gradiensek <em>összegének gyökével</em> oszt; egy könyv (DLV 15) „az összeggel” írja. Gyök nélkül a mértékegység sem stimmelne: $g/g^2$.</li>
+    <li><b>Az Adam nem hangolásmentes.</b> Túl nagy $\eta$-val ($0{,}03$-mal a számjegyhálón) gyorsan indul, de a validációs veszteség ugrál; nagy feladatokon az $\eta$ és az ütemezés itt is döntő.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – RMSProp és Adam</summary>
+  <ol>
+    <li>RMSProp, $\rho = 0{,}9$, $s = 0$, az első gradiens $g = 2$. Mennyi $s$, és mekkora a lépés $\eta$-ban?
+      <details><summary>Megoldás</summary>$s = 0{,}1 \cdot 4 = 0{,}4$, a lépés $\eta \cdot 2/\sqrt{0{,}4} \approx 3{,}16\,\eta$. (Ezért van az Adamban korrekció – az RMSProp első lépései túl nagyok.)</details></li>
+    <li>Adam, $t = 1$, $g = -0{,}5$. Mennyi $m$, $v$, $\hat m$, $\hat v$ és a lépés?
+      <details><summary>Megoldás</summary>$m = -0{,}05$, $v = 0{,}00025$, $\hat m = -0{,}5$, $\hat v = 0{,}25$, a lépés $-\eta \cdot (-0{,}5)/0{,}5 = +\eta$: a paraméter $\eta$-val nő.</details></li>
+    <li>Mennyi $1 - \beta_2^t$ $t = 10$-nél és $t = 1000$-nél ($\beta_2 = 0{,}999$)? Mikor számít még a korrekció?
+      <details><summary>Megoldás</summary>$1 - 0{,}999^{10} \approx 0{,}00995$, $\;1 - 0{,}999^{1000} \approx 0{,}632$. Az első néhány ezer lépésben még erősen számít; később elhanyagolható.</details></li>
+    <li>Egy paraméter gradiense váltakozik: $+1, -1, +1, -1, \dots$ Mekkora lesz nagyjából az Adam lépése sok lépés után?
+      <details><summary>Megoldás</summary>$\hat m \approx 0$ (a váltakozó tagok kioltják egymást, $|\hat m| \approx 0{,}05$), $\sqrt{\hat v} \approx 1$. A lépés kb. $0{,}05\eta$ – a zajos paraméter alig mozdul.</details></li>
+    <li>(nehezebb) Egy paraméter gradiense tartósan $g = 10^{-6}$ (alig hat a veszteségre). Mekkorát lép sima SGD ($\eta = 0{,}1$) és Adam ($\eta = 0{,}001$)? Mi ennek a veszélye?
+      <details><summary>Megoldás</summary>SGD: $10^{-7}$ – szinte semmit. Adam: kb. $0{,}001$ – mintha fontos lenne. Az Adam a ritka vagy gyenge jelet is felerősíti; ez segíthet (ritka jellemzők), de a zajt is felnagyíthatja. (Ha $|g|$ már az $\varepsilon$ közelébe esik, a skálázás leáll – ezért van ott az $\varepsilon$.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s105-c">3. lépés: a tanulási ráta ütemezése – nagy lépések, aztán kicsik</h3>
+<p>Akármelyik optimalizálót választod, a mini-köteg zajos. Egy állandó $\eta$-val a súlyok a minimum körül <b>ugrálnak</b>, és sosem állnak meg. Mekkora ez az ugrálás?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – zajos gradiens egy tál alján</span>
+  $L = \tfrac12 w^2$, a minimum $w = 0$. A köteg gradiense a pontos $w$ helyett $w + \xi$, ahol a zaj $\xi$ felváltva $+1$ és $-1$. Indulás $w = 0$-ból – épp a minimumból! –, $\eta = 0{,}5$:
+  $w$: $0 \to -0{,}5 \to 0{,}25 \to -0{,}375 \to 0{,}3125 \to -0{,}344 \to 0{,}328 \to \dots$
+  A súly nem marad a minimumban: a zaj kilöki, és $\pm\frac13$ között ugrál. Az ugrálás nagysága $\frac{\eta}{2 - \eta}$: $\eta = 0{,}1$-nél $\pm 0{,}053$, $\eta = 0{,}01$-nél $\pm 0{,}005$.
+  <b>Kisebb lépés – közelebb a minimumhoz.</b> De a tanítás elején a kis lépés lassú lenne.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – gyakori ütemezések</span>
+  <ul style="margin:.2rem 0">
+    <li><b>lépcsős csökkentés:</b> néhány epochonként tizedére (pl. $0{,}1 \to 0{,}01 \to 0{,}001$ a 30. és a 60. epochnál);</li>
+    <li><b>koszinuszos csökkentés:</b> $\eta_t = \eta_{\min} + \tfrac12(\eta_{\max} - \eta_{\min})\big(1 + \cos\frac{\pi t}{T}\big)$ – lassan indul lefelé, középen gyorsan csökken, a végén lassan simul $\eta_{\min}$-hez;</li>
+    <li><b>bemelegítés</b> (warm-up): az első néhány száz–ezer lépésben $\eta$ lineárisan nő 0-ról a kívánt értékig – a nagy kötegű és a Transformer-tanítások szinte mindig így indulnak;</li>
+    <li><b>platón csökkentés:</b> ha a validációs veszteség néhány epochig nem javul, $\eta$ felére vagy tizedére.</li>
+  </ul>
+  <small>Miért? Az elején messze vagyunk a minimumtól – a nagy lépés gyorsan halad, a zaj nem számít. A végén a zaj a fő hibaforrás – a kis lépés ezt csillapítja (<b>„fémkereső a tengerparton”</b>: előbb nagy körökben járod a partot, aztán apró mozdulatokkal keresed a pontos helyet).
+  A bemelegítés azért kell, mert az elején a véletlen súlyok és a még üres Adam-statisztikák (<a href="#s105-b">2. lépés</a>) mellett a nagy lépések szétzilálhatják a hálót.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – koszinusz</span>
+    $\eta_{\max} = 0{,}1$, $\eta_{\min} = 0$, $T = 100$ epoch. $t = 25$: $0{,}0854$; $\;t = 50$: $0{,}05$; $\;t = 75$: $0{,}0146$; $\;t = 100$: 0.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – bemelegítés</span>
+    A cél $\eta = 3 \cdot 10^{-4}$, 1000 lépés bemelegítéssel. A 250. lépésben $\eta = 3 \cdot 10^{-4} \cdot 250/1000 = 7{,}5 \cdot 10^{-5}$; az 1000. lépéstől a teljes érték (utána pl. koszinusszal csökken).
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Ne csökkentsd túl korán.</b> Ha a veszteség még meredeken esik, a csökkentés csak lassít. Az ütemezés a tanítás <em>hosszához</em> igazodik: ha kétszer annyi epochot tanítasz, a lépcsőket is told ki.</li>
+    <li><b>Az $\eta$ nem csak 0 és 1 között lehet.</b> Egy könyv (DLV 14–15) így írja; egy másik (MDL) $\eta = 1$-gyel tanít MNIST-et. A jó érték a veszteség görbületétől, az optimalizálótól és a kötegmérettől függ.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – ütemezés</summary>
+  <ol>
+    <li>Lépcsős ütemezés: $\eta_0 = 0{,}1$, tizedére a 30. és a 60. epochnál. Mennyi $\eta$ a 10., a 45. és a 75. epochban?
+      <details><summary>Megoldás</summary>0,1; 0,01; 0,001.</details></li>
+    <li>Koszinusz, $\eta_{\max} = 0{,}01$, $\eta_{\min} = 0$, $T = 200$. Mennyi $\eta$ a 100. epochban?
+      <details><summary>Megoldás</summary>$\tfrac12 \cdot 0{,}01 \cdot (1 + \cos(\pi/2)) = 0{,}005$ – a felénél pontosan a fele.</details></li>
+    <li>A zajos tál példájában mekkora az ugrálás $\eta = 0{,}2$-nél?
+      <details><summary>Megoldás</summary>$0{,}2/1{,}8 \approx 0{,}111$.</details></li>
+    <li>Bemelegítés: cél $\eta = 10^{-3}$, 500 lépés. Mennyi $\eta$ a 100. lépésben?
+      <details><summary>Megoldás</summary>$10^{-3} \cdot 100/500 = 2 \cdot 10^{-4}$.</details></li>
+    <li>(nehezebb) Exponenciális csökkentés: $\eta_k = \eta_0 \cdot 0{,}99^k$, $\eta_0 = 0{,}1$. Hány lépés után lesz $\eta$ a kezdeti tizede?
+      <details><summary>Megoldás</summary>$0{,}99^k = 0{,}1 \Rightarrow k = \ln 0{,}1/\ln 0{,}99 \approx 229$ lépés. (Az első két lépés: 0,099; 0,09801.)</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai10-105"></div>
+</section>
+
+<!-- ===================================================== 10.6 -->
+<section id="s106">
+<h2>10.6 Inicializálás, eltűnő és robbanó gradiens ★★★</h2>
+<p>A tanítás „kis véletlen számokból” indul. Miért véletlenből – és mennyire kicsikből? Kiderül, hogy mindkettő számít: rossz kezdéssel a háló meg sem mozdul, vagy a jel rétegről rétegre elhal, illetve felrobban.
+<small>(A szakasz kihagyható; a keretrendszerek a jó kezdést alapból beállítják.)</small></p>
+
+<h3 id="s106-a">1. lépés: a szimmetria csapdája – miért nem indulhat minden egyformán?</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két egyforma rejtett neuron</span>
+  A 10.3 2–2–1-es hálója, de most <b>minden súly 0,5</b>, a torzítások 0. Bemenet $\mathbf x = (1;\ 2)$, $y = 1$.
+  <ul style="margin:.2rem 0">
+    <li>Előre: $\mathbf z_1 = (1{,}5;\ 1{,}5)$, $\mathbf h = (1{,}5;\ 1{,}5)$, $z_2 = 1{,}5$, $\hat p = 0{,}818$, $\delta_2 = -0{,}182$.</li>
+    <li>Vissza: $\partial L/\partial\mathbf w_2 = (-0{,}274;\ -0{,}274)$; $\boldsymbol\delta_1 = (0{,}5 \cdot (-0{,}182);\ 0{,}5 \cdot (-0{,}182)) = (-0{,}091;\ -0{,}091)$; $W_1$ mindkét sorának gradiense $(-0{,}091;\ -0{,}182)$.</li>
+  </ul>
+  A két rejtett neuron ugyanazt kapta, ugyanannyit lép – a frissítés után is egyformák. És a következő lépésben is. <b>A két neuron örökre egymás klónja marad</b>: a 2–2–1-es háló valójában 2–1–1-es.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – a szimmetriát meg kell törni</span>
+  Ha egy réteg két neuronjának bejövő és kimenő súlyai egyformák, a gradienseik is egyformák, így a gradiens módszer sosem választja szét őket. Ezért a <b>súlyokat véletlenszerűen</b> inicializáljuk (a torzítások lehetnek 0-k – a véletlen súlyok már megtörik a szimmetriát).
+  <br><small>A csupa nulla még rosszabb: ReLU-val minden rejtett kimenet 0, így a kimeneti súlyok gradiense ($\delta\cdot h$) is 0, a rejtett $\delta$-k pedig a nulla kimeneti súlyok miatt szintén 0 – csak a kimeneti torzítás tanul.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a számjegyháló nullából</span>
+    Csupa nulla súllyal a háló minden képre 10–10%-ot mond: a veszteség $\ln 10 = 2{,}303$. 20 epoch SGD vagy Adam után is <b>2,303</b>, a pontosság 10%. (A <a href="#s109">10.9</a> szemléltetésében kipróbálhatod: „nulla” kezdés.)
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – véletlen kezdés</span>
+    Ugyanez a háló véletlen súlyokkal ($N(0, 2/64)$, lásd a következő lépést): az első epoch után a validációs pontosság SGD-vel 40%, Adammal 75%, 30 epoch után 97–98%.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktató – „a kezdés mindegy, a tanítás úgyis megoldja”</span>
+  Nem oldja meg: a tanítás csak a gradiens irányába mozdít, és egy szimmetrikus kezdésből a gradiens is szimmetrikus. Más véletlen kezdésből viszont más hálót kapsz – ezért ad kicsit eltérő eredményt két futás (<a href="#s108-b">10.8</a>).
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – szimmetria</summary>
+  <ol>
+    <li>Egy háló rejtett rétegében 100 neuron van, mind ugyanazokkal a kezdő súlyokkal. Hány „különböző” neuronja lesz a tanítás végén?
+      <details><summary>Megoldás</summary>Egy: a 100 neuron végig egyforma marad, a réteg egyetlen neuronnyi tudást hordoz.</details></li>
+    <li>A kiinduló példában mennyi lesz $W_1$ két sora $\eta = 1$-gyel egy lépés után?
+      <details><summary>Megoldás</summary>Mindkét sor $(0{,}5 + 0{,}091;\ 0{,}5 + 0{,}182) = (0{,}591;\ 0{,}682)$ – egyformák maradtak.</details></li>
+    <li>Megtöri-e a szimmetriát, ha csak a torzításokat választod véletlenül, a súlyok mind 0,5-ek?
+      <details><summary>Megoldás</summary>Igen, elvben: a neuronok $z$-je különbözik, így (szigmoidnál, tanh-nál) a $\varphi'$ és a $\delta$ is – a súlyaik szétválnak. A gyakorlatban mégis a súlyokat sorsoljuk, mert úgy a neuronok már az elején más-más irányokra érzékenyek.</details></li>
+    <li>A kiinduló példában a kimeneti súlyok $(0{,}5;\ 0{,}5)$ helyett $(0{,}5;\ -0{,}5)$. Egyformán tanul-e a két rejtett neuron?
+      <details><summary>Megoldás</summary>Nem: $\boldsymbol\delta_1 = (0{,}5\delta_2;\ -0{,}5\delta_2)$ – ellentétes előjelűek, a két neuron ellentétes irányba mozdul. A szimmetria már a kimeneti súlyokban megtört.</details></li>
+    <li>(nehezebb) Miért tanul a csupa nullás kezdésnél legalább a kimeneti torzítás?
+      <details><summary>Megoldás</summary>Mert a gradiense $\partial L/\partial\mathbf b_2 = \boldsymbol\delta_2 = \hat{\mathbf p} - \mathbf y$, ami nem 0 (a bemenettől nem függ). Ezzel a háló megtanulja az osztályok gyakoriságát – de minden képre ugyanazt mondja. (A digits osztályai közel egyformán gyakoriak, ezért marad a veszteség $\approx\ln 10$.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s106-b">2. lépés: a jel mérete rétegről rétegre – eltűnő és robbanó gradiens</h3>
+<p>Véletlen súlyok kellenek. De milyen nagyok? Nézzük meg, mekkora lesz egy neuron $z$-je, ha sok bemenetet összegez.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – 100 bemenet összege</span>
+  Egy neuronnak $n = 100$ bemenete van, mindegyik véletlenül $+1$ vagy $-1$, a súlyok független véletlen számok 0 átlaggal és $s$ szórással. A $z = \sum w_i x_i$ összeg 100 független tag összege, így a varianciák összeadódnak:
+  $\mathrm{Var}(z) = 100\,s^2$.
+  <ul style="margin:.2rem 0">
+    <li>$s = 1$: $z$ szórása $\sqrt{100} = 10$ – a neuron kimenete tízszer nagyobb, mint a bemenetei;</li>
+    <li>$s = 0{,}01$: szórás $0{,}1$ – tizedére zsugorodik;</li>
+    <li>$s = 0{,}1 = 1/\sqrt{100}$: szórás pontosan 1 – a jel mérete megmarad.</li>
+  </ul>
+  Egy rétegen ez még nem baj. De 20 rétegen át a szorzók összeszorzódnak: $10^{20}$, illetve $0{,}1^{20} = 10^{-20}$.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – Xavier- és He-inicializálás</span>
+  $n_{\text{be}}$ bemenetű rétegnél $\mathrm{Var}(z) = n_{\text{be}}\cdot\mathrm{Var}(w)\cdot\mathrm{E}(x^2)$. Hogy a jel mérete rétegről rétegre megmaradjon:
+  <ul style="margin:.2rem 0">
+    <li><b>Xavier (Glorot) kezdés</b> (tanh, szigmoid, lineáris réteg): $\mathrm{Var}(w) = \dfrac{1}{n_{\text{be}}}$ (vagy az előre és a visszafelé menetet kiegyensúlyozó $\dfrac{2}{n_{\text{be}} + n_{\text{ki}}}$) – X. Glorot és Y. Bengio, 2010;</li>
+    <li><b>He-kezdés</b> (ReLU): $\mathrm{Var}(w) = \dfrac{2}{n_{\text{be}}}$ – K. He és társai, 2015. A ReLU a bemenetek felét lenullázza, ezért kell a kétszeres variancia.</li>
+  </ul>
+  Ha a szorzó rétegenként nem 1, a jel (és a visszafelé menetben a gradiens) <b>exponenciálisan</b> változik a mélységgel: ez az <b>eltűnő</b> (a szorzó $\lt 1$), illetve a <b>robbanó gradiens</b> (a szorzó $\gt 1$).
+  <br><small>Miért a gradiens is? Visszafelé ugyanazok a súlyok szoroznak (<a href="#s103-b">10.3</a>, $W^\top\boldsymbol\delta$), és még az aktiváció deriváltja is: a szigmoidé legfeljebb 0,25, így 10 szigmoidos réteg után a gradiens akár $0{,}25^{10} \approx 10^{-6}$-szorosára zsugorodik (<a href="../09-neuralis-halozatok/#s94-b">9.4</a>).</small>
+</div>
+<div class="widget" data-widget="deep-signal"></div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – 20 réteg</span>
+    Ha a jel rétegenként 0,5-szörösére csökken: $0{,}5^{20} \approx 9{,}5\cdot 10^{-7}$ – az első rétegekhez alig jut gradiens. Ha kétszeresére nő: $2^{20} \approx 10^6$ – a lépések szétvetik a hálót.
+    ReLU-val és Xavier-kezdéssel a szorzó kb. $1/\sqrt2$: 20 réteg után $2^{-10} \approx 0{,}001$.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a számjegyháló rossz kezdéssel</span>
+    He-kezdéssel ($s = \sqrt{2/64} \approx 0{,}18$) a kiinduló veszteség 2,40. Ha a súlyok szórása 1: a kiinduló veszteség 12,9, és 20 epoch SGD után a teszt csak 83%. Szórás 3: kiinduló veszteség 23,6, és a háló alig tanul (18%).
+    Szórás 0,01: a kiinduló veszteség 2,303, de az első epochban alig mozdul (a jelek túl kicsik).
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Gradiensvágás – a robbanás ellen (Kiegészítés)</span>
+  Ha a gradiens normája egy küszöb fölé nő, skálázd vissza a küszöbre: $\mathbf g \leftarrow \mathbf g\cdot\min\!\big(1,\ c/\lVert\mathbf g\rVert\big)$. Például $\mathbf g = (3;\ 4)$, $\lVert\mathbf g\rVert = 5$, $c = 1$: $\mathbf g \to (0{,}6;\ 0{,}8)$ – az irány marad, csak a lépés rövidül.
+  A nyelvi modellek és a rekurrens hálók tanításánál szinte mindig bekapcsolják (12. fejezet).
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Mélyebb nem mindig jobb – a régi kezdéssel.</b> Egy kísérletsorozat (PDL 10) MNIST-en: két vagy több szigmoidos rejtett réteggel a háló véletlen szintű (12%) maradt, ReLU-val 88%. A könyv a kezdést okolja; a fő ok az eltűnő gradiens a telítődő szigmoidokon át.</li>
+    <li><b>Az LSTM sem varázsszer.</b> Egy könyv (DLV 19) szerint az LSTM „elkerüli” az eltűnő és a robbanó gradienst. Enyhíti az eltűnőt; a robbanó ellen ott is gradiensvágás kell.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a jel mérete</summary>
+  <ol>
+    <li>Egy réteg 784 bemenetű. Mekkora legyen a súlyok szórása Xavier-, illetve He-kezdéssel ($1/n_{\text{be}}$, illetve $2/n_{\text{be}}$ variancia)?
+      <details><summary>Megoldás</summary>Xavier: $\sqrt{1/784} = 1/28 \approx 0{,}036$. He: $\sqrt{2/784} \approx 0{,}051$.</details></li>
+    <li>784 bemenet, a súlyok szórása 1, a bemenetek szórása 1. Mekkora a $z$ szórása?
+      <details><summary>Megoldás</summary>$\sqrt{784} = 28$. Szigmoiddal ez szinte mindig telített neuron (0 vagy 1) – a deriváltja ott közel 0.</details></li>
+    <li>A jel rétegenként 60%-kal csökken (0,4-szeres), illetve 60%-kal nő (1,6-szoros). Mennyi 8 réteg után?
+      <details><summary>Megoldás</summary>$0{,}4^8 \approx 0{,}00066$; $\;1{,}6^8 \approx 42{,}9$. (Egy könyv, DLV 19, ugyanezekkel a számokkal mutatja.)</details></li>
+    <li>Gradiensvágás $c = 2$-vel: mi lesz a $\mathbf g = (6;\ 8)$ és a $\mathbf g = (0{,}6;\ 0{,}8)$ gradiensből?
+      <details><summary>Megoldás</summary>$\lVert(6;\ 8)\rVert = 10 \gt 2$ → $(1{,}2;\ 1{,}6)$. $\lVert(0{,}6;\ 0{,}8)\rVert = 1 \le 2$ → változatlan.</details></li>
+    <li>(nehezebb) Miért kell a He-kezdésnél kétszeres variancia? Számolj: ha $z$ szimmetrikus, 0 átlagú, mennyi $\mathrm E(\mathrm{ReLU}(z)^2)$?
+      <details><summary>Megoldás</summary>A ReLU a negatív felét lenullázza, a pozitívat megtartja: $\mathrm E(\mathrm{ReLU}(z)^2) = \tfrac12\mathrm E(z^2) = \tfrac12\mathrm{Var}(z)$. A következő réteg $z$-jének varianciája $n\,\mathrm{Var}(w)\cdot\tfrac12\mathrm{Var}(z)$; hogy ez $\mathrm{Var}(z)$ legyen, $\mathrm{Var}(w) = 2/n$ kell.</details></li>
+  </ol>
+</details>
+
+<h3 id="s106-c">3. lépés: normalizálás menet közben – köteg- és rétegnormalizálás</h3>
+<p>A jó kezdés az <em>elején</em> tartja jó méretben a jelet. Tanítás közben a súlyok változnak, és a jelek mérete elcsúszhat. Ötlet: normalizáljuk a rétegek kimenetét <b>menet közben</b>, ahogy a bemenetet is skálázzuk (<a href="../03-tanulas-anatomiaja/#s36-c">3.6</a>).</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy neuron négy képen</span>
+  Egy rejtett neuron $z$-je egy 4 képes kötegen: $(1;\ 3;\ 5;\ 7)$. Átlag 4, variancia $\frac{9 + 1 + 1 + 9}{4} = 5$, szórás $\sqrt5 \approx 2{,}236$. Standardizálva:
+  $$\hat z = \frac{z - 4}{2{,}236} = (-1{,}342;\ -0{,}447;\ 0{,}447;\ 1{,}342).$$
+  Utána két tanult paraméterrel visszaskálázunk: $\gamma = 2$, $\beta = 1$ esetén $\gamma\hat z + \beta = (-1{,}683;\ 0{,}106;\ 1{,}894;\ 3{,}683)$. A háló így maga döntheti el, milyen méretű jelet akar – de a mérete nem „csúszik el” véletlenül.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – kötegnormalizálás és rétegnormalizálás</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Kötegnormalizálás</b> (batch normalization; S. Ioffe, C. Szegedy, 2015): minden neuronra külön, <b>a köteg mintái mentén</b> számolt átlaggal ($\mu_B$) és varianciával ($\sigma_B^2$):
+      $\;\hat z = \dfrac{z - \mu_B}{\sqrt{\sigma_B^2 + \varepsilon}}$, $\;$kimenet: $\gamma\hat z + \beta$ (tanult $\gamma$, $\beta$). Kiértékeléskor nincs köteg: a tanítás alatt gyűjtött <b>mozgó átlagokat</b> használja.</li>
+    <li><b>Rétegnormalizálás</b> (layer normalization; J. Ba és társai, 2016): minden mintára külön, <b>a réteg neuronjai mentén</b> számolt átlaggal és varianciával. Nem függ a kötegtől – ezért ez van a Transformerekben (12. fejezet).</li>
+  </ul>
+  <small>Miért segít? A rétegek bemenete stabil méretű marad, így nagyobb tanulási ráta is használható, és a mély háló gyorsabban, megbízhatóbban tanul. A kötegnormalizálásnak mellékesen enyhe regularizáló hatása is van (a köteg statisztikái zajosak) – de nem ez a fő célja.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – rétegnormalizálás egy mintán</span>
+    Egy minta négy rejtett kimenete: $(2;\ 4;\ 6;\ 0)$. Átlag 3, variancia 5: $\hat{\mathbf h} = (-0{,}447;\ 0{,}447;\ 1{,}342;\ -1{,}342)$. Ehhez nem kellett a köteg többi mintája.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – mozgó átlag</span>
+    A futó átlag kezdetben 0, frissítés $\mu \leftarrow 0{,}9\mu + 0{,}1\mu_B$. Az első köteg átlaga 4: $\mu = 0{,}4$; a második is 4: $\mu = 0{,}76$; sok köteg után $\mu \to 4$. Kiértékeléskor ezt használja.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Maradékkapcsolat – a gradiens „gyorsforgalmi útja”</span>
+  A nagyon mély hálók (több tucat–száz réteg) harmadik fegyvere: a réteg kimenetéhez hozzáadjuk a bemenetét, $\mathbf h_{\text{új}} = \mathbf h + F(\mathbf h)$. Az összeadás visszafelé változatlanul továbbadja a gradienst (<a href="#s104-b">10.4</a>), így az a sok rétegen át sem tűnik el.
+  Ez a ResNet (11. fejezet) és a Transformer (12. fejezet) alapja.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Tanítási és kiértékelési mód.</b> A kötegnormalizálás (és a dropout, <a href="#s107-c">10.7</a>) tanításkor másképp működik, mint kiértékeléskor. Ha kiértékelés előtt nem kapcsolod át a hálót (PyTorch-ban <code>net.eval()</code>), egyetlen képre is a köteg statisztikáját számolná – és a jóslat attól függne, mi van még a kötegben.</li>
+    <li><b>Kis köteggel a kötegnormalizálás zajos;</b> 1-es köteggel értelmetlen (a variancia 0). Ilyenkor rétegnormalizálás kell.</li>
+    <li>Egy népszerű könyv (DLV 15) a kötegnormalizálást csak regularizálóként mutatja be, a köteg-statisztikák és a mozgó átlagok nélkül. A fő haszna a stabilabb, gyorsabb tanítás.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – normalizálás</summary>
+  <ol>
+    <li>Kötegnormalizáld egy neuron $(2;\ 2;\ 6;\ 6)$ értékeit ($\varepsilon$ nélkül)!
+      <details><summary>Megoldás</summary>Átlag 4, variancia 4, szórás 2: $(-1;\ -1;\ 1;\ 1)$.</details></li>
+    <li>Az előző eredményre $\gamma = 3$, $\beta = -1$. Mi a kimenet?
+      <details><summary>Megoldás</summary>$(-4;\ -4;\ 2;\ 2)$.</details></li>
+    <li>Melyik normalizálás kell: (a) képosztályozó 256-os kötegekkel; (b) nyelvi modell, ahol a mondatok hossza és a köteg is változó; (c) online tanítás egyesével érkező mintákon?
+      <details><summary>Megoldás</summary>(a) kötegnormalizálás (a klasszikus választás CNN-ekben); (b) rétegnormalizálás; (c) rétegnormalizálás – 1-es köteggel a kötegnormalizálás nem működik.</details></li>
+    <li>Mit ad a kötegnormalizálás, ha $\gamma = \sqrt{\sigma_B^2 + \varepsilon}$ és $\beta = \mu_B$?
+      <details><summary>Megoldás</summary>Pontosan az eredeti $z$-t: a normalizálás visszacsinálható. Ezért nem veszít kifejezőerőt a háló – ha a tanítás úgy látja jónak, „kikapcsolhatja”.</details></li>
+    <li>(nehezebb) Egy kötegnormalizált háló tanítás közben 95%-os, de kiértékelési módban egyetlen képpel tesztelve 60%-os. Mi lehet a baj?
+      <details><summary>Megoldás</summary>Például a mozgó átlagok rosszak: túl kevés lépés volt, vagy a tesztképek másképp vannak előfeldolgozva, mint a tanítóképek, így más a statisztikájuk. (Ha viszont a hálót nem kapcsolták kiértékelési módba, az 1 képes „köteg” varianciája 0 – az még rosszabb.)</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai10-106"></div>
+</section>
+
+<!-- ===================================================== 10.7 -->
+<section id="s107">
+<h2>10.7 Regularizáció ★★</h2>
+<p>Egy háló könnyen <b>bemagolja</b> a tanítóadatot: a számjegyhálónak 1210 paramétere van, egy 64 rejtett neuronos változatnak 4810 – ha csak 100 tanítóképet kap, mindet hibátlanul megjegyzi.
+A cél viszont az új kép (<a href="../03-tanulas-anatomiaja/#s35">3.5</a>, <a href="../06-modellertekeles/#s66-a">6.6</a>). A <b>regularizáció</b> minden olyan fogás, amely a tanítóadaton elért eredmény helyett az általánosítást javítja. Négyet nézünk meg – a legolcsóbbtól a leghatásosabbig.</p>
+
+<h3 id="s107-a">1. lépés: korai leállítás – figyeld a validációs görbét</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – 100 kép, 4810 paraméter</span>
+  64–64–10-es háló, csak 100 tanítóképen, Adam, $\eta = 0{,}01$, $B = 16$. A validációs halmaz 300 másik kép.
+  <table style="max-width:620px;font-size:.86rem;text-align:center">
+    <tr><th>epoch</th><td>1</td><td>5</td><td>9</td><td>13</td><td>16</td><td>19</td><td>25</td><td>50</td><td>100</td><td>150</td></tr>
+    <tr><th>tanító veszteség</th><td>1,688</td><td>0,440</td><td>0,147</td><td>0,071</td><td>0,040</td><td>0,027</td><td>0,014</td><td>0,004</td><td>0,001</td><td>0,000</td></tr>
+    <tr><th>validációs veszteség</th><td>2,010</td><td>0,829</td><td>0,534</td><td>0,468</td><td>0,468</td><td><b>0,462</b></td><td>0,493</td><td>0,523</td><td>0,576</td><td>0,611</td></tr>
+    <tr><th>validációs pontosság</th><td>22,3%</td><td>74,7%</td><td>87,0%</td><td>88,3%</td><td>88,3%</td><td>89,0%</td><td>88,7%</td><td>89,0%</td><td>89,3%</td><td>89,3%</td></tr>
+  </table>
+  A 9. epochtól a tanítóképeken már 100%. A validációs veszteség a 19. epochban a legkisebb, utána <b>nő</b>, miközben a tanító tovább csökken – ez a túlillesztés jele (<a href="../06-modellertekeles/#s66-a">6.6</a>).
+  Figyeld meg: a validációs <em>pontosság</em> közben alig változik. A háló ugyanazokat a képeket rontja el, csak egyre magabiztosabban – ezt csak a veszteség mutatja.
+</div>
+<div class="box def">
+  <span class="box-title">Algoritmus – korai leállítás türelemmel</span>
+  Minden epoch után mérd a validációs veszteséget. Ha jobb az eddigi legjobbnál, <b>mentsd el a súlyokat</b>. Ha $p$ epochon át (a <b>türelem</b>) nem javult, állj meg, és <b>töltsd vissza</b> a legjobb súlyokat.
+  <br><small>Miért működik? A tanítás elején a háló az adat általános szerkezetét tanulja, később egyre inkább az egyes tanítóképek véletlen részleteit. A validációs görbe minimuma jelzi, hol fordul át az egyik a másikba.
+  Az epochszám így egy hiperparaméter, amelyet a validációs halmaz választ ki – nem kell előre eltalálni.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – türelem 3</span>
+    A legjobb érték a 13. epochban 0,468; a 14–16. epoch nem jobb nála (0,486; 0,495; 0,468 – a 16. csak hajszálnyival rosszabb). A 16. epoch után megáll, és a 13. epoch súlyait tölti vissza. A zajos görbe miatt kicsit korán: a 19. még jobb lett volna.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – türelem 10</span>
+    Átvészeli a zajt: a 19. epochban talál 0,462-t, a 29. epoch után megáll, és a 19. súlyait adja vissza. 120 felesleges epochot spórolt, és nem a 150. epoch túltanult hálóját kaptuk.
+  </div>
+</div>
+<div class="widget" data-widget="train-monitor"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A legjobb validációs eredménynél állj meg, ne ott, ahol a tanító és a validációs görbe a legközelebb van.</b> Egy könyv (MLQ 6) az utóbbit írja – de a két görbe a tanítás legelején van a legközelebb, amikor a háló még semmit sem tud.</li>
+    <li><b>A leállításra használt validációs halmaz már „elhasználódott”.</b> Az eredményét ne jelentsd végső pontosságként: arra a külön tesztkészlet való (<a href="../06-modellertekeles/#s64-a">6.4</a>).</li>
+    <li><b>Nem elég leállni – vissza is kell tölteni</b> a legjobb súlyokat; különben a türelem idejére már romlott hálót kapsz.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – korai leállítás</summary>
+  <ol>
+    <li>Validációs veszteségek epochonként: 0,90; 0,62; 0,48; 0,41; 0,38; 0,37; 0,38; 0,40; 0,43; 0,47. Türelem 3: hol áll meg, és melyik epoch súlyait adja vissza?
+      <details><summary>Megoldás</summary>Legjobb a 6. epoch (0,37). A 7., 8., 9. nem javít → a 9. után megáll, és a 6. epoch súlyait tölti vissza.</details></li>
+    <li>Ugyanez türelem 5-tel?
+      <details><summary>Megoldás</summary>A 7–10. epoch nem javít, de ez csak 4 epoch – a 10. epoch végén még fut (ha lenne 11. is, utána állna meg). A legjobb továbbra is a 6.</details></li>
+    <li>A tanító veszteség 0,01, a validációs 0,6 és nő. A validációs pontosság 89%, és nem változik. Túlillesztés-e ez?
+      <details><summary>Megoldás</summary>Igen: a tanító–validációs rés nagy, és a validációs veszteség nő. A pontosság azért nem esik, mert ugyanazokat a képeket rontja el, csak egyre magabiztosabban – a valószínűségei rosszabbak lettek (kalibráció, <a href="../06-modellertekeles/#s62-d">6.2</a>).</details></li>
+    <li>Miért kell a legjobb súlyokat <em>menteni</em>, nem elég megjegyezni, melyik epochban voltak?
+      <details><summary>Megoldás</summary>Mert a súlyok tovább változnak: a türelem lejártakor a háló már a későbbi (rosszabb) állapotban van. A 13. epoch hálóját csak akkor kapod vissza, ha akkor elmentetted.</details></li>
+    <li>(nehezebb) Mi lehet a baj, ha a validációs veszteség már az első epochtól folyamatosan nő?
+      <details><summary>Megoldás</summary>Valószínűleg nem túlillesztés, hanem hiba: túl nagy tanulási ráta (szétszálló tanítás – ilyenkor a tanító veszteség is nő), szivárgás vagy eltérő előfeldolgozás a tanító és a validációs adat között, rossz címkék a validációs halmazban.</details></li>
+  </ol>
+</details>
+
+<h3 id="s107-b">2. lépés: L2-büntetés és súlycsökkentés</h3>
+<p>A korai leállítás a tanítás <em>idejét</em> korlátozza. A második eszköz magát a célt módosítja: a nagy súlyokat büntetjük, ahogy a ridge regresszió (<a href="../06-modellertekeles/#s67-a">6.7</a>).</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy felesleges súly sorsa</span>
+  Egy súly értéke 2, de a veszteségre már nem hat (a gradiense 0). Sima gradiens módszerrel örökre 2 marad. Adjunk a veszteséghez $\frac{\lambda}{2}w^2$-et, $\lambda = 0{,}01$, $\eta = 0{,}1$: a gradiens $\lambda w$, így minden lépés
+  $$w \leftarrow w - \eta\lambda w = (1 - 0{,}001)\,w = 0{,}999\,w.$$
+  1000 lépés után $2 \cdot 0{,}999^{1000} \approx 0{,}735$. A haszontalan súly lassan elkopik – a hasznosakat a veszteség gradiense „életben tartja”.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – L2-büntetés = súlycsökkentés (SGD-nél)</span>
+  $$L_{\text{reg}} = L + \frac{\lambda}{2}\sum_i w_i^2 \qquad\Rightarrow\qquad w \leftarrow w - \eta(g + \lambda w) = (1 - \eta\lambda)\,w - \eta g.$$
+  Minden lépés előbb kicsit összehúzza a súlyt ($1 - \eta\lambda$-szorosára), aztán a gradiens szerint lép. Ezért hívják <b>súlycsökkentésnek</b> (weight decay). A torzításokat általában nem büntetjük.
+  <br><small>Miért segít? A kis súlyú háló „simább” függvényt számol (a bemenet kis változására kicsit változik), kevésbé tud egyes tanítóképekre szabott, éles kanyarokat leírni. A $\lambda$ hiperparaméter: validációval választjuk (<a href="../06-modellertekeles/#s68-a">6.8</a>).</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy klasszikus mérés (ESL 11.5)</span>
+    Egy 10 rejtett neuronos háló kétosztályos szimulált adaton: súlycsökkentés nélkül a tanító hiba 0,100, a teszt 0,259; $\lambda = 0{,}02$-vel a tanító hiba 0,160, a teszt 0,223 (az elérhető legjobb 0,210).
+    A tanítón rosszabb, az új adaton jobb – a regularizáció tipikus „cseréje”.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a 100 képes számjegyháló</span>
+    A kiinduló példa hálója $\lambda = 0{,}001$-gyel: a validációs veszteség a 150. epochban 0,471 (büntetés nélkül 0,611) – nem kúszik fel. A pontosság itt is alig változik (88–89%).
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktató – Adamnál az L2 nem súlycsökkentés: AdamW (Kiegészítés)</span>
+  Az Adam minden gradienst a saját tipikus nagyságával oszt (<a href="#s105-b">10.5</a>) – a $\lambda w$ büntetőtagot is. Így a büntetés ereje szinte eltűnik a skálázásban.
+  Egy kis próbán (a súly 1, a veszteség gradiense 0, 100 lépés, $\eta = 0{,}01$) Adam + L2 után $w = 0{,}224$ – <b>mind $\lambda = 0{,}001$-gyel, mind $\lambda = 0{,}1$-gyel</b>: a $\lambda$ nem számít.
+  A megoldás az <b>AdamW</b> (I. Loshchilov, F. Hutter, 2019): a súlycsökkentést a skálázáson kívül, külön lépésben végzi, $w \leftarrow (1 - \eta\lambda)w$ – ugyanitt $\lambda = 0{,}1$-gyel $w = 0{,}905$. A mai nagy modellek AdamW-vel tanulnak.
+  Több könyv (PDL 9, MLQ 6) „funkcionálisan azonosnak” mondja az L2-t és a súlycsökkentést – ez csak a sima (és a momentumos) SGD-re igaz.
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – L2 és súlycsökkentés</summary>
+  <ol>
+    <li>$\eta = 0{,}01$, $\lambda = 0{,}0005$. Mennyivel szorzódik egy súly lépésenként a büntetés miatt? Mennyi marad egy 1-es súlyból 10 000 lépés alatt, ha a gradiense 0?
+      <details><summary>Megoldás</summary>$1 - 0{,}01 \cdot 0{,}0005 = 0{,}999995$. $0{,}999995^{10\,000} \approx e^{-0{,}05} \approx 0{,}951$.</details></li>
+    <li>$w = 1$, $g = 0{,}3$, $\eta = 0{,}1$, $\lambda = 0{,}5$. Mennyi az új súly büntetéssel és nélküle?
+      <details><summary>Megoldás</summary>Nélküle: $1 - 0{,}03 = 0{,}97$. Büntetéssel: $(1 - 0{,}05)\cdot 1 - 0{,}03 = 0{,}92$.</details></li>
+    <li>Hol van egyensúlyban egy súly, ha a veszteség gradiense állandóan $g = -0{,}02$ (a veszteség a nagyobb súlyt szeretné), és $\lambda = 0{,}01$?
+      <details><summary>Megoldás</summary>Ahol $g + \lambda w = 0$: $w = 0{,}02/0{,}01 = 2$. A büntetés nem nullázza a hasznos súlyt, csak visszafogja.</details></li>
+    <li>Miért nem szokás a torzításokat büntetni?
+      <details><summary>Megoldás</summary>Mert a torzítás csak eltolja a neuron küszöbét, nem teszi a függvényt „élesebbé”; kevés is van belőlük. A büntetésük az illeszkedést ronthatja, általánosítási haszon nélkül.</details></li>
+    <li>(nehezebb) A scikit-learn <code>MLPClassifier</code> <code>alpha</code> paraméterét a kötegmérettel osztja. Egy könyv (PDL 10) $\alpha = 0{,}1$–$0{,}4$-et próbál 64-es köteggel, és ezt $\lambda$-nak hívja. Mekkora valójában a mintánkénti $\lambda$?
+      <details><summary>Megoldás</summary>Kb. $0{,}1/64 \approx 0{,}0016$-tól $0{,}4/64 \approx 0{,}0063$-ig – ezért nem rontják el a hálót ezek a „nagy” értékek.</details></li>
+  </ol>
+</details>
+
+<h3 id="s107-c">3. lépés: dropout – véletlenül kikapcsolt neuronok</h3>
+<p>A harmadik ötlet meglepő: tanítás közben minden lépésben kapcsoljuk ki a rejtett neuronok egy véletlen részét. A háló így nem támaszkodhat egyetlen neuronra sem.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – négy neuron, negyedük kiesik</span>
+  Egy rejtett réteg kimenete $\mathbf h = (2;\ 4;\ 6;\ 8)$. A dropout valószínűsége $p = 0{,}25$: minden neuron egymástól függetlenül 25% eséllyel kiesik. Most a második esett ki, a maszk $(1;\ 0;\ 1;\ 1)$.
+  A megmaradtakat $\frac{1}{1 - p} = \frac43$-dal felszorozzuk:
+  $$\tilde{\mathbf h} = (2;\ 0;\ 6;\ 8)\cdot\tfrac43 = (2{,}667;\ 0;\ 8;\ 10{,}667).$$
+  Miért a felszorzás? A harmadik neuron 75% eséllyel 8-at, 25% eséllyel 0-t ad: átlagosan $0{,}75 \cdot 8 = 6$ – pontosan az eredeti érték. Így kiértékeléskor, amikor <b>senki nem esik ki</b>, a következő réteg ugyanakkora jeleket kap, mint tanításkor átlagosan.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – (fordított) dropout</span>
+  <ul style="margin:.2rem 0">
+    <li><b>tanításkor</b> minden lépésben, minden mintára és minden rejtett neuronra külön: $\tilde h = h\cdot m/(1 - p)$, ahol $m = 0$ $p$ valószínűséggel, különben 1;</li>
+    <li><b>kiértékeléskor</b> nincs dropout: $\tilde h = h$.</li>
+  </ul>
+  A visszafelé menetben a kiesett neuronon át nem folyik gradiens (a maszk ugyanúgy szoroz). Tipikus $p$: 0,1–0,5. (G. Hinton és társai, 2012; N. Srivastava és társai, 2014.)
+  <br><small>Miért segít? (1) Egy neuron nem „specializálódhat” arra, hogy egy másik neuron hibáit javítsa – mindegyiknek önmagában is hasznosnak kell lennie. (2) Minden lépés egy véletlen <b>részhálót</b> tanít; egy 16 rejtett neuronos rétegnek $2^{16} = 65\,536$ részhálója van.
+  A kiértékelés (dropout nélkül, a felszorzással kiegyensúlyozva) nagyjából ezek átlaga – mint egy együttes modell (<a href="../07-fak-svm-egyuttes/#s75">7.5</a>), egyetlen háló áráért.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – $p = 0{,}5$</span>
+    $\mathbf h = (1;\ 3)$, maszk $(0;\ 1)$: $\tilde{\mathbf h} = (0;\ 6)$. Kiértékeléskor $(1;\ 3)$. A második neuron várható értéke tanításkor $0{,}5 \cdot 6 = 3$ ✓.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a 200 képes számjegyháló</span>
+    64 rejtett neuron, 200 tanítókép, Adam: dropout nélkül a legjobb validációs veszteség 0,213 (teszt 93,1%), $p = 0{,}5$-tel 0,168 (teszt 94,0%). Mérsékelt, de valódi javulás – a dropout a nagy, sokáig tanított hálóknál ér igazán sokat.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Kiértékeléskor kapcsold ki</b> (PyTorch: <code>net.eval()</code>). Különben minden jóslat véletlenszerű lesz, és rosszabb.</li>
+    <li><b>Felszorzás nélkül eltolódik a jel.</b> Egy népszerű könyv (DLV 15) a dropoutot felszorzás nélkül írja le: ha tanításkor kiesik a neuronok fele, kiértékeléskor viszont mind dolgozik, a következő réteg kétszer akkora jelet kap. Az eredeti cikk ezt kiértékeléskor a súlyok $(1 - p)$-szeresével javította; ma a fordított dropout (tanításkor $\div(1 - p)$) a szokás.</li>
+    <li><b>Mit jelent a $p$?</b> A PyTorch-ban és a Kerasban az <em>elejtés</em> valószínűsége; az eredeti cikkben a <em>megtartásé</em>. Mindig nézd meg, melyik.</li>
+    <li>A dropout nem Krizhevsky és társai 2012-es képfelismerő cikkéből (AlexNet) származik, ahogy egy könyv (PDL 9) írja – ők <em>használták</em>, Hinton és társai javasolták.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – dropout</summary>
+  <ol>
+    <li>$\mathbf h = (3;\ 1;\ 2)$, $p = 0{,}5$, maszk $(1;\ 1;\ 0)$. Mi a tanítási kimenet? És a kiértékelési?
+      <details><summary>Megoldás</summary>Tanítás: $(6;\ 2;\ 0)$. Kiértékelés: $(3;\ 1;\ 2)$.</details></li>
+    <li>$p = 0{,}2$. Mennyivel szorozzuk a megmaradó neuronokat? Átlagosan hány neuron esik ki egy 100-as rétegből?
+      <details><summary>Megoldás</summary>$1/0{,}8 = 1{,}25$-tel. Átlagosan 20 – de ez véletlen, lehet 15 vagy 24 is (mintánként külön sorsolva).</details></li>
+    <li>Ellenőrizd a várható értéket: $h = 5$, $p = 0{,}2$!
+      <details><summary>Megoldás</summary>80% eséllyel $5 \cdot 1{,}25 = 6{,}25$, 20% eséllyel 0: $0{,}8 \cdot 6{,}25 = 5$ ✓.</details></li>
+    <li>Hány különböző részhálót sorsolhat a dropout egy 8 rejtett neuronos rétegből?
+      <details><summary>Megoldás</summary>$2^8 = 256$ (minden neuron vagy bent van, vagy nincs).</details></li>
+    <li>(nehezebb) Valaki a tesztelésnél is bekapcsolva hagyja a dropoutot ($p = 0{,}5$), és ugyanazt a képet háromszor mutatja meg. Mit tapasztal? Lehet-e ebből hasznot húzni?
+      <details><summary>Megoldás</summary>Háromszor kicsit más valószínűségeket kap (más-más részháló dönt). Hibának hiba – de szándékosan is csinálják: sok dropoutos futás szórása a háló <b>bizonytalanságát</b> becsüli („Monte Carlo dropout”).</details></li>
+  </ol>
+</details>
+
+<h3 id="s107-d">4. lépés: adatbővítés – több adat, ingyen</h3>
+<p>A túlillesztés ellen a legjobb gyógyszer a <b>több adat</b> (a számjegyhálón: 100 képből 82,9%, 200-ból 91,8%, 500-ból 96,0%, 1047-ből 98,0%). Ha nincs több, néha gyárthatunk: olyan változtatásokkal, amelyek a címkét nem változtatják meg.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – eltolt számjegyek</span>
+  Egy kézzel írt 3-as egy pixellel jobbra tolva is 3-as. Ha minden tanítóképet eltolunk egy pixellel jobbra, balra, fel és le, a 100 képből 500 lesz.
+  A 64–64–10-es hálón (Adam) a legjobb validációs veszteség 0,462-ről 0,396-ra, a teszt 88,7%-ról 90,0%-ra javult; 200 képből kiindulva 0,213-ról 0,169-re (teszt 93,1% → 93,8%).
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – adatbővítés</span>
+  <b>Adatbővítés</b> (data augmentation): a tanítóminták véletlen, <b>címkét megőrző</b> átalakítása – minden epochban újra sorsolva. Képeknél: eltolás, kis forgatás, kivágás, nagyítás, tükrözés, fényerő; hangnál: zaj, sebesség; szövegnél: átfogalmazás.
+  <br><small>Miért segít? A háló sok változatban látja ugyanazt a tartalmat, így megtanulja, hogy az eltolás vagy a fényerő <em>nem</em> számít – ezt különben csak sok valódi adatból tudná meg. Egy könyv (DLV 10) példájában 6 husky-fotóból kis eltolással, forgatással és tükrözéssel 4000 tanítókép lett.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – ami jó a macskának…</span>
+    Macskás fotót vízszintesen tükrözni: továbbra is macska – jó bővítés.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – …az rossz a számjegynek</span>
+    Egy 6-ost 180°-kal elforgatni: 9-es lesz. Egy kézzel írt 2-est tükrözni: nem 2-es. A bővítésnek a <b>feladathoz</b> kell illenie – egy könyv (MLQ 5) gyakorlata épp azt mutatja, hogy rossz bővítéssel az MNIST-eredmény romlik.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabály – a regularizációk sorrendje</span>
+  <b>Több valódi adat</b> &gt; <b>adatbővítés</b> &gt; <b>súlycsökkentés, dropout, korai leállítás</b>. A gyakorlatban egyszerre többet is használnak, és az erősségüket (λ, $p$, türelem, a bővítés mértéke) hiperparaméterként hangolják.
+  Kisebb háló is regularizál – de a mai gyakorlat inkább nagy hálót tanít erős regularizációval.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Csak a tanítóadatot bővítsd.</b> A validációs és a tesztadat maradjon érintetlen, különben a mérés torz.</li>
+    <li><b>A több adat az alulillesztésen nem segít.</b> Két könyv (DLV 9, MLQ 5) szerint „gyakran gyógyítja” az alulillesztést is – de ha a modell már a tanítóadaton is rossz, nagyobb modell, jobb jellemzők vagy hosszabb tanítás kell (<a href="../06-modellertekeles/#s66-b">6.6</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – adatbővítés</summary>
+  <ol>
+    <li>1047 tanítókép, mindegyikből 4 eltolt változat is készül. Hány kép van összesen egy epochban?
+      <details><summary>Megoldás</summary>$1047 \cdot 5 = 5235$.</details></li>
+    <li>Melyik bővítés jó egy tüdőröntgen-osztályozóhoz: (a) kis forgatás; (b) vízszintes tükrözés; (c) kis fényerő-változás?
+      <details><summary>Megoldás</summary>(a) és (c) általában jó. (b) gyanús: a szív bal oldalon van, a tükrözött kép anatómiailag ritka (és ha a betegség egyoldali, a címke is sérülhet).</details></li>
+    <li>Egy hangfelismerőnél a felvételeket kicsit felgyorsítod. Mire figyelj?
+      <details><summary>Megoldás</summary>Hogy a címke ne változzon: egy szó kicsit gyorsabban is ugyanaz, de egy beszélőfelismerőnél a felgyorsítás a hangmagasságot – és így a „beszélőt” – is megváltoztathatja.</details></li>
+    <li>Miért kell a bővítést minden epochban újra sorsolni, ahelyett hogy egyszer elkészítenénk 5-szörös adatot?
+      <details><summary>Megoldás</summary>Mert így a háló minden epochban más változatokat lát – folytonos eltolásoknál, forgatásoknál végtelen sok lehetőség van. Az előre gyártott készlet véges, és azt is be lehet magolni.</details></li>
+    <li>(nehezebb) A dropout egy könyv (PDL 9) szerint „a bemeneti rétegen az adatbővítéshez hasonlít”. Miért?
+      <details><summary>Megoldás</summary>Mert a bemeneti pixelek véletlen kinullázása a kép véletlen „sérülése”: a háló megtanulja, hogy néhány hiányzó pixel nem változtat a címkén – mintha sok enyhén hiányos változatot látna ugyanabból a képből.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai10-107"></div>
+</section>
+
+<!-- ===================================================== 10.8 -->
+<section id="s108">
+<h2>10.8 A tanítás gyakorlata ★★</h2>
+<p>Megvan minden eszköz. Egy valódi tanításnál mégis a legtöbb idő azzal megy el, hogy kiderüljön: <em>miért nem</em> tanul a háló, melyik beállítás számít, és mennyire bízhatunk egy eredményben. Ez a szakasz a „műhelytitkokat” gyűjti össze.</p>
+
+<h3 id="s108-a">1. lépés: első ellenőrzések és a tanulási ráta</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két gyors próba a számjegyhálón</span>
+  <ol style="margin:.2rem 0">
+    <li><b>A kiinduló veszteség.</b> Tíz osztálynál a tanítás előtti háló nagyjából egyenletesen tippel, a veszteség kb. $\ln 10 = 2{,}303$ (<a href="#s101-a">10.1</a>). A számjegyháló He-kezdéssel <b>2,398</b>-at mutat – rendben.
+      Ha 12,9-et látnánk, a kezdés túl nagy (<a href="#s106-b">10.6</a>); ha pontosan 2,303 marad, gyanús, hogy a háló meg sem mozdul (<a href="#s106-a">10.6</a>).</li>
+    <li><b>Be tudja-e magolni?</b> Egy kis, 100 képes részhalmazon a 64 rejtett neuronos háló a 9. epochra minden tanítóképet eltalál, a tanító veszteség 0-hoz megy (<a href="#s107-a">10.7</a>). A modell, a veszteség és a visszaterjesztés tehát működik – ha a teljes adaton mégsem tanulna, a hiba máshol van (adat, tanulási ráta).</li>
+  </ol>
+</div>
+<div class="box def">
+  <span class="box-title">Recept – egy tanítás beállítása</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Ellenőrizd a kezdést:</b> kiinduló veszteség $\approx \ln K$ ($K$ osztály), a jóslatok nem mind egyformák.</li>
+    <li><b>Magoltass be egy kis köteget:</b> 10–100 mintán a tanító veszteségnek közel 0-ra kell mennie. Ha nem megy, hiba van.</li>
+    <li><b>Keresd meg a tanulási rátát:</b> logaritmikus skálán ($10^{-4}, 3\cdot 10^{-4}, 10^{-3}, \dots, 10^{-1}$), rövid futásokkal. Ez a <b>legfontosabb</b> hiperparaméter.</li>
+    <li><b>Aztán a többi:</b> kötegméret (a hardverhez), a háló mérete, majd a regularizáció ereje (súlycsökkentés, dropout, bővítés), az ütemezés.</li>
+    <li><b>Mindig a validációs halmazon döntsd el,</b> egyszerre egy dolgot változtass, és a végén egyszer mérj a teszten (<a href="../06-modellertekeles/#s68-a">6.8</a>).</li>
+  </ol>
+  <small>Miért ilyen sorrendben? Az első kettő olcsó, és a legtöbb programhibát kiszűri. A tanulási ráta mindent befolyásol, ezért előbb azt kell nagyjából eltalálni – a többi hiperparaméter hatása csak jó $\eta$ mellett látszik.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy MNIST-kísérlet (PDL 10)</span>
+    Rögzített 50 epoch, SGD, különböző tanulási rátákkal: $10^{-4}$: 91,9%; $\;10^{-3}$: 96,0%; $\;10^{-2}$: 97,3%; $\;0{,}1$: <b>97,6%</b>; $\;0{,}2$: 94,8%. Ezerszeres tartományban kell keresni – egy-két nagyságrend tévedés is sokat ront.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a számjegyháló Adammal</span>
+    30 epoch, $B = 32$: $\eta = 0{,}003$: teszt 98,2%; $\;0{,}01$: 98,0%; $\;0{,}03$: 97,1%, és a validációs veszteség ugrál. Az Adam alapértéke körül ($10^{-3}$–$10^{-2}$) széles a jó tartomány.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabály – a veszteséggörbe olvasása</span>
+  <b>Nem csökken:</b> túl kicsi $\eta$, rossz kezdés, vagy hiba. · <b>Felrobban, NaN:</b> túl nagy $\eta$ (vagy robbanó gradiens – vágás, <a href="#s106-b">10.6</a>). · <b>Csökken, de nagyon zajos:</b> nagy $\eta$ vagy kis köteg – csökkentsd $\eta$-t menet közben (<a href="#s105-c">10.5</a>).
+  <b>A tanító csökken, a validációs nő:</b> túlillesztés – regularizálj (<a href="#s107">10.7</a>). · <b>Mindkettő magas, és alig mozdul:</b> alulillesztés – nagyobb háló, hosszabb tanítás.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Ne a teszten hangolj.</b> Ha a teszteredmény alapján választod az $\eta$-t, a teszt már nem független (<a href="../06-modellertekeles/#s64-a">6.4</a>).</li>
+    <li><b>Egyszerre egy dolgot.</b> Ha az optimalizálót és az $\eta$-t is egyszerre cseréled, nem tudod, melyik segített. (Egy könyv, MDL 11, a momentum bekapcsolásával együtt az $\eta$-t is módosítja – így a tényleges lépésköz is megváltozott, <a href="#s105-a">10.5</a>.)</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – első ellenőrzések</summary>
+  <ol>
+    <li>Egy 1000 osztályos képosztályozó kiinduló vesztesége 6,9. Rendben van-e?
+      <details><summary>Megoldás</summary>Igen: $\ln 1000 \approx 6{,}908$.</details></li>
+    <li>Egy kétosztályos (szigmoidos) háló kiinduló vesztesége 0,69. Mire számítottál?
+      <details><summary>Megoldás</summary>$\ln 2 \approx 0{,}693$ – rendben.</details></li>
+    <li>A háló 20 mintát sem tud bemagolni: 500 epoch után is 1,5 a tanító veszteség. Mi lehet a baj? Mondj hármat!
+      <details><summary>Megoldás</summary>Például: túl kicsi (vagy túl nagy) $\eta$; a címkék nem illenek a mintákhoz (elcsúszott sorrend); a gradiens nem jut el a súlyokhoz (elfelejtett nullázás, rossz előjel, hiányzó aktiváció-derivált); a kimenet és a veszteség rossz párosa (dupla softmax, <a href="#s101-c">10.1</a>).</details></li>
+    <li>Melyik $\eta$-sorozat jobb kereséshez: $0{,}01;\ 0{,}02;\ 0{,}03;\ 0{,}04$ vagy $0{,}0001;\ 0{,}001;\ 0{,}01;\ 0{,}1$?
+      <details><summary>Megoldás</summary>A második: a jó $\eta$ nagyságrendjét kell először megtalálni, ezért logaritmikus skálán keresünk (<a href="../06-modellertekeles/#s68-b">6.8</a>). Utána lehet finomítani.</details></li>
+    <li>(nehezebb) A tanító veszteség az 50. lépésnél hirtelen „NaN” lesz. Mit próbálnál először?
+      <details><summary>Megoldás</summary>Kisebb $\eta$-t (vagy bemelegítést), gradiensvágást; ellenőrizném a $\ln 0$-t (a keresztentrópia logitokból számolódik-e), és hogy van-e végtelen vagy hiányzó érték az adatban.</details></li>
+  </ol>
+</details>
+
+<h3 id="s108-b">2. lépés: a véletlenség forrásai és a reprodukálhatóság</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – ugyanaz a háló, tíz futás</span>
+  A számjegyháló (Adam, $\eta = 0{,}01$, 30 epoch) tízszer, csak a véletlenmag más. A teszteredmények:
+  95,8%; 96,2%; 96,4%; 96,4%; 96,7%; 96,9%; 97,1%; 97,3%; 97,8%; 98,0%. Átlag 96,9%, szórás 0,7 százalékpont.
+  Ugyanaz a kód, ugyanaz az adat – és a legrosszabb meg a legjobb futás között több mint 2 százalékpont.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – honnan jön a véletlen, és mit tegyél vele?</span>
+  A véletlen forrásai: a <b>kezdő súlyok</b>; az <b>adat felosztása</b>; a kötegek <b>sorrendje</b> (keverés); a <b>dropout</b>-maszkok és az <b>adatbővítés</b>; egyes <b>GPU-műveletek</b>, amelyek a lebegőpontos összeadások sorrendjét futásonként változtatják.
+  <ul style="margin:.2rem 0">
+    <li><b>Reprodukálhatóság:</b> rögzíts minden véletlenmagot (Python, NumPy, PyTorch), és kapcsold be a determinisztikus algoritmusokat – így ugyanazon a gépen ugyanazt kapod. (Különböző hardveren a bitre azonos eredmény nem garantált.)</li>
+    <li><b>Összehasonlítás:</b> egy futás nem bizonyít. Két modellt <b>több maggal</b> futtass, és az átlagot meg a szórást hasonlítsd össze (<a href="../06-modellertekeles/#s69-a">6.9</a>).</li>
+  </ul>
+  <small>Miért ekkora a szórás? A nem konvex veszteségnek sok jó völgye van (<a href="../02-matematikai-eszkoztar/#s28-c">2.8</a>); más kezdésből és más kötegsorrendből más völgybe jut a tanítás. Kis tesztkészletnél (450 kép) ráadásul egyetlen kép is 0,2 százalékpont.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – „az enyém jobb”</span>
+    Egy futás: A modell 97,3%, B 96,8%. A különbség 0,5 pont – kisebb, mint egyetlen modell futásainak szórása (0,7 pont). Ebből semmi nem következik; tíz-tíz futás átlaga már mondhat valamit.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy gondos összehasonlítás (MDL 11)</span>
+    Egy könyv 22–22 futással hasonlítja össze a momentumos és a momentum nélküli tanítást (Fashion-MNIST): az átlagos MCC 0,8641 vs. 0,8578, és a különbség statisztikai próbával is szignifikáns. Így kell – egy futás helyett.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A legjobb futást ne jelentsd úgy, mintha tipikus lenne.</b> A tíz futásból a 98,0%-ot kiválasztani a véletlen kihasználása.</li>
+    <li><b>A GPU-s eltérés nem „közelítés”.</b> Egy könyv (MLQ 10) a konvolúció gyors (FFT-s, Winograd-) algoritmusait közelítésnek hívja – matematikailag pontosak; az eltérés a kerekítésből és az összeadások sorrendjéből jön.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – véletlenség</summary>
+  <ol>
+    <li>Sorold fel a véletlen négy forrását egy dropoutos, adatbővítéses tanításban!
+      <details><summary>Megoldás</summary>Kezdő súlyok, a kötegek keverése, a dropout-maszkok, a bővítés (eltolás, forgatás) sorsolása – és ha a felosztás is véletlen, az is.</details></li>
+    <li>Mennyi a 450 képes tesztkészleten egy kép hozzájárulása a pontossághoz?
+      <details><summary>Megoldás</summary>$1/450 \approx 0{,}22$ százalékpont.</details></li>
+    <li>A tíz futás átlaga 96,9%, szórása 0,7 pont. Mekkora az átlag standard hibája?
+      <details><summary>Megoldás</summary>$0{,}7/\sqrt{10} \approx 0{,}22$ pont. Az átlag tehát sokkal pontosabb, mint egy futás.</details></li>
+    <li>Rögzítetted a PyTorch magját, de a NumPy-ét nem, és a keverést NumPy végzi. Mi lesz?
+      <details><summary>Megoldás</summary>A kezdő súlyok azonosak, de a kötegsorrend futásonként más – az eredmények eltérnek. Minden használt véletlenforrás magját rögzíteni kell.</details></li>
+    <li>(nehezebb) Két modell átlaga 10–10 futásból 97,0% és 96,6%, a szórások 0,7 és 0,6 pont. Elég meggyőző-e a különbség?
+      <details><summary>Megoldás</summary>A különbség standard hibája $\sqrt{0{,}7^2/10 + 0{,}6^2/10} \approx 0{,}29$ pont; a 0,4 pontos különbség ennek kb. 1,4-szerese – ez még nem meggyőző (kb. 2-szeres kellene, <a href="../06-modellertekeles/#s69-a">6.9</a>). Több futás vagy nagyobb tesztkészlet kell.</details></li>
+  </ol>
+</details>
+
+<h3 id="s108-c">3. lépés: memória, GPU és több gép</h3>
+<p>A számjegyháló a böngészőben is tanul. Egy nagy nyelvi modell viszont egyetlen gépre sem fér rá. Mi foglalja a memóriát, és hogyan osztják szét a munkát?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – mennyi memória kell egy paraméterhez?</span>
+  Adammal, 32 bites számokkal egy paraméterhez a tanítás alatt:
+  4 bájt a súly + 4 bájt a gradiens + 4 + 4 bájt az Adam két mozgó átlaga ($m$, $v$) = <b>16 bájt</b>.
+  <ul style="margin:.2rem 0">
+    <li>a számjegyháló: $1210 \cdot 16 \approx 19$ kB – semmiség;</li>
+    <li>egy 7 milliárd paraméteres nyelvi modell: $7 \cdot 10^9 \cdot 16 = 112$ GB – több, mint egy 80 GB-os GPU, és ebben még nincsenek benne a köztes értékek (<a href="#s103-c">10.3</a>).</li>
+  </ul>
+  Csak a futtatáshoz (következtetéshez) elég a súly: 16 bites számokkal $7 \cdot 10^9 \cdot 2 = 14$ GB.
+</div>
+<div class="box def">
+  <span class="box-title">Áttekintés – hogyan osztják el a tanítást?</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Adatpárhuzamosítás:</b> minden GPU-n a teljes modell egy példánya, mindegyik a köteg egy részét számolja, aztán a gradienseket <b>átlagolják</b>. Ez pontosan egy nagy köteg lépése: 8 GPU × 32 kép = 256-os köteg (<a href="#s102-c">10.2</a>).</li>
+    <li><b>Modellpárhuzamosítás:</b> ha a modell nem fér egy GPU-ra, szétvágják – <b>rétegek szerint</b> (csővezeték: az egyik GPU az első rétegeket számolja, a másik a következőket, a köteg kis darabjaival átfedve) vagy <b>rétegen belül</b> (tenzorpárhuzamosítás: egy nagy mátrixszorzás részei más-más GPU-n).</li>
+    <li><b>Memóriatrükkök:</b> vegyes pontosság (16 bites számolás, 32 bites „mester” súlyokkal), gradiensgyűjtés (<a href="#s102-c">10.2</a>), ellenőrzőpontos újraszámolás (a köztes értékek egy részét eldobja, és visszafelé újraszámolja), az optimalizáló-állapotok szétosztása a GPU-k között.</li>
+  </ul>
+  <small>A nagy nyelvi modellek tanítása mindhármat egyszerre használja, több ezer GPU-n. A részletek a 22. fejezetben jönnek.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – SGD vs. Adam memóriája</span>
+    Momentumos SGD: súly + gradiens + sebesség = 12 bájt/paraméter; Adam: 16 bájt. 1 milliárd paraméternél 12 GB vs. 16 GB. Néha ez dönti el, melyik fér a gépbe (MLQ 7, gyakorlat).
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – vegyes pontosság</span>
+    A modellállapot ettől nem lesz kisebb: 2 (16 bites súly) + 2 (gradiens) + 4 (32 bites mester-súly) + 4 + 4 (Adam) = szintén 16 bájt/paraméter. A nyereség a gyorsabb számolás és a kisebb köztes értékek.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók a forrásokban</span>
+  <ul style="margin:.2rem 0">
+    <li>Egy rendszerkönyv (MLSYS, <em>AI Training</em>) szerint az optimalizálók memóriaigénye „SGD 1×, momentum 2×, Adam 3×” – ebből kimarad a gradiens: helyesen 2×, 3×, 4× a súlyok méretének.</li>
+    <li>Ugyanott a vegyes pontosság „felezi” a memóriát – a modellállapotra ez nem igaz (lásd a példát), csak a köztes értékekre.</li>
+    <li>Ugyanott: „10–20 milliárd paraméter elfér egy GPU-n”. Adammal tanítva 80 GB-ba legfeljebb kb. 5 milliárd fér – köztes értékek nélkül.</li>
+  </ul>
+</div>
+<div class="box tip">
+  <span class="box-title">🔭 Kitekintés ★★★ – a lottószelvény-hipotézis</span>
+  J. Frankle és M. Carbin (2018–19) érdekes kísérlete: tanítsd be a hálót, töröld a súlyok 80–90%-át (a legkisebbeket), a <b>maradékot állítsd vissza az eredeti kezdő értékére</b>, és tanítsd újra.
+  A kis háló ugyanolyan jó lesz, mint a nagy – de csak az <em>eredeti</em> kezdéssel; új véletlen kezdéssel nem. Mintha a nagy háló sok „lottószelvény” lenne, és a tanítás a nyerőt találná meg.
+  Gyakorlati haszna korlátozott (a nyerő szelvényhez előbb a nagy hálót kell betanítani), de jól mutatja, mennyit számít a kezdés, és hogy a nagy hálók sok fölösleges paramétert hordoznak.
+  (Egy könyv, MLQ 6, úgy írja, hogy a módszer „tudásdesztillációt alkalmaz” – nem: metszést és visszaállítást.)
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – memória és párhuzamosítás</summary>
+  <ol>
+    <li>Hány GB kell egy 1,5 milliárd paraméteres modell Adamos tanításához (16 bájt/paraméter, köztes értékek nélkül)?
+      <details><summary>Megoldás</summary>$1{,}5 \cdot 10^9 \cdot 16 = 24$ GB.</details></li>
+    <li>4 GPU, mindegyiken 64 kép. Mekkora a tényleges köteg? Milyen $\eta$-val kezdenél, ha egy GPU-n, 64-es köteggel $\eta = 0{,}1$ volt a jó?
+      <details><summary>Megoldás</summary>256; a lineáris skálázás szerint $\eta = 0{,}4$, bemelegítéssel (<a href="#s102-c">10.2</a>).</details></li>
+    <li>Melyik párhuzamosítás kell: (a) a modell elfér egy GPU-n, de gyorsítani akarsz; (b) a modell egyetlen rétege sem fér el egy GPU-n?
+      <details><summary>Megoldás</summary>(a) adatpárhuzamosítás; (b) tenzorpárhuzamosítás (a rétegen belüli szétvágás).</details></li>
+    <li>Csak futtatni akarsz egy 70 milliárd paraméteres modellt 16 bites súlyokkal. Mennyi memória kell a súlyokhoz?
+      <details><summary>Megoldás</summary>$70 \cdot 10^9 \cdot 2 = 140$ GB – két 80 GB-os GPU-ra már elfér (a futtatás köztes értékei nélkül).</details></li>
+    <li>(nehezebb) Csővezetékes párhuzamosításnál 4 GPU (szakasz) dolgozik egymás után. Ha a köteget 4 részre vágják, az idő kb. $\frac{4 - 1}{4 + 4 - 1}$ része üresjárat. Mennyi ez, és mennyi 16 részre vágva?
+      <details><summary>Megoldás</summary>$3/7 \approx 43\%$; $\;3/(16 + 3) = 3/19 \approx 16\%$. Minél több kis darab, annál jobban átfednek a szakaszok.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai10-108"></div>
+</section>
+
+<!-- ===================================================== 10.9 -->
+<section id="s109">
+<h2>10.9 Alkalmazás: tanítsd be a számjegyfelismerőt!</h2>
+<p>Most minden eszközt együtt használunk. A <a href="../09-neuralis-halozatok/#s97-b">9.7</a> 64–16–10-es hálóját tanítjuk a 8 × 8-as számjegyeken: 1047 tanítókép, 300 validációs kép (a korai leállításhoz és a hangoláshoz) és 450 tesztkép (a végső méréshez) – ugyanaz a tesztkészlet, mint a 9. fejezetben.</p>
+
+<h3 id="s109-a">A tanítás a böngészőben</h3>
+<div class="widget" data-widget="digit-trainer"></div>
+<div class="box example">
+  <span class="box-title">Kísérletek – mindegyik egy szakasz egy gondolata</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Alapbeállítás</b> (Adam, $\eta = 0{,}01$, $B = 32$, 30 epoch): a kiinduló veszteség 2,40 (≈ ln 10, <a href="#s108-a">10.8</a>), az 1. epoch után a validációs pontosság 75%, a végén a teszt <b>98,0%</b>.</li>
+    <li><b>Optimalizálók</b> (<a href="#s105">10.5</a>): SGD ($\eta = 0{,}1$) lassabban indul (az 1. epoch után 40%, a 90%-hoz 10 epoch kell), a végén 97,1%; momentum 97,6%, RMSProp 98,2%.</li>
+    <li><b>Kötegméret</b> (<a href="#s102">10.2</a>): SGD-vel, 20 epoch után a teljes köteg ($B = 1047$) csak 20-at lép – a validációs pontosság 25%.</li>
+    <li><b>Kezdés</b> (<a href="#s106">10.6</a>): csupa nullával a veszteség 2,303-on ragad, a pontosság 10%; túl nagy kezdő súlyokkal (szórás 1) a kiinduló veszteség 12,9.</li>
+    <li><b>Túlillesztés</b> (<a href="#s107">10.7</a>): a „Túltanulás-kísérlet” gomb (64 rejtett neuron, 100 kép, 150 epoch) – a tanító veszteség 0, a validációs a 19. epochban a legkisebb (0,462), aztán 0,611-ig nő. Próbáld ki az L2-t és a dropoutot!</li>
+  </ol>
+</div>
+<details class="box">
+  <summary>🐍 Python – ugyanez PyTorch-ban</summary>
+<pre><code>import torch, torch.nn as nn
+from sklearn.datasets import load_digits
+from sklearn.model_selection import train_test_split
+
+torch.manual_seed(1)
+d = load_digits()
+X, y = torch.tensor(d.data / 16.0, dtype=torch.float32), torch.tensor(d.target)
+Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.25, random_state=0, stratify=y)
+Xtr, Xva, ytr, yva = train_test_split(Xtr, ytr, test_size=300, random_state=0, stratify=ytr)
+
+net = nn.Sequential(nn.Linear(64, 16), nn.ReLU(), nn.Linear(16, 10))   # a logitokat adja
+lossfn = nn.CrossEntropyLoss()                                         # softmax + keresztentrópia
+opt = torch.optim.Adam(net.parameters(), lr=0.01)
+
+best, best_state = float("inf"), None
+for epoch in range(30):
+    net.train()
+    for idx in torch.randperm(len(Xtr)).split(32):                     # keverés, 32-es kötegek
+        opt.zero_grad()
+        loss = lossfn(net(Xtr[idx]), ytr[idx])
+        loss.backward()
+        opt.step()
+    net.eval()
+    with torch.no_grad():
+        val = lossfn(net(Xva), yva).item()
+    if val < best:                                                     # korai leállítás: a legjobb mentése
+        best, best_state = val, {k: v.clone() for k, v in net.state_dict().items()}
+net.load_state_dict(best_state)
+with torch.no_grad():
+    print(round(best, 3), (net(Xte).argmax(1) == yte).float().mean().item())   # 0.134 0.9688…</code></pre>
+  <small>Négy maggal futtatva a teszteredmény 96,9%, 97,3%, 96,9% és 97,1% – a böngészős változattal egyezően 97% körül. (A PyTorch más kezdő súlyokat sorsol, ezért a számok nem bitre azonosak.)</small>
+</details>
+
+<h3 id="s109-b">Válaszok a fejezet kérdéseire</h3>
+<div class="box tip">
+  <span class="box-title">🎯 Ki állította be az 1210 súlyt?</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Hogyan mérjük egy számmal, mennyire rossz?</b> A <b>keresztentrópiával</b>: a helyes számjegy valószínűségének negatív logaritmusa, kötegre átlagolva (<a href="#s101-a">10.1</a>). Tanítás előtt kb. 2,30, a végén a validációs képeken kb. 0,17.
+      A pontosság helyett azért ez, mert sima: minden kis javulást jelez, és a magabiztos tévedést erősen bünteti (<a href="#s101-b">10.1</a>).</li>
+    <li><b>Hogyan tudjuk mind az 1210 súlyra egyszerre, merre kell tekerni?</b> A <b>visszaterjesztéssel</b>: a kimeneten $\delta = \hat{\mathbf p} - \mathbf y$, rétegről rétegre visszafelé $\boldsymbol\delta^{(\ell-1)} = (W^{(\ell)\top}\boldsymbol\delta^{(\ell)}) \odot \varphi'$, és minden súly gradiense „bemenet × $\delta$” (<a href="#s103">10.3</a>).
+      Egy előre és egy visszafelé menet – kb. 3 előre menet ára – adja mind az 1210 gradienst; a numerikus deriválás 2420 előre menetet kérne (<a href="#s103-c">10.3</a>). A keretrendszerek ezt számítási gráfon, automatikusan csinálják (<a href="#s104">10.4</a>).</li>
+    <li><b>Mekkorát és merre lépjünk, honnan induljunk?</b> Mini-kötegekben (32 kép, epochonként 33 lépés, <a href="#s102">10.2</a>), Adammal vagy momentummal (<a href="#s105">10.5</a>), jól választott tanulási rátával – ez számít a legtöbbet (<a href="#s108-a">10.8</a>).
+      A kezdés véletlen (különben a neuronok klónok maradnak) és jól skálázott (He: $\mathrm{Var}(w) = 2/64$), hogy a jel se el ne haljon, se fel ne robbanjon (<a href="#s106">10.6</a>).</li>
+    <li><b>Hogyan ne magolja be a tanítóképeket?</b> A validációs veszteség figyelésével és <b>korai leállítással</b>; kevés adatnál <b>súlycsökkentéssel</b>, <b>dropouttal</b> és <b>adatbővítéssel</b> (<a href="#s107">10.7</a>). A legtöbbet a több adat ér: 100 képből 83%, 1047-ből 98%.
+      A végeredmény 97–98% a 450 tesztképen – a futások között kb. ±0,7 pont szórással (<a href="#s108-b">10.8</a>).</li>
+  </ol>
+</div>
+</section>
+
+<!-- ===================================================== Összefoglalás -->
+<section id="s-sum">
+<h2>Összefoglalás</h2>
+<table>
+  <tr><th>Fogalom</th><th>Lényeg</th></tr>
+  <tr><td>Veszteség</td><td>regresszió: $\tfrac12(\hat y - y)^2$; osztályozás: keresztentrópia $-\ln\hat p_y$; kötegre átlagolva; sima, ezért tanítható (a pontosság nem)</td></tr>
+  <tr><td>Miért log?</td><td>szigmoid + négyzetes hiba: $\partial L/\partial z = (\hat p - y)\hat p(1 - \hat p)$ – magabiztos tévedésnél eltűnik; keresztentrópiával $\hat p - y$</td></tr>
+  <tr><td>Kimenet + veszteség</td><td>identitás + négyzetes, szigmoid + BCE, softmax + CE: mindegyiknél $\boldsymbol\delta = \hat{\mathbf y} - \mathbf y$</td></tr>
+  <tr><td>Tanítási ciklus</td><td>keverés, kötegenként: előre → veszteség → vissza → frissítés; epoch = $\lceil n/B\rceil$ lépés</td></tr>
+  <tr><td>Kötegméret</td><td>a köteg gradiense torzítatlan, zaja $\approx\sigma/\sqrt B$; lépésenként drágább, epochonként kevesebb lépés; lineáris skálázás: $B \to kB$, $\eta \to k\eta$ (bemelegítéssel)</td></tr>
+  <tr><td>Visszaterjesztés</td><td>$\boldsymbol\delta^{(L)} = \hat{\mathbf y} - \mathbf y$; $\partial L/\partial W^{(\ell)} = \boldsymbol\delta^{(\ell)}\mathbf h^{(\ell-1)\top}$; $\boldsymbol\delta^{(\ell-1)} = (W^{(\ell)\top}\boldsymbol\delta^{(\ell)}) \odot \varphi'(\mathbf z^{(\ell-1)})$</td></tr>
+  <tr><td>Ár</td><td>1 előre + 1 vissza ≈ 3 előre menet, a paraméterszámtól függetlenül; numerikusan $2P$ menet; gradiensellenőrzés</td></tr>
+  <tr><td>Számítási gráf</td><td>elemi műveletek, lokális deriváltak; összeadás továbbad, szorzás felcserél, max irányít, elágazásnál összeadódik</td></tr>
+  <tr><td>Automatikus differenciálás</td><td>fordított mód (egy kimenet, sok bemenet) = visszaterjesztés; a keretrendszer a lefutott műveleteket deriválja</td></tr>
+  <tr><td>Momentum</td><td>$\mathbf v \leftarrow \beta\mathbf v + \mathbf g$, $\mathbf w \leftarrow \mathbf w - \eta\mathbf v$; tartós irányban $1/(1 - \beta)$-szoros lépés, cikcakkban csillapít</td></tr>
+  <tr><td>RMSProp, Adam</td><td>paraméterenként a gradiens tipikus nagyságával oszt; Adam = momentum + RMSProp + kezdeti korrekció; első lépése pontosan $\eta$</td></tr>
+  <tr><td>Ütemezés</td><td>lépcsős, koszinuszos, platón csökkentés; bemelegítés; a zajos SGD ugrálása $\eta$-val arányos</td></tr>
+  <tr><td>Kezdés</td><td>véletlen (szimmetriatörés); Xavier $\mathrm{Var}(w) = 1/n_{\text{be}}$, He $2/n_{\text{be}}$ (ReLU)</td></tr>
+  <tr><td>Eltűnő / robbanó gradiens</td><td>rétegenkénti szorzók hatványozódnak; ellenszer: jó kezdés, ReLU, normalizálás, maradékkapcsolat, gradiensvágás</td></tr>
+  <tr><td>Normalizálás</td><td>kötegnormalizálás (köteg mentén, kiértékeléskor mozgó átlag), rétegnormalizálás (mintánként, Transformer); tanult $\gamma$, $\beta$</td></tr>
+  <tr><td>Korai leállítás</td><td>a validációs veszteség minimumánál; türelem; a legjobb súlyok mentése és visszatöltése</td></tr>
+  <tr><td>L2 / súlycsökkentés</td><td>$w \leftarrow (1 - \eta\lambda)w - \eta g$ (SGD-nél azonos); Adamnál AdamW kell</td></tr>
+  <tr><td>Dropout</td><td>tanításkor $p$ eséllyel 0, a többi $\times 1/(1 - p)$; kiértékeléskor ki; sok részháló átlaga</td></tr>
+  <tr><td>Adatbővítés</td><td>címkét megőrző véletlen átalakítások, csak a tanítóadaton; a feladathoz kell illenie</td></tr>
+  <tr><td>Gyakorlat</td><td>kiinduló veszteség $\approx\ln K$; kis köteg bemagolása; $\eta$ log skálán; több mag, átlag ± szórás; Adam: 16 bájt/paraméter</td></tr>
+</table>
+
+<div class="box tip">
+  <span class="box-title">Melyik eszköz mikor? – döntési táblázat</span>
+  <table>
+    <tr><th>Ha a feladatban ez áll…</th><th>…akkor ezt használd</th></tr>
+    <tr><td>egy jóslat veszteségét kell kiszámolni</td><td>valószínűség → $-\ln\hat p_{\text{helyes}}$; szám → $\tfrac12(\hat y - y)^2$</td></tr>
+    <tr><td>a kimeneti réteg gradiense kell</td><td>kanonikus párosnál $\boldsymbol\delta = \hat{\mathbf y} - \mathbf y$ (szigmoid + négyzetes hibánál még $\times\hat p(1 - \hat p)$)</td></tr>
+    <tr><td>egy súly gradiense kell</td><td>a súlyon átfolyó bemenet × a neuron $\delta$-ja</td></tr>
+    <tr><td>egy rejtett neuron $\delta$-ja kell</td><td>a kimenő súlyokkal súlyozott „következő” $\delta$-k összege × $\varphi'(z)$</td></tr>
+    <tr><td>egy kifejezést kell deriválni lépésenként</td><td>számítási gráf: előre értékek, vissza lokális deriváltak; elágazásnál összeadás</td></tr>
+    <tr><td>lépésszám, epoch, köteg</td><td>epoch $= \lceil n/B\rceil$ lépés; GPU-k: tényleges köteg = GPU-k × helyi köteg</td></tr>
+    <tr><td>nagyobb köteg kell / fér el</td><td>$\eta$ arányosan nő, bemelegítéssel; gradiensgyűjtésnél $\eta$ nem változik</td></tr>
+    <tr><td>cikcakk, lassú haladás egy völgyben</td><td>momentum ($\beta = 0{,}9$; a lépés $\eta/(1 - \beta)$ is lehet)</td></tr>
+    <tr><td>nagyon eltérő nagyságú gradiensek, kevés hangolási idő</td><td>Adam / AdamW, $\eta \approx 10^{-3}$</td></tr>
+    <tr><td>a veszteség a végén zajosan ugrál</td><td>tanulási ráta csökkentése (lépcsős, koszinusz, platón)</td></tr>
+    <tr><td>a veszteség nem mozdul / felrobban</td><td>kezdés ($\ln K$?), $\eta$ nagyságrendje, gradiensvágás, normalizálás</td></tr>
+    <tr><td>mély háló, a jel elhal</td><td>He-kezdés ReLU-hoz, normalizálás, maradékkapcsolat</td></tr>
+    <tr><td>a tanító veszteség csökken, a validációs nő</td><td>korai leállítás; súlycsökkentés, dropout, adatbővítés; több adat</td></tr>
+    <tr><td>két modellt kell összehasonlítani</td><td>több maggal futtatni, átlag ± szórás; egyetlen futás nem bizonyít</td></tr>
+  </table>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabályok</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Jóslat mínusz valóság.</b> A visszaterjesztés a kimeneti $\hat{\mathbf y} - \mathbf y$-ból indul, és a frissítés kivonja a gradienst.</li>
+    <li><b>Súly gradiense = bemenet × $\delta$.</b> Ami nem folyt át a súlyon (0 bemenet, halott ReLU), abból a súly nem tanul.</li>
+    <li><b>Előre $W$, vissza $W^\top$ – és ne felejtsd a $\varphi'$-t.</b></li>
+    <li><b>A tanulási ráta a legfontosabb hiperparaméter.</b> Logaritmikus skálán keresd.</li>
+    <li><b>Lépésszámban gondolkodj, ne epochban,</b> ha kötegméreteket hasonlítasz.</li>
+    <li><b>Kiértékelés előtt <code>eval()</code>:</b> dropout ki, kötegnormalizálás a mozgó átlagokkal.</li>
+    <li><b>Egy futás nem bizonyít.</b> Több mag, átlag és szórás.</li>
+  </ul>
+</div>
+</section>
+
+<!-- ===================================================== Ellenőrző kérdések -->
+<section id="s-check">
+<h2>Ellenőrző kérdések</h2>
+<p>Gondold végig a választ, aztán kattints a kártyára a megfordításhoz!</p>
+<div class="flashcards">
+  <div class="flash"><div class="inner"><div class="face front">Miért nem a pontosságot csökkenti a tanítás?</div>
+    <div class="face back">Mert lépcsőszerű: a súlyok kis változására szinte sosem változik, így a gradiense majdnem mindenhol 0. A veszteség sima, minden kis javulást jelez.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért keresztentrópia, és nem négyzetes hiba egy szigmoid kimenethez?</div>
+    <div class="face back">Négyzetes hibánál $\partial L/\partial z = (\hat p - y)\hat p(1 - \hat p)$, ami a magabiztos tévedésnél közel 0. Keresztentrópiánál $\hat p - y$: épp ott nagy, ahol a legnagyobb a baj.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a softmax + keresztentrópia gradiense a logitok szerint?</div>
+    <div class="face back">$\hat{\mathbf p} - \mathbf y$: a helyes osztály logitját felfelé, a többit a valószínűségével arányosan lefelé tolja. Az összege 0.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a tanítási ciklus négy lépése egy kötegen?</div>
+    <div class="face back">Előre menet, veszteség, visszafelé menet (gradiens), frissítés ($\mathbf w \leftarrow \mathbf w - \eta\mathbf g$). Keretrendszerben előtte a gradiensek nullázása.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Hogyan függ a köteg gradiensének zaja a kötegmérettől?</div>
+    <div class="face back">Kb. $\sigma/\sqrt B$: négyszeres köteg – fele zaj, de négyszer drágább lépés. A köteg gradiense átlagosan pontos (torzítatlan).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit mond a lineáris skálázás szabálya?</div>
+    <div class="face back">Ha a köteget $k$-szorosára növeled, a tanulási rátát is $k$-szorosára – bemelegítéssel, és csak addig, amíg a lépés stabil.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi egy súly gradiense a visszaterjesztésben?</div>
+    <div class="face back">A súlyon átfolyó bemenet szorozva a fogadó neuron $\delta$-jával: $\partial L/\partial w_{ji} = \delta_j\,h_i$.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Hogyan kapjuk egy rejtett neuron $\delta$-ját?</div>
+    <div class="face back">A következő réteg $\delta$-inak a kimenő súlyokkal súlyozott összege, szorozva az aktiváció deriváltjával: $\boldsymbol\delta^{(\ell-1)} = (W^{(\ell)\top}\boldsymbol\delta^{(\ell)}) \odot \varphi'(\mathbf z^{(\ell-1)})$.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért olcsó a visszaterjesztés a numerikus deriváláshoz képest?</div>
+    <div class="face back">Egy előre és egy visszafelé menet (kb. 3 előre menetnyi munka) adja az összes gradienst; a numerikus deriválás paraméterenként 2 előre menetet kér.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Hogyan viselkedik visszafelé az összeadás, a szorzás, a max és az elágazás?</div>
+    <div class="face back">Összeadás: továbbadja. Szorzás: felcseréli (a másik bemenet értékével szoroz). Max: csak a nagyobbnak adja. Elágazás: a beérkező gradiensek összeadódnak.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért fordított módú az automatikus differenciálás a tanításban?</div>
+    <div class="face back">Mert egy kimenet (a veszteség) van és sok bemenet (a paraméterek): a fordított mód egy visszafelé menetben adja az összes deriváltat, az előre mód bemenetenként egy menetet kérne.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit csinál a momentum?</div>
+    <div class="face back">A korábbi gradiensek halványuló összegével lép ($\mathbf v \leftarrow \beta\mathbf v + \mathbf g$): tartós irányban felgyorsul (akár $1/(1 - \beta)$-szorosra), váltakozó irányban csillapít.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi az Adam lényege, és mekkora az első lépése?</div>
+    <div class="face back">Momentum + paraméterenkénti skálázás a gradiens tipikus nagyságával ($\hat m/\sqrt{\hat v}$), kezdeti korrekcióval. Az első lépés minden paraméternél pontosan $\eta$.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért csökkentjük menet közben a tanulási rátát, és miért van bemelegítés?</div>
+    <div class="face back">A végén a mini-köteg zaja a fő hiba, a kisebb lépés ezt csillapítja. Az elején a véletlen súlyok és az üres optimalizáló-statisztikák mellett a nagy lépés szétzilálhatja a hálót – ezért fokozatosan emeljük.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért nem indulhat a háló csupa egyforma (vagy nulla) súllyal?</div>
+    <div class="face back">Az egyforma neuronok egyforma gradienst kapnak, és örökre klónok maradnak. Csupa nullával ReLU-s hálóban szinte semmi sem tanul.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a Xavier- és a He-kezdés?</div>
+    <div class="face back">A súlyok varianciája $1/n_{\text{be}}$ (Xavier; tanh, szigmoid), illetve $2/n_{\text{be}}$ (He; ReLU), hogy a jel mérete rétegről rétegre megmaradjon.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miben különbözik a köteg- és a rétegnormalizálás?</div>
+    <div class="face back">A kötegnormalizálás neurononként a köteg mintái mentén normál (kiértékeléskor mozgó átlagokkal); a rétegnormalizálás mintánként a réteg neuronjai mentén – kötegtől független, a Transformerekben ez van.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Hogyan működik a korai leállítás?</div>
+    <div class="face back">Epochonként mérjük a validációs veszteséget, mentjük a legjobb súlyokat; ha a türelemnyi epoch alatt nem javul, megállunk, és a legjobbat töltjük vissza.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért kell Adamhoz AdamW?</div>
+    <div class="face back">Mert az Adam a $\lambda w$ büntetőtagot is a gradiens nagyságával skálázza, így a büntetés ereje elvész. Az AdamW a súlycsökkentést külön, $w \leftarrow (1 - \eta\lambda)w$ alakban végzi.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit csinál a (fordított) dropout tanításkor és kiértékeléskor?</div>
+    <div class="face back">Tanításkor a rejtett kimeneteket $p$ eséllyel nullázza, a többit $1/(1 - p)$-vel szorozza; kiértékeléskor nem csinál semmit. Így a jelek várható értéke ugyanaz.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit ellenőrizz egy új tanítás elején?</div>
+    <div class="face back">A kiinduló veszteség $\approx\ln K$-e; be tud-e magolni a háló egy kis köteget; aztán a tanulási rátát keresd logaritmikus skálán.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mennyi memória kell egy paraméterhez Adamos tanításnál?</div>
+    <div class="face back">Kb. 16 bájt (súly, gradiens, két mozgó átlag – 32 bites számokkal; vegyes pontossággal is 16), plusz a köztes értékek. 7 milliárd paraméter: 112 GB.</div></div></div>
+</div>
+</section>
+
+<!-- ===================================================== Vegyes gyakorló feladatok -->
+<section id="s-ex">
+<h2>Vegyes gyakorló feladatok</h2>
+<p>Itt már nincs megmondva, melyik szakaszhoz tartozik a feladat: neked kell eldönteni, melyik eszköz kell.</p>
+<details class="box practice">
+  <summary>✏️ Vegyes gyakorló feladatok – kattints a kinyitáshoz</summary>
+  <ol>
+    <li>Egy 1–1–1-es lineáris lánc: $h = w_1x$, $\hat y = w_2h$, $L = \tfrac12(\hat y - y)^2$. $x = 2$, $w_1 = 0{,}5$, $w_2 = 3$, $y = 1$. Mennyi a két gradiens?
+      <details><summary>Tipp</summary>Előre, aztán a kimeneti $\delta$-ból visszafelé: „bemenet × $\delta$”.</details>
+      <details><summary>Megoldás</summary>$h = 1$, $\hat y = 3$, $\delta = \hat y - y = 2$. $\partial L/\partial w_2 = \delta h = 2$. A $h$-ra jutó $\delta$: $w_2\delta = 6$ (lineáris, $\varphi' = 1$), így $\partial L/\partial w_1 = 6 \cdot x = 12$.</details></li>
+    <li>Egy softmax kimenet $\hat{\mathbf p} = (0{,}2;\ 0{,}5;\ 0{,}3)$, a helyes osztály az első. Mennyi a veszteség és a kimeneti $\boldsymbol\delta$?
+      <details><summary>Tipp</summary>Keresztentrópia és a kanonikus páros gradiense.</details>
+      <details><summary>Megoldás</summary>$L = -\ln 0{,}2 \approx 1{,}609$; $\boldsymbol\delta = (-0{,}8;\ 0{,}5;\ 0{,}3)$.</details></li>
+    <li>$f = (a + b)\cdot(b + c)$, $a = 1$, $b = 2$, $c = 3$. Mennyi $\partial f/\partial b$?
+      <details><summary>Tipp</summary>A $b$ két úton hat: elágazás.</details>
+      <details><summary>Megoldás</summary>$p = a + b = 3$, $q = b + c = 5$, $f = 15$. $\partial f/\partial p = q = 5$, $\partial f/\partial q = p = 3$. A $b$ mindkettőből kap: $5 + 3 = 8$. (Ellenőrzés: $\partial f/\partial b = q + p = 8$ ✓.)</details></li>
+    <li>Egy tanítás $B = 64$-gyel és $\eta = 0{,}05$-tel jó. Négy GPU-ra költözöl, GPU-nként 64 képpel. Mekkora a tényleges köteg, és milyen $\eta$-val kezdesz?
+      <details><summary>Tipp</summary>Adatpárhuzamosítás és lineáris skálázás.</details>
+      <details><summary>Megoldás</summary>$4 \cdot 64 = 256$; $\eta = 0{,}2$, bemelegítéssel.</details></li>
+    <li>Adam, $t = 2$, a két gradiens $g_1 = 4$, $g_2 = 4$. Mennyi a második lépés (η-ban)?
+      <details><summary>Tipp</summary>Számold ki $m$-et, $v$-t, aztán a korrekciót $t = 2$-vel.</details>
+      <details><summary>Megoldás</summary>$m = 0{,}9 \cdot 0{,}4 + 0{,}4 = 0{,}76$, $v = 0{,}999 \cdot 0{,}016 + 0{,}016 = 0{,}031984$. $\hat m = 0{,}76/0{,}19 = 4$, $\hat v = 0{,}031984/0{,}001999 = 16$. A lépés $\eta \cdot 4/4 = \eta$ – állandó gradiensnél az Adam mindig $\eta$-t lép.</details></li>
+    <li>Egy 10 rétegű, rétegenként 256 neuronos ReLU-háló súlyainak szórása $0{,}05$. Jó kezdés-e? Mekkora lenne a He-kezdés szórása?
+      <details><summary>Tipp</summary>He: $\mathrm{Var}(w) = 2/n_{\text{be}}$; hasonlítsd össze a rétegenkénti szorzót.</details>
+      <details><summary>Megoldás</summary>He: $\sqrt{2/256} \approx 0{,}088$. A $0{,}05$-tel a variancia-szorzó rétegenként $256 \cdot 0{,}0025/2 = 0{,}32$, a jel szórása rétegenként kb. $\sqrt{0{,}32} \approx 0{,}57$-szeresére esik – 10 réteg után kb. $0{,}003$-szorosára. Eltűnő jel: kevés.</details></li>
+    <li>Validációs veszteség epochonként: 0,80; 0,55; 0,47; 0,45; 0,46; 0,44; 0,45; 0,47; 0,49. Türelem 2: hol áll meg, és melyik súlyokat adja vissza? És türelem 1-gyel?
+      <details><summary>Tipp</summary>Csak az számít, hány epoch telt el a legjobb óta.</details>
+      <details><summary>Megoldás</summary>Türelem 2: a 4. epoch (0,45) után az 5. rosszabb, a 6. jobb (0,44) – a számláló újraindul; a 7. és a 8. rosszabb → a 8. után megáll, a 6. súlyait adja. Türelem 1: az 5. epoch után megáll, és a 4. súlyait adja (0,45) – a zaj miatt korán.</details></li>
+    <li>Egy csapat ezt írja: „A modellünk tanítás közben 99%-os volt a tanítóadaton, a tesztképeken 71%. Kipróbáltuk Adammal és SGD-vel is, egy-egy futással: Adam 71,4%, SGD 70,9%, tehát az Adam a jobb. A dropoutot a teszteléskor is bekapcsolva hagytuk, hogy robusztusabb legyen.” Mit tanácsolnál?
+      <details><summary>Tipp</summary>Három különböző hiba is van benne: túlillesztés, összehasonlítás, kiértékelési mód.</details>
+      <details><summary>Megoldás</summary>(1) A 99% vs. 71% erős túlillesztés: korai leállítás a validációs görbén, súlycsökkentés (Adamnál AdamW), adatbővítés, több adat (<a href="#s107">10.7</a>).
+        (2) Egy-egy futás 0,5 pontos különbsége semmit nem bizonyít: több mag, átlag ± szórás (<a href="#s108-b">10.8</a>) – és a döntést a validációs halmazon hozzák, ne a teszten.
+        (3) A dropoutot kiértékeléskor ki kell kapcsolni (<code>eval()</code>): bekapcsolva a jóslatok véletlenszerűek és rosszabbak, nem „robusztusabbak” (<a href="#s107-c">10.7</a>).</details></li>
+  </ol>
+</details>
+</section>
+
+<!-- ===================================================== Fejezetzáró teszt -->
+<section id="s-final">
+<h2>Fejezetzáró teszt</h2>
+<p>Vegyes feladatok az egész fejezetből. Ha legalább 80%-ot elérsz, nyugodtan továbbléphetsz a 11. fejezetre – ott a képek térbeli szerkezetét kihasználó konvolúciós hálók jönnek, amelyeket pontosan így tanítanak.</p>
+<div class="quiz" data-quiz="ai10-final"></div>
+</section>
+
+<!-- ===================================================== Szómagyarázó -->
+<section id="s-gloss">
+<h2>Szómagyarázó</h2>
+<p>A fejezetben előforduló idegen vagy kevésbé ismert szakkifejezések, betűrendben.</p>
+<dl class="glossary">
+  <dt id="g-adam">Adam <span class="etym">ang. <em>adaptive moment estimation</em> „alkalmazkodó momentumbecslés” (D. Kingma, J. Ba, 2014)</span></dt>
+  <dd><p>Optimalizáló: a gradiens és a négyzete mozgó átlagából paraméterenként skálázott lépés, kezdeti korrekcióval. Az AdamW változata a súlycsökkentést külön végzi.</p></dd>
+
+  <dt id="g-autodiff">automatikus differenciálás <span class="etym">gör. <em>automatos</em> „magától mozgó”; lat. <em>differentia</em> „különbség”</span></dt>
+  <dd><p>A program által ténylegesen elvégzett elemi műveletek deriválása a láncszabállyal. Fordított módja a visszaterjesztés.</p></dd>
+
+  <dt id="g-bovites">adatbővítés <span class="etym">ang. <em>data augmentation</em>; lat. <em>augere</em> „növel”</span></dt>
+  <dd><p>A tanítóminták véletlen, címkét megőrző átalakítása (eltolás, forgatás, tükrözés…) a túlillesztés ellen.</p></dd>
+
+  <dt id="g-dropout">dropout <span class="etym">ang. <em>drop out</em> „kiesik, kimarad”</span></dt>
+  <dd><p>Regularizálás: tanításkor a rejtett neuronok véletlen részét kinullázza (a többit felszorozza), kiértékeléskor kikapcsolt.</p></dd>
+
+  <dt id="g-epoch">epoch <span class="etym">gör. <em>epokhé</em> „megállás, időszak”</span></dt>
+  <dd><p>Annyi tanítási lépés, amennyi alatt a háló az összes tanítómintát egyszer látta: $\lceil n/B\rceil$ lépés.</p></dd>
+
+  <dt id="g-gradiens">gradiens <span class="etym">lat. <em>gradiens</em> „lépkedő”, a <em>gradi</em> „lépni” igéből</span></dt>
+  <dd><p>A veszteség parciális deriváltjainak vektora a paraméterek szerint; a legmeredekebb emelkedés iránya. A tanítás az ellentettje felé lép.</p></dd>
+
+  <dt id="g-hiperparameter">hiperparaméter <span class="etym">gör. <em>hyper</em> „fölött” + paraméter</span></dt>
+  <dd><p>A tanítás előtt választott beállítás (tanulási ráta, kötegméret, $\lambda$, dropout-valószínűség, rétegszám), amelyet nem a gradiens módszer, hanem a validáció alapján állítunk.</p></dd>
+
+  <dt id="g-inicializalas">inicializálás <span class="etym">lat. <em>initium</em> „kezdet”</span></dt>
+  <dd><p>A súlyok kezdőértékének megválasztása; véletlen (a szimmetria megtörésére) és jól skálázott (Xavier, He).</p></dd>
+
+  <dt id="g-keresztentropia">keresztentrópia <span class="etym">gör. <em>entropé</em> „fordulat, átalakulás” (R. Clausius, 1865); a „kereszt” két eloszlásra utal</span></dt>
+  <dd><p>Osztályozási veszteség: a helyes osztály valószínűségének negatív logaritmusa, $-\ln\hat p_y$ (a negatív log-likelihood).</p></dd>
+
+  <dt id="g-koteg">köteg (mini-köteg) <span class="etym">ang. <em>(mini-)batch</em> „adag”</span></dt>
+  <dd><p>A minták azon része, amelyen egy lépés gradiensét számoljuk; mérete $B$.</p></dd>
+
+  <dt id="g-momentum">momentum <span class="etym">lat. <em>momentum</em> „mozgatóerő, lendület” (a <em>movere</em> „mozgat” igéből)</span></dt>
+  <dd><p>Optimalizálási fogás: a lépés a korábbi gradiensek halványuló összege, így tartós irányban gyorsul, cikcakkban csillapít (B. Poljak, 1964).</p></dd>
+
+  <dt id="g-normalizalas">normalizálás (köteg-, réteg-) <span class="etym">lat. <em>norma</em> „mérce, szabály”</span></dt>
+  <dd><p>A rétegek kimenetének menet közbeni standardizálása (0 átlag, 1 szórás), majd tanult skálázása – stabilabb, gyorsabb tanításért.</p></dd>
+
+  <dt id="g-optimalizalo">optimalizáló <span class="etym">lat. <em>optimus</em> „legjobb”</span></dt>
+  <dd><p>Az a szabály, amely a gradiensből a paraméterek frissítését számolja: SGD, momentum, RMSProp, Adam, AdamW.</p></dd>
+
+  <dt id="g-regularizacio">regularizáció <span class="etym">lat. <em>regula</em> „szabály, mérővessző”</span></dt>
+  <dd><p>Minden fogás, amely a tanítóadaton elért eredmény helyett az általánosítást javítja: korai leállítás, súlycsökkentés, dropout, adatbővítés.</p></dd>
+
+  <dt id="g-rmsprop">RMSProp <span class="etym">ang. <em>root mean square propagation</em>; a név az Rprop („rugalmas visszaterjesztés”) módszerre utal (G. Hinton, 2012)</span></dt>
+  <dd><p>Optimalizáló: minden paraméter gradiensét a négyzetes gradiensek mozgó átlagának gyökével osztja.</p></dd>
+
+  <dt id="g-sgd">SGD – sztochasztikus gradiens módszer <span class="etym">ang. <em>stochastic gradient descent</em>; gör. <em>stokhasztikosz</em> „találgató”</span></dt>
+  <dd><p>Gradiens módszer, amely minden lépésben egy véletlen (mini-)köteg gradiensével lép. A gyakorlatban a mini-köteges változat.</p></dd>
+
+  <dt id="g-sulycsokkentes">súlycsökkentés <span class="etym">ang. <em>weight decay</em> „súlyelhalás”</span></dt>
+  <dd><p>Minden lépésben a súlyok kis arányú összehúzása, $w \leftarrow (1 - \eta\lambda)w$; SGD-nél azonos az L2-büntetéssel.</p></dd>
+
+  <dt id="g-szamitasi-graf">számítási gráf <span class="etym">gör. <em>graphein</em> „írni, rajzolni”</span></dt>
+  <dd><p>Egy számítás elemi műveletekre bontva, irányított, kör nélküli gráfként; rajta előre az értékek, visszafelé a gradiensek terjednek.</p></dd>
+
+  <dt id="g-tanulasi-rata">tanulási ráta <span class="etym">ang. <em>learning rate</em>; lat. <em>rata</em> „kiszámított rész”</span></dt>
+  <dd><p>A lépésköz szorzója ($\eta$) a frissítésben; a tanítás legfontosabb hiperparamétere, gyakran menet közben ütemezve.</p></dd>
+
+  <dt id="g-visszaterjesztes">visszaterjesztés <span class="etym">ang. <em>backpropagation</em>, a <em>backward propagation of errors</em> „a hibák visszafelé terjesztése” rövidítése</span></dt>
+  <dd><p>A veszteség gradiensének kiszámítása az összes paraméter szerint egyetlen visszafelé menetben, a láncszabállyal, a kimenettől a bemenet felé.</p></dd>
+</dl>
+</section>
+
+<nav class="pager">
+  <a href="../09-neuralis-halozatok/">← 9. Neurális hálózatok</a>
+  <span class="next muted">11. Konvolúciós hálók és gépi látás (hamarosan) →</span>
+</nav>
+
+</main>
+</div>
+
+<footer class="site">
+  Források: R. T. Kneusel: <em>Math for Deep Learning</em>, 7–8., 10–11. fejezet · A. Glassner: <em>Deep Learning – A Visual Approach</em>, 9., 14–15. fejezet ·
+  R. T. Kneusel: <em>Practical Deep Learning</em>, 9–10. fejezet · S. Raschka: <em>Machine Learning and AI Beyond the Basics</em>, 4–7., 10. és 27. fejezet ·
+  V. J. Reddi és társai: <em>Machine Learning Systems</em> (<em>AI Frameworks</em>, <em>AI Training</em>) · Hastie – Tibshirani – Friedman: <em>The Elements of Statistical Learning</em> (2. kiad.), 11.4–11.5 ·
+  Kiegészítés: B. Poljak (1964) · S. Linnainmaa (1970) · P. Werbos (1974) · Y. Nesterov (1983) · D. Rumelhart – G. Hinton – R. Williams (1986) · X. Glorot – Y. Bengio (2010) · J. Duchi – E. Hazan – Y. Singer (2011) ·
+  G. Hinton (2012, RMSProp) · G. Hinton és társai (2012), N. Srivastava és társai (2014, dropout) · D. Kingma – J. Ba (2014, Adam) · S. Ioffe – C. Szegedy (2015) · K. He és társai (2015) · J. Ba – J. Kiros – G. Hinton (2016) ·
+  P. Goyal és társai (2017, lineáris skálázás, bemelegítés) · I. Loshchilov – F. Hutter (2017, koszinusz; 2019, AdamW) · J. Frankle – M. Carbin (2019) ·
+  adatok: scikit-learn <em>digits</em> (UCI Optical Recognition of Handwritten Digits).
+</footer>
+</body>
+</html>

@@ -1,0 +1,173 @@
+
+<!-- ===================================================== 10.6 -->
+<section id="s106">
+<h2>10.6 Inicializálás, eltűnő és robbanó gradiens ★★★</h2>
+<p>A tanítás „kis véletlen számokból” indul. Miért véletlenből – és mennyire kicsikből? Kiderül, hogy mindkettő számít: rossz kezdéssel a háló meg sem mozdul, vagy a jel rétegről rétegre elhal, illetve felrobban.
+<small>(A szakasz kihagyható; a keretrendszerek a jó kezdést alapból beállítják.)</small></p>
+
+<h3 id="s106-a">1. lépés: a szimmetria csapdája – miért nem indulhat minden egyformán?</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két egyforma rejtett neuron</span>
+  A 10.3 2–2–1-es hálója, de most <b>minden súly 0,5</b>, a torzítások 0. Bemenet $\mathbf x = (1;\ 2)$, $y = 1$.
+  <ul style="margin:.2rem 0">
+    <li>Előre: $\mathbf z_1 = (1{,}5;\ 1{,}5)$, $\mathbf h = (1{,}5;\ 1{,}5)$, $z_2 = 1{,}5$, $\hat p = 0{,}818$, $\delta_2 = -0{,}182$.</li>
+    <li>Vissza: $\partial L/\partial\mathbf w_2 = (-0{,}274;\ -0{,}274)$; $\boldsymbol\delta_1 = (0{,}5 \cdot (-0{,}182);\ 0{,}5 \cdot (-0{,}182)) = (-0{,}091;\ -0{,}091)$; $W_1$ mindkét sorának gradiense $(-0{,}091;\ -0{,}182)$.</li>
+  </ul>
+  A két rejtett neuron ugyanazt kapta, ugyanannyit lép – a frissítés után is egyformák. És a következő lépésben is. <b>A két neuron örökre egymás klónja marad</b>: a 2–2–1-es háló valójában 2–1–1-es.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – a szimmetriát meg kell törni</span>
+  Ha egy réteg két neuronjának bejövő és kimenő súlyai egyformák, a gradienseik is egyformák, így a gradiens módszer sosem választja szét őket. Ezért a <b>súlyokat véletlenszerűen</b> inicializáljuk (a torzítások lehetnek 0-k – a véletlen súlyok már megtörik a szimmetriát).
+  <br><small>A csupa nulla még rosszabb: ReLU-val minden rejtett kimenet 0, így a kimeneti súlyok gradiense ($\delta\cdot h$) is 0, a rejtett $\delta$-k pedig a nulla kimeneti súlyok miatt szintén 0 – csak a kimeneti torzítás tanul.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a számjegyháló nullából</span>
+    Csupa nulla súllyal a háló minden képre 10–10%-ot mond: a veszteség $\ln 10 = 2{,}303$. 20 epoch SGD vagy Adam után is <b>2,303</b>, a pontosság 10%. (A <a href="#s109">10.9</a> szemléltetésében kipróbálhatod: „nulla” kezdés.)
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – véletlen kezdés</span>
+    Ugyanez a háló véletlen súlyokkal ($N(0, 2/64)$, lásd a következő lépést): az első epoch után a validációs pontosság SGD-vel 40%, Adammal 75%, 30 epoch után 97–98%.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktató – „a kezdés mindegy, a tanítás úgyis megoldja”</span>
+  Nem oldja meg: a tanítás csak a gradiens irányába mozdít, és egy szimmetrikus kezdésből a gradiens is szimmetrikus. Más véletlen kezdésből viszont más hálót kapsz – ezért ad kicsit eltérő eredményt két futás (<a href="#s108-b">10.8</a>).
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – szimmetria</summary>
+  <ol>
+    <li>Egy háló rejtett rétegében 100 neuron van, mind ugyanazokkal a kezdő súlyokkal. Hány „különböző” neuronja lesz a tanítás végén?
+      <details><summary>Megoldás</summary>Egy: a 100 neuron végig egyforma marad, a réteg egyetlen neuronnyi tudást hordoz.</details></li>
+    <li>A kiinduló példában mennyi lesz $W_1$ két sora $\eta = 1$-gyel egy lépés után?
+      <details><summary>Megoldás</summary>Mindkét sor $(0{,}5 + 0{,}091;\ 0{,}5 + 0{,}182) = (0{,}591;\ 0{,}682)$ – egyformák maradtak.</details></li>
+    <li>Megtöri-e a szimmetriát, ha csak a torzításokat választod véletlenül, a súlyok mind 0,5-ek?
+      <details><summary>Megoldás</summary>Igen, elvben: a neuronok $z$-je különbözik, így (szigmoidnál, tanh-nál) a $\varphi'$ és a $\delta$ is – a súlyaik szétválnak. A gyakorlatban mégis a súlyokat sorsoljuk, mert úgy a neuronok már az elején más-más irányokra érzékenyek.</details></li>
+    <li>A kiinduló példában a kimeneti súlyok $(0{,}5;\ 0{,}5)$ helyett $(0{,}5;\ -0{,}5)$. Egyformán tanul-e a két rejtett neuron?
+      <details><summary>Megoldás</summary>Nem: $\boldsymbol\delta_1 = (0{,}5\delta_2;\ -0{,}5\delta_2)$ – ellentétes előjelűek, a két neuron ellentétes irányba mozdul. A szimmetria már a kimeneti súlyokban megtört.</details></li>
+    <li>(nehezebb) Miért tanul a csupa nullás kezdésnél legalább a kimeneti torzítás?
+      <details><summary>Megoldás</summary>Mert a gradiense $\partial L/\partial\mathbf b_2 = \boldsymbol\delta_2 = \hat{\mathbf p} - \mathbf y$, ami nem 0 (a bemenettől nem függ). Ezzel a háló megtanulja az osztályok gyakoriságát – de minden képre ugyanazt mondja. (A digits osztályai közel egyformán gyakoriak, ezért marad a veszteség $\approx\ln 10$.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s106-b">2. lépés: a jel mérete rétegről rétegre – eltűnő és robbanó gradiens</h3>
+<p>Véletlen súlyok kellenek. De milyen nagyok? Nézzük meg, mekkora lesz egy neuron $z$-je, ha sok bemenetet összegez.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – 100 bemenet összege</span>
+  Egy neuronnak $n = 100$ bemenete van, mindegyik véletlenül $+1$ vagy $-1$, a súlyok független véletlen számok 0 átlaggal és $s$ szórással. A $z = \sum w_i x_i$ összeg 100 független tag összege, így a varianciák összeadódnak:
+  $\mathrm{Var}(z) = 100\,s^2$.
+  <ul style="margin:.2rem 0">
+    <li>$s = 1$: $z$ szórása $\sqrt{100} = 10$ – a neuron kimenete tízszer nagyobb, mint a bemenetei;</li>
+    <li>$s = 0{,}01$: szórás $0{,}1$ – tizedére zsugorodik;</li>
+    <li>$s = 0{,}1 = 1/\sqrt{100}$: szórás pontosan 1 – a jel mérete megmarad.</li>
+  </ul>
+  Egy rétegen ez még nem baj. De 20 rétegen át a szorzók összeszorzódnak: $10^{20}$, illetve $0{,}1^{20} = 10^{-20}$.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – Xavier- és He-inicializálás</span>
+  $n_{\text{be}}$ bemenetű rétegnél $\mathrm{Var}(z) = n_{\text{be}}\cdot\mathrm{Var}(w)\cdot\mathrm{E}(x^2)$. Hogy a jel mérete rétegről rétegre megmaradjon:
+  <ul style="margin:.2rem 0">
+    <li><b>Xavier (Glorot) kezdés</b> (tanh, szigmoid, lineáris réteg): $\mathrm{Var}(w) = \dfrac{1}{n_{\text{be}}}$ (vagy az előre és a visszafelé menetet kiegyensúlyozó $\dfrac{2}{n_{\text{be}} + n_{\text{ki}}}$) – X. Glorot és Y. Bengio, 2010;</li>
+    <li><b>He-kezdés</b> (ReLU): $\mathrm{Var}(w) = \dfrac{2}{n_{\text{be}}}$ – K. He és társai, 2015. A ReLU a bemenetek felét lenullázza, ezért kell a kétszeres variancia.</li>
+  </ul>
+  Ha a szorzó rétegenként nem 1, a jel (és a visszafelé menetben a gradiens) <b>exponenciálisan</b> változik a mélységgel: ez az <b>eltűnő</b> (a szorzó $\lt 1$), illetve a <b>robbanó gradiens</b> (a szorzó $\gt 1$).
+  <br><small>Miért a gradiens is? Visszafelé ugyanazok a súlyok szoroznak (<a href="#s103-b">10.3</a>, $W^\top\boldsymbol\delta$), és még az aktiváció deriváltja is: a szigmoidé legfeljebb 0,25, így 10 szigmoidos réteg után a gradiens akár $0{,}25^{10} \approx 10^{-6}$-szorosára zsugorodik (<a href="../09-neuralis-halozatok/#s94-b">9.4</a>).</small>
+</div>
+<div class="widget" data-widget="deep-signal"></div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – 20 réteg</span>
+    Ha a jel rétegenként 0,5-szörösére csökken: $0{,}5^{20} \approx 9{,}5\cdot 10^{-7}$ – az első rétegekhez alig jut gradiens. Ha kétszeresére nő: $2^{20} \approx 10^6$ – a lépések szétvetik a hálót.
+    ReLU-val és Xavier-kezdéssel a szorzó kb. $1/\sqrt2$: 20 réteg után $2^{-10} \approx 0{,}001$.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a számjegyháló rossz kezdéssel</span>
+    He-kezdéssel ($s = \sqrt{2/64} \approx 0{,}18$) a kiinduló veszteség 2,40. Ha a súlyok szórása 1: a kiinduló veszteség 12,9, és 20 epoch SGD után a teszt csak 83%. Szórás 3: kiinduló veszteség 23,6, és a háló alig tanul (18%).
+    Szórás 0,01: a kiinduló veszteség 2,303, de az első epochban alig mozdul (a jelek túl kicsik).
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Gradiensvágás – a robbanás ellen (Kiegészítés)</span>
+  Ha a gradiens normája egy küszöb fölé nő, skálázd vissza a küszöbre: $\mathbf g \leftarrow \mathbf g\cdot\min\!\big(1,\ c/\lVert\mathbf g\rVert\big)$. Például $\mathbf g = (3;\ 4)$, $\lVert\mathbf g\rVert = 5$, $c = 1$: $\mathbf g \to (0{,}6;\ 0{,}8)$ – az irány marad, csak a lépés rövidül.
+  A nyelvi modellek és a rekurrens hálók tanításánál szinte mindig bekapcsolják (12. fejezet).
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Mélyebb nem mindig jobb – a régi kezdéssel.</b> Egy kísérletsorozat (PDL 10) MNIST-en: két vagy több szigmoidos rejtett réteggel a háló véletlen szintű (12%) maradt, ReLU-val 88%. A könyv a kezdést okolja; a fő ok az eltűnő gradiens a telítődő szigmoidokon át.</li>
+    <li><b>Az LSTM sem varázsszer.</b> Egy könyv (DLV 19) szerint az LSTM „elkerüli” az eltűnő és a robbanó gradienst. Enyhíti az eltűnőt; a robbanó ellen ott is gradiensvágás kell.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a jel mérete</summary>
+  <ol>
+    <li>Egy réteg 784 bemenetű. Mekkora legyen a súlyok szórása Xavier-, illetve He-kezdéssel ($1/n_{\text{be}}$, illetve $2/n_{\text{be}}$ variancia)?
+      <details><summary>Megoldás</summary>Xavier: $\sqrt{1/784} = 1/28 \approx 0{,}036$. He: $\sqrt{2/784} \approx 0{,}051$.</details></li>
+    <li>784 bemenet, a súlyok szórása 1, a bemenetek szórása 1. Mekkora a $z$ szórása?
+      <details><summary>Megoldás</summary>$\sqrt{784} = 28$. Szigmoiddal ez szinte mindig telített neuron (0 vagy 1) – a deriváltja ott közel 0.</details></li>
+    <li>A jel rétegenként 60%-kal csökken (0,4-szeres), illetve 60%-kal nő (1,6-szoros). Mennyi 8 réteg után?
+      <details><summary>Megoldás</summary>$0{,}4^8 \approx 0{,}00066$; $\;1{,}6^8 \approx 42{,}9$. (Egy könyv, DLV 19, ugyanezekkel a számokkal mutatja.)</details></li>
+    <li>Gradiensvágás $c = 2$-vel: mi lesz a $\mathbf g = (6;\ 8)$ és a $\mathbf g = (0{,}6;\ 0{,}8)$ gradiensből?
+      <details><summary>Megoldás</summary>$\lVert(6;\ 8)\rVert = 10 \gt 2$ → $(1{,}2;\ 1{,}6)$. $\lVert(0{,}6;\ 0{,}8)\rVert = 1 \le 2$ → változatlan.</details></li>
+    <li>(nehezebb) Miért kell a He-kezdésnél kétszeres variancia? Számolj: ha $z$ szimmetrikus, 0 átlagú, mennyi $\mathrm E(\mathrm{ReLU}(z)^2)$?
+      <details><summary>Megoldás</summary>A ReLU a negatív felét lenullázza, a pozitívat megtartja: $\mathrm E(\mathrm{ReLU}(z)^2) = \tfrac12\mathrm E(z^2) = \tfrac12\mathrm{Var}(z)$. A következő réteg $z$-jének varianciája $n\,\mathrm{Var}(w)\cdot\tfrac12\mathrm{Var}(z)$; hogy ez $\mathrm{Var}(z)$ legyen, $\mathrm{Var}(w) = 2/n$ kell.</details></li>
+  </ol>
+</details>
+
+<h3 id="s106-c">3. lépés: normalizálás menet közben – köteg- és rétegnormalizálás</h3>
+<p>A jó kezdés az <em>elején</em> tartja jó méretben a jelet. Tanítás közben a súlyok változnak, és a jelek mérete elcsúszhat. Ötlet: normalizáljuk a rétegek kimenetét <b>menet közben</b>, ahogy a bemenetet is skálázzuk (<a href="../03-tanulas-anatomiaja/#s36-c">3.6</a>).</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy neuron négy képen</span>
+  Egy rejtett neuron $z$-je egy 4 képes kötegen: $(1;\ 3;\ 5;\ 7)$. Átlag 4, variancia $\frac{9 + 1 + 1 + 9}{4} = 5$, szórás $\sqrt5 \approx 2{,}236$. Standardizálva:
+  $$\hat z = \frac{z - 4}{2{,}236} = (-1{,}342;\ -0{,}447;\ 0{,}447;\ 1{,}342).$$
+  Utána két tanult paraméterrel visszaskálázunk: $\gamma = 2$, $\beta = 1$ esetén $\gamma\hat z + \beta = (-1{,}683;\ 0{,}106;\ 1{,}894;\ 3{,}683)$. A háló így maga döntheti el, milyen méretű jelet akar – de a mérete nem „csúszik el” véletlenül.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – kötegnormalizálás és rétegnormalizálás</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Kötegnormalizálás</b> (batch normalization; S. Ioffe, C. Szegedy, 2015): minden neuronra külön, <b>a köteg mintái mentén</b> számolt átlaggal ($\mu_B$) és varianciával ($\sigma_B^2$):
+      $\;\hat z = \dfrac{z - \mu_B}{\sqrt{\sigma_B^2 + \varepsilon}}$, $\;$kimenet: $\gamma\hat z + \beta$ (tanult $\gamma$, $\beta$). Kiértékeléskor nincs köteg: a tanítás alatt gyűjtött <b>mozgó átlagokat</b> használja.</li>
+    <li><b>Rétegnormalizálás</b> (layer normalization; J. Ba és társai, 2016): minden mintára külön, <b>a réteg neuronjai mentén</b> számolt átlaggal és varianciával. Nem függ a kötegtől – ezért ez van a Transformerekben (12. fejezet).</li>
+  </ul>
+  <small>Miért segít? A rétegek bemenete stabil méretű marad, így nagyobb tanulási ráta is használható, és a mély háló gyorsabban, megbízhatóbban tanul. A kötegnormalizálásnak mellékesen enyhe regularizáló hatása is van (a köteg statisztikái zajosak) – de nem ez a fő célja.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – rétegnormalizálás egy mintán</span>
+    Egy minta négy rejtett kimenete: $(2;\ 4;\ 6;\ 0)$. Átlag 3, variancia 5: $\hat{\mathbf h} = (-0{,}447;\ 0{,}447;\ 1{,}342;\ -1{,}342)$. Ehhez nem kellett a köteg többi mintája.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – mozgó átlag</span>
+    A futó átlag kezdetben 0, frissítés $\mu \leftarrow 0{,}9\mu + 0{,}1\mu_B$. Az első köteg átlaga 4: $\mu = 0{,}4$; a második is 4: $\mu = 0{,}76$; sok köteg után $\mu \to 4$. Kiértékeléskor ezt használja.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Maradékkapcsolat – a gradiens „gyorsforgalmi útja”</span>
+  A nagyon mély hálók (több tucat–száz réteg) harmadik fegyvere: a réteg kimenetéhez hozzáadjuk a bemenetét, $\mathbf h_{\text{új}} = \mathbf h + F(\mathbf h)$. Az összeadás visszafelé változatlanul továbbadja a gradienst (<a href="#s104-b">10.4</a>), így az a sok rétegen át sem tűnik el.
+  Ez a ResNet (11. fejezet) és a Transformer (12. fejezet) alapja.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Tanítási és kiértékelési mód.</b> A kötegnormalizálás (és a dropout, <a href="#s107-c">10.7</a>) tanításkor másképp működik, mint kiértékeléskor. Ha kiértékelés előtt nem kapcsolod át a hálót (PyTorch-ban <code>net.eval()</code>), egyetlen képre is a köteg statisztikáját számolná – és a jóslat attól függne, mi van még a kötegben.</li>
+    <li><b>Kis köteggel a kötegnormalizálás zajos;</b> 1-es köteggel értelmetlen (a variancia 0). Ilyenkor rétegnormalizálás kell.</li>
+    <li>Egy népszerű könyv (DLV 15) a kötegnormalizálást csak regularizálóként mutatja be, a köteg-statisztikák és a mozgó átlagok nélkül. A fő haszna a stabilabb, gyorsabb tanítás.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – normalizálás</summary>
+  <ol>
+    <li>Kötegnormalizáld egy neuron $(2;\ 2;\ 6;\ 6)$ értékeit ($\varepsilon$ nélkül)!
+      <details><summary>Megoldás</summary>Átlag 4, variancia 4, szórás 2: $(-1;\ -1;\ 1;\ 1)$.</details></li>
+    <li>Az előző eredményre $\gamma = 3$, $\beta = -1$. Mi a kimenet?
+      <details><summary>Megoldás</summary>$(-4;\ -4;\ 2;\ 2)$.</details></li>
+    <li>Melyik normalizálás kell: (a) képosztályozó 256-os kötegekkel; (b) nyelvi modell, ahol a mondatok hossza és a köteg is változó; (c) online tanítás egyesével érkező mintákon?
+      <details><summary>Megoldás</summary>(a) kötegnormalizálás (a klasszikus választás CNN-ekben); (b) rétegnormalizálás; (c) rétegnormalizálás – 1-es köteggel a kötegnormalizálás nem működik.</details></li>
+    <li>Mit ad a kötegnormalizálás, ha $\gamma = \sqrt{\sigma_B^2 + \varepsilon}$ és $\beta = \mu_B$?
+      <details><summary>Megoldás</summary>Pontosan az eredeti $z$-t: a normalizálás visszacsinálható. Ezért nem veszít kifejezőerőt a háló – ha a tanítás úgy látja jónak, „kikapcsolhatja”.</details></li>
+    <li>(nehezebb) Egy kötegnormalizált háló tanítás közben 95%-os, de kiértékelési módban egyetlen képpel tesztelve 60%-os. Mi lehet a baj?
+      <details><summary>Megoldás</summary>Például a mozgó átlagok rosszak: túl kevés lépés volt, vagy a tesztképek másképp vannak előfeldolgozva, mint a tanítóképek, így más a statisztikájuk. (Ha viszont a hálót nem kapcsolták kiértékelési módba, az 1 képes „köteg” varianciája 0 – az még rosszabb.)</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai10-106"></div>
+</section>

@@ -1,0 +1,442 @@
+=== p355 (ch13 init) ===
+                                                                                    Outputs
+
+
+
+
+                                                           Outputs
+Inputs
+
+
+
+
+                                                                                         Inputs
+
+                             (a)                                                            (b)
+Figure 13-9: Two neural networks drawn as graphs. Data flows from node to node along the edges, following
+the arrows. When the edges are not labeled with an arrow, data usually flows left-to-right or bottom-to-top.
+(a) Mostly left-to-right flow. (b) Mostly bottom-to-top flow.
+
+                         We say that a node near the inputs in Figure 13-9(a) is before a node
+                    nearer to the outputs, which comes after it. In Figure 13-9(b), we’d say a
+                    node near the inputs is below a node near the outputs, which is above it.
+                    Sometimes this below/above language is used even when the graph is
+                    drawn left to right, which can be confusing. It can help to think of below as
+                    “closer to the inputs,” and above as “closer to the outputs.”
+                         We also sometimes say that if data flows from one node to another
+                    (let’s say it flows from A to B), then node A is an ancestor or parent of B, and
+                    node B is a descendant or child of A.
+                         A common rule in neural networks is that there are no loops. This
+                    means that data coming out of a node can never make its way back into that
+                    same node, no matter how circuitous a path it follows. The formal name for
+                    this kind of graph is a directed acyclic graph (or DAG, pronounced to rhyme
+                    with “drag”). The word directed here means that the edges have arrows
+                    (which may only be implied, as we mentioned earlier). The word acyclic
+                    means there are no cycles, or loops. As always, there are exceptions to the
+                    rules, but they’re rare. We’ll see one such exception when we discuss recur-
+                    rent neural networks (RNNs) in Chapter 19.
+                         DAGs are popular in many fields, including machine learning, because
+                    they are significantly easier to understand, analyze, and design than
+                    arbitrary graphs that have loops. Including loops can introduce feedback,
+                    where a node’s output is returned to its input. Anyone who’s moved a live
+
+
+
+324    Chapter 13
+         microphone too close to a speaker is familiar with how quickly feedback
+         can grow out of control. The acyclic nature of a DAG naturally avoids the
+         feedback problem, which saves us from dealing with this complex issue.
+              Recall that a graph or network in which data only flows forward from
+         inputs to outputs is called feed-forward. In Chapter 14, we’ll see that a key step
+         in training neural networks involves temporarily flipping the arrows around,
+         sending a particular type of information from the output nodes back to the
+         input nodes. Although the normal flow of data is still feed-forward, when we
+         push data through it backward, generally we call that a feed-backward, back-
+         ward-flow, or reverse-feed algorithm. We reserve the word feedback for situations
+         in which a loop in the graph can enable a node to receive its own output as
+         input. As we’ve said, we generally avoid feedback in neural networks.
+              Interpreting graphs like those in Figure 13-9 usually means picturing
+         the information as it flows along the edges, from one node to the next. But
+         this picture only makes sense if we make some conventional assumptions.
+         Let’s look at those now.
+              Though we often use the word flow in various forms when referring to
+         how data moves through the graph, this isn’t like the flow of water through
+         pipes. Water flowing through pipes is a continuous process: new molecules
+         of water flow through the pipes at every moment. The graphs we work with
+         (and the neural networks they represent) are discrete: information arrives
+         one chunk at a time, like text messages.
+              Recall from Figure 13-5 that we can draw a neural network by placing
+         a weight on each edge (rather than inside a neuron). We call this style of
+         the network a weighted graph. As we saw in Figure 13-6, we rarely draw the
+         weights explicitly, but they are implied. It is always the case that in any neu-
+         ral network graph, even if no weights are explicitly shown, we are to under-
+         stand that a unique weight is on each edge and as a value moves from one
+         neuron to another along that edge that value is multiplied by the weight.
+
+
+Initializing the Weights
+         Teaching a neural network involves gradually improving the weights. The
+         process begins when we assign initial values to the weights. How should we
+         pick these starting values? It turns out that, in practice, how we initialize
+         the weights can have a big effect on how quickly our network learns.
+              Researchers have developed theories for good ways to pick the ini-
+         tial values for the weights, and the various algorithms that have proved
+         most useful are each named after the lead authors on the publications
+         that describe them. The LeCun Uniform, Glorot Uniform (or Xavier Uniform),
+         and He Uniform algorithms are all based on selecting initial values from a
+         uniform distribution (LeCun et al. 1998; Glorot and Bengio 2010; He et
+         al. 2015). It probably won’t be much of a surprise that the similarly named
+         LeCun Normal, Glorot Normal (or Xavier Normal), and He Normal initialization
+         methods draw their values from a normal distribution.
+
+
+
+
+                                                                         Neural Networks   325
+=== p504-506 (ch17 MNIST convnet dropout) ===
+                           We will use a simple convnet designed for this job that is included
+                       with the Keras machine learning library (Chollet 2017). Figure 17-1 shows
+                       the architecture in our schematic form and in the traditional box-and-
+                       label form.
+
+
+28 x 28 x 1                                                                                                  10
+
+                    32 x (3x3)    64 x (3x3)       2 x2    0.25           128        0.25      10
+                      ReLU          ReLU                                 ReLU                softmax
+
+
+
+
+                      Conv 2D          Conv 2D
+                                                          MaxPool      Dropout
+28 x 28 x 1          32 x (3x3)       64 x (3x3)
+                                                            2x2         0.25
+                       ReLU             ReLU
+
+
+
+
+                                                             Dense         Dropout          Dense 10
+                                               Flatten                                                       10
+                                                            128 ReLU        0.25             softmax
+
+Figure 17-1: A convnet for classifying MNIST digits. The input images are 28 by 28 by 1 channel. Two con-
+volution layers are followed by pooling, dropout, and flatten, then a dense (or fully connected) layer, another
+dropout, and a final dense layer with 10 outputs followed by softmax. Top: Our schematic version. Bottom:
+Traditional box-and-label form.
+
+                            The input to the net is the MNIST image, provided as a 3D tensor of
+                       shape 28 by 28 by 1 (the 1 refers to the single grayscale channel). Though
+                       there are two fully connected layers at the end, and various helper layers
+                       (such as dropout, flatten, and pooling), we still refer to this as a convolu-
+                       tional network, or convnet, because the convolution layers dominate the
+                       classification work. The first convolution layer runs 32 filters, each of size 3
+                       by 3, over the input. Each filter’s output is run through a ReLU activation
+                       function before it leaves the layer.
+                            By not specifying a stride, the filters will move by one element in each
+                       direction. We’re also not applying any padding. As we saw in Figure 16-10,
+                       this means that we lose a ring of elements after each convolution. That’s
+                       okay in this case because all MNIST images are supposed to have a border
+                       of four black pixels around the digit (not all images actually have this bor-
+                       der, but most do).
+                            The first layer’s input tensor is 28 by 28 by 1, so each filter in the first
+                       convolution layer is one channel deep. Because we have 32 filters, we don’t
+                       have any padding on the input, and the filters have a 3 by 3 footprint,
+                       the output of the first convolution layer is 26 by 26 by 32. The second
+
+
+
+
+474    Chapter 17
+convolution layer contains 64 filters with 3 by 3 footprints. The system
+knows that the input has 32 channels (because the previous layer had 32
+filters), so each filter is created as a tensor of shape 3 by 3 by 32. Because
+we’re still not using padding, we again lose a ring around the outside of the
+input, producing an output tensor that’s 24 by 24 by 64.
+     We could have used striding to reduce the size of the output, but here
+we use an explicit max pooling layer with blocks of size 2 by 2. That means
+for every nonoverlapping 2 by 2 block in the input, the layer outputs just
+one value containing the largest value in the block. Thus, the output of this
+layer is a tensor of size 12 by 12 by 64 (the pooling doesn’t change the num-
+ber of channels).
+     Next, we come to a dropout layer, represented by a diagonal slash.
+As we saw in Chapter 15, the dropout layer itself doesn’t actually do any
+processing. Instead, it instructs the system to apply dropout to the near-
+est preceding layer that contains neurons. The nearest layer preceding
+the dropout is pooling, but that has no neurons. As we continue to work
+backward, we find a convolution layer, which does have neurons. During
+training, the dropout algorithm is applied to this convolution layer (recall
+that dropout is only applied during training, and is otherwise ignored).
+Before each epoch of training, one-quarter of the neurons in this convo-
+lution layer are temporarily disabled. This should help hold off overfit-
+ting. By convention, we usually treat dropout as a layer, even though it
+does no computation. Note that since the dropout layer looks backward
+for the nearest layer with neurons, we could have placed it to the left of
+the pooling layer and nothing about the network would have changed. By
+convention, when we pool after convolution, we usually place those two
+layers together.
+     Now we leave the convolutional part of the network and prepare the
+values for output. We typically find these steps, or something like them, at
+the end of classification convnets. The output of the second convolution
+layer is a 3D tensor, but we want to feed that into a fully connected layer,
+which expects a list (or 1D tensor). A flatten layer, shown as two parallel
+lines, takes an input tensor of any number of dimensions and reorganizes
+it into a 1D tensor by placing all the elements together end-to-end. The list
+is made up starting with the first row in the tensor. We take the first ele-
+ment, and place its 64 values at the head of our list. Then we move to the
+second element, and place its 64 values at the end of the list. We continue
+doing this for every element in the row, and then we do it for the next row,
+and so on. Figure 17-2 shows the process. None of the values in the tensor
+are lost in this rearrangement.
+
+
+
+
+                                                           Convnets in Practice   475
+                   Figure 17-2: The action of a flatten layer. Top: The input tensor. Middle: Turning each
+                   channel into a list. Bottom: Placing the lists one after the other to make one large list.
+
+                       Returning to Figure 17-1, the flatten layer produces a list of 12 × 12 ×
+                   64 = 9,216 numbers. That list goes into a fully connected, or dense, layer
+                   of 128 neurons. That layer gets affected by dropout, where a quarter of the
+                   neurons are temporarily disconnected at the start of each batch during
+                   training.
+                       The 128 outputs of this layer go into a final dense layer with 10 neu-
+                   rons. The 10 outputs of this layer go into a softmax step so that they’re con-
+                   verted to probabilities. The 10 numbers that come out of this last layer give
+                   us the network’s prediction of the probability that the input image belongs
+                   to each of the 10 possible classes, corresponding to the digits 0 through 9.
+                       We trained this network for 12 epochs using the standard MNIST train-
+                   ing data. Its accuracy on the training and validation data sets is shown in
+                   Figure 17-3.
+                       The curves show we’ve achieved about 99 percent accuracy on both the
+                   training and validation data sets. Since the curves aren’t diverging, we’ve
+                   successfully avoided overfitting.
+
+
+
+
+476   Chapter 17
+=== p582-584 (ch19 vanishing/exploding) ===
+                   Recurrent Cells in Action
+                   Let’s see how a recurrent cell might predict the next word of a five-word
+                   sequence. We can see the inputs and possible outputs with an unrolled dia-
+                   gram, shown in Figure 19-13.
+
+                         swam        night       best       party       times
+
+
+
+
+                            it        was         the        best         of
+
+                   Figure 19-13: A recurrent cell predicting words. The diagram is in unrolled form.
+                   Predictions come out of the top of the cell, whereas state is indicated by the open
+                   horizontal arrow.
+
+                         We begin with a cell whose hidden state has been initialized to some-
+                   thing generic like all zeros, representing that nothing has been learned
+                   yet. That’s the open circle at the far left. The first word, it, arrives. The cell
+                   considers the input and its hidden state, and predicts the next word, swam.
+                   The cell is telling us that the sentence that begins with it is most likely to
+                   continue with the word swam, but we ignore this because we only care about
+                   the prediction after the fifth word.
+                         Now comes the interesting part. Using the information it learned dur-
+                   ing training, the RNN updates its hidden state to contain some representa-
+                   tion of the fact that it received the word it as input, and produced swam as
+                   output.
+                         Now comes the second word from the text, was. Again, the cell consults
+                   its hidden state and the input, and produces a new output prediction. Here
+                   it’s night, completing the phrase it was night. The cell updates its hidden state
+                   to remember receiving it and then was and then predicting night. Again, we
+                   ignore the prediction of night.
+                         This goes on until we provide the fifth word, of. If we’re near the start
+                   of training, the system might produce something like jellyfish, complet-
+                   ing the sentence it was the best of jellyfish. But after enough training on the
+                   original text, the networks inside the recurrent cell will have learned how
+                   to represent the consecutive words of the phrase it was the best of inside the
+                   hidden state in such a way that the word times has a high probability.
+
+                   Training a Recurrent Neural Network
+                   Suppose that we’re at the start of training the recurrent cell in Figure 19-13.
+                   We give it the five words of input, and then compute an error by comparing
+                   the cell’s final prediction with the next word from the text. If the prediction
+                   doesn’t match the text, we run backprop and then optimization as usual.
+                   Looking at the diagram, we start by finding the gradients in the rightmost
+                   cell in the diagram, then we propagate the gradients to the preceding cell
+
+
+552   Chapter 19
+to its left, then propagate the gradients again to the cell preceding that,
+and so on. It’s important to apply backprop in sequence because these are
+sequential steps of processing.
+     But we can’t really apply optimization to each box in Figure 19-13
+because these are all the same cell! To the system, it looks like just one
+instance of Figure 19-11 sitting on a layer of its own, rather than some
+unrolled list of repeated uses of the same cell. Somehow we have to apply
+backprop to the same layer repeatedly, which can create a confusing mess
+of bookkeeping. To handle this, we use a special variant of backpropaga-
+tion, called backpropagation through time, or BPTT. It handles these details so
+that we can interpret Figure 19-13 literally for the purposes of training.
+     BPTT allows us to train a recurrent cell efficiently, but it doesn’t solve
+the training problem completely. Suppose that while using BPTT, we com-
+pute a gradient for a particular weight in the rightmost cell in Figure 19-13.
+Then as we propagate the gradient left, we find that the gradient for that
+same weight in the previous cell is smaller. This means that as we push the
+gradient to the left, through the same cell over and over, the same process
+will repeat and the gradient will get smaller and smaller. If the gradient
+gets 60 percent smaller each time, then after just eight cells, it is down to
+less than a thousandth of its original size. All it takes for this process to get
+started is for a gradient to become smaller as we move backward, which is
+common. Then it inevitably gets smaller by the same percentage on every
+step backward.
+     This is very bad news. Recall that when a gradient becomes very small,
+learning slows down, and if a gradient becomes zero, learning stops entirely.
+This is not only bad for the recurrent cell, which stops learning, but for
+neurons on the layers that precede it, because they lose the opportunity to
+improve, too. The whole learning process can grind to a halt long before
+we’ve reached the network’s smallest possible error.
+     This phenomenon is called the vanishing gradient problem (Hochreiter
+et al. 2001; Pascanu, Mikolov, and Bengio 2013). A similar problem comes
+up if the gradient gets larger every time we step backward through the
+unrolled diagram. After the same eight steps, a gradient that grows by 60
+percent on each step is almost 43 times larger by the time it reaches the first
+cell. This is called the exploding gradient problem (R2RT 2016). These are
+serious problems that can prevent a network from learning.
+
+Long Short-Term Memory and Gated Recurrent Networks
+We can avoid both vanishing and exploding gradients with a fancier recur-
+rent cell, called a long short-term memory, or LSTM. The name can be confus-
+ing, but it refers to the fact that the internal state changes frequently, so
+it can be considered a short-term memory. But sometimes we can choose
+to keep some information in the state for a long time. It might make more
+sense to think of this as a selectively persistent short-term memory. A block dia-
+gram of an LSTM is shown in Figure 19-14.
+
+
+
+
+                                                          Recurrent Neural Networks   553
+                                          State
+
+
+
+                                                                          Select             Output
+                                                                         network
+
+
+                      Forget                 Remember
+                     network                  network
+
+
+
+Input
+
+
+Figure 19-14: A block diagram of a long short-term memory, or LSTM
+
+                          The LSTM uses three internal neural networks. The first is used to
+                     remove (or forget) information from the state that is no longer needed. The
+                     second inserts new information the cell wants to remember. The third net-
+                     work presents a version of the internal state as the cell’s output.
+                          The convention is that “forgetting” a number simply means moving it
+                     toward zero, and remembering a new number means adding it in to the
+                     appropriate location in the state memory.
+                          The LSTM doesn’t require repeated copies of itself, like the basic recur-
+                     rent cell of Figure 19-11, so it avoids the problems of vanishing and explod-
+                     ing gradients. We can place this LSTM cell on a layer and train the neural
+                     networks inside it using normal backprop and optimization. A practical
+                     implementation has many details that we’ve skipped over here, but they fol-
+                     low this general flow (Hochreiter et al. 2001; Olah 2015).
+                          The LSTM has proven to be such a good way to implement a recurrent
+                     cell that when people speak of “an RNN” they often mean a network that
+                     uses the LSTM in particular. A popular variation of the LSTM is the gated
+                     recurrent unit, or GRU. It’s not uncommon to try out both the LSTM and
+                     GRU in a network to see which performs better on a specific task.
+
+
+      Using Recurrent Neural Networks
+                     It’s easy to build a network with a recurrent cell (whether it’s an LSTM, a
+                     GRU, or something else). We just place a recurrent layer in our network and
+                     train as usual.
+
+                     Working with Sunspot Data
+                     Let’s demonstrate this with our sunspot data. We’ll train a network with
+                     a single recurrent layer holding a tiny LSTM with just three values in its
+
+554     Chapter 19
+=== p285 (ch10 data augmentation) ===
+                   only two numbers. This means our algorithms consume less memory and
+                   run more quickly.
+
+
+
+
+Figure 10-39: Our starting six images (top), and the reconstructed images from Figure 10-35c (bottom)
+
+                      We skipped a step in this example: normally when we use PCA, we stan-
+                   dardize all the images first. That’s included in our next example.
+
+                   PCA for Real Images
+                   The images in the last section were contrived for simplicity. Now we’ll apply
+                   PCA to real pictures.
+                        Let’s begin with the six pictures of huskies shown in Figure 10-40. To
+                   make our processing easier to see, these images are only 45 × 64 pixels.
+                   These were aligned by hand so that the eyes and nose are in about the
+                   same location in each image. This way each pixel in each image has a good
+                   chance of representing the same part of a dog as the corresponding pixel in
+                   the other images. For instance, a pixel just below the center is likely to part
+                   of a nose, one near the upper corners is likely to be an ear, and so on.
+
+
+
+
+                   Figure 10-40: Our starting set of huskies
+
+                       A database of six dogs isn’t a lot of training data, so let’s enlarge our
+                   database using the idea of data augmentation, a common strategy for amplify-
+                   ing or enlarging a dataset. In this case, let’s run through our set of six images
+                   in random order over and over. Each time through, we’ll pick an image,
+                   make a copy, randomly shift it horizontally and vertically up to 10 percent
+                   on each axis, rotate it up to five degrees clockwise or counterclockwise, and
+                   maybe flip it left to right. Then we append that transformed image to our
+                   training set. Figure 10-41 shows the results of the first two passes through
+
+
+                                                                                         Data Preparation   255
+                   our six dogs. We used this technique of creating variations to build a train-
+                   ing set of 4,000 dog images.
+
+
+
+
+                   Figure 10-41: Each row shows a set of new images created by shifting, rotating, and per-
+                   haps horizontally flipping each of our input images.
+
+                      Since we’d like to run PCA on these images, our first step is to stan-
+                   dardize them. This means we analyze the same pixel in each of our 4,000
+                   images and adjust the collection to have zero mean and unit variance (Turk
+                   and Pentland 1991). The standardized versions of our first six generated
+                   dogs are shown in Figure 10-42.
+
+
+
+
+                   Figure 10-42: Our first six huskies after standardization
+
+                       Since 12 images fit nicely into a figure, let’s begin by arbitrarily ask-
+                   ing PCA to find the 12 images that, when added together with appropri-
+                   ate weights, best reconstruct the input images. Each of the projections (or
+                   components) found by PCA is technically known as an eigenvector, from
+                   the German eigen meaning “own” (or roughly “self”), and vector from the
+                   mathematical name for this kind of object. When we create eigenvectors of
+                   particular types of things, it’s common to create a playful name by combin-
+                   ing the prefix eigen with the object we’re processing. Hence, Figure 10-43
+                   shows our 12 eigendogs.
+
+
+
+
+256   Chapter 10
+

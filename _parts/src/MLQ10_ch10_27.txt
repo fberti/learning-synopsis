@@ -1,0 +1,398 @@
+                                 10
+                 SOURCES OF RANDOMNESS
+
+
+
+
+What are the common sources of randomness when training deep
+neural networks that can cause non-reproducible behavior during
+training and inference?
+   When training or using machine learning models such as deep
+neural networks, several sources of randomness can lead to different
+results every time we train or run these models, even though we use the
+same overall settings. Some of these effects are accidental and some are
+intended. The following sections categorize and discuss these various
+sources of randomness.
+   Optional hands-on examples for most of these categories are
+provided in the supplementary/q10-random-sources subfolder at
+https://github.com/rasbt/MachineLearning-QandAI-book.
+
+Model Weight Initialization
+All common deep neural network frameworks, including TensorFlow
+and PyTorch, randomly initialize the weights and bias units at each layer
+by default. This means that the final model will be different every time
+we start the training. The reason these trained models will differ when
+we start with different random weights is the nonconvex nature of the
+loss, as illustrated in Figure 10-1. As the figure shows, the loss will
+converge to different local minima depending on where the initial
+starting weights are located.
+
+
+
+
+Figure 10-1: Different starting weights can lead to different final weights.
+    In practice, it is therefore recommended to run the training (if the
+computational resources permit) at least a handful of times; unlucky
+initial weights can sometimes cause the model not to converge or to
+converge to a local minimum corresponding to poorer predictive
+accuracy.
+    However, we can make the random weight initialization
+deterministic by seeding the random generator. For instance, if we set
+the seed to a specific value like 123, the weights will still initialize with
+small random values. Nonetheless, the neural network will consistently
+initialize with the same small random weights, enabling accurate
+reproduction of results.
+
+
+Dataset Sampling and Shuffling
+When we train and evaluate machine learning models, we usually start
+by dividing a dataset into training and test sets. This requires random
+sampling since we have to decide which examples we put into a training
+set and which examples we put into a test set.
+    In practice, we often use model evaluation techniques such as k-fold
+cross-validation or holdout validation. In holdout validation, we split
+the training set into training, validation, and test datasets, which are also
+sampling procedures influenced by randomness. Similarly, unless we use
+a fixed random seed, we get a different model each time we partition the
+dataset or tune or evaluate the model using k-fold cross-validation since
+the training partitions will differ.
+
+
+Nondeterministic Algorithms
+We may include random components and algorithms depending on the
+architecture and hyperparameter choices. A popular example of this is
+dropout.
+   Dropout works by randomly setting a fraction of a layer’s units to
+zero during training, which helps the model learn more robust and
+generalized representations. This “dropping out” is typically applied at
+each training iteration with a probability p, a hyperparameter that
+controls the fraction of units dropped out. Typical values for p are in the
+range of 0.2 to 0.8.
+   To illustrate this concept, Figure 10-2 shows a small neural network
+where dropout randomly drops a subset of the hidden layer nodes in
+each forward pass during training.
+
+
+
+
+Figure 10-2: In dropout, hidden nodes are intermittently and randomly disabled during each
+forward pass in training.
+   To create reproducible training runs, we must seed the random
+generator before training with dropout (analogous to seeding the
+random generator before initializing the model weights). During
+inference, we need to disable dropout to guarantee deterministic results.
+Each deep learning framework has a specific setting for that purpose—a
+PyTorch example is included in the supplementary/q10-random-sources
+subfolder at https://github.com/rasbt/MachineLearning-QandAI-book.
+
+
+Different Runtime Algorithms
+The most intuitive or simplest implementation of an algorithm or
+method is not always the best one to use in practice. For example, when
+training deep neural networks, we often use efficient alternatives and
+approximations to gain speed and resource advantages during training
+and inference.
+   A popular example is the convolution operation used in
+convolutional neural networks. There are several possible ways to
+implement the convolution operation:
+  The classic direct convolution The common implementation of
+  discrete convolution via an element-wise product between the input
+  and the window, followed by summing the result to get a single
+  number. (See Chapter 12 for a discussion of the convolution
+  operation.)
+  FFT-based convolution Uses fast Fourier transform (FFT) to
+  convert the convolution into an element-wise multiplication in the
+  frequency domain.
+  Winograd-based convolution An efficient algorithm for small filter
+  sizes (like 3×3) that reduces the number of multiplications required
+  for the convolution.
+
+    Different convolution algorithms have different trade-offs in terms
+of memory usage, computational complexity, and speed. By default,
+libraries such as the CUDA Deep Neural Network library (cuDNN),
+which are used in PyTorch and TensorFlow, can choose different
+algorithms for performing convolution operations when running deep
+neural networks on GPUs. However, the deterministic algorithm choice
+has to be explicitly enabled. In PyTorch, for example, this can be done
+by setting
+
+torch.use_deterministic_algorithms(True)
+
+    While these approximations yield similar results, subtle numerical
+differences can accumulate during training and cause the training to
+converge to slightly different local minima.
+
+
+Hardware and Drivers
+Training deep neural networks on different hardware can also produce
+different results due to small numeric differences, even when the same
+algorithms are used and the same operations are executed. These
+differences may sometimes be due to different numeric precision for
+floating-point operations. However, small numeric differences may also
+arise due to hardware and software optimization, even at the same
+precision.
+    For instance, different hardware platforms may have specialized
+optimizations or libraries that can slightly alter the behavior of deep
+learning algorithms. To give one example of how different GPUs can
+produce different modeling results, the following is a quotation from
+the official NVIDIA documentation: “Across different architectures, no
+cuDNN routines guarantee bit-wise reproducibility. For example, there
+is no guarantee of bit-wise reproducibility when comparing the same
+routine run on NVIDIA VoltaTM and NVIDIA TuringTM [. . .] and
+NVIDIA Ampere architecture.”
+
+
+Randomness and Generative AI
+Besides the various sources of randomness mentioned earlier, certain
+models may also exhibit random behavior during inference that we can
+think of as “randomness by design.” For instance, generative image and
+language models may create different results for identical prompts to
+produce a diverse sample of results. For image models, this is often so
+that users can select the most accurate and aesthetically pleasing image.
+For language models, this is often to vary the responses, for example, in
+chat agents, to avoid repetition.
+    The intended randomness in generative image models during
+inference is often due to sampling different noise values at each step of
+the reverse process. In diffusion models, a noise schedule defines the
+noise variance added at each step of the diffusion process.
+    Autoregressive LLMs like GPT tend to create different outputs for
+the same input prompt (GPT will be discussed at greater length in
+Chapters 14 and 17). The ChatGPT user interface even has a
+Regenerate Response button for that purpose. The ability to generate
+different results is due to the sampling strategies these models employ.
+Techniques such as top-k sampling, nucleus sampling, and temperature
+scaling influence the model’s output by controlling the degree of
+randomness. This is a feature, not a bug, since it allows for diverse
+responses and prevents the model from producing overly deterministic
+or repetitive outputs. (See Chapter 9 for a more in-depth overview of
+generative AI and deep learning models; see Chapter 17 for more detail
+on autoregressive LLMs.)
+   Top-k sampling, illustrated in Figure 10-3, works by sampling tokens
+from the top k most probable candidates at each step of the next-word
+generation process.
+
+
+
+
+Figure 10-3: Top-k sampling
+    Given an input prompt, the language model produces a probability
+distribution over the entire vocabulary (the candidate words) for the
+next token. Each token in the vocabulary is assigned a probability based
+on the model’s understanding of the context. The selected top-k tokens
+are then renormalized so that the probabilities sum to 1. Finally, a token
+is sampled from the renormalized top-k probability distribution and is
+appended to the input prompt. This process is repeated for the desired
+length of the generated text or until a stop condition is met.
+   Nucleus sampling (also known as top-p sampling), illustrated in Figure
+10-4, is an alternative to top-k sampling.
+
+
+
+
+Figure 10-4: Nucleus sampling
+    Similar to top-k sampling, the goal of nucleus sampling is to balance
+diversity and coherence in the output. However, nucleus and top-k
+sampling differ in how to select the candidate tokens for sampling at
+each step of the generation process. Top-k sampling selects the k most
+probable tokens from the probability distribution produced by the
+language model, regardless of their probabilities. The value of k remains
+fixed throughout the generation process. Nucleus sampling, on the
+other hand, selects tokens based on a probability threshold p, as shown
+in Figure 10-4. It then accumulates the most probable tokens in
+descending order until their cumulative probability meets or exceeds the
+threshold p. In contrast to top-k sampling, the size of the candidate set
+(nucleus) can vary at each step.
+Exercises
+10-1. Suppose we train a neural network with top-k or nucleus
+      sampling where k and p are hyperparameter choices. Can we
+      make the model behave deterministically during inference
+      without changing the code?
+10-2. In what scenarios might random dropout behavior during
+      inference be desired?
+
+
+References
+    For more about different data sampling and model evaluation
+    techniques, see my article: “Model Evaluation, Model Selection,
+    and Algorithm Selection in Machine Learning” (2018),
+    https://arxiv.org/abs/1811.12808.
+    The paper that originally proposed the dropout technique: Nitish
+    Srivastava et al., “Dropout: A Simple Way to Prevent Neural
+    Networks from Overfitting” (2014),
+    https://jmlr.org/papers/v15/srivastava14a.xhtml.
+    A detailed paper on FFT-based convolution: Lu Chi, Borui Jiang,
+    and Yadong Mu, “Fast Fourier Convolution” (2020),
+    https://dl.acm.org/doi/abs/10.5555/3495724.3496100.
+    Details on Winograd-based convolution: Syed Asad Alam et al.,
+    “Winograd Convolution for Deep Neural Networks: Efficient
+    Point Selection” (2022), https://arxiv.org/abs/2201.10369.
+    More information about the deterministic algorithm settings in Py-
+    Torch:
+    https://pytorch.org/docs/stable/generated/torch.use_deterministic_algorith
+    ms.xhtml.
+    For details on the deterministic behavior of NVIDIA graphics
+    cards, see the “Reproducibility” section of the official NVIDIA
+    documentation: https://docs.nvidia.com/deeplearning/cudnn/developer-
+    guide/index.xhtml#reproducibility.
+   PART II
+COMPUTER VISION
+=================== CHAPTER 27 ===================
+                                 27
+                       PROPER METRICS
+
+
+
+
+What are the three properties of a distance function that make it a
+proper metric?
+    Metrics are foundational to mathematics, computer science, and
+various other scientific domains. Understanding the fundamental
+properties that define a good distance function to measure distances or
+differences between points or datasets is important. For instance, when
+dealing with functions like loss functions in neural networks,
+understanding whether they behave like proper metrics can be
+instrumental in knowing how optimization algorithms will converge to
+a solution.
+    This chapter analyzes two commonly utilized loss functions, the
+mean squared error and the cross-entropy loss, to demonstrate whether
+they meet the criteria for proper metrics.
+
+
+The Criteria
+To illustrate the criteria of a proper metric, consider two vectors or
+points v and w and their distance d(v, w), as shown in Figure 27-1.
+
+
+
+
+Figure 27-1: The Euclidean distance between two 2D vectors
+   The criteria of a proper metric are the following:
+
+     The distance between two points is always non-negative, d(v, w) ≥
+     0, and can be 0 only if the two points are identical, that is, v = w.
+     The distance is symmetric; for instance, d(v, w) = d(w, v).
+     The distance function satisfies the triangle inequality for any three
+     points: v, w, x, meaning d(v, w) ≤ d(v, x) + d(x, w).
+
+   To better understand the triangle inequality, think of the points as
+vertices of a triangle. If we consider any triangle, the sum of two of the
+sides is always larger than the third side, as illustrated in Figure 27-2.
+Figure 27-2: Triangle inequality
+    Consider what would happen if the triangle inequality depicted in
+Figure 27-2 weren’t true. If the sum of the lengths of sides AB and BC
+was shorter than AC, then sides AB and BC would not meet to form a
+triangle; instead, they would fall short of each other. Thus, the fact that
+they meet and form a triangle demonstrates the triangle inequality.
+
+
+The Mean Squared Error
+The mean squared error (MSE) loss computes the squared Euclidean
+distance between a target variable y and a predicted target value ŷ:
+
+
+
+
+    The index i denotes the ith data point in the dataset or sample. Is
+this loss function a proper metric?
+    For simplicity’s sake, we will consider the squared error (SE) loss
+between two data points (though the following insights also hold for the
+MSE). As shown in the following equation, the SE loss quantifies the
+squared difference between the predicted and actual values for a single
+data point, while the MSE loss averages these squared differences over
+all data points in a dataset:
+   In this case, the SE satisfies the first part of the first criterion: the
+distance between two points is always non-negative. Since we are raising
+the difference to the power of 2, it cannot be negative.
+   How about the second criterion, that the distance can be 0 only if
+the two points are identical? Due to the subtraction in the SE, it is
+intuitive to see that it can be 0 only if the prediction matches the target
+variable, y = ŷ. As with the first criterion, we can use the square to
+confirm that SE satisfies the second criterion: we have (y – ŷ)2 = (ŷ – y)2.
+   At first glance, it seems that the squared error loss also satisfies the
+third criterion, the triangle inequality. Intuitively, you can check this by
+choosing three arbitrary numbers, here 1, 2, 3:
+
+     (1 – 2)2 ≤ (1 – 3)2 + (2 – 3)2
+     (1 – 3)2 ≤ (1 – 2)2 + (2 – 3)2
+     (2 – 3)2 ≤ (1 – 2)2 + (1 – 3)2
+
+   However, there are values for which this is not true. For example,
+consider the values a = 0, b = 2, and c = 1. This gives us d(a, b) = 4, d(a, c)
+= 1, and d(b, c) = 1, such that we have the following scenario, which
+violates the triangle inequality:
+
+     (0 – 2)2 ≰ (0 – 1)2 + (2 – 1)2
+     (2 – 1)2 ≤ (0 –1)2 + (0 – 2)2
+     (0 – 1)2 ≤ (0 –2)2 + (1 – 2)2
+
+   Since it does not satisfy the triangle inequality via the example above,
+we conclude that the (mean) squared error loss is not a proper metric.
+   However, if we change the squared error into the root-squared error
+   the triangle inequality can be satisfied:
+
+
+
+
+ NOTE
+ You might be familiar with the L2 distance or Euclidean distance, which is
+ known to satisfy the triangle inequality. These two distance metrics are
+ equivalent to the root-squared error when considering two scalar values.
+
+
+The Cross-Entropy Loss
+Cross entropy is used to measure the distance between two probability
+distributions. In machine learning contexts, we use the discrete cross-
+entropy loss (CE) between class label y and the predicted probability p
+when we train logistic regression or neural network classifiers on a
+dataset consisting of n training examples:
+
+
+
+
+   Is this loss function a proper metric? Again, for simplicity’s sake, we
+will look at the cross-entropy function (H) between only two data
+points:
+
+
+
+   The cross-entropy loss satisfies one part of the first criterion: the
+distance is always non-negative because the probability score is a
+number in the range [0, 1]. Hence, log(p) ranges between –∞ and 0. The
+important part is that the H function includes a negative sign. Hence,
+the cross entropy ranges between ∞ and 0 and thus satisfies one aspect
+of the first criterion shown above.
+    However, the cross-entropy loss is not 0 for two identical points. For
+example, H(0.9, 0.9) = –0.9 × log(0.9) = 0.095.
+    The second criterion shown above is also violated by the cross-
+entropy loss because the loss is not symmetric: –y × log(p) ≠ –p × log(y).
+Let’s illustrate this with a concrete, numeric example:
+
+     If y = 1 and p = 0.5, then –1 × log(0.5) = 0.693.
+     If y = 0.5 and p = 1, then –0.5 × log(1) = 0.
+
+  Finally, the cross-entropy loss does not satisfy the triangle inequality,
+H(r, p) ≥ H(r, q) + H(q, p). Let’s illustrate this with an example as well.
+Suppose we choose r = 0.9, p = 0.5, and q = 0.4. We have:
+
+     H(0.9, 0.5) = 0.624
+     H(0.9, 0.4) = 0.825
+     H(0.4, 0.5) = 0.277
+As you can see, 0.624 ≥ 0.825 + 0.277 does not hold here.
+   In conclusion, while the cross-entropy loss is a useful loss function
+for training neural networks via (stochastic) gradient descent, it is not a
+proper distance metric, as it does not satisfy any of the three criteria.
+
+
+Exercises
+27-1. Suppose we consider using the mean absolute error (MAE) as an
+      alternative to the root mean square error (RMSE) for measuring
+      the performance of a machine learning model, where
+                                        and
+
+                                             . However, a colleague
+      argues that the MAE is not a proper distance metric in metric
+      space because it involves an absolute value, so we should use the
+      RMSE instead. Is this argument correct?
+27-2. Based on your answer to the previous question, would you say
+      that the MAE is better or is worse than the RMSE?
+

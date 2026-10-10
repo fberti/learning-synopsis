@@ -1,0 +1,831 @@
+                                9
+                  OVERFIT TING AND
+                   UNDERFIT TING
+
+
+
+
+            Whether we’re a person or a computer,
+            learning general rules about a subject from
+           a finite set of examples is a tough challenge.
+       If we don’t pay enough attention to the details
+of the examples, our rules will be too general to be
+of much use when we’re considering new data. On
+the other hand, if we pay too much attention to the
+details in the examples, our rules will be too specific,
+and again we’ll do a bad job at evaluating new data.
+     These phenomena are respectively called underfitting and overfitting.
+The more common and troublesome problem of the two is overfitting, and
+if unchecked, it can leave us with a system that’s all but useless. We control
+overfitting and rein it in with techniques known collectively as regularization.
+     In this chapter we look at the causes of overfitting and underfitting,
+and how to address them. Finally, we wrap up the chapter by seeing how to
+use Bayesian methods to fit a straight line to a bunch of data points.
+      Finding a Good Fit
+                   When our system learns from the training data so well that it does poorly
+                   when presented with new data, we say that it’s overfitting. When it doesn’t
+                   learn from the training data well enough and does poorly when presented
+                   with new data, we say that it’s underfitting. Since overfitting is usually a
+                   harder problem, we’ll look at it first.
+
+                   Overfitting
+                   Let’s approach our discussion of overfitting with a metaphor. Suppose
+                   we’ve been invited to a big open-air wedding where we know almost nobody.
+                   Over the course of the afternoon, we drift through the gathering guests,
+                   exchanging introductions and small talk. We’ve decided to make an effort
+                   to remember people’s names, so each time we meet someone, we make up
+                   some kind of mental association between their appearance and their name
+                   (Foer 2012; Proctor 1978). One of the people we meet is a fellow named
+                   Walter who has a big walrus mustache. We make a mental picture of Walter
+                   as a walrus and try to make that picture stick in our minds. Later, we meet
+                   someone named Erin, and we notice she’s wearing beautiful turquoise
+                   earrings. We make a mental picture of her earrings that have been short-
+                   ened in one direction, so earring becomes Erin. We make a similar mental
+                   image for everyone we meet, and as we mingle and bump into some of the
+                   same people again, we remember their names with ease. The system is
+                   working great.
+                        That evening at the reception we encounter lots of new people. At one
+                   point we bump into someone with a big walrus mustache. We smile and say,
+                   “Hi again, Walter!” only to get a confused expression. This is Bob, someone
+                   we haven’t met before. The same thing can happen repeatedly. We might be
+                   introduced to someone with beautiful earrings, but this is Susan, not Erin.
+                   The problem is that our mental pictures have misled us. It’s not that we
+                   didn’t learn people’s names properly, because we did. We just learned them
+                   in a way that worked only for the people in the original group and didn’t
+                   generalize when we met more people.
+                        To associate someone’s appearance with their name, we need some
+                   kind of connection between the two ideas. The more robust that connec-
+                   tion, the better we can be at recognizing that person in a new context,
+                   even if they’re wearing a hat or glasses or something else that alters their
+                   appearance. In the case of our wedding, we learned people’s names by con-
+                   necting them to a single idiosyncratic feature. The problem is that when we
+                   met someone else with that same feature at the reception, we had no way to
+                   determine that this was someone new.
+                        At the pre-wedding party, we thought we were doing well because when
+                   we evaluated our performance using the training data (the names of peo-
+                   ple at the wedding), we got most of the results right. If we focused on the
+                   number of successes, we say that we achieved a high training accuracy. If we
+                   focus instead on the number of failures, we’d say we had a low training error
+                   (or training loss). But when we then went to the reception and needed to
+
+
+196    Chapter 9
+        evaluate new data (the names of the additional people we met), our general-
+        ization accuracy was low, or equivalently, our generalization error (or generaliza-
+        tion loss) was high.
+             We saw an example of this same problem in Chapter 8, where we erro-
+        neously identified a husky on a couch as being a Yorkshire terrier, because
+        we used the couch as our only cue for identifying the breed of the dog on it.
+             Our errors with both people and dogs were due to overfitting. In other
+        words, we learned how to classify the data in front of us, but we used spe-
+        cific details in that data, rather than learning general rules that would
+        apply to new data as well.
+             Machine learning systems are really good at overfitting. Sometimes we
+        say that they’re good at cheating. If there’s some quirk in the input data that
+        helps the system get the correct result, it finds and exploits that quirk, like
+        our story in Chapter 8 of how a system was supposed to be solving the hard
+        problem of finding camouflaged tanks in photos of trees but probably was
+        taking the easy way out and simply noting whether the sky was sunny or
+        cloudy.
+             We can take two actions to control overfitting. First, we can catch when
+        the rules get too specific and stop the learning process at that moment.
+        Second, using regularization methods, we can delay the onset of overfitting
+        by encouraging the system to keep learning general rules as long as pos-
+        sible. We’ll look at each approach in a moment.
+
+        Underfitting
+        The opposite of overfitting is underfitting. In contrast to overfitting, which
+        results from using rules that are too precise, underfitting describes the
+        situation when our rules are too vague or generic. At the wedding party,
+        we might underfit by creating a rule that says, “people wearing pants are
+        named Walter.” Although this is accurate for one particular piece of data,
+        this rule is not going to generalize well!
+             Underfitting is usually much less of a problem in practice than overfit-
+        ting. We can often cure underfitting just by using more training data. With
+        more examples, the system can work out better rules for understanding
+        each piece of data.
+
+
+Detecting and Addressing Overfitting
+        How do we know when we’ve started to overfit our data? Suppose that we’re
+        using a validation set to estimate a system’s generalization error after each
+        epoch (when we’re done training, as usual, we use the one-time test set to
+        get a more reliable generalization error). The error made by the system
+        in response to the validation data is called the validation error. It’s an esti-
+        mate of the errors the system will make when it’s deployed, which is called
+        the generalization error. When the validation error flattens out, or starts to
+        become worse, while the training error is improving, we’re overfitting.
+        That’s our cue to stop learning. Figure 9-1 shows the idea visually.
+
+
+                                                                  Overfitting and Underfitting   197
+                  Figure 9-1: The training and validation errors both go down steadily near the start of train-
+                  ing, but after a certain point, the validation error starts to increase while the training error
+                  continues to decrease, signaling overfitting.
+
+                       In Figure 9-1, note that the training error continues to decrease as we
+                  move into the zone of overfitting, where the validation error is going up.
+                  That’s because we’re still learning from the training data, but now we’re
+                  learning information specific to that data, rather than general rules. It’s the
+                  performance on the validation set that lets us see that this is happening,
+                  because our validation error (estimating our generalization error) is get-
+                  ting worse. The longer we train like this, the worse our system will perform
+                  when we deploy it.
+                       Let’s see this in action. Suppose that a store’s owner subscribes to a
+                  service that provides her with background music. The company provides
+                  a variety of streams with music at different tempos, and they’ve given her
+                  a control that lets her choose the tempo of the music at any time. Rather
+                  than setting the tempo once at the start of the day and forgetting about it,
+                  she’s been finding herself adjusting it frequently through the day, and it’s
+                  become a distracting chore. She’s hired us to build a system that automati-
+                  cally adjusts the music throughout the day, the way she wants it.
+                       The first step is to gather data. So, the next morning, we sit across from
+                  the controls and watch. Each time she adjusts the tempo, we note the time
+                  and new setting. Our collected data are shown in Figure 9-2.
+
+
+
+
+198   Chapter 9
+Figure 9-2: Our recorded data shows the tempo chosen by our store owner each time she
+adjusted it during the day.
+
+    Back in our labs that evening, we fit a curve to the data, as in
+Figure 9-3.
+
+
+
+
+Figure 9-3: A curve to fit to the data of Figure 9-2
+
+
+
+
+                                                            Overfitting and Underfitting   199
+                      This curve is very wiggly, but we might reason that it’s a good solution,
+                  because it does a good job of matching her recorded choices. The next
+                  morning, we program the system to follow this pattern. By the middle of
+                  the afternoon the owner is complaining because the tempo of the music is
+                  changing too often and too dramatically. It’s distracting her customers.
+                      This curve is overfitting the data as a result of matching the observed
+                  values too precisely. Her choices on the day we measured the data were
+                  based on the particular songs that were playing on that day. Because the
+                  service doesn’t play the same songs at the same time every day, we don’t
+                  want to reproduce the data from that one day’s observations so closely. By
+                  accommodating every bump and wiggle, we’re paying too much attention
+                  to the idiosyncrasies in the training data.
+                      It would be great if we could watch her choices for several more days
+                  and use all of that data to come up with a more general plan, but she
+                  doesn’t want us taking up room in her store again. The data we have is all
+                  we’re going to get. We want a schedule with less variation, so the next night
+                  we reduce the accuracy of our match to the data. We aim for something
+                  that doesn’t jump around as much as before and get the gentle curve of
+                  Figure 9-4.
+
+
+
+
+                  Figure 9-4: A gentle curve for matching our tempo data
+
+                      We find the next day that our client still isn’t satisfied because this
+                  curve is much too coarse and ignores important features like her desire to
+                  use slower tempos in the morning and more upbeat songs in the afternoon.
+                  This curve is underfitting the data.
+
+
+
+
+200   Chapter 9
+    What we want is a solution that’s not trying to match all of the data
+exactly but is getting a good feeling for the general trends. We want some-
+thing that’s not too precise a match, or too loose, but “ just right.” The next
+day, we set up the system according to the curve in Figure 9-5.
+
+
+
+
+Figure 9-5: A curve that matches our tempo data well enough, but not too well
+
+     Our client is happy with this curve and the tempos of the songs it chooses
+over the day. We’ve found a good compromise between underfitting and over-
+fitting. In this example, finding the best curve was a matter of personal taste,
+but later on we’ll see algorithmic ways to find this sweet spot between under-
+fitting and overfitting.
+     Figure 9-6 shows another example of overfitting, this time in classifying
+two categories of two-dimensional (2D) points.
+
+
+
+
+Figure 9-6: A likely case of overfitting. (Inspired by Bullinaria 2015.)
+
+    On the left side of Figure 9-6, we have one circular point deep in
+square territory, resulting in a complicated boundary curve. We call this
+kind of isolated point an outlier, and it’s natural to treat it with suspicion.
+Maybe this is the result of a measuring or recording error, or maybe it’s
+
+                                                                   Overfitting and Underfitting   201
+                  just one very unusual piece of perfectly valid data. Getting more data
+                  would give us a better sense of which case describes this oddity, but if all
+                  we have is this one set of data to work with, we need to decide what to do.
+                  By drawing the boundary to accommodate this one data point, we risk
+                  misclassifying some future data points as blue circles, even though they
+                  were solidly inside the brown square region, because they landed on the
+                  blue side of this strange boundary curve. It might be better to prefer a
+                  simpler curve like that on the right of Figure 9-6, and accept this one
+                  point as an error.
+                       Now that we’ve seen what overfitting looks like, let’s look at how we can
+                  prevent it from happening.
+
+                  Early Stopping
+                  Generally speaking, when we start training our model, we are underfitting.
+                  The model won’t have seen enough examples yet to figure out how to han-
+                  dle them properly, so its rules are general and vague.
+                      As we train more and the model refines its boundaries, the train-
+                  ing and validation errors both typically drop. To discuss this, let’s repeat
+                  Figure 9-1 for convenience here as Figure 9-7.
+
+
+
+
+                  Figure 9-7: A repeat of Figure 9-1 for convenience
+
+                       At some point, we’ll find that although the training error is continu-
+                  ing to drop, the validation error is starting to rise (it may go flat for a while
+                  first). Now we’re overfitting. The training error is dropping because we’re
+
+
+202   Chapter 9
+getting more and more details right. But we’re now tuning our results too
+much to the training data, and the generalization error (or its estimate, the
+validation error) is going up.
+     From this analysis we can come up with a good guiding principle: when
+we start overfitting, stop training. That is, when we get to around 28 epochs in
+Figure 9-7, and we find that the validation error is going up even as train-
+ing error is dropping, we should stop training. This technique of ending
+training just as the validation error starts to rise is called early stopping, since
+we’re stopping our training process before the training error has reached
+zero. It may be helpful to think of this idea as last-minute stopping, since
+we’re training for as long as we can, only stopping when we’ve found the
+best representation of our data without overfitting.
+     In practice, our error measurements are rarely as smooth as the ide-
+alized curves in Figure 9-7. They tend to be noisy and may even go the
+“wrong” way for short periods, so it can be hard to find the exact right
+place to stop. Most library functions for early stopping offer a few variables
+that let us tell them to implicitly smooth out these error curves so they can
+detect when the validation error really is rising and not just experiencing a
+momentary increase.
+
+Regularization
+We always want to squeeze as much information as we can out of our train-
+ing data, stopping just short of overfitting. Early stopping ends learning
+when the validation error starts rising, but what if there was a way to delay
+that phenomenon, so we can train longer and continue to push down both
+training and validation errors?
+     By analogy, consider cooking a turkey in the oven. If we just put the tur-
+key in a pan and cook it on high heat, the outside eventually starts to burn.
+But say we want to cook the turkey for longer, without burning it. One way
+to do this is to wrap it in aluminum foil. The foil delays the onset of burn-
+ing, letting us cook the turkey for longer.
+     The techniques that delay the onset of overfitting are collectively
+known as regularization methods, or simply regularization. Remember that the
+computer doesn’t know that it’s overfitting. When we ask it to learn from
+the training data, it learns from that data as well as it can. It doesn’t know
+when it crosses the line from “good knowledge of the input data” to “overly
+specific knowledge of this particular input data,” so it’s up to us to manage
+the issue.
+     A popular way to perform regularization, or delay the start of overfitting,
+is to limit the values of the parameters used by the classifier. Conceptually,
+the core argument for why this staves off overfitting is that by keeping all of
+the parameters to small numbers, we prevent any one of them from dominat-
+ing (Domke 2008). This makes it harder for the classifier to become depen-
+dent on specialized, narrow idiosyncrasies.
+     To see this, think back to our example of remembering people’s names.
+When we memorized the name of Walter, who wore a walrus mustache, that
+
+
+
+                                                          Overfitting and Underfitting   203
+                   one piece of information dominated everything else we remembered. The
+                   other facts we could have learned from looking at him included that he
+                   was a man, he was almost six feet tall, he had long gray hair, he had a big
+                   smile and a low voice, he wore a dark-red shirt with brown buttons, and so
+                   on. But instead, we focused on his mustache, and ignored all these other
+                   useful cues. Later, when we saw a completely different person with a walrus
+                   mustache, that one feature dominated all the others and we mistook that
+                   person for Walter.
+                        If we force all of the features we notice to have values in roughly the
+                   same range, then “has a walrus mustache” doesn’t get the chance to domi-
+                   nate, and the other features continue to matter when we remember the
+                   name of a new person. Regularization techniques make sure that no one
+                   parameter, or no small set of parameters, dominates all the others.
+                        Note that we’re not trying to set all the parameters to the same value,
+                   which would make them useless. We’re just trying to make sure they’re all
+                   in roughly the same range. Pushing the parameters down to small values
+                   allows us to learn longer and extract more information from our training
+                   data before overfitting occurs.
+                        The best amount of regularization to apply varies from one learner and
+                   dataset to the next, so we usually have to try out a few values and see what
+                   works best. We specify the amount of regularization to apply with a hyper-
+                   parameter that’s traditionally written as a lowercase Greek λ (lambda),
+                   though sometimes other letters are used. Most commonly, larger values of λ
+                   mean more regularization.
+                        Keeping the parameter values small also usually means that the clas-
+                   sifier’s boundary curves don’t get as complex and wiggly as they otherwise
+                   could. We can use the regularization parameter λ to choose how complex we
+                   want our boundary to be. High values give us smooth boundaries, whereas
+                   low values let the boundary fit more precisely to the data it’s looking at.
+                        In later chapters we’ll work with learning architectures that have mul-
+                   tiple layers of processing. Such systems can use additional, specialized
+                   regularization techniques called dropout, batchnorm, layer norm, and weight
+                   regularization that can help control overfitting on those types of architec-
+                   tures. All of these methods are designed to prevent any elements of the net-
+                   work from dominating the results.
+
+
+      Bias and Variance
+                   The statistical terms bias and variance are intimately related to underfitting
+                   and overfitting, and often they come up when those topics are discussed.
+                   We can say that bias measures the tendency of a system to consistently learn
+                   the wrong things, and variance measures its tendency to learn irrelevant
+                   details (Domingos 2015). Another way to think of these is that a large
+                   amount of bias means that a system is prejudiced toward a particular kind
+                   of result, and a large amount of variance means that the answers returned
+                   by the system are too specific to the data.
+
+
+
+204    Chapter 9
+    We’re going to take a graphical approach to these two ideas by discuss-
+ing them in terms of 2D curves. These curves might be the solutions to a
+regression problem, like our earlier task of setting the tempo for a store’s
+background music over time. Or the curves could be the boundary curves
+between two regions of the plane, as in a classification problem. The ideas
+of bias and variance are not limited to any one type of algorithm, or to 2D
+data. But we’ll stick to 2D curves because we can draw and interpret them.
+Let’s focus on finding a good fit to an underlying noisy curve and see how
+the ideas of bias and variance let us describe how our algorithms behave.
+
+Matching the Underlying Data
+Let’s suppose that an atmospheric researcher friend of ours has come to us
+for some help. She’s measured the wind speed at a certain spot at the top of
+a mountain, at the same time, every day, for several months. Her measured
+data is in Figure 9-8.
+
+
+
+
+Figure 9-8: Wind speed over time as measured by an atmospheric scientist. In this data
+there’s a clear underlying curve, but there’s also plenty of noise (base curve inspired by
+Macskassy 2008).
+
+    She believes that the data she’s measured is the sum of an idealized
+curve, which is the same from year to year, and noise, which accounts for
+unpredictable day-to-day fluctuations. The data she measured is called
+a noisy curve, since it’s the sum of the idealized curve and the noise.
+Figure 9-9 shows the idealized curve and the noise that, when added
+together, make Figure 9-8.
+
+
+
+
+                                                                 Overfitting and Underfitting   205
+Figure 9-9: The data from Figure 9-8 split into two pieces. Left: The underlying “idealized” curve we seek.
+Right: The noise that nature added to the idealized curve to give us the noisy, measured data. Note that the
+two graphs have different vertical scales.
+
+                       Our atmospheric researcher believes that she has a good model for
+                   describing the noise (maybe it follows the uniform or Gaussian distribu-
+                   tions we saw in Chapter 2). But her description of the noise is statistical,
+                   so she can’t use it to fix her day-to-day measurements. In other words, if
+                   she knew the exact values of the noise on the right of Figure 9-9, she could
+                   subtract them from the measurements in Figure 9-8 to get at her goal, the
+                   clean curve on the left of Figure 9-9. But she doesn’t know those noise val-
+                   ues. She has a statistical model that can generate lots of curves like those
+                   on the right of Figure 9-9, but she doesn’t have the specific values that cor-
+                   respond to her data.
+                       Here’s one approach to cleaning up the noisy data. We can go back to
+                   the noisy data in Figure 9-8 and try to fit a smooth curve to it (Bishop 2006).
+                   By choosing the complexity of the curve to be wiggly enough to follow the
+                   data, but not so wiggly that it tries to match each point exactly, we hope to
+                   get a pretty fair match to the general shape of the curve, which is a good
+                   starting point for finding the underlying smooth curve.
+                       There are many ways to fit a smooth curve to noisy data. Figure 9-10
+                   shows one such curve. The little wiggle at the right end is typical of the sort
+                   of curve we used, which tends to jump around a bit near the edges of the
+                   dataset.
+                       That doesn’t look too far off. But can we do better?
+                       Let’s apply the ideas of bias and variance to the problem of finding
+                   the idealized curve. The idea is inspired by the method of bootstrapping
+                   that we discussed in Chapter 2, but we won’t actually use the bootstrapping
+                   technique.
+
+
+
+206    Chapter 9
+Figure 9-10: Fitting our noisy data with a curve using a curve-fitting algorithm
+
+    Let’s make 50 versions of the original noisy data, but each version con-
+tains just 30 points selected randomly, without replacement. The first five of
+these reduced datasets are shown in Figure 9-11.
+
+
+
+
+Figure 9-11: Five of the 50 smaller versions of our noisy starting data. Each version con-
+sists of 30 samples chosen from the original data without replacement. These are the first
+five versions, with the chosen points shown as green dots, and the original, noisy data
+shown in gray for reference.
+
+    Let’s try matching each of these sets of points with simple curves
+and then complex curves, and compare the results in terms of bias and
+variance.
+
+High Bias, Low Variance
+We’ll first fit our data with simple, smooth curves. Because we’ve selected
+these qualities ahead of time, we expect that all of our resulting curves will
+look about the same. The curves that fit our five sets of data in Figure 9-11
+are shown in Figure 9-12.
+
+
+                                                                 Overfitting and Underfitting   207
+                  Figure 9-12: Fitting simple curves to our first five sets of points in Figure 9-11
+
+                       As expected, the curves are all simple and similar. Because these curves
+                  are very similar to one another, we say that this collection of curves is show-
+                  ing a high bias. The bias here refers to the predetermined preference for a
+                  simple shape. Because the curves are so simple, each one lacks the flexibil-
+                  ity to pass through more than a few of its points at the most.
+                       The variance refers to how much the curves vary, or differ, from one to
+                  the next. To see the variance of these high-bias curves, we can draw all 50
+                  curves on top of one another, as in Figure 9-13.
+
+
+
+
+                  Figure 9-13: The curves for all 50 of our 30-point samples from
+                  the original data, overlaid on one another
+
+                      As expected, the curves are quite similar. We say that they demonstrate
+                  low variance.
+                      To sum up, this collection of curves has a high bias, because they all
+                  have about the same shape, and a low variance, because the individual
+                  curves aren’t being influenced much by the data.
+
+
+
+208   Chapter 9
+                    Low Bias, High Variance
+                    Now let’s try reducing our constraint that the curves need to be simple. That
+                    lets us fit complex curves to our data, so that each one comes closer to
+                    matching its green points. Figure 9-14 shows these curves applied to our
+                    first five sets of data. Compared to Figure 9-12, these curves are much wig-
+                    glier, with multiple hills and valleys. Though they still don’t pass directly
+                    through too many points, they come a lot closer to them.
+
+
+
+
+                    Figure 9-14: The complex curves created for the first five sets of points from our noisy data
+
+                         Since the shapes of these curves are more complex and flexible, they’re
+                    more influenced by the data than by any starting assumptions. Because
+                    we are placing fewer constraints on the curve shapes, we say that the col-
+                    lection has low bias. On the other hand, they’re quite different from one
+                    another. We can see this by drawing all 50 curves on top of one another,
+                    as shown in Figure 9-15. Because the curves veer off wildly at the start and
+                    end, we also show an expanded vertical scale that covers those big swings.
+
+
+
+
+Figure 9-15: The complex curves fit to our 50 sets of data. The plot on the right shows the entire vertical scale
+of the curves.
+
+
+                                                                                     Overfitting and Underfitting   209
+                      These curves don’t all follow the same shape, so they have low bias.
+                  Furthermore, they are quite different from one another, and each is
+                  strongly influenced by its data, so the collection has high variance.
+
+                  Comparing Curves
+                  Let’s recap our curve fitting experiment so far.
+                       Our atmospheric scientist asked us for a curve that matches the under-
+                  lying idealized curve in her data. We created 50 small sets of points, ran-
+                  domly extracted from her original, noisy data. When we fit simple, smooth
+                  curves to those sets of points, the curves consistently missed most of the
+                  data points. That set of curves had a high bias, or a predisposition to a par-
+                  ticular result (smooth and simple). The curves were not much influenced
+                  by the data they were intended to match, so that set of curves had a low
+                  variance.
+                       On the other hand, when we fit complex and wiggly curves to these sets
+                  of points, the curves were able to fit to the data and came much closer to
+                  most of the points. Because they were influenced more by the data than by
+                  any predisposition to a particular shape, that set of curves had a low bias.
+                  But the adaptability of the curves means that they were all significantly
+                  different from one another. In other words, that set of curves had a high
+                  variance.
+                       So, the first set had high bias and low variance, and the second set has
+                  low bias and high variance.
+                       Ideally, we’d like curves with a low bias (so we’re not imposing our
+                  preconceived ideas on their possible shapes), and low variance (so our dif-
+                  ferent curves all create roughly the same match to the original, noisy data).
+                  Unfortunately, in most real situations, as either measure goes down, the
+                  other goes up. This means it’s up to us to find the best bias-variance tradeoff
+                  for each specific situation. We’ll come back to this issue in a moment.
+                       Notice that bias and variance are properties of families, or collections,
+                  of curves. It doesn’t make sense to discuss the bias and variance of a single
+                  curve. Bias and variance often come up in machine learning discussions as
+                  ways to describe the complexity or power of a model or algorithm.
+                       We can now see how bias and variance help us describe underfitting
+                  and overfitting. In the beginning of training, as the system tries to find
+                  the right way to represent the training data, it’s producing general rules,
+                  or underfitting. If these rules are boundaries between classes of data, they
+                  have the form of curves. If we train on multiple similar but different data­
+                  sets, we’ll see curves that are simple in shape and like one another. That is,
+                  they have high bias and low variance.
+                       Later in training, the curves for each dataset are more complicated.
+                  There are fewer preconditions on their shape, so they have low bias, and
+                  they can closely match the training data, so they have high variance. When
+                  we let a system train for too long, the high-variance curves start following
+                  the input data too tightly, causing overfitting.
+                       Figure 9-16 shows the tradeoff of bias and variance graphically.
+
+
+
+210   Chapter 9
+Figure 9-16: Top row: Four curves we’d like to match. Middle row: Using curves with high
+bias and low variance. Bottom row: Curves with low bias and high variance. The far-right
+image in the bottom two rows shows the four curves superimposed.
+
+     In the middle row, high bias gives us nice, simple curves (which avoid
+overfitting), but their low variance means they can’t match the data very
+well. In the bottom row, low bias lets the curves better match the data, but
+their high variance means that the curves can match too well (which risks
+overfitting).
+     In general, neither bias nor variance is inherently better or worse than
+the other, so we shouldn’t always be tempted to find, say, the solution with
+the lowest possible bias or variance. In some applications, high bias or high
+variance may be acceptable. For instance, if we know that our training set
+is absolutely representative of all future data, then we don’t care about the
+variance and instead aim for the lowest possible bias, since matching that
+training set perfectly is just what we want. On the other hand, if we know
+that our training set is not a good representative of future data (but it’s the
+best we have at the moment), we may not care about bias, since matching
+this lousy dataset isn’t important, but we want the lowest variance we can
+get so that we have the best chance of at least doing something reasonable
+on future data.
+     In general, we need to find the right balance between these two mea-
+sures in a way that works best for the goals of any particular project, given
+the specific algorithm and data we’re working with.
+
+
+
+
+                                                              Overfitting and Underfitting   211
+      Fitting a Line with Bayes’ Rule
+                   Bias and variance are a useful way to characterize how well a family of
+                   curves fits their data. Recalling our discussion of the frequentist and
+                   Bayesian philosophies from Chapter 4, we can say that bias and variance
+                   are inherently frequentist ideas. That’s because the notions of bias and vari-
+                   ance rely on drawing multiple values from a source of data. We don’t rely
+                   too much on any single curve. Instead, we use averaging of all the curves
+                   to find the “true” answer that each curve approximates. Those ideas fit the
+                   frequentist approach very well.
+                        By contrast, the Bayesian approach to fitting data asserts that the
+                   results can only be described in a probabilistic way. We list out all the ways
+                   to match our data that we think are possible and attach a probability to
+                   each one. As we gather more data, we gradually eliminate some of those
+                   descriptions and thereby make the remaining ones more probable, but we
+                   never get to a single, absolute answer.
+                        Let’s see this in practice. Our discussion is based on a visualization
+                   from Pattern Recognition and Machine Learning (Bishop 2006). We’ll use
+                   Bayes’ Rule to find a nice approximation of the noisy data atmospheric data
+                   we saw in Figure 9-8. Rather than fit a complicated curve to our data, we
+                   restrict ourselves to straight lines. That’s only because doing so lets us show
+                   everything with 2D plots and diagrams. In fact, we stick to lines that are
+                   mostly horizontal. Again, this is just so we can draw nice diagrams that don’t
+                   require higher dimensions.
+                        The method for curve fitting with Bayes’ Rule can use complex curves,
+                   or sheets in space, or even shapes with hundreds of dimensions. We will use
+                   straight lines that are mosty horizontal only because that choice keeps the
+                   pictures simple.
+                        We’ll be working with multiple lines at once, so it would be great to find
+                   a compact way to represent different groups of lines without drawing them
+                   all.
+                        The trick will be to describe every line with two numbers. The first tells
+                   us how much the line is tilted from being perfectly horizontal, which gives
+                   us a line in any orientation. The second number tells us how much to move
+                   the line up and down.
+                        The first number is the slope. A horizontal line has a slope of 0. As the
+                   line rotates clockwise, as in Figure 9-17, the slope increases. As the line
+                   rotates counterclockwise, the slope decreases.
+                        When the line is perfectly diagonal, the slope is either 1 or –1. As it
+                   rotates to steeper orientations, the slope increases quickly until it reaches
+                   infinity for a perfectly vertical line. We can take steps to avoid this problem,
+                   but it only makes the discussion more complicated. So for the sake of sim-
+                   plicity, we will limit our attention to lines that have a slope between –2 and
+                   2, which lie in the green zone in Figure 9-17.
+
+
+
+
+212    Chapter 9
+                   Slope = 2
+                                   Slope = 1
+
+
+                                   Slope = 0.5
+
+                                   Slope = 0
+
+                                   Slope = –0.5
+
+
+                                   Slope = –1
+                  Slope = –2
+Figure 9-17: A horizontal line has a slope of 0. As the line rotates
+counterclockwise, the slope increases. As it rotates clockwise, the slope
+decreases. We will only use lines with slopes that fall in the light-green region.
+
+     The second number that describes a line is the Y intercept. This merely
+moves the whole line up or down as a whole. This number tells us the value
+of the line when X is zero. In other words, it’s the value of the line as it
+crosses, or intercepts, the Y axis. Figure 9-18 illustrates the idea. Again for
+simplicity we’ll restrict our focus to lines with a Y intercept in the range
+[–2, 2], tinted green in Figure 9-18.
+ 4                                      Y intercept 2                                             4
+ 3                                      Y intercept 1                                             3
+ 2                                      Y intercept 0                                             2
+ 1                                      Y intercept –1                                            1
+ 0                                      Y intercept –2                                            0
+–1                                                                                              –1
+–2                                                                                              –2
+–3                                                                                              –3
+–4                                                                                              –4
+  –4 –3 –2 –1 0        1   2   3    4                    –4 –3 –2 –1 0      1    2     3    4
+
+Figure 9-18: The Y intercept tells us the Y value of the line when it crosses the Y axis,
+regardless of its slope. We’ll just use lines that have a Y intercept between –2 and 2.
+
+     Given any line, we can measure its orientation to get a value for its slope,
+and observe where it crosses the Y axis to get the value of the Y intercept.
+That’s everything we need to describe the line. We can show this as a point in
+a new 2D grid where the axes are labeled slope and Y intercept. Let’s call this an
+SI diagram, standing for slope-intercept. A normal diagram will be just an XY
+diagram. We can also say that the SI diagram plots lines in SI space, and the
+XY diagram shows lines in XY space (also called Cartesian space).
+     Figure 9-19 shows a few lines in both XY and SI diagrams.
+     Mathematicians call these two ways of looking at the same thing a dual
+representation, and there’s a lot to be said about such things. We’ll stick to
+just what we need for our discussion of fitting a line using Bayes’ Rule.
+
+                                                                   Overfitting and Underfitting       213
+                  Figure 9-19: Left: Three lines in XY space. Right: Each line drawn as a dot in SI space.
+
+                      Something interesting happens when we arrange a set of points in SI
+                  space along a line. When we draw their corresponding lines in XY space,
+                  they all meet at the same XY point. Figure 9-20 shows this in action. This is
+                  true any time our SI points lie on a line.
+
+
+
+
+                  Figure 9-20: Two examples of placing dots in SI space along a line. Their corresponding
+                  lines will always meet at a single point in XY space.
+
+
+
+214   Chapter 9
+     As we look for the best line to fit our data, we know it probably won’t be
+able to go through all the points. But we’d like it to come close. So instead
+of placing dots in SI space, let’s assign every possible line a probability from
+0 to 1, indicating how likely it is to be the line we’re looking for. Figure 9-21
+shows the idea (in Figure 9-21, and the figures to come, we scale up the
+probability values as needed so that they’re easier to read).
+
+
+
+
+Figure 9-21: Left: A point in XY space. Middle: Every point in the SI graph is assigned a
+probability from 0 to 1 (blue to purple), telling us how close that line comes to the point.
+We show some representative lines with black dots. Right: The black dots in the middle
+figure drawn as their lines in XY space. Note that they all pass through our original red
+dot, or come close to it.
+
+     Let’s now return to the problem we want to solve: finding the best
+straight line approximation for a noisy set of data. Let’s start with an arbi-
+trary, broad Gaussian bump in SI space as a prior, as in the top left of
+Figure 9-22. This says that any line might be our answer, but those in the
+bright purple region are the most likely. We’ve chosen some points in this
+graph according to their probabilities, and drawn them in the upper right.
+We’re getting a lot of very different lines, confirming our very vague prior
+when it comes to choosing lines.
+
+
+
+
+                                                                  Overfitting and Underfitting   215
+                  Figure 9-22: Top left: A prior in SI space, along with some points chosen from that prob-
+                  ability distribution. Top right: Those points drawn as lines in XY space. Second and third
+                  rows: Like the top row, but with smaller priors.
+
+                      We can see in Figure 9-22 that as the prior becomes smaller, we get a
+                  more refined choice of lines. So we’d hope that Bayes’ Rule will follow this
+                  kind of change, and give us a small posterior (or prior) resulting in a small
+                  collection of lines that can fit our data.
+                      Now we’re ready to use Bayes’ Rule to match our data! Figure 9-23
+                  shows the process.
+
+
+216   Chapter 9
+Figure 9-23: Fitting a straight line through our data with Bayes’ Rule (figure inspired by
+Bishop 2006)
+
+                                                                  Overfitting and Underfitting   217
+                        Let’s walk through what’s happening in Figure 9-23 row by row. In
+                  row 1, we show our prior, or our starting guess of the distribution of straight
+                  lines that will fit our data. We arbitrarily chose a Gaussian with its center
+                  in the middle. This prior means that we’re guessing that our data is mostly
+                  likely fit by a straight line that is horizontal and has a Y intercept of 0. That
+                  is, it’s the X axis itself. But the Gaussian goes all the way out to the edges (it
+                  doesn’t quite reach 0 anywhere in the diagram), so any of our available lines
+                  are possible. We could look at the data and pick a better starting prior, but
+                  this one is simple and, because it has at least some probability for every line
+                  we’ll consider as a candidate, it’s an acceptable start.
+                        The image on the right of row 1 shows 20 lines picked at random from
+                  this prior, with more probable lines being more likely to be picked.
+                        The left image in row 2 shows our noisy dataset, and a point picked at
+                  random, shown in red. The likelihood diagram for all lines that go through
+                  (or near) that point is shown to its right. Now we apply Bayes’ Rule, and
+                  multiply the prior in row 1 by the likelihood in row 2.
+                        The result is the left figure in row 3. This is the posterior, or the result
+                  of multiplying each point in the prior (how likely we thought that line was),
+                  with the corresponding point in the new point’s likelihood (how likely it is
+                  that each line fits this piece of data). We’re not showing the Bayes’ Rule step
+                  of dividing by the evidence because we’re scaling our pictures to span the
+                  whole range of colors, so this is really a scaled version of the posterior. For
+                  simplicity, let’s refer to it as the posterior anyway.
+                        Notice that the posterior on line 3 is a new 2D distribution, repre-
+                  sented by a new blob. To its right we see another 20 lines drawn at random
+                  from that distribution. We can see a big empty space near the top of the
+                  figure that wasn’t there in row 1. The system has learned from this one step
+                  of Bayes’ Rule that none of the lines that pass through that space are likely
+                  to match the data we’ve seen. The posterior from line 3 becomes our new
+                  prior for the next data point that comes along.
+                        In row 4 we pick a new data point from the input, again shown in red.
+                  To its right is the likelihood for lines with respect to this point. In row 5 we
+                  apply Bayes’ Rule again and multiply our prior (the posterior from line 3)
+                  with the likelihood from row 4 to get a new posterior. Notice that the poste-
+                  rior has shrunk in size, telling us that the collection of lines that probably
+                  fit both points is smaller than the collection that fits just the first one. To
+                  the right, we show lines drawn from this distribution. Notice how much
+                  they’ve grouped together in the same general direction as the two points we
+                  just learned from.
+                        We repeat the process again with a new point and likelihood in line 6,
+                  and a new posterior and set of lines in line 7. The lines from this posterior
+                  are looking very similar, and the trend seems to be approaching a good fit
+                  to our data. By using more and more points, we get an increasingly limited
+                  range of probable lines.
+                        We can see from this example why Bayes’ Rule is so useful in training a
+                  learning system. Think of our training data as the points on the curve, and
+
+
+
+
+218   Chapter 9
+      the evolving prior as the output from our system. As we provide the system
+      with more samples (in this case, points), the system is able to fine-tune itself
+      to deliver the response we’re looking for.
+           It might be tempting to look at the lines in the bottom right of Figure 9-21
+      and apply our ideas of bias and variance to them, but that’s not thinking
+      like a Bayesian. In the Bayesian framework, these aren’t a family of lines
+      that approximate some true answer that we can discover by using various
+      forms of averaging. Instead, a Bayesian sees all of these lines as accurate
+      and correct, but with different probabilities. Computing the bias and vari-
+      ance of lines drawn from this collection is possible, but not meaningful in
+      a Bayesian sense.
+           Both the frequentist and Bayesian approaches let us fit lines (or curves)
+      to data. They just take very different attitudes and use different mecha-
+      nisms, giving us two different ways to find good answers to our problem.
+
+
+Summary
+      In this chapter, we looked at a few ways in which a learning system can fail
+      to generalize. When a learning system underperforms because the curves
+      are not good fits to the data, we are underfitting. When a learning system
+      underperforms on new data, but excels on the training data, we are over-
+      fitting: the system has learned too many of the quirks and idiosyncrasies
+      of the training data. We saw how we can prevent overfitting by watching
+      training and validation performance and using regularization methods.
+      We ended the chapter by considering bias and variance’s relationship to
+      overfitting, and seeing how we can fit a straight line to noisy data using
+      Bayes’ Rule.
+           In the next chapter, we’ll look at data and how we can properly prepare
+      it for our learning systems.
+
+
+
+
+                                                               Overfitting and Underfitting   219
+

@@ -13,7 +13,7 @@ synopsis/
 │   ├── common.js                   ← téma, KaTeX, tartalomjegyzék, haladás mentése
 │   ├── quiz.js                     ← általános kvízmotor
 │   ├── calc.js                     ← analízis: képletértelmező (eval nélkül) és függvényrajzoló
-│   └── ml.js                       ← MI: magolt véletlen, 2D adatkészletek, aktivációk, MLP visszaterjesztéssel (Adam)
+│   └── ml.js                       ← MI: magolt véletlen, 2D adatkészletek, aktivációk, MLP visszaterjesztéssel (SGD, momentum, RMSProp, Adam; L2, dropout)
 ├── valoszinusegszamitas/
 │   ├── index.html                  ← a témakör fejezetlistája
 │   ├── 01-esemenyek-es-valoszinuseg/
@@ -47,7 +47,8 @@ synopsis/
     ├── 06-modellertekeles/         ← index.html, widgets.js (a calc.js-re épül), quizzes.js
     ├── 07-fak-svm-egyuttes/        ← index.html, widgets.js (a calc.js-re épül), quizzes.js
     ├── 08-felugyelet-nelkuli-tanulas/ ← index.html, widgets.js (a calc.js-re épül), quizzes.js, digits-data.js
-    └── 09-neuralis-halozatok/      ← index.html, widgets.js (calc.js + ml.js), quizzes.js, digit-net.js
+    ├── 09-neuralis-halozatok/      ← index.html, widgets.js (calc.js + ml.js), quizzes.js, digit-net.js
+    └── 10-halo-tanitasa/           ← index.html, widgets.js (calc.js + ml.js), quizzes.js, digits-data.js
 ```
 
 ## Közzététel GitHub Pages-en
