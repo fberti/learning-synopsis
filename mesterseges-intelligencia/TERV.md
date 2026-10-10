@@ -369,6 +369,14 @@ Synopsis: matematikai statisztika (regresszió).
 ### Kvízek
 `ai4-42`, `ai4-43`, `ai4-44`, `ai4-47`, `ai4-48`, `ai4-final`.
 
+> ✅ **Elkészült** (`04-adatok-es-jellemzok/`). Eltérések a tervtől: kvíz minden szakaszhoz (`ai4-41` … `ai4-48`, `ai4-final`);
+> futó példa: egy 10 soros „piszkos” ingatlantáblázat (duplikátum, „gáz/Gáz/gáz␣”, 650 m²-es elírás, forintban megadott ár, 4 üres cella,
+> szivárgó „illeték” = 0,04 · ár), a 4.9 Alkalmazásban sorról sorra rendbe téve, időrendi felosztással (7 tanító, 2 teszt lakás):
+> piszkos adaton $\hat y = 0{,}0054\,m^2 + 51{,}2$ (rosszabb az alapvonalnál), tisztán $0{,}791\,m^2 + 3{,}52\cdot\text{állapot} + 1{,}07$; 🐍 pandas + scikit-learn csővezeték.
+> Új lépések: strukturálatlan adat és csúszóablak (4.1), robusztus skálázás külön lépésként (4.4), XOR a szűrő módszerek korlátjaként (4.6),
+> adatbővítés külön lépésként (4.8). Szemléltetések: `imputation-lab` (MCAR/MNAR), `one-hot-builder`, `scaling-viz` (kNN négy skálán, kastéllyal),
+> `transform-hist`, `curse-of-dimensionality`, `leakage-detective` (4 forgatókönyv), `imbalance-lab`. A NYC taxi esettanulmány (RWML 6) két helyen.
+
 ### Csapdák
 Skálázás a teszt halmazzal együtt · one-hot kódolás nagyon sok kategóriánál · az átlaggal pótlás torzítja a szórást ·
 a pontosság félrevezető kiegyensúlyozatlan adaton (előre utalás a 6. fejezetre).
