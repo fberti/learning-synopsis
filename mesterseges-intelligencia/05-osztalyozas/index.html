@@ -1,0 +1,1906 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>5. Osztályozás: legközelebbi szomszéd, logisztikus regresszió, naiv Bayes – Mesterséges intelligencia – Synopsis</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="../../assets/common.js"></script>
+  <script defer src="../../assets/quiz.js"></script>
+  <script defer src="../../assets/calc.js"></script>
+  <script defer src="widgets.js"></script>
+  <script defer src="quizzes.js"></script>
+</head>
+<body>
+<div class="progressbar"></div>
+<header class="topbar">
+  <a class="brand" href="../../">📚 Synopsis</a>
+  <span class="crumbs"><a href="../../">Tartalomjegyzék</a> › <a href="../">Mesterséges intelligencia</a> › 5. fejezet</span>
+  <button class="icon-btn" data-theme-toggle title="Téma váltása">🌙</button>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <div class="toc-title">5. fejezet</div>
+  <ol>
+    <li><a href="#s51">5.1 Az osztályozási feladat</a></li>
+    <li><a href="#s52">5.2 Legközelebbi szomszédok, centroid</a></li>
+    <li><a href="#s53">5.3 Logisztikus regresszió</a></li>
+    <li><a href="#s54">5.4 Több osztály: softmax</a></li>
+    <li><a href="#s55">5.5 Naiv Bayes</a></li>
+    <li><a href="#s56">5.6 Lineáris és nemlineáris határ</a></li>
+    <li><a href="#s57">5.7 Alkalmazás: a postafiók</a>
+      <ol>
+        <li><a href="#s57-a">Négy módszer, egy levél</a></li>
+        <li><a href="#s57-b">Tesztlevelek: ki hol téved?</a></li>
+      </ol>
+    </li>
+    <li><a href="#s-sum">Összefoglalás</a></li>
+    <li><a href="#s-check">Ellenőrző kérdések</a></li>
+    <li><a href="#s-ex">Vegyes gyakorló feladatok</a></li>
+    <li><a href="#s-final">Fejezetzáró teszt</a></li>
+    <li><a href="#s-gloss">Szómagyarázó</a></li>
+  </ol>
+</nav>
+
+<main class="content">
+
+<section class="hero" style="padding-top:.5rem">
+  <div class="kicker">Mesterséges intelligencia · 5. fejezet · ★★</div>
+  <h1>Osztályozás: legközelebbi szomszéd, logisztikus regresszió, naiv Bayes</h1>
+  <p class="lead">Eddig számot jósoltunk: mennyit ér egy lakás? De a gépi tanulás leggyakoribb kérdése nem „mennyi?”, hanem <b>„melyik?”</b>
+  Spam vagy nem spam? Jóindulatú vagy rosszindulatú a daganat? Melyik számjegy van a képen? Ha a válasz egy <b>kategória</b>, a regresszió
+  egyenese már nem elég. Ebben a fejezetben három klasszikus módszert tanulsz meg, három különböző ötlettel: <b>„nézd meg a szomszédokat”</b>
+  (legközelebbi szomszéd), <b>„húzz egy határt, és mondd meg, mennyire vagy biztos”</b> (logisztikus regresszió), és <b>„számold össze a bizonyítékokat”</b>
+  (naiv Bayes).</p>
+</section>
+
+<div class="box tip">
+  <span class="box-title">Mit fogsz megtanulni?</span>
+  <ul style="margin:.2rem 0">
+    <li>mi az <b>osztályozás</b>, mi a <b>döntési szabály</b>, a <b>döntési határ</b> és a <b>pontosság</b>;</li>
+    <li>hogyan dönt a <b>legközelebbi szomszéd</b> (kNN) és a <b>legközelebbi centroid</b> módszer, és hogyan válaszd meg $k$-t;</li>
+    <li>hogyan lesz az egyenesből <b>valószínűség</b> a <b>szigmoid</b> függvénnyel, mit jelent az <b>esély</b> és a <b>log-esély</b>, és hogyan tanul a
+      <b>logisztikus regresszió</b> a <b>keresztentrópia</b> csökkentésével;</li>
+    <li>hogyan kezeljük a <b>kettőnél több osztályt</b> (egy-a-többi ellen, <b>softmax</b>);</li>
+    <li>hogyan épít a <b>Bayes-tételből</b> spamszűrőt a <b>naiv Bayes</b>, és mire jó a <b>Laplace-simítás</b>;</li>
+    <li>mikor elég egy <b>egyenes</b> határ, és mit tegyél, ha nem (a <b>XOR-probléma</b>).</li>
+  </ul>
+</div>
+
+<div class="box">
+  <span class="box-title">🔁 Amit használni fogunk</span>
+  A <a href="../03-tanulas-anatomiaja/">3. fejezetből</a>: a modell–veszteség–optimalizálás váz (<a href="../03-tanulas-anatomiaja/#s37-a">3.7</a>), a gradiens módszer
+  (<a href="../03-tanulas-anatomiaja/#s34-c">3.4</a>), a tanító és a teszt halmaz (<a href="../03-tanulas-anatomiaja/#s35-a">3.5</a>), a polinomiális jellemzők
+  (<a href="../03-tanulas-anatomiaja/#s36-b">3.6</a>). A <a href="../02-matematikai-eszkoztar/">2. fejezetből</a>: a távolság (<a href="../02-matematikai-eszkoztar/#s23-b">2.3</a>),
+  a Bayes-tétel (<a href="../02-matematikai-eszkoztar/#s25-b">2.5</a>), a softmax (<a href="../02-matematikai-eszkoztar/#s25-d">2.5</a>) és a keresztentrópia
+  (<a href="../02-matematikai-eszkoztar/#s26-c">2.6</a>). A <a href="../04-adatok-es-jellemzok/">4. fejezetből</a>: a skálázás (<a href="../04-adatok-es-jellemzok/#s44-a">4.4</a>),
+  a szózsák (<a href="../04-adatok-es-jellemzok/#s45-c">4.5</a>) és a kiegyensúlyozatlan osztályok (<a href="../04-adatok-es-jellemzok/#s48-b">4.8</a>).
+  <br><small>Jelölések: ★ alap · ★★ közép · ★★★ haladó (kihagyható). A 📐 jelű lenyílók levezetéseket rejtenek, a 🐍 jelűek rövid Python-kódot –
+  a továbbhaladáshoz egyik sem kell. A logaritmus ebben a fejezetben mindig természetes alapú: $\ln$.</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">🎯 A fejezet kérdése – a postafiók</span>
+  A postafiókodban tíz levelet már megjelöltél. Mindegyikről feljegyeztük, hány link és hány felkiáltójel van benne, és hogy szerepel-e benne
+  négy árulkodó szó:
+  <div style="overflow-x:auto">
+  <table style="font-size:.86rem">
+    <tr><th>#</th><th>tárgy</th><th>linkek</th><th>felkiáltójelek</th><th>ingyen</th><th>nyertél</th><th>kattints</th><th>holnap</th><th>címke</th></tr>
+    <tr><td>S1</td><td>Exkluzív ajánlat csak neked</td><td>5</td><td>2</td><td>✓</td><td></td><td>✓</td><td></td><td><b>spam</b></td></tr>
+    <tr><td>S2</td><td>NYERTÉL!!!</td><td>3</td><td>5</td><td></td><td>✓</td><td>✓</td><td></td><td><b>spam</b></td></tr>
+    <tr><td>S3</td><td>Ingyen telefon a nyerteseknek</td><td>6</td><td>3</td><td>✓</td><td>✓</td><td>✓</td><td></td><td><b>spam</b></td></tr>
+    <tr><td>S4</td><td>Utolsó esély!!!!!!</td><td>2</td><td>6</td><td>✓</td><td>✓</td><td></td><td></td><td><b>spam</b></td></tr>
+    <tr><td>H1</td><td>Holnapi értekezlet</td><td>0</td><td>0</td><td></td><td></td><td></td><td>✓</td><td>nem spam</td></tr>
+    <tr><td>H2</td><td>Számla – október</td><td>1</td><td>0</td><td></td><td></td><td></td><td></td><td>nem spam</td></tr>
+    <tr><td>H3</td><td>Jegyzőkönyv és diák</td><td>2</td><td>0</td><td></td><td></td><td>✓</td><td>✓</td><td>nem spam</td></tr>
+    <tr><td>H4</td><td>Anya: vasárnapi ebéd</td><td>0</td><td>1</td><td></td><td></td><td></td><td></td><td>nem spam</td></tr>
+    <tr><td>H5</td><td>Szülinapi buli!!!!</td><td>2</td><td>4</td><td>✓</td><td></td><td></td><td>✓</td><td>nem spam</td></tr>
+    <tr><td>H6</td><td>Edzés holnap</td><td>1</td><td>1</td><td></td><td></td><td></td><td>✓</td><td>nem spam</td></tr>
+  </table>
+  </div>
+  <small>(S = spam, H = nem spam – az angol <em>ham</em> „sonka” szóból, ami a spamszűrők zsargonjában a „jó” levél. A H5 ezt írja: „Holnap buli, ingyen pizza!!!!”,
+  a H3 pedig: „kattints a linkre a diákért”.)</small>
+  <br>Most megjön egy új levél: <b>„Gratulálunk, NYERTÉL! Kattints ide a nyereményért!!!”</b> – 3 link, 3 felkiáltójel, benne a „nyertél” és a „kattints”.
+  <b>Spam ez? Mennyire vagy biztos benne?</b> És ha megkérdezel három különböző módszert, ugyanazt mondják-e? A fejezet végén (<a href="#s57">5.7</a>)
+  mind a négy eszközzel eldöntjük – és kiderül, hogy a módszerek nem mindig értenek egyet.
+</div>
+
+<p><b>Útiterv</b> – lépésről lépésre, az egyszerűtől a bonyolultig:</p>
+<ol>
+  <li><a href="#s51">Az osztályozási feladat</a>: mi változik, ha a címke kategória? Döntési szabály, döntési határ, pontosság.</li>
+  <li><a href="#s52">Legközelebbi szomszédok és centroid</a>: „mondd meg, kik a szomszédaid” – a legegyszerűbb osztályozó.</li>
+  <li><a href="#s53">Logisztikus regresszió</a>: egyenesből valószínűség – szigmoid, esély, küszöb, keresztentrópia.</li>
+  <li><a href="#s54">Több osztály: softmax</a>: mi van, ha nem kettő, hanem tíz osztály van?</li>
+  <li><a href="#s55">Naiv Bayes</a>: a Bayes-tétel mint spamszűrő – és miért „naiv”?</li>
+  <li><a href="#s56">Lineáris és nemlineáris döntési határ</a>: mikor nem elég az egyenes, és mit tehetünk?</li>
+  <li><a href="#s57">Alkalmazás</a>: a postafiók levele mind a négy módszerrel.</li>
+</ol>
+
+<!-- ===================================================== 5.1 -->
+<section id="s51">
+<h2>5.1 Az osztályozási feladat ★</h2>
+<p>A gépi tanulás váza (adat, modell, veszteség, optimalizálás – <a href="../03-tanulas-anatomiaja/#s37-a">3.7</a>) ugyanaz marad. Ami változik: a <b>címke</b>.
+Kezdjük azzal, hogy felismerjük, mikor van szó osztályozásról.</p>
+
+<h3 id="s51-a">1. lépés: regresszió vagy osztályozás? – a címke dönt</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – öt kérdés, öt címke</span>
+  <table style="max-width:680px">
+    <tr><th>kérdés</th><th>a címke lehetséges értékei</th><th>feladat</th></tr>
+    <tr><td>Mennyiért kel el a lakás?</td><td>bármilyen pozitív szám (46; 52,5; …)</td><td>regresszió</td></tr>
+    <tr><td>Spam-e a levél?</td><td>spam / nem spam</td><td>osztályozás (2 osztály)</td></tr>
+    <tr><td>Melyik számjegy van a képen?</td><td>0, 1, …, 9</td><td>osztályozás (10 osztály)</td></tr>
+    <tr><td>Hány fok lesz holnap délben?</td><td>bármilyen valós szám</td><td>regresszió</td></tr>
+    <tr><td>Lesz-e holnap fagy?</td><td>igen / nem</td><td>osztályozás (2 osztály)</td></tr>
+  </table>
+  A különbség nem az adatban van (a két időjárás-kérdéshez ugyanazok a mérések kellenek), hanem abban, <em>mit kérdezünk</em>: számot vagy kategóriát.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – osztályozás</span>
+  <b>Osztályozás</b>: felügyelt tanulási feladat, amelyben a címke egy véges halmaz eleme. A halmaz elemei az <b>osztályok</b>.
+  <ul style="margin:.2rem 0">
+    <li><b>Bináris</b> osztályozás: két osztály. Ezeket $y = 1$-gyel (<b>pozitív</b> osztály, pl. spam, beteg, csalás) és $y = 0$-val (<b>negatív</b> osztály) kódoljuk.</li>
+    <li><b>Többosztályos</b> osztályozás: $K \ge 3$ osztály, $y \in \{1, 2, \dots, K\}$ (vagy 0-tól számozva).</li>
+  </ul>
+  Az <b>osztályozó</b> egy függvény, ami a jellemzővektorhoz ($\mathbf x$) egy osztályt rendel: $\hat y = f(\mathbf x)$. Sok osztályozó ezen felül azt is megmondja,
+  <em>mennyire biztos</em>: becsli a $P(y = 1 \mid \mathbf x)$ valószínűséget.
+  <br><small>Miért külön feladat? Mert a kategóriák között nincs „közel” és „távol”: a spam nem „kétszer annyi”, mint a nem spam, és egy 7-es nem „majdnem” 8-as.
+  Ezért más modell és más veszteség kell, mint a regressziónál.</small>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Terminológia</span>
+  <table style="max-width:600px">
+    <tr><th>magyar</th><th>angol</th></tr>
+    <tr><td>osztályozás (bináris / többosztályos / többcímkés)</td><td><em>classification (binary / multiclass / multi-label)</em></td></tr>
+    <tr><td>osztály, osztálycímke</td><td><em>class, class label</em></td></tr>
+    <tr><td>osztályozó</td><td><em>classifier</em></td></tr>
+    <tr><td>pozitív / negatív osztály</td><td><em>positive / negative class</em></td></tr>
+  </table>
+  <small><b>Többcímkés</b> (<em>multi-label</em>) feladatnál egy mintához több címke is tartozhat (egy filmnek lehet „vígjáték” és „romantikus” címkéje is). Ezt általában címkénként
+  egy-egy bináris osztályozóval oldják meg – ebben a fejezetben nem foglalkozunk vele külön.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – ugyanaz az adat, regresszió</span>
+    Egy webshop tavalyi adataiból azt jósoljuk, <b>mennyit költ</b> egy vásárló a következő hónapban (Ft). A címke szám → regresszió.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – ugyanaz az adat, osztályozás</span>
+    Ugyanebből az adatból azt jósoljuk, <b>vásárol-e</b> egyáltalán a következő hónapban. A címke igen / nem → bináris osztályozás.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A számmal kódolt osztály is osztály.</b> A számjegyfelismerés címkéi 0–9, mégsem regresszió: ha a modell 7-es helyett 8-at mond, az ugyanúgy hiba, mint az 1-es.</li>
+    <li><b>A „pozitív” nem értékítélet.</b> A pozitív osztály az, amit <em>keresünk</em> – gyakran épp a rossz dolog (spam, betegség, csalás).</li>
+    <li><b>A logisztikus regresszió – a neve ellenére – osztályozó</b> (<a href="#s53">5.3</a>). A „regresszió” a nevében arra utal, hogy egy valószínűséget, vagyis egy számot becsül.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – regresszió vagy osztályozás?</summary>
+  <ol>
+    <li>Regresszió vagy osztályozás? (a) egy tranzakció csalás-e; (b) hány percet késik a vonat; (c) melyik nyelven íródott egy mondat; (d) egy beteg testhőmérséklete holnap.
+      <details><summary>Megoldás</summary>(a) bináris osztályozás; (b) regresszió; (c) többosztályos osztályozás; (d) regresszió.</details></li>
+    <li>Fogalmazd át a „hány percet késik a vonat?” kérdést osztályozási feladattá!
+      <details><summary>Megoldás</summary>Pl. „Késik-e több mint 5 percet?” (bináris), vagy „pontos / kicsit késik (5–15 perc) / sokat késik (15 perc felett)” (3 osztály, kategorizálás – <a href="../04-adatok-es-jellemzok/#s44-d">4.4</a>).</details></li>
+    <li>Egy kézzel írt betűket felismerő modell az angol ábécé kis- és nagybetűit különbözteti meg. Hány osztálya van?
+      <details><summary>Megoldás</summary>$26 + 26 = 52$ osztály – többosztályos osztályozás.</details></li>
+    <li>Egy orvosi modell azt jósolja, hogy egy betegnek van-e cukorbetegsége. Melyik a pozitív osztály, és miért éppen az?
+      <details><summary>Megoldás</summary>A „cukorbeteg” (y = 1), mert azt keressük, és azt kell megtalálnunk. Hogy ez „rossz hír”, nem számít.</details></li>
+    <li>(nehezebb) Egy fotóhoz a „tengerpart”, „naplemente”, „ember”, „kutya” címkék közül tetszőleges számút rendelhetünk. Miért nem 4 osztályos osztályozás ez, és hogyan oldanád meg?
+      <details><summary>Megoldás</summary>Mert egy fotóhoz több címke is tartozhat (naplemente a tengerparton egy kutyával) – ez többcímkés feladat. Megoldás: 4 külön bináris osztályozó
+        („van-e rajta tengerpart?”, „van-e rajta naplemente?” …), mindegyik a saját igen/nem kérdésére felel.</details></li>
+  </ol>
+</details>
+
+<h3 id="s51-b">2. lépés: döntési szabály egy jellemzővel – a küszöb</h3>
+<p>Mi a legegyszerűbb osztályozó, amit el tudunk képzelni? Válasszunk ki <em>egyetlen</em> jellemzőt, és mondjuk azt: ha ez elég nagy, akkor spam.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – „ha legalább 3 felkiáltójel, akkor spam”</span>
+  A tíz levél felkiáltójelei: spam: 2, 5, 3, 6; nem spam: 0, 0, 0, 1, 4, 1. A szabály: <b>ha a felkiáltójelek száma $\ge 3$, akkor spam.</b>
+  <ul style="margin:.2rem 0">
+    <li>Spamek: S2 (5), S3 (3), S4 (6) ✓; <b>S1 (2) ✗</b> – nem vette észre.</li>
+    <li>Nem spamek: H1, H2, H3, H4, H6 (0–1) ✓; <b>H5 (4) ✗</b> – a szülinapi meghívót spamnek vette.</li>
+  </ul>
+  Tíz levélből 8-at talált el: a <b>pontossága</b> $8/10 = 80\%$. Próbáljunk ki minden küszöböt:
+  <table style="max-width:560px">
+    <tr><th>küszöb: spam, ha felkiáltójel ≥</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th></tr>
+    <tr><td>helyes (10-ből)</td><td>4</td><td>7</td><td><b>9</b></td><td>8</td><td>7</td><td>8</td><td>7</td><td>6</td></tr>
+  </table>
+  A 0-s küszöb mindent spamnek mond (4 helyes), a 7-es semmit (6 helyes). A legjobb a ≥ 2 – ezen a tíz levélen.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – küszöbszabály, pontosság, alapvonal</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Küszöbszabály</b> egy jellemzőre: $\hat y = 1$, ha $x \ge t$, különben $\hat y = 0$. A $t$ küszöb a modell egyetlen paramétere; a „tanítás” a legjobb $t$ megkeresése.</li>
+    <li><b>Pontosság</b> (<em>accuracy</em>): a helyesen osztályozott minták aránya. <b>Hibaarány</b> = 1 − pontosság.</li>
+    <li><b>Alapvonal</b>: mindig a leggyakoribb (többségi) osztályt mondjuk. Itt 6 nem spam van 4 spam mellett: „soha nem spam” → 60%.
+      Ez az osztályozás „legjobb konstansa” (vö. az átlag mint alapvonal, <a href="../03-tanulas-anatomiaja/#s34-a">3.4</a>).</li>
+  </ul>
+  <small>Miért kell alapvonal? Mert a 80% önmagában semmit nem mond. Ha az alapvonal 60%, akkor a szabály valamit tud; ha 95% lenne (kiegyensúlyozatlan adat), a 80% rossz lenne.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – küszöb a linkekre</span>
+    „Spam, ha a linkek száma ≥ 3.” Spamek linkjei: 5, 3, 6, 2 → az S4 (2) kimarad. Nem spamek: 0, 1, 2, 0, 2, 1 → mind jó. Pontosság: $9/10 = 90\%$ – egyetlen hiba.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a hiba kétféle</span>
+    A „≥ 3 felkiáltójel” szabály két hibája nem egyforma: az S1-et <b>átengedte</b> (egy spam a beérkezők között – bosszantó), a H5-öt <b>kiszűrte</b>
+    (a buli meghívó a spammappában – ez a nagyobb baj!). A pontosság a kettőt egyformán számolja.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A tanító adaton mért pontosság optimista.</b> A legjobb küszöböt ugyanezen a tíz levélen kerestük – egy új levélen rosszabb is lehet (<a href="../03-tanulas-anatomiaja/#s35-a">3.5</a>).</li>
+    <li><b>Ritka osztálynál a pontosság félrevezet.</b> 1000 levélből 10 spam: a „soha nem spam” szabály is 99%-os (<a href="../04-adatok-es-jellemzok/#s48-b">4.8</a>). Jobb mértékek: 6. fejezet.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – küszöbszabály és pontosság</summary>
+  <ol>
+    <li>Mennyi a „spam, ha felkiáltójel ≥ 5” szabály pontossága a tíz levélen, és melyek a hibák?
+      <details><summary>Megoldás</summary>Spamnek mondja: S2 (5), S4 (6) ✓. Kimarad: S1 (2), S3 (3) ✗. A nem spamek mind 5 alatt vannak ✓. Pontosság: $8/10 = 80\%$.</details></li>
+    <li>200 levél, ebből 50 spam. Mennyi az alapvonal pontossága?
+      <details><summary>Megoldás</summary>A többség (150 nem spam) mindig: $150/200 = 75\%$.</details></li>
+    <li>Egy szabály 200 levélből 172-t talál el. Mennyi a hibaaránya, és jobb-e az előző feladat alapvonalánál?
+      <details><summary>Megoldás</summary>Pontosság $172/200 = 86\%$, hibaarány 14%. Jobb a 75%-os alapvonalnál.</details></li>
+    <li>Egy fagyelőrejelző szabály: „fagy lesz, ha a hőmérséklet este 22 órakor ≤ 2 °C”. Mi a jellemző, mi a küszöb, és melyik a pozitív osztály?
+      <details><summary>Megoldás</summary>Jellemző: az esti hőmérséklet; küszöb: 2 °C; pozitív osztály: „lesz fagy”. Figyeld meg: itt a <em>kis</em> érték jelzi a pozitív osztályt – a szabály iránya is része a modellnek.</details></li>
+    <li>(nehezebb) A „spam, ha felkiáltójel ≥ 2” szabály a tíz levélen 90%-os. Miért nem biztos, hogy ez a legjobb küszöb az új levelekre?
+      <details><summary>Megoldás</summary>Mert a 2 és a 3 közötti választást egyetlen levél (S1, 2 felkiáltójellel) döntötte el. Tíz mintán egy levél 10 százalékpont – a különbség a véletlen műve is lehet.
+        Egy új, független levélhalmazon (teszt) kellene összehasonlítani őket.</details></li>
+  </ol>
+</details>
+
+<h3 id="s51-c">3. lépés: két jellemző – döntési határ a síkon</h3>
+<p>Egy jellemzővel a legjobb szabály is hibázott. De mindkét jellemzőnk megvan: rajzoljuk fel a leveleket a <b>síkra</b>!</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a tíz levél egy ábrán</span>
+  Vízszintesen a linkek, függőlegesen a felkiáltójelek száma. <span style="color:var(--setB)">■</span> spam, <span style="color:var(--setA)">●</span> nem spam,
+  <span style="color:var(--bad)">★</span> az új levél (3; 3).
+  <svg viewBox="0 0 325 324" style="max-width:325px;width:100%;display:block;margin:.4rem auto" role="img" aria-label="A tíz levél és a linkek + felkiáltójelek = 6,5 egyenes">
+<line x1="44" y1="290" x2="44" y2="24" stroke="var(--border)"/>
+<line x1="44" y1="290" x2="310" y2="290" stroke="var(--border)"/>
+<text x="44" y="305" font-size="11" text-anchor="middle" fill="var(--muted)">0</text>
+<text x="36" y="294" font-size="11" text-anchor="end" fill="var(--muted)">0</text>
+<line x1="82" y1="290" x2="82" y2="24" stroke="var(--border)"/>
+<line x1="44" y1="252" x2="310" y2="252" stroke="var(--border)"/>
+<text x="82" y="305" font-size="11" text-anchor="middle" fill="var(--muted)">1</text>
+<text x="36" y="256" font-size="11" text-anchor="end" fill="var(--muted)">1</text>
+<line x1="120" y1="290" x2="120" y2="24" stroke="var(--border)"/>
+<line x1="44" y1="214" x2="310" y2="214" stroke="var(--border)"/>
+<text x="120" y="305" font-size="11" text-anchor="middle" fill="var(--muted)">2</text>
+<text x="36" y="218" font-size="11" text-anchor="end" fill="var(--muted)">2</text>
+<line x1="158" y1="290" x2="158" y2="24" stroke="var(--border)"/>
+<line x1="44" y1="176" x2="310" y2="176" stroke="var(--border)"/>
+<text x="158" y="305" font-size="11" text-anchor="middle" fill="var(--muted)">3</text>
+<text x="36" y="180" font-size="11" text-anchor="end" fill="var(--muted)">3</text>
+<line x1="196" y1="290" x2="196" y2="24" stroke="var(--border)"/>
+<line x1="44" y1="138" x2="310" y2="138" stroke="var(--border)"/>
+<text x="196" y="305" font-size="11" text-anchor="middle" fill="var(--muted)">4</text>
+<text x="36" y="142" font-size="11" text-anchor="end" fill="var(--muted)">4</text>
+<line x1="234" y1="290" x2="234" y2="24" stroke="var(--border)"/>
+<line x1="44" y1="100" x2="310" y2="100" stroke="var(--border)"/>
+<text x="234" y="305" font-size="11" text-anchor="middle" fill="var(--muted)">5</text>
+<text x="36" y="104" font-size="11" text-anchor="end" fill="var(--muted)">5</text>
+<line x1="272" y1="290" x2="272" y2="24" stroke="var(--border)"/>
+<line x1="44" y1="62" x2="310" y2="62" stroke="var(--border)"/>
+<text x="272" y="305" font-size="11" text-anchor="middle" fill="var(--muted)">6</text>
+<text x="36" y="66" font-size="11" text-anchor="end" fill="var(--muted)">6</text>
+<line x1="310" y1="290" x2="310" y2="24" stroke="var(--border)"/>
+<line x1="44" y1="24" x2="310" y2="24" stroke="var(--border)"/>
+<text x="310" y="305" font-size="11" text-anchor="middle" fill="var(--muted)">7</text>
+<text x="36" y="28" font-size="11" text-anchor="end" fill="var(--muted)">7</text>
+<text x="310" y="320" font-size="12" text-anchor="end" fill="var(--muted)">linkek száma →</text>
+<text x="14" y="16" font-size="12" fill="var(--muted)">↑ felkiáltójelek</text>
+<line x1="44" y1="43.0" x2="291.0" y2="290" stroke="var(--accent)" stroke-width="2.2" stroke-dasharray="6 4"/>
+<rect x="228" y="208" width="12" height="12" fill="var(--setB)"/><text x="243" y="208" font-size="11" fill="var(--text)">S1</text>
+<rect x="152" y="94" width="12" height="12" fill="var(--setB)"/><text x="167" y="94" font-size="11" fill="var(--text)">S2</text>
+<rect x="266" y="170" width="12" height="12" fill="var(--setB)"/><text x="281" y="170" font-size="11" fill="var(--text)">S3</text>
+<rect x="114" y="56" width="12" height="12" fill="var(--setB)"/><text x="129" y="56" font-size="11" fill="var(--text)">S4</text>
+<circle cx="44" cy="290" r="6.5" fill="var(--setA)"/><text x="53" y="284" font-size="11" fill="var(--text)">H1</text>
+<circle cx="82" cy="290" r="6.5" fill="var(--setA)"/><text x="91" y="284" font-size="11" fill="var(--text)">H2</text>
+<circle cx="120" cy="290" r="6.5" fill="var(--setA)"/><text x="129" y="284" font-size="11" fill="var(--text)">H3</text>
+<circle cx="44" cy="252" r="6.5" fill="var(--setA)"/><text x="53" y="246" font-size="11" fill="var(--text)">H4</text>
+<circle cx="120" cy="138" r="6.5" fill="var(--setA)"/><text x="129" y="132" font-size="11" fill="var(--text)">H5</text>
+<circle cx="82" cy="252" r="6.5" fill="var(--setA)"/><text x="91" y="246" font-size="11" fill="var(--text)">H6</text>
+<text x="158" y="184" font-size="24" text-anchor="middle" fill="var(--bad)">★</text>
+</svg>
+  A spamek a jobb felső, a nem spamek a bal alsó sarokban vannak. Egy <b>ferde egyenes</b> szétválasztja őket: a szaggatott vonal a
+  $\text{linkek} + \text{felkiáltójelek} = 6{,}5$ egyenes. A szabály: <b>spam, ha linkek + felkiáltójelek ≥ 6,5</b> (egész számoknál: ≥ 7).
+  Az összegek: spam: 7, 8, 9, 8; nem spam: 0, 1, 2, 1, 6, 2 – mind a tíz levél jó oldalra esik: <b>100%</b>.
+  Az új levélnél $3 + 3 = 6 \lt 6{,}5$ → ez a szabály szerint <em>nem</em> spam – de épp hogy.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – döntési tartomány és döntési határ</span>
+  Egy osztályozó a jellemzők terét <b>döntési tartományokra</b> osztja: a tér minden pontjához egy osztályt rendel. A tartományokat elválasztó vonal (felület) a
+  <b>döntési határ</b>.
+  <br><b>Lineáris</b> a határ, ha egyenes (síkban), illetve sík vagy hipersík (több dimenzióban):
+  $$w_1x_1 + w_2x_2 + b = 0, \qquad \text{általában}\quad \mathbf w^\top\mathbf x + b = 0,$$
+  és a szabály: $\hat y = 1$, ha $\mathbf w^\top\mathbf x + b \ge 0$. A fenti egyenesnél $w_1 = w_2 = 1$, $b = -6{,}5$.
+  <br><small>Miért ez a jó kép? Mert minden osztályozó – a legközelebbi szomszédtól a neurális hálóig – végül ezt csinálja: határt húz. A módszerek abban különböznek, <em>milyen alakú</em>
+  határt tudnak húzni, és <em>hogyan</em> találják meg.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – másik egyenes</span>
+    „Spam, ha linkek + felkiáltójelek ≥ 6.” Most a H5 (2 + 4 = 6) is spamnek számít: 9/10. Ugyanaz az irány, kicsit eltolva – és máris van egy hiba.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – tengelyekkel párhuzamos határ</span>
+    „Spam, ha linkek ≥ 3 <b>vagy</b> felkiáltójel ≥ 5.” Lépcsős határ: S1, S2, S3 a linkek, S4 a felkiáltójelek miatt spam; a H5 (2; 4) egyik feltételt sem teljesíti. Szintén 10/10.
+    Ilyen határokat húznak a döntési fák (7. fejezet).
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Sok határ ér el 100%-ot ugyanazon a tíz ponton.</b> A „ferde” és a „lépcsős” szabály a tanító adaton egyformán jó, de az új levélre ($3; 3$) mást mondanak:
+      a ferde szerint nem spam ($6 \lt 6{,}5$), a lépcsős szerint spam ($3 \ge 3$ link). Kevés adatnál a határ helye bizonytalan.</li>
+    <li><b>A pont a határ <em>melyik oldalán</em> van – ez a döntés; <em>milyen messze</em> – ez a magabiztosság.</b> A (3; 3) épp a határ mellett van; egy jó osztályozónak ezt jeleznie kellene (<a href="#s53">5.3</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – döntési határ</summary>
+  <ol>
+    <li>A „spam, ha linkek + felkiáltójelek ≥ 7” szabály szerint spam-e egy (1; 5) és egy (4; 4) levél?
+      <details><summary>Megoldás</summary>(1; 5): $1 + 5 = 6 \lt 7$ → nem spam. (4; 4): $8 \ge 7$ → spam.</details></li>
+    <li>Írd fel a „spam, ha 2 · linkek + felkiáltójelek ≥ 8” szabályt $\mathbf w^\top\mathbf x + b \ge 0$ alakban! Mennyi $\mathbf w$ és $b$?
+      <details><summary>Megoldás</summary>$2x_1 + x_2 - 8 \ge 0$: $\mathbf w = (2, 1)$, $b = -8$.</details></li>
+    <li>Mennyi a 2. feladat szabályának pontossága a tíz levélen?
+      <details><summary>Megoldás</summary>$2x_1 + x_2$: spam: S1 12, S2 11, S3 15, S4 10 – mind ≥ 8 ✓. Nem spam: H1 0, H2 2, H3 4, H4 1, H5 8 ✗, H6 3. A H5 pont a határon van, és a ≥ miatt spam lesz. Pontosság: 9/10.</details></li>
+    <li>Hol metszi a tengelyeket a $\text{linkek} + \text{felkiáltójelek} = 6{,}5$ egyenes? Melyik oldala a „spam”?
+      <details><summary>Megoldás</summary>A (6,5; 0) és a (0; 6,5) pontban. A spam oldal az, ahol az összeg nagyobb: a jobb felső félsík (pl. a (7; 7) pont).</details></li>
+    <li>(nehezebb) Adj meg egy lineáris szabályt, ami a tíz levélen 100%-os, és az új levelet (3; 3) <em>spamnek</em> mondja!
+      <details><summary>Megoldás</summary>Pl. „spam, ha 2 · linkek + felkiáltójelek ≥ 9”: spam: 12, 11, 15, 10 ✓; nem spam: 0, 2, 4, 1, 8, 3 ✓ (mind 9 alatt). Az új levél: $6 + 3 = 9$ → spam.
+        Ugyanaz a tíz pont, két tökéletes szabály, két különböző döntés – a tanító adat nem dönti el egyértelműen, hol legyen a határ.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai5-51"></div>
+</section>
+
+<!-- ===================================================== 5.2 -->
+<section id="s52">
+<h2>5.2 Legközelebbi szomszédok (kNN) és legközelebbi centroid ★</h2>
+<p>Az előző szakaszban mi találtuk ki a szabályt. Most a gép találja ki – a lehető legegyszerűbb ötlettel: <b>„mondd meg, kik a szomszédaid, és megmondom, ki vagy”</b>.
+Ha egy új levél nagyon hasonlít egy ismert spamre, valószínűleg ő is spam.</p>
+
+<h3 id="s52-a">1. lépés: a legközelebbi szomszéd</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – ki áll legközelebb a ★-hoz?</span>
+  Az új levél: ★ = (3; 3). Számoljuk ki a távolságát mind a tíz ismert levéltől (euklideszi távolság, <a href="../02-matematikai-eszkoztar/#s23-b">2.3</a>):
+  $d = \sqrt{(\text{linkek} - 3)^2 + (\text{felkiáltójelek} - 3)^2}$.
+  <div style="overflow-x:auto">
+  <table style="font-size:.86rem">
+    <tr><th>levél</th><th>H5</th><th>S2</th><th>S1</th><th>H6</th><th>S3</th><th>S4</th><th>H3</th><th>H2</th><th>H4</th><th>H1</th></tr>
+    <tr><td>pont</td><td>(2; 4)</td><td>(3; 5)</td><td>(5; 2)</td><td>(1; 1)</td><td>(6; 3)</td><td>(2; 6)</td><td>(2; 0)</td><td>(1; 0)</td><td>(0; 1)</td><td>(0; 0)</td></tr>
+    <tr><td>$d^2$</td><td>1 + 1 = 2</td><td>0 + 4 = 4</td><td>4 + 1 = 5</td><td>4 + 4 = 8</td><td>9 + 0 = 9</td><td>1 + 9 = 10</td><td>1 + 9 = 10</td><td>4 + 9 = 13</td><td>9 + 4 = 13</td><td>9 + 9 = 18</td></tr>
+    <tr><td>$d$</td><td><b>1,414</b></td><td>2</td><td>2,236</td><td>2,828</td><td>3</td><td>3,162</td><td>3,162</td><td>3,606</td><td>3,606</td><td>4,243</td></tr>
+    <tr><td>címke</td><td>nem spam</td><td>spam</td><td>spam</td><td>nem spam</td><td>spam</td><td>spam</td><td>nem spam</td><td>nem spam</td><td>nem spam</td><td>nem spam</td></tr>
+  </table>
+  </div>
+  A legközelebbi a <b>H5</b> – a szülinapi meghívó. A legközelebbi szomszéd szabálya szerint tehát az új levél <b>nem spam</b>.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – a legközelebbi szomszéd osztályozó (1-NN)</span>
+  <b>Tanítás:</b> eltároljuk az összes tanító mintát a címkéjével. <b>Jóslás</b> egy új $\mathbf x$-re: megkeressük azt a tanító mintát, amelyik a legközelebb van hozzá
+  (legkisebb $d(\mathbf x, \mathbf x_i)$), és annak a címkéjét mondjuk.
+  <br><small>Miért működik? Mert feltételezzük, hogy a hasonló jellemzőjű minták hasonló címkéjűek – a jellemzőtérben a „közel” azt jelenti, „hasonló”. A modellnek nincs
+  paramétere: <b>maga a tanító adat a modell</b>. Ezért hívják <b>lusta</b> (<em>lazy</em>) tanulónak: a tanításkor semmit nem csinál, minden munka a jósláskor történik.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy egyértelmű eset</span>
+    Új levél (4; 5). A legközelebbi az S2 (3; 5): $d = \sqrt{1 + 0} = 1$. A következő az S4 és a H5, mindkettő $\sqrt 5 \approx 2{,}236$. A döntés: <b>spam</b>.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – link nélküli, lelkes levél</span>
+    Új levél (1; 3). A legközelebbi a H5 (2; 4): $d = \sqrt 2 \approx 1{,}414$, utána a H6 (1; 1): $d = 2$. A döntés: <b>nem spam</b>.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az 1-NN a tanító adaton mindig 100%-os</b> – minden pont legközelebbi szomszédja saját maga ($d = 0$). Ez nem tudás, hanem memorizálás; a teljesítményt csak új adaton mérheted.</li>
+    <li><b>Egyetlen rossz szomszéd elég.</b> A ★-ot a H5 „menti meg”, pedig a környékén inkább spamek vannak. Egy hibás címke vagy egy szokatlan levél körül az 1-NN rossz szigetet rajzol.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a legközelebbi szomszéd</summary>
+  <ol>
+    <li>Mi a legközelebbi szomszéd szerinti döntés a (4; 1) levélre? Add meg a két legközelebbi levelet a távolsággal!
+      <details><summary>Megoldás</summary>S1 (5; 2): $\sqrt{1 + 1} \approx 1{,}414$; H3 (2; 0): $\sqrt{4 + 1} \approx 2{,}236$. A legközelebbi az S1 → <b>spam</b>.</details></li>
+    <li>Mi a döntés a (0; 3) levélre?
+      <details><summary>Megoldás</summary>H4 (0; 1): $d = 2$; H5 (2; 4) és H6 (1; 1): $\sqrt 5 \approx 2{,}236$; S4 (2; 6): $\sqrt{4 + 9} \approx 3{,}606$. A legközelebbi a H4 → <b>nem spam</b>.</details></li>
+    <li>Mennyi az 1-NN pontossága a tíz tanító levélen? Miért?
+      <details><summary>Megoldás</summary>100%: minden levél legközelebbi szomszédja saját maga, 0 távolságra. Ez semmit nem mond arról, mennyire jó az új leveleken.</details></li>
+    <li>Ha 1 millió tanító levelünk van, mennyi távolságot kell kiszámolni egyetlen új levél osztályozásához (egyszerű, végigpróbáló módszerrel)?
+      <details><summary>Megoldás</summary>1 milliót – minden tanító mintához egyet. Ezért lassú a kNN jósláskor; nagy adatnál gyorsító adatszerkezetek (k-d fa, közelítő keresés) kellenek.</details></li>
+    <li>(nehezebb) Melyik pontok esetén mondaná az 1-NN a vízszintes tengelyen (felkiáltójel = 0) fekvő pontokra, hogy spam? Csak a H1, H2, H3 és az S1 pontot vedd figyelembe!
+      <details><summary>Megoldás</summary>A $(x; 0)$ pont az S1-hez (5; 2) van közelebb, mint a H3-hoz (2; 0), ha $(x - 5)^2 + 4 \lt (x - 2)^2$, azaz $x^2 - 10x + 29 \lt x^2 - 4x + 4$, $25 \lt 6x$, $x \gt 4{,}17$.
+        (A H1 és a H2 még messzebb van.) Tehát kb. 4,17 linktől spam – a határ a két pont felező merőlegese.</details></li>
+  </ol>
+</details>
+
+<h3 id="s52-b">2. lépés: $k$ szomszéd szavaz</h3>
+<p>Az egyetlen szomszéd túl érzékeny. Kérdezzünk meg többet, és döntsön a <b>többség</b>!</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – ugyanaz a ★, különböző $k$-k</span>
+  A fenti távolságtáblázat sorrendjében:
+  <table style="max-width:640px">
+    <tr><th>$k$</th><th>a $k$ legközelebbi</th><th>spam : nem spam</th><th>döntés</th><th>spam-arány</th></tr>
+    <tr><td>1</td><td>H5</td><td>0 : 1</td><td>nem spam</td><td>0</td></tr>
+    <tr><td>3</td><td>H5, S2, S1</td><td>2 : 1</td><td><b>spam</b></td><td>0,67</td></tr>
+    <tr><td>5</td><td>… + H6, S3</td><td>3 : 2</td><td><b>spam</b></td><td>0,6</td></tr>
+    <tr><td>7</td><td>… + S4, H3</td><td>4 : 3</td><td><b>spam</b></td><td>0,57</td></tr>
+    <tr><td>9</td><td>… + H2, H4</td><td>4 : 5</td><td>nem spam</td><td>0,44</td></tr>
+    <tr><td>10</td><td>mind</td><td>4 : 6</td><td>nem spam</td><td>0,4</td></tr>
+  </table>
+  $k = 1$ és $k = 3$ <b>más döntést</b> ad. A közepes $k$-k a spamre szavaznak, a nagyon nagy $k$ viszont már „mindenkit” megkérdez – és akkor a többségi osztály nyer, bárhol van a pont.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – a $k$ legközelebbi szomszéd módszer (kNN)</span>
+  Jóslás egy új $\mathbf x$-re: megkeressük a $k$ legközelebbi tanító mintát, és az osztályuk közül a <b>leggyakoribbat</b> mondjuk (többségi szavazás).
+  A szavazatok aránya – pl. „3-ból 2 spam” – a $P(\text{spam} \mid \mathbf x)$ durva becslése.
+  <ul style="margin:.2rem 0">
+    <li><b>Kis $k$</b> (pl. 1): a határ szaggatott, minden zajos pont köré szigetet rajzol – <b>túlillesztés</b> (nagy variancia).</li>
+    <li><b>Nagy $k$</b>: a határ sima, de elmossa a részleteket; $k = n$ esetén mindig a többségi osztályt mondja – ez az alapvonal, <b>alulillesztés</b> (nagy torzítás).</li>
+    <li>Két osztálynál <b>páratlan $k$</b>-t választunk, hogy ne legyen döntetlen. A jó $k$-t <b>validációs halmazon</b> keressük meg (<a href="../03-tanulas-anatomiaja/#s35-a">3.5</a>);
+      kiindulásnak gyakori hüvelykujjszabály a $k \approx \sqrt n$ (MLD 12).</li>
+  </ul>
+  <small>Miért segít a több szomszéd? Mert a szavazás átlagol: egyetlen szokatlan pont (mint a H5) már nem dönthet egyedül. A $k$ tehát a modell bonyolultságának
+  gombja – ugyanaz a szerepe, mint a polinom fokszámának a 3. fejezetben, csak fordított irányban: <em>kis</em> $k$ = <em>bonyolult</em> modell.</small>
+</div>
+<div class="widget" data-widget="knn-boundary"></div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – súlyozott szavazás</span>
+    $k = 3$, de a közelebbi szomszéd többet ér: a súly $1/d$. H5: $1/1{,}414 \approx 0{,}707$ (nem spam); S2: $1/2 = 0{,}5$ és S1: $1/2{,}236 \approx 0{,}447$ (spam).
+    Spam: $0{,}947$, nem spam: $0{,}707$ → <b>spam</b>. A súlyozás a döntetleneket is szinte mindig feloldja.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – valódi adaton (PDL 7)</span>
+    Egy emlődaganat-adatkészleten (569 minta, 30 jellemző, standardizálva) keresztvalidációval mért pontosság: $k = 1$: 0,951; $k = 3$: 0,966; $k = 9$: 0,967;
+    $k = 15$: 0,960. Az 1-NN a leggyengébb, a közepes $k$-k a legjobbak – és a különbségek kicsik.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Páros $k$ két osztálynál döntetlent adhat</b> (2 : 2). Több osztálynál páratlan $k$ mellett is lehet holtverseny (1 : 1 : 1) – ilyenkor a legközelebbi szomszéd vagy a súlyozás dönt.</li>
+    <li><b>A „kis $k$ = nagy torzítás” állítás fordított.</b> Egy népszerű bevezető (MLAB 9) azt írja, hogy a túl kicsi $k$ a torzítást növeli – valójában a <em>varianciát</em>:
+      az 1-NN döntése az egyes pontok véletlenén múlik. A nagy $k$ növeli a torzítást. (A könyv egy későbbi fejezete maga is így írja.)</li>
+    <li><b>A $k$-t ne a tanító adaton válaszd</b> – ott mindig az 1-NN nyerne (100%).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – $k$ szomszéd</summary>
+  <ol>
+    <li>Az (1; 3) levél szomszédai távolság szerint: H5 (1,414), H6 (2), H4 (2,236), S2 (2,828), H2 (3), … Mi a döntés $k = 1$, $3$ és $5$ esetén?
+      <details><summary>Megoldás</summary>Az 5. szomszédot is számold ki: H2 (1; 0): $\sqrt{0 + 9} = 3$, utána S4, H1 és H3, mindhárom $\sqrt{10} \approx 3{,}162$. Így a sorrend H5, H6, H4, S2, H2.
+        $k = 1$: nem spam; $k = 3$: 3 : 0 nem spam; $k = 5$: 4 : 1 nem spam.</details></li>
+    <li>Egy 400 mintás adatkészletre mekkora $k$-val kezdenéd a keresést a $\sqrt n$ szabály szerint, ha két osztály van?
+      <details><summary>Megoldás</summary>$\sqrt{400} = 20$ – de páros, ezért 19 vagy 21. Ez csak kiindulópont; a végső $k$-t validációval választjuk.</details></li>
+    <li>Egy 3 osztályos feladatban a 4 legközelebbi szomszéd: A, B, A, B. Mit tennél?
+      <details><summary>Megoldás</summary>Döntetlen (2 : 2). Megoldások: súlyozott szavazás ($1/d$), a legközelebbi szomszéd dönt (itt A), vagy $k$ = 5-re váltás. Három osztálynál a páratlan $k$ sem zárja ki a holtversenyt.</details></li>
+    <li>Mit mond a kNN $k = n$ esetén, bárhol is van az új pont? Miért nevezzük ezt alapvonalnak?
+      <details><summary>Megoldás</summary>Mindig a többségi osztályt (itt: nem spam, 6 : 4). Ugyanaz, mint a „legjobb konstans” – a jellemzőket egyáltalán nem használja.</details></li>
+    <li>(nehezebb) A ★ = (3; 3) levélre számold ki a súlyozott szavazást $k = 5$-tel ($1/d$ súlyok)!
+      <details><summary>Megoldás</summary>Nem spam: H5 $1/1{,}414 \approx 0{,}707$, H6 $1/2{,}828 \approx 0{,}354$ → $1{,}061$. Spam: S2 $0{,}5$, S1 $0{,}447$, S3 $1/3 \approx 0{,}333$ → $1{,}280$. A döntés: <b>spam</b>,
+        $1{,}280/(1{,}280 + 1{,}061) \approx 0{,}55$ súlyaránnyal.</details></li>
+  </ol>
+</details>
+
+<h3 id="s52-c">3. lépés: a távolság és a skálázás</h3>
+<p>A kNN egész döntése a „ki van közel?” kérdésen múlik. De a távolság attól függ, <em>milyen mértékegységben</em> mérjük a jellemzőket – és ez veszélyes.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a levél hossza is jellemző lesz</span>
+  Vegyünk fel egy harmadik jellemzőt: a levél hossza karakterben. Az új levél ★ = (3 link; 3 felkiáltójel; 500 karakter). Két jelölt:
+  <ul style="margin:.2rem 0">
+    <li>A = (3; 3; 900) – ugyanannyi link és felkiáltójel, csak hosszabb;</li>
+    <li>B = (0; 0; 520) – egyetlen link és felkiáltójel sincs benne, de majdnem ugyanolyan hosszú.</li>
+  </ul>
+  Nyers távolságok: $d(★, A) = \sqrt{0 + 0 + 400^2} = 400$, $d(★, B) = \sqrt{9 + 9 + 20^2} = \sqrt{418} \approx 20{,}4$. A legközelebbi a <b>B</b> – egy teljesen más levél!
+  A 400 karakteres különbség „elnyomja” a linkeket és a felkiáltójeleket: 1 karakter ugyanannyit ér, mint 1 link.
+  <br>Most osszuk el minden jellemzőt a (tanító halmazon mért) szórásával: a linkekét és a felkiáltójelekét 2-vel, a hosszt 400-zal.
+  A ★-tól mért különbségek: A: $(0;\ 0;\ 1)$ → $d = 1$; B: $(1{,}5;\ 1{,}5;\ 0{,}05)$ → $d = \sqrt{2{,}25 + 2{,}25 + 0{,}0025} \approx 2{,}12$. Most az <b>A</b> a közelebbi – ahogy a józan ész is mondja.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – távolságmértékek és skálázás</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Euklideszi</b> távolság: $d(\mathbf x, \mathbf z) = \sqrt{\sum_j (x_j - z_j)^2}$ – „légvonalban”.</li>
+    <li><b>Manhattan</b> távolság: $d(\mathbf x, \mathbf z) = \sum_j |x_j - z_j|$ – „háztömbökön át”, ahogy egy taxi megy egy négyzetrácsos városban.</li>
+    <li><b>Skálázás</b>: távolságalapú módszer előtt a jellemzőket azonos léptékre hozzuk – standardizálással vagy min–max skálázással, <b>a tanító halmaz statisztikáival</b>
+      (<a href="../04-adatok-es-jellemzok/#s44-a">4.4</a>). Kategóriás jellemzőt előtte one-hot kódolunk (<a href="../04-adatok-es-jellemzok/#s43-b">4.3</a>).</li>
+  </ul>
+  <small>Miért kötelező a skálázás? Mert a távolság összeadja a jellemzőnkénti eltéréseket, és a nagy számértékű jellemző (karakter, forint, négyzetméter) mindent elnyom.
+  Egy pingvin-adatkészleten a kNN keresztvalidált pontossága nyers adattal 0,86, standardizálva (és PCA-val) 0,99 volt (MLD 12).</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – Manhattan-távolság</span>
+    A ★ = (3; 3) és az S1 = (5; 2) között: euklideszi $\sqrt{4 + 1} \approx 2{,}236$, Manhattan $2 + 1 = 3$. A Manhattan-távolság sosem kisebb az euklideszinél.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – sok dimenzió</span>
+    A 4. fejezetben láttad: sok jellemzőnél a távolságok kiegyenlítődnek – „mindenki egyforma messze van” (<a href="../04-adatok-es-jellemzok/#s46-c">4.6</a>). Ezért a kNN-nek
+    különösen ártanak a felesleges jellemzők: minden zajos oszlop „hozzámér” a távolsághoz.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>kNN skálázás nélkül</b> = a legnagyobb számú jellemző szerinti legközelebbi szomszéd. Mindig nézd meg a jellemzők tartományát!</li>
+    <li><b>A skálázást a tanító halmazból számold</b>, és ugyanazzal alakítsd át az új pontot – különben szivárgás (<a href="../04-adatok-es-jellemzok/#s47-b">4.7</a>).</li>
+    <li><b>Más távolság, más szomszéd.</b> Manhattan-távolsággal a ★-tól a H5 és az S2 is 2-re van – döntetlen az első helyért, amit euklideszi távolsággal nem láttunk.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – távolság és skálázás</summary>
+  <ol>
+    <li>Mennyi a (3; 3) és a (6; 3) pont euklideszi és Manhattan-távolsága?
+      <details><summary>Megoldás</summary>Mindkettő 3: csak egy koordinátában térnek el, és ilyenkor a kettő egyezik.</details></li>
+    <li>Mennyi az (1; 2) és a (3; 3) pont euklideszi és Manhattan-távolsága?
+      <details><summary>Megoldás</summary>Euklideszi: $\sqrt{4 + 1} = \sqrt 5 \approx 2{,}236$. Manhattan: $2 + 1 = 3$.</details></li>
+    <li>Lakások: alapterület m²-ben (40–120) és szobaszám (1–4). Nyers adaton melyik jellemző dönti el a kNN szomszédait?
+      <details><summary>Megoldás</summary>Az alapterület: egy szoba eltérés annyit ér, mint 1 m², ami elhanyagolható a 80 m²-es tartományhoz képest. Skálázni kell.</details></li>
+    <li>Egy jellemző tanító átlaga 50, szórása 10. Mennyi az új minta 65-ös értékének standardizált értéke?
+      <details><summary>Megoldás</summary>$(65 - 50)/10 = 1{,}5$ – a tanító halmaz átlagával és szórásával.</details></li>
+    <li>(nehezebb) A ★ = (3; 3) levél 3 legközelebbi szomszédja Manhattan-távolsággal? (Az összes távolság: H5 2, S2 2, S1 3, S3 3, H3 4, H6 4, S4 4, H2 5, H4 5, H1 6.) Mi a döntés $k = 3$-mal?
+      <details><summary>Megoldás</summary>Az első kettő biztos: H5 és S2 (2). A harmadik helyért holtverseny: S1 és S3 (3) – de mindkettő spam, így a döntés mindenképp <b>spam</b> (2 : 1).
+        Szerencsénk volt: ha a holtversenyben lévők címkéje különbözne, a döntés a holtverseny feloldásán múlna.</details></li>
+  </ol>
+</details>
+
+<h3 id="s52-d">4. lépés: a legközelebbi centroid – két pont elég</h3>
+<p>A kNN mind a tíz levelet megjegyzi. Nem lehetne az egyes osztályokat egyetlen „tipikus” ponttal képviselni? Ez a legközelebbi centroid módszer
+(más néven sablonillesztés) – a kNN takarékos rokona.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a tipikus spam és a tipikus levél</span>
+  A spamek átlaga: $\left(\frac{5 + 3 + 6 + 2}{4};\ \frac{2 + 5 + 3 + 6}{4}\right) = (4;\ 4)$.
+  A nem spamek átlaga: $\left(\frac{0 + 1 + 2 + 0 + 2 + 1}{6};\ \frac{0 + 0 + 0 + 1 + 4 + 1}{6}\right) = (1;\ 1)$.
+  <svg viewBox="0 0 325 324" style="max-width:325px;width:100%;display:block;margin:.4rem auto" role="img" aria-label="A két centroid és a felező merőleges">
+<line x1="44" y1="290" x2="44" y2="24" stroke="var(--border)"/>
+<line x1="44" y1="290" x2="310" y2="290" stroke="var(--border)"/>
+<text x="44" y="305" font-size="11" text-anchor="middle" fill="var(--muted)">0</text>
+<text x="36" y="294" font-size="11" text-anchor="end" fill="var(--muted)">0</text>
+<line x1="82" y1="290" x2="82" y2="24" stroke="var(--border)"/>
+<line x1="44" y1="252" x2="310" y2="252" stroke="var(--border)"/>
+<text x="82" y="305" font-size="11" text-anchor="middle" fill="var(--muted)">1</text>
+<text x="36" y="256" font-size="11" text-anchor="end" fill="var(--muted)">1</text>
+<line x1="120" y1="290" x2="120" y2="24" stroke="var(--border)"/>
+<line x1="44" y1="214" x2="310" y2="214" stroke="var(--border)"/>
+<text x="120" y="305" font-size="11" text-anchor="middle" fill="var(--muted)">2</text>
+<text x="36" y="218" font-size="11" text-anchor="end" fill="var(--muted)">2</text>
+<line x1="158" y1="290" x2="158" y2="24" stroke="var(--border)"/>
+<line x1="44" y1="176" x2="310" y2="176" stroke="var(--border)"/>
+<text x="158" y="305" font-size="11" text-anchor="middle" fill="var(--muted)">3</text>
+<text x="36" y="180" font-size="11" text-anchor="end" fill="var(--muted)">3</text>
+<line x1="196" y1="290" x2="196" y2="24" stroke="var(--border)"/>
+<line x1="44" y1="138" x2="310" y2="138" stroke="var(--border)"/>
+<text x="196" y="305" font-size="11" text-anchor="middle" fill="var(--muted)">4</text>
+<text x="36" y="142" font-size="11" text-anchor="end" fill="var(--muted)">4</text>
+<line x1="234" y1="290" x2="234" y2="24" stroke="var(--border)"/>
+<line x1="44" y1="100" x2="310" y2="100" stroke="var(--border)"/>
+<text x="234" y="305" font-size="11" text-anchor="middle" fill="var(--muted)">5</text>
+<text x="36" y="104" font-size="11" text-anchor="end" fill="var(--muted)">5</text>
+<line x1="272" y1="290" x2="272" y2="24" stroke="var(--border)"/>
+<line x1="44" y1="62" x2="310" y2="62" stroke="var(--border)"/>
+<text x="272" y="305" font-size="11" text-anchor="middle" fill="var(--muted)">6</text>
+<text x="36" y="66" font-size="11" text-anchor="end" fill="var(--muted)">6</text>
+<line x1="310" y1="290" x2="310" y2="24" stroke="var(--border)"/>
+<line x1="44" y1="24" x2="310" y2="24" stroke="var(--border)"/>
+<text x="310" y="305" font-size="11" text-anchor="middle" fill="var(--muted)">7</text>
+<text x="36" y="28" font-size="11" text-anchor="end" fill="var(--muted)">7</text>
+<text x="310" y="320" font-size="12" text-anchor="end" fill="var(--muted)">linkek száma →</text>
+<text x="14" y="16" font-size="12" fill="var(--muted)">↑ felkiáltójelek</text>
+<line x1="44" y1="100" x2="234" y2="290" stroke="var(--accent)" stroke-width="2.2" stroke-dasharray="6 4"/>
+<path d="M189 138 L203 138 M196 131 L196 145" stroke="var(--setB)" stroke-width="3"/>
+<path d="M75 252 L89 252 M82 245 L82 259" stroke="var(--setA)" stroke-width="3"/>
+<rect x="228" y="208" width="12" height="12" fill="var(--setB)"/><text x="243" y="208" font-size="11" fill="var(--text)">S1</text>
+<rect x="152" y="94" width="12" height="12" fill="var(--setB)"/><text x="167" y="94" font-size="11" fill="var(--text)">S2</text>
+<rect x="266" y="170" width="12" height="12" fill="var(--setB)"/><text x="281" y="170" font-size="11" fill="var(--text)">S3</text>
+<rect x="114" y="56" width="12" height="12" fill="var(--setB)"/><text x="129" y="56" font-size="11" fill="var(--text)">S4</text>
+<circle cx="44" cy="290" r="6.5" fill="var(--setA)"/><text x="53" y="284" font-size="11" fill="var(--text)">H1</text>
+<circle cx="82" cy="290" r="6.5" fill="var(--setA)"/><text x="91" y="284" font-size="11" fill="var(--text)">H2</text>
+<circle cx="120" cy="290" r="6.5" fill="var(--setA)"/><text x="129" y="284" font-size="11" fill="var(--text)">H3</text>
+<circle cx="44" cy="252" r="6.5" fill="var(--setA)"/><text x="53" y="246" font-size="11" fill="var(--text)">H4</text>
+<circle cx="120" cy="138" r="6.5" fill="var(--setA)"/><text x="129" y="132" font-size="11" fill="var(--text)">H5</text>
+<circle cx="82" cy="252" r="6.5" fill="var(--setA)"/><text x="91" y="246" font-size="11" fill="var(--text)">H6</text>
+<text x="158" y="184" font-size="24" text-anchor="middle" fill="var(--bad)">★</text>
+</svg>
+  A ★ = (3; 3) távolsága a spam-centroidtól $\sqrt{1 + 1} \approx 1{,}414$, a nem spam-centroidtól $\sqrt{4 + 4} \approx 2{,}828$ → <b>spam</b>.
+  <br>Hol van a határ? Ott, ahol a két centroid egyforma messze van: ez a centroidokat összekötő szakasz <b>felező merőlegese</b>, a $\text{linkek} + \text{felkiáltójelek} = 5$ egyenes (szaggatott vonal).
+  A tíz levélből egyet ront el: a H5-öt ($2 + 4 = 6 \gt 5$) spamnek mondja. Pontosság: 90%.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – legközelebbi centroid osztályozó</span>
+  <b>Tanítás:</b> minden $c$ osztályra kiszámoljuk a <b>centroidot</b> (súlypontot), a tanító minták koordinátánkénti átlagát: $\boldsymbol\mu_c = \frac{1}{n_c}\sum_{y_i = c}\mathbf x_i$.
+  <b>Jóslás:</b> az új pont annak az osztálynak a tagja, amelyiknek a centroidjához a legközelebb van.
+  <br>Két osztálynál a döntési határ <b>egyenes</b> (hipersík): a $\|\mathbf x - \boldsymbol\mu_1\|^2 = \|\mathbf x - \boldsymbol\mu_0\|^2$ egyenletből a négyzetes tagok kiesnek:
+  $$2(\boldsymbol\mu_1 - \boldsymbol\mu_0)^\top\mathbf x = \|\boldsymbol\mu_1\|^2 - \|\boldsymbol\mu_0\|^2.$$
+  <small>Itt: $2\cdot(3;\ 3)^\top\mathbf x = 32 - 2$, azaz $6x_1 + 6x_2 = 30$, vagyis $x_1 + x_2 = 5$ ✓. A centroid módszer tehát egy <b>lineáris</b> osztályozó – az első, amit nem mi
+  találtunk ki, hanem az adatból számoltunk.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">kNN</span>
+    <ul style="margin:.2rem 0">
+      <li>megjegyzi mind az $n$ mintát;</li>
+      <li>jóslás: $n$ távolság – lassú;</li>
+      <li>a határ bármilyen alakú lehet;</li>
+      <li>MNIST-en (kézírásos számjegyek) 3-NN: 97,1%, a teszt kb. 747 s (PDL 7).</li>
+    </ul>
+  </div>
+  <div class="box example">
+    <span class="box-title">Legközelebbi centroid</span>
+    <ul style="margin:.2rem 0">
+      <li>osztályonként egy pontot jegyez meg;</li>
+      <li>jóslás: $K$ távolság – villámgyors;</li>
+      <li>a határ mindig egyenes (két osztálynál);</li>
+      <li>ugyanott: 82%, a teszt kb. 0,03 s (PDL 7).</li>
+    </ul>
+  </div>
+</div>
+<div class="box example">
+  <span class="box-title">Példa – három osztály centroiddal</span>
+  Három levélfajta centroidja: munka (1; 0), személyes (0; 2), reklám (5; 3). Új levél: (3; 2). Távolságok: munka $\sqrt{4 + 4} \approx 2{,}83$; személyes $\sqrt{9 + 0} = 3$;
+  reklám $\sqrt{4 + 1} \approx 2{,}24$ → <b>reklám</b>. Három osztálynál a sík három tartományra esik, mindegyiket egyenes szakaszok határolják.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Ha egy osztály több „csomóból” áll, a centroid a semmibe esik.</b> Ha a spamek fele „sok link” típusú, fele „sok felkiáltójel” típusú, az átlaguk egy olyan helyre kerülhet,
+      ahol egyetlen spam sincs. A kNN ezt a helyzetet jól kezeli, a centroid nem.</li>
+    <li><b>A centroid is távolságot számol – skálázni itt is kell.</b></li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – legközelebbi centroid</summary>
+  <ol>
+    <li>Mit mond a centroid módszer az (5; 1) és a (2; 2) levélre?
+      <details><summary>Megoldás</summary>A határ $x_1 + x_2 = 5$: (5; 1) → $6 \gt 5$ → spam; (2; 2) → $4 \lt 5$ → nem spam. (Távolságokkal: (5; 1)-től a spam-centroid $\sqrt{1 + 9} \approx 3{,}16$, a nem spamé $4$; (2; 2)-től $\sqrt 8 \approx 2{,}83$ és $\sqrt 2 \approx 1{,}41$.)</details></li>
+    <li>Három spam levél: (4; 2), (6; 4), (5; 6). Mi a centroidjuk?
+      <details><summary>Megoldás</summary>$\left(\frac{4 + 6 + 5}{3};\ \frac{2 + 4 + 6}{3}\right) = (5;\ 4)$.</details></li>
+    <li>A két centroid (0; 0) és (4; 0). Mi a döntési határ?
+      <details><summary>Megoldás</summary>A felező merőleges: az $x_1 = 2$ függőleges egyenes. Képlettel: $2\cdot(4;\ 0)^\top\mathbf x = 16 - 0$, azaz $8x_1 = 16$, $x_1 = 2$ ✓.</details></li>
+    <li>Hány számot kell eltárolni a centroid módszerhez, ha 10 osztály és 784 jellemző van (MNIST)? És a kNN-hez 60 000 tanító képpel?
+      <details><summary>Megoldás</summary>Centroid: $10\cdot784 = 7840$ szám. kNN: $60\,000\cdot784 = 47\,040\,000$ szám (plusz a címkék) – hatezerszer több.</details></li>
+    <li>(nehezebb) A spamek két csomóban vannak: (6; 0), (7; 1) és (0; 6), (1; 7); a nem spamek: (3; 3), (4; 4), (3; 4). Hová esik a spam-centroid, és mit mond a módszer a (3,5; 3,5) pontra?
+      <details><summary>Megoldás</summary>Spam-centroid: $\left(\frac{14}{4};\ \frac{14}{4}\right) = (3{,}5;\ 3{,}5)$ – épp a nem spamek közé, ahol egyetlen spam sincs! A nem spam-centroid $\left(\frac{10}{3};\ \frac{11}{3}\right) \approx (3{,}33;\ 3{,}67)$.
+        A (3,5; 3,5) pont a spam-centroiddal egybeesik → <b>spam</b>, pedig a nem spamek közepén van. A kNN ($k = 3$) itt helyesen „nem spam”-et mondana.</details></li>
+  </ol>
+</details>
+<div class="box history">
+  <span class="box-title">📜 Történet</span>
+  A legközelebbi szomszéd szabályt E. Fix és J. Hodges írta le 1951-ben, az amerikai légierő egy jelentésében. T. Cover és P. Hart 1967-ben bebizonyította, hogy nagyon sok adatnál
+  az 1-NN hibája legfeljebb kétszerese a lehető legkisebb hibának (a <b>Bayes-hibának</b>) – egy ennyire egyszerű módszertől ez meglepően erős garancia (ESL 13.3).
+</div>
+<div class="quiz" data-quiz="ai5-52"></div>
+</section>
+
+<!-- ===================================================== 5.3 -->
+<section id="s53">
+<h2>5.3 Logisztikus regresszió ★★</h2>
+<p>A centroid módszer egyenes határt húzott, de csak annyit mondott: „spam” vagy „nem spam”. Egy jó osztályozótól többet várunk: <b>mennyire biztos?</b>
+A ★ épp a határ mellett volt – erről tudni szeretnénk. A logisztikus regresszió egy egyenesből (lineáris kifejezésből) <b>valószínűséget</b> csinál, és a 3. fejezet
+vázával tanul: modell, veszteség, gradiens módszer.</p>
+
+<h3 id="s53-a">1. lépés: miért nem jó az egyenes a 0/1 címkére?</h3>
+<p>Az első ötlet: a címke 0 vagy 1 – illesszünk rá egyenest, mint a 3. fejezetben, és mondjuk azt, hogy spam, ha az egyenes 0,5 fölött van!</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egyenes a felkiáltójelekre</span>
+  A tíz levél: $x$ = felkiáltójelek, $y$ = 1 (spam) vagy 0. A legkisebb négyzetek egyenese: $\hat y = 0{,}165\,x + 0{,}037$.
+  <ul style="margin:.2rem 0">
+    <li>A 0,5-ös szint a $x = (0{,}5 - 0{,}037)/0{,}165 \approx 2{,}81$-nél van: 3 vagy több felkiáltójel → spam. Ez még elfogadható (8/10).</li>
+    <li>De $x = 6$-nál $\hat y = 1{,}03$. Mit jelent az, hogy „103% eséllyel spam”? <b>Semmit.</b> A jóslat kilóg a $[0, 1]$ sávból.</li>
+  </ul>
+  Most jöjjön egy új spam, <b>20 felkiáltójellel</b> – ennél egyértelműbb spam nincs. Az egyenes újraillesztve: $\hat y = 0{,}051\,x + 0{,}260$.
+  A 0,5-ös szint átugrott $4{,}71$-re: most már a 3 és 4 felkiáltójeles levelek is átcsúsznak. Egyetlen <em>könnyű</em> eset elrontotta a határt – és
+  $\hat y(20) = 1{,}28$.
+</div>
+<div class="box def">
+  <span class="box-title">Tanulság – mit várunk a modelltől?</span>
+  <ol style="margin:.2rem 0">
+    <li>A kimenet mindig a $(0, 1)$ intervallumban legyen – <b>valószínűségként</b> lehessen olvasni.</li>
+    <li>A határtól távoli, „biztos” esetek ne rángassák a határt. A 20 felkiáltójeles levélnél a modell mondja azt, hogy „szinte biztosan spam”, és ennyi.</li>
+    <li>A határ közelében legyen a modell bizonytalan (0,5 körül), távolodva egyre biztosabb.</li>
+  </ol>
+  <small>Miért nem segít a négyzetes hiba? Mert a 20-as levélnél az egyenes 1,28-at mond, a hiba $(1 - 1{,}28)^2$ – a módszer „büntetni” akarja, amiért <em>túl biztos</em> a spamben, és ezért lelapítja az egyenest.
+  Egy osztályozónál ez abszurd. Kell egy görbe, ami 1 fölé nem megy, csak közelít hozzá.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – negatív „valószínűség”</span>
+    Az eredeti egyenes $x = 0$-nál $0{,}037$, ez még rendben van. De ha egy másik jellemző (pl. linkek) negatív súlyt kapna, könnyen jönne ki $-0{,}2$ is – negatív valószínűség nincs.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a forrásban (MLD 13)</span>
+    Egy 8 pontos 0/1 adatra illesztett egyenes jóslatai $-0{,}167$ és $1{,}17$ között szórnak. A könyv ugyanezzel a gondolattal vezeti be a logisztikus regressziót.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktató</span>
+  A lineáris regresszió 0/1 címkére néha <em>működik</em> (a 0,5-ös küszöb jó helyre esik), ezért könnyű elhinni, hogy jó módszer. A gond a kilógó jóslatokkal és a
+  távoli pontok túlzott befolyásával van – ezek csak bizonyos adatokon jönnek elő.
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – az egyenes korlátai</summary>
+  <ol>
+    <li>Mennyi a $\hat y = 0{,}165\,x + 0{,}037$ egyenes jóslata 4 és 10 felkiáltójelre? Értelmezhető-e valószínűségként?
+      <details><summary>Megoldás</summary>$x = 4$: $0{,}697$ – ez még értelmezhető. $x = 10$: $1{,}687$ – nem, 1-nél nagyobb.</details></li>
+    <li>Hány felkiáltójelnél lépi át az egyenes az 1-et?
+      <details><summary>Megoldás</summary>$0{,}165\,x + 0{,}037 = 1 \Rightarrow x \approx 5{,}84$. Tehát 6 felkiáltójeltől minden jóslat „100% fölötti”.</details></li>
+    <li>A második egyenes ($0{,}051\,x + 0{,}260$) szerint spam-e egy 4 felkiáltójeles levél (0,5-ös küszöbbel)?
+      <details><summary>Megoldás</summary>$0{,}051\cdot4 + 0{,}260 = 0{,}464 \lt 0{,}5$ → nem spam. Az első egyenes szerint ($0{,}697$) még spam volt.</details></li>
+    <li>Mi a közös a 3. fejezet „kiugró érték elrontja az egyenest” jelensége és a 20 felkiáltójeles levél között? Mi a különbség?
+      <details><summary>Megoldás</summary>Közös: egyetlen szélső pont elhúzza a legkisebb négyzetek egyenesét. Különbség: itt a pont nem hibás, hanem a <em>legegyértelműbb</em> eset – osztályozásnál nem kellene, hogy bármit elrontson.</details></li>
+    <li>(nehezebb) Miért nem segít, ha a lineáris regresszió jóslatát egyszerűen levágjuk a $[0, 1]$ sávra (ami 1 fölött van, az 1, ami 0 alatt, az 0)?
+      <details><summary>Megoldás</summary>A kimenet így a sávban marad, de az illesztés ugyanaz – a 20 felkiáltójeles levél ugyanúgy lelapítja az egyenest, a határ ugyanúgy elmozdul. A tanítás közben is olyan görbe kell, ami nem lép ki a sávból.</details></li>
+  </ol>
+</details>
+
+<h3 id="s53-b">2. lépés: a szigmoid függvény – egyenesből valószínűség</h3>
+<p>Kell egy függvény, ami bármilyen valós számot a $(0, 1)$ intervallumba „présel”, 0-nál épp 0,5, és mindkét irányban egyre lassabban közelít a széléhez.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy értéktáblázat</span>
+  Számoljuk ki az $\dfrac{1}{1 + e^{-z}}$ értékét néhány $z$-re ($e \approx 2{,}718$):
+  <table style="max-width:600px">
+    <tr><th>$z$</th><th>−3</th><th>−2</th><th>−1</th><th>0</th><th>1</th><th>2</th><th>3</th></tr>
+    <tr><td>$e^{-z}$</td><td>20,09</td><td>7,389</td><td>2,718</td><td>1</td><td>0,368</td><td>0,135</td><td>0,050</td></tr>
+    <tr><td>$\sigma(z)$</td><td>0,047</td><td>0,119</td><td>0,269</td><td><b>0,5</b></td><td>0,731</td><td>0,881</td><td>0,953</td></tr>
+  </table>
+  0-nál pont 0,5; a pozitív oldalon 1-hez, a negatív oldalon 0-hoz közelít, de sosem éri el. És szimmetrikus: $\sigma(2) = 0{,}881$, $\sigma(-2) = 0{,}119 = 1 - 0{,}881$.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – szigmoid függvény és logisztikus regresszió</span>
+  A <b>szigmoid</b> (logisztikus) függvény:
+  $$\sigma(z) = \frac{1}{1 + e^{-z}}, \qquad 0 \lt \sigma(z) \lt 1, \quad \sigma(0) = 0{,}5, \quad \sigma(-z) = 1 - \sigma(z).$$
+  A <b>logisztikus regresszió</b> modellje: előbb egy lineáris kifejezés, a <b>logit</b> (pontszám), aztán szigmoid:
+  $$z = \mathbf w^\top\mathbf x + b, \qquad \hat p = \sigma(z) = P(y = 1 \mid \mathbf x).$$
+  <small>Miért éppen ez a függvény? Mert pontosan teljesíti az előző lépés három kívánságát – és, ahogy a következő lépésben kiderül, a $z$-nek szép jelentése van: a log-esély.
+  Az S alakú görbe a nevét a görög szigma (ς) betűről kapta.</small>
+</div>
+<p>A tíz levél felkiáltójeleire betanított modell (a tanítás az <a href="#s53-e">5. lépésben</a> jön; most fogadd el) kerekítve: $w = 1$, $b = -2{,}7$, azaz
+$\hat p = \sigma(x - 2{,}7)$.</p>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – 3 felkiáltójel</span>
+    $z = 3 - 2{,}7 = 0{,}3$, $\hat p = \sigma(0{,}3) = \dfrac{1}{1 + e^{-0{,}3}} = \dfrac{1}{1 + 0{,}741} \approx 0{,}574$. Inkább spam, de nagyon bizonytalan.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – 6 és 0 felkiáltójel</span>
+    $x = 6$: $z = 3{,}3$, $\hat p \approx 0{,}964$. $x = 0$: $z = -2{,}7$, $\hat p \approx 0{,}063$. És a 20 felkiáltójeles levél: $z = 17{,}3$, $\hat p \approx 0{,}999\,999\,97$ – nem lép ki a sávból.
+  </div>
+</div>
+<div class="widget" data-widget="line-vs-sigmoid"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A $z$ és a $\hat p$ nem ugyanaz.</b> A $z$ bármilyen valós szám (pontszám), a $\hat p$ valószínűség. Ha $z$ 1-gyel nő, $\hat p$ <em>nem</em> fix értékkel nő:
+      $0 \to 1$: $0{,}5 \to 0{,}731$ (+0,231), de $3 \to 4$: $0{,}953 \to 0{,}982$ (+0,029).</li>
+    <li><b>A szigmoid nem változtat a sorrenden.</b> Szigorúan növő, ezért ugyanaz a levél a „legspamebb” a $z$ és a $\hat p$ szerint is.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – szigmoid</summary>
+  <ol>
+    <li>Mennyi $\sigma(0)$, $\sigma(10)$ (kb.) és $\sigma(-10)$ (kb.)?
+      <details><summary>Megoldás</summary>$\sigma(0) = 0{,}5$; $\sigma(10) = 1/(1 + e^{-10}) \approx 0{,}999\,95$; $\sigma(-10) \approx 0{,}000\,045$.</details></li>
+    <li>Tudjuk, hogy $\sigma(1{,}5) \approx 0{,}818$. Mennyi $\sigma(-1{,}5)$?
+      <details><summary>Megoldás</summary>$1 - 0{,}818 = 0{,}182$ (szimmetria).</details></li>
+    <li>A $\hat p = \sigma(x - 2{,}7)$ modellel mennyi a spam valószínűsége 2 és 4 felkiáltójelnél? ($e^{0{,}7} \approx 2{,}014$, $e^{-1{,}3} \approx 0{,}273$)
+      <details><summary>Megoldás</summary>$x = 2$: $z = -0{,}7$, $\hat p = 1/(1 + e^{0{,}7}) = 1/3{,}014 \approx 0{,}332$. $x = 4$: $z = 1{,}3$, $\hat p = 1/(1 + e^{-1{,}3}) = 1/1{,}273 \approx 0{,}786$.</details></li>
+    <li>Egy modell: $z = 2\,x_1 - x_2 - 1$. Mennyi $\hat p$ az $\mathbf x = (1;\ 1)$ pontban?
+      <details><summary>Megoldás</summary>$z = 2 - 1 - 1 = 0$, $\hat p = 0{,}5$ – a pont épp a döntési határon van.</details></li>
+    <li>(nehezebb) Melyik $z$-hez tartozik $\hat p = 0{,}9$? ($\ln 9 \approx 2{,}197$)
+      <details><summary>Megoldás</summary>$\frac{1}{1 + e^{-z}} = 0{,}9 \Rightarrow 1 + e^{-z} = \frac{10}{9} \Rightarrow e^{-z} = \frac19 \Rightarrow z = \ln 9 \approx 2{,}197$. (A következő lépésben ezt általánosan is megkapjuk: $z = \ln\frac{p}{1 - p}$.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s53-c">3. lépés: esély és log-esély – mit jelent a súly?</h3>
+<p>A lineáris regresszióban a súly jelentése egyszerű volt: +1 m² → +0,8 M Ft. Mit jelent a $w = 1$ itt? Ehhez egy új fogalom kell, amit a fogadóirodákból ismerhetsz: az <b>esély</b>.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – valószínűségből esély</span>
+  Az <b>esély</b> azt mondja meg, hányszor valószínűbb, hogy bekövetkezik, mint hogy nem: $\dfrac{p}{1 - p}$.
+  <table style="max-width:560px">
+    <tr><th>$p$</th><th>0,1</th><th>0,2</th><th>0,5</th><th>0,8</th><th>0,9</th></tr>
+    <tr><td>esély $p/(1 - p)$</td><td>1/9 ≈ 0,111</td><td>0,25 („1 : 4”)</td><td>1 („1 : 1”)</td><td>4 („4 : 1”)</td><td>9</td></tr>
+    <tr><td>log-esély $\ln\frac{p}{1 - p}$</td><td>−2,197</td><td>−1,386</td><td>0</td><td>1,386</td><td>2,197</td></tr>
+  </table>
+  A log-esély 0,5-nél 0, és szimmetrikus. Vesd össze a szigmoid táblázatával: $\sigma(2{,}197) = 0{,}9$ – a log-esély <b>pont a szigmoid megfordítása</b>.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – esély, log-esély, és a súlyok jelentése</span>
+  $$\text{esély} = \frac{p}{1 - p}, \qquad \operatorname{logit}(p) = \ln\frac{p}{1 - p}, \qquad \operatorname{logit}\big(\sigma(z)\big) = z.$$
+  A logisztikus regresszió tehát azt állítja: <b>a log-esély lineáris</b>: $\ln\dfrac{\hat p}{1 - \hat p} = \mathbf w^\top\mathbf x + b$.
+  <ul style="margin:.2rem 0">
+    <li>Ha $x_j$ 1-gyel nő (a többi változatlan), a log-esély $w_j$-vel nő, vagyis <b>az esély $e^{w_j}$-szeresére változik</b> (esélyhányados, <em>odds ratio</em>).</li>
+    <li>$e^{b}$ az esély, ha minden jellemző 0.</li>
+  </ul>
+  <small>Miért jó ez? Mert a súlyok így „lefordíthatók”: a $w = 1$ azt jelenti, hogy minden további felkiáltójel kb. $e^1 \approx 2{,}72$-szeresére növeli a spam esélyét.
+  A $b = -2{,}7$: felkiáltójel nélkül az esély $e^{-2{,}7} \approx 0{,}067$ (kb. 1 : 15).</small>
+  <details><summary>📐 Miért a log-esély a szigmoid megfordítása?</summary>
+    $p = \dfrac{1}{1 + e^{-z}} \Rightarrow 1 - p = \dfrac{e^{-z}}{1 + e^{-z}} \Rightarrow \dfrac{p}{1 - p} = \dfrac{1}{e^{-z}} = e^{z} \Rightarrow \ln\dfrac{p}{1 - p} = z.$
+    A szigmoid tehát „esélyből valószínűség”: $z$ = log-esély → $e^z$ = esély → $p = \frac{e^z}{1 + e^z}$.
+  </details>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – 2 → 3 felkiáltójel</span>
+    $x = 2$: $\hat p = 0{,}332$, esély $0{,}332/0{,}668 \approx 0{,}497$. $x = 3$: $\hat p = 0{,}574$, esély $\approx 1{,}35$. Az arány: $1{,}35/0{,}497 \approx 2{,}72 = e^1$ ✓.
+    A valószínűség „csak” 0,24-dal nőtt, az esély viszont a 2,72-szeresére.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – szívbetegség (ESL 4.4)</span>
+    Egy dél-afrikai vizsgálat logisztikus modelljében a dohányzás (élete során elszívott kg) súlya 0,081: minden további kg dohány a szívbetegség esélyét
+    $e^{0{,}081} \approx 1{,}084$-szeresére növeli, azaz kb. 8,4%-kal.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az esély nem valószínűség.</b> A „4 : 1 esély” 80%-os valószínűség, nem 400%. A 0,2-es valószínűség esélye 0,25.</li>
+    <li><b>Az $e^{w}$ az <em>esélyt</em> szorozza, nem a valószínűséget.</b> Egy népszerű könyv (MLD 13) az $e^{0{,}337} \approx 1{,}4$-et „a valószínűség növekedéseként” írja le – ez valójában esélyhányados.
+      A valószínűség változása attól függ, honnan indulunk (lásd a szigmoid buktatóját).</li>
+    <li><b>Korreláló jellemzőknél a súly „furcsa” lehet.</b> Ugyanabban a szívbetegség-modellben az elhízás súlya negatív lett – nem mert az elhízás véd, hanem mert a vele erősen együtt mozgó más jellemzők
+      már „elvitték” a hatását (ESL 4.4).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – esély és log-esély</summary>
+  <ol>
+    <li>Mennyi az esély, ha $p = 0{,}75$? És ha $p = 0{,}25$?
+      <details><summary>Megoldás</summary>$0{,}75/0{,}25 = 3$ („3 : 1”); $0{,}25/0{,}75 = 1/3$ („1 : 3”).</details></li>
+    <li>Az esély 4. Mennyi a valószínűség?
+      <details><summary>Megoldás</summary>$p = \frac{\text{esély}}{1 + \text{esély}} = \frac45 = 0{,}8$.</details></li>
+    <li>Egy modellben a „link” súlya 0,7. Hányszorosára változik a spam esélye egy további linktől? ($e^{0{,}7} \approx 2{,}01$)
+      <details><summary>Megoldás</summary>Kb. a kétszeresére. Két további linktől $e^{1{,}4} \approx 4{,}06$-szorosára.</details></li>
+    <li>Egy jellemző súlya $-0{,}5$. Mit jelent ez? ($e^{-0{,}5} \approx 0{,}607$)
+      <details><summary>Megoldás</summary>Ha a jellemző 1-gyel nő, az esély kb. 0,61-szeresére, azaz kb. 39%-kal csökken. A negatív súly a negatív osztály felé húz.</details></li>
+    <li>(nehezebb) Egy levél spam-valószínűsége 0,5. Egy jellemző 1-gyel nő, a súlya $\ln 3 \approx 1{,}099$. Mennyi lesz az új valószínűség? És ha az eredeti valószínűség 0,9 volt?
+      <details><summary>Megoldás</summary>Az esély háromszorosára nő. $p = 0{,}5$: esély $1 \to 3$, $p = 3/4 = 0{,}75$ (+0,25). $p = 0{,}9$: esély $9 \to 27$, $p = 27/28 \approx 0{,}964$ (+0,064).
+        Ugyanaz a súly, ugyanaz az esélyszorzó – de a valószínűség egészen másképp változik.</details></li>
+  </ol>
+</details>
+
+<h3 id="s53-d">4. lépés: a döntési küszöb és a döntési határ</h3>
+<p>A modell valószínűséget ad. De végül dönteni kell: spammappába kerüljön-e a levél? Ehhez kell egy <b>küszöb</b>.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – 0,5-ös küszöb</span>
+  „Spam, ha $\hat p \ge 0{,}5$.” Mivel $\sigma(z) \ge 0{,}5 \iff z \ge 0$, ez ugyanaz, mint $x - 2{,}7 \ge 0$, azaz $x \ge 2{,}7$: <b>3 vagy több felkiáltójel → spam</b>.
+  A tíz levélen ez 8/10: az S1 (2) átcsúszik, a H5 (4, $\hat p = 0{,}786$) a spammappába kerül.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Küszöb 0,5</span>
+    $z \ge 0 \iff x \ge 2{,}7$. Spamnek jelölt: S2, S3, S4 és <b>H5</b>.
+    <br>Átengedett spam: 1 (S1). Téves riasztás: 1 (H5). Pontosság: 80%.
+  </div>
+  <div class="box example">
+    <span class="box-title">Küszöb 0,9</span>
+    $z \ge \ln 9 \approx 2{,}197 \iff x \ge 4{,}9$. Spamnek jelölt: S2, S4.
+    <br>Átengedett spam: 2 (S1, S3). Téves riasztás: <b>0</b>. Pontosság: 80%.
+  </div>
+</div>
+<p>Ugyanaz a pontosság, de másféle hibák! Melyik a jobb? Egy spamszűrőnél a téves riasztás (egy fontos levél a spammappában) sokkal drágább, mint egy átcsúszott spam –
+ott a 0,9-es küszöb a jobb. Egy rákszűrésnél fordítva: inkább egy felesleges kontroll, mint egy elmulasztott daganat – ott alacsony küszöb kell.</p>
+<div class="box def">
+  <span class="box-title">Szabály – küszöb és döntési határ</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Döntés $t$ küszöbbel:</b> $\hat y = 1$, ha $\hat p \ge t$. Ez ugyanaz, mint $z \ge \ln\frac{t}{1 - t}$ – egy <em>lineáris</em> feltétel.</li>
+    <li><b>A döntési határ ezért egyenes</b> (több jellemzőnél hipersík): $\mathbf w^\top\mathbf x + b = \ln\frac{t}{1 - t}$; 0,5-ös küszöbnél $\mathbf w^\top\mathbf x + b = 0$.
+      A küszöb változtatása a határt <em>párhuzamosan eltolja</em>.</li>
+    <li><b>A küszöböt a hibák költsége dönti el</b>, nem a modell. A 0,5 csak az alapértelmezés.</li>
+  </ul>
+  <small>Miért fontos, hogy a modell valószínűséget ad, nem csak döntést? Mert így a küszöböt utólag, a modell újratanítása nélkül állíthatod – és a 6. fejezetben az összes küszöböt egyszerre
+  is értékelni fogod (ROC-görbe).</small>
+</div>
+<div class="box example">
+  <span class="box-title">Példa – két jellemzővel</span>
+  A linkekre és a felkiáltójelekre együtt tanított modell (scikit-learn, alapbeállítás): $z = 0{,}99\cdot\text{linkek} + 0{,}69\cdot\text{felkiáltójelek} - 4{,}85$.
+  A ★ = (3; 3) levélre: $z = 2{,}97 + 2{,}07 - 4{,}85 = 0{,}19$, $\hat p \approx 0{,}55$ – a határ mellett, ahogy a 5.1-ben sejtettük.
+  A határ: $0{,}99\,x_1 + 0{,}69\,x_2 = 4{,}85$ – egy egyenes, mint a centroid módszernél, csak más helyen és más irányban.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A „valószínűség” nem feltétlenül kalibrált.</b> Ha a modell sok levélre mond 0,8-at, nem biztos, hogy azoknak tényleg 80%-a spam. Kevés adat, erős regularizáció vagy rossz jellemzők
+      torzíthatják. (A kalibrálást a 6. fejezetben nézzük meg.)</li>
+    <li><b>Kiegyensúlyozatlan adatnál a 0,5 rossz küszöb lehet.</b> Ha a csalás 0,1%, a modell szinte sosem mond 0,5 fölötti csalásvalószínűséget – lejjebb kell vinni a küszöböt (<a href="../04-adatok-es-jellemzok/#s48-b">4.8</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – küszöb és határ</summary>
+  <ol>
+    <li>A $\hat p = \sigma(x - 2{,}7)$ modellnél hány felkiáltójeltől spam a levél 0,2-es küszöbbel? ($\ln 0{,}25 \approx -1{,}386$)
+      <details><summary>Megoldás</summary>$z \ge \ln\frac{0{,}2}{0{,}8} = \ln 0{,}25 \approx -1{,}386$, azaz $x \ge 2{,}7 - 1{,}386 \approx 1{,}31$ → 2 vagy több felkiáltójel.</details></li>
+    <li>Mennyi a 0,2-es küszöb pontossága a tíz levélen, és milyen hibákat ejt?
+      <details><summary>Megoldás</summary>Spamnek jelöl: mind a 4 spam (2, 5, 3, 6) és a H5 (4). Átengedett spam 0, téves riasztás 1. Pontosság: 9/10.</details></li>
+    <li>Egy kétjellemzős modell: $z = x_1 + 2x_2 - 6$. Írd fel a döntési határt 0,5-ös küszöbnél, és döntsd el a (2; 1) és a (2; 3) pontot!
+      <details><summary>Megoldás</summary>Határ: $x_1 + 2x_2 = 6$. (2; 1): $z = 2 + 2 - 6 = -2 \lt 0$ → 0. (2; 3): $z = 2 + 6 - 6 = 2 \ge 0$ → 1.</details></li>
+    <li>Ugyanennél a modellnél hogyan változik a határ 0,9-es küszöbnél? ($\ln 9 \approx 2{,}197$)
+      <details><summary>Megoldás</summary>$x_1 + 2x_2 - 6 = 2{,}197$, azaz $x_1 + 2x_2 = 8{,}197$ – párhuzamos az eredetivel, a pozitív osztály felé eltolva.</details></li>
+    <li>(nehezebb) Egy kórház rákszűrő modellt használ. Az elmulasztott daganat 50-szer „drágább”, mint egy felesleges kontrollvizsgálat. Merre tolnád el a küszöböt a 0,5-ről, és miért?
+      <details><summary>Megoldás</summary>Lefelé (pl. 0,02-re vagy 0,1-re): már kis valószínűségnél is kontrollra küldjük a beteget. Ha $p$ a daganat valószínűsége, a kontroll akkor éri meg, ha $p\cdot50 \gt (1 - p)\cdot1$, azaz $p \gt 1/51 \approx 0{,}02$.
+        (Ez feltételezi, hogy a modell valószínűségei kalibráltak.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s53-e">5. lépés: a veszteség – keresztentrópia, és a tanítás</h3>
+<p>Megvan a modell: $\hat p = \sigma(\mathbf w^\top\mathbf x + b)$. De honnan jön a $w = 1$ és a $b = -2{,}7$? A 3. fejezet receptje: kell egy <b>veszteség</b>, ami megmondja, mennyire rossz
+egy adott $(w, b)$, aztán <b>gradiens módszerrel</b> lefelé lépkedünk.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – három jóslat ugyanarra a spamre</span>
+  Egy levél valóban spam ($y = 1$). Három modell jóslata és a „büntetés” $-\ln\hat p$:
+  <table style="max-width:560px">
+    <tr><th>jóslat $\hat p$</th><th>0,9 (magabiztos, jó)</th><th>0,5 (bizonytalan)</th><th>0,1 (magabiztos, rossz)</th></tr>
+    <tr><td>$-\ln\hat p$</td><td>0,105</td><td>0,693</td><td><b>2,303</b></td></tr>
+    <tr><td>négyzetes hiba $(1 - \hat p)^2$</td><td>0,01</td><td>0,25</td><td>0,81</td></tr>
+  </table>
+  A logaritmusos büntetés a magabiztos tévedést sokkal keményebben bünteti: $0{,}01 \to$ 4,6; $0{,}001 \to$ 6,9; $0 \to \infty$. A négyzetes hiba legfeljebb 1 lehet.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – bináris keresztentrópia (log-veszteség)</span>
+  Egy mintára: a helyes osztálynak adott valószínűség negatív logaritmusa (<a href="../02-matematikai-eszkoztar/#s26-c">2.6</a>):
+  $$\ell = -\big[y\ln\hat p + (1 - y)\ln(1 - \hat p)\big] = \begin{cases} -\ln\hat p, & y = 1\\ -\ln(1 - \hat p), & y = 0.\end{cases}$$
+  A veszteség a tanító minták átlaga: $L(\mathbf w, b) = \frac1n\sum_i \ell_i$. A <b>gradiense</b> meglepően egyszerű:
+  $$\frac{\partial L}{\partial w_j} = \frac1n\sum_i(\hat p_i - y_i)\,x_{ij}, \qquad \frac{\partial L}{\partial b} = \frac1n\sum_i(\hat p_i - y_i).$$
+  <small>Miért ez a veszteség? (1) A magabiztos tévedést nagyon bünteti. (2) A $(w, b)$ függvényében <b>konvex</b> – egyetlen völgye van, a gradiens módszer biztosan megtalálja az alját.
+  (3) Ez a <b>maximum likelihood</b>: a $L$ minimalizálása ugyanaz, mint annak a modellnek a megkeresése, amelyik szerint a megfigyelt címkék a legvalószínűbbek.
+  A gradiens alakja ugyanaz, mint a lineáris regresszióé: (jóslat − címke) · jellemző.</small>
+  <details><summary>📐 A gradiens levezetése</summary>
+    A szigmoid deriváltja: $\sigma'(z) = \dfrac{e^{-z}}{(1 + e^{-z})^2} = \sigma(z)\big(1 - \sigma(z)\big)$.
+    Egy mintára, $y = 1$-re: $\ell = -\ln\sigma(z)$, $\dfrac{d\ell}{dz} = -\dfrac{\sigma(z)(1 - \sigma(z))}{\sigma(z)} = \sigma(z) - 1 = \hat p - y$.
+    $y = 0$-ra: $\ell = -\ln(1 - \sigma(z))$, $\dfrac{d\ell}{dz} = \dfrac{\sigma(z)(1 - \sigma(z))}{1 - \sigma(z)} = \hat p - 0$. Mindkét esetben $\dfrac{d\ell}{dz} = \hat p - y$.
+    A láncszabállyal ($z = \mathbf w^\top\mathbf x + b$): $\dfrac{\partial\ell}{\partial w_j} = (\hat p - y)\,x_j$, $\dfrac{\partial\ell}{\partial b} = \hat p - y$.
+    <br><b>Maximum likelihood:</b> ha a címkék függetlenek, a megfigyelt címkék valószínűsége a modell szerint $\prod_i \hat p_i^{\,y_i}(1 - \hat p_i)^{1 - y_i}$. Ennek a logaritmusa $\sum_i[y_i\ln\hat p_i + (1 - y_i)\ln(1 - \hat p_i)]$ –
+    a keresztentrópia $-n$-szerese. A likelihood maximuma tehát a keresztentrópia minimuma.
+  </details>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a veszteség a tíz levélen</span>
+    A $w = 1$, $b = -2{,}7$ modellel: a legnagyobb büntetést a H5 kapja ($\hat p = 0{,}786$, de nem spam: $-\ln 0{,}214 \approx 1{,}54$) és az S1 ($\hat p = 0{,}332$, de spam: $-\ln 0{,}332 \approx 1{,}10$).
+    A H1-re csak $-\ln(1 - 0{,}063) \approx 0{,}065$. Az átlag: $L \approx 0{,}386$. A kiindulás ($w = b = 0$, mindenre 0,5) vesztesége $\ln 2 \approx 0{,}693$ volt.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – az első gradiens lépés</span>
+    $w = b = 0$: minden $\hat p_i = 0{,}5$, így $\hat p_i - y_i = -0{,}5$ a spamekre, $+0{,}5$ a többire.
+    $\frac{\partial L}{\partial w} = \frac{1}{10}\big[-0{,}5\,(2 + 5 + 3 + 6) + 0{,}5\,(0 + 0 + 0 + 1 + 4 + 1)\big] = -0{,}5$, $\frac{\partial L}{\partial b} = \frac{-2 + 3}{10} = 0{,}1$.
+    $\eta = 0{,}1$ tanulási rátával: $w = 0{,}05$, $b = -0{,}01$, a veszteség $0{,}693 \to 0{,}670$.
+  </div>
+</div>
+<div class="widget" data-widget="sigmoid-fit"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Ha az adat tökéletesen szétválasztható, a súlyok a végtelenbe szaladnak.</b> A veszteség mindig csökkenthető, ha a szigmoidot „élesebbé” tesszük (nagyobb $|w|$), így nincs véges minimum (ESL 4.4).
+      Ezért a gyakorlatban <b>regularizációt</b> használunk: a veszteséghez hozzáadjuk a súlyok négyzetösszegét (a scikit-learnben alapból, a <code>C</code> paraméterrel). A két jellemzős modellünk ezért adott véges súlyokat.</li>
+    <li><b>Ne MSE-vel tanítsd!</b> Szigmoid + négyzetes hiba nem konvex, és a magabiztos tévedésnél a gradiens szinte nulla – a modell „nem veszi észre”, hogy nagyot téved.</li>
+    <li><b>Skálázz</b> – a gradiens módszer itt is cikázik, ha a jellemzők nagyon eltérő léptékűek (<a href="../03-tanulas-anatomiaja/#s36-c">3.6</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – keresztentrópia és tanítás</summary>
+  <ol>
+    <li>Egy nem spam levélre ($y = 0$) a modell $\hat p = 0{,}2$-t mond. Mennyi a veszteség? ($\ln 0{,}8 \approx -0{,}223$)
+      <details><summary>Megoldás</summary>$-\ln(1 - 0{,}2) = -\ln 0{,}8 \approx 0{,}223$.</details></li>
+    <li>Melyik büntetés nagyobb: egy spamre 0,01-et mondani, vagy egy nem spamre 0,9-et? ($\ln 0{,}01 \approx -4{,}605$, $\ln 0{,}1 \approx -2{,}303$)
+      <details><summary>Megoldás</summary>Spam, $\hat p = 0{,}01$: $-\ln 0{,}01 \approx 4{,}605$. Nem spam, $\hat p = 0{,}9$: $-\ln 0{,}1 \approx 2{,}303$. Az első a nagyobb – magabiztosabb tévedés.</details></li>
+    <li>Két minta: $(x = 1, y = 1)$ és $(x = 3, y = 0)$. A modell most $w = 0$, $b = 0$. Mennyi a $\partial L/\partial w$ és a $\partial L/\partial b$?
+      <details><summary>Megoldás</summary>$\hat p = 0{,}5$ mindkettőre. $\hat p - y$: $-0{,}5$ és $+0{,}5$. $\partial L/\partial w = \frac12[(-0{,}5)\cdot1 + 0{,}5\cdot3] = 0{,}5$; $\partial L/\partial b = \frac12(-0{,}5 + 0{,}5) = 0$.</details></li>
+    <li>Az előző feladatban egy $\eta = 1$ lépés után mennyi $w$ és $b$? Merre fordult a modell?
+      <details><summary>Megoldás</summary>$w = 0 - 1\cdot0{,}5 = -0{,}5$, $b = 0$. Negatív súly: nagyobb $x$ → kisebb $\hat p$ – helyes, hiszen itt a nagy $x$-ű minta a negatív.</details></li>
+    <li>(nehezebb) Egy modell mind a 10 levélre 0,4-et mond (ennyi a spamek aránya). Mennyi az átlagos keresztentrópia? Jobb-e, mint a mindenre 0,5? ($\ln 0{,}4 \approx -0{,}916$, $\ln 0{,}6 \approx -0{,}511$)
+      <details><summary>Megoldás</summary>$\frac{1}{10}\big[4\cdot0{,}916 + 6\cdot0{,}511\big] = \frac{3{,}664 + 3{,}066}{10} \approx 0{,}673$. Jobb, mint a $\ln 2 \approx 0{,}693$. Ez a keresztentrópia „alapvonala”: a jellemzőket nem használó
+        legjobb konstans jóslat az osztályarány (vö. a 3. fejezet átlagával).</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai5-53"></div>
+</section>
+
+<!-- ===================================================== 5.4 -->
+<section id="s54">
+<h2>5.4 Többosztályos eset: softmax ★★</h2>
+<p>A spamszűrő két osztállyal dolgozott. De a postafiókod (mint a Gmail) talán három fülre osztja a leveleket: <b>munka</b>, <b>személyes</b>, <b>reklám</b>. A kNN-nek és a centroidnak
+ez nem gond – a szavazás és a „legközelebbi centroid” bármennyi osztályra működik. A logisztikus regresszió viszont egyetlen valószínűséget ad. Mit tegyünk három osztálynál?</p>
+
+<h3 id="s54-a">1. lépés: egy-a-többi ellen – sok bináris osztályozó</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – három kérdés, három válasz</span>
+  Tanítsunk három külön bináris logisztikus regressziót: „munka-e (vagy bármi más)?”, „személyes-e?”, „reklám-e?”. Két levélre ezt mondják:
+  <table style="max-width:600px">
+    <tr><th>levél</th><th>P(munka)</th><th>P(személyes)</th><th>P(reklám)</th><th>összeg</th><th>döntés</th></tr>
+    <tr><td>A</td><td><b>0,7</b></td><td>0,4</td><td>0,2</td><td>1,3</td><td>munka</td></tr>
+    <tr><td>B</td><td><b>0,2</b></td><td>0,1</td><td>0,15</td><td>0,45</td><td>munka (?)</td></tr>
+  </table>
+  A döntés: amelyik osztályozó a legmagabiztosabb. Működik – de a számok nem adnak össze 1-et, és a B levélnél mindhárom osztályozó azt mondja, hogy „nem az enyém”.
+  A három valószínűség egymástól függetlenül készült, ezért nem egy valódi eloszlás.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – egy-a-többi ellen (OvR) és egy-az-egy ellen (OvO)</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Egy-a-többi ellen</b> (<em>one-vs-rest</em>): $K$ osztályhoz $K$ bináris osztályozó; a $k$-adik a „$k$ vagy nem $k$” kérdésre felel. A döntés: a legnagyobb pontszám.</li>
+    <li><b>Egy-az-egy ellen</b> (<em>one-vs-one</em>): minden osztálypárhoz egy osztályozó, összesen $\binom{K}{2} = \frac{K(K - 1)}{2}$. A döntés: szavazás – amelyik osztály a legtöbb párharcot nyeri.</li>
+  </ul>
+  <small>Miért jó? Mert <em>bármilyen</em> bináris osztályozóból többosztályost csinál. Miért nem elég? Mert a pontszámok nem összevethetők és nem adnak eloszlást – erre lesz a softmax.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – számjegyek, OvR</span>
+    10 számjegy: 10 osztályozó („0-e?”, „1-e?”, …). Mindegyik az összes, például 60 000 tanító képen tanul, ebből kb. 6000 a pozitív.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – számjegyek, OvO</span>
+    $\binom{10}{2} = 45$ osztályozó („3 vagy 8?”). Mindegyik csak a két érintett osztály kb. 12 000 képén tanul – több, de kisebb feladat. Az SVM-ek (7. fejezet) gyakran így dolgoznak (PDL 7).
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az OvR „valószínűségei” nem adnak össze 1-et</b>, és egy-egy osztályozó a kiegyensúlyozatlanság miatt (1 pozitív osztály a 9 ellen) torzíthat.</li>
+    <li><b>Az OvO osztályozóinak száma négyzetesen nő:</b> 100 osztálynál már 4950.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – OvR és OvO</summary>
+  <ol>
+    <li>Hány osztályozó kell 4 osztályhoz OvR-rel és OvO-val?
+      <details><summary>Megoldás</summary>OvR: 4. OvO: $\binom42 = 6$.</details></li>
+    <li>Hány osztályozó kell 26 betűhöz OvO-val?
+      <details><summary>Megoldás</summary>$\binom{26}{2} = \frac{26\cdot25}{2} = 325$.</details></li>
+    <li>OvR pontszámok egy levélre: munka 0,3, személyes 0,6, reklám 0,55. Mi a döntés?
+      <details><summary>Megoldás</summary>Személyes (0,6). De a reklám (0,55) is közel van – a két osztályozó külön-külön elég biztos, ami ellentmondás.</details></li>
+    <li>OvO párharcok 3 osztálynál: munka–személyes → munka; munka–reklám → reklám; személyes–reklám → reklám. Mi a döntés?
+      <details><summary>Megoldás</summary>Győzelmek: reklám 2, munka 1, személyes 0 → reklám.</details></li>
+    <li>(nehezebb) OvO-ban 3 osztálynál előfordulhat-e, hogy mindhárom osztály 1–1 győzelmet kap? Mit tennél ilyenkor?
+      <details><summary>Megoldás</summary>Igen: A legyőzi B-t, B legyőzi C-t, C legyőzi A-t („kő–papír–olló”). Holtverseny; ilyenkor a párharcok magabiztosságát (pontszámait) adják össze, vagy véletlenül döntenek.</details></li>
+  </ol>
+</details>
+
+<h3 id="s54-b">2. lépés: softmax – egyetlen modell, valódi eloszlás</h3>
+<p>Ahelyett, hogy három független kérdést tennénk fel, adjon egyetlen modell három <b>pontszámot</b> (logitot) – osztályonként egy lineáris kifejezést –, és ezeket alakítsuk közösen
+valószínűséggé. Ez a softmax, amit a 2. fejezetben már láttál (<a href="../02-matematikai-eszkoztar/#s25-d">2.5</a>).</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – három logit</span>
+  Egy levélre a modell pontszámai: munka $z_1 = 2$, személyes $z_2 = 1$, reklám $z_3 = 0{,}1$.
+  <ol style="margin:.3rem 0">
+    <li>Exponenciálás (mind pozitív lesz): $e^2 \approx 7{,}389$, $e^1 \approx 2{,}718$, $e^{0{,}1} \approx 1{,}105$.</li>
+    <li>Normálás az összeggel ($11{,}212$): $(0{,}659;\ 0{,}242;\ 0{,}099)$.</li>
+  </ol>
+  Összeg 1, a sorrend megmaradt. A modell 66%-ra munkalevélnek tartja.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – többosztályos (multinomiális) logisztikus regresszió</span>
+  Minden $k$ osztálynak saját súlyvektora és eltolása van, ezekből logit:
+  $$z_k = \mathbf w_k^\top\mathbf x + b_k, \qquad \hat p_k = \operatorname{softmax}(\mathbf z)_k = \frac{e^{z_k}}{\sum_{j=1}^K e^{z_j}}.$$
+  A döntés: a legnagyobb $\hat p_k$ – ami ugyanaz, mint a legnagyobb $z_k$.
+  <br><small>Miért ez a jó általánosítás? Mert két osztálynál pontosan a szigmoidot adja vissza: $\dfrac{e^{z_1}}{e^{z_1} + e^{z_0}} = \dfrac{1}{1 + e^{-(z_1 - z_0)}} = \sigma(z_1 - z_0)$.
+  A bináris logisztikus regresszió tehát a softmax speciális esete, ahol az egyik osztály logitját 0-nak vesszük. A modern könyvtárak (a scikit-learn 0.22 óta) többosztályos
+  esetben alapból ezt használják, nem az OvR-t.</small>
+</div>
+<div class="widget" data-widget="softmax-lab"></div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egyforma pontszámok</span>
+    $\mathbf z = (1, 1, 1)$: mindhárom $e^1$, a softmax $(1/3, 1/3, 1/3)$. Ugyanez $(5, 5, 5)$-re is: csak a <b>különbségek</b> számítanak.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – kétszeres pontszámok</span>
+    $\mathbf z = (4;\ 2;\ 0{,}2)$, az eredeti kétszerese: $(0{,}864;\ 0{,}117;\ 0{,}019)$. A sorrend ugyanaz, de a modell sokkal magabiztosabb – a különbségek is megduplázódtak.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A logit nem valószínűség.</b> A $z = 2$ nem „200%”, és a negatív logit sem hiba – a softmax előtt bármilyen valós szám lehet.</li>
+    <li><b>Ne softmaxolj kétszer.</b> Ha a $(0{,}659;\ 0{,}242;\ 0{,}099)$ valószínűségekre még egyszer softmaxot alkalmazol, $(0{,}448;\ 0{,}295;\ 0{,}256)$-at kapsz – laposabb, hibás eredményt.</li>
+    <li><b>Túlcsordulás:</b> $e^{1000}$-et a gép nem tudja tárolni. Ezért a softmax előtt a legnagyobb logitot mindegyikből levonják – az eredmény ugyanaz: $(1000, 999) \to (1, 0) \to (0{,}731;\ 0{,}269)$.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – softmax</summary>
+  <ol>
+    <li>Mennyi a softmax, ha $\mathbf z = (0;\ \ln 2;\ \ln 3)$?
+      <details><summary>Megoldás</summary>$e^{z} = (1;\ 2;\ 3)$, összeg 6: $(1/6;\ 2/6;\ 3/6) \approx (0{,}167;\ 0{,}333;\ 0{,}5)$.</details></li>
+    <li>Két osztály: $\mathbf z = (2;\ 0)$. Mennyi a softmax? Vesd össze $\sigma(2)$-vel!
+      <details><summary>Megoldás</summary>$\frac{e^2}{e^2 + 1} = \frac{7{,}389}{8{,}389} \approx 0{,}881$ és $0{,}119$. Pontosan $\sigma(2 - 0) = \sigma(2) \approx 0{,}881$ ✓.</details></li>
+    <li>Mennyi a softmax, ha $\mathbf z = (12;\ 11;\ 10{,}1)$?
+      <details><summary>Megoldás</summary>Ugyanaz, mint $(2;\ 1;\ 0{,}1)$-re, hiszen mindegyikhez 10-et adtunk: $(0{,}659;\ 0{,}242;\ 0{,}099)$.</details></li>
+    <li>Egy 4 osztályos modell logitjai $(0{,}2;\ 1{,}3;\ 0{,}8;\ 2{,}1)$ (PDL). Melyik osztály nyer, és nagyjából mekkora valószínűséggel? ($e^{0{,}2} \approx 1{,}221$, $e^{1{,}3} \approx 3{,}669$, $e^{0{,}8} \approx 2{,}226$, $e^{2{,}1} \approx 8{,}166$)
+      <details><summary>Megoldás</summary>Összeg $\approx 15{,}282$. Valószínűségek: $(0{,}080;\ 0{,}240;\ 0{,}146;\ 0{,}534)$. A 4. osztály nyer, kb. 53%-kal.</details></li>
+    <li>(nehezebb) Egy háromosztályos modellben $z_1 = 3$, $z_2 = 3$, $z_3 = 0$. Mennyi $\hat p_3$? ($e^3 \approx 20{,}09$) És mi a döntés?
+      <details><summary>Megoldás</summary>$\hat p_3 = \frac{1}{20{,}09 + 20{,}09 + 1} \approx 0{,}024$; $\hat p_1 = \hat p_2 \approx 0{,}488$. Az 1. és a 2. osztály között holtverseny – a modell nem tud dönteni, csak azt tudja, hogy a 3. nem az.</details></li>
+  </ol>
+</details>
+
+<h3 id="s54-c">3. lépés: kategoriális keresztentrópia – a veszteség több osztályra</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – ugyanaz a jóslat, más címke</span>
+  A modell jóslata $(0{,}659;\ 0{,}242;\ 0{,}099)$ (munka, személyes, reklám).
+  <ul style="margin:.2rem 0">
+    <li>Ha a levél tényleg munka: $L = -\ln 0{,}659 \approx 0{,}417$.</li>
+    <li>Ha a levél valójában reklám: $L = -\ln 0{,}099 \approx 2{,}317$.</li>
+  </ul>
+  Csak a helyes osztálynak adott valószínűség számít – ugyanaz a gondolat, mint a bináris esetben.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – kategoriális keresztentrópia</span>
+  Ha a címke one-hot vektor ($\mathbf y$, a helyes osztálynál 1, máshol 0):
+  $$L = -\sum_{k=1}^K y_k\ln\hat p_k = -\ln\hat p_{\text{helyes}}.$$
+  A logitok szerinti gradiens ismét „jóslat − címke”: $\dfrac{\partial L}{\partial z_k} = \hat p_k - y_k$.
+  <br><small>Miért? Ugyanazért, mint a bináris esetben: maximum likelihood, konvex a súlyokban, és keményen bünteti a magabiztos tévedést. Két osztálynál pontosan a bináris keresztentrópia.
+  Ez a veszteség tanítja a neurális hálók és a nagy nyelvi modellek többségét is – egy LLM minden lépésben egy több tízezer osztályos softmaxot tanul (16. fejezet).</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a gradiens</span>
+    A jóslat $(0{,}659;\ 0{,}242;\ 0{,}099)$, a címke munka, $\mathbf y = (1, 0, 0)$. A gradiens a logitokra: $(-0{,}341;\ 0{,}242;\ 0{,}099)$. A gradiens módszer a munka logitját növeli, a másik kettőt csökkenti.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a „semmit nem tudok” veszteség</span>
+    Egy modell, ami mindig egyenletes eloszlást mond: $L = -\ln\frac1K = \ln K$. Három osztálynál $\ln 3 \approx 1{,}099$, tíznél $\ln 10 \approx 2{,}303$. Ha a tanítás elején a veszteség
+    ennyi, minden rendben; ha a tanítás után is, a modell semmit nem tanult.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A veszteség nem pontosság.</b> Ha a helyes osztály 0,4-et kap, a többi 0,3–0,3-at, a döntés jó, a veszteség mégis $-\ln 0{,}4 \approx 0{,}92$. A veszteség a magabiztosságot is méri.</li>
+    <li><b>A $\ln 0$ végtelen.</b> Ha a modell egy osztálynak pontosan 0-t adna, és az a helyes, a veszteség végtelen. A softmax sosem ad pontosan 0-t, de a kódban ezért számolják a veszteséget közvetlenül a logitokból.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – kategoriális keresztentrópia</summary>
+  <ol>
+    <li>A jóslat $(0{,}7;\ 0{,}2;\ 0{,}1)$, a helyes osztály a 2. Mennyi a veszteség? ($\ln 0{,}2 \approx -1{,}609$)
+      <details><summary>Megoldás</summary>$-\ln 0{,}2 \approx 1{,}609$.</details></li>
+    <li>Mennyi a veszteség egy 4 osztályos feladatban, ha a modell mindenre $1/4$-et mond? ($\ln 4 \approx 1{,}386$)
+      <details><summary>Megoldás</summary>$\ln 4 \approx 1{,}386$.</details></li>
+    <li>A jóslat $(0{,}5;\ 0{,}3;\ 0{,}2)$, a helyes osztály az 1. Mi a gradiens a logitokra?
+      <details><summary>Megoldás</summary>$\hat{\mathbf p} - \mathbf y = (0{,}5 - 1;\ 0{,}3;\ 0{,}2) = (-0{,}5;\ 0{,}3;\ 0{,}2)$.</details></li>
+    <li>A $(4;\ 2;\ 0{,}2)$ logitok jóslata $(0{,}864;\ 0{,}117;\ 0{,}019)$. Mennyi a veszteség, ha a helyes az 1., és ha a 3. osztály? Vesd össze a $(2;\ 1;\ 0{,}1)$ logitokkal!
+      <details><summary>Megoldás</summary>1. osztály: $-\ln 0{,}864 \approx 0{,}146$ (az eredeti 0,417 helyett – jobb). 3. osztály: $-\ln 0{,}019 \approx 3{,}95$ (az eredeti 2,317 helyett – rosszabb).
+        A nagyobb magabiztosság a jó válasznál kifizetődik, a rossznál sokba kerül.</details></li>
+    <li>(nehezebb) Egy 10 osztályos modell vesztesége a tanítás után 2,30 körül van. Mire gyanakszol? ($\ln 10 \approx 2{,}303$)
+      <details><summary>Megoldás</summary>Arra, hogy a modell semmit nem tanult: ennyi az egyenletes jóslat vesztesége. Okok: túl kicsi (vagy nulla) tanulási ráta, rossz címkék, a jellemzők nem jutnak el a modellhez (pl. hibás adatbetöltés).</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai5-54"></div>
+</section>
+
+<!-- ===================================================== 5.5 -->
+<section id="s55">
+<h2>5.5 Naiv Bayes ★★</h2>
+<p>A kNN és a logisztikus regresszió a linkeket és a felkiáltójeleket nézte. De egy spam legárulkodóbb jele a <b>szöveg</b>: „nyertél”, „ingyen”, „kattints”. A szavakat
+<em>bizonyítékként</em> kezeljük, és a Bayes-tétellel frissítjük a hitünket: minden árulkodó szó egy kicsit a spam felé billenti a mérleget. Ez a naiv Bayes – az első
+igazán sikeres spamszűrők módszere.</p>
+
+<h3 id="s55-a">1. lépés: egy szó – a Bayes-tétel</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – mennyire gyanús az „ingyen”?</span>
+  A tíz levélből az „ingyen” négyben szerepel: S1, S3, S4 (spam) és H5 (a buli meghívó). <b>Megszámolva:</b> az „ingyen”-es levelek $3/4 = 0{,}75$ része spam.
+  <br><b>A Bayes-tétellel</b> ugyanez (<a href="../02-matematikai-eszkoztar/#s25-b">2.5</a>):
+  <ul style="margin:.2rem 0">
+    <li>a priori: $P(\text{spam}) = 4/10 = 0{,}4$, $P(\text{nem spam}) = 0{,}6$;</li>
+    <li>a szó gyakorisága osztályonként: $P(\text{ingyen} \mid \text{spam}) = 3/4$ (4 spamből 3-ban), $P(\text{ingyen} \mid \text{nem spam}) = 1/6$;</li>
+    <li>$P(\text{spam} \mid \text{ingyen}) = \dfrac{0{,}4\cdot\frac34}{0{,}4\cdot\frac34 + 0{,}6\cdot\frac16} = \dfrac{0{,}3}{0{,}3 + 0{,}1} = 0{,}75$ ✓.</li>
+  </ul>
+  A két út ugyanoda vezet. Akkor minek a képlet? A következő lépésben kiderül: több szónál a közvetlen számolás csődöt mond, a képlet viszont nem.
+</div>
+<div class="box def">
+  <span class="box-title">🔁 Emlékeztető – Bayes-tétel osztályozásra</span>
+  $$P(c \mid \mathbf x) = \frac{P(\mathbf x \mid c)\,P(c)}{P(\mathbf x)}, \qquad P(\mathbf x) = \sum_{c'} P(\mathbf x \mid c')\,P(c').$$
+  $P(c)$: az osztály <b>a priori</b> valószínűsége (az osztályarány a tanító adatban). $P(\mathbf x \mid c)$: a <b>likelihood</b> – mennyire jellemző ez a jellemző az osztályra.
+  $P(c \mid \mathbf x)$: az <b>a posteriori</b> valószínűség, amire kíváncsiak vagyunk. A nevező csak normál: minden osztálynál ugyanaz.
+  <br><small>Miért ez a jó irány? Mert a $P(\text{szó} \mid \text{spam})$-ot könnyű megbecsülni (megszámoljuk a spamekben), a $P(\text{spam} \mid \text{szó})$-t pedig ebből kapjuk.
+  Részletesen: <a href="../../valoszinusegszamitas/02-felteteles-valoszinuseg-es-fuggetlenseg/#s24">Valószínűségszámítás 2.4</a>.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – „holnap”</span>
+    $P(\text{holnap} \mid \text{spam}) = 0/4 = 0$, $P(\text{holnap} \mid \text{nem spam}) = 4/6$. $P(\text{spam} \mid \text{holnap}) = \dfrac{0{,}4\cdot0}{0 + 0{,}6\cdot\frac46} = 0$.
+    A tíz levél szerint a „holnap” <em>biztos</em> jele a nem spamnek. (Ez túl erős állítás – lásd a 3. lépést.)
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – más a postafiók</span>
+    Ha a levelek 90%-a spam lenne (ugyanakkora szógyakoriságokkal): $\dfrac{0{,}9\cdot\frac34}{0{,}9\cdot\frac34 + 0{,}1\cdot\frac16} = \dfrac{0{,}675}{0{,}692} \approx 0{,}976$.
+    Ugyanaz a szó, más a priori → más következtetés.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktató – a feltétel megfordítása</span>
+  $P(\text{ingyen} \mid \text{spam})$ és $P(\text{spam} \mid \text{ingyen})$ két különböző kérdés. Itt véletlenül mindkettő 0,75, de a 90%-os spampostafiókban az első marad 0,75, a második 0,976 lesz.
+  Egy szó lehet nagyon gyakori a spamekben, és mégis gyenge bizonyíték, ha a jó levelekben is gyakori (pl. „a”, „és”).
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – egy szó</summary>
+  <ol>
+    <li>A tíz levél alapján mennyi $P(\text{spam} \mid \text{kattints})$? Számold ki megszámolva és Bayes-tétellel is!
+      <details><summary>Megoldás</summary>A „kattints” az S1, S2, S3 és a H3 levélben van: $3/4 = 0{,}75$. Bayes: $\dfrac{0{,}4\cdot\frac34}{0{,}4\cdot\frac34 + 0{,}6\cdot\frac16} = \dfrac{0{,}3}{0{,}4} = 0{,}75$ ✓.</details></li>
+    <li>Mennyi $P(\text{spam} \mid \text{nyertél})$ a tíz levél alapján?
+      <details><summary>Megoldás</summary>A „nyertél” csak spamekben van (S2, S3, S4): $P(\text{nyertél} \mid \text{nem spam}) = 0$, így $P(\text{spam} \mid \text{nyertél}) = 1$.</details></li>
+    <li>1000 levélből 300 spam. Az „akció” szó 120 spamben és 70 nem spamben fordul elő. Mennyi $P(\text{spam} \mid \text{akció})$?
+      <details><summary>Megoldás</summary>Megszámolva: $120/(120 + 70) = 120/190 \approx 0{,}632$. (Bayes-szel: $\frac{0{,}3\cdot0{,}4}{0{,}3\cdot0{,}4 + 0{,}7\cdot0{,}1} = \frac{0{,}12}{0{,}19}$ ✓.)</details></li>
+    <li>Az előző feladatban mennyi $P(\text{akció} \mid \text{spam})$, és miért különbözik $P(\text{spam} \mid \text{akció})$-tól?
+      <details><summary>Megoldás</summary>$120/300 = 0{,}4$. Más a viszonyítási alap: az elsőnél a spamek közül nézzük, hányban van „akció”, a másodiknál az „akció”-s levelek közül, hány spam.</details></li>
+    <li>(nehezebb) Egy szó a spamek 10%-ában és a jó levelek 10%-ában is előfordul. Mennyit változtat a spam valószínűségén, ha szerepel a levélben?
+      <details><summary>Megoldás</summary>Semmit: $\frac{P(c)\cdot0{,}1}{P(\text{spam})\cdot0{,}1 + P(\text{nem spam})\cdot0{,}1} = P(c)$. Az a szó számít bizonyítéknak, amelyiknek a gyakorisága <em>eltér</em> a két osztályban – a hányadosuk a lényeg (lásd a 4. lépést).</details></li>
+  </ol>
+</details>
+
+<h3 id="s55-b">2. lépés: több szó – a „naiv” feltevés</h3>
+<p>Egy levélben sok szó van. Ha kettő szerepel, a közvetlen számolás még megy. De mi lesz húsz szónál?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – „ingyen” és „kattints” együtt</span>
+  <b>Megszámolva:</b> mindkét szó az S1 és az S3 levélben van – mindkettő spam, tehát „100%”. De ez csak <b>két</b> levélen alapul. Három szóra („ingyen”, „nyertél”, „kattints”) már csak egy
+  levél illik (S3), húsz szóra pedig egyetlen sem: <em>pontosan ugyanez a szókombináció</em> valószínűleg soha nem fordult még elő. A közvetlen számolás elfogy.
+  <br><b>A naiv ötlet:</b> tegyük fel, hogy egy osztályon belül a szavak egymástól függetlenül fordulnak elő. Akkor a valószínűségük szorzódik:
+  $$P(\text{ingyen}, \text{kattints} \mid \text{spam}) \approx \tfrac34\cdot\tfrac34, \qquad P(\text{ingyen}, \text{kattints} \mid \text{nem spam}) \approx \tfrac16\cdot\tfrac16.$$
+  A számlálók: spam $0{,}4\cdot\frac34\cdot\frac34 = 0{,}225$; nem spam $0{,}6\cdot\frac16\cdot\frac16 \approx 0{,}0167$. Normálva:
+  $P(\text{spam} \mid \text{ingyen, kattints}) = \dfrac{0{,}225}{0{,}225 + 0{,}0167} \approx 0{,}931$.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – naiv Bayes osztályozó</span>
+  <b>Feltételes függetlenség</b> (a „naiv” feltevés): az osztályon belül a jellemzők függetlenek, ezért
+  $$P(x_1, \dots, x_d \mid c) = \prod_{j=1}^d P(x_j \mid c), \qquad P(c \mid \mathbf x) \propto P(c)\prod_{j=1}^d P(x_j \mid c).$$
+  ($\propto$: „arányos” – a nevező minden osztálynál ugyanaz.) <b>Tanítás:</b> megszámoljuk az osztályarányokat és osztályonként a jellemzők gyakoriságát. <b>Jóslás:</b> minden
+  osztályra kiszámoljuk a szorzatot, és a legnagyobb nyer; a valószínűséghez elosztjuk az összegükkel.
+  <br><small>Miért működik ilyen jól, ha a feltevés hamis? Mert a döntéshez nem kell pontos valószínűség, csak az, hogy a helyes osztály szorzata legyen a <em>legnagyobb</em>. A becslések torzak,
+  de a sorrend gyakran jó (ESL 6.6). Cserébe a tanítás egyetlen számlálás – villámgyors, és kevés adatból is működik, mert minden szó gyakoriságát külön becsüljük.</small>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabály</span>
+  <b>Az „és” szorzást jelent</b> – itt is: „ingyen <em>és</em> kattints” → $P(\text{ingyen} \mid c)\cdot P(\text{kattints} \mid c)$. A naiv Bayesben minden szó egy szorzótényező.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a fejezet levele (simítás nélkül)</span>
+    „nyertél” és „kattints”: spam $0{,}4\cdot\frac34\cdot\frac34 = 0{,}225$; nem spam $0{,}6\cdot0\cdot\frac16 = 0$. Eredmény: $P(\text{spam}) = 1$ – egyetlen nulla miatt teljes bizonyosság.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – „holnap” és „kattints”</span>
+    Spam: $0{,}4\cdot0\cdot\frac34 = 0$; nem spam: $0{,}6\cdot\frac46\cdot\frac16 \approx 0{,}0667$. Eredmény: $P(\text{spam}) = 0$. A „holnap” egymaga „megvétózza” a spamet.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A függetlenség szinte sosem igaz.</b> A „nyertél” és a „nyeremény” együtt jár; a modell ezt két külön bizonyítéknak veszi, és túl magabiztos lesz. A naiv Bayes valószínűségei
+      ezért gyakran 0-hoz vagy 1-hez túl közel vannak – a döntés jó lehet, a valószínűség nem kalibrált.</li>
+    <li><b>Független ≠ feltételesen független.</b> A „nyertél” és a „kattints” <em>összességében</em> együtt jár (mindkettő a spamekben gyakori), a naiv Bayes csak azt feltételezi, hogy
+      <em>egy osztályon belül</em> függetlenek. (A „naiv” szó erre utal – nem arra, ahogy egy forrás, DLV 11, magyarázza, hogy „a prior nem az adaton alapul”.)</li>
+    <li><b>Egyetlen nulla mindent eldönt</b> – ezt javítjuk a következő lépésben.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – több szó</summary>
+  <ol>
+    <li>Simítás nélkül mennyi $P(\text{spam} \mid \text{ingyen, nyertél})$ a tíz levél alapján?
+      <details><summary>Megoldás</summary>Spam: $0{,}4\cdot\frac34\cdot\frac34 = 0{,}225$; nem spam: $0{,}6\cdot\frac16\cdot0 = 0$ → 1.</details></li>
+    <li>Egy postafiók: $P(\text{spam}) = 0{,}5$. $P(\text{akció} \mid \text{spam}) = 0{,}4$, $P(\text{akció} \mid \text{jó}) = 0{,}1$; $P(\text{link} \mid \text{spam}) = 0{,}6$, $P(\text{link} \mid \text{jó}) = 0{,}3$. Mennyi $P(\text{spam} \mid \text{akció, link})$?
+      <details><summary>Megoldás</summary>Spam: $0{,}5\cdot0{,}4\cdot0{,}6 = 0{,}12$; jó: $0{,}5\cdot0{,}1\cdot0{,}3 = 0{,}015$. $\frac{0{,}12}{0{,}135} \approx 0{,}889$.</details></li>
+    <li>Az előző feladatban mennyi lenne a csak „akció” szót tartalmazó levél spam-valószínűsége?
+      <details><summary>Megoldás</summary>$\frac{0{,}5\cdot0{,}4}{0{,}5\cdot0{,}4 + 0{,}5\cdot0{,}1} = \frac{0{,}2}{0{,}25} = 0{,}8$. A „link” bizonyíték 0,8-ról 0,889-re emelte.</details></li>
+    <li>Miért nem kell kiszámolni a Bayes-tétel nevezőjét, ha csak dönteni akarunk?
+      <details><summary>Megoldás</summary>Mert minden osztálynál ugyanaz; a számlálók sorrendje dönt. Csak akkor kell, ha valószínűséget is akarunk – és akkor is csak összeadjuk a számlálókat.</details></li>
+    <li>(nehezebb) Egy modellben a „nyeremény” szót kétszer vettük fel jellemzőként (véletlenül, két oszlopban). Mi történik a naiv Bayes becslésével?
+      <details><summary>Megoldás</summary>Ugyanaz a bizonyíték kétszer szorzódik: ha $P(\text{nyeremény} \mid \text{spam})/P(\text{nyeremény} \mid \text{jó}) = 5$, akkor 25-szörös lesz a hatása. A modell még magabiztosabb lesz – ez a
+        függetlenségi feltevés megsértésének szélsőséges esete.</details></li>
+  </ol>
+</details>
+
+<h3 id="s55-c">3. lépés: a nulla csapdája – Laplace-simítás</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – „Nyertél! Holnap lejár, kattints!”</span>
+  A levélben a „nyertél”, a „holnap” és a „kattints” szerepel. A számlálók simítás nélkül:
+  <ul style="margin:.2rem 0">
+    <li>spam: $0{,}4\cdot\frac34\cdot\mathbf{0}\cdot\frac34 = 0$ (a „holnap” egyetlen spamben sem volt);</li>
+    <li>nem spam: $0{,}6\cdot\mathbf{0}\cdot\frac46\cdot\frac16 = 0$ (a „nyertél” egyetlen jó levélben sem volt).</li>
+  </ul>
+  $P(\text{spam} \mid \dots) = \frac{0}{0 + 0}$ – <b>nincs értelmezve</b>. Pedig a levél nyilvánvalóan gyanús. A baj az, hogy tíz levélből egy szó hiánya nem bizonyítja, hogy a szó <em>soha</em> nem fordulhat elő.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – Laplace-simítás (additív simítás)</span>
+  Minden gyakorisághoz hozzáadunk egy kis számot ($\alpha$, általában 1), mintha minden lehetséges kimenetet láttunk volna már egyszer:
+  $$P(\text{szó} \mid c) = \frac{n_{\text{szó},c} + \alpha}{n_c + 2\alpha},$$
+  ahol $n_c$ a $c$ osztály leveleinek száma, $n_{\text{szó},c}$ azoké, amelyekben a szó szerepel. A nevezőben $2\alpha$ áll, mert egy szónak két kimenete van: szerepel / nem szerepel.
+  <br><small>Miért? Mert így egyetlen szó sem kap 0 vagy 1 valószínűséget, és a kevés adatból becsült értékek „a középhez” húzódnak. Sok adatnál a +1 elhanyagolható, kevésnél sokat számít.
+  (Ugyanez a gondolat, mint a 4. fejezet simított célváltozó-alapú kódolásánál – <a href="../04-adatok-es-jellemzok/#s43-c">4.3</a>.)</small>
+</div>
+<div class="box example">
+  <span class="box-title">Példa – a tíz levél simított táblázata ($\alpha = 1$)</span>
+  <table style="max-width:600px">
+    <tr><th>szó</th><th>spam: $(n + 1)/(4 + 2)$</th><th>nem spam: $(n + 1)/(6 + 2)$</th></tr>
+    <tr><td>ingyen</td><td>$4/6 \approx 0{,}667$</td><td>$2/8 = 0{,}25$</td></tr>
+    <tr><td>nyertél</td><td>$4/6 \approx 0{,}667$</td><td>$1/8 = 0{,}125$</td></tr>
+    <tr><td>kattints</td><td>$4/6 \approx 0{,}667$</td><td>$2/8 = 0{,}25$</td></tr>
+    <tr><td>holnap</td><td>$1/6 \approx 0{,}167$</td><td>$5/8 = 0{,}625$</td></tr>
+  </table>
+  „Nyertél! Holnap lejár, kattints!”: spam $0{,}4\cdot\frac46\cdot\frac16\cdot\frac46 \approx 0{,}0296$; nem spam $0{,}6\cdot\frac18\cdot\frac58\cdot\frac28 \approx 0{,}0117$ → $P(\text{spam}) \approx 0{,}717$. Most már van válasz.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a fejezet levele</span>
+    „nyertél, kattints”: spam $0{,}4\cdot\frac46\cdot\frac46 \approx 0{,}178$; nem spam $0{,}6\cdot\frac18\cdot\frac28 = 0{,}01875$ → $\frac{0{,}178}{0{,}196} \approx \mathbf{0{,}905}$.
+    A simítás nélküli „100%” helyett 90,5% – erős gyanú, de nem vakhit.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – „ingyen, kattints”</span>
+    Simítva: spam $0{,}4\cdot\frac46\cdot\frac46 \approx 0{,}178$; nem spam $0{,}6\cdot\frac28\cdot\frac28 = 0{,}0375$ → $\approx 0{,}826$ (simítás nélkül 0,931 volt). A kevés adat miatti magabiztosság csökkent.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A nevezőhöz annyiszor $\alpha$-t adunk, ahány kimenete van a jellemzőnek</b> – különben a valószínűségek nem adnak össze 1-et. Egy háromértékű jellemzőnél (napos / borús / esős) $+3$.
+      Egy népszerű könyv (MLD 10) itt $+1$-et ír a nevezőbe – helyesen $(0 + 1)/(5 + 3) = 0{,}125$ lenne a $0{,}17$ helyett.</li>
+    <li><b>Túl nagy $\alpha$ mindent kiegyenlít</b>: $\alpha = 100$-nál minden szó valószínűsége kb. 0,5 lenne mindkét osztályban, és a szavak semmit nem mondanának. Az $\alpha$ is hiperparaméter.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – Laplace-simítás</summary>
+  <ol>
+    <li>Egy szó 50 spamből 0-ban fordul elő. Mennyi a simított $P(\text{szó} \mid \text{spam})$ $\alpha = 1$-gyel?
+      <details><summary>Megoldás</summary>$(0 + 1)/(50 + 2) = 1/52 \approx 0{,}019$.</details></li>
+    <li>Egy szó 50 spamből 50-ben szerepel. Mennyi a simított valószínűség?
+      <details><summary>Megoldás</summary>$(50 + 1)/(50 + 2) = 51/52 \approx 0{,}981$ – nem 1.</details></li>
+    <li>A simított táblázattal mennyi $P(\text{spam} \mid \text{holnap})$?
+      <details><summary>Megoldás</summary>Spam: $0{,}4\cdot\frac16 \approx 0{,}0667$; nem spam: $0{,}6\cdot\frac58 = 0{,}375$ → $\frac{0{,}0667}{0{,}4417} \approx 0{,}151$ (simítás nélkül 0 volt).</details></li>
+    <li>A simított táblázattal mennyi $P(\text{spam} \mid \text{ingyen, nyertél, kattints})$? (Ilyen az S3 levél.)
+      <details><summary>Megoldás</summary>Spam: $0{,}4\cdot\left(\frac46\right)^3 \approx 0{,}1185$; nem spam: $0{,}6\cdot\frac28\cdot\frac18\cdot\frac28 \approx 0{,}00469$ → $\approx 0{,}962$.</details></li>
+    <li>(nehezebb) Egy háromértékű jellemző (napos / borús / esős) egy osztály 5 mintájában így oszlik meg: 3, 2, 0. Mennyi a három simított valószínűség $\alpha = 1$-gyel? Összeadódnak 1-re?
+      <details><summary>Megoldás</summary>$(3 + 1)/8 = 0{,}5$; $(2 + 1)/8 = 0{,}375$; $(0 + 1)/8 = 0{,}125$. Összeg: 1 ✓. A nevező $5 + 3\cdot1 = 8$, mert három kimenet van.</details></li>
+  </ol>
+</details>
+
+<h3 id="s55-d">4. lépés: logaritmussal – szavanként egy pontszám</h3>
+<p>Egy valódi levélben száz szó is lehet. Száz, egyenként 0,01 körüli valószínűség szorzata $10^{-200}$ – a számítógép ennél kisebbet már nem is tud tárolni (200 szónál $10^{-400}$ egyszerűen 0 lesz).
+A megoldás a logaritmus: <b>a szorzatból összeg lesz</b>.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a fejezet levele log-esélyekkel</span>
+  A két osztály számlálóját nem külön számoljuk, hanem a hányadosuk logaritmusát, a <b>log-esélyt</b> (<a href="#s53-c">5.3</a>):
+  $$\ln\frac{P(\text{spam} \mid \mathbf x)}{P(\text{nem spam} \mid \mathbf x)} = \underbrace{\ln\frac{0{,}4}{0{,}6}}_{-0{,}405} + \underbrace{\ln\frac{4/6}{1/8}}_{\text{nyertél: } +1{,}674} + \underbrace{\ln\frac{4/6}{2/8}}_{\text{kattints: } +0{,}981} = 2{,}249.$$
+  És vissza valószínűséggé: $\sigma(2{,}249) \approx 0{,}905$ – ugyanaz, mint az előbb ✓. A többi szó pontszáma: „ingyen” $+0{,}981$, „holnap” $\ln\frac{1/6}{5/8} \approx -1{,}322$.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – a naiv Bayes log-esély alakban</span>
+  $$\ln\frac{P(\text{spam} \mid \mathbf x)}{P(\text{nem spam} \mid \mathbf x)} = \ln\frac{P(\text{spam})}{P(\text{nem spam})} + \sum_{\text{szó a levélben}}\ln\frac{P(\text{szó} \mid \text{spam})}{P(\text{szó} \mid \text{nem spam})}.$$
+  Minden szónak van egy <b>pontszáma</b>: pozitív, ha a spamekben gyakoribb, negatív, ha a jó levelekben. A levél pontszáma az a priori tag + a szavak pontszámainak összege; a valószínűség ennek a szigmoidja.
+  <br><small>Miért érdekes ez? Mert ez pontosan egy <b>lineáris</b> modell: $z = b + \sum_j w_j x_j$, ahol $x_j \in \{0, 1\}$ (szerepel-e a szó), és $\hat p = \sigma(z)$ – ugyanaz az alak, mint a logisztikus regresszióé!
+  A különbség a súlyok eredete: a naiv Bayes <b>megszámolja</b> őket (osztályonkénti gyakoriságokból), a logisztikus regresszió <b>optimalizálja</b> őket (keresztentrópiával).</small>
+</div>
+<div class="widget" data-widget="naive-bayes-spam"></div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a buli meghívó (H5)</span>
+    „ingyen” + „holnap”: $-0{,}405 + 0{,}981 - 1{,}322 = -0{,}746$, $\sigma(-0{,}746) \approx 0{,}32$ → nem spam. A „holnap” erősebb bizonyíték, mint az „ingyen”.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – valódi adaton (MLD 10)</span>
+    A Spambase adatkészleten (4601 levél, 57 jellemző: szavak és írásjelek gyakorisága) a Bernoulli-féle naiv Bayes ötszörös keresztvalidációval kb. 88%-os pontosságot ért el – egyetlen számlálással.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Generatív és diszkriminatív modell ★★★</span>
+  A naiv Bayes azt modellezi, <b>hogyan keletkezik</b> egy levél egy osztályból ($P(\mathbf x \mid c)$ és $P(c)$) – ez <b>generatív</b> modell. A logisztikus regresszió csak azt, <b>hogyan dönts</b> egy adott levélnél
+  ($P(c \mid \mathbf x)$) – ez <b>diszkriminatív</b>. Kevés adatnál a generatív modell gyakran jobb (kevesebbet kell becsülnie, és a feltevései „segítenek”), sok adatnál a diszkriminatív (nem köti a hamis függetlenségi feltevés).
+  A generatív gondolat a 14. fejezetben tér vissza: ott a modell maga gyárt új adatot.
+</div>
+<details class="box">
+  <summary>📐 Pontosabban: Bernoulli- és multinomiális naiv Bayes ★★★</summary>
+  A fenti számolás egyszerűsítés: csak a levélben <em>szereplő</em> szavakat szoroztuk össze.
+  <ul style="margin:.2rem 0">
+    <li>A <b>Bernoulli-modell</b> a hiányzó szavakat is figyelembe veszi: minden szótári szóra szoroz, a szereplőkre $P(\text{szó} \mid c)$-vel, a hiányzókra $1 - P(\text{szó} \mid c)$-vel.
+      A fejezet levelére (nincs benne „ingyen” és „holnap”): spam $0{,}4\cdot\frac13\cdot\frac46\cdot\frac46\cdot\frac56 \approx 0{,}0494$; nem spam $0{,}6\cdot\frac34\cdot\frac18\cdot\frac28\cdot\frac38 \approx 0{,}00527$ → $\approx 0{,}904$ – itt alig tér el.</li>
+    <li>A <b>multinomiális modell</b> a szavak <em>darabszámát</em> is nézi (a „nyertél” háromszor erősebb bizonyíték, mint egyszer), és a valószínűségeket az osztály összes szavához viszonyítja.
+      Szövegosztályozásra többnyire ez a legjobb (a scikit-learnben <code>MultinomialNB</code>).</li>
+    <li>Numerikus jellemzőknél (pl. linkek száma) a <b>Gauss-féle</b> naiv Bayes osztályonként normális eloszlást illeszt a jellemzőre (<code>GaussianNB</code>).</li>
+  </ul>
+</details>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Mindig logaritmussal számolj</b> – a szorzat már néhány száz szónál alulcsordul (0 lesz).</li>
+    <li><b>Ismeretlen szó</b> (a tanító adatban egyszer sem fordult elő) egyik osztályban sem ad bizonyítékot: simítva mindkét gyakorisága $\frac{1}{n_c + 2}$, de mivel $n_c$ osztályonként más, egy kis pontszámot mégis kapna. A gyakorlatban egyszerűen kihagyják.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – log-esély és szópontszámok</summary>
+  <ol>
+    <li>Mennyi az a priori tag, ha a levelek fele spam? És ha 20%-a?
+      <details><summary>Megoldás</summary>$\ln\frac{0{,}5}{0{,}5} = 0$; $\ln\frac{0{,}2}{0{,}8} = \ln 0{,}25 \approx -1{,}386$.</details></li>
+    <li>Egy szó 30%-ban fordul elő a spamekben, 3%-ban a jó levelekben. Mennyi a pontszáma? ($\ln 10 \approx 2{,}303$)
+      <details><summary>Megoldás</summary>$\ln\frac{0{,}3}{0{,}03} = \ln 10 \approx 2{,}303$.</details></li>
+    <li>A szópontszámokkal ($-0{,}405$ a priori; ingyen $+0{,}981$, nyertél $+1{,}674$, kattints $+0{,}981$, holnap $-1{,}322$) mennyi az S3 („ingyen, nyertél, kattints”) log-esélye?
+      <details><summary>Megoldás</summary>$-0{,}405 + 0{,}981 + 1{,}674 + 0{,}981 = 3{,}231$. $\sigma(3{,}231) \approx 0{,}962$ – egyezik a simított táblázatból kapott értékkel.</details></li>
+    <li>Egy levél log-esélye 0. Mit jelent?
+      <details><summary>Megoldás</summary>A spam és a nem spam egyformán valószínű: $\sigma(0) = 0{,}5$. Épp a döntési határon van.</details></li>
+    <li>(nehezebb) Miért mondhatjuk, hogy a naiv Bayes döntési határa (ha a jellemzők 0/1 szóindikátorok) lineáris?
+      <details><summary>Megoldás</summary>Mert a log-esély $b + \sum_j w_j x_j$ alakú, ahol $w_j$ a $j$-edik szó pontszáma és $x_j \in \{0, 1\}$. A határ a log-esély $= 0$ hely: $\sum_j w_j x_j = -b$ – egy hipersík. (A Bernoulli-változatnál is, mert a hiányzó szó tagja is $x_j$-ben lineárisan írható fel.)</details></li>
+  </ol>
+</details>
+<div class="box history">
+  <span class="box-title">📜 Történet – a spamszűrés</span>
+  <b>Kiegészítés.</b> Az első publikált naiv Bayes spamszűrő M. Sahami és munkatársai (köztük D. Heckerman, a Microsoftnál) 1998-as cikke volt. Igazán ismertté P. Graham 2002-es esszéje,
+  az <em>A Plan for Spam</em> tette: a szavanként számolt valószínűségekkel a spamek 99,5%-át kiszűrte, szinte téves riasztás nélkül. A mai levelezőrendszerek ennél jóval
+  összetettebb (neurális, a feladó hírnevét is figyelő) modelleket használnak, de a „szavak mint bizonyítékok” ötlet ma is él. A Bayes-tétel maga T. Bayes 1763-ban, halála után megjelent dolgozatából származik.
+</div>
+<div class="quiz" data-quiz="ai5-55"></div>
+</section>
+
+<!-- ===================================================== 5.6 -->
+<section id="s56">
+<h2>5.6 Lineáris és nemlineáris döntési határ ★★</h2>
+<p>Négy módszert láttunk. A centroid, a logisztikus regresszió és – szóindikátorokkal – a naiv Bayes is <b>egyenes</b> (hipersík) határt húz; csak a kNN határa lehet tetszőleges alakú.
+A postafiók tíz levelénél az egyenes elég volt. De mindig elég?</p>
+
+<h3 id="s56-a">1. lépés: a XOR-probléma – amit egy egyenes nem tud</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a lépcsőházi villanykapcsoló</span>
+  A lépcsőház lámpáját lent és fent is lehet kapcsolni (váltókapcsoló). A lámpa akkor ég, ha a két kapcsoló <b>különböző</b> állásban van:
+  <table style="max-width:420px">
+    <tr><th>lenti ($x_1$)</th><th>fenti ($x_2$)</th><th>lámpa ($y$)</th></tr>
+    <tr><td>0</td><td>0</td><td>nem ég (0)</td></tr>
+    <tr><td>1</td><td>0</td><td><b>ég (1)</b></td></tr>
+    <tr><td>0</td><td>1</td><td><b>ég (1)</b></td></tr>
+    <tr><td>1</td><td>1</td><td>nem ég (0)</td></tr>
+  </table>
+  Rajzold fel a négy pontot: az „ég” pontok az egyik átlón, a „nem ég” pontok a másikon vannak. Próbálj meg egyetlen egyenessel elválasztani őket – nem fog sikerülni.
+  Ez a <b>kizáró vagy</b> (XOR) függvény.
+</div>
+<div class="box def">
+  <span class="box-title">Tétel – lineáris szétválaszthatóság és a XOR</span>
+  Két osztály <b>lineárisan szétválasztható</b>, ha van olyan $\mathbf w$, $b$, hogy $\mathbf w^\top\mathbf x + b \gt 0$ az egyik, és $\lt 0$ a másik osztály minden pontjára. <b>A XOR nem az.</b>
+  <br><small>Miért? Tegyük fel, hogy van ilyen egyenes, az „ég” pontokra pozitív: $w_1 + b \gt 0$ és $w_2 + b \gt 0$; összeadva $w_1 + w_2 + 2b \gt 0$. A „nem ég” pontokra negatív: $b \lt 0$ és
+  $w_1 + w_2 + b \lt 0$; összeadva $w_1 + w_2 + 2b \lt 0$. A kettő ellentmond egymásnak – ilyen egyenes nincs. ∎</small>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Melyik módszer milyen határt húz?</span>
+  <table style="max-width:640px">
+    <tr><th>módszer</th><th>a döntési határ</th><th>XOR-t megold?</th></tr>
+    <tr><td>legközelebbi centroid (2 osztály)</td><td>egyenes (felező merőleges)</td><td>nem – a két centroid egybeesik: (0,5; 0,5)</td></tr>
+    <tr><td>logisztikus regresszió</td><td>egyenes ($\mathbf w^\top\mathbf x + b = 0$)</td><td>nem (a nyers jellemzőkkel)</td></tr>
+    <tr><td>naiv Bayes (0/1 jellemzők)</td><td>egyenes (lineáris log-esély)</td><td>nem</td></tr>
+    <tr><td>kNN</td><td>tetszőleges (törött vonalakból)</td><td>igen, ha van elég pont</td></tr>
+  </table>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a postafiók szétválasztható</span>
+    A tíz levél lineárisan szétválasztható: a $\text{linkek} + \text{felkiáltójelek} = 6{,}5$ egyenes hiba nélkül elválasztja őket (<a href="#s51-c">5.1</a>). Ezért kaptunk 100%-os egyenest – és ezért nőnének
+    a logisztikus regresszió súlyai regularizáció nélkül a végtelenbe (<a href="#s53-e">5.3</a>).
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – kNN a XOR-on</span>
+    Új pont: (0,9; 0,2). A legközelebbi a (1; 0), $d = \sqrt{0{,}01 + 0{,}04} \approx 0{,}22$ → „ég”. Az 1-NN a XOR-t is hibátlanul osztályozza: minden negyed a saját sarkának címkéjét kapja.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktató</span>
+  <b>A XOR nem csak játék.</b> Valódi adatban gyakran két jellemző <em>együtt</em> hat: egy gyógyszer csak bizonyos génváltozatnál működik; egy tranzakció akkor gyanús, ha <em>külföldi</em> és <em>éjszakai</em>,
+  de külön-külön egyik sem az. Ha a hatás „ellentétes irányú” a különböző csoportokban, egy lineáris modell semmit nem lát – és a jellemzőnkénti szűrés sem (<a href="../04-adatok-es-jellemzok/#s46-a">4.6</a>).
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – lineáris szétválaszthatóság</summary>
+  <ol>
+    <li>Lineárisan szétválasztható-e az ÉS függvény (csak az (1; 1) pont 1-es)? Ha igen, adj meg egy egyenest!
+      <details><summary>Megoldás</summary>Igen: pl. $x_1 + x_2 = 1{,}5$. Az (1; 1)-re $2 \gt 1{,}5$, a többire $\le 1 \lt 1{,}5$.</details></li>
+    <li>Lineárisan szétválasztható-e a VAGY függvény (csak a (0; 0) pont 0-s)?
+      <details><summary>Megoldás</summary>Igen: pl. $x_1 + x_2 = 0{,}5$.</details></li>
+    <li>Hol van a XOR két osztályának centroidja? Mit mond a centroid módszer?
+      <details><summary>Megoldás</summary>„Ég”: $\left(\frac{1 + 0}{2};\ \frac{0 + 1}{2}\right) = (0{,}5;\ 0{,}5)$; „nem ég”: $\left(\frac{0 + 1}{2};\ \frac{0 + 1}{2}\right) = (0{,}5;\ 0{,}5)$. A két centroid egybeesik – minden pont egyforma messze van tőlük, a módszer nem tud dönteni.</details></li>
+    <li>Mit mond az 1-NN a XOR négy pontja alapján a (0,2; 0,7) pontra?
+      <details><summary>Megoldás</summary>A legközelebbi a (0; 1): $d = \sqrt{0{,}04 + 0{,}09} \approx 0{,}36$ → „ég” (1).</details></li>
+    <li>(nehezebb) Egy csalásdetektálóban: „külföldi” ($x_1 \in \{0, 1\}$), „éjszakai” ($x_2 \in \{0, 1\}$). Csalás akkor gyakori, ha <em>mindkettő</em> 1. Kell-e ehhez nemlineáris határ?
+      <details><summary>Megoldás</summary>Nem: ez az ÉS függvény, ami lineárisan szétválasztható ($x_1 + x_2 \ge 1{,}5$). Akkor kellene, ha a csalás pontosan az egyiknél lenne gyakori (XOR).
+        A súlyokból viszont nem látszik, hogy a kettő <em>együtt</em> számít – ezt egy $x_1x_2$ jellemző tenné szemléletessé (következő lépés).</details></li>
+  </ol>
+</details>
+
+<h3 id="s56-b">2. lépés: új jellemző – és az egyenes megint elég</h3>
+<p>Ha az egyenes nem elég, ne a modellt cseréljük, hanem a <b>teret</b>: adjunk a jellemzőkhöz egy újat, amiben a két osztály már szétválik. Ez a 4. fejezet kölcsönhatás-jellemzője
+(<a href="../04-adatok-es-jellemzok/#s45-b">4.5</a>) és a 3. fejezet polinomiális jellemzője (<a href="../03-tanulas-anatomiaja/#s36-b">3.6</a>) – osztályozásra.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a XOR középre tolva</span>
+  Kódoljuk a kapcsolóállásokat $-1$-gyel és $+1$-gyel (0 helyett $-1$). Az új jellemző: a szorzat, $x_3 = x_1x_2$.
+  <table style="max-width:460px">
+    <tr><th>$x_1$</th><th>$x_2$</th><th>$x_3 = x_1x_2$</th><th>lámpa</th></tr>
+    <tr><td>−1</td><td>−1</td><td>+1</td><td>nem ég</td></tr>
+    <tr><td>+1</td><td>−1</td><td>−1</td><td><b>ég</b></td></tr>
+    <tr><td>−1</td><td>+1</td><td>−1</td><td><b>ég</b></td></tr>
+    <tr><td>+1</td><td>+1</td><td>+1</td><td>nem ég</td></tr>
+  </table>
+  Az $x_3$ egymagában tökéletesen elválaszt: „ég, ha $x_3 \lt 0$”. A $(x_1, x_2, x_3)$ térben a határ egy sík ($x_3 = 0$); visszavetítve az eredeti síkra a két tengely – egy „kereszt” alakú, nemlineáris határ.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – jellemzőtranszformáció</span>
+  Ha az adat az eredeti jellemzőkben nem szétválasztható lineárisan, képezz új jellemzőket ($x_1x_2$, $x_1^2$, $x_2^2$, $\sqrt{x_1^2 + x_2^2}$, …), és ezeken tanítsd a <b>lineáris</b> modellt.
+  A határ az új térben egyenes (hipersík), az eredetiben görbe.
+  <br><small>Miért jó? Mert a logisztikus regresszió minden előnye megmarad (konvex veszteség, valószínűség, értelmezhető súlyok), csak a „bemenet” gazdagabb. A nehézség: tudni kell, <em>melyik</em> új jellemző kell.</small>
+</div>
+<div class="widget" data-widget="xor-problem"></div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – 0/1 kódolással</span>
+    A $(x_1, x_2, x_1x_2)$ jellemzőkkel a XOR pontosan felírható: $z = 2x_1 + 2x_2 - 4x_1x_2 - 1$. Értékek: (0; 0): $-1$; (1; 0) és (0; 1): $+1$; (1; 1): $2 + 2 - 4 - 1 = -1$. A $z \ge 0$ pontosan az „ég” pontokat jelöli.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – kör alakú határ</span>
+    Pontok egy céltáblán: a belső kör (sugár 1) pontjai A, a gyűrű pontjai B. Az új jellemző $r^2 = x_1^2 + x_2^2$: (0; 0) → 0, (0,5; 0,5) → 0,5 (A); (1,5; 0) → 2,25, (1; 1,2) → 2,44 (B).
+    A szabály „A, ha $r^2 \lt 1$” – az $r^2$-ben lineáris, az eredeti síkon kör.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Sok új jellemző – túlillesztés.</b> Minél több polinomtagot veszel fel, annál kacskaringósabb határt tud húzni a modell, és annál könnyebben tanulja meg a zajt is (<a href="../03-tanulas-anatomiaja/#s35-b">3.5</a>). Regularizáció és validáció kell.</li>
+    <li><b>A polinomiális jellemzők száma robban.</b> $d$ jellemzőből a legfeljebb másodfokú tagok száma $\frac{d(d + 3)}{2}$: 2 → 5, 10 → 65, 100 → 5150.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – új jellemzők</summary>
+  <ol>
+    <li>Melyik új jellemző választja el a $(-2)$, $(2)$ (A osztály) és a $(-0{,}5)$, $(0{,}5)$ (B osztály) egydimenziós pontokat egy küszöbbel?
+      <details><summary>Megoldás</summary>$x^2$: A → 4, 4; B → 0,25, 0,25. Szabály: „A, ha $x^2 \gt 1$”. Az eredeti egyenesen ez két küszöb ($x \lt -1$ vagy $x \gt 1$).</details></li>
+    <li>A $z = 2x_1 + 2x_2 - 4x_1x_2 - 1$ modellel mennyi $\hat p = \sigma(z)$ a (1; 0) és az (1; 1) pontban?
+      <details><summary>Megoldás</summary>(1; 0): $z = 1$, $\hat p \approx 0{,}731$. (1; 1): $z = -1$, $\hat p \approx 0{,}269$. A döntés jó, de a modell nem nagyon biztos – a súlyokat megszorozva (pl. $\times5$) magabiztosabb lenne.</details></li>
+    <li>A céltábla-példában melyik osztályba esik a (0,8; 0,8) pont?
+      <details><summary>Megoldás</summary>$r^2 = 0{,}64 + 0{,}64 = 1{,}28 \gt 1$ → B (a gyűrűben).</details></li>
+    <li>Hány legfeljebb másodfokú tag ($x_j$, $x_j^2$, $x_jx_k$) képezhető 3 jellemzőből? Sorold fel!
+      <details><summary>Megoldás</summary>$\frac{3\cdot6}{2} = 9$: $x_1, x_2, x_3$; $x_1^2, x_2^2, x_3^2$; $x_1x_2, x_1x_3, x_2x_3$.</details></li>
+    <li>(nehezebb) Egy 28 × 28 pixeles képnél (784 jellemző) hány legfeljebb másodfokú tag lenne? Mit mond ez a módszer korlátairól?
+      <details><summary>Megoldás</summary>$\frac{784\cdot787}{2} = 308\,504$. Ennyi jellemzővel a tanítás lassú, a túlillesztés veszélye óriási, és harmadfokon már tízmilliók lennének. Ezért kell más út: a kernel trükk (7.) vagy a neurális háló, ami maga tanulja meg a jellemzőket (9.).</details></li>
+  </ol>
+</details>
+
+<h3 id="s56-c">3. lépés: ki találja ki a jellemzőket? – kitekintés</h3>
+<p>A XOR-nál könnyű volt kitalálni az $x_1x_2$-t. Egy képnél, egy hangfelvételnél vagy egy száz oszlopos táblázatnál nem az. Háromféle válasz van – ezek a következő fejezetek fő témái.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – ugyanaz a feladat háromféleképpen</span>
+  Fel kell ismerni, hogy egy 28 × 28 pixeles képen 3-as vagy 8-as számjegy van.
+  <ul style="margin:.2rem 0">
+    <li><b>Kézzel:</b> egy szakértő kitalálja, mi különbözteti meg őket („zárt hurkok száma”, „bal oldali tintamennyiség”), és ezeket adja a logisztikus regressziónak.</li>
+    <li><b>Mindent bele:</b> az összes másodfokú pixelszorzat – 308 504 jellemző (előző gyakorlat).</li>
+    <li><b>Tanult jellemzők:</b> egy neurális háló első rétegei maguk alakítják ki a hasznos jellemzőket (élek, ívek, hurkok), az utolsó réteg pedig egy softmax-osztályozó (<a href="#s54-b">5.4</a>).</li>
+  </ul>
+</div>
+<div class="box def">
+  <span class="box-title">Áttekintés – a nemlineáris határ három útja</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Jellemzőmérnökség</b> (<a href="../04-adatok-es-jellemzok/#s45">4.5</a>): szakértői tudásból képzett jellemzők + lineáris modell. Értelmezhető, kevés adat is elég, de kitalálni nehéz.</li>
+    <li><b>Kernel trükk</b> (7. fejezet, SVM): a modell úgy számol, <em>mintha</em> egy hatalmas (akár végtelen) dimenziós jellemzőtérben dolgozna, anélkül hogy a jellemzőket ténylegesen kiszámolná.</li>
+    <li><b>Tanult jellemzők</b> (9. fejezet, neurális hálók): több réteg egymás után; a rejtett rétegek maguk tanulják meg a jó transzformációt. Egy rejtett réteg két neuronnal már a XOR-t is megoldja.</li>
+  </ol>
+  A kNN és a döntési fák (7. fejezet) negyedik utat járnak: eleve nem egyenest húznak, hanem „helyi” szabályokat.
+  <br><small>Miért fontos ez a térkép? Mert a gépi tanulás története nagyrészt arról szól, <em>ki</em> állítja elő a jó jellemzőket: az ember, egy matematikai trükk, vagy maga a modell.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – logisztikus regresszió = egy neuron</span>
+    $\hat p = \sigma(\mathbf w^\top\mathbf x + b)$: súlyozott összeg, aztán egy „aktivációs” függvény. Pontosan ez egy mesterséges neuron (9. fejezet). A neurális háló sok ilyen neuron rétegekbe kötve.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – két neuron a XOR-ra</span>
+    Az egyik rejtett neuron a VAGY-t, a másik az ÉS-t tanulja meg (mindkettő lineárisan szétválasztható!). A kimeneti neuron: „VAGY, de nem ÉS” – ez a XOR. Két egyenes együtt elvégzi, amit egy nem tudott.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktató</span>
+  <b>A bonyolultabb határ nem mindig jobb.</b> Ha az adat (majdnem) lineárisan szétválasztható – mint a postafiók –, egy egyszerű lineáris modell kevesebb adatból tanul, gyorsabb, értelmezhetőbb,
+  és kevésbé illeszt túl. Mindig egy egyszerű lineáris modellel kezdd (alapvonal), és csak akkor bonyolítsd, ha a validáció indokolja.
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – kitekintés</summary>
+  <ol>
+    <li>Melyik útnak felel meg: (a) egy orvos szerint fontos a BMI, ezért a súlyból és a magasságból kiszámoljuk; (b) egy háló a nyers EKG-jelből tanul; (c) SVM RBF-kernellel?
+      <details><summary>Megoldás</summary>(a) jellemzőmérnökség; (b) tanult jellemzők; (c) kernel trükk.</details></li>
+    <li>Írd fel a VAGY és az ÉS függvényt egy-egy lineáris küszöbszabállyal 0/1 bemenetekre!
+      <details><summary>Megoldás</summary>VAGY: $x_1 + x_2 \ge 0{,}5$. ÉS: $x_1 + x_2 \ge 1{,}5$.</details></li>
+    <li>A VAGY ($h_1$) és az ÉS ($h_2$) kimenetéből (0/1) hogyan kapod meg a XOR-t egyetlen lineáris küszöbszabállyal?
+      <details><summary>Megoldás</summary>$h_1 - h_2 \ge 0{,}5$: (0; 0) → $0 - 0$ ✗; (1; 0), (0; 1) → $1 - 0 = 1$ ✓; (1; 1) → $1 - 1 = 0$ ✗. Két réteg lineáris szabály = XOR.</details></li>
+    <li>Miért nem használunk minden feladatra neurális hálót, ha az mindent megtanul?
+      <details><summary>Megoldás</summary>Mert sok adat kell hozzá, lassabb, nehezebben értelmezhető és könnyebben túlillesztő. Kis táblázatos adaton egy logisztikus regresszió vagy egy fa gyakran ugyanolyan jó vagy jobb.</details></li>
+    <li>(nehezebb) Egy logisztikus regresszió a validációs halmazon 70%-os, egy 1-NN 92%-os. Mit gyanítasz az adatról, és mit próbálnál ki a logisztikus regresszióval?
+      <details><summary>Megoldás</summary>Hogy a határ erősen nemlineáris (pl. XOR-szerű kölcsönhatás vagy kör alakú tartomány). Érdemes polinomiális / kölcsönhatás-jellemzőket felvenni (regularizációval), vagy nemlineáris modellt (fa, kernel-SVM, háló) kipróbálni.</details></li>
+  </ol>
+</details>
+<div class="box history">
+  <span class="box-title">📜 Történet – a XOR és az „MI-tél”</span>
+  <b>Kiegészítés.</b> M. Minsky és S. Papert 1969-es <em>Perceptrons</em> című könyve megmutatta, hogy egyetlen perceptron (egy lineáris küszöbneuron) nem tudja megtanulni a XOR-t. Az eredményt sokan
+  úgy értették, hogy a neurális hálók zsákutcát jelentenek, és a kutatás egy évtizedre lelassult. A megoldás – több réteg, és egy módszer a tanításukra (visszaterjesztés, 10. fejezet) – az 1980-as években terjedt el.
+</div>
+<div class="quiz" data-quiz="ai5-56"></div>
+</section>
+
+<!-- ===================================================== 5.7 Alkalmazás -->
+<section id="s57">
+<h2>5.7 Alkalmazás: a postafiók</h2>
+<p>Minden eszköz megvan. Most a fejezet elején érkezett levelet – „Gratulálunk, NYERTÉL! Kattints ide a nyereményért!!!”, 3 link, 3 felkiáltójel – vizsgáljuk meg mind a négy módszerrel,
+aztán négy új, ismert címkéjű levélen megnézzük, melyik módszer hol téved.</p>
+
+<h3 id="s57-a">Négy módszer, egy levél</h3>
+<table style="max-width:760px">
+  <tr><th>módszer</th><th>mit néz?</th><th>számolás</th><th>döntés</th><th>„mennyire spam?”</th></tr>
+  <tr><td>1-NN (<a href="#s52-a">5.2</a>)</td><td>linkek, felkiáltójelek</td><td>legközelebbi: H5, $d = 1{,}414$</td><td>nem spam</td><td>–</td></tr>
+  <tr><td>3-NN (<a href="#s52-b">5.2</a>)</td><td>linkek, felkiáltójelek</td><td>H5, S2, S1 → 2 : 1</td><td><b>spam</b></td><td>0,67</td></tr>
+  <tr><td>legközelebbi centroid (<a href="#s52-d">5.2</a>)</td><td>linkek, felkiáltójelek</td><td>spam-centroid 1,414, nem spam 2,828</td><td><b>spam</b></td><td>–</td></tr>
+  <tr><td>logisztikus regresszió (<a href="#s53-d">5.3</a>)</td><td>linkek, felkiáltójelek</td><td>$z = 0{,}99\cdot3 + 0{,}69\cdot3 - 4{,}85 = 0{,}19$</td><td><b>spam</b></td><td>0,55</td></tr>
+  <tr><td>naiv Bayes, simítva (<a href="#s55-c">5.5</a>)</td><td>szavak</td><td>$-0{,}405 + 1{,}674 + 0{,}981 = 2{,}249$</td><td><b>spam</b></td><td>0,905</td></tr>
+</table>
+<ul>
+  <li>A <b>számokat</b> (linkek, felkiáltójelek) néző módszerek bizonytalanok: a levél a határ közelében van, és egy hasonló, ártatlan levél (a buli meghívó) is ott lakik. Az 1-NN épp emiatt téved.</li>
+  <li>A <b>szavak</b> sokkal erősebb bizonyítékot adnak: a „nyertél” egyetlen jó levélben sem fordult elő.</li>
+  <li>Az 1-NN-t leszámítva minden módszer spamnek mondja. Ha egy döntést kell hoznunk: <b>spam</b>, kb. 90%-os bizonyossággal – a szavak alapján.</li>
+</ul>
+
+<details class="box">
+  <summary>🐍 Python – mind a négy módszer scikit-learnnel</summary>
+  <pre style="margin:.6rem 0;font-size:.85rem">import numpy as np
+from sklearn.neighbors import KNeighborsClassifier, NearestCentroid
+from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import BernoulliNB
+
+# a tíz levél: (linkek, felkiáltójelek) és szóindikátorok (ingyen, nyertél, kattints, holnap)
+X = np.array([[5,2],[3,5],[6,3],[2,6],[0,0],[1,0],[2,0],[0,1],[2,4],[1,1]])
+S = np.array([[1,0,1,0],[0,1,1,0],[1,1,1,0],[1,1,0,0],[0,0,0,1],
+              [0,0,0,0],[0,0,1,1],[0,0,0,0],[1,0,0,1],[0,0,0,1]])
+y = np.array([1,1,1,1,0,0,0,0,0,0])                  # 1 = spam
+uj_X, uj_S = [[3, 3]], [[0, 1, 1, 0]]                # „NYERTÉL! Kattints…”
+
+print(KNeighborsClassifier(1).fit(X, y).predict(uj_X))           # [0]
+print(KNeighborsClassifier(3).fit(X, y).predict_proba(uj_X))     # [[0.33 0.67]]
+print(NearestCentroid().fit(X, y).predict(uj_X))                 # [1]
+lr = LogisticRegression().fit(X, y)                              # alapból regularizált (C = 1)
+print(lr.coef_, lr.intercept_, lr.predict_proba(uj_X))           # ≈ [0.99 0.69] −4.85 → 0.55
+nb = BernoulliNB(alpha=1).fit(S, y)                              # Laplace-simítás
+print(nb.predict_proba(uj_S))                                    # ≈ [[0.10 0.90]]</pre>
+  <small>A <code>BernoulliNB</code> a hiányzó szavakat is beszámítja (<a href="#s55-d">5.5</a>, ★★★), ezért 0,9035-öt ad a mi egyszerűsített 0,905-ünk helyett. Sok jellemzőnél a kNN és a logisztikus regresszió elé
+  egy <code>StandardScaler</code> kell, csővezetékben (<a href="../04-adatok-es-jellemzok/#s47-b">4.7</a>).</small>
+</details>
+
+<h3 id="s57-b">Tesztlevelek: ki hol téved?</h3>
+<p>A tíz levél a tanító halmaz volt. Egy becsületes összehasonlításhoz új, ismert címkéjű levelek kellenek. Négy ilyen érkezett:</p>
+<div style="overflow-x:auto">
+<table style="font-size:.86rem">
+  <tr><th>#</th><th>levél</th><th>linkek, felkiáltó</th><th>szavak</th><th>címke</th><th>3-NN</th><th>centroid</th><th>log. regr.</th><th>naiv Bayes</th></tr>
+  <tr><td>T1</td><td>Webshop-hírlevél: ingyen szállítás, kattints</td><td>(4; 0)</td><td>ingyen, kattints</td><td>nem spam</td><td>✓ (1/3)</td><td>✓</td><td>✓ (0,29)</td><td>✗ (0,83)</td></tr>
+  <tr><td>T2</td><td>„Nyertél egy ingyen kupont” – csendes csaló</td><td>(1; 2)</td><td>nyertél, ingyen</td><td>spam</td><td>✗ (0/3)</td><td>✗</td><td>✗ (0,08)</td><td>✓ (0,905)</td></tr>
+  <tr><td>T3</td><td>Harsány nyereményjáték</td><td>(5; 5)</td><td>ingyen, nyertél, kattints</td><td>spam</td><td>✓ (3/3)</td><td>✓</td><td>✓ (0,97)</td><td>✓ (0,96)</td></tr>
+  <tr><td>T4</td><td>Kolléga: holnapi határidő!!</td><td>(0; 2)</td><td>holnap</td><td>nem spam</td><td>✓ (0/3)</td><td>✓</td><td>✓ (0,03)</td><td>✓ (0,15)</td></tr>
+  <tr><td colspan="5"><b>pontosság</b></td><td>3/4</td><td>3/4</td><td>3/4</td><td>3/4</td></tr>
+</table>
+</div>
+<ul>
+  <li>Mindegyik módszer egyszer téved – de <b>nem ugyanott</b>. A számokat néző módszereket a „csendes” csaló (kevés link, kevés felkiáltójel) csapja be, a naiv Bayest a hírlevél, amiben spamszerű szavak vannak.</li>
+  <li>A hibák oka nem a módszer, hanem a <b>jellemzők</b>: amit egy módszer nem lát, arról nem tud dönteni. Ha az információt kombináljuk, a hibák egymást kioltó része eltűnhet – ez az <b>együttes módszerek</b> (7. fejezet) alapötlete.</li>
+  <li>Kísérletként tegyük mind a hat jellemzőt (2 szám + 4 szó) egyetlen logisztikus regresszióba: a tíz levélen tanítva a T2-re is csak 0,13-at mond. Tíz levélből a modell még nem tanulja meg, mennyit ér a „nyertél” –
+    a valódi spamszűrők milliónyi levélen tanulnak.</li>
+  <li>És a 3/4 négy tesztlevélen nagyon bizonytalan szám. Hogy hogyan mérjük meg becsületesen egy osztályozó jóságát (több teszt, keresztvalidáció, tévesztési mátrix, precizitás, felidézés), arról szól a 6. fejezet.</li>
+</ul>
+
+<div class="box example">
+  <span class="box-title">🎯 Válasz a fejezet kérdésére</span>
+  <b>Spam ez?</b> Igen, nagy valószínűséggel. A naiv Bayes a szavak alapján kb. <b>90%</b>-ot mond, a 3-NN, a centroid és a logisztikus regresszió is a spamre szavaz – bár a linkek és a felkiáltójelek alapján a levél határeset (0,55).
+  <br><b>Mennyire vagy biztos benne?</b> A „90%” egy modell becslése tíz levélből, egy hamis (naiv) függetlenségi feltevéssel – nem kalibrált bizonyosság. Kis adatnál a valószínűségeket is óvatosan kell kezelni.
+  <br><b>Ugyanazt mondják-e a módszerek?</b> Nem mindig. Az 1-NN egyetlen szomszédra hallgatva „nem spam”-et mond; a tesztleveleken pedig minden módszer máshol hibázik. Mindegyik más ötletre épül:
+  a <b>kNN</b> a hasonló esetekre, a <b>centroid</b> a tipikus esetre, a <b>logisztikus regresszió</b> egy optimalizált határra, a <b>naiv Bayes</b> a bizonyítékok összeszámolására. Amit a jellemzők nem mutatnak meg, azt egyik sem látja.
+</div>
+</section>
+
+<!-- ===================================================== Összefoglalás -->
+<section id="s-sum">
+<h2>Összefoglalás</h2>
+<table>
+  <tr><th>Fogalom</th><th>Lényeg</th></tr>
+  <tr><td>Osztályozás</td><td>a címke véges halmazból (osztály); bináris (pozitív = 1, negatív = 0) vagy többosztályos; az osztályozó $\hat y = f(\mathbf x)$, gyakran $P(y = 1 \mid \mathbf x)$-szel</td></tr>
+  <tr><td>Pontosság, alapvonal</td><td>helyes / összes; az alapvonal a többségi osztály; ritka osztálynál félrevezető</td></tr>
+  <tr><td>Döntési határ</td><td>a tartományokat elválasztó felület; lineáris: $\mathbf w^\top\mathbf x + b = 0$</td></tr>
+  <tr><td>kNN</td><td>a $k$ legközelebbi tanító minta többségi szavazata; kis $k$ = túlillesztés, nagy $k$ = alulillesztés; páratlan $k$, validációval; skálázás kötelező</td></tr>
+  <tr><td>Legközelebbi centroid</td><td>osztályonkénti átlag; a határ a felező merőleges (lineáris); gyors, de több csomóból álló osztálynál rossz</td></tr>
+  <tr><td>Szigmoid</td><td>$\sigma(z) = 1/(1 + e^{-z})$, $(0, 1)$-be képez, $\sigma(0) = 0{,}5$, $\sigma(-z) = 1 - \sigma(z)$</td></tr>
+  <tr><td>Logisztikus regresszió</td><td>$\hat p = \sigma(\mathbf w^\top\mathbf x + b)$; a log-esély lineáris; $e^{w_j}$ = esélyszorzó; lineáris határ</td></tr>
+  <tr><td>Esély, log-esély</td><td>$p/(1 - p)$ és $\ln\frac{p}{1 - p}$; a logit a szigmoid inverze</td></tr>
+  <tr><td>Döntési küszöb</td><td>$\hat p \ge t \iff z \ge \ln\frac{t}{1 - t}$; a hibák költsége dönti el; a határt párhuzamosan tolja</td></tr>
+  <tr><td>Bináris keresztentrópia</td><td>$-[y\ln\hat p + (1 - y)\ln(1 - \hat p)]$; konvex; gradiens $(\hat p - y)\,x$; szétválasztható adatnál regularizáció kell</td></tr>
+  <tr><td>OvR, OvO</td><td>$K$, illetve $K(K - 1)/2$ bináris osztályozó; a pontszámok nem adnak eloszlást</td></tr>
+  <tr><td>Softmax</td><td>$\hat p_k = e^{z_k}/\sum_j e^{z_j}$; két osztálynál szigmoid; eltolás-invariáns</td></tr>
+  <tr><td>Kategoriális keresztentrópia</td><td>$-\ln\hat p_{\text{helyes}}$; gradiens $\hat{\mathbf p} - \mathbf y$; egyenletes jóslatnál $\ln K$</td></tr>
+  <tr><td>Naiv Bayes</td><td>$P(c \mid \mathbf x) \propto P(c)\prod_j P(x_j \mid c)$; feltételes függetlenség; tanítás = számlálás</td></tr>
+  <tr><td>Laplace-simítás</td><td>$(n_{\text{szó},c} + \alpha)/(n_c + 2\alpha)$; nincs 0 és 1 valószínűség</td></tr>
+  <tr><td>Log-esély alak</td><td>a priori tag + szópontszámok $\ln\frac{P(\text{szó} \mid \text{spam})}{P(\text{szó} \mid \text{nem spam})}$; lineáris modell, számolt súlyokkal</td></tr>
+  <tr><td>Lineáris szétválaszthatóság, XOR</td><td>a XOR-t egyenes nem választja el; megoldás: új jellemző ($x_1x_2$, $r^2$), kernel (7.), tanult jellemzők (9.), vagy kNN / fa</td></tr>
+</table>
+
+<div class="box tip">
+  <span class="box-title">Melyik módszer mikor? – döntési táblázat</span>
+  <table>
+    <tr><th>Ha a feladatban ez áll…</th><th>…akkor ezt használd</th></tr>
+    <tr><td>a címke kategória (igen/nem, típus, számjegy)</td><td>osztályozás – nem regresszió</td></tr>
+    <tr><td>gyors első modell, kevés jellemző, értelmes távolság</td><td>kNN (skálázva, páratlan $k$, validációval)</td></tr>
+    <tr><td>nagyon gyors jóslás kell, az osztályok „egy csomóban” vannak</td><td>legközelebbi centroid</td></tr>
+    <tr><td>valószínűség kell, értelmezhető súlyok, táblázatos adat</td><td>logisztikus regresszió (regularizálva)</td></tr>
+    <tr><td>a hibák nem egyformán drágák</td><td>valószínűséget adó modell + a költséghez igazított küszöb</td></tr>
+    <tr><td>kettőnél több osztály, valószínűségek kellenek</td><td>softmax (multinomiális logisztikus regresszió)</td></tr>
+    <tr><td>szöveg, szavak mint jellemzők, kevés tanító adat</td><td>naiv Bayes (multinomiális / Bernoulli), Laplace-simítással, logaritmussal</td></tr>
+    <tr><td>egy jellemző értéke egy osztályban sosem fordult elő</td><td>Laplace-simítás ($\alpha = 1$)</td></tr>
+    <tr><td>a lineáris modell gyenge, a kNN sokkal jobb</td><td>nemlineáris határ kell: kölcsönhatás- / polinomiális jellemzők, vagy nemlineáris modell</td></tr>
+    <tr><td>egy jellemző hatása egy másiktól függ (XOR-szerű)</td><td>$x_1x_2$ kölcsönhatás-jellemző</td></tr>
+    <tr><td>sok jellemző (száz, ezer), távolságalapú módszer</td><td>előbb jellemzőkiválasztás / PCA – a dimenzió átka miatt</td></tr>
+    <tr><td>„mennyire biztos a modell?”</td><td>$\hat p$ – de ellenőrizd a kalibrációt (6. fejezet)</td></tr>
+  </table>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabályok</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Előbb az alapvonal</b>: a többségi osztály pontossága nélkül a 80% semmit nem mond.</li>
+    <li><b>Távolság előtt skálázás</b> – a kNN és a centroid a legnagyobb számú jellemzőt hallja meg.</li>
+    <li><b>A logit pontszám, a szigmoid valószínűség, a küszöb döntés</b> – három külön lépés.</li>
+    <li><b>Az „és” szorzást jelent</b> – a naiv Bayesben a bizonyítékok szorzódnak, logaritmussal összeadódnak.</li>
+    <li><b>Nulla gyakoriság → simítás.</b> Tíz levélből nem következik, hogy egy szó „soha” nem fordul elő.</li>
+    <li><b>Egyszerűvel kezdj.</b> Lineáris modell először; nemlineáris csak akkor, ha a validáció kéri.</li>
+  </ul>
+</div>
+</section>
+
+<!-- ===================================================== Ellenőrző kérdések -->
+<section id="s-check">
+<h2>Ellenőrző kérdések</h2>
+<p>Gondold végig a választ, aztán kattints a kártyára a megfordításhoz!</p>
+<div class="flashcards">
+  <div class="flash"><div class="inner"><div class="face front">Mi a különbség a regresszió és az osztályozás között?</div>
+    <div class="face back">A címkében: regressziónál szám, osztályozásnál egy véges halmaz eleme (kategória).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi az osztályozás alapvonala?</div>
+    <div class="face back">Mindig a többségi osztályt mondani. A pontossága a többségi osztály aránya.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért 100%-os az 1-NN a tanító adaton?</div>
+    <div class="face back">Mert minden pont legközelebbi szomszédja saját maga (0 távolságra). Ez memorizálás, nem tudás.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit csinál a kis és a nagy $k$ a kNN-ben?</div>
+    <div class="face back">Kis $k$: szaggatott határ, túlillesztés (nagy variancia). Nagy $k$: sima határ, alulillesztés; $k = n$ a többségi osztály.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért kell skálázni a kNN előtt?</div>
+    <div class="face back">Mert a távolságot a nagy számértékű jellemzők uralják; skálázás nélkül a többi jellemző szinte nem számít.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Milyen a legközelebbi centroid döntési határa két osztálynál?</div>
+    <div class="face back">Egyenes (hipersík): a két centroidot összekötő szakasz felező merőlegese.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért nem jó a lineáris regresszió 0/1 címkére?</div>
+    <div class="face back">Mert a jóslata kiléphet a $[0, 1]$ sávból, és a távoli, egyértelmű pontok elhúzzák a határt.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit jelent a logisztikus regresszióban a $w_j$ súly?</div>
+    <div class="face back">Ha $x_j$ 1-gyel nő, a log-esély $w_j$-vel nő, az esély $e^{w_j}$-szeresére változik.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a bináris keresztentrópia egy mintára?</div>
+    <div class="face back">$-\ln$ (a helyes osztálynak adott valószínűség): $-\ln\hat p$, ha $y = 1$; $-\ln(1 - \hat p)$, ha $y = 0$.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi történik a logisztikus regresszióval tökéletesen szétválasztható adaton?</div>
+    <div class="face back">A súlyok a végtelenbe nőnének (nincs véges minimum) – regularizáció kell.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a softmax kapcsolata a szigmoiddal?</div>
+    <div class="face back">Két osztálynál a softmax épp a logitok különbségének szigmoidja: $\sigma(z_1 - z_0)$.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért „naiv” a naiv Bayes?</div>
+    <div class="face back">Mert feltételezi, hogy egy osztályon belül a jellemzők függetlenek – ami szinte sosem igaz, mégis gyakran jól működik.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mire jó a Laplace-simítás?</div>
+    <div class="face back">Hogy egy tanítóadatban nem látott szó ne kapjon 0 valószínűséget, ami az egész szorzatot lenullázná.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért nem választja el egy egyenes a XOR-t, és mi a megoldás?</div>
+    <div class="face back">Az egyenlőtlenségek összeadva ellentmondanak. Megoldás: új jellemző ($x_1x_2$), kernel, több réteg vagy kNN.</div></div></div>
+</div>
+</section>
+
+<!-- ===================================================== Vegyes gyakorló feladatok -->
+<section id="s-ex">
+<h2>Vegyes gyakorló feladatok</h2>
+<p>Itt már nincs megmondva, melyik szakaszhoz tartozik a feladat: neked kell eldönteni, melyik eszköz kell.</p>
+<details class="box practice">
+  <summary>✏️ Vegyes gyakorló feladatok – kattints a kinyitáshoz</summary>
+  <ol>
+    <li>Gyümölcsök (tömeg g-ban, hossz cm-ben): alma (150; 7), (170; 8), (160; 7); banán (120; 18), (130; 20). Új gyümölcs: (140; 17). Mit mond az 1-NN nyers adaton, és mit gondolsz róla?
+      <details><summary>Tipp</summary>Számold ki a távolságokat – melyik jellemző dominál?</details>
+      <details><summary>Megoldás</summary>Távolságok: alma (150; 7): $\sqrt{100 + 100} \approx 14{,}1$; (170; 8): $\sqrt{900 + 81} \approx 31{,}3$; (160; 7): $\sqrt{400 + 100} \approx 22{,}4$; banán (120; 18): $\sqrt{400 + 1} \approx 20{,}0$; (130; 20): $\sqrt{100 + 9} \approx 10{,}4$.
+        Legközelebb a (130; 20) banán → banán. Itt jó a döntés, de csak szerencsével: a tömeg tartománya (50 g) sokkal nagyobb a hosszénál (13 cm), így a tömeg dominál – skálázni kellene.</details></li>
+    <li>Egy logisztikus modell: $z = 0{,}8\cdot\text{linkek} - 2$. Hány linktől spam a levél 0,5-ös, és hány linktől 0,8-as küszöbbel? ($\ln 4 \approx 1{,}386$)
+      <details><summary>Tipp</summary>A küszöböt fordítsd át log-esélyre.</details>
+      <details><summary>Megoldás</summary>0,5: $z \ge 0 \iff \text{linkek} \ge 2{,}5$ → 3 linktől. 0,8: $z \ge \ln 4 \approx 1{,}386 \iff \text{linkek} \ge 4{,}23$ → 5 linktől.</details></li>
+    <li>Az előző modellben hányszorosára nő a spam esélye minden további linkkel? ($e^{0{,}8} \approx 2{,}23$) És mennyi a 3 linkes levél spam-valószínűsége? ($e^{-0{,}4} \approx 0{,}670$)
+      <details><summary>Tipp</summary>Esélyszorzó: $e^w$. Valószínűség: szigmoid.</details>
+      <details><summary>Megoldás</summary>Kb. 2,23-szorosára. 3 link: $z = 0{,}4$, $\hat p = 1/(1 + 0{,}670) \approx 0{,}599$.</details></li>
+    <li>Egy 3 osztályos modell logitjai: (1; 1; −1). Mennyi a softmax, és mennyi a veszteség, ha a 3. osztály a helyes? ($e \approx 2{,}718$, $e^{-1} \approx 0{,}368$)
+      <details><summary>Tipp</summary>Exponenciálás, normálás, aztán $-\ln$ a helyesre.</details>
+      <details><summary>Megoldás</summary>Összeg $2{,}718 + 2{,}718 + 0{,}368 = 5{,}804$: $(0{,}468;\ 0{,}468;\ 0{,}063)$. Veszteség: $-\ln 0{,}063 \approx 2{,}76$.</details></li>
+    <li>Egy postafiók: 200 levél, 50 spam. Az „árverés” szó 20 spamben és 3 jó levélben szerepel, az „ebéd” 1 spamben és 45 jó levélben. Laplace-simítással mennyi $P(\text{spam} \mid \text{árverés, ebéd})$ a naiv Bayes szerint?
+      <details><summary>Tipp</summary>Simított gyakoriságok: $(n + 1)/(n_c + 2)$. Aztán a két számláló.</details>
+      <details><summary>Megoldás</summary>Spam: $0{,}25\cdot\frac{21}{52}\cdot\frac{2}{52} \approx 0{,}25\cdot0{,}404\cdot0{,}0385 \approx 0{,}00388$. Jó: $0{,}75\cdot\frac{4}{152}\cdot\frac{46}{152} \approx 0{,}75\cdot0{,}0263\cdot0{,}303 \approx 0{,}00597$.
+        $P(\text{spam}) \approx \frac{0{,}00388}{0{,}00985} \approx 0{,}39$. Az „ebéd” ártatlansága erősebb, mint az „árverés” gyanússága.</details></li>
+    <li>Pontok egy egyenesen: A osztály: −3, −2, 2, 3; B osztály: −1, 0, 1. Melyik módszer(ek) tud(nak) hibátlanul dönteni: (a) egyetlen küszöb $x$-en; (b) küszöb $x^2$-en; (c) 1-NN?
+      <details><summary>Tipp</summary>Rajzold fel a pontokat. Hány határpont kell?</details>
+      <details><summary>Megoldás</summary>(a) nem – két határpont kell ($x \lt -1{,}5$ és $x \gt 1{,}5$); (b) igen: „A, ha $x^2 \gt 2{,}25$” (A: 9, 4, 4, 9; B: 1, 0, 1); (c) igen, ezen a tanító adaton (és az új pontok nagy részén is).</details></li>
+    <li>Egy banki csalásmodell 1000 tranzakcióból 10 csalást lát. A modell minden tranzakcióra kb. 0,01-et mond. Mennyi a pontossága 0,5-ös küszöbbel, és mi a baj?
+      <details><summary>Tipp</summary>Alapvonal és küszöb.</details>
+      <details><summary>Megoldás</summary>0,5-ös küszöbbel semmit nem jelöl csalásnak: pontosság $990/1000 = 99\%$ – épp az alapvonal, egyetlen csalást sem talál. Ritka osztálynál a küszöböt lejjebb kell vinni (és a pontosság helyett más mérték kell – 6. fejezet).</details></li>
+    <li>Melyik módszert választanád, és miért? (a) 50 000 ügyfél, 20 numerikus jellemző, a bank tudni akarja, melyik jellemző mennyit számít; (b) 300 rövid vásárlói vélemény, pozitív / negatív; (c) okostelefonon, 10 ms alatt kell 5 osztály közül dönteni, 100 000 tanító mintával.
+      <details><summary>Tipp</summary>Értelmezhetőség, kevés szöveges adat, gyors jóslás.</details>
+      <details><summary>Megoldás</summary>(a) logisztikus regresszió (standardizálva): a súlyok esélyszorzóként értelmezhetők. (b) naiv Bayes szózsákkal: kevés adatból is működik, szövegre jó. (c) legközelebbi centroid vagy logisztikus regresszió –
+        a kNN-nek minden jósláskor 100 000 távolságot kellene számolnia.</details></li>
+  </ol>
+</details>
+</section>
+
+<!-- ===================================================== Fejezetzáró teszt -->
+<section id="s-final">
+<h2>Fejezetzáró teszt</h2>
+<p>Vegyes feladatok az egész fejezetből. Ha legalább 80%-ot elérsz, nyugodtan továbbléphetsz a 6. fejezetre (modellértékelés), ahol megtanulod, hogyan mérd meg becsületesen, mennyire jó egy osztályozó.</p>
+<div class="quiz" data-quiz="ai5-final"></div>
+</section>
+
+<!-- ===================================================== Szómagyarázó -->
+<section id="s-gloss">
+<h2>Szómagyarázó</h2>
+<p>A fejezetben előforduló idegen vagy kevésbé ismert szakkifejezések, betűrendben.</p>
+<dl class="glossary">
+  <dt id="g-apriori">a priori, a posteriori <span class="etym">lat. „az előbbiből”, „az utóbbiból”</span></dt>
+  <dd><p>A bizonyíték megfigyelése előtti, illetve utáni valószínűség a Bayes-tételben: $P(c)$ és $P(c \mid \mathbf x)$.</p></dd>
+
+  <dt id="g-centroid">centroid <span class="etym">lat. <em>centrum</em> „középpont” (gör. <em>kentron</em> „hegyes pálca, a körző szára”) + gör. <em>-oeidész</em> „-szerű”</span></dt>
+  <dd><p>Pontok súlypontja: a koordinátánkénti átlag.</p></dd>
+
+  <dt id="g-diszkriminativ">diszkriminatív <span class="etym">lat. <em>discriminare</em> „elválaszt, megkülönböztet”, a <em>discrimen</em> „választóvonal” szóból</span></dt>
+  <dd><p>Olyan modell, amely közvetlenül a döntést ($P(c \mid \mathbf x)$) tanulja – pl. a logisztikus regresszió.</p></dd>
+
+  <dt id="g-euklideszi">euklideszi <span class="etym">Eukleidész (i. e. 300 körül) alexandriai görög matematikus nevéből</span></dt>
+  <dd><p>A „légvonalbeli” távolság: a koordinátakülönbségek négyzetösszegének gyöke (Pitagorasz-tétel).</p></dd>
+
+  <dt id="g-generativ">generatív <span class="etym">lat. <em>generare</em> „nemz, létrehoz”</span></dt>
+  <dd><p>Olyan modell, amely azt írja le, hogyan keletkeznek az adatok osztályonként ($P(\mathbf x \mid c)$, $P(c)$) – pl. a naiv Bayes.</p></dd>
+
+  <dt id="g-kalibralt">kalibrált <span class="etym">a <em>kaliber</em> szóból (fr. <em>calibre</em>, arab <em>qālib</em> „öntőforma”)</span></dt>
+  <dd><p>Egy modell valószínűségei kalibráltak, ha a 0,8-at kapott esetek kb. 80%-a valóban pozitív.</p></dd>
+
+  <dt id="g-konvex">konvex <span class="etym">lat. <em>convexus</em> „domború, boltozatos”</span></dt>
+  <dd><p>Olyan (veszteség)függvény, amelynek egyetlen „völgye” van – a gradiens módszer biztosan megtalálja a minimumát.</p></dd>
+
+  <dt id="g-likelihood">likelihood <span class="etym">ang. „valószínűség, esély”; R. A. Fisher tette szakkifejezéssé (1921), a <em>probability</em>-től megkülönböztetve</span></dt>
+  <dd><p>Az adat valószínűsége egy adott modell (paraméter, osztály) mellett: $P(\mathbf x \mid c)$. A maximum likelihood az a modell, amely mellett a megfigyelt adat a legvalószínűbb.</p></dd>
+
+  <dt id="g-logisztikus">logisztikus <span class="etym">P.-F. Verhulst belga matematikus nevezte el <em>logistique</em>-nak (1845) a népességnövekedés S alakú görbéjét; a névválasztás oka nem ismert pontosan</span></dt>
+  <dd><p>A logisztikus függvény a szigmoid; a logisztikus regresszió ezzel alakítja a lineáris pontszámot valószínűséggé.</p></dd>
+
+  <dt id="g-logit">logit <span class="etym">J. Berkson (1944) alkotta a <em>logistic unit</em> rövidítéseként, a <em>probit</em> mintájára</span></dt>
+  <dd><p>A log-esély, $\ln\frac{p}{1 - p}$ – a szigmoid inverze. A gépi tanulásban tágabban: bármely softmax/szigmoid előtti pontszám.</p></dd>
+
+  <dt id="g-manhattan">Manhattan-távolság <span class="etym">New York Manhattan negyedének négyzetrácsos utcahálózatáról</span></dt>
+  <dd><p>A koordinátakülönbségek abszolút értékeinek összege – ahogy egy taxi megy a háztömbök között.</p></dd>
+
+  <dt id="g-multinomialis">multinomiális <span class="etym">lat. <em>multi-</em> „sok” + <em>nomen</em> „név, tag” (a <em>binomiális</em> mintájára)</span></dt>
+  <dd><p>Sok kimenetű: a multinomiális logisztikus regresszió a softmaxos többosztályos változat, a multinomiális naiv Bayes a szódarabszámokat modellezi.</p></dd>
+
+  <dt id="g-naiv">naiv <span class="etym">fr. <em>naïf</em> „ártatlan, egyszerű”, a lat. <em>nativus</em> „született, természetes” szóból</span></dt>
+  <dd><p>A naiv Bayesben: az a leegyszerűsítő feltevés, hogy egy osztályon belül a jellemzők függetlenek.</p></dd>
+
+  <dt id="g-szigmoid">szigmoid <span class="etym">gör. <em>szigma</em> (σ, szóvégi alakja ς) + <em>-oeidész</em> „-szerű”: „S alakú”</span></dt>
+  <dd><p>Az $1/(1 + e^{-z})$ függvény, ami bármilyen valós számot a $(0, 1)$ intervallumba képez.</p></dd>
+
+  <dt id="g-softmax">softmax <span class="etym">ang. „lágy maximum”: a maximumkiválasztás sima, differenciálható változata (J. Bridle, 1990)</span></dt>
+  <dd><p>Pontszámokból valószínűség-eloszlás: $e^{z_k}/\sum_j e^{z_j}$. A legnagyobb pontszám kapja a legnagyobb, de nem az egész valószínűséget.</p></dd>
+
+  <dt id="g-xor">XOR <span class="etym">ang. <em>exclusive or</em> „kizáró vagy”</span></dt>
+  <dd><p>Az a logikai függvény, ami akkor igaz, ha pontosan az egyik bemenet igaz. Az egyenessel nem szétválasztható feladatok klasszikus példája.</p></dd>
+</dl>
+</section>
+
+<nav class="pager">
+  <a href="../04-adatok-es-jellemzok/">← 4. Adatok és jellemzők</a>
+  <span class="next muted">6. Modellértékelés (hamarosan) →</span>
+</nav>
+
+</main>
+</div>
+
+<footer class="site">
+  Források: O. Theobald: <em>Machine Learning for Absolute Beginners</em> (3. kiad.), 8–9. fejezet · R. T. Kneusel: <em>Practical Deep Learning</em>, 6–7. fejezet (centroid, kNN, naiv Bayes; emlőrák- és MNIST-kísérletek) ·
+  A. Glassner: <em>Deep Learning – A Visual Approach</em>, 4., 7., 11. fejezet · J. Mueller – L. Massaron: <em>Machine Learning for Dummies</em> (2. kiad.), 7., 10., 12–13. fejezet (távolságok, Spambase, logisztikus regresszió) ·
+  Hastie – Tibshirani – Friedman: <em>The Elements of Statistical Learning</em>, 4.4 (dél-afrikai szívbetegség-adatok), 6.6.3, 13.3 szakasz ·
+  Kiegészítés: E. Fix – J. Hodges (1951) · T. Cover – P. Hart: <em>Nearest neighbor pattern classification</em> (1967) · M. Minsky – S. Papert: <em>Perceptrons</em> (1969) ·
+  M. Sahami et al.: <em>A Bayesian Approach to Filtering Junk E-Mail</em> (1998) · P. Graham: <em>A Plan for Spam</em> (2002).
+</footer>
+</body>
+</html>

@@ -41,7 +41,8 @@ synopsis/
     ├── 01-mi-a-mesterseges-intelligencia/  ← index.html, widgets.js, quizzes.js
     ├── 02-matematikai-eszkoztar/   ← index.html, widgets.js (a calc.js-re épül), quizzes.js
     ├── 03-tanulas-anatomiaja/      ← index.html, widgets.js (a calc.js-re épül), quizzes.js
-    └── 04-adatok-es-jellemzok/     ← index.html, widgets.js (a calc.js-re épül), quizzes.js
+    ├── 04-adatok-es-jellemzok/     ← index.html, widgets.js (a calc.js-re épül), quizzes.js
+    └── 05-osztalyozas/             ← index.html, widgets.js (a calc.js-re épül), quizzes.js
 ```
 
 ## Közzététel GitHub Pages-en

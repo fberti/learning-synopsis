@@ -420,6 +420,17 @@ egyenese már nem elég.*
 ### Kvízek
 `ai5-52`, `ai5-53`, `ai5-54`, `ai5-55`, `ai5-final`.
 
+> ✅ **Elkészült** (`05-osztalyozas/`). Eltérések a tervtől: kvíz minden szakaszhoz (`ai5-51` … `ai5-56`, `ai5-final`); futó példa: egy 10 leveles
+> postafiók (4 spam, 6 nem spam; jellemzők: linkek, felkiáltójelek és 4 szó – ingyen, nyertél, kattints, holnap) és egy új levél, ★ = (3; 3), „nyertél, kattints”:
+> 1-NN → nem spam (H5), 3-NN → spam (2 : 1), centroidok (4; 4) és (1; 1), határ $x_1 + x_2 = 5$ → spam; logisztikus regresszió a felkiáltójelekre $\sigma(x - 2{,}7)$
+> (ML: $w = 0{,}992$, $b = -2{,}736$), két jellemzőre (C = 1) $0{,}99x_1 + 0{,}69x_2 - 4{,}85$ → 0,55; naiv Bayes Laplace-simítással → 0,905. Új lépések: küszöbszabály és
+> alapvonal (5.1), döntési határ síkban statikus SVG-vel (5.1), legközelebbi centroid külön lépésként (5.2), „miért nem jó az egyenes” (5.3), esély/log-esély és küszöb külön
+> lépés (5.3), a naiv Bayes log-esély alakja és a generatív/diszkriminatív tip (5.5), kitekintés a nemlineáris határ három útjára (5.6), külön 5.7 Alkalmazás 4 tesztlevéllel
+> (minden módszer 3/4, de máshol hibázik) és 🐍 scikit-learn kóddal. Szemléltetések: `knn-boundary` (tíz levél + zajos „holdak” tanító/teszt, kNN/centroid),
+> `line-vs-sigmoid` (20 felkiáltójeles kiugró spam), `sigmoid-fit` (gradiens módszer, küszöb, veszteséggörbe), `softmax-lab` (OvR-szigmoidokkal összevetve),
+> `naive-bayes-spam` (tíz levél / 100 kitalált levél, simítás ki-be), `xor-problem` (XOR, zajos XOR, céltábla; kézi egyenes / LR / + új jellemző).
+> A forrásokból jelzett hibák az oldalon: MLAB (kis $k$ ≠ nagy torzítás), MLD (esélyhányados ≠ valószínűség-növekedés, Laplace-nevező), DLV (a „naiv” magyarázata).
+
 ### Csapdák
 A logisztikus regresszió – a neve ellenére – osztályozó · kNN skálázás nélkül · a kimeneti „valószínűség” nem
 feltétlenül kalibrált · a naiv függetlenségi feltevés ritkán igaz, a módszer mégis gyakran működik.
