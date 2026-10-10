@@ -60,7 +60,7 @@ Magyar elnevezések, az angol megfelelő első előforduláskor zárójelben, el
 
 ### Technikai konvenciók
 - Mappa: `mesterseges-intelligencia/NN-rovid-cim/` → `index.html`, `widgets.js`, `quizzes.js`.
-- Kvízazonosítók: `ai<fejezet>-<szakasz>`, pl. `ai9-93`, `ai15-155`; fejezetzáró: `ai9-final`. A témakör `index.html`-jében
+- Kvízazonosítók: `ai<fejezet>-<szakasz>`, pl. `ai9-93`, `ai16-165`; fejezetzáró: `ai9-final`. A témakör `index.html`-jében
   és a főoldal `data-progress` listájában frissíteni kell.
 - KaTeX; `<` helyett `\lt`. Vektorok félkövérrel ($\mathbf x$), mátrixok nagybetűvel ($W$), transzponált: $\mathbf w^\top$.
 - Doboztípusok: `def`, `thm`, `example`, `tip`, `warn`, `history`.
@@ -74,12 +74,12 @@ Magyar elnevezések, az angol megfelelő első előforduláskor zárójelben, el
 - **Valószínűségszámítás** (1–4. fejezet): feltételes valószínűség, Bayes-tétel (→ naiv Bayes, 5. fejezet), eloszlások,
   várható érték (→ veszteségek, mintavételezés az LLM-ekben).
 - **Matematikai statisztika:** leíró statisztika (→ 4. fejezet), regresszió és legkisebb négyzetek (→ 3. fejezet),
-  becslés, konfidenciaintervallum, hipotézisvizsgálat (→ 6. fejezet, A/B teszt a 21. fejezetben).
+  becslés, konfidenciaintervallum, hipotézisvizsgálat (→ 6. fejezet, A/B teszt a 22. fejezetben).
 - **Analízis:** derivált, láncszabály (4. fejezet), gradiens, többváltozós szélsőérték, legkisebb négyzetek (9. fejezet)
   → a gépi tanulás optimalizálásának teljes háttere (2., 3., 10. fejezet).
-- **Játékelmélet:** stratégia, egyensúly → megerősítéses tanulás (14.), többágenses rendszerek (19.).
-- **Ágensalapú modellezés:** egyszerű szabályokból kibontakozó viselkedés → többágenses rendszerek (19.),
-  evolúciós algoritmusok (23.).
+- **Játékelmélet:** stratégia, egyensúly → megerősítéses tanulás (15.), többágenses rendszerek (20.).
+- **Ágensalapú modellezés:** egyszerű szabályokból kibontakozó viselkedés → többágenses rendszerek (20.),
+  evolúciós algoritmusok (24.).
 - A 2. fejezet a fenti matematikai minimumot önállóan is összefoglalja („🔁 Emlékeztető” dobozokkal), így az MI-témakör
   a többi témakör befejezése nélkül is olvasható.
 
@@ -131,23 +131,25 @@ Magyar elnevezések, az angol megfelelő első előforduláskor zárójelben, el
 | 10 | A háló tanítása: visszaterjesztés, optimalizálók, regularizáció | III. Mélytanulás | ★★–★★★ |
 | 11 | Konvolúciós hálók és gépi látás | III. Mélytanulás | ★★ |
 | 12 | Beágyazások, szekvenciák és a figyelemmechanizmus | III. Mélytanulás | ★★–★★★ |
-| 13 | Generatív modellek | III. Mélytanulás | ★★★ |
-| 14 | Megerősítéses tanulás | III. Mélytanulás | ★★–★★★ |
-| 15 | Hogyan működik egy nagy nyelvi modell? | IV. Nagy nyelvi modellek | ★★ |
-| 16 | Finomhangolás, igazítás és érvelő modellek | IV. Nagy nyelvi modellek | ★★★ |
-| 17 | Promptolás és visszakereséssel kiegészített generálás (RAG) | IV. Nagy nyelvi modellek | ★★ |
-| 18 | AI-ágensek: eszközök, ciklus, tervezés, memória | V. AI-ágensek | ★★ |
-| 19 | Ágensrendszerek: MCP, többágenses rendszerek, keretrendszerek | V. AI-ágensek | ★★★ |
-| 20 | AI-alkalmazások építése és értékelése | VI. Mérnöki gyakorlat | ★★ |
-| 21 | ML-rendszerek életciklusa és MLOps | VI. Mérnöki gyakorlat | ★★ |
-| 22 | Rendszertervezési esettanulmányok *(opcionális)* | VI. Mérnöki gyakorlat | ★★ |
-| 23 | Evolúciós algoritmusok és neuroevolúció *(opcionális)* | VII. Kitekintés | ★★ |
-| 24 | Felelős MI és társadalmi hatások | VII. Kitekintés | ★ |
+| 13 | Gráf neurális hálók | III. Mélytanulás | ★★–★★★ |
+| 14 | Generatív modellek | III. Mélytanulás | ★★★ |
+| 15 | Megerősítéses tanulás | III. Mélytanulás | ★★–★★★ |
+| 16 | Hogyan működik egy nagy nyelvi modell? | IV. Nagy nyelvi modellek | ★★ |
+| 17 | Finomhangolás, igazítás és érvelő modellek | IV. Nagy nyelvi modellek | ★★★ |
+| 18 | Promptolás és visszakereséssel kiegészített generálás (RAG) | IV. Nagy nyelvi modellek | ★★ |
+| 19 | AI-ágensek: eszközök, ciklus, tervezés, memória | V. AI-ágensek | ★★ |
+| 20 | Ágensrendszerek: MCP, többágenses rendszerek, keretrendszerek | V. AI-ágensek | ★★★ |
+| 21 | AI-alkalmazások építése és értékelése | VI. Mérnöki gyakorlat | ★★ |
+| 22 | ML-rendszerek életciklusa és MLOps | VI. Mérnöki gyakorlat | ★★ |
+| 23 | Rendszertervezési esettanulmányok *(opcionális)* | VI. Mérnöki gyakorlat | ★★ |
+| 24 | Evolúciós algoritmusok és neuroevolúció *(opcionális)* | VII. Kitekintés | ★★ |
+| 25 | Felelős MI és társadalmi hatások | VII. Kitekintés | ★ |
 
 **A sorrend logikája.** A klasszikus gépi tanulás (II.) előzi meg a mélytanulást (III.), mert minden alapfogalom
 (veszteség, gradiens módszer, túlillesztés, értékelés) ott a legegyszerűbb, és a neurális háló ezek „nagyobb” változata.
-A III. blokk a Transformerrel (12.) zárul, erre épül a IV. blokk (LLM-ek), arra az V. (ágensek). A VI. blokk a mérnöki
-oldal: hogyan lesz egy modellből megbízható termék. A 22–23. fejezet kihagyható, a 24. bármikor olvasható.
+A III. blokk gerince a Transformer (12.); a gráf neurális hálók (13.) ugyanezt a „szomszédoktól tanulás” gondolatot
+viszik át tetszőleges gráfokra. A Transformerre épül a IV. blokk (LLM-ek), arra az V. (ágensek). A VI. blokk a mérnöki
+oldal: hogyan lesz egy modellből megbízható termék. A 23–24. fejezet kihagyható, a 25. bármikor olvasható.
 
 A források sorrendje eltér: a DLV és az MDL a matematikával kezd, a MLAB és a HAW szinte matek nélkül; mi a 2. fejezetben
 csak a **minimumot** adjuk (a részletek a Synopsis matematikai témaköreiben vannak), és a mélyebb matematikát mindig ott
@@ -157,10 +159,10 @@ vezetjük be, ahol először kell (pl. láncszabály a 10. fejezetben, entrópia
 
 | Útvonal | Fejezetek | Kinek? |
 |---|---|---|
-| **Teljes út** | 1 → 24 sorban (a 22–23. opcionális) | aki alaposan meg akarja érteni a területet |
-| **Gyors út az LLM-ekhez és ágensekhez** | 1 → 2 (2.1–2.3, 2.7–2.8) → 3 → 9 → 10 → 12 → 15 → 17 → 18 → 19 (+ 16, 20) | aki elsősorban a mai generatív MI-t akarja érteni és használni |
-| **Klasszikus adattudós út** | 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 21 (+ 22) | táblázatos adatok, előrejelzés, üzleti elemzés |
-| **Alkalmazásfejlesztő út** | 1 → 3 → 15 → 17 → 18 → 20 → 19 → 21 → 24 | aki LLM-alapú terméket épít, kevés matekkal |
+| **Teljes út** | 1 → 25 sorban (a 23–24. opcionális) | aki alaposan meg akarja érteni a területet |
+| **Gyors út az LLM-ekhez és ágensekhez** | 1 → 2 (2.1–2.3, 2.7–2.8) → 3 → 9 → 10 → 12 → 16 → 18 → 19 → 20 (+ 17, 21) | aki elsősorban a mai generatív MI-t akarja érteni és használni |
+| **Klasszikus adattudós út** | 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 22 (+ 23) | táblázatos adatok, előrejelzés, üzleti elemzés |
+| **Alkalmazásfejlesztő út** | 1 → 3 → 16 → 18 → 19 → 21 → 20 → 22 → 25 | aki LLM-alapú terméket épít, kevés matekkal |
 
 ---
 
@@ -408,7 +410,7 @@ A logisztikus regresszió – a neve ellenére – osztályozó · kNN skáláz�
 feltétlenül kalibrált · a naiv függetlenségi feltevés ritkán igaz, a módszer mégis gyakran működik.
 
 ### Források
-MLAB 7–8; MLD 10, 12–13; PDL 6–7; DLV 4, 7, 11; ESL 4, 13.
+MLAB 7–8; MLD 10, 12–13; PDL 6–7; DLV 4, 7, 11; ESL 4, 14.
 
 ---
 
@@ -430,7 +432,7 @@ MLAB 7–8; MLD 10, 12–13; PDL 6–7; DLV 4, 7, 11; ESL 4, 13.
 6. **6.6 Regressziós metrikák** ★ – MAE, MSE, RMSE, $R^2$, MAPE (AAMLP, MLQ 27).
 7. **6.7 Regularizáció** ★★ – Ridge (L2), Lasso (L1), elasztikus háló; a büntetőtag mint „egyszerűségi adó” (ESL 3.4, MLD 13, MLQ 6).
 8. **6.8 Hiperparaméter-hangolás** ★★ – rácskeresés, véletlen keresés, Bayes-optimalizálás (AAMLP *Hyperparameter
-   optimization*, MLAB 17; az evolúciós változat a 23. fejezetben).
+   optimization*, MLAB 17; az evolúciós változat a 24. fejezetben).
 9. **6.9 Bizonytalanság** ★★★ – konfidenciaintervallum a pontosságra (bootstrap), konform predikció (MLQ 25–26;
    visszautalás a statisztika becslés-fejezetére).
 
@@ -514,7 +516,7 @@ mondja meg a helyes választ.*
 3. **8.3 Főkomponens-elemzés (PCA)** ★★ – a legnagyobb szórás iránya; sajátvektorok; magyarázott variancia (MDL 6, ESL 14.5, DLV 10).
 4. **8.4 Nemlineáris dimenziócsökkentés** ★★★ – t-SNE, UMAP szemléletesen; beágyazások megjelenítése (ESL 14.9, MLQ 1).
 5. **8.5 Anomáliadetektálás** ★★ – csalásfelderítés, szenzoradatok (MLSYS gyakorlat: *Motion Classification and Anomaly Detection*).
-6. **8.6 Ajánlórendszerek alapjai** ★★ – tartalomalapú és kollaboratív szűrés, mátrixfaktorizáció (MLD 19; a 22. fejezet előzetese).
+6. **8.6 Ajánlórendszerek alapjai** ★★ – tartalomalapú és kollaboratív szűrés, mátrixfaktorizáció (MLD 19; a 23. fejezet előzetese).
 
 ### Kidolgozott példák
 - $k$-közép 6 ponton, $k = 2$, két iteráció kézzel.
@@ -646,7 +648,7 @@ MDL 7–8, 10–11; DLV 9, 14–15; PDL 9–10; MLQ 4–7, 10, 27; MLD 8, 14; ML
 7. **11.7 Vision Transformer** ★★★ – a kép mint foltok sorozata; induktív torzítás; miért kell sok adat (MLQ 13 –
    a 12. fejezet után olvasandó).
 8. **11.8 A gépi látás társadalmi oldala** ★ – megfigyelés, arcfelismerés, „algoritmikus tekintet”, vakfoltok (MV 3–5;
-   kapcsolat a 24. fejezettel).
+   kapcsolat a 25. fejezettel).
 
 ### Kidolgozott példák
 - $5\times5$-ös kép és $3\times3$-as függőleges élszűrő → $3\times3$-as kimenet kézzel.
@@ -691,6 +693,7 @@ szó? – A szavak jelentését a szomszédaik adják.*
 6. **12.6 A Transformer** ★★★ – enkóder, dekóder, enkóder–dekóder; reziduális kapcsolat + rétegnormalizálás + előrecsatolt
    réteg; maszkolt figyelem; BERT vs. GPT (MLQ 8, 17; FLLM 1; DLV 20).
 7. **12.7 Miért nyert a Transformer?** ★★ – párhuzamosíthatóság, önfelügyelt előtanítás, skálázhatóság (MLQ 8).
+   Kitekintés: az önfigyelem üzenetküldés egy teljes gráfon → 13. fejezet (gráf neurális hálók).
 
 ### Kidolgozott példák
 - TF-IDF három rövid mondatra.
@@ -719,18 +722,143 @@ MLD 18; MLSYS (*DNN Architectures*).
 
 ---
 
-## 13. fejezet – Generatív modellek ★★★
+## 13. fejezet – Gráf neurális hálók ★★–★★★
+
+**Nagy kérdés:** *Hogyan mondja meg egy gép egy sosem látott molekuláról, hogy hat-e a baktériumokra, vagy egy közösségi
+hálóról, hogy ki kit ismerhet? – Az adat itt se nem sor, se nem rács, hanem **gráf**: minden csúcs a szomszédaitól tanul.*
+
+**Cél:** a gráf mint adattípus; miért kell új architektúra; az üzenetküldés (message passing) mint a GNN-ek közös váza;
+a fő modellcsaládok (GCN, GraphSAGE, GAT, GIN); csúcs-, él- és gráfszintű feladatok; a korlátok (kifejezőerő, túlsimítás,
+túlnyomás); a Transformer és a GNN kapcsolata; a mai nagy alkalmazások (molekulák, anyagok, időjárás, ajánlók) és a
+gráfok + LLM-ek friss iránya.
+
+**Kapcsolódás:** a 11. fejezet konvolúciója (rács = speciális gráf), a 12. fejezet beágyazásai és önfigyelme (teljes gráf);
+a 2. fejezet mátrixszorzása és sajátvektorai; előre: ajánlórendszerek (23.), GraphRAG és tudásgráfok (18.), többágenses
+rendszerek kommunikációs gráfja (20.).
+
+> 🔬 **Kidolgozáskor kötelező:** a fejezet megírása előtt **Consensus-kutatás** (`mcp__plugin_consensus_Consensus__search`)
+> a legfrissebb (2024–2026-os) eredményekről, legalább ezekben a kérdésekben: gráf-alapmodellek (graph foundation models);
+> GNN + LLM (gráf mint prompt, GraphRAG, LLM mint csúcsjellemző-kódoló); gráf-Transformerek vs. üzenetküldő hálók (mikor
+> melyik jobb – pl. a „klasszikus GNN-ek erős alapvonalak” típusú újraértékelések); túlsimítás és túlnyomás elmélete és
+> ellenszerei (újrahuzalozás, virtuális csúcs); kifejezőerő a WL-hierarchián túl; ekvivariáns és geometriai GNN-ek
+> (molekulák, anyagtudomány, fehérjék); időjárás-előrejelzés (GraphCast és utódai); skálázás nagy gráfokra; a benchmarkok
+> megbízhatósága. Az eredmények `📅 Állapot: 2026` jelöléssel, hivatkozással és dátummal kerülnek be; ahol a szakirodalom
+> megosztott, az oldal ezt jelzi. A végleges felépítést a kutatás alapján finomítjuk.
+
+### Felépítés
+1. **13.1 Gráfok mint adat** ★ – csúcs, él; irányított, súlyozott, heterogén (több csúcs- és éltípus) gráf; csúcs-, él- és
+   gráfjellemzők; példák: molekula (atom = csúcs, kötés = él), közösségi háló, úthálózat, hivatkozási háló, tudásgráf,
+   fehérje-kölcsönhatás. Ábrázolás: szomszédsági mátrix, szomszédsági lista, éllista; fokszám; $A^2$ elemei = kétlépéses
+   séták száma. Feladattípusok: **csúcsszintű** (szerep, csalás), **élszintű** (kapcsolat-előrejelzés, ajánlás),
+   **gráfszintű** (molekula-tulajdonság); transzduktív vs. induktív beállítás (Kiegészítés: gráfelméleti alapok röviden,
+   mert a Synopsisban nincs külön gráfelmélet-témakör).
+2. **13.2 Miért nem elég az MLP, a CNN vagy az RNN?** ★★ – változó méret, nincs természetes sorrend és nincs „bal felső
+   sarok”; ugyanaz a gráf $n!$-féleképpen számozható → **permutációinvariancia** (gráfszintű kimenet) és **-ekvivariancia**
+   (csúcsszintű kimenet). Régi megoldások alapvonalként: kézi gráfjellemzők (fokszám, klaszterezettség, PageRank) + klasszikus
+   modell; véletlen sétákból tanult csúcsbeágyazások (DeepWalk, node2vec – a word2vec ötlete a 12.2-ből).
+3. **13.3 Üzenetküldés** ★★ – a GNN-ek közös váza: minden csúcs **összegyűjti** a szomszédai vektorát (összeg / átlag /
+   maximum – mind sorrendfüggetlen), majd **frissíti** a sajátját: $\mathbf h_v' = \phi\big(\mathbf h_v,\ \bigoplus_{u \in N(v)}
+   \psi(\mathbf h_u)\big)$. Egy lépés kézzel egy 5 csúcsos gráfon; $k$ réteg = $k$ ugrásnyi szomszédság (recepciós mező,
+   vö. 11.3); súlymegosztás minden csúcs között (vö. a konvolúció súlymegosztásával). Mátrixalakban: $H' = \sigma(AHW)$.
+4. **13.4 Gráfkonvolúciós háló (GCN)** ★★ – önhurok ($\hat A = A + I$) és szimmetrikus normalizálás:
+   $H' = \sigma\big(\hat D^{-1/2}\hat A\hat D^{-1/2} H W\big)$; miért kell a normalizálás (a nagy fokszámú csúcsok
+   „elszállnak”); a rácsos kép mint gráf → a CNN speciális eset. Félig felügyelt csúcsosztályozás kevés címkével (Zachary
+   karateklubja, Cora-hivatkozási háló). 📐 Lenyílóban ★★★: gráf-Laplace-mátrix, sajátvektorai mint „gráf-Fourier-bázis”,
+   a spektrális GCN mint simító szűrő.
+5. **13.5 GraphSAGE, GAT, GIN** ★★ – **GraphSAGE:** mintavételezett szomszédság, induktív tanulás, milliárd élű gráfok
+   (Pinterest – PinSage); **GAT:** a szomszédok súlya nem a fokszámból, hanem **figyelemből** jön (vö. 12.4–12.5),
+   több fejjel; **GIN:** összeg-aggregálás + MLP – a legerősebb az üzenetküldők között (13.7). Döntési táblázat: mikor melyik.
+6. **13.6 Csúcs-, él- és gráfszintű kimenet** ★★ – **kiolvasás** (readout / pooling): a csúcsvektorok összege / átlaga →
+   gráfvektor → osztályozó (molekula mérgező-e); **kapcsolat-előrejelzés:** két csúcsbeágyazás skaláris szorzata +
+   szigmoid, negatív mintavétel; ajánlás kétrészes (felhasználó–termék) gráfon. Tanítás és kiértékelés: csúcs- és élfelosztás,
+   **adatszivárgás** gráfokon (a tesztélek nem maradhatnak bent az üzenetküldésben).
+7. **13.7 Mennyit tud egy GNN? Kifejezőerő és korlátok** ★★★ – a **Weisfeiler–Lehman-teszt** (színfinomítás) és a
+   tétel, hogy az üzenetküldő GNN legfeljebb ennyire erős; a klasszikus ellenpélda: hatszög vs. két háromszög; erősebb
+   változatok (magasabb rendű WL, részgráf-számlálás, pozíciókódolás). **Túlsimítás** (oversmoothing): sok réteg után
+   minden csúcs vektora ugyanaz lesz; **túlnyomás** (oversquashing): a távoli információ szűk keresztmetszeten fér át;
+   homofil vs. heterofil gráfok. Ellenszerek: reziduális kapcsolat, normalizálás, újrahuzalozás (rewiring), virtuális csúcs.
+8. **13.8 Gráf-Transformerek: a Transformer mint GNN** ★★★ – az önfigyelem üzenetküldés a **teljes gráfon**, a pozíció-
+   kódolás pedig a „gráfszerkezet”; gráf-Transformerek: szerkezeti és pozíciókódolások (Laplace-sajátvektorok, véletlen
+   séta), helyi üzenetküldés + globális figyelem kombinációja (GPS-recept); költség ($n^2$) és mikor éri meg.
+   📅 Friss vita a Consensus-kutatás alapján: gráf-Transformer vs. jól hangolt klasszikus GNN.
+9. **13.9 Geometriai és ekvivariáns GNN-ek** ★★★ – 3D molekulák és anyagok: a jóslat nem függhet a forgatástól és
+   eltolástól (invariancia) – vagy együtt kell forognia vele (ekvivariancia); E(n)-ekvivariáns GNN szemléletesen; a
+   „geometriai mélytanulás” nézőpontja (rács, gráf, csoport, sokaság – a CNN, a GNN és a Transformer egy családban).
+   Alkalmazások 📅: AlphaFold (fehérjeszerkezet), GNoME (új kristályok), gépi tanult atomközi potenciálok.
+10. **13.10 Alkalmazások; gráfok és nagy nyelvi modellek** ★★ – gyógyszerkutatás (a halicin antibiotikum felfedezése,
+    2020); forgalom és érkezési idő (Google Maps); időjárás-előrejelzés (GraphCast, 2023 – és utódai 📅); ajánlórendszerek
+    (PinSage; → 23. fejezet); csalásfelderítés tranzakciós gráfon; chiptervezés. **Gráfok + LLM 📅:** tudásgráf mint
+    visszakeresési forrás (GraphRAG, → 18. fejezet), gráf szövegként a promptban, LLM-mel kódolt csúcsjellemzők,
+    gráf-alapmodellek. Mérnöki oldal: ritka, szabálytalan számítás – miért nehezebb GPU-n, mint a CNN (MLSYS).
+
+### Kidolgozott példák
+- Egy 5 csúcsos gráf (élek: 1–2, 1–3, 2–3, 2–4, 4–5) szomszédsági mátrixa, fokszámai (2, 3, 2, 2, 1); $A^2$ első sora
+  $(2, 1, 1, 1, 0)$ – kétlépéses séták.
+- Permutáció: a csúcsok átszámozása után a mátrix más, az összeg-kiolvasás és a fokszám-hisztogram ugyanaz.
+- Egy üzenetküldési lépés skalár jellemzőkkel: átlag-aggregálás + $h' = \mathrm{ReLU}(w_1 h_v + w_2 \cdot \bar h_{N(v)} + b)$.
+- GCN-normalizálás a 3 csúcsos úton (1–2–3): $\hat D^{-1/2}\hat A\hat D^{-1/2}$ elemei $\tfrac12$, $\tfrac1{\sqrt6} \approx 0{,}408$,
+  $\tfrac13$.
+- Kétrétegű GCN recepciós mezője az 5 csúcsos gráfon: melyik csúcs „lát” melyiket.
+- GAT: egy csúcs három szomszédjának figyelmi pontszáma → softmax → súlyozott átlag (vö. 12.5).
+- Gráfszintű kiolvasás: két kis „molekula” összeg- és átlag-poolinggal – mikor nem különbözteti meg őket az átlag?
+- Kapcsolat-előrejelzés: három felhasználó és két termék beágyazásának skaláris szorzata → szigmoid → ajánlási sorrend.
+- WL-színfinomítás: hatszög vs. két háromszög – minden csúcs foka 2, a színek sosem válnak szét (az 1-WL és így minden
+  üzenetküldő GNN „vak” rájuk).
+- Túlsimítás számokkal: az 5 csúcsos gráfon önhurkos átlagolás az $(1, 0, 0, 0, 5)$ kezdőértékekről: a szórás 1,94 → 0,91
+  (1 lépés) → 0,35 (5) → 0,11 (10) → 0,001 (30); végül minden csúcs ≈ 0,87.
+- (Mindegyik Python-ellenőrzéssel; a 🐍 Python-lenyílóban PyTorch Geometric-kód egy GCN-réteghez, 5–15 sor.)
+
+### Interaktív szemléltetések
+- `graph-builder` – kattintással csúcsot és élt adsz hozzá; a szomszédsági mátrix, a szomszédsági lista és a fokszámok
+  élőben; csúcsátszámozás gombbal (a mátrix változik, a gráf nem).
+- `message-passing` – **a fejezet fő widgetje:** kis gráf színnel kódolt csúcsjellemzőkkel, lépésenkénti üzenetküldés,
+  aggregátorválasztó (összeg / átlag / max), egy kijelölt csúcs recepciós mezőjének kiemelése rétegenként.
+- `gcn-karate` – Zachary karateklubja (34 csúcs, 78 él): kétrétegű GCN élő tanítása csúcsonként 1–1 címkével (félig
+  felügyelt); a csúcsok 2D-s beágyazása animálva szétválik a két csoportra. Saját kis JS-tanítóval (`assets/ml.js`).
+- `wl-test` – Weisfeiler–Lehman-színfinomítás két gráfon lépésenként; jelzi, ha a színhisztogramok megegyeznek.
+- `oversmoothing` – rétegszám-csúszka; a csúcsvektorok szóródása és egy 2D-s vetület; kapcsoló: reziduális kapcsolat be/ki.
+- `gat-attention` – egy csúcs szomszédainak figyelmi súlyai élvastagsággal, a pontszámok szerkeszthetők.
+- `molecule-readout` – kis molekulagráfok (atomtípus = szín) → kiolvasás → „tulajdonság” jóslása; összeg vs. átlag.
+
+### Kvízek
+`ai13-131`, `ai13-132`, `ai13-133`, `ai13-134`, `ai13-135`, `ai13-136`, `ai13-137`, `ai13-final`
+(a 13.8–13.10 kérdései a fejezetzáróba kerülnek).
+
+### Csapdák
+A GNN gráfja ≠ a 10.4 számítási gráfja · a csúcsok sorrendje nem számíthat (aki sorrendfüggő aggregálást ír, hibázik) ·
+több réteg nem jobb (túlsimítás) · átlag-aggregálás nem látja a szomszédok számát · adatszivárgás a kapcsolat-előrejelzésnél ·
+a homofília feltételezése (heterofil gráfon a szomszédok átlaga félrevezet) · a figyelmi súly nem magyarázat ·
+a benchmark-eredmények érzékenyek a hangolásra és a felosztásra (📅 Consensus) · az LLM nem „érti” jól a szövegesen
+leírt gráfot.
+
+### Források
+A `Topics/AI/resources` könyvei közül csak az MLSYS érinti (hardveres és rendszerszintű kihívások); a fejezet ezért
+**külső forrásokra** épül:
+- **GRL** – W. L. Hamilton: *Graph Representation Learning* (Morgan & Claypool, 2020; szabadon elérhető) – a fő tankönyv.
+- **GDL** – M. Bronstein, J. Bruna, T. Cohen, P. Veličković: *Geometric Deep Learning: Grids, Groups, Graphs, Geodesics,
+  and Gauges* (arXiv 2104.13478, 2021) – az egységes nézőpont (13.9).
+- **GIG** – B. Sanchez-Lengeling et al.: *A Gentle Introduction to Graph Neural Networks* (Distill, 2021) – vizuális intuíció.
+- Alapcikkek: Gilmer et al. 2017 (MPNN); Kipf–Welling 2017 (GCN); Hamilton–Ying–Leskovec 2017 (GraphSAGE);
+  Veličković et al. 2018 (GAT); Xu et al. 2019 (GIN, WL-kapcsolat); Ying et al. 2018 (PinSage); Satorras et al. 2021
+  (E(n)-GNN); Rampášek et al. 2022 (GPS gráf-Transformer); Stokes et al. 2020 (halicin); Derrow-Pinion et al. 2021
+  (Google Maps ETA); Lam et al. 2023 (GraphCast); Zachary 1977 (karateklub); Weisfeiler–Lehman 1968.
+- 📅 2024–2026-os cikkek: a kidolgozáskor Consensus-kereséssel (lásd fent), hivatkozással és dátummal.
+- MLSYS (*AI Acceleration*, *AI Training* – GNN-ek ritka számítása).
+
+---
+
+## 14. fejezet – Generatív modellek ★★★
 
 **Nagy kérdés:** *Hogyan rajzol egy gép olyan arcot, amely sosem létezett? – Megtanulja az adatok eloszlását, aztán mintát vesz belőle.*
 
 ### Felépítés
-1. **13.1 Generatív vs. diszkriminatív** ★★ – $p(y \mid x)$ vs. $p(x)$; mintavétel egy eloszlásból (MLQ 9, HAW 6).
-2. **13.2 Autoenkóderek** ★★ – szűk keresztmetszet, tömörítés, zajszűrés; látens tér (DLV 18, EDL 8).
-3. **13.3 Variációs autoenkóder (VAE)** ★★★ – a látens tér mint eloszlás; interpoláció két kép között (DLV 18, MLQ 9).
-4. **13.4 Generatív versengő hálók (GAN)** ★★ – hamisító és detektív; módusösszeomlás (DLV 22, HAW 6, EDL 9).
-5. **13.5 Diffúziós modellek** ★★★ – zaj hozzáadása és lépésenkénti eltávolítása; szövegből kép (HAW 6, MLQ 9).
-6. **13.6 Autoregresszív modellek** ★★ – a következő elem jóslása → átvezetés az LLM-ekhez (MLQ 9, FLLM 2).
-7. **13.7 Kreatív alkalmazások és kérdések** ★ – stílusátvitel, deepfake, szerzői jog (DLV 23, HAW 6, 8).
+1. **14.1 Generatív vs. diszkriminatív** ★★ – $p(y \mid x)$ vs. $p(x)$; mintavétel egy eloszlásból (MLQ 9, HAW 6).
+2. **14.2 Autoenkóderek** ★★ – szűk keresztmetszet, tömörítés, zajszűrés; látens tér (DLV 18, EDL 8).
+3. **14.3 Variációs autoenkóder (VAE)** ★★★ – a látens tér mint eloszlás; interpoláció két kép között (DLV 18, MLQ 9).
+4. **14.4 Generatív versengő hálók (GAN)** ★★ – hamisító és detektív; módusösszeomlás (DLV 22, HAW 6, EDL 9).
+5. **14.5 Diffúziós modellek** ★★★ – zaj hozzáadása és lépésenkénti eltávolítása; szövegből kép (HAW 6, MLQ 9).
+6. **14.6 Autoregresszív modellek** ★★ – a következő elem jóslása → átvezetés az LLM-ekhez (MLQ 9, FLLM 2).
+7. **14.7 Kreatív alkalmazások és kérdések** ★ – stílusátvitel, deepfake, szerzői jog (DLV 23, HAW 6, 8).
 
 ### Kidolgozott példák
 - Autoenkóder $4 \to 2 \to 4$ egyszerű adaton: mit „tömörít”?
@@ -744,7 +872,7 @@ MLD 18; MLSYS (*DNN Architectures*).
 - `autoencoder-compress` – a szűk keresztmetszet méretének hatása a rekonstrukcióra.
 
 ### Kvízek
-`ai13-131`, `ai13-132`, `ai13-134`, `ai13-135`, `ai13-final`.
+`ai14-141`, `ai14-142`, `ai14-144`, `ai14-145`, `ai14-final`.
 
 ### Csapdák
 A generált kép nem másolat, de a modell memorizálhat · a GAN-tanítás instabil · a VAE képei homályosak ·
@@ -755,21 +883,21 @@ DLV 18, 22–23; HAW 6; MLQ 9–10; EDL 8–9; FLLM 2.
 
 ---
 
-## 14. fejezet – Megerősítéses tanulás ★★–★★★
+## 15. fejezet – Megerősítéses tanulás ★★–★★★
 
 **Nagy kérdés:** *Hogyan tanul meg egy program úgy Go-t játszani, hogy senki nem mutatja meg neki a jó lépéseket? –
 Próbálkozik, és a végén megtudja, nyert-e.*
 
-**Cél:** az RL alapfogalmai; előkészíti az LLM-ek igazítását (16.) és az ágenseket (18–19.). Kapcsolat a játékelmélettel.
+**Cél:** az RL alapfogalmai; előkészíti az LLM-ek igazítását (17.) és az ágenseket (19–20.). Kapcsolat a játékelmélettel.
 
 ### Felépítés
-1. **14.1 Ágens, környezet, jutalom** ★ – állapot, akció, jutalom, epizód, stratégia (policy); Markov-döntési folyamat
+1. **15.1 Ágens, környezet, jutalom** ★ – állapot, akció, jutalom, epizód, stratégia (policy); Markov-döntési folyamat
    (HGA I *Introduction to RL*, DLV 21).
-2. **14.2 Felfedezés vs. kiaknázás: a többkarú bandita** ★★ – ε-mohó stratégia (DLV 21; MLDI *Exploration vs. Exploitation*).
-3. **14.3 Érték és Bellman-egyenlet** ★★ – diszkontált hozam, értékfüggvény, Q-függvény (HGA I, DLV 21).
-4. **14.4 Q-tanulás** ★★ – időbeli különbség (TD) frissítés; táblázatos Q-tanulás egy rácsvilágon (HGA I *Q-Learning*, DLV 21).
-5. **14.5 Mély RL és stratégia-gradiens** ★★★ – DQN röviden; REINFORCE, aktor–kritikus; AlphaGo (HGA I, HAW 2).
-6. **14.6 Az RL szerepe az LLM-ekben – előzetes** ★★ – jutalommodell, RLHF (→ 16. fejezet) (HGA II *RL Foundations for
+2. **15.2 Felfedezés vs. kiaknázás: a többkarú bandita** ★★ – ε-mohó stratégia (DLV 21; MLDI *Exploration vs. Exploitation*).
+3. **15.3 Érték és Bellman-egyenlet** ★★ – diszkontált hozam, értékfüggvény, Q-függvény (HGA I, DLV 21).
+4. **15.4 Q-tanulás** ★★ – időbeli különbség (TD) frissítés; táblázatos Q-tanulás egy rácsvilágon (HGA I *Q-Learning*, DLV 21).
+5. **15.5 Mély RL és stratégia-gradiens** ★★★ – DQN röviden; REINFORCE, aktor–kritikus; AlphaGo (HGA I, HAW 2).
+6. **15.6 Az RL szerepe az LLM-ekben – előzetes** ★★ – jutalommodell, RLHF (→ 17. fejezet) (HGA II *RL Foundations for
    Language Models*).
 
 ### Kidolgozott példák
@@ -785,36 +913,36 @@ Próbálkozik, és a végén megtudja, nyert-e.*
 - `reward-hacking` – rosszul megadott jutalom → az ágens „kiskaput” talál (a hajós játék körbeforgása mintájára).
 
 ### Kvízek
-`ai14-141`, `ai14-142`, `ai14-143`, `ai14-144`, `ai14-final`.
+`ai15-151`, `ai15-152`, `ai15-153`, `ai15-154`, `ai15-final`.
 
 ### Csapdák
 A jutalom nem azonos a céllal (jutalom-kijátszás) · a $\gamma$ szerepe (rövid- vs. hosszútávú) · túl kevés felfedezés ·
 on-policy vs. off-policy összekeverése.
 
 ### Források
-DLV 21; HGA I (*Introduction to Reinforcement Learning*), II (*RL Foundations for Language Models*); HAW 2; MLDI; PDL 16.
+DLV 21; HGA I (*Introduction to Reinforcement Learning*), II (*RL Foundations for Language Models*); HAW 2; MLDI; PDL 17.
 
 ---
 
-## 15. fejezet – Hogyan működik egy nagy nyelvi modell? ★★
+## 16. fejezet – Hogyan működik egy nagy nyelvi modell? ★★
 
 **Nagy kérdés:** *A ChatGPT „csak” a következő szót jósolja. Hogyan lesz ebből vers, programkód és orvosi tanács?*
 
 ### Felépítés
-1. **15.1 Nyelvi modell** ★ – a következő token valószínűsége; $n$-gram modell → neurális nyelvi modell (AIE 1, HAW 7, FLLM 2).
-2. **15.2 Tokenizálás** ★★ – szó-, karakter- és alszószintű tokenek; a BPE lépésről lépésre; miért nehéz egy LLM-nek
+1. **16.1 Nyelvi modell** ★ – a következő token valószínűsége; $n$-gram modell → neurális nyelvi modell (AIE 1, HAW 7, FLLM 2).
+2. **16.2 Tokenizálás** ★★ – szó-, karakter- és alszószintű tokenek; a BPE lépésről lépésre; miért nehéz egy LLM-nek
    betűket számolni; miért „drágább” a magyar szöveg (HGA I *Tokenization*, AIE 2).
-3. **15.3 Előtanítás** ★★ – önfelügyelt tanulás hatalmas szövegen; dekóder-only (GPT), enkóder-only (BERT, maszkolt nyelvi
+3. **16.3 Előtanítás** ★★ – önfelügyelt tanulás hatalmas szövegen; dekóder-only (GPT), enkóder-only (BERT, maszkolt nyelvi
    modell), enkóder–dekóder (T5) (FLLM 1–2, MLQ 2, 17).
-4. **15.4 Skálázás** ★★ – paraméterek, adat, számítás; skálázási törvények (Chinchilla); az „emergens képességek” vitája;
+4. **16.4 Skálázás** ★★ – paraméterek, adat, számítás; skálázási törvények (Chinchilla); az „emergens képességek” vitája;
    szakértőkeverék (MoE) (FLLM 2, AIE 2 *Model Size*, MLSYS *Efficient AI*, HGA I *Mixture of Experts*).
-5. **15.5 Szövegalkotás: mintavételezés** ★★ – mohó választás, nyalábkeresés, hőmérséklet, top-$k$, top-$p$;
+5. **16.5 Szövegalkotás: mintavételezés** ★★ – mohó választás, nyalábkeresés, hőmérséklet, top-$k$, top-$p$;
    strukturált kimenet; a valószínűségi természet következményei (AIE 2 *Sampling*, FLLM 5 *Decoding Algorithms*).
-6. **15.6 A kontextusablak és a KV-gyorsítótár** ★★★ – előtöltés (prefill) és dekódolás; hosszú kontextus,
+6. **16.6 A kontextusablak és a KV-gyorsítótár** ★★★ – előtöltés (prefill) és dekódolás; hosszú kontextus,
    pozíció-interpoláció (FLLM 2, 5; HGA I).
-7. **15.7 Hallucináció és korlátok** ★ – miért talál ki dolgokat; a tudás határideje (cutoff) (AIE 2, HGA I
+7. **16.7 Hallucináció és korlátok** ★ – miért talál ki dolgokat; a tudás határideje (cutoff) (AIE 2, HGA I
    *Hallucination Detection*, HAW 7).
-8. **15.8 Multimodális modellek** ★★ – kép + szöveg (VLM), beszéd; kis nyelvi modellek eszközön (MLSYS gyakorlatok:
+8. **16.8 Multimodális modellek** ★★ – kép + szöveg (VLM), beszéd; kis nyelvi modellek eszközön (MLSYS gyakorlatok:
    *SLM, VLM*; AIE 1).
 
 ### Kidolgozott példák
@@ -834,38 +962,38 @@ DLV 21; HGA I (*Introduction to Reinforcement Learning*), II (*RL Foundations fo
 - `kv-cache-viz` – prefill és dekódolás animálva; mi kerül a gyorsítótárba.
 
 ### Kvízek
-`ai15-151`, `ai15-152`, `ai15-153`, `ai15-155`, `ai15-157`, `ai15-final`.
+`ai16-161`, `ai16-162`, `ai16-163`, `ai16-165`, `ai16-167`, `ai16-final`.
 
 ### Csapdák
 Token ≠ szó (a magyar szöveg több tokenből áll) · $T = 0$ mellett sem mindig determinisztikus a kimenet · az LLM nem
 adatbázis · a nagyobb modell nem mindig jobb · a kontextusablak nem memória.
 
 ### Források
-FLLM 1–2, 5; AIE 1–2; HGA I; HAW 7; MLQ 2, 8, 17; MLSYS (*Efficient AI*, gyakorlatok); DLV 20.
+FLLM 1–2, 5; AIE 1–2; HGA I; HAW 7; MLQ 2, 8, 17; MLSYS (*Efficient AI*, gyakorlatok); DLV 21.
 
 ---
 
-## 16. fejezet – Finomhangolás, igazítás és érvelő modellek ★★★
+## 17. fejezet – Finomhangolás, igazítás és érvelő modellek ★★★
 
 **Nagy kérdés:** *Egy előtanított modell csak folytatja a szöveget. Hogyan lesz belőle segítőkész, ártalmatlan asszisztens,
 amely lépésről lépésre gondolkodik?*
 
 ### Felépítés
-1. **16.1 Az utótanítás áttekintése** ★★ – előtanítás → felügyelt finomhangolás → preferencia-igazítás → érvelés
+1. **17.1 Az utótanítás áttekintése** ★★ – előtanítás → felügyelt finomhangolás → preferencia-igazítás → érvelés
    (AIE 2 *Post-Training*, FLLM 4).
-2. **16.2 Felügyelt finomhangolás (SFT) és utasításkövetés** ★★ – utasítás–válasz párok; adatminőség (FLLM 4, HGA II
+2. **17.2 Felügyelt finomhangolás (SFT) és utasításkövetés** ★★ – utasítás–válasz párok; adatminőség (FLLM 4, HGA II
    *SFT Best Practices*, AIE 8).
-3. **16.3 Paraméterhatékony finomhangolás** ★★★ – LoRA (alacsony rangú frissítés), adapterek, prompthangolás; kvantálás és
+3. **17.3 Paraméterhatékony finomhangolás** ★★★ – LoRA (alacsony rangú frissítés), adapterek, prompthangolás; kvantálás és
    QLoRA; memória-számtan (AIE 7, MLQ 18, HGA I *LoRA*).
-4. **16.4 Mikor finomhangoljunk?** ★★ – prompt vs. RAG vs. finomhangolás döntési fa (AIE 7 *Finetuning and RAG*,
+4. **17.4 Mikor finomhangoljunk?** ★★ – prompt vs. RAG vs. finomhangolás döntési fa (AIE 7 *Finetuning and RAG*,
    HGA V *RAG + Fine-Tuning Synergy*).
-5. **16.5 RLHF** ★★★ – jutalommodell páros összehasonlításokból (Bradley–Terry), PPO, KL-büntetés (FLLM 4, HGA II
+5. **17.5 RLHF** ★★★ – jutalommodell páros összehasonlításokból (Bradley–Terry), PPO, KL-büntetés (FLLM 4, HGA II
    *PPO, Reward Model Training*, MLQ 18).
-6. **16.6 DPO és rokonai** ★★★ – közvetlen preferencia-optimalizálás jutalommodell nélkül (FLLM 4, HGA II *DPO,
+6. **17.6 DPO és rokonai** ★★★ – közvetlen preferencia-optimalizálás jutalommodell nélkül (FLLM 4, HGA II *DPO,
    Preference Optimization Variants*).
-7. **16.7 Érvelő modellek** ★★★ – lánc-gondolkodás (CoT) tanítása, GRPO, ellenőrizhető jutalom (matematika, kód);
+7. **17.7 Érvelő modellek** ★★★ – lánc-gondolkodás (CoT) tanítása, GRPO, ellenőrizhető jutalom (matematika, kód);
    következtetési idejű számításskálázás (HGA II *GRPO*, III; FLLM 5 *Inference-time Scaling*; AIE 2 *Test Time Compute*).
-8. **16.8 Adatkészlet-mérnökség** ★★ – kuráció, szintetikus adat, desztilláció, deduplikáció (AIE 8).
+8. **17.8 Adatkészlet-mérnökség** ★★ – kuráció, szintetikus adat, desztilláció, deduplikáció (AIE 8).
 
 ### Kidolgozott példák
 - LoRA paraméterszám: egy $4096\times4096$-os mátrix vs. $r = 8$ → $2\cdot4096\cdot8 = 65\,536$ paraméter (kb. 0,4%).
@@ -883,36 +1011,36 @@ amely lépésről lépésre gondolkodik?*
 - `finetune-decision` – döntési fa: prompt, RAG vagy finomhangolás?
 
 ### Kvízek
-`ai16-161`, `ai16-163`, `ai16-164`, `ai16-165`, `ai16-167`, `ai16-final`.
+`ai17-171`, `ai17-173`, `ai17-174`, `ai17-175`, `ai17-177`, `ai17-final`.
 
 ### Csapdák
 A finomhangolás nem tanít megbízhatóan új tényeket (arra a RAG való) · katasztrofális felejtés · jutalom-kijátszás és
 hízelgés (sycophancy) · a CoT-szöveg nem feltétlenül tükrözi a modell „valódi” számítását.
 
 ### Források
-FLLM 4–5; AIE 2, 7–8; HGA I (*SFT, LoRA*), II–III; MLQ 18; DLV 21.
+FLLM 4–5; AIE 2, 7–8; HGA I (*SFT, LoRA*), II–III; MLQ 18; DLV 22.
 
 ---
 
-## 17. fejezet – Promptolás és visszakereséssel kiegészített generálás (RAG) ★★
+## 18. fejezet – Promptolás és visszakereséssel kiegészített generálás (RAG) ★★
 
 **Nagy kérdés:** *Ugyanaz a modell egyszer zseniális, máskor használhatatlan választ ad. Mennyi múlik azon, hogyan
 kérdezünk – és mit adunk mellé olvasnivalónak?*
 
 ### Felépítés
-1. **17.1 A prompt anatómiája** ★ – rendszerprompt, felhasználói üzenet, kontextus; csevegősablon (AIE 5, FLLM 3).
-2. **17.2 Kontextusbeli tanulás** ★ – zero-shot, few-shot; a példák hatása (AIE 5 *In-Context Learning*, FLLM 3, MLQ 18).
-3. **17.3 Bevált gyakorlatok** ★★ – egyértelmű utasítás, elegendő kontextus, kimeneti formátum, részfeladatokra bontás,
+1. **18.1 A prompt anatómiája** ★ – rendszerprompt, felhasználói üzenet, kontextus; csevegősablon (AIE 5, FLLM 3).
+2. **18.2 Kontextusbeli tanulás** ★ – zero-shot, few-shot; a példák hatása (AIE 5 *In-Context Learning*, FLLM 3, MLQ 18).
+3. **18.3 Bevált gyakorlatok** ★★ – egyértelmű utasítás, elegendő kontextus, kimeneti formátum, részfeladatokra bontás,
    „adj időt gondolkodni”, iterálás és verziózás (AIE 5 *Best Practices*, HGA I *Prompt Engineering*).
-4. **17.4 Haladó promptolás** ★★ – lánc-gondolkodás, problémafelbontás, önjavítás, önkonzisztencia (szavazás) (FLLM 3).
-5. **17.5 Támadások és védekezés** ★★ – jailbreak, prompt-injektálás (közvetett is), információkinyerés; védelmi rétegek
+4. **18.4 Haladó promptolás** ★★ – lánc-gondolkodás, problémafelbontás, önjavítás, önkonzisztencia (szavazás) (FLLM 3).
+5. **18.5 Támadások és védekezés** ★★ – jailbreak, prompt-injektálás (közvetett is), információkinyerés; védelmi rétegek
    (AIE 5 *Defensive Prompt Engineering*).
-6. **17.6 RAG: miért és hogyan?** ★★ – a tudás határa és a hallucináció; az architektúra: indexelés → visszakeresés →
+6. **18.6 RAG: miért és hogyan?** ★★ – a tudás határa és a hallucináció; az architektúra: indexelés → visszakeresés →
    generálás (AIE 6 *RAG*, HGA V *RAG*, FLLM 3 *RAG and Tool Use*).
-7. **17.7 Visszakeresés** ★★ – kulcsszavas (BM25/TF-IDF) vs. szemantikus (beágyazás + vektoros keresés, közelítő
+7. **18.7 Visszakeresés** ★★ – kulcsszavas (BM25/TF-IDF) vs. szemantikus (beágyazás + vektoros keresés, közelítő
    legközelebbi szomszéd); hibrid keresés, újrarangsorolás; darabolás (chunking) (AIE 6, HGA V *Retrieval Methods,
    Chunking Strategies*).
-8. **17.8 Haladó és ágensalapú RAG** ★★★ – lekérdezés-átírás, többlépéses keresés, a RAG értékelése (HGA V *Advanced RAG
+8. **18.8 Haladó és ágensalapú RAG** ★★★ – lekérdezés-átírás, többlépéses keresés, a RAG értékelése (HGA V *Advanced RAG
    Patterns, Agentic RAG, Evaluation*).
 
 ### Kidolgozott példák
@@ -932,7 +1060,7 @@ kérdezünk – és mit adunk mellé olvasnivalónak?*
 - `vector-search-2d` – dokumentumok és lekérdezés 2D-s beágyazásban, a legközelebbi $k$ kiemelve.
 
 ### Kvízek
-`ai17-172`, `ai17-173`, `ai17-175`, `ai17-176`, `ai17-177`, `ai17-final`.
+`ai18-182`, `ai18-183`, `ai18-185`, `ai18-186`, `ai18-187`, `ai18-final`.
 
 ### Csapdák
 A hosszabb prompt nem mindig jobb („elveszett a közepén” jelenség) · a RAG nem szünteti meg a hallucinációt ·
@@ -944,28 +1072,28 @@ AIE 5–6; FLLM 3; HGA I (*Prompt Engineering*), V (*RAG*); MLQ 18; WAA (*Docume
 
 ---
 
-## 18. fejezet – AI-ágensek: eszközök, ciklus, tervezés, memória ★★
+## 19. fejezet – AI-ágensek: eszközök, ciklus, tervezés, memória ★★
 
 **Nagy kérdés:** *Egy csevegőrobot válaszol. Egy ágens cselekszik: keres, számol, fájlt ír, és addig próbálkozik, amíg
 kész nincs. Mi kell ehhez egy nyelvi modellen felül?*
 
 ### Felépítés
-1. **18.1 Mi az ágens?** ★ – LLM + eszközök + ciklus (+ memória); az autonómia fokozatai: rögzített munkafolyamat vs.
+1. **19.1 Mi az ágens?** ★ – LLM + eszközök + ciklus (+ memória); az autonómia fokozatai: rögzített munkafolyamat vs.
    autonóm ágens; ágenstípusok (dokumentum-kérdezz-felelek, csevegő, kódsegéd) (WAA, AIE 6 *Agent Overview*,
    HGA V *Introduction to Agentic AI*, *Agent Design Patterns*).
-2. **18.2 Eszközhasználat** ★★ – függvényhívás, JSON-séma, eszközleírás; az eredmény visszakerül a kontextusba
+2. **19.2 Eszközhasználat** ★★ – függvényhívás, JSON-séma, eszközleírás; az eredmény visszakerül a kontextusba
    (AIE 6 *Tools*, HGA V *Agent Harness – Tool Integration*).
-3. **18.3 Az ágensciklus: ReAct** ★★ – gondolat → cselekvés → megfigyelés; leállási feltétel; ellenőrzés
+3. **19.3 Az ágensciklus: ReAct** ★★ – gondolat → cselekvés → megfigyelés; leállási feltétel; ellenőrzés
    (HGA V *Loop Engineering*, AIE 6 *Planning*).
-4. **18.4 Tervezés** ★★ – feladatbontás, terv–végrehajtás, reflexió és önjavítás (AIE 6 *Planning*, FLLM 3
+4. **19.4 Tervezés** ★★ – feladatbontás, terv–végrehajtás, reflexió és önjavítás (AIE 6 *Planning*, FLLM 3
    *Problem Decomposition, Self-refinement*).
-5. **18.5 Memória** ★★ – rövid távú (kontextus) és hosszú távú (vektoros tár, összefoglalás); memóriatípusok
+5. **19.5 Memória** ★★ – rövid távú (kontextus) és hosszú távú (vektoros tár, összefoglalás); memóriatípusok
    (AIE 6 *Memory*, HGA V *Agentic Memory Systems*).
-6. **18.6 Kontextus-mérnökség és a „harness”** ★★★ – a kontextusablak kezelése, tömörítés, állapot, hibakezelés és
+6. **19.6 Kontextus-mérnökség és a „harness”** ★★★ – a kontextusablak kezelése, tömörítés, állapot, hibakezelés és
    helyreállítás (HGA V *Agent Harness, Loop Engineering*).
-7. **18.7 Tervezési minták** ★★ – prompt-láncolás, útválasztás (routing), párhuzamosítás, irányító–munkások
+7. **19.7 Tervezési minták** ★★ – prompt-láncolás, útválasztás (routing), párhuzamosítás, irányító–munkások
    (orchestrator–workers), értékelő–optimalizáló (HGA V *Agent Design Patterns*).
-8. **18.8 Hibamódok és értékelés** ★★ – végtelen ciklus, rossz eszközválasztás, költségrobbanás; ágens-benchmarkok és
+8. **19.8 Hibamódok és értékelés** ★★ – végtelen ciklus, rossz eszközválasztás, költségrobbanás; ágens-benchmarkok és
    -környezetek (AIE 6 *Agent Failure Modes*, HGA V *Agentic Environments and Benchmarks*).
 
 ### Kidolgozott példák
@@ -986,7 +1114,7 @@ kész nincs. Mi kell ehhez egy nyelvi modellen felül?*
 - `error-compounding` – lépésenkénti sikerarány és lépésszám → a teljes feladat sikervalószínűsége.
 
 ### Kvízek
-`ai18-181`, `ai18-182`, `ai18-183`, `ai18-185`, `ai18-187`, `ai18-final`.
+`ai19-191`, `ai19-192`, `ai19-193`, `ai19-195`, `ai19-197`, `ai19-final`.
 
 ### Csapdák
 Nem minden feladathoz kell ágens („a legegyszerűbb működő megoldás”) · a hibák halmozódnak · az eszközkimenet nem
@@ -998,26 +1126,26 @@ FLLM 3 (*RAG and Tool Use*).
 
 ---
 
-## 19. fejezet – Ágensrendszerek: MCP, többágenses rendszerek, keretrendszerek ★★★
+## 20. fejezet – Ágensrendszerek: MCP, többágenses rendszerek, keretrendszerek ★★★
 
 **Nagy kérdés:** *Hogyan dolgozik együtt több ágens – és hogyan csatlakoztatható bármely eszköz bármely ágenshez anélkül,
 hogy mindent újraírnánk?*
 
 ### Felépítés
-1. **19.1 Model Context Protocol (MCP)** ★★ – az integrációs probléma ($N \times M$); kliens–szerver felépítés; eszközök,
+1. **20.1 Model Context Protocol (MCP)** ★★ – az integrációs probléma ($N \times M$); kliens–szerver felépítés; eszközök,
    erőforrások, promptok; biztonsági modell (HGA V *Model Context Protocol*).
-2. **19.2 Készségek (skills)** ★★ – utasítások és szkriptek csomagja, igény szerinti betöltés; készség vs. finomhangolás
+2. **20.2 Készségek (skills)** ★★ – utasítások és szkriptek csomagja, igény szerinti betöltés; készség vs. finomhangolás
    (HGA V *Agent Skills*).
-3. **19.3 Ágens–ágens kommunikáció (A2A)** ★★★ – ágenskártya, felfedezés, üzenetformátum; A2A vs. MCP (HGA V *A2A*).
-4. **19.4 Többágenses rendszerek** ★★★ – architektúrák (központi irányító, hierarchikus, egyenrangú), szerepek,
+3. **20.3 Ágens–ágens kommunikáció (A2A)** ★★★ – ágenskártya, felfedezés, üzenetformátum; A2A vs. MCP (HGA V *A2A*).
+4. **20.4 Többágenses rendszerek** ★★★ – architektúrák (központi irányító, hierarchikus, egyenrangú), szerepek,
    koordináció; mikor éri meg (HGA V *Multi-Agent Systems*).
-5. **19.5 Keretrendszerek és fejlesztési életciklus** ★★ – a keretrendszerek típusai (📅 2026-os példák: LangGraph,
+5. **20.5 Keretrendszerek és fejlesztési életciklus** ★★ – a keretrendszerek típusai (📅 2026-os példák: LangGraph,
    OpenAI Agents SDK, Claude Agent SDK, CrewAI) – csak mintaként; tesztelés, megfigyelhetőség (HGA V *Agent Development
    Frameworks*).
-6. **19.6 Ágens-felhasználói felületek** ★★ – streaming, ember a hurokban (human-in-the-loop), generatív UI
+6. **20.6 Ágens-felhasználói felületek** ★★ – streaming, ember a hurokban (human-in-the-loop), generatív UI
    (HGA V *Agentic UI Frameworks*).
-7. **19.7 Ágensek tanítása** ★★★ – ágenskörnyezetek, RL ágensfeladatokon (HGA II *LLM Agentic Training*, V *Environments*).
-8. **19.8 Biztonság és bizalom** ★★ – jogosultságok, homokozó (sandbox), emberi jóváhagyás; a „halálos hármas”
+7. **20.7 Ágensek tanítása** ★★★ – ágenskörnyezetek, RL ágensfeladatokon (HGA II *LLM Agentic Training*, V *Environments*).
+8. **20.8 Biztonság és bizalom** ★★ – jogosultságok, homokozó (sandbox), emberi jóváhagyás; a „halálos hármas”
    (privát adat + nem megbízható tartalom + kifelé kommunikáció) (HGA V *MCP Security Model, Security and Trust in
    Multi-Agent Systems*; AIE 5; WAA). *Kiegészítés:* a „halálos hármas” elnevezés a forrásokban nem szerepel, a szakmai
    közbeszédből vesszük.
@@ -1037,7 +1165,7 @@ Kapcsolat: **ágensalapú modellezés** (emergens viselkedés), **játékelméle
 - `permission-sandbox` – forgatókönyvek: engedélyezed vagy megtagadod az ágens kérését? Visszajelzés a kockázatról.
 
 ### Kvízek
-`ai19-191`, `ai19-192`, `ai19-193`, `ai19-194`, `ai19-198`, `ai19-final`.
+`ai20-201`, `ai20-202`, `ai20-203`, `ai20-204`, `ai20-208`, `ai20-final`.
 
 ### Csapdák
 Több ágens nem feltétlenül jobb (koordinációs költség, hibaterjedés) · egy MCP-szerver telepítése kódfuttatási bizalmat
@@ -1049,25 +1177,25 @@ Agentic UI, Environments*); AIE 6, 10; WAA.
 
 ---
 
-## 20. fejezet – AI-alkalmazások építése és értékelése ★★
+## 21. fejezet – AI-alkalmazások építése és értékelése ★★
 
 **Nagy kérdés:** *Elkészült a demó egy délután alatt. Miért tart még fél évig, mire megbízható termék lesz belőle?*
 
 ### Felépítés
-1. **20.1 Az AI-mérnökség** ★ – foundation modellek; a stack három rétege (alkalmazás, modell, infrastruktúra);
+1. **21.1 Az AI-mérnökség** ★ – foundation modellek; a stack három rétege (alkalmazás, modell, infrastruktúra);
    AI- vs. ML-mérnökség; felhasználási esetek értékelése, mérföldkövek (AIE 1).
-2. **20.2 Miért nehéz értékelni?** ★★ – nyílt végű kimenetek; perplexitás, pontos egyezés, funkcionális helyesség
+2. **21.2 Miért nehéz értékelni?** ★★ – nyílt végű kimenetek; perplexitás, pontos egyezés, funkcionális helyesség
    (kódfuttatás), hasonlóság a referenciához (AIE 3, MLQ 19, FLLM 5 *Evaluation Metrics*).
-3. **20.3 MI mint bíró** ★★ – előnyök és torzítások (pozíció, hosszúság, önpreferencia); páros összehasonlítás,
+3. **21.3 MI mint bíró** ★★ – előnyök és torzítások (pozíció, hosszúság, önpreferencia); páros összehasonlítás,
    Elo-rangsor (AIE 3 *AI as a Judge, Comparative Evaluation*; HGA IV).
-4. **20.4 Modellválasztás és értékelési folyamat** ★★ – nyilvános benchmarkok és szennyezettségük; saját értékelő
+4. **21.4 Modellválasztás és értékelési folyamat** ★★ – nyilvános benchmarkok és szennyezettségük; saját értékelő
    készlet; költség és késleltetés; építs vagy vegyél (AIE 4, HGA IV).
-5. **20.5 A következtetés optimalizálása** ★★★ – késleltetés (első tokenig eltelt idő, tokenenkénti idő), áteresztőképesség;
+5. **21.5 A következtetés optimalizálása** ★★★ – késleltetés (első tokenig eltelt idő, tokenenkénti idő), áteresztőképesség;
    kvantálás, desztilláció, metszés, spekulatív dekódolás, kötegelés, KV-gyorsítótár (AIE 9, FLLM 5, MLQ 22,
    MLSYS *Model Optimizations*, HGA I *Model Compression, Speculative Decoding, vLLM*).
-6. **20.6 Architektúra** ★★ – kontextusbővítés, védőkorlátok (guardrails), modellútválasztó és átjáró, gyorsítótár,
+6. **21.6 Architektúra** ★★ – kontextusbővítés, védőkorlátok (guardrails), modellútválasztó és átjáró, gyorsítótár,
    megfigyelhetőség (AIE 10 – öt lépésben).
-7. **20.7 Felhasználói visszajelzés** ★★ – explicit és implicit jelek, adatlendkerék (AIE 10 *User Feedback*).
+7. **21.7 Felhasználói visszajelzés** ★★ – explicit és implicit jelek, adatlendkerék (AIE 10 *User Feedback*).
 
 ### Kidolgozott példák
 - Perplexitás négy token valószínűségéből.
@@ -1085,7 +1213,7 @@ Agentic UI, Environments*); AIE 6, 10; WAA.
 - `app-architecture` – lépésenként épülő architektúradiagram az AIE 10 öt lépése szerint.
 
 ### Kvízek
-`ai20-202`, `ai20-203`, `ai20-204`, `ai20-205`, `ai20-206`, `ai20-final`.
+`ai21-212`, `ai21-213`, `ai21-214`, `ai21-215`, `ai21-216`, `ai21-final`.
 
 ### Csapdák
 A benchmark-pontszám nem a te feladatod · az AI-bíró is téved · átlagos késleltetés vs. p99 · a „ránézésre jó”
@@ -1096,26 +1224,26 @@ AIE 1, 3–4, 8–10; FLLM 5; HGA I, IV; MLQ 19, 22; MLSYS (*Model Optimizations
 
 ---
 
-## 21. fejezet – ML-rendszerek életciklusa és MLOps ★★
+## 22. fejezet – ML-rendszerek életciklusa és MLOps ★★
 
 **Nagy kérdés:** *A modell a laborban 95%-os volt. Fél év múlva éles üzemben 70%-os. Senki nem nyúlt hozzá. Mi történt?*
 
 ### Felépítés
-1. **21.1 Az ML-rendszer** ★ – a modell csak egy kis doboz a rendszerben; kutatás vs. éles üzem; követelmények
+1. **22.1 Az ML-rendszer** ★ – a modell csak egy kis doboz a rendszerben; kutatás vs. éles üzem; követelmények
    (megbízhatóság, skálázhatóság, karbantarthatóság, alkalmazkodóképesség) (DMLS 1–2, MLSYS *Introduction, ML Systems*).
-2. **21.2 A probléma keretezése** ★★ – üzleti cél → ML-cél; osztályozás vagy regresszió; több cél szétválasztása
+2. **22.2 A probléma keretezése** ★★ – üzleti cél → ML-cél; osztályozás vagy regresszió; több cél szétválasztása
    (DMLS 2, MLDI *Primer*).
-3. **21.3 Adatmérnökség** ★★ – adatforrások, formátumok, kötegelt vs. folyamfeldolgozás; adatcsővezeték
+3. **22.3 Adatmérnökség** ★★ – adatforrások, formátumok, kötegelt vs. folyamfeldolgozás; adatcsővezeték
    (DMLS 3, MLSYS *Data Engineering*).
-4. **21.4 Telepítés** ★★ – kötegelt vs. online előrejelzés; felhő, peremeszköz (edge), mobil, TinyML; modelltömörítés
+4. **22.4 Telepítés** ★★ – kötegelt vs. online előrejelzés; felhő, peremeszköz (edge), mobil, TinyML; modelltömörítés
    (DMLS 7, MLSYS *ML Systems, On-Device Learning*, gyakorlatok).
-5. **21.5 Eloszláseltolódás és monitorozás** ★★ – kovariáns-, címke- és koncepciósodródás; észlelés statisztikai
+5. **22.5 Eloszláseltolódás és monitorozás** ★★ – kovariáns-, címke- és koncepciósodródás; észlelés statisztikai
    próbákkal; mit figyeljünk (DMLS 8, MLQ 23).
-6. **21.6 Folyamatos tanulás és tesztelés éles üzemben** ★★ – állapotmentes vs. állapottartó újratanítás; árnyéktelepítés,
+6. **22.6 Folyamatos tanulás és tesztelés éles üzemben** ★★ – állapotmentes vs. állapottartó újratanítás; árnyéktelepítés,
    A/B teszt, kanári-kiadás, bandita-alapú tesztelés (DMLS 9, MLQ 20, MLDI *A/B Testing*).
-7. **21.7 MLOps-infrastruktúra** ★★ – kísérletkövetés, jellemzőtár, modellregiszter, orkesztráció; építsd vagy vedd
+7. **22.7 MLOps-infrastruktúra** ★★ – kísérletkövetés, jellemzőtár, modellregiszter, orkesztráció; építsd vagy vedd
    (DMLS 10, MLSYS *ML Operations*, AAMLP *Reproducible code & model serving*).
-8. **21.8 Adatközpontú MI** ★★ – a modell helyett az adat javítása (MLQ 21, MLSYS *Data Engineering*).
+8. **22.8 Adatközpontú MI** ★★ – a modell helyett az adat javítása (MLQ 21, MLSYS *Data Engineering*).
 
 ### Kidolgozott példák
 - A Spotify-eset: egy apró hiba négy hónapig észrevétlen maradt (MLDI).
@@ -1130,7 +1258,7 @@ AIE 1, 3–4, 8–10; FLLM 5; HGA I, IV; MLQ 19, 22; MLSYS (*Model Optimizations
 - `deployment-chooser` – követelmények (késleltetés, adatvédelem, költség, kapcsolat) → javasolt telepítési mód.
 
 ### Kvízek
-`ai21-212`, `ai21-214`, `ai21-215`, `ai21-216`, `ai21-final`.
+`ai22-222`, `ai22-224`, `ai22-225`, `ai22-226`, `ai22-final`.
 
 ### Csapdák
 Az offline metrika nem azonos az üzleti hatással · tanítás–kiszolgálás eltérés (training–serving skew) ·
@@ -1142,19 +1270,19 @@ Benchmarking AI*); MLQ 20–23; MLDI (*Primer*); RWML 9; AAMLP (*Reproducible co
 
 ---
 
-## 22. fejezet – Rendszertervezési esettanulmányok ★★ *(opcionális)*
+## 23. fejezet – Rendszertervezési esettanulmányok ★★ *(opcionális)*
 
 **Nagy kérdés:** *Hogyan dönti el a YouTube, hogy a milliárdnyi videóból melyik húszat mutassa neked – néhány tized
 másodperc alatt?*
 
 ### Felépítés
-1. **22.1 A tervezési recept** ★★ – probléma → metrikák (offline/online) → becslés (kérés/s, tárhely) → magas szintű terv →
+1. **23.1 A tervezési recept** ★★ – probléma → metrikák (offline/online) → becslés (kérés/s, tárhely) → magas szintű terv →
    skálázás (MLDI).
-2. **22.2 Ajánlórendszerek felépítése** ★★ – jelöltgenerálás, rangsorolás, újrarangsorolás; pozíciótorzítás, kalibráció,
+2. **23.2 Ajánlórendszerek felépítése** ★★ – jelöltgenerálás, rangsorolás, újrarangsorolás; pozíciótorzítás, kalibráció,
    felfedezés–kiaknázás (MLDI *Common Recommendation System Components*, MLD 19).
-3. **22.3 Esettanulmányok** ★★ – YouTube-videóajánlás, LinkedIn-hírfolyam, hirdetéskattintás-előrejelzés, Airbnb-keresési
+3. **23.3 Esettanulmányok** ★★ – YouTube-videóajánlás, LinkedIn-hírfolyam, hirdetéskattintás-előrejelzés, Airbnb-keresési
    rangsor, ételkiszállítási idő becslése (MLDI; RWML 10 – digitális hirdetés).
-4. **22.4 Tanulságok** ★ – „a mélytanulás nem drop-in csere” (Airbnb); egyszerű kezdés, mérés, iterálás (MLDI, DMLS 2).
+4. **23.4 Tanulságok** ★ – „a mélytanulás nem drop-in csere” (Airbnb); egyszerű kezdés, mérés, iterálás (MLDI, DMLS 2).
 
 ### Kidolgozott példák
 - Kérés/s becslése napi aktív felhasználókból.
@@ -1167,26 +1295,26 @@ másodperc alatt?*
 - `position-bias-sim` – kattintások szimulálása pozíciótorzítással; a naiv és a korrigált becslés.
 
 ### Kvízek
-`ai22-222`, `ai22-223`, `ai22-final`.
+`ai23-232`, `ai23-233`, `ai23-final`.
 
 ### Források
 MLDI; MLD 19; RWML 6, 10; DMLS 2, 7.
 
 ---
 
-## 23. fejezet – Evolúciós algoritmusok és neuroevolúció ★★ *(opcionális)*
+## 24. fejezet – Evolúciós algoritmusok és neuroevolúció ★★ *(opcionális)*
 
 **Nagy kérdés:** *A természet gradiens nélkül „tervezte meg” az agyat. Lehet-e evolúcióval neurális hálót tervezni?*
 
 ### Felépítés
-1. **23.1 Evolúciós számítás** ★ – populáció, rátermettség, szelekció, keresztezés, mutáció; előzmény: Conway-féle
+1. **24.1 Evolúciós számítás** ★ – populáció, rátermettség, szelekció, keresztezés, mutáció; előzmény: Conway-féle
    életjáték (EDL 1–2).
-2. **23.2 Genetikus algoritmusok** ★★ – OneMax, utazóügynök-probléma; kódolás; a DEAP könyvtár (EDL 3–4).
-3. **23.3 További módszerek** ★★ – genetikus programozás, részecskeraj-optimalizálás, evolúciós stratégiák,
+2. **24.2 Genetikus algoritmusok** ★★ – OneMax, utazóügynök-probléma; kódolás; a DEAP könyvtár (EDL 3–4).
+3. **24.3 További módszerek** ★★ – genetikus programozás, részecskeraj-optimalizálás, evolúciós stratégiák,
    differenciális evolúció (EDL 4).
-4. **23.4 Hiperparaméter-optimalizálás evolúcióval** ★★ – összevetés a rács- és véletlen kereséssel (EDL 5; 6.8).
-5. **23.5 Neuroevolúció** ★★★ – súlyok és architektúrák evolúciója; NEAT (EDL 6–7, 10–11).
-6. **23.6 Kitekintés** ★★★ – evolúciós autoenkóderek és generatív modellek, evolúciós gépi tanulás (EDL 8–9, 12).
+4. **24.4 Hiperparaméter-optimalizálás evolúcióval** ★★ – összevetés a rács- és véletlen kereséssel (EDL 5; 6.8).
+5. **24.5 Neuroevolúció** ★★★ – súlyok és architektúrák evolúciója; NEAT (EDL 6–7, 10–11).
+6. **24.6 Kitekintés** ★★★ – evolúciós autoenkóderek és generatív modellek, evolúciós gépi tanulás (EDL 8–9, 12).
 
 Kapcsolat: **ágensalapú modellezés**, **játékelmélet** (evolúciósan stabil stratégia).
 
@@ -1202,29 +1330,29 @@ Kapcsolat: **ágensalapú modellezés**, **játékelmélet** (evolúciósan stab
 - `neat-xor` – a hálótopológia növekedése a XOR-feladaton (előre rögzített futás lejátszása).
 
 ### Kvízek
-`ai23-231`, `ai23-232`, `ai23-235`, `ai23-final`.
+`ai24-241`, `ai24-242`, `ai24-245`, `ai24-final`.
 
 ### Források
 EDL 1–12; AAMLP (*Hyperparameter optimization*).
 
 ---
 
-## 24. fejezet – Felelős MI és társadalmi hatások ★
+## 25. fejezet – Felelős MI és társadalmi hatások ★
 
 **Nagy kérdés:** *Egy önéletrajz-szűrő MI rendre hátrébb sorolja a nőket. Senki nem programozta így. Kinek a hibája –
 és hogyan lehetett volna megelőzni?*
 
 ### Felépítés
-1. **24.1 Torzítás és méltányosság** ★ – a torzítás forrásai (adat, címke, mérés, visszacsatolás); méltányossági
+1. **25.1 Torzítás és méltányosság** ★ – a torzítás forrásai (adat, címke, mérés, visszacsatolás); méltányossági
    metrikák és egymással való ellentmondásuk (DMLS 11 *Responsible AI*, MLSYS *Responsible AI*, MLD 21).
-2. **24.2 Magyarázhatóság** ★★ – jellemzőfontosság, SHAP és LIME szemléletesen, ellenpéldák (MLSYS *Responsible AI*, DMLS 11).
-3. **24.3 Adatvédelem, biztonság, robusztusság** ★★ – adatvédelem, differenciális adatvédelem röviden; ellenséges példák,
+2. **25.2 Magyarázhatóság** ★★ – jellemzőfontosság, SHAP és LIME szemléletesen, ellenpéldák (MLSYS *Responsible AI*, DMLS 11).
+3. **25.3 Adatvédelem, biztonság, robusztusság** ★★ – adatvédelem, differenciális adatvédelem röviden; ellenséges példák,
    adatmérgezés, modelllopás (MLSYS *Security & Privacy, Robust AI*).
-4. **24.4 Megfigyelés és gépi látás** ★ – arcfelismerés, „algoritmikus tekintet”, vakfoltok (MV 3–5).
-5. **24.5 Fenntarthatóság** ★ – energiaigény, szén-dioxid-lábnyom; hatékonyság mint felelősség (MLSYS *Sustainable AI*).
-6. **24.6 Szabályozás** ★ – az EU MI-rendelet (AI Act, 2024) kockázati szintjei – röviden, dátumozva
+4. **25.4 Megfigyelés és gépi látás** ★ – arcfelismerés, „algoritmikus tekintet”, vakfoltok (MV 3–5).
+5. **25.5 Fenntarthatóság** ★ – energiaigény, szén-dioxid-lábnyom; hatékonyság mint felelősség (MLSYS *Sustainable AI*).
+6. **25.6 Szabályozás** ★ – az EU MI-rendelet (AI Act, 2024) kockázati szintjei – röviden, dátumozva
    (*Kiegészítés:* a források nem tárgyalják).
-7. **24.7 Merre tovább?** ★ – AGI-viták, munka, oktatás, „MI a jó ügyért” (HAW 8, MLSYS *AGI Systems, AI for Good*;
+7. **25.7 Merre tovább?** ★ – AGI-viták, munka, oktatás, „MI a jó ügyért” (HAW 8, MLSYS *AGI Systems, AI for Good*;
    LLM-biztonság: HGA I *LLM Safety and Responsible AI*).
 
 ### Kidolgozott példák
@@ -1240,7 +1368,7 @@ EDL 1–12; AAMLP (*Hyperparameter optimization*).
 - `ai-act-sorter` – húzd a felhasználási esetet a megfelelő kockázati szintre.
 
 ### Kvízek
-`ai24-241`, `ai24-242`, `ai24-243`, `ai24-246`, `ai24-final`.
+`ai25-251`, `ai25-252`, `ai25-253`, `ai25-256`, `ai25-final`.
 
 ### Csapdák
 „Az algoritmus objektív” · a védett tulajdonság törlése nem szünteti meg a torzítást (helyettesítő változók) ·
@@ -1256,22 +1384,22 @@ HAW 8; MLD 21; HGA I (*LLM Safety*).
 
 | Komponens | Tartalom | Használja |
 |---|---|---|
-| `assets/ml.js` | kis lineáris algebra (vektor, mátrix); magolt (seedelt) véletlenszám-generátor; adatkészlet-generátorok (holdak, körök, spirál, XOR, Gauss-felhők); skaláris automatikus differenciálás (micrograd-stílusú `Value`); MLP + SGD/momentum/Adam; veszteségek; metrikák (tévesztési mátrix, ROC); pontfelhő- és döntésitérkép-rajzoló canvasra | 3–14., 24. |
+| `assets/ml.js` | kis lineáris algebra (vektor, mátrix); magolt (seedelt) véletlenszám-generátor; adatkészlet-generátorok (holdak, körök, spirál, XOR, Gauss-felhők); skaláris automatikus differenciálás (micrograd-stílusú `Value`); MLP + SGD/momentum/Adam; veszteségek; metrikák (tévesztési mátrix, ROC); pontfelhő- és döntésitérkép-rajzoló canvasra | 3–15., 25. |
 | `assets/calc.js` (meglévő) | függvényrajzoló, numerikus derivált – a gradiens-widgetekhez | 2–3., 10. |
-| `assets/text.js` | egyszerű BPE-tokenizáló, TF-IDF, koszinusz-hasonlóság, bigram nyelvi modell, softmax hőmérséklettel, top-$k$ / top-$p$ mintavétel | 12., 15., 17. |
-| `assets/agent-sim.js` | rögzített JSON-forgatókönyvek (ReAct-nyomkövetés, eszközhívások) lépésenkénti lejátszója, elágazásokkal | 17–19. |
-| `nn-playground` widget | a neurális háló „játszótere” – a 9–10. fejezet szíve, más fejezetek is beágyazzák | 9–10., 13. |
-| előre tanított mini-modellek | számjegy-MLP/CNN (14×14-es MNIST), kis VAE, kis beágyazáskészlet, figyelmi súlyok – JSON-ben, ≤ 1 MB; a generáló Python-szkriptek a repóban (`tools/`) | 8., 11–13., 15. |
+| `assets/text.js` | egyszerű BPE-tokenizáló, TF-IDF, koszinusz-hasonlóság, bigram nyelvi modell, softmax hőmérséklettel, top-$k$ / top-$p$ mintavétel | 12., 16., 18. |
+| `assets/agent-sim.js` | rögzített JSON-forgatókönyvek (ReAct-nyomkövetés, eszközhívások) lépésenkénti lejátszója, elágazásokkal | 18–20. |
+| `nn-playground` widget | a neurális háló „játszótere” – a 9–10. fejezet szíve, más fejezetek is beágyazzák | 9–10., 14. |
+| előre tanított mini-modellek | számjegy-MLP/CNN (14×14-es MNIST), kis VAE, kis beágyazáskészlet, figyelmi súlyok – JSON-ben, ≤ 1 MB; a generáló Python-szkriptek a repóban (`tools/`) | 8., 11–12., 14., 16. |
 
 ## Javasolt kidolgozási sorrend
 1. `assets/ml.js` + `nn-playground` + `assets/text.js` (a közös alapok).
 2. **1. fejezet** (a térkép) és **3. fejezet** (a tanulás anatómiája – minden további erre épül).
 3. **9–10. fejezet** (neurális hálók – a mélytanulás magja, a legtöbb látványos widget).
-4. **12 → 15 → 17 → 18. fejezet** – az LLM–ágens szál, a legaktuálisabb rész (a „gyors út” gerince).
+4. **12 → 16 → 18 → 19. fejezet** – az LLM–ágens szál, a legaktuálisabb rész (a „gyors út” gerince).
 5. **2., 4–8. fejezet** – a klasszikus gépi tanulás pótlása; a 2. fejezet a menet közben „🔁 Emlékeztető”-ként
    használt matematikát gyűjti össze.
-6. **11., 13., 14., 16., 19–21. fejezet.**
-7. **24. fejezet**, majd az opcionális **22–23. fejezet**.
+6. **11., 13., 14., 15., 17., 20–22. fejezet.**
+7. **25. fejezet**, majd az opcionális **23–24. fejezet**.
 
-*(Alternatíva: szigorúan 1→24 sorrendben. A fenti sorrend előnye, hogy a leggyakrabban keresett téma – LLM-ek és ágensek –
+*(Alternatíva: szigorúan 1→25 sorrendben. A fenti sorrend előnye, hogy a leggyakrabban keresett téma – LLM-ek és ágensek –
 hamar olvasható, és a klasszikus rész utólag is beilleszthető, mert a fejezetek önállóan is érthetők.)*

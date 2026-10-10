@@ -83,19 +83,19 @@
     const L = [
       { name: "Mesterséges intelligencia", short: "MI",
         desc: "Minden gépi rendszer, amely olyan feladatot old meg, amelyhez embernél intelligencia kellene – kézzel írt szabályokkal, kereséssel, logikával vagy tanulással.",
-        ex: "útvonaltervező, sakkprogram (Deep Blue), szakértői rendszer, ELIZA", ch: "1. és 14. (megerősítéses tanulás), 18–19. fejezet (ágensek)" },
+        ex: "útvonaltervező, sakkprogram (Deep Blue), szakértői rendszer, ELIZA", ch: "1. és 15. (megerősítéses tanulás), 19–20. fejezet (ágensek)" },
       { name: "Gépi tanulás", short: "GT",
         desc: "Az MI azon része, ahol a rendszer viselkedését nem a programozó írja meg, hanem adatokból tanulja: adat + válasz → szabály.",
         ex: "Bayes-spamszűrő, döntési fa, lineáris regresszió, k-közép klaszterezés", ch: "3–8. fejezet" },
       { name: "Mélytanulás", short: "MT",
         desc: "Gépi tanulás sokrétegű neurális hálókkal. A rétegek maguk tanulják meg a hasznos jellemzőket (élek → formák → tárgyak).",
-        ex: "arcfelismerés, beszédfelismerés, AlexNet, AlphaZero", ch: "9–12. fejezet" },
+        ex: "arcfelismerés, beszédfelismerés, AlexNet, AlphaZero", ch: "9–13. fejezet" },
       { name: "Generatív MI", short: "GenAI",
         desc: "Modellek, amelyek új tartalmat hoznak létre: szöveget, képet, hangot, videót, kódot.",
-        ex: "képgeneráló (diffúziós modell), hangklónozás, GAN", ch: "13. fejezet" },
+        ex: "képgeneráló (diffúziós modell), hangklónozás, GAN", ch: "14. fejezet" },
       { name: "Nagy nyelvi modell (LLM)", short: "LLM",
         desc: "Óriási szövegmennyiségen, önfelügyelt módon előtanított generatív modell, amely a szöveg folytatását jósolja; finomhangolva asszisztens, eszközökkel ágens.",
-        ex: "ChatGPT, Claude, Gemini, Llama", ch: "15–17. fejezet" }
+        ex: "ChatGPT, Claude, Gemini, Llama", ch: "16–18. fejezet" }
     ];
     const EX = [
       { name: "útvonaltervező", lvl: 0, why: "Keresőalgoritmus a térképen; nem tanul semmit." },
@@ -552,7 +552,7 @@
       ["lakások bérleti díjának becslése", [1, 1, 1, 1, 1, 1, 1, 1], "Összetett mintázat, sok adat, ismétlődő: jó feladat. A piac változik, figyelni kell az eltolódásra."],
       ["vészfékezés egy önvezető autóban", [1, 1, 1, 1, 1, 1, 0, 1], "Gépi tanulás nélkül aligha megoldható, de a hiba ára életveszély: szigorú tesztelés, tartalék rendszerek, biztonsági szabályok kellenek."],
       ["új, egyedi termék első havi eladásai", [1, 1, 0, 1, 0, 0, 1, 1], "Nincs (hasonló) adat: szakértői becslés vagy próbaértékesítés kell, a modell később jöhet."],
-      ["önéletrajzok szűrése a korábbi felvételi döntések alapján", [1, 1, 1, 1, 1, 1, 0, 0], "A korábbi döntések torzításait tanulná meg és ismételné: csak nagyon óvatosan, átvilágítással és emberi döntéssel (24. fejezet)."]
+      ["önéletrajzok szűrése a korábbi felvételi döntések alapján", [1, 1, 1, 1, 1, 1, 0, 0], "A korábbi döntések torzításait tanulná meg és ismételné: csak nagyon óvatosan, átvilágítással és emberi döntéssel (25. fejezet)."]
     ];
     const ans = Q.map(() => null);
     const sel = h("select", null, h("option", { value: "" }, "— válassz egy esetet —"), CASES.map((c, i) => h("option", { value: i }, c[0])));
@@ -578,16 +578,16 @@
       if (ans.some(a => a === null)) { out.innerHTML = "Válaszolj mind a nyolc kérdésre (vagy válassz egy esetet)!"; return; }
       const [pat, cx, data, pred, sim, rep, cheap, eth] = ans;
       let v;
-      if (!eth) v = "⛔ <b>Ne így.</b> Etikai kockázat: csak alapos átvilágítással, átláthatóan és emberi döntéssel (24. fejezet).";
+      if (!eth) v = "⛔ <b>Ne így.</b> Etikai kockázat: csak alapos átvilágítással, átláthatóan és emberi döntéssel (25. fejezet).";
       else if (!pat) v = "🎲 <b>Nincs mit tanulni.</b> Véletlen jelenséget semmilyen modell nem jósol meg.";
       else if (!cx) v = "📏 <b>Elég egy szabály vagy táblázat.</b> Ha a mintázat egyszerű és ismert, a hagyományos program pontosabb és olcsóbb.";
       else if (!pred) v = "❓ <b>Nem előrejelzési feladat</b> – a gépi tanulás nem erre való. Lehet, hogy egy része az (bontsd fel!).";
       else if (!data) v = "📥 <b>Előbb adat kell.</b> Indulj szabállyal vagy emberi döntésekkel, és közben gyűjtsd az adatot.";
       else {
         v = "✅ <b>A gépi tanulás jó választás lehet.</b> Kezdd egy egyszerű alapvonallal, és azt verd meg!";
-        if (!sim) v += "<br>🔄 Vigyázz: ha az új adatok eltérnek, a modell romlik – monitorozás és újratanítás kell (21. fejezet).";
+        if (!sim) v += "<br>🔄 Vigyázz: ha az új adatok eltérnek, a modell romlik – monitorozás és újratanítás kell (22. fejezet).";
         if (!rep) v += "<br>💸 Kevés jóslásnál a modell építése és karbantartása drágább lehet, mint amennyit hoz.";
-        if (!cheap) v += "<br>🧑‍⚖️ A hiba drága: bontsd részekre, tartsd az embert a hurokban, és alaposan értékeld (6., 20. fejezet).";
+        if (!cheap) v += "<br>🧑‍⚖️ A hiba drága: bontsd részekre, tartsd az embert a hurokban, és alaposan értékeld (6., 21. fejezet).";
       }
       out.innerHTML = v;
     }
