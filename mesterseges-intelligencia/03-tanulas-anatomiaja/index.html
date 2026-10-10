@@ -1,0 +1,1613 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>3. A tanulás anatómiája – Mesterséges intelligencia – Synopsis</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="../../assets/common.js"></script>
+  <script defer src="../../assets/quiz.js"></script>
+  <script defer src="../../assets/calc.js"></script>
+  <script defer src="widgets.js"></script>
+  <script defer src="quizzes.js"></script>
+</head>
+<body>
+<div class="progressbar"></div>
+<header class="topbar">
+  <a class="brand" href="../../">📚 Synopsis</a>
+  <span class="crumbs"><a href="../../">Tartalomjegyzék</a> › <a href="../">Mesterséges intelligencia</a> › 3. fejezet</span>
+  <button class="icon-btn" data-theme-toggle title="Téma váltása">🌙</button>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <div class="toc-title">3. fejezet</div>
+  <ol>
+    <li><a href="#s31">3.1 Adat: minta, jellemző, címke</a></li>
+    <li><a href="#s32">3.2 Modell: paraméteres függvény</a></li>
+    <li><a href="#s33">3.3 Veszteség</a></li>
+    <li><a href="#s34">3.4 Optimalizálás</a></li>
+    <li><a href="#s35">3.5 Általánosítás</a></li>
+    <li><a href="#s36">3.6 Több jellemző ★★</a></li>
+    <li><a href="#s37">3.7 A gépi tanulási munkafolyamat</a></li>
+    <li><a href="#s38">3.8 Alkalmazás: mennyit ér a 70 m²?</a>
+      <ol>
+        <li><a href="#s38-a">A fejezet kérdése – elejétől a végéig</a></li>
+        <li><a href="#s38-b">Ugyanez a váz mindenhol</a></li>
+      </ol>
+    </li>
+    <li><a href="#s-sum">Összefoglalás</a></li>
+    <li><a href="#s-check">Ellenőrző kérdések</a></li>
+    <li><a href="#s-ex">Vegyes gyakorló feladatok</a></li>
+    <li><a href="#s-final">Fejezetzáró teszt</a></li>
+    <li><a href="#s-gloss">Szómagyarázó</a></li>
+  </ol>
+</nav>
+
+<main class="content">
+
+<section class="hero" style="padding-top:.5rem">
+  <div class="kicker">Mesterséges intelligencia · 3. fejezet · ★</div>
+  <h1>A tanulás anatómiája: adat, modell, veszteség, optimalizálás</h1>
+  <p class="lead">Minden gépi tanulási rendszer – a lakásár-becslőtől a ChatGPT-ig – <b>négy alkatrészből</b> áll: <b>adatból</b>, amiből tanul;
+  egy <b>modellből</b>, vagyis egy állítható gombokkal (paraméterekkel) ellátott függvényből; egy <b>veszteségből</b>, ami megmondja, mennyire
+  rossz a modell; és egy <b>optimalizálóból</b>, ami addig tekergeti a gombokat, amíg a veszteség kicsi nem lesz. Ebben a fejezetben ezt a
+  négy alkatrészt <b>egyetlen, kézzel végigszámolható példán</b> szedjük szét és rakjuk össze: egy egyenest illesztünk öt lakás adatára.
+  Aztán megnézzük, miért nem elég, ha a modell a <em>régi</em> adatokon jó.</p>
+</section>
+
+<div class="box tip">
+  <span class="box-title">Mit fogsz megtanulni?</span>
+  <ul style="margin:.2rem 0">
+    <li>mi a <b>minta</b>, a <b>jellemző</b> és a <b>címke</b>, és hogyan írjuk le az adatkészletet ($X$, $\mathbf y$);</li>
+    <li>mi a <b>modell</b>: egy függvény <b>paraméterekkel</b> ($\hat y = wx + b$), és mit jelent, hogy a tanulás = a paraméterek beállítása;</li>
+    <li>hogyan mérjük a modell tévedését: <b>hiba</b>, <b>átlagos négyzetes hiba (MSE)</b>, átlagos abszolút hiba, és mi a <b>veszteségfelület</b>;</li>
+    <li>kétféle <b>optimalizálást</b>: a <b>legkisebb négyzetek</b> zárt képletét és a <b>gradiens módszert</b>, a tanulási rátával, az epochhal és a köteggel;</li>
+    <li>miért kell <b>tanító és teszt halmaz</b>, mi az <b>alul- és a túlillesztés</b>;</li>
+    <li>(★★) hogyan lesz a modellből <b>több jellemzős</b> ($\hat y = \mathbf w^\top\mathbf x + b$), mik a <b>polinomiális jellemzők</b>, és miért kell <b>skálázni</b>;</li>
+    <li>a <b>gépi tanulási munkafolyamatot</b> az adatgyűjtéstől a monitorozásig – a következő fejezetek térképét.</li>
+  </ul>
+</div>
+
+<div class="box">
+  <span class="box-title">🔁 Amit használni fogunk</span>
+  Az <a href="../01-mi-a-mesterseges-intelligencia/#s12-c">1. fejezet</a> szótárát (minta, jellemző, címke, modell, paraméter, tanítás, következtetés) és a
+  Celsius–Fahrenheit példát, ahol már „tanítottunk” egy egyenest. A <a href="../02-matematikai-eszkoztar/">2. fejezetből</a>: vektor és adatmátrix
+  (<a href="../02-matematikai-eszkoztar/#s21">2.1</a>), skaláris szorzat (<a href="../02-matematikai-eszkoztar/#s22-b">2.2</a>), derivált és gradiens
+  (<a href="../02-matematikai-eszkoztar/#s27">2.7</a>), gradiens módszer (<a href="../02-matematikai-eszkoztar/#s28">2.8</a>). Ahol kell, egy 🔁 doboz felidézi őket.
+  <br><small>Jelölések: ★ alap · ★★ közép · ★★★ haladó (kihagyható). A 📐 jelű lenyílók levezetéseket rejtenek, a 🐍 jelűek rövid Python-kódot –
+  a továbbhaladáshoz egyik sem kell.</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">🎯 A fejezet kérdése</span>
+  Egy kisvárosban öt lakás kelt el a közelmúltban:
+  <table style="max-width:460px">
+    <tr><th>alapterület (m²)</th><td>20</td><td>40</td><td>50</td><td>60</td><td>80</td></tr>
+    <tr><th>ár (millió Ft)</th><td>21</td><td>35</td><td>44</td><td>51</td><td>69</td></tr>
+  </table>
+  <b>Mennyit ér egy 70 m²-es lakás?</b> És ami fontosabb: hogyan találja meg erre a választ egy gép, ha senki nem mondja meg neki a képletet –
+  és honnan tudjuk, hogy a válasza <em>új</em> lakásokra is jó? A fejezet végén (<a href="#s38-a">3.8</a>) mind a négy alkatrész a helyére kerül,
+  és a gép két különböző úton is ugyanarra a válaszra jut.
+</div>
+
+<p><b>Útiterv</b> – lépésről lépésre, az egyszerűtől a bonyolultig:</p>
+<ol>
+  <li><a href="#s31">Adat</a>: mi a minta, a jellemző és a címke, és hogyan írjuk le az adatkészletet?</li>
+  <li><a href="#s32">Modell</a>: egy függvény állítható paraméterekkel – egy egyenes két „gombbal”.</li>
+  <li><a href="#s33">Veszteség</a>: egyetlen szám, ami megmondja, mennyire rossz egy beállítás – és a veszteségfelület.</li>
+  <li><a href="#s34">Optimalizálás</a>: a legjobb beállítás megkeresése zárt képlettel és gradiens módszerrel.</li>
+  <li><a href="#s35">Általánosítás</a>: tanító és teszt halmaz – a cél az <em>új</em> adat.</li>
+  <li><a href="#s36">Több jellemző</a> (★★): vektoros alak, polinomiális jellemzők, skálázás.</li>
+  <li><a href="#s37">Munkafolyamat</a>: a négy alkatrész minden modellben, és az út az adattól a működő rendszerig.</li>
+  <li><a href="#s38">Alkalmazás</a>: válasz a fejezet kérdésére.</li>
+</ol>
+
+<!-- ===================================================== 3.1 -->
+<section id="s31">
+<h2>3.1 Adat: minta, jellemző, címke</h2>
+<p>A tanulás alapanyaga az adat. Mielőtt bármit „tanulnánk”, rendet kell tenni: mi egy adatpont, miből jósolunk, és mit akarunk jósolni?</p>
+
+<h3 id="s31-a">1. lépés: egy sor a táblázatban – minta, jellemző, címke</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a lakások táblázata</span>
+  Az ingatlaniroda táblázatában ennél több oszlop van:
+  <table style="max-width:560px">
+    <tr><th>azonosító</th><th>alapterület (m²)</th><th>szobák</th><th>emelet</th><th>ár (M Ft)</th></tr>
+    <tr><td>L-101</td><td>20</td><td>1</td><td>2</td><td>21</td></tr>
+    <tr><td>L-102</td><td>40</td><td>2</td><td>0</td><td>35</td></tr>
+    <tr><td>L-103</td><td>50</td><td>2</td><td>3</td><td>44</td></tr>
+    <tr><td>L-104</td><td>60</td><td>3</td><td>1</td><td>51</td></tr>
+    <tr><td>L-105</td><td>80</td><td>3</td><td>4</td><td>69</td></tr>
+  </table>
+  Minden <b>sor</b> egy eladott lakás. Az <b>ár</b> az, amit új lakásokra jósolni akarunk. Az alapterület, a szobák és az emelet az, amiből jósolunk.
+  Az azonosító csak egy címke a nyilvántartásban – a lakás értékéről semmit nem mond.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – minta, jellemző, címke</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Minta</b> (adatpont, <em>sample</em>): a táblázat egy sora, egy megfigyelt eset. A minták száma $n$.</li>
+    <li><b>Jellemző</b> (<em>feature</em>): egy bemeneti oszlop, amiből jósolunk. A jellemzők száma $d$. Az $i$-edik minta jellemzői együtt a
+      <b>jellemzővektor</b>: $\mathbf x_i = (x_{i1}, \dots, x_{id})$.</li>
+    <li><b>Címke</b> (célváltozó, <em>label, target</em>): amit jósolni akarunk; az $i$-edik minta címkéje $y_i$.</li>
+  </ul>
+  A <b>felügyelt tanulás</b> adata tehát $n$ darab $(\mathbf x_i,\ y_i)$ pár: bemenet és a hozzá tartozó helyes válasz.
+  <br><small>Miért kell szétválasztani? Mert a modell bemenete <em>csak</em> a jellemzővektor lehet – a címkét épp ő akarja megmondani. A tanításkor
+  mindkettő ismert; a használatkor (következtetéskor) csak a jellemzők.</small>
+</div>
+<p>A címke fajtája dönti el, milyen feladatról van szó. Ugyanaz a táblázat, csak a címke más:</p>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Regresszió – a címke egy szám</span>
+    Címke: <b>az ár</b> (21, 35, 44, …). A jóslat is egy szám, pl. „kb. 60 millió”. A hiba azt méri, <em>mennyivel</em> tévedtünk.
+  </div>
+  <div class="box example">
+    <span class="box-title">Osztályozás – a címke egy kategória</span>
+    Címke: <b>elkelt-e 30 napon belül</b> (igen / nem). A jóslat egy osztály (vagy annak valószínűsége). A hiba azt méri, <em>eltaláltuk-e</em>.
+  </div>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – spamszűrő</span>
+    Minta: egy levél. Jellemzők: felkiáltójelek száma, linkek száma, szerepel-e az „ingyen” szó. Címke: spam / nem spam. Ez <b>osztályozás</b>.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – áramfogyasztás</span>
+    Minta: egy nap. Jellemzők: átlaghőmérséklet, hétvége-e, a nap hossza. Címke: a város áramfogyasztása (MWh). Ez <b>regresszió</b>.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az azonosító nem jellemző.</b> Az „L-103” sorszám véletlenül összefügghet az árral (pl. a későbbi azonosítók újabb lakások), de ez a
+      modellt félrevezeti – új lakásnál semmit nem jelent.</li>
+    <li><b>Jellemző csak az lehet, ami a jóslás pillanatában ismert.</b> „A hirdetés hány napig volt fent” csak az eladás <em>után</em> derül ki,
+      ezért egy most meghirdetett lakás árának becsléséhez nem használható. Ha mégis bekerül, a modell a tanítóadaton gyanúsan jó lesz,
+      élesben viszont nem működik. Ez az <b>adatszivárgás</b> (4. fejezet).</li>
+    <li><b>A címke nem mindig „igazság”.</b> Az eladási ár egy alku eredménye – zajos. A modell ennél pontosabb nem lehet.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – minta, jellemző, címke</summary>
+  <ol>
+    <li>A fenti, öt oszlopos lakástáblázatban mennyi $n$ és $d$, ha az árat jósoljuk, és az azonosítót nem használjuk?
+      <details><summary>Megoldás</summary>$n = 5$ minta (sor). Jellemzők: alapterület, szobák, emelet, tehát $d = 3$. Az ár a címke, az azonosító egyik sem.</details></li>
+    <li>Regresszió vagy osztályozás? (a) holnapi csúcshőmérséklet; (b) egy fotón kutya vagy macska van; (c) egy ügyfél hány forintot költ a következő hónapban;
+      (d) egy tranzakció csalás-e.
+      <details><summary>Megoldás</summary>(a) regresszió (szám); (b) osztályozás; (c) regresszió; (d) osztályozás (igen/nem).</details></li>
+    <li>Egy diák-adatbázisban ezek az oszlopok vannak: név, heti tanulási órák, hiányzások száma, előző félévi átlag, idei matekjegy. Az idei jegyet akarjuk
+      jósolni. Mi a címke, és mik a jellemzők?
+      <details><summary>Megoldás</summary>Címke: az idei matekjegy. Jellemzők: tanulási órák, hiányzások, előző félévi átlag. A név azonosító, nem jellemző.</details></li>
+    <li>Az 1. fejezet Celsius–Fahrenheit példájában ($C$: 0, 10, 20, 30, 40; mért $F$: 33, 49, 69, 85, 105) mennyi $n$, $d$, és mi $y_3$?
+      <details><summary>Megoldás</summary>$n = 5$, $d = 1$ (csak $C$). $y_3$ a harmadik minta címkéje: $69$ °F.</details></li>
+    <li>(nehezebb) Egy kórház azt akarja jósolni, hogy egy beteg 30 napon belül visszakerül-e a kórházba. Valaki javasolja a „hány napot töltött
+      a beteg a második kórházi tartózkodása alatt” jellemzőt. Miért rossz ötlet?
+      <details><summary>Megoldás</summary>Ez az adat csak akkor létezik, ha a beteg visszakerült – vagyis a címkét „elárulja”. A tanítóadaton a modell szinte tökéletes lesz,
+        de a jóslás pillanatában (a hazabocsátáskor) ez az érték még nem ismert. Adatszivárgás.</details></li>
+  </ol>
+</details>
+
+<h3 id="s31-b">2. lépés: az adatkészlet – mátrix, vektor, szórásdiagram</h3>
+<p>Egy mintát már le tudunk írni. De a tanuláshoz az összes minta kell egyszerre. Hogyan írjuk fel tömören – és hogyan <em>nézzük meg</em>?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a lakások mátrixa</span>
+  Maradjunk most egyetlen jellemzőnél, az alapterületnél ($d = 1$). Az adatkészlet két oszlop: a jellemzők és a címkék.
+  $$X = \begin{pmatrix} 20 \\ 40 \\ 50 \\ 60 \\ 80 \end{pmatrix}, \qquad \mathbf y = \begin{pmatrix} 21 \\ 35 \\ 44 \\ 51 \\ 69 \end{pmatrix}.$$
+  Ha a szobaszámot is használjuk ($d = 2$), $X$ egy $5\times2$-es mátrix lesz: minden sora egy lakás (m², szobák).
+  Rajzoljuk is fel az egy jellemzős adatot: vízszintesen a jellemző, függőlegesen a címke.
+  <figure style="margin:.6rem 0;max-width:420px">
+    <svg viewBox="0 0 420 260" role="img" aria-label="Szórásdiagram: öt lakás alapterülete és ára" style="width:100%;height:auto">
+      <g stroke="var(--border)" stroke-width="1">
+        <line x1="50" y1="20" x2="50" y2="220"/><line x1="50" y1="220" x2="400" y2="220"/>
+        <line x1="50" y1="170" x2="400" y2="170" stroke-dasharray="3 4"/><line x1="50" y1="120" x2="400" y2="120" stroke-dasharray="3 4"/>
+        <line x1="50" y1="70" x2="400" y2="70" stroke-dasharray="3 4"/>
+      </g>
+      <g font-size="12" fill="var(--muted)" font-family="system-ui, sans-serif">
+        <text x="40" y="224" text-anchor="end">0</text><text x="40" y="174" text-anchor="end">20</text>
+        <text x="40" y="124" text-anchor="end">40</text><text x="40" y="74" text-anchor="end">60</text>
+        <text x="50" y="238" text-anchor="middle">0</text><text x="137.5" y="238" text-anchor="middle">20</text>
+        <text x="225" y="238" text-anchor="middle">40</text><text x="312.5" y="238" text-anchor="middle">60</text>
+        <text x="400" y="238" text-anchor="middle">80</text>
+        <text x="225" y="256" text-anchor="middle">alapterület (m²)</text>
+        <text x="56" y="16">ár (M Ft)</text>
+      </g>
+      <g fill="var(--accent)">
+        <circle cx="137.5" cy="167.5" r="6"/><circle cx="225" cy="132.5" r="6"/><circle cx="268.75" cy="110" r="6"/>
+        <circle cx="312.5" cy="92.5" r="6"/><circle cx="400" cy="47.5" r="6"/>
+      </g>
+    </svg>
+  </figure>
+  A pontok szinte egy egyenesen vannak: nagyobb lakás → magasabb ár. Ez a kép sugallja majd a modell <em>formáját</em> (<a href="#s32">3.2</a>).
+</div>
+<div class="box def">
+  <span class="box-title">Jelölés – az adatkészlet</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Adatmátrix</b> $X$: $n\times d$-es, <b>sor = minta, oszlop = jellemző</b>. Eleme $x_{ij}$: az $i$-edik minta $j$-edik jellemzője.</li>
+    <li><b>Címkevektor</b> $\mathbf y = (y_1, \dots, y_n)$: $n$ elemű, az $i$-edik elem az $i$-edik minta címkéje.</li>
+    <li>Ha csak egy jellemző van, a mintákat egyszerűen $x_i$-vel jelöljük (félkövér nélkül): $x_3 = 50$, $y_3 = 44$.</li>
+    <li><b>Szórásdiagram</b> (pontdiagram, <em>scatter plot</em>): minden minta egy pont; vízszintesen egy jellemző, függőlegesen a címke.</li>
+  </ul>
+  <small>Miért rajzoljuk fel? Mert egyetlen pillantással kiderül, milyen az összefüggés (egyenes? görbe? semmilyen?), és van-e furcsa, kilógó pont.
+  A tapasztalt adattudós <em>mindig</em> ránéz az adatra, mielőtt modellt választ.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – elem kiolvasása</span>
+    A két jellemzős lakásmátrixban (m², szobák) $x_{42}$ a 4. lakás 2. jellemzője: a szobák száma, $3$. Az $x_{51} = 80$ az 5. lakás alapterülete.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy nagyobb adatkészlet alakja</span>
+    Egy ingatlanportál 12 000 eladást rögzít, mindegyikről 8 jellemzővel és az árral. Az adatmátrix $12\,000\times8$-as, a címkevektor $12\,000$ elemű.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktató – a címke nem az adatmátrix oszlopa</span>
+  Ha az árat „véletlenül” bent hagyod $X$-ben, a modell egyszerűen kimásolja: tökéletes lesz a tanítóadaton, és használhatatlan, mert új lakásnál
+  az ár épp az, amit nem tudunk. Kódban ezért mindig külön változóba tesszük: <code>X</code> (jellemzők) és <code>y</code> (címke).
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – az adatkészlet</summary>
+  <ol>
+    <li>Az öt lakás egy jellemzős adatában mennyi $x_2$, $y_2$ és $y_5$?
+      <details><summary>Megoldás</summary>$x_2 = 40$ m², $y_2 = 35$ M Ft, $y_5 = 69$ M Ft.</details></li>
+    <li>A három jellemzős lakástáblázatban (m², szobák, emelet) mi az $X$ alakja, és mennyi $x_{34}$?
+      <details><summary>Megoldás</summary>$X$ alakja $5\times3$. $x_{34}$ nem létezik: csak 3 oszlop van. (Az emelet a 3. oszlop, pl. $x_{33} = 3$.)</details></li>
+    <li>Egy adatkészletben 200 ügyfél van, mindegyikről 6 jellemző és egy címke. Hány szám van $X$-ben és $\mathbf y$-ban összesen?
+      <details><summary>Megoldás</summary>$X$: $200\cdot6 = 1200$ szám, $\mathbf y$: 200 szám, összesen $1400$.</details></li>
+    <li>A szórásdiagramon az egyik lakás pontja messze a többi alatt van (100 m², 30 M Ft). Mit érdemes tenni, mielőtt modellt illesztenél?
+      <details><summary>Megoldás</summary>Utánanézni: elírás (300 helyett 30? 10 m² helyett 100?), vagy valódi különleges eset (felújítandó, rokonnak eladva)? Az elírást javítani kell;
+        a valódi kivételt szándékosan kezelni (4. fejezet). Vakon benne hagyni vagy kidobni egyaránt hiba lehet.</details></li>
+    <li>(nehezebb) Egy tanuló így adja át a modellnek az adatot: minden sor egy jellemző, minden oszlop egy lakás. Mi az alakja, és mi a teendő?
+      <details><summary>Megoldás</summary>$d\times n$, vagyis a szokásos $X$ transzponáltja, $X^\top$. Transzponálni kell (<a href="../02-matematikai-eszkoztar/#s21-b">2.1</a>), különben a könyvtár
+        a jellemzőket nézi mintának.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai3-31"></div>
+</section>
+
+<!-- ===================================================== 3.2 -->
+<section id="s32">
+<h2>3.2 Modell: paraméteres függvény</h2>
+<p>Megvan az adat. Most kell valami, ami egy jellemzőből (m²) jóslatot (árat) csinál. Ez a <b>modell</b>. A szórásdiagram egyenest sugall –
+kezdjük azzal.</p>
+
+<h3 id="s32-a">1. lépés: egy jóslat – az egyenes mint modell</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – az ingatlanos ökölszabálya</span>
+  Egy ingatlanos így becsül: „négyzetméterenként 0,7 millió, plusz 10 millió”. Képlettel:
+  $$\hat y = 0{,}7\,x + 10.$$
+  Egy 50 m²-es lakásra: $\hat y = 0{,}7\cdot50 + 10 = 45$ millió Ft. A valódi ár 44 volt: 1 millióval túlbecsülte.
+  Egy 20 m²-esre: $0{,}7\cdot20 + 10 = 24$ (a valódi 21). A szabály tehát nem tökéletes – de minden lakásra ad egy számot.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – modell, paraméter, jóslat</span>
+  A <b>modell</b> egy függvény, amely a jellemzőből <b>jóslatot</b> számol, és vannak állítható számai, a <b>paraméterei</b>. Az egy jellemzős
+  <b>lineáris regresszió</b> modellje:
+  $$\hat y = w\,x + b.$$
+  <ul style="margin:.2rem 0">
+    <li>$\hat y$ („y kalap”): a <b>jóslat</b> – megkülönböztetve a valódi $y$ címkétől.</li>
+    <li>$w$: <b>súly</b> (<em>weight</em>) – az egyenes meredeksége: ennyivel nő a jóslat, ha $x$ eggyel nő.</li>
+    <li>$b$: <b>eltolás</b> (<em>bias</em>) – a tengelymetszet: a jóslat $x = 0$-nál.</li>
+  </ul>
+  <small>Miért külön betű $\hat y$-ra? Mert a tanulás lényege épp az, hogy a jóslat ($\hat y$) és a valóság ($y$) közti különbséget csökkentjük. Ha ugyanazzal a betűvel
+  jelölnénk, nem tudnánk beszélni a hibáról.</small>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Terminológia – három szakma, három jelölés</span>
+  <table style="max-width:600px">
+    <tr><th></th><th>meredekség</th><th>tengelymetszet</th></tr>
+    <tr><td>középiskola</td><td>$m$ ($y = mx + b$)</td><td>$b$</td></tr>
+    <tr><td>statisztika</td><td>$\beta_1$ (regressziós együttható)</td><td>$\beta_0$</td></tr>
+    <tr><td>gépi tanulás</td><td>$w$ – súly (<em>weight</em>)</td><td>$b$ – eltolás (<em>bias</em>)</td></tr>
+  </table>
+  Az 1. fejezetben még $F = mC + b$ volt; mostantól a gépi tanulás jelölését használjuk. A <em>bias</em> itt nem „elfogultság” – az a 25. fejezet témája.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a súly jelentése</span>
+    $w = 0{,}7$ millió Ft/m². Ha egy lakás 10 m²-rel nagyobb, a modell szerint $0{,}7\cdot10 = 7$ millióval drágább – akármekkora is egyébként.
+    A súlynak <b>mértékegysége</b> van: címke-egység per jellemző-egység.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – két jóslat különbsége</span>
+    60 m² és 40 m² között a jóslat különbsége: $(0{,}7\cdot60 + 10) - (0{,}7\cdot40 + 10) = 0{,}7\cdot20 = 14$ millió. A $b$ kiesik: a különbséget csak $w$ dönti el.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A $b$ nem „a 0 m²-es lakás ára”.</b> Ilyen lakás nincs, és a legkisebb mintánk is 20 m²-es. A $b$ csak annyi, amennyi kell, hogy az egyenes jó helyen menjen
+      az <em>adatok tartományában</em>. Az adat tartományán kívüli jóslás (<b>extrapoláció</b>) mindig kockázatos.</li>
+    <li><b>$\hat y \ne y$.</b> A jóslat nem a valóság. Egy modell lehet hasznos úgy is, hogy egyetlen mintán sem találja el pontosan a címkét.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – jóslat egy egyenessel</summary>
+  <ol>
+    <li>Az ingatlanos modelljével ($\hat y = 0{,}7x + 10$) mennyit ér egy 30 m²-es lakás?
+      <details><summary>Megoldás</summary>$0{,}7\cdot30 + 10 = 21 + 10 = 31$ millió Ft.</details></li>
+    <li>Egy másik ingatlanos szabálya: $\hat y = x - 5$. Mennyit jósol 30 m²-re és 80 m²-re?
+      <details><summary>Megoldás</summary>$30 - 5 = 25$ és $80 - 5 = 75$ millió Ft. (Itt $w = 1$, $b = -5$.)</details></li>
+    <li>A $\hat y = 0{,}7x + 10$ modell szerint mennyivel drágább egy 75 m²-es lakás egy 55 m²-esnél?
+      <details><summary>Megoldás</summary>$0{,}7\cdot(75 - 55) = 0{,}7\cdot20 = 14$ millió Ft. A $b$ nem számít.</details></li>
+    <li>Egy egyenes modell 40 m²-re 34, 60 m²-re 48 millió Ft-ot jósol. Mennyi $w$ és $b$?
+      <details><summary>Megoldás</summary>$w = \dfrac{48 - 34}{60 - 40} = \dfrac{14}{20} = 0{,}7$; $b = 34 - 0{,}7\cdot40 = 34 - 28 = 6$. Tehát $\hat y = 0{,}7x + 6$.</details></li>
+    <li>(nehezebb) Egy taxitársaság modellje az út árára: $\hat y = 400x + 900$ (Ft, $x$ km-ben). Mi a $w$ és a $b$ mértékegysége és jelentése? Mennyit jósol egy 0,5 km-es útra,
+      és ez mennyire hihető?
+      <details><summary>Megoldás</summary>$w = 400$ Ft/km (kilométerdíj), $b = 900$ Ft (alapdíj) – itt a $b$-nek történetesen van értelme. 0,5 km-re $200 + 900 = 1100$ Ft.
+        Hihető, ha az adatban voltak rövid utak; ha a legrövidebb tanító út 1 km volt, ez már enyhe extrapoláció (pl. lehet minimáldíj).</details></li>
+  </ol>
+</details>
+
+<h3 id="s32-b">2. lépés: a modellcsalád – a paraméterek mint gombok</h3>
+<p>Az ingatlanos egy konkrét egyenest használt. De miért épp $0{,}7$-et és $10$-et? Egy másik ingatlanos mást mondana. Mi van, ha a gombokat másképp állítjuk?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – három beállítás, egy forma</span>
+  <table style="max-width:560px">
+    <tr><th>beállítás</th><th>$w$</th><th>$b$</th><th>jóslat 20, 40, 50, 60, 80 m²-re</th></tr>
+    <tr><td>A (az ingatlanos)</td><td>0,7</td><td>10</td><td>24, 38, 45, 52, 66</td></tr>
+    <tr><td>B</td><td>1</td><td>−5</td><td>15, 35, 45, 55, 75</td></tr>
+    <tr><td>C (vízszintes)</td><td>0</td><td>44</td><td>44, 44, 44, 44, 44</td></tr>
+    <tr><th colspan="3">valódi ár</th><th>21, 35, 44, 51, 69</th></tr>
+  </table>
+  Mindhárom ugyanaz a <em>forma</em> ($\hat y = wx + b$), csak a két „gomb” áll máshol. Mindegyik egy egyenes; együtt az <b>összes lehetséges egyenest</b>
+  „kínálja” a forma. A C beállítás minden lakásra ugyanannyit mond – ez is egyenes, csak vízszintes.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – modellcsalád, tanulás</span>
+  A <b>modellcsalád</b> (hipotézistér) mindazon függvények halmaza, amelyek a paraméterek valamilyen beállításával kijönnek. A $\hat y = wx + b$ családja:
+  az összes (nem függőleges) egyenes.
+  <br><b>A tanulás = a család egy tagjának kiválasztása</b>, vagyis a paraméterek beállítása az adatok alapján.
+  <br>Két döntés van tehát, és <b>két külön szereplő</b> hozza meg:
+  <ul style="margin:.2rem 0">
+    <li>a <b>családot</b> (a modell formáját) <em>mi</em> választjuk – egyenes, parabola, neurális háló…;</li>
+    <li>a <b>paramétereket</b> az <em>adatból</em> a tanítás állítja be.</li>
+  </ul>
+  <small>Miért fontos ez? Mert a tanítás csak a családon <em>belül</em> keres. Ha a családban nincs jó függvény, a legjobb tanítás sem segít; ha a család túl gazdag,
+  a modell a zajt is megtanulja (<a href="#s35">3.5</a>).</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a legegyszerűbb család</span>
+    A <b>konstans modell</b>, $\hat y = b$: egyetlen paraméter, minden mintára ugyanaz a jóslat (mint a C beállítás). Butának tűnik, de fontos viszonyítási alap:
+    egy „okos” modellnek legalább ennél jobbnak kell lennie (<a href="#s34-a">3.4</a>).
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy gazdagabb család</span>
+    A parabolák: $\hat y = w_2x^2 + w_1x + b$, három paraméterrel. Minden egyenes benne van ($w_2 = 0$), de görbülni is tud. Egy nagy nyelvi modellnek ugyanígy
+    paraméterei vannak, csak több százmilliárd.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Paraméter ≠ jellemző.</b> A jellemző az adat része (a lakás alapterülete), a paraméter a modellé (mennyit ér egy négyzetméter). Más lakásnál más a jellemző,
+      de a paraméter ugyanaz.</li>
+    <li><b>Több paraméter nem automatikusan jobb.</b> Egy gazdagabb család jobban illeszkedhet a tanítóadatra – és rosszabbul az újra (<a href="#s35-b">3.5</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – modellcsalád és paraméterek</summary>
+  <ol>
+    <li>Hány paramétere van: (a) $\hat y = b$; (b) $\hat y = wx + b$; (c) $\hat y = w_2x^2 + w_1x + b$; (d) $\hat y = wx$?
+      <details><summary>Megoldás</summary>(a) 1; (b) 2; (c) 3; (d) 1.</details></li>
+    <li>A $\hat y = wx$ család (eltolás nélkül) milyen egyenesekből áll? Benne van-e az ingatlanos $0{,}7x + 10$ egyenese?
+      <details><summary>Megoldás</summary>Az origón átmenő egyenesekből. A $0{,}7x + 10$ nincs benne, mert $x = 0$-nál 10-et ad, nem 0-t.</details></li>
+    <li>Paraméter vagy jellemző? (a) a lakás emelete; (b) a modell szerint egy szoba mennyit ér; (c) egy levélben a linkek száma; (d) a spamszűrő „ingyen” szóhoz tartozó súlya.
+      <details><summary>Megoldás</summary>(a) jellemző; (b) paraméter; (c) jellemző; (d) paraméter.</details></li>
+    <li>Az adatok szinte pontosan egy parabolán vannak. A $\hat y = wx + b$ családdal tanítunk, a lehető legjobban. Mi lesz az eredmény?
+      <details><summary>Megoldás</summary>A legjobb <em>egyenes</em>, ami ennek ellenére rosszul követi a görbét. A hiba nem a tanításban van, hanem a családban: egyenesek közt nincs parabola.
+        Ez az <b>alulillesztés</b> (<a href="#s35-b">3.5</a>).</details></li>
+    <li>(nehezebb) Egy modellcsalád: $\hat y = w\,(x - 50) + b$. Ugyanazok az egyenesek-e, mint a $\hat y = wx + b$ családé? Mit jelent itt $b$?
+      <details><summary>Megoldás</summary>Igen: $w(x - 50) + b = wx + (b - 50w)$, ez is tetszőleges egyenes. Itt $b$ a jóslat <b>50 m²-nél</b> – az adatok közepén, ezért van értelme.
+        Ez a „középre tolás” a <a href="#s36-c">3.6</a> skálázásának előzetese.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai3-32"></div>
+</section>
+
+<!-- ===================================================== 3.3 -->
+<section id="s33">
+<h2>3.3 Veszteség: mennyire rossz egy beállítás?</h2>
+<p>Három beállításunk van (A, B, C), és a szemünk azt súgja, hogy az A a legjobb. De a gépnek nincs szeme. Kell egy <b>szám</b>, ami
+megmondja, mennyire rossz egy beállítás – és akkor a „tanulás” egyszerűen ennek a számnak a csökkentése lesz.</p>
+
+<h3 id="s33-a">1. lépés: a hiba – egy mintán</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – mennyit tévednek?</span>
+  Minden lakásnál nézzük meg, mennyivel tér el a jóslat a valódi ártól (jóslat − valódi):
+  <table style="max-width:640px">
+    <tr><th>m²</th><th>valódi ár</th><th>A: $0{,}7x + 10$</th><th>hiba</th><th>B: $x - 5$</th><th>hiba</th><th>C: $44$</th><th>hiba</th></tr>
+    <tr><td>20</td><td>21</td><td>24</td><td>+3</td><td>15</td><td>−6</td><td>44</td><td>+23</td></tr>
+    <tr><td>40</td><td>35</td><td>38</td><td>+3</td><td>35</td><td>0</td><td>44</td><td>+9</td></tr>
+    <tr><td>50</td><td>44</td><td>45</td><td>+1</td><td>45</td><td>+1</td><td>44</td><td>0</td></tr>
+    <tr><td>60</td><td>51</td><td>52</td><td>+1</td><td>55</td><td>+4</td><td>44</td><td>−7</td></tr>
+    <tr><td>80</td><td>69</td><td>66</td><td>−3</td><td>75</td><td>+6</td><td>44</td><td>−25</td></tr>
+    <tr><th colspan="2">a hibák átlaga</th><th colspan="2">$5/5 = 1$</th><th colspan="2">$5/5 = 1$</th><th colspan="2">$0/5 = 0$</th></tr>
+  </table>
+  Meglepő: az A és a B átlagos hibája <em>ugyanannyi</em>, a vízszintes C-é pedig <b>nulla</b> – pedig a C a legrosszabb, 25 milliót is téved!
+  A pozitív és a negatív hibák <b>kiejtik egymást</b>. Az előjeles átlag tehát nem méri a modell jóságát.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – hiba</span>
+  Az $i$-edik minta <b>hibája</b>: $$e_i = \hat y_i - y_i.$$
+  Pozitív, ha a modell <b>túlbecsül</b>, negatív, ha <b>alábecsül</b>. Egyetlen minta hibájának nagysága $|e_i|$.
+  <br><small>Miért kell mégis valami más, mint az átlaguk? Mert az ellentétes előjelű hibák kioltják egymást: <em>minden</em> egyenesnek, amely átmegy az adatok
+  „súlypontján”, $(\bar x, \bar y) = (50, 44)$-en, nulla az átlagos hibája. Ezért a hibákat előbb „pozitívvá kell tenni” – négyzetre emeléssel vagy abszolút értékkel.</small>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Jelölés – melyik irányba vonunk ki?</span>
+  A statisztika a <b>reziduumot</b> (maradékot) általában fordítva írja: $y_i - \hat y_i$. Mi a gépi tanulás szokását követjük ($\hat y_i - y_i$), mert így a gradiens képletei
+  előjel nélkül jönnek ki (<a href="#s34-c">3.4</a>). A négyzetes hibában az irány úgyis mindegy: $(-3)^2 = 3^2$.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy hiba értelmezése</span>
+    A B modell a 80 m²-es lakásra 75-öt mond, a valódi 69: $e_5 = 75 - 69 = +6$. A modell 6 millióval <b>túlbecsül</b>.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – rendszeres tévedés</span>
+    A $\hat y = 0{,}8x + 2$ egyenes hibái: $-3, -1, -2, -1, -3$. Mind negatív: ez a modell <b>mindig alábecsül</b>, átlagosan 2 millióval. Az előjeles átlag ezt
+    a <em>torzítást</em> jól mutatja – csak a jóságot nem méri.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktató – „átlagosan nem téved”</span>
+  Ha egy cég azzal büszkélkedik, hogy modellje „átlagosan nulla hibával” becsül, az semmit nem mond: a vízszintes C egyenes is ilyen. Kérdezd meg, mekkora a hibák
+  <em>nagysága</em> (lásd a következő lépést).
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – hiba</summary>
+  <ol>
+    <li>Számold ki a $\hat y = x - 10$ modell hibáit az öt lakásra! Túl- vagy alábecsül?
+      <details><summary>Megoldás</summary>Jóslatok: 10, 30, 40, 50, 70. Hibák: $-11, -5, -4, -1, +1$. Szinte mindenhol alábecsül (összeg: $-20$).</details></li>
+    <li>Egy modell egy 44 milliós lakásra 41-et mond. Mennyi a hiba, és mit jelent az előjele?
+      <details><summary>Megoldás</summary>$e = 41 - 44 = -3$: 3 millióval alábecsül.</details></li>
+    <li>Az 1. fejezet $F = 2C + 30$ jelöltjének hibái ($C$: 0, 10, 20, 30, 40; mért $F$: 33, 49, 69, 85, 105)?
+      <details><summary>Megoldás</summary>Jóslatok: 30, 50, 70, 90, 110. Hibák: $-3, +1, +1, +5, +5$. (Az 1. fejezet az eltérések nagyságát, 3, 1, 1, 5, 5-öt írta.)</details></li>
+    <li>Két modell hibái: P: $(+2, -2, +2, -2)$, Q: $(0, 0, 0, 0)$. Mennyi a hibák átlaga? Melyik a jobb?
+      <details><summary>Megoldás</summary>Mindkettőé 0. Mégis Q a jobb (hibátlan), P minden mintán 2-t téved. Az előjeles átlag nem tesz különbséget köztük.</details></li>
+    <li>(nehezebb) Mutasd meg, hogy a $\hat y = w(x - 50) + 44$ egyenesek <em>mindegyikének</em> nulla a hibaösszege az öt lakáson, bármi is $w$!
+      <details><summary>Megoldás</summary>$\sum e_i = \sum\big(w(x_i - 50) + 44 - y_i\big) = w\sum(x_i - 50) + \sum(44 - y_i)$. Mivel $\bar x = 50$ és $\bar y = 44$, mindkét összeg 0.
+        Végtelen sok, egymástól nagyon különböző egyenesnek nulla az átlagos hibája – ezért nem lehet ez a mérce.</details></li>
+  </ol>
+</details>
+
+<h3 id="s33-b">2. lépés: átlagos négyzetes hiba (MSE)</h3>
+<p>A hibák kiejtik egymást. Mi van, ha előbb négyzetre emeljük őket? A négyzet mindig nemnegatív, így nincs mi kioltsa.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a három beállítás négyzetes hibája</span>
+  <table style="max-width:560px">
+    <tr><th></th><th>hibák</th><th>négyzetek</th><th>átlag</th></tr>
+    <tr><td>A</td><td>3, 3, 1, 1, −3</td><td>9, 9, 1, 1, 9</td><td>$29/5 = 5{,}8$</td></tr>
+    <tr><td>B</td><td>−6, 0, 1, 4, 6</td><td>36, 0, 1, 16, 36</td><td>$89/5 = 17{,}8$</td></tr>
+    <tr><td>C</td><td>23, 9, 0, −7, −25</td><td>529, 81, 0, 49, 625</td><td>$1284/5 = 256{,}8$</td></tr>
+  </table>
+  Most már világos a sorrend: A (5,8) jobb, mint B (17,8), és mindkettő sokkal jobb, mint C (256,8). Ez a szám a <b>veszteség</b>.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – átlagos négyzetes hiba (MSE)</span>
+  $$\text{MSE} = \frac1n\sum_{i=1}^n (\hat y_i - y_i)^2 = \frac1n\sum_{i=1}^n e_i^2.$$
+  Rokonai:
+  <ul style="margin:.2rem 0">
+    <li><b>RMSE</b> (négyzetes középhiba) $= \sqrt{\text{MSE}}$ – ugyanabban a mértékegységben van, mint a címke (millió Ft), ezért könnyű értelmezni.</li>
+    <li><b>MAE</b> (átlagos abszolút hiba) $= \frac1n\sum|e_i|$ – „átlagosan ennyit tévedünk”.</li>
+  </ul>
+  <small>Miért épp a négyzet? (1) Nem engedi kioltódni a hibákat. (2) A <b>nagy hibát jobban bünteti</b>: kétszer akkora hiba négyszer annyit ér. (3) Sima,
+  deriválható függvény – a gradiens módszernek ez kell (<a href="#s34-c">3.4</a>). (4) Ha a zaj normális eloszlású, az MSE minimalizálása a „legvalószínűbb” modellt adja
+  (★★★, 5. és 14. fejezet).</small>
+</div>
+<p>A „nagy hibát jobban bünteti” mondatot érdemes egy szembeállító párral megnézni. Két modell, ugyanaz az átlagos abszolút hiba:</p>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">P modell – egyenletesen téved</span>
+    Hibák: $2, 2, 2, 2, 2$.<br>
+    MAE $= 10/5 = 2$<br>
+    MSE $= 20/5 = 4$
+  </div>
+  <div class="box example">
+    <span class="box-title">Q modell – egyszer nagyot téved</span>
+    Hibák: $0, 0, 0, 0, 10$.<br>
+    MAE $= 10/5 = 2$<br>
+    MSE $= 100/5 = 20$
+  </div>
+</div>
+<p>A MAE szerint egyformák, az MSE szerint a Q ötször rosszabb. Hogy melyik a „helyes”, az a feladattól függ: ha egy nagy tévedés katasztrófa
+(pl. gyógyszeradagolás), az MSE logikája jobb; ha a ritka nagy hiba belefér, a MAE robusztusabb.</p>
+<div class="widget" data-widget="fit-a-line"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az MSE mértékegysége a címke négyzete</b> (millió Ft²). „Az MSE 5,8” önmagában nem szemléletes; az RMSE ($\sqrt{5{,}8} \approx 2{,}4$ millió Ft) már az.</li>
+    <li><b>Egy kiugró pont uralhatja az MSE-t.</b> Egy elírt ár (300 helyett 30) négyzete minden más hibát elnyom. Ilyenkor előbb az adatot kell rendbe tenni, vagy MAE-t használni.</li>
+    <li><b>Különböző adatokon kapott MSE nem hasonlítható össze.</b> Ha az árakat ezer forintban adod meg, az MSE milliószorosára nő – a modell pedig ugyanaz.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – MSE, RMSE, MAE</summary>
+  <ol>
+    <li>Egy modell hibái három mintán: $1, -2, 3$. Mennyi az MSE és a MAE?
+      <details><summary>Megoldás</summary>MSE $= (1 + 4 + 9)/3 = 14/3 \approx 4{,}67$. MAE $= (1 + 2 + 3)/3 = 2$.</details></li>
+    <li>A $\hat y = 0{,}8x + 2$ modell hibái az öt lakáson: $-3, -1, -2, -1, -3$. Mennyi az MSE és az RMSE?
+      <details><summary>Megoldás</summary>MSE $= (9 + 1 + 4 + 1 + 9)/5 = 24/5 = 4{,}8$; RMSE $= \sqrt{4{,}8} \approx 2{,}19$ millió Ft.</details></li>
+    <li>Hibák: $1, 1, 1, 1, 6$. Mennyi a MAE és az MSE? Hasonlítsd össze a P modellel (minden hiba 2)!
+      <details><summary>Megoldás</summary>MAE $= 10/5 = 2$, MSE $= (4\cdot1 + 36)/5 = 8$. A MAE ugyanannyi, mint P-é, az MSE kétszer akkora: a 6-os hiba sokat nyom a latban.</details></li>
+    <li>A legjobb egyenes (lásd <a href="#s34-b">3.4</a>) MSE-je az öt lakáson $0{,}8$. Mennyi az RMSE, és hogyan fogalmaznád meg egy ügyfélnek?
+      <details><summary>Megoldás</summary>$\sqrt{0{,}8} \approx 0{,}89$ millió Ft. „A modell a tanítólakásokon jellemzően 900 ezer forint körül téved.” (Új lakásokon ez több lehet – <a href="#s35">3.5</a>.)</details></li>
+    <li>(nehezebb) Átírjuk az árakat millió Ft-ról ezer Ft-ra (minden címke ezerszeres lesz), és a modellt is ennek megfelelően. Hányszorosára változik a hibák nagysága,
+      az MSE és az RMSE?
+      <details><summary>Megoldás</summary>A hibák ezerszeresek, az MSE $1000^2 = 1\,000\,000$-szoros, az RMSE ezerszeres. A modell jósága nem változott – csak a mértékegység. Ezért MSE-t csak azonos
+        adaton és mértékegységben szabad összevetni.</details></li>
+  </ol>
+</details>
+
+<h3 id="s33-c">3. lépés: a veszteség mint a paraméterek függvénye</h3>
+<p>Eddig három <em>kész</em> beállítás MSE-jét számoltuk ki. De a gombokat folyamatosan lehet tekerni. Mi történik a veszteséggel, ha
+lassan állítjuk az egyiket?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – csak a súlyt tekerjük</span>
+  Rögzítsük $b = 4$-et, és nézzük az MSE-t az öt lakáson, különböző $w$-kre:
+  <table style="max-width:520px">
+    <tr><th>$w$</th><td>0,6</td><td>0,7</td><td>0,8</td><td>0,9</td><td>1,0</td></tr>
+    <tr><th>MSE</th><td>116,8</td><td>29,8</td><td><b>0,8</b></td><td>29,8</td><td>116,8</td></tr>
+  </table>
+  Szép, szimmetrikus <b>parabola</b>, a legalja $w = 0{,}8$-nál. Ha $w$-t rögzítjük ($w = 0{,}8$) és $b$-t tekerjük: $b = 0, 2, 4, 6, 8$-ra az MSE
+  $16{,}8;\ 4{,}8;\ 0{,}8;\ 4{,}8;\ 16{,}8$ – megint parabola, az alja $b = 4$-nél.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – veszteségfüggvény, veszteségfelület</span>
+  A <b>veszteségfüggvény</b> a paraméterekhez rendeli a veszteséget, <b>rögzített adat mellett</b>:
+  $$L(w, b) = \frac1n\sum_{i=1}^n (w\,x_i + b - y_i)^2.$$
+  Két paraméternél ez egy felület a $(w, b)$ sík fölött: a <b>veszteségfelület</b>. Az MSE-nél ez mindig egy felfelé nyíló <b>tál</b> (konvex), egyetlen legmélyebb ponttal.
+  <br><b>A tanulás célja: megtalálni a tál alját</b>, vagyis azt a $(w, b)$-t, ahol $L$ a legkisebb.
+  <br><small>Miért tál? Minden tag, $(w x_i + b - y_i)^2$, a paraméterekben egy felfelé nyíló „parabola-vályú”. Ilyenek összege is felfelé nyílik. A neurális hálóknál a
+  felület már nem ilyen szép: sok völgy, nyeregpont, lapos rész (<a href="../02-matematikai-eszkoztar/#s28-c">2.8</a>, 10. fejezet).</small>
+</div>
+<div class="widget" data-widget="loss-landscape" data-preset="raw"></div>
+<p>Figyeld meg a szemléltetésben: a tál nem kerek, hanem <b>nagyon hosszú, ferde völgy</b>. Ha $w$-t növeled, $b$-t csökkenteni kell, hogy az
+egyenes továbbra is az adatok közt menjen – a két gomb „kicseréli” egymást. Erre a <a href="#s36-c">3.6</a>-ban visszatérünk.</p>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – két grafikon, két világ</span>
+    A <b>modell grafikonja</b> (szórásdiagram + egyenes) tengelyei: $x$ (m²) és $y$ (ár). Egy beállítás ott egy <em>egyenes</em>.<br>
+    A <b>veszteség grafikonja</b> tengelyei: $w$ és $b$. Ugyanaz a beállítás itt egyetlen <em>pont</em>.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a parabola képlete</span>
+    $b = 4$ mellett $L(w) = 0{,}8 + 2900\,(w - 0{,}8)^2$. Ellenőrzés: $w = 0{,}7$-re $0{,}8 + 2900\cdot0{,}01 = 29{,}8$ ✓. A 2900 a négyzetes alapterületek átlaga – innen jön a meredek fal.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktató – mi a változó?</span>
+  A modellben ($\hat y = wx + b$) a <b>változó $x$</b>, a $w$ és $b$ rögzített. A veszteségben ($L(w, b)$) épp fordítva: a <b>változók a paraméterek</b>, az adat ($x_i$, $y_i$) rögzített.
+  Tanításkor mindig a második nézőpontban vagyunk: az adat adott, a gombokat keressük.
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a veszteségfüggvény</summary>
+  <p class="muted" style="margin:.2rem 0 .5rem">A feladatokban a „kis adat”: $(1;\ 2)$, $(2;\ 5)$, $(3;\ 5)$ – három minta.</p>
+  <ol>
+    <li>Mennyi $L(0, 0)$ a kis adaton?
+      <details><summary>Megoldás</summary>Minden jóslat 0, a hibák $-2, -5, -5$. $L = (4 + 25 + 25)/3 = 54/3 = 18$.</details></li>
+    <li>Mennyi $L(1, 1)$?
+      <details><summary>Megoldás</summary>Jóslatok: 2, 3, 4; hibák: $0, -2, -1$. $L = (0 + 4 + 1)/3 = 5/3 \approx 1{,}67$.</details></li>
+    <li>Mennyi $L(1{,}5;\ 1)$? Mit sejtesz erről a pontról?
+      <details><summary>Megoldás</summary>Jóslatok: 2,5; 4; 5,5; hibák: $0{,}5;\ -1;\ 0{,}5$. $L = (0{,}25 + 1 + 0{,}25)/3 = 0{,}5$. Ez a legkisebb az eddigiek közül – valóban ez a tál alja (<a href="#s34-b">3.4</a>).</details></li>
+    <li>A lakásokon, $b = 4$ mellett, mennyi $L(0{,}85)$? Használd a $0{,}8 + 2900\,(w - 0{,}8)^2$ képletet!
+      <details><summary>Megoldás</summary>$0{,}8 + 2900\cdot0{,}05^2 = 0{,}8 + 7{,}25 = 8{,}05$.</details></li>
+    <li>(nehezebb) Miért lehet biztos, hogy az MSE-felületnek nincs két külön völgye (két helyi minimuma)?
+      <details><summary>Megoldás</summary>Mert minden tag a paraméterekben másodfokú, felfelé nyíló (konvex) függvény, és konvex függvények összege is konvex. Konvex függvénynek minden helyi minimuma
+        egyben a globális minimum is. Ezért nem kell attól tartani, hogy a gradiens módszer „rossz völgybe” esik – ellentétben a neurális hálókkal.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai3-33"></div>
+</section>
+
+<!-- ===================================================== 3.4 -->
+<section id="s34">
+<h2>3.4 Optimalizálás: a tál alja</h2>
+<p>Van veszteségünk, és tudjuk, hogy a legjobb beállítás a tál alján van. Hogyan találjuk meg? Két út van: <b>kiszámolni</b> egy képlettel, vagy
+<b>lépésenként lemenni</b> a lejtőn. Előbb egy olyan egyszerű modellen nézzük meg, ahol mindkettő egy sor.</p>
+
+<h3 id="s34-a">1. lépés: a legjobb konstans – az átlag</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy szám három címkére</span>
+  Három címke: $2, 4, 9$. A konstans modell ($\hat y = c$) mindenkinek ugyanazt mondja. Melyik $c$ a legjobb?
+  <table style="max-width:520px">
+    <tr><th>$c$</th><td>3</td><td>4</td><td>5</td><td>6</td></tr>
+    <tr><th>MSE</th><td>$38/3 \approx 12{,}67$</td><td>$29/3 \approx 9{,}67$</td><td><b>$26/3 \approx 8{,}67$</b></td><td>$29/3 \approx 9{,}67$</td></tr>
+    <tr><th>MAE</th><td>$8/3 \approx 2{,}67$</td><td><b>$7/3 \approx 2{,}33$</b></td><td>$8/3 \approx 2{,}67$</td><td>$9/3 = 3$</td></tr>
+  </table>
+  Az MSE-t a $c = 5$ teszi a legkisebbé – ez épp az <b>átlag</b>: $(2 + 4 + 9)/3 = 5$. A MAE-t viszont a $c = 4$, a <b>medián</b> (a középső érték).
+</div>
+<div class="box def">
+  <span class="box-title">Tétel – a legjobb konstans</span>
+  Az MSE-t a címkék <b>átlaga</b>, a MAE-t a címkék <b>mediánja</b> minimalizálja:
+  $$\arg\min_c \frac1n\sum(c - y_i)^2 = \bar y, \qquad \arg\min_c \frac1n\sum|c - y_i| = \operatorname{med}(y).$$
+  <small>Miért az átlag? Deriváljunk: $L(c) = \frac1n\sum(c - y_i)^2$, $L'(c) = \frac2n\sum(c - y_i) = 2(c - \bar y)$. Ez akkor nulla, ha $c = \bar y$; előtte negatív, utána pozitív, tehát minimum.
+  Ez az optimalizálás legegyszerűbb esete: <b>a derivált nulla</b> a tál alján.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a lakások alapvonala</span>
+    A legjobb konstans az átlagár, $\bar y = 44$ (ez volt a C beállítás). MSE-je $256{,}8$. Ez az <b>alapvonal</b> (<em>baseline</em>): minden „okos” modellt ehhez mérünk.
+    Az A egyenes ($5{,}8$) már sokkal jobb.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy kiugró érték</span>
+    A címkék: $2, 4, 9, 45$. Az átlag $15$ – egyetlen nagy érték felhúzta. A medián $(4 + 9)/2 = 6{,}5$ – alig mozdult. Az MSE-t minimalizáló modell érzékeny a kiugró értékekre, a MAE-t minimalizáló nem.
+  </div>
+</div>
+<div class="widget" data-widget="best-constant"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktató – mindig nézd meg az alapvonalat</span>
+  Egy modell „MSE = 200” eredménye jól hangzik, amíg ki nem derül, hogy az átlagot mondó konstans modellé 210. Az alapvonal megmutatja, mennyit ér valójában a modell.
+  A statisztikában ezt az arányt méri a <b>determinációs együttható</b>: $R^2 = 1 - \text{MSE}_{\text{modell}}/\text{MSE}_{\text{alapvonal}}$ (★★, 6. fejezet).
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a legjobb konstans</summary>
+  <ol>
+    <li>Címkék: $3, 7, 8$. Melyik konstans minimalizálja az MSE-t, és mennyi ott az MSE?
+      <details><summary>Megoldás</summary>Az átlag: $c = 18/3 = 6$. MSE $= (9 + 1 + 4)/3 = 14/3 \approx 4{,}67$.</details></li>
+    <li>A $2, 4, 9$ címkéknél $c = 4$-ben mennyi $L'(c)$? Merre kell lépni?
+      <details><summary>Megoldás</summary>$L'(4) = 2(4 - 5) = -2 \lt 0$: a veszteség jobbra csökken, $c$-t <b>növelni</b> kell.</details></li>
+    <li>Címkék: $1, 2, 10$. Melyik konstans a legjobb MSE, és melyik MAE szerint?
+      <details><summary>Megoldás</summary>MSE: az átlag, $13/3 \approx 4{,}33$. MAE: a medián, $2$. A 10-es érték az átlagot jobban húzza.</details></li>
+    <li>Az A egyenes MSE-je $5{,}8$, az alapvonalé $256{,}8$. Mennyi az $R^2$?
+      <details><summary>Megoldás</summary>$R^2 = 1 - 5{,}8/256{,}8 \approx 1 - 0{,}023 = 0{,}977$. Az A egyenes a konstans modell négyzetes hibájának kb. 98%-át „eltünteti”.</details></li>
+    <li>(nehezebb) Egy webáruház szállítási idejét becsüljük (napokban). A legtöbb csomag 2–3 nap, de néhány 30 napig is elakad. Az ügyfelet az zavarja, ha a becslés
+      <em>általában</em> pontatlan. Átlagot vagy mediánt mondjunk konstans becslésnek?
+      <details><summary>Megoldás</summary>A mediánt (MAE): a ritka 30 napos esetek az átlagot felhúznák, így a tipikus csomagra rendszeresen túlbecsülnénk. Ha viszont a nagy késés a drága
+        (pl. kötbér), az MSE és az átlag logikája a jobb. A veszteség megválasztása <em>üzleti</em> döntés.</details></li>
+  </ol>
+</details>
+
+<h3 id="s34-b">2. lépés: zárt képlet – a legkisebb négyzetek módszere</h3>
+<p>A konstans modellnél egyetlen derivált volt. Az egyenesnek két paramétere van – mi van, ha mindkét parciális deriváltat nullává tesszük?
+Kiderül, hogy ez is megoldható egy rövid képlettel.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a lakások legjobb egyenese kézzel</span>
+  Átlagok: $\bar x = 250/5 = 50$, $\bar y = 220/5 = 44$. Számoljuk ki az eltéréseket az átlagtól:
+  <table style="max-width:560px">
+    <tr><th>$x_i$</th><th>$y_i$</th><th>$x_i - \bar x$</th><th>$y_i - \bar y$</th><th>szorzat</th><th>$(x_i - \bar x)^2$</th></tr>
+    <tr><td>20</td><td>21</td><td>−30</td><td>−23</td><td>690</td><td>900</td></tr>
+    <tr><td>40</td><td>35</td><td>−10</td><td>−9</td><td>90</td><td>100</td></tr>
+    <tr><td>50</td><td>44</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+    <tr><td>60</td><td>51</td><td>10</td><td>7</td><td>70</td><td>100</td></tr>
+    <tr><td>80</td><td>69</td><td>30</td><td>25</td><td>750</td><td>900</td></tr>
+    <tr><th colspan="4">összeg</th><th>1600</th><th>2000</th></tr>
+  </table>
+  $$w = \frac{1600}{2000} = 0{,}8, \qquad b = \bar y - w\,\bar x = 44 - 0{,}8\cdot50 = 4.$$
+  A legjobb egyenes: $\hat y = 0{,}8x + 4$. Hibái: $-1, 1, 0, 1, -1$, az MSE <b>0,8</b> – sokkal kevesebb, mint az A beállítás 5,8-a.
+  A 70 m²-es lakásra: $0{,}8\cdot70 + 4 = \mathbf{60}$ millió Ft.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – a legkisebb négyzetek egyenese</span>
+  Az MSE-t minimalizáló egyenes ($\hat y = wx + b$):
+  $$w = \frac{\sum_i (x_i - \bar x)(y_i - \bar y)}{\sum_i (x_i - \bar x)^2}, \qquad b = \bar y - w\,\bar x.$$
+  Ezt a módszert hívják <b>legkisebb négyzetek módszerének</b>, az egyenest <b>regressziós egyenesnek</b>.
+  <br><small>Miért? A tál alján mindkét parciális derivált nulla. A $\partial L/\partial b = 0$ feltételből $b = \bar y - w\bar x$ jön ki – vagyis az egyenes átmegy a $(\bar x, \bar y)$
+  súlyponton –, ezt behelyettesítve a $\partial L/\partial w = 0$ feltételből $w$. Ugyanez a képlet a statisztikában a regressziós együttható.</small>
+  <details><summary>📐 A levezetés</summary>
+    $L(w, b) = \frac1n\sum(wx_i + b - y_i)^2$. A parciális deriváltak (láncszabály):
+    $$\frac{\partial L}{\partial b} = \frac2n\sum(wx_i + b - y_i), \qquad \frac{\partial L}{\partial w} = \frac2n\sum(wx_i + b - y_i)\,x_i.$$
+    Az első nulla, ha $w\bar x + b - \bar y = 0$, azaz $b = \bar y - w\bar x$. Ezt a másodikba írva: $\sum\big(w(x_i - \bar x) - (y_i - \bar y)\big)x_i = 0$. Mivel
+    $\sum(x_i - \bar x)\bar x = 0$ és $\sum(y_i - \bar y)\bar x = 0$, az $x_i$ helyére $(x_i - \bar x)$ írható:
+    $w\sum(x_i - \bar x)^2 = \sum(x_i - \bar x)(y_i - \bar y)$. Ebből jön a képlet.
+  </details>
+</div>
+<div class="box history">
+  <span class="box-title">📜 Egy kétszáz éves gépi tanulási módszer</span>
+  A legkisebb négyzetek módszerét <b>Adrien-Marie Legendre</b> publikálta 1805-ben, üstökösök pályájának számításához. <b>Carl Friedrich Gauss</b> 1809-ben azt írta, hogy
+  ő már 1795 óta használja – ebből a matematikatörténet egyik leghíresebb elsőbbségi vitája lett. A „regresszió” szó <b>Francis Galton</b>tól jön (1886): azt figyelte meg,
+  hogy a nagyon magas szülők gyerekei átlagosan alacsonyabbak a szüleiknél – „visszahúzódnak” (<em>regress</em>) az átlag felé. A név rajta maradt a módszeren.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a kis adat</span>
+    $(1;\ 2)$, $(2;\ 5)$, $(3;\ 5)$: $\bar x = 2$, $\bar y = 4$. Eltérések: $x$: $-1, 0, 1$; $y$: $-2, 1, 1$. Szorzatösszeg: $2 + 0 + 1 = 3$, négyzetösszeg: $2$.
+    $w = 3/2 = 1{,}5$, $b = 4 - 1{,}5\cdot2 = 1$. MSE $= 0{,}5$.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a Celsius–Fahrenheit adat</span>
+    $\bar C = 20$, $\bar F = 341/5 = 68{,}2$. A szorzatösszeg $1800$, a négyzetösszeg $1000$, így $w = 1{,}8$ és $b = 68{,}2 - 36 = 32{,}2$. Ezt találta meg az
+    <a href="../01-mi-a-mesterseges-intelligencia/#s12-b">1. fejezet</a> „Tanulj!” gombja is.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Ha minden $x_i$ egyforma</b>, a nevező nulla: egyetlen oszlopnyi pontra nem lehet meredekséget illeszteni. A jellemzőnek változnia kell.</li>
+    <li><b>Zárt képlet csak a szerencsés esetekben van.</b> Lineáris modell + MSE: igen (több jellemzőre is, ★★: $\mathbf w = (X^\top X)^{-1}X^\top\mathbf y$). Logisztikus regresszió,
+      neurális háló, nyelvi modell: <b>nincs</b> képlet – ott marad a gradiens módszer.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – legkisebb négyzetek</summary>
+  <ol>
+    <li>Adat: $(1;\ 1)$, $(2;\ 3)$, $(3;\ 5)$. Mennyi $w$ és $b$?
+      <details><summary>Megoldás</summary>$\bar x = 2$, $\bar y = 3$. Eltérések: $x$: $-1, 0, 1$; $y$: $-2, 0, 2$. $w = (2 + 0 + 2)/2 = 2$, $b = 3 - 4 = -1$. A pontok pontosan a $\hat y = 2x - 1$ egyenesen vannak, az MSE 0.</details></li>
+    <li>Adat: $(0;\ 1)$, $(2;\ 2)$, $(4;\ 6)$. Mennyi $w$ és $b$?
+      <details><summary>Megoldás</summary>$\bar x = 2$, $\bar y = 3$. Eltérések: $x$: $-2, 0, 2$; $y$: $-2, -1, 3$. Szorzatösszeg: $4 + 0 + 6 = 10$, négyzetösszeg: $8$. $w = 1{,}25$, $b = 3 - 2{,}5 = 0{,}5$.</details></li>
+    <li>A lakások legjobb egyenesével ($0{,}8x + 4$) mennyit ér egy 30 m²-es és egy 100 m²-es lakás? Melyikben bízol jobban?
+      <details><summary>Megoldás</summary>$28$ és $84$ millió Ft. A 30 m² az adatok tartományán (20–80) belül van, a 100 m² kívül: az utóbbi extrapoláció, kevésbé megbízható.</details></li>
+    <li>A taxiadat: $(1;\ 1300)$, $(2;\ 1700)$, $(3;\ 2100)$, $(4;\ 2500)$. Mennyi $w$ és $b$?
+      <details><summary>Megoldás</summary>$\bar x = 2{,}5$, $\bar y = 1900$. Eltérések: $x$: $-1{,}5;\ -0{,}5;\ 0{,}5;\ 1{,}5$; $y$: $-600, -200, 200, 600$. Szorzatösszeg: $900 + 100 + 100 + 900 = 2000$,
+        négyzetösszeg: $5$. $w = 400$ Ft/km, $b = 1900 - 1000 = 900$ Ft.</details></li>
+    <li>(nehezebb) Mutasd meg, hogy a legkisebb négyzetek egyenese mindig átmegy a $(\bar x, \bar y)$ ponton, és hogy a hibáinak összege 0!
+      <details><summary>Megoldás</summary>$\hat y(\bar x) = w\bar x + b = w\bar x + \bar y - w\bar x = \bar y$. A hibaösszeg: $\sum(wx_i + b - y_i) = n(w\bar x + b - \bar y) = 0$. (Ezért volt a <a href="#s33-a">3.3</a>
+        előjeles átlaga is nulla a legjobb egyenesnél.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s34-c">3. lépés: gradiens módszer – lépésenként lefelé</h3>
+<p>A zárt képlet gyönyörű, de csak a lineáris modell + MSE párosra működik. Mi van, ha nincs képlet? Akkor azt tesszük, amit a 2. fejezetben:
+megnézzük, merre lejt a tál, és lépünk egy kicsit lefelé. Ugyanezt a lépést használja minden neurális háló és minden nyelvi modell tanítása.</p>
+<div class="box">
+  <span class="box-title">🔁 Emlékeztető – gradiens módszer (<a href="../02-matematikai-eszkoztar/#s28">2.8</a>)</span>
+  $\mathbf w \leftarrow \mathbf w - \eta\,\nabla L(\mathbf w)$: lépj a gradienssel <em>ellentétes</em> irányba, $\eta$ (tanulási ráta) méretű lépéssel; ismételd. Túl kicsi $\eta$ → lassú,
+  túl nagy → oszcillál vagy szétszáll.
+</div>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – három lépés a kis adaton</span>
+  Adat: $(1;\ 2)$, $(2;\ 5)$, $(3;\ 5)$. Indulás: $w = b = 0$, tanulási ráta $\eta = 0{,}05$. A gradiens (lásd a szabályt lent):
+  $\partial L/\partial w = \frac2n\sum e_i x_i$, $\partial L/\partial b = \frac2n\sum e_i$.
+  <table style="max-width:680px">
+    <tr><th>$k$</th><th>$w$</th><th>$b$</th><th>hibák $e_i$</th><th>$\partial L/\partial w$</th><th>$\partial L/\partial b$</th><th>$L$</th></tr>
+    <tr><td>0</td><td>0</td><td>0</td><td>$-2;\ -5;\ -5$</td><td>$\frac23(-27) = -18$</td><td>$\frac23(-12) = -8$</td><td>18</td></tr>
+    <tr><td>1</td><td>$0 + 0{,}05\cdot18 = 0{,}9$</td><td>$0 + 0{,}05\cdot8 = 0{,}4$</td><td>$-0{,}7;\ -2{,}8;\ -1{,}9$</td><td>$\frac23(-12) = -8$</td><td>$\frac23(-5{,}4) = -3{,}6$</td><td>3,98</td></tr>
+    <tr><td>2</td><td>$0{,}9 + 0{,}4 = 1{,}3$</td><td>$0{,}4 + 0{,}18 = 0{,}58$</td><td>$-0{,}12;\ -1{,}82;\ -0{,}52$</td><td>$-3{,}547$</td><td>$-1{,}64$</td><td>1,199</td></tr>
+    <tr><td>3</td><td>$1{,}477$</td><td>$0{,}662$</td><td>$0{,}139;\ -1{,}383;\ 0{,}094$</td><td>$-1{,}564$</td><td>$-0{,}767$</td><td>0,647</td></tr>
+  </table>
+  Három lépés alatt a veszteség 18-ról 0,65-re esett, és $(w, b)$ közeledik a zárt képlet $(1{,}5;\ 1)$ pontjához (ahol $L = 0{,}5$). A gradiens mindkét
+  komponense negatív volt: mindkét gombot <em>növelni</em> kellett.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – gradiens módszer a lineáris regresszióra</span>
+  Hibák: $e_i = wx_i + b - y_i$. A gradiens:
+  $$\frac{\partial L}{\partial w} = \frac2n\sum_{i=1}^n e_i\,x_i, \qquad \frac{\partial L}{\partial b} = \frac2n\sum_{i=1}^n e_i.$$
+  Egy lépés (<b>iteráció</b>): $\quad w \leftarrow w - \eta\,\dfrac{\partial L}{\partial w},\quad b \leftarrow b - \eta\,\dfrac{\partial L}{\partial b}$ – a két frissítés <b>egyszerre</b>, a régi értékekből.
+  <br>Addig ismételjük, amíg a veszteség már alig csökken (vagy egy rögzített lépésszámig).
+  <br><small>Miért ez a gradiens? Láncszabály: $L = \frac1n\sum e_i^2$, $\partial(e_i^2)/\partial e_i = 2e_i$, és $\partial e_i/\partial w = x_i$, $\partial e_i/\partial b = 1$. Szemléletesen: ahol nagy a hiba,
+  ott „húz” erősen a minta; a súlyt a jellemzővel arányosan húzza.</small>
+</div>
+<div class="widget" data-widget="loss-landscape" data-preset="small"></div>
+<p>A tanulási ráta itt is döntő. Ugyanaz a feladat, ugyanonnan indulva, csak az $\eta$ más (a veszteség az első öt lépésben):</p>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">$\eta = 0{,}01$ – lassú</span>
+    $18 \to 14{,}3 \to 11{,}4 \to 9{,}1 \to 7{,}3 \to 5{,}9$<br>
+    Jó irányba megy, de kis léptekkel: 44 lépés kell, hogy $L$ 0,51 alá menjen.
+  </div>
+  <div class="box example">
+    <span class="box-title">$\eta = 0{,}19$ – szétszáll</span>
+    $18 \to 22{,}0 \to 26{,}8 \to 32{,}8 \to 40{,}1 \to 49{,}1$<br>
+    Minden lépés átlő a völgyön, egyre messzebbre. Ennél az adatnál $\eta \approx 0{,}18$ a határ.
+  </div>
+</div>
+<div class="widget" data-widget="learning-rate-lab"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A két paramétert egyszerre frissítsd!</b> Ha előbb $w$-t frissíted, és a <em>már új</em> $w$-vel számolod $b$ gradiensét, az egy másik (bár gyakran működő) módszer – nem az, amit a képlet mond.</li>
+    <li><b>Az előjel:</b> <code>w = w - eta * grad</code>. Pluszjellel a veszteség nő (gradiens <em>emelkedés</em>).</li>
+    <li><b>Ha a veszteség nő vagy <code>NaN</code> lesz</b>, első gyanú: túl nagy $\eta$. A határ az adattól függ – a nagy számokkal (pl. m²) mért jellemzők sokkal kisebb $\eta$-t követelnek (<a href="#s36-c">3.6</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – gradiens módszer</summary>
+  <ol>
+    <li>A kis adaton $(w, b) = (1, 1)$. Mennyi a gradiens, és hová lépünk $\eta = 0{,}05$-tel?
+      <details><summary>Megoldás</summary>Hibák: $0, -2, -1$. $\sum e_ix_i = 0 - 4 - 3 = -7$, $\sum e_i = -3$. $\partial L/\partial w = \frac23(-7) \approx -4{,}667$, $\partial L/\partial b = \frac23(-3) = -2$.
+        Új pont: $w = 1 + 0{,}233 = 1{,}233$, $b = 1 + 0{,}1 = 1{,}1$.</details></li>
+    <li>Mennyi a gradiens a $(1{,}5;\ 1)$ pontban? Mit jelent ez?
+      <details><summary>Megoldás</summary>Hibák: $0{,}5;\ -1;\ 0{,}5$. $\sum e_ix_i = 0{,}5 - 2 + 1{,}5 = 0$, $\sum e_i = 0$. A gradiens nulla: a tál alján vagyunk, a módszer itt megáll – ugyanott, ahol a zárt képlet.</details></li>
+    <li>Csak egyetlen minta van: $(2;\ 5)$. A modell $(w, b) = (0, 0)$-ból indul. Mennyi a gradiens, és hová lépünk $\eta = 0{,}05$-tel?
+      <details><summary>Megoldás</summary>$e = -5$. $\partial L/\partial w = 2\cdot(-5)\cdot2 = -20$, $\partial L/\partial b = 2\cdot(-5) = -10$. Új pont: $(0 + 1;\ 0 + 0{,}5) = (1;\ 0{,}5)$.</details></li>
+    <li>Két tanítás veszteségei: (I) $18 \to 3{,}98 \to 1{,}20 \to 0{,}65$; (II) $18 \to 40 \to 300 \to 4000$. Mi történik, és mit tennél a II. esetben?
+      <details><summary>Megoldás</summary>(I) rendben konvergál. (II) szétszáll: a tanulási ráta túl nagy. Csökkentsd (pl. tizedére), és indítsd újra.</details></li>
+    <li>(nehezebb) A konstans modellre ($\hat y = c$) a gradiens $2(c - \bar y)$. Írd fel a lépést! A $2, 4, 9$ címkéknél $c = 0$-ból, $\eta = 0{,}5$-tel hová jutunk egy lépésben? Miért pont oda?
+      <details><summary>Megoldás</summary>$c \leftarrow c - \eta\cdot2(c - \bar y)$. $c = 0 - 0{,}5\cdot2\cdot(0 - 5) = 5$: egy lépésben az átlagba. Mert $\eta = 0{,}5$-nél $c \leftarrow c - (c - \bar y) = \bar y$ – a lépésköz épp
+        a parabola görbületéhez illik (vö. <a href="../02-matematikai-eszkoztar/#s28-b">2.8</a>, $\eta = 1/(2a)$).</details></li>
+  </ol>
+</details>
+
+<h3 id="s34-d">4. lépés: iteráció, epoch, köteg</h3>
+<p>Eddig minden lépésben <em>az összes</em> mintán számoltuk a gradienst. Három mintánál ez semmiség. De mi van, ha egymillió lakásunk – vagy
+egybillió szavunk – van? Egyetlen lépés is órákig tartana.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – lépés mintánként</span>
+  A kis adaton most <b>egy mintával</b> számolunk gradienst, és máris lépünk ($\eta = 0{,}05$, indulás $(0, 0)$):
+  <table style="max-width:640px">
+    <tr><th>minta</th><th>hiba</th><th>gradiens $(\partial w;\ \partial b)$</th><th>új $(w;\ b)$</th></tr>
+    <tr><td>$(1;\ 2)$</td><td>$-2$</td><td>$(-4;\ -4)$</td><td>$(0{,}2;\ 0{,}2)$</td></tr>
+    <tr><td>$(2;\ 5)$</td><td>$0{,}6 - 5 = -4{,}4$</td><td>$(-17{,}6;\ -8{,}8)$</td><td>$(1{,}08;\ 0{,}64)$</td></tr>
+    <tr><td>$(3;\ 5)$</td><td>$3{,}88 - 5 = -1{,}12$</td><td>$(-6{,}72;\ -2{,}24)$</td><td>$(1{,}416;\ 0{,}752)$</td></tr>
+  </table>
+  Egyszer végigmentünk az összes mintán – ez egy <b>epoch</b> –, de közben <b>háromszor</b> léptünk. A veszteség utána $0{,}678$. Ugyanennyi számolással a teljes
+  adatos módszer egyetlen lépést tett, és csak $3{,}98$-ig jutott.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – köteg, iteráció, epoch</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Köteg</b> (<em>batch</em>): a minták azon része, amelyen egy lépés gradiensét számoljuk. Mérete $B$.</li>
+    <li><b>Iteráció</b> (lépés): egy paraméterfrissítés.</li>
+    <li><b>Epoch</b>: annyi lépés, amennyi alatt a modell az összes mintát egyszer látta. Egy epoch $\lceil n/B\rceil$ lépés.</li>
+  </ul>
+  <table style="max-width:600px">
+    <tr><th>változat</th><th>köteg</th><th>jellemző</th></tr>
+    <tr><td>(teljes) gradiens módszer</td><td>$B = n$</td><td>pontos gradiens, de drága lépés</td></tr>
+    <tr><td><b>sztochasztikus gradiens módszer</b> (SGD)</td><td>$B = 1$</td><td>olcsó, de „zajos” lépés</td></tr>
+    <tr><td><b>mini-köteg</b> (a gyakorlatban ez)</td><td>pl. $B = 32$ … $4096$</td><td>a kettő közt; a GPU egyszerre számolja a köteget</td></tr>
+  </table>
+  <small>Miért működik egy kis köteggel is? Mert a teljes gradiens a mintánkénti gradiensek <em>átlaga</em>, és egy véletlen köteg átlaga ennek jó becslése – mint egy közvélemény-kutatás.
+  A zaj ráadásul néha segít kimozdulni a lapos részekről. A gyakorlatban „SGD” néven általában a mini-köteges változatot értik.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – lépések száma</span>
+    $n = 1000$ minta, $B = 50$: egy epoch $1000/50 = 20$ lépés. 10 epoch: $200$ lépés.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a gradiens mint átlag</span>
+    A kis adaton, $(0, 0)$-ban a mintánkénti gradiensek: $(-4;\ -4)$, $(-20;\ -10)$, $(-30;\ -10)$. Átlaguk $(-54/3;\ -24/3) = (-18;\ -8)$ – pontosan a teljes gradiens.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Epoch ≠ iteráció.</b> „10 epoch” 1000 mintán, 50-es köteggel 200 iteráció. Cikkekben és kódban mindkettő előfordul – mindig nézd meg, melyikről van szó.</li>
+    <li><b>Keverd meg az adatot</b> epochonként! Ha a minták sorrendben jönnek (pl. előbb az összes olcsó lakás, aztán a drágák), a kötegek nem jó becslések, és a modell ide-oda rángatózik.</li>
+    <li><b>SGD-nél a veszteség nem csökken minden lépésben</b> – zajos. A trendet nézd, ne az egyes lépéseket.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – köteg és epoch</summary>
+  <ol>
+    <li>Az MNIST-adatkészlet tanítórésze 60 000 kép. $B = 100$-zal hány lépés egy epoch, és hány 5 epoch?
+      <details><summary>Megoldás</summary>$60\,000/100 = 600$ lépés epochonként, 5 epoch $3000$ lépés.</details></li>
+    <li>$n = 1000$, $B = 64$. Hány lépés egy epoch? Hány mintás az utolsó köteg?
+      <details><summary>Megoldás</summary>$\lceil 1000/64\rceil = 16$ lépés; 15 teli köteg $960$ mintát fed le, az utolsóban $40$ minta van.</details></li>
+    <li>Melyik változat: (a) $B = n$; (b) $B = 1$; (c) $B = 256$, $n = 50\,000$?
+      <details><summary>Megoldás</summary>(a) teljes (köteges) gradiens módszer; (b) sztochasztikus gradiens módszer; (c) mini-köteges SGD.</details></li>
+    <li>Egy tanítás 2000 lépést tett, $B = 32$-vel, $n = 8000$ mintán. Hány epoch volt ez?
+      <details><summary>Megoldás</summary>Egy epoch $8000/32 = 250$ lépés, így $2000/250 = 8$ epoch.</details></li>
+    <li>(nehezebb) Miért nem érdemes egy nagy nyelvi modellt teljes gradiens módszerrel ($B = n$) tanítani, még ha lenne is elég memória?
+      <details><summary>Megoldás</summary>Mert egyetlen lépéshez a teljes (billió szavas) adatot végig kellene számolni, így a teljes tanítás alatt alig néhány lépés férne bele. Egy mini-köteg gradiense
+        szinte ugyanolyan jó irányt mutat, töredék áron – sokkal több lépés jut ugyanannyi számításra. (Egy nagy nyelvi modell tanítása jellemzően százezres–milliós nagyságrendű lépésből áll, kötegenként több millió szóval.)</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai3-34"></div>
+</section>
+
+<!-- ===================================================== 3.5 -->
+<section id="s35">
+<h2>3.5 Általánosítás: tanító és teszt halmaz</h2>
+<p>Megtaláltuk a legjobb egyenest – a legjobbat <em>arra az öt lakásra</em>. De azok árát már tudjuk! A modell azért kell, hogy <b>új</b> lakásokra
+jósoljon. Honnan tudjuk, hogy ott is jó lesz?</p>
+
+<h3 id="s35-a">1. lépés: a cél az új adat – tanító és teszt halmaz</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a magoló modell</span>
+  Készítsünk egy „modellt”, ami egyszerűen <b>megjegyzi</b> a tanító lakásokat: ha pontosan ilyen alapterületű lakást látott, annak árát mondja,
+  különben az átlagot (44). A tanító lakásokon <b>hibátlan</b>: MSE $= 0$. A legjobb egyenesé $0{,}8$ – vagyis a magoló „jobb”?
+  <br>A következő hónapban eladnak két új lakást: 35 m² (31 millió) és 65 m² (55 millió).
+  <table style="max-width:560px">
+    <tr><th>modell</th><th>MSE a tanító lakásokon</th><th>jóslat 35 / 65 m²-re</th><th>MSE az új lakásokon</th></tr>
+    <tr><td>magoló</td><td><b>0</b></td><td>44 / 44</td><td>$(13^2 + 11^2)/2 = 145$</td></tr>
+    <tr><td>egyenes ($0{,}8x + 4$)</td><td>0,8</td><td>32 / 56</td><td><b>$(1^2 + 1^2)/2 = 1$</b></td></tr>
+  </table>
+  A magoló a régi adaton tökéletes, az újon katasztrofális. Az egyenes az újon is majdnem olyan jó, mint a régin. A tanulás célja nem a régi adat
+  visszamondása, hanem az <b>általánosítás</b>.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – tanító és teszt halmaz, általánosítás</span>
+  Az adatot tanítás <em>előtt</em> két részre osztjuk (jellemzően véletlenszerűen, pl. 80% – 20%):
+  <ul style="margin:.2rem 0">
+    <li><b>tanító halmaz</b> (<em>training set</em>): ezen állítjuk be a paramétereket; a rajta mért veszteség a <b>tanítóhiba</b>;</li>
+    <li><b>teszt halmaz</b> (<em>test set</em>): a modell ezt tanítás közben <b>soha nem látja</b>; a rajta mért veszteség, a <b>teszthiba</b>, becsüli, milyen lesz a modell új adaton.</li>
+  </ul>
+  <b>Általánosítás</b>: a modell jól teljesít a tanításkor nem látott adaton is.
+  <br><small>Miért kell elzárni a teszt halmazt? Mert ez szimulálja a jövőt: ott sem lesz címke, amiből a modell „puskázhatna”. Ha a teszt adat bármilyen módon befolyásolja a tanítást,
+  a teszthiba túl optimista lesz.</small>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabály</span>
+  <b>A tanítóhiba nem a valódi teljesítmény.</b> Egy modellt mindig olyan adaton értékelj, amit nem látott. Olyan ez, mint a vizsga: aki a tavalyi feladatsor
+  megoldásait magolta be, a tavalyi feladatsoron 100%-os – az ideién nem.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – felosztás</span>
+    1000 lakás, 80% – 20%: 800 lakáson tanítunk, 200-on tesztelünk. A 200 lakás árát a modell csak a legvégén „látja”, amikor a jóslatait összevetjük velük.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – idősor</span>
+    Ha a jövőt akarjuk jósolni (pl. jövő havi árak), a felosztás ne véletlen legyen, hanem <b>időbeli</b>: tanítás a 2024–2025-ös eladásokon, teszt a 2026-osokon.
+    Különben a modell a „jövőből” tanulna.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Kukucskálás:</b> ha a teszteredmény alapján módosítod a modellt, és újra teszteled, a teszt halmaz lassan tanító halmazzá válik. Erre való a validációs halmaz (<a href="#s35-b">következő lépés</a>).</li>
+    <li><b>Duplikátumok:</b> ha ugyanaz a lakás (vagy ugyanaz a fotó) a tanító és a teszt halmazban is szerepel, a teszt nem „új” adat (4. fejezet).</li>
+    <li><b>A teszt halmaz is csak minta.</b> Két-három tesztpontból (mint fent) a teszthiba maga is nagyon bizonytalan. Minél nagyobb a teszt halmaz, annál megbízhatóbb a becslés (6. fejezet).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – tanító és teszt halmaz</summary>
+  <ol>
+    <li>5000 minta, 80% – 20% felosztás. Hány mintán tanítunk és hányon tesztelünk?
+      <details><summary>Megoldás</summary>4000 tanító és 1000 teszt minta.</details></li>
+    <li>X modell: tanítóhiba 0,5, teszthiba 9. Y modell: tanítóhiba 2, teszthiba 2,5. Melyiket választod?
+      <details><summary>Megoldás</summary>Y-t: új adaton (teszt) sokkal jobb. X a tanítóadatot „magolta”; a kis tanítóhibája félrevezető.</details></li>
+    <li>Két további új lakás: 30 m² (29 millió) és 90 m² (74 millió). Mennyi a $0{,}8x + 4$ egyenes MSE-je ezen a két lakáson? Melyik jóslat kockázatosabb?
+      <details><summary>Megoldás</summary>Jóslatok: 28 és 76; hibák: $-1$ és $+2$. MSE $= (1 + 4)/2 = 2{,}5$. A 90 m² kívül esik a tanító tartományon (20–80), az extrapoláció kockázatosabb.</details></li>
+    <li>Miért nem lehet a magoló modellt a tanítóhibája alapján leleplezni?
+      <details><summary>Megoldás</summary>Mert a tanítóhibája 0 – jobb, mint bármely tisztességes modellé. Csak nem látott adaton derül ki, hogy semmit nem tanult az összefüggésből.</details></li>
+    <li>(nehezebb) Egy kutató 50 különböző modellt tanít, mindegyiket megméri a teszt halmazon, és a legjobb teszthibáját közli a cikkében. Mi a gond?
+      <details><summary>Megoldás</summary>A teszt halmaz részt vett a <em>kiválasztásban</em>: az 50 közül az lett a legjobb, amelyik a véletlen folytán épp erre a teszt halmazra illett. A közölt hiba ezért túl optimista.
+        Megoldás: a modellek közötti választás egy külön <b>validációs halmazon</b> történjen, és a teszt halmazt csak a legvégén, egyszer használjuk.</details></li>
+  </ol>
+</details>
+
+<h3 id="s35-b">2. lépés: alul- és túlillesztés – a modell bonyolultsága</h3>
+<p>A magoló modell szélsőséges eset. De mi a helyzet egy tisztességes modellcsaláddal, ha egyre gazdagabbra választjuk? Egyenes helyett harmadfokú,
+aztán kilencedfokú polinom – több paraméter, rugalmasabb görbe. Jobb lesz?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – 10 pont, három polinom</span>
+  10 tanító pont egy hullámzó összefüggésből, mérési zajjal, és 10 másik pont ugyanonnan tesztnek (a szemléltetésben láthatod őket). Illesszünk rájuk
+  legkisebb négyzetekkel 1., 3. és 9. fokú polinomot:
+  <table style="max-width:560px">
+    <tr><th>fokszám</th><th>paraméterek</th><th>tanítóhiba (MSE)</th><th>teszthiba (MSE)</th><th></th></tr>
+    <tr><td>1 (egyenes)</td><td>2</td><td>0,256</td><td>0,338</td><td>mindkettő nagy</td></tr>
+    <tr><td>3</td><td>4</td><td>0,049</td><td><b>0,076</b></td><td>mindkettő kicsi</td></tr>
+    <tr><td>9</td><td>10</td><td><b>0,000</b></td><td>3,382</td><td>tanító 0, teszt óriási</td></tr>
+  </table>
+  A kilencedfokú polinom 10 paraméterrel <em>pontosan</em> átmegy mind a 10 tanító ponton – a zajon is. A pontok között vadul hullámzik, ezért az új pontokon
+  44-szer rosszabb, mint a harmadfokú.
+</div>
+<div class="widget" data-widget="polyfit-overfit"></div>
+<div class="box def">
+  <span class="box-title">Definíció – alulillesztés, túlillesztés, hiperparaméter</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Alulillesztés</b> (<em>underfitting</em>): a modellcsalád túl szegény az összefüggéshez. A tanító- és a teszthiba is <b>nagy</b>.</li>
+    <li><b>Túlillesztés</b> (<em>overfitting</em>): a modell a tanítóadat zaját is megtanulja. A tanítóhiba <b>kicsi</b>, a teszthiba <b>nagy</b>.</li>
+    <li>A jó modell a kettő között van: a <b>teszthiba</b> a legkisebb.</li>
+  </ul>
+  A bonyolultság (itt a fokszám) <b>hiperparaméter</b>: nem a tanítás állítja be, hanem mi, előtte. Más hiperparaméterek: a tanulási ráta, a kötegméret, az epochok száma.
+  Hiperparamétert nem a teszt halmazon választunk, hanem egy harmadik, <b>validációs halmazon</b>: pl. 60% tanító, 20% validációs, 20% teszt.
+  <br><small>Miért nő a teszthiba a túl bonyolult modellnél? Mert a tanítóadat két részből áll: a valódi összefüggésből (ez az új adatban is megvan) és a véletlen zajból
+  (ez nincs meg). Egy elég rugalmas modell mindkettőt megtanulja, és a „bemagolt zaj” az új adaton csak árt.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – annyi paraméter, ahány pont</span>
+    Két ponton mindig átmegy egy egyenes (2 paraméter), három ponton egy parabola (3 paraméter). 10 ponton egy 9. fokú polinom (10 paraméter): a tanítóhiba
+    <em>mindig</em> 0 lesz, bármilyen zajos is az adat. Ez nem tanulás, hanem magolás.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a fokszám kiválasztása</span>
+    A teljes táblázatban (a szemléltetésben) a 3–8. fok teszthibája szinte egyforma, 0,076–0,089. Ilyenkor a <b>legegyszerűbbet</b> választjuk: a harmadfokút.
+    Ugyanakkora hibánál a kevesebb paraméter kevesebb lehetőséget ad a zaj megtanulására.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A tanítóhiba a bonyolultsággal soha nem nő</b> (a 9. fokú családban benne van az összes kisebb fokú polinom). Ezért a tanítóhiba alapján mindig a legbonyolultabb modellt választanád – rosszul.</li>
+    <li><b>Polinomot ne extrapolálj!</b> A magas fokú polinom a tanító tartományon kívül szinte azonnal elszáll.</li>
+    <li><b>Több adat segít</b> a túlillesztés ellen: 10 helyett 1000 pontnál a 9. fokú polinom sem tudná minden pont zaját követni. A 6. és a 10. fejezet további ellenszereket mutat (regularizáció, korai leállítás).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – alul- és túlillesztés</summary>
+  <ol>
+    <li>Melyik eset alul-, melyik túlillesztés, melyik jó? (Az alapvonal MSE-je 0,40.) (a) tanító 0,30, teszt 0,33; (b) tanító 0,01, teszt 0,90; (c) tanító 0,05, teszt 0,07.
+      <details><summary>Megoldás</summary>(a) alulillesztés: mindkettő nagy, alig jobb az alapvonalnál; (b) túlillesztés: tanító kicsi, teszt nagy; (c) jó: mindkettő kicsi és közel vannak.</details></li>
+    <li>Hány paramétere van egy 5. fokú polinomnak? Hány ponton megy át biztosan pontosan?
+      <details><summary>Megoldás</summary>6 paraméter ($w_0, \dots, w_5$); 6 (különböző $x$-ű) ponton át mindig pontosan átvezethető.</details></li>
+    <li>A szemléltetés teljes táblázatában a 7. fok teszthibája 0,0764, a 3. foké 0,0761. Melyiket választod, és miért?
+      <details><summary>Megoldás</summary>A harmadfokút: a teszthibák gyakorlatilag egyformák, és az egyszerűbb modell kevesebb paraméterrel kevésbé hajlamos a zaj megtanulására (Occam borotvája).</details></li>
+    <li>Miért nem nőhet a tanítóhiba, ha az 1. fokú polinom helyett 2. fokút illesztünk (legkisebb négyzetekkel)?
+      <details><summary>Megoldás</summary>Mert minden egyenes egyben másodfokú polinom is ($w_2 = 0$). A másodfokú család legjobbja tehát legalább olyan jó, mint a legjobb egyenes.</details></li>
+    <li>(nehezebb) Egy diák a 0–9. fokú polinomok közül a <em>teszthiba</em> alapján a harmadfokút választotta, és azt írta: „a modellem hibája új adaton 0,076”. Mi a gond, és hogyan kellett volna?
+      <details><summary>Megoldás</summary>A teszt halmaz a választásban is részt vett, így a 0,076 optimista. Helyesen: a fokszámot egy validációs halmazon (vagy keresztvalidációval, 6. fejezet) kell kiválasztani,
+        a kiválasztott modellt a tanító + validációs adaton újratanítani, és a teszt halmazon csak egyszer, a végén mérni.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai3-35"></div>
+</section>
+
+<!-- ===================================================== 3.6 -->
+<section id="s36">
+<h2>3.6 Több jellemző ★★</h2>
+<p>Egy lakás árát nem csak az alapterület dönti el. Egy ugyanakkora lakás a belvárosban drágább, mint a város szélén. Mi van, ha több jellemzőt
+is használunk? A jó hír: a négy alkatrész alig változik.</p>
+
+<h3 id="s36-a">1. lépés: két jellemző – a vektoros alak</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – alapterület és távolság</span>
+  Most minden lakásról két jellemzőt tudunk: $x_1$ = alapterület (m²), $x_2$ = távolság a központtól (km). A modell:
+  $$\hat y = 0{,}9\,x_1 - 2\,x_2 + 5.$$
+  <table style="max-width:460px">
+    <tr><th>lakás</th><th>$x_1$</th><th>$x_2$</th><th>$\hat y$</th></tr>
+    <tr><td>P</td><td>50</td><td>3</td><td>$45 - 6 + 5 = 44$</td></tr>
+    <tr><td>Q</td><td>70</td><td>1</td><td>$63 - 2 + 5 = 66$</td></tr>
+    <tr><td>R</td><td>40</td><td>8</td><td>$36 - 16 + 5 = 25$</td></tr>
+  </table>
+  A $-2$ súly azt mondja: <b>ugyanakkora</b> lakás 1 km-rel kijjebb 2 millióval olcsóbb. Minden jellemzőnek saját súlya van.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – többváltozós lineáris regresszió</span>
+  $d$ jellemzőnél:
+  $$\hat y = w_1x_1 + w_2x_2 + \dots + w_dx_d + b = \mathbf w^\top\mathbf x + b,$$
+  ahol $\mathbf w^\top\mathbf x$ a súlyvektor és a jellemzővektor <b>skaláris szorzata</b> (<a href="../02-matematikai-eszkoztar/#s22-b">2.2</a>). Paraméterek: $d$ súly + 1 eltolás.
+  Az összes mintára egyszerre: $\hat{\mathbf y} = X\mathbf w + b$ (mátrix–vektor szorzat, a $b$ minden sorhoz hozzáadódik).
+  <br>A veszteség ugyanúgy MSE, a gradiens súlyonként: $\dfrac{\partial L}{\partial w_j} = \dfrac2n\sum_i e_i\,x_{ij}$, vektorosan $\nabla_{\mathbf w}L = \dfrac2n X^\top\mathbf e$.
+  <br><small>Miért jó a vektoros alak? Mert ugyanaz a képlet 1, 2 vagy 2000 jellemzőre, és a számítógép egyetlen mátrixszorzással végzi el. Ez egy neuron is – csak még
+  nemlinearitás nélkül (9. fejezet).</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – mátrixos alak</span>
+    $$X\mathbf w = \begin{pmatrix} 50 & 3 \\ 70 & 1 \\ 40 & 8 \end{pmatrix}\begin{pmatrix} 0{,}9 \\ -2 \end{pmatrix} = \begin{pmatrix} 39 \\ 61 \\ 20 \end{pmatrix},$$
+    és $+5$ minden elemhez: $(44, 66, 25)$ – ugyanaz, mint a táblázatban.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – „minden más változatlan”</span>
+    Q és egy Q' lakás: mindkettő 70 m², de Q' 4 km-re van (Q 1 km-re). A különbség: $-2\cdot(4 - 1) = -6$ millió. A súly mindig így értendő: <b>a többi jellemzőt rögzítve</b>.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A súly nagysága nem a fontosság.</b> A $w_2 = -2$ km-enként értendő. Ha a távolságot méterben adnánk meg, $w_2 = -0{,}002$ lenne – a jellemző ugyanolyan fontos maradna. Fontosságot csak azonos skálán mért jellemzőknél lehet a súlyokból olvasni (<a href="#s36-c">3.6</a>).</li>
+    <li><b>Korreláció ≠ ok-okozat.</b> Ha a „van-e kandalló” jellemző súlya +8 millió, az nem jelenti, hogy egy kandalló beépítése 8 millióval emeli az árat: a kandallós lakások talán
+      eleve nagyobb, régi villák. A modell együttjárást tanul, nem okot.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – több jellemző</summary>
+  <ol>
+    <li>A $\hat y = 0{,}9x_1 - 2x_2 + 5$ modell mennyit jósol egy 60 m²-es, a központtól 2 km-re lévő lakásra?
+      <details><summary>Megoldás</summary>$54 - 4 + 5 = 55$ millió Ft.</details></li>
+    <li>Hány paramétere van egy 8 jellemzős lineáris regressziónak?
+      <details><summary>Megoldás</summary>8 súly + 1 eltolás = 9.</details></li>
+    <li>$\mathbf w = (0{,}5;\ 3;\ -1)$, $b = 2$, $\mathbf x = (40;\ 2;\ 5)$. Mennyi $\hat y$?
+      <details><summary>Megoldás</summary>$\mathbf w^\top\mathbf x = 20 + 6 - 5 = 21$, $\hat y = 21 + 2 = 23$.</details></li>
+    <li>Két lakás alapterülete és távolsága is különbözik: (50 m², 3 km) és (60 m², 5 km). Mennyivel drágább a második a $0{,}9x_1 - 2x_2 + 5$ modell szerint?
+      <details><summary>Megoldás</summary>$0{,}9\cdot10 - 2\cdot2 = 9 - 4 = 5$ millióval. A két hatás összeadódik.</details></li>
+    <li>(nehezebb) Egy modell súlyai: alapterület (m²) 0,9; erkély (0/1) 3; távolság (m) $-0{,}002$. Valaki azt mondja: „a távolság a legkevésbé fontos, mert annak a legkisebb a súlya”. Igaza van?
+      <details><summary>Megoldás</summary>Nincs. A távolság méterben van: 1 km eltérés $-2$ millió, 5 km már $-10$ millió – több, mint az erkély hatása. A súlyok csak azonos skálára hozott (pl. standardizált)
+        jellemzőknél hasonlíthatók össze.</details></li>
+  </ol>
+</details>
+
+<h3 id="s36-b">2. lépés: polinomiális jellemzők – görbe egyenesből</h3>
+<p>A <a href="#s35-b">3.5</a> polinomjai nem egyenesek. Mégis legkisebb négyzetekkel illesztettük őket. Hogyan lehet ez? A trükk: a görbüléshez nem a modellt
+kell megváltoztatni, hanem <b>új jellemzőt</b> kell gyártani.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy parabola adat</span>
+  Adat: $(0;\ 1)$, $(1;\ 0)$, $(2;\ 1)$, $(3;\ 4)$. A legjobb egyenes: $\hat y = x$, MSE $= 1$ – nem követi a görbét.
+  <br>Most gyártsunk egy második jellemzőt: $x_2 = x^2$. A táblázat:
+  <table style="max-width:380px">
+    <tr><th>$x_1 = x$</th><td>0</td><td>1</td><td>2</td><td>3</td></tr>
+    <tr><th>$x_2 = x^2$</th><td>0</td><td>1</td><td>4</td><td>9</td></tr>
+    <tr><th>$y$</th><td>1</td><td>0</td><td>1</td><td>4</td></tr>
+  </table>
+  Erre a két jellemzőre egy <em>lineáris</em> modell, $\hat y = w_1x_1 + w_2x_2 + b$, illeszthető: a legkisebb négyzetek $w_1 = -2$, $w_2 = 1$, $b = 1$ értéket adnak,
+  vagyis $\hat y = x^2 - 2x + 1 = (x - 1)^2$. Az MSE $0$.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – polinomiális jellemzők</span>
+  Az $x$ jellemzőből újakat képzünk: $x^2, x^3, \dots, x^k$ (több bemenetnél a szorzataikat is, pl. $x_1x_2$). Erre a bővített jellemzővektorra <b>közönséges lineáris
+  regressziót</b> illesztünk.
+  <br>A „lineáris” a <b>paraméterekben</b> lineárist jelent, nem az $x$-ben: $\hat y = w_1x + w_2x^2 + b$ minden paramétert csak szoroz egy (ismert) számmal és összead.
+  Ezért marad érvényes minden, amit eddig tanultunk: MSE-tál, zárt képlet, gradiens módszer.
+  <br><small>Miért fontos ez a gondolat? Mert a gépi tanulás nagy része <b>jellemzőképzés</b>: a nyers adatból olyan jellemzőket gyártani, amelyekből már egyszerű modell is jósolni tud (4. fejezet).
+  A neurális hálók épp azt tudják, hogy ezeket a jellemzőket <em>maguk</em> tanulják meg (9. fejezet).</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – jóslat polinomiális modellel</span>
+    $\hat y = 2x - 0{,}5x^2 + 1$, $x = 3$-nál: a jellemzővektor $(3;\ 9)$, a jóslat $6 - 4{,}5 + 1 = 2{,}5$.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – két bemenet, másodfokon</span>
+    $x_1, x_2$-ből a másodfokú jellemzők: $x_1, x_2, x_1^2, x_1x_2, x_2^2$ – 5 jellemző, 6 paraméter. Az $x_1x_2$ <b>kölcsönhatás</b>: pl. egy négyzetméter a belvárosban többet ér.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A jellemzők száma gyorsan nő.</b> 10 bemenet összes másodfokú tagja már 65 jellemző; harmadfokon 285. Több jellemző → több paraméter → nagyobb túlillesztési kockázat.</li>
+    <li><b>A skálák szétszakadnak.</b> Ha $x$ 20 és 80 közé esik, $x^2$ 400 és 6400, $x^3$ 8000 és 512 000 közé. Skálázás nélkül a gradiens módszer szinte használhatatlan (<a href="#s36-c">következő lépés</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – polinomiális jellemzők</summary>
+  <ol>
+    <li>Harmadfokú polinomiális jellemzők esetén mi a jellemzővektor $x = 4$-nél?
+      <details><summary>Megoldás</summary>$(4;\ 16;\ 64)$.</details></li>
+    <li>$\hat y = x^2 - 3x + 2$. Mennyi a jóslat $x = 5$-nél?
+      <details><summary>Megoldás</summary>$25 - 15 + 2 = 12$.</details></li>
+    <li>Lineáris regresszió-e (megfelelő jellemzőkkel): (a) $\hat y = w_1x + w_2x^2 + b$; (b) $\hat y = w_1\sqrt x + b$; (c) $\hat y = \sin(w_1x) + b$?
+      <details><summary>Megoldás</summary>(a) igen ($x, x^2$ jellemzőkkel); (b) igen ($\sqrt x$ jellemzővel); (c) nem: a $w_1$ a szinuszon <em>belül</em> van, a modell a paraméterben nemlineáris.</details></li>
+    <li>Három bemenet ($x_1, x_2, x_3$) összes legfeljebb másodfokú tagja hány jellemzőt ad?
+      <details><summary>Megoldás</summary>Elsőfokú: 3; négyzetek: 3; vegyes szorzatok ($x_1x_2, x_1x_3, x_2x_3$): 3. Összesen 9.</details></li>
+    <li>(nehezebb) A lakásárak nagy lakásoknál már lassabban nőnek (a négyzetméterár csökken). Milyen jellemzőt adnál a modellhez, és milyen előjelű súlyt vársz?
+      <details><summary>Megoldás</summary>Pl. $x^2$-et, negatív súllyal (lefelé hajló parabola) – vagy $\ln x$-et pozitív súllyal, ami eleve „lassulva nő”. Az utóbbi extrapolációnál is
+        józanabb: a parabola egyszer csak lefelé fordulna.</details></li>
+  </ol>
+</details>
+
+<h3 id="s36-c">3. lépés: skálázás – kerek tál, gyors tanulás</h3>
+<p>A <a href="#s33-c">3.3</a>-ban láttuk, hogy a lakások veszteségfelülete hosszú, keskeny völgy. A kis adaton a gradiens módszer pár lépésben célba ért.
+Mi a helyzet a lakásokkal, nyers négyzetméterekkel?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – nyers és standardizált alapterület</span>
+  <div class="two-col" style="margin:.4rem 0">
+    <div><b>Nyers $x$ (20–80 m²)</b><br>A tál a $w$ irányban nagyon meredek, a $b$ irányban nagyon lapos. Szétszállás nélkül legfeljebb $\eta \approx 0{,}000345$ lehet.
+      Ezzel $\eta = 0{,}0003$-mal 1000 lépés után $w \approx 0{,}863$, $b \approx 0{,}33$ (a cél: $0{,}8$ és $4$), és <b>18 654 lépés</b> kell, hogy az MSE 0,9 alá menjen.</div>
+    <div><b>Standardizált $z = (x - 50)/20$</b><br>A $z$ értékek: $-1{,}5;\ -0{,}5;\ 0;\ 0{,}5;\ 1{,}5$. A modell $\hat y = a\,z + c$. A tál most <b>kerek</b>.
+      $\eta = 0{,}1$-gyel <b>23 lépés</b> elég, $\eta = 0{,}5$-tel pedig egyetlen lépés: $a = 16$, $c = 44$.</div>
+  </div>
+  Visszaírva: $\hat y = 16\cdot\dfrac{x - 50}{20} + 44 = 0{,}8x + 4$ – ugyanaz az egyenes, csak ezerszer kevesebb munkával találtuk meg.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – standardizálás és min–max skálázás</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Standardizálás:</b> $z = \dfrac{x - \bar x}{s}$, ahol $\bar x$ az átlag, $s$ a szórás. Az új jellemző átlaga 0, szórása 1.</li>
+    <li><b>Min–max skálázás:</b> $x' = \dfrac{x - \min}{\max - \min}$ – az értékek 0 és 1 közé kerülnek.</li>
+  </ul>
+  A skálázási számokat ($\bar x$, $s$, illetve min, max) <b>a tanító halmazon</b> számoljuk, és <b>ugyanazokkal</b> alakítjuk át a teszt- és az új adatot is.
+  <br><small>Miért segít? A tál alakját a jellemzők nagysága szabja meg (a 3.3-beli 2900 a négyzetes alapterületek átlaga volt). Ha minden jellemző hasonló skálán van, a tál minden irányban
+  hasonlóan görbül, így egyetlen $\eta$ mindenhol jó: nincs zegzug, nincs lassú csúszás a völgy alján (<a href="../02-matematikai-eszkoztar/#s28-c">2.8</a>).</small>
+</div>
+<div class="widget" data-widget="loss-landscape" data-preset="std"></div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – új lakás standardizálva</span>
+    A 70 m²-es lakás: $z = (70 - 50)/20 = 1$. A jóslat: $16\cdot1 + 44 = 60$ millió – ugyanaz, mint a nyers egyenessel. Az új adatot is <b>ugyanazzal</b> az 50-nel és 20-szal kell átalakítani.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – min–max</span>
+    Az alapterületek 20 és 80 között: $x' = (x - 20)/60$. A lakásokra: $0;\ 0{,}333;\ 0{,}5;\ 0{,}667;\ 1$.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Ne a teljes adaton számold az átlagot és a szórást!</b> Ha a teszt halmaz is beleszól, információ szivárog belőle a tanításba (4. fejezet).</li>
+    <li><b>Ne felejtsd el az új bemenetet is átalakítani!</b> Ha a modell $z$-ben tanult, és nyers 70-et kap, $16\cdot70 + 44 = 1164$ milliót mond.</li>
+    <li>A zárt képletnek (legkisebb négyzetek) a skálázás mindegy – ugyanazt az egyenest adja. A <b>gradiens módszernek</b> nagyon nem mindegy.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – skálázás</summary>
+  <ol>
+    <li>Standardizáld a $2, 4, 6, 8$ értékeket! (A szórás itt $\sqrt{\frac1n\sum(x_i - \bar x)^2}$.)
+      <details><summary>Megoldás</summary>$\bar x = 5$; eltérések: $-3, -1, 1, 3$; $s = \sqrt{(9 + 1 + 1 + 9)/4} = \sqrt5 \approx 2{,}236$. $z$: $-1{,}342;\ -0{,}447;\ 0{,}447;\ 1{,}342$.</details></li>
+    <li>Min–max skálázd a $10, 20, 50$ értékeket!
+      <details><summary>Megoldás</summary>$\min = 10$, $\max = 50$: $(x - 10)/40$ → $0;\ 0{,}25;\ 1$.</details></li>
+    <li>A standardizált lakásmodell $\hat y = 16z + 44$ ($z = (x - 50)/20$). Mennyit jósol egy 35 m²-es lakásra?
+      <details><summary>Megoldás</summary>$z = -15/20 = -0{,}75$; $\hat y = -12 + 44 = 32$ millió Ft (ugyanaz, mint $0{,}8\cdot35 + 4$).</details></li>
+    <li>Egy kolléga a teszt lakásokat a <em>saját</em> átlagukkal és szórásukkal standardizálja. Mi a baj?
+      <details><summary>Megoldás</summary>Akkor ugyanaz a $z$ érték más-más alapterületet jelent a tanító és a teszt adatban – a modell rossz bemenetet kap. A tanító halmaz $\bar x$-ét és $s$-ét kell használni mindenhol.</details></li>
+    <li>(nehezebb) Két jellemző: alapterület (20–80) és szobaszám (1–3), skálázás nélkül. Melyik irányban lesz meredek a tál, mi szabja meg a legnagyobb $\eta$-t, és mi történik a szobaszám súlyával?
+      <details><summary>Megoldás</summary>Az alapterület irányában (a nagy értékek miatt nagy a görbület). Az szabja meg a maximális $\eta$-t: az pici lesz. Ezzel a pici lépéssel a szobaszám súlya (és az eltolás) alig mozdul –
+        a tanulás ott szinte áll. Standardizálás után mindkét irány hasonlóan görbül.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai3-36"></div>
+</section>
+
+<!-- ===================================================== 3.7 -->
+<section id="s37">
+<h2>3.7 A gépi tanulási munkafolyamat</h2>
+<p>Minden alkatrészt külön megnéztünk. Most rakjuk össze őket egy gépezetté – és nézzük meg, hol a helye ennek a gépezetnek egy valódi projektben.</p>
+
+<h3 id="s37-a">1. lépés: a négy alkatrész – minden modellben ugyanaz</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a teljes tanító ciklus öt sorban</span>
+  A lakásmodell tanítása gradiens módszerrel, „emberi” pszeudokódban:
+  <pre style="margin:.6rem 0;font-size:.9rem">w, b = 0, 0                                   # kezdő paraméterek
+ismételd minden epochban:
+    minden (x, y) kötegre a tanító adatból:   # ADAT
+        ŷ = w·x + b                          # MODELL
+        L = átlag((ŷ − y)²)                  # VESZTESÉG
+        w, b = w − η·∂L/∂w,  b − η·∂L/∂b     # OPTIMALIZÁLÁS</pre>
+  Ennyi. Egy neurális háló tanítása ugyanez a ciklus – csak a „MODELL” sor egy sokrétegű függvény, és a deriváltakat a gép számolja (10. fejezet).
+</div>
+<div class="box def">
+  <span class="box-title">A tanulás anatómiája – négy alkatrész</span>
+  <table>
+    <tr><th></th><th>lineáris regresszió (3.)</th><th>logisztikus regresszió (5.)</th><th>neurális háló (9–10.)</th><th>nagy nyelvi modell (16.)</th></tr>
+    <tr><td><b>adat</b></td><td>(m², ár) párok</td><td>(levél jellemzői, spam?)</td><td>(kép, osztály)</td><td>szöveg: (eddigi szavak, következő szó)</td></tr>
+    <tr><td><b>modell</b></td><td>$\mathbf w^\top\mathbf x + b$</td><td>$\sigma(\mathbf w^\top\mathbf x + b)$</td><td>rétegek egymás után</td><td>Transformer, milliárdnyi paraméter</td></tr>
+    <tr><td><b>veszteség</b></td><td>MSE</td><td>keresztentrópia</td><td>keresztentrópia / MSE</td><td>keresztentrópia a következő szóra</td></tr>
+    <tr><td><b>optimalizálás</b></td><td>zárt képlet vagy GD</td><td>GD</td><td>mini-köteges SGD, Adam</td><td>mini-köteges AdamW</td></tr>
+  </table>
+  Ehhez jönnek a <b>hiperparaméterek</b> (modellcsalád, $\eta$, $B$, epochok száma), amelyeket mi választunk, és az <b>értékelés</b> egy elzárt teszt halmazon.
+  <br><small>Miért jó így gondolkodni? Mert ha valami nem működik, tudod, hol keresd a hibát: rossz az adat? túl szegény (vagy túl gazdag) a modell? a veszteség nem azt méri, ami
+  fontos? az optimalizálás nem találja a minimumot?</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – melyik alkatrész változott?</span>
+    „MSE helyett MAE-t minimalizálunk” → <b>veszteség</b>. „Egyenes helyett harmadfokú polinom” → <b>modell</b>. „Az $\eta$-t felére vettük” → <b>optimalizálás</b>.
+    „Begyűjtöttük a tavalyi eladásokat is” → <b>adat</b>.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – hibakeresés</span>
+    A tanítóhiba sem csökken az alapvonal alá. Lehetséges okok: a jellemzők nem hordoznak információt (<b>adat</b>), túl szegény a család (<b>modell</b>),
+    túl kicsi vagy túl nagy $\eta$ (<b>optimalizálás</b>).
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktató – a veszteség nem a cél, csak a mérőeszköze</span>
+  A modell azt optimalizálja, amit a veszteség mér – mást nem. Ha egy hírfolyam-ajánló veszteségét a „kattintásra” írjuk fel, a modell kattintásvadász címeket fog ajánlani, akkor is,
+  ha a felhasználók utálják. A veszteség megválasztása a legfontosabb (és legkevésbé matematikai) döntések egyike (21., 25. fejezet).
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a négy alkatrész</summary>
+  <ol>
+    <li>Melyik alkatrészt érinti: (a) a kötegméret 32-ről 128-ra; (b) a jellemzők közé felvesszük az emeletet; (c) a modell egy rejtett réteget kap; (d) az MSE helyett RMSE-t írunk ki a jelentésbe?
+      <details><summary>Megoldás</summary>(a) optimalizálás (hiperparaméter); (b) adat (jellemző); (c) modell; (d) egyik sem a tanításban – csak az értékelés <em>kijelzése</em>
+        (az RMSE minimuma ugyanott van, mint az MSE-é).</details></li>
+    <li>Egy spamszűrőnél mi az adat, a modell, a veszteség és az optimalizálás, ha logisztikus regressziót használunk?
+      <details><summary>Megoldás</summary>Adat: (levél jellemzői, spam / nem spam) párok. Modell: $\sigma(\mathbf w^\top\mathbf x + b)$, ami a spam valószínűségét adja. Veszteség: keresztentrópia. Optimalizálás: gradiens módszer.</details></li>
+    <li>Paraméter vagy hiperparaméter: (a) $w$; (b) $\eta$; (c) a polinom foka; (d) $b$; (e) az epochok száma?
+      <details><summary>Megoldás</summary>Paraméter: (a), (d). Hiperparaméter: (b), (c), (e).</details></li>
+    <li>A tanító ciklusban melyik sor kerül egy neurális hálóban sokkal több számításba, és melyik sor marad szinte ugyanaz?
+      <details><summary>Megoldás</summary>A MODELL sor (sok réteg) és a gradiens kiszámítása (visszaterjesztés) lesz sokkal drágább. Az OPTIMALIZÁLÁS sor formája ugyanaz marad: paraméter ← paraméter − η · gradiens.</details></li>
+    <li>(nehezebb) Egy videóajánló veszteségét a „megnézett percek” maximalizálására írták fel. Milyen nem kívánt viselkedés jöhet ki ebből?
+      <details><summary>Megoldás</summary>A modell olyan tartalmakat részesít előnyben, amelyek hosszan lekötik a figyelmet – akkor is, ha a néző utólag rosszul érzi magát tőlük (szenzációhajhász, szélsőséges tartalom, végtelen görgetés).
+        A modell azt csinálja, amit mérünk, nem azt, amit „gondoltunk” (25. fejezet).</details></li>
+  </ol>
+</details>
+
+<h3 id="s37-b">2. lépés: az út az adattól a működő rendszerig</h3>
+<p>A tanító ciklus egy projekt <em>közepe</em>. Előtte és utána is rengeteg munka van – a gyakorlatban gyakran több, mint maga a tanítás.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy lakásár-becslő alkalmazás</span>
+  <ol style="margin:.3rem 0">
+    <li><b>Probléma:</b> egy ingatlanoldal minden új hirdetéshez ajánlott árat akar mutatni. Mit jósolunk (eladási ár), milyen pontosság kell (± 5%?), mihez mérjük (alapvonal: körzeti átlagár)?</li>
+    <li><b>Adatgyűjtés:</b> 12 000 korábbi eladás az elmúlt 3 évből.</li>
+    <li><b>Előkészítés:</b> elírt árak, hiányzó alapterületek, duplikált hirdetések javítása; jellemzők képzése (kerület, távolság a metrótól); felosztás tanító / validációs / teszt részre.</li>
+    <li><b>Modellezés:</b> lineáris regresszió, aztán gazdagabb modellek; hiperparaméterek a validációs halmazon.</li>
+    <li><b>Értékelés:</b> a teszt halmazon jobb-e az alapvonalnál? Hol téved nagyot (pl. luxuslakások)?</li>
+    <li><b>Telepítés:</b> a modell egy szolgáltatásban fut, minden új hirdetéskor jósol.</li>
+    <li><b>Monitorozás:</b> fél év múlva az árak 8%-kal nőttek – a modell rendszeresen alábecsül. Új adat, újratanítás: vissza a 2. lépéshez.</li>
+  </ol>
+</div>
+<div class="box def">
+  <span class="box-title">A gépi tanulási munkafolyamat</span>
+  <table>
+    <tr><th>lépés</th><th>kérdés</th><th>fejezet</th></tr>
+    <tr><td>1. problémafelvetés</td><td>Mit jósolunk, miért, mihez mérjük a sikert? Kell-e egyáltalán gépi tanulás?</td><td>1. (1.6), 21.</td></tr>
+    <tr><td>2. adatgyűjtés</td><td>Honnan jön az adat és a címke? Mennyi kell? Reprezentatív-e?</td><td>4., 22.</td></tr>
+    <tr><td>3. előkészítés</td><td>Tisztítás, jellemzőképzés, skálázás, felosztás</td><td>4.</td></tr>
+    <tr><td>4. modellezés</td><td>Modellcsalád, veszteség, optimalizálás, hiperparaméterek</td><td>3., 5., 7–12.</td></tr>
+    <tr><td>5. értékelés</td><td>Teszt halmaz, metrikák, alapvonal, hibaelemzés</td><td>6., 21.</td></tr>
+    <tr><td>6. telepítés</td><td>A modell beépítése egy rendszerbe; sebesség, költség</td><td>22.</td></tr>
+    <tr><td>7. monitorozás</td><td>Romlik-e a teljesítmény, változik-e az adat? Újratanítás</td><td>22.</td></tr>
+  </table>
+  A folyamat <b>ciklikus</b>: az értékelés vagy a monitorozás gyakran visszaküld egy korábbi lépéshez.
+  <br><small>Miért kell ezt ennyire korán látni? Mert a kezdők hajlamosak azt hinni, hogy a gépi tanulás = a 4. lépés. A gyakorlati kézikönyvek (RWML, AAMLP, DMLS) egybehangzóan mondják,
+  hogy a munka nagyobb része az adatnál és az értékelésnél van, és a legtöbb projekt ott bukik el, nem a modellválasztáson.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – adateltolódás</span>
+    A lakásmodellt 2023–2025-ös eladásokon tanították. 2026-ban az árak nőttek: ugyanaz az alapterület többet ér. A modell nem „romlott el”, a <b>világ változott meg</b>.
+    Ezt csak a monitorozás veszi észre (22. fejezet).
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – nem kell gépi tanulás</span>
+    Ha a díj egy ismert képletből jön (pl. taxi: alapdíj + km-díj, hatósági tarifával), nem kell tanulni – elég beprogramozni. Az 1. lépés kérdése komoly:
+    <em>kell-e egyáltalán</em> gépi tanulás (<a href="../01-mi-a-mesterseges-intelligencia/#s16">1.6</a>)?
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A jó teszthiba nem garancia az éles működésre.</b> Ha az éles adat más, mint a tanító (más város, más időszak), a teszt nem mondja meg, mi lesz.</li>
+    <li><b>Alapvonal nélkül nem tudod, mennyit ér a modell.</b> Mindig legyen egy egyszerű összehasonlítási pont (átlag, szabály, a jelenlegi rendszer).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a munkafolyamat</summary>
+  <ol>
+    <li>Állítsd sorrendbe: telepítés, adatgyűjtés, értékelés, problémafelvetés, monitorozás, modellezés, előkészítés.
+      <details><summary>Megoldás</summary>Problémafelvetés → adatgyűjtés → előkészítés → modellezés → értékelés → telepítés → monitorozás (→ vissza).</details></li>
+    <li>Melyik lépésben történik: (a) a tanító / teszt felosztás; (b) a hiányzó értékek pótlása; (c) a teszt MSE kiszámítása; (d) annak észlelése, hogy a felhasználók egyre gyakrabban felülírják a javasolt árat?
+      <details><summary>Megoldás</summary>(a) előkészítés; (b) előkészítés; (c) értékelés; (d) monitorozás.</details></li>
+    <li>Egy kórház betegfelvételi modelljét egy másik kórház adatain tanították. Melyik lépésben kellett volna ezt észrevenni, és mi a kockázat?
+      <details><summary>Megoldás</summary>Az adatgyűjtésnél (reprezentatív-e az adat a használati környezetre?). A kockázat: más betegkör, más eljárások – a modell itt rosszabbul teljesíthet, mint a teszten mutatta.</details></li>
+    <li>Mondj egy jó alapvonalat a „holnapi csúcshőmérséklet” jóslásához!
+      <details><summary>Megoldás</summary>Pl. „holnap ugyanannyi lesz, mint ma”, vagy az adott nap sokéves átlaga. Egy időjárási modellnek ezeknél jobbnak kell lennie.</details></li>
+    <li>(nehezebb) A lakásmodell egy éve jól működik, de az utóbbi hónapokban a hibák rendre negatívak (alábecsül). Mi lehet az ok, és mit tennél?
+      <details><summary>Megoldás</summary>Adateltolódás: az árszint emelkedett (infláció, kereslet). A rendszeres előjeles hiba ezt mutatja (<a href="#s33-a">3.3</a>). Teendő: friss eladásokkal újratanítani, és a monitorozásba
+        felvenni az előjeles átlaghibát is, hogy ezt máskor korán észrevegyük.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai3-37"></div>
+</section>
+
+<!-- ===================================================== 3.8 Alkalmazás -->
+<section id="s38">
+<h2>3.8 Alkalmazás: mennyit ér a 70 m²?</h2>
+<p>Minden alkatrész megvan. Most végigmegyünk a fejezet kérdésén elejétől a végéig – minden lépésnél ott a hivatkozás arra a szakaszra,
+ahonnan az eszköz jön.</p>
+
+<h3 id="s38-a">A fejezet kérdése – elejétől a végéig</h3>
+<ol>
+  <li><b>Adat</b> (<a href="#s31">3.1</a>). Öt minta, egy jellemző (alapterület), a címke az ár: $\mathbf x = (20, 40, 50, 60, 80)$, $\mathbf y = (21, 35, 44, 51, 69)$.
+    A szórásdiagram szerint az összefüggés nagyjából egyenes. Teszt adatnak félreteszünk két később eladott lakást: (35 m², 31 M) és (65 m², 55 M).</li>
+  <li><b>Modell</b> (<a href="#s32">3.2</a>). Modellcsalád: az egyenesek, $\hat y = wx + b$. Két paraméter.</li>
+  <li><b>Veszteség</b> (<a href="#s33">3.3</a>). MSE: $L(w, b) = \frac15\sum(wx_i + b - y_i)^2$. Alapvonal: a konstans átlag (44), MSE-je $256{,}8$ (<a href="#s34-a">3.4</a>).</li>
+  <li><b>Optimalizálás, 1. út: zárt képlet</b> (<a href="#s34-b">3.4</a>). $w = 1600/2000 = 0{,}8$, $b = 44 - 0{,}8\cdot50 = 4$. Tanító MSE: $0{,}8$.</li>
+  <li><b>Optimalizálás, 2. út: gradiens módszer</b> (<a href="#s34-c">3.4</a>, <a href="#s36-c">3.6</a>). A nyers m²-rel több ezer lépés kellene, ezért standardizálunk: $z = (x - 50)/20$.
+    $\eta = 0{,}1$-gyel 23 lépés után az MSE 0,9 alatt van, és $(a, c) \to (16, 44)$, vagyis visszaírva ugyanaz: $w = 0{,}8$, $b = 4$.</li>
+  <li><b>Általánosítás</b> (<a href="#s35">3.5</a>). A két teszt lakásra a jóslat 32 és 56, a hibák $+1$ és $+1$: teszt MSE $= 1$, RMSE $= 1$ millió Ft. Alig rosszabb, mint a tanítón – nincs jele túlillesztésnek.
+    (Két tesztpont persze nagyon kevés; egy valódi projektben százak kellenének.)</li>
+  <li><b>Jóslat.</b> $\hat y(70) = 0{,}8\cdot70 + 4 = 60$ millió Ft.</li>
+</ol>
+
+<details class="box">
+  <summary>🐍 Python – ugyanez három módon</summary>
+  <pre style="margin:.6rem 0;font-size:.85rem">import numpy as np
+from sklearn.linear_model import LinearRegression
+
+x = np.array([20, 40, 50, 60, 80])           # alapterület (m²)
+y = np.array([21, 35, 44, 51, 69])           # ár (millió Ft)
+
+# 1) zárt képlet (legkisebb négyzetek)
+w = np.sum((x - x.mean()) * (y - y.mean())) / np.sum((x - x.mean())**2)
+b = y.mean() - w * x.mean()
+print(w, b, w * 70 + b)                      # 0.8 4.0 60.0
+
+# 2) ugyanez scikit-learn-nel
+m = LinearRegression().fit(x.reshape(-1, 1), y)
+print(m.coef_[0], m.intercept_)              # ≈ 0.8 ≈ 4.0
+
+# 3) gradiens módszer standardizált jellemzőn
+z = (x - x.mean()) / x.std()
+a, c = 0.0, 0.0
+for _ in range(100):
+    e = a * z + c - y                        # hibák
+    a, c = a - 0.1 * 2 * np.mean(e * z), c - 0.1 * 2 * np.mean(e)
+print(a / x.std(), c - a * x.mean() / x.std())   # ≈ 0.8 ≈ 4.0</pre>
+  <small>A scikit-learn a jellemzőket mátrixként várja (sor = minta), ezért kell a <code>reshape(-1, 1)</code>: az 5 elemű vektorból $5\times1$-es mátrix lesz.</small>
+</details>
+
+<div class="box example">
+  <span class="box-title">🎯 Válasz a fejezet kérdésére</span>
+  Egy 70 m²-es lakás a modell szerint <b>kb. 60 millió Ft</b>-ot ér, nagyjából ± 1 millió forintos tipikus hibával. A gép ezt senkitől sem kapta képletként:
+  <ul style="margin:.3rem 0">
+    <li>az <b>adatból</b> tanult (öt eladás),</li>
+    <li>egy általunk választott <b>modellcsaládon</b> belül (egyenesek),</li>
+    <li>azt a tagot választotta, amelyiknek a <b>vesztesége</b> (MSE) a legkisebb,</li>
+    <li>és ezt kétféle <b>optimalizálással</b> is megtalálta: zárt képlettel és lépésenként, a gradiens módszerrel.</li>
+  </ul>
+  Hogy a válasz <em>új</em> lakásra is jó, azt nem a tanítóhiba, hanem az elzárt teszt lakások mutatják.
+  <br><small>Egy józan ingatlanos persze hozzátenné: öt lakás nagyon kevés, és az ár nemcsak a négyzetmétertől függ (<a href="#s36-a">3.6</a>). A modell annyit tud, amennyit az adat elárul.</small>
+</div>
+
+<h3 id="s38-b">Ugyanez a váz mindenhol</h3>
+<div class="box example">
+  <span class="box-title">Esettanulmány – a ChatGPT-féle nyelvi modell négy alkatrésze</span>
+  <table>
+    <tr><th>alkatrész</th><th>lakásmodell</th><th>nagy nyelvi modell (előtanítás)</th></tr>
+    <tr><td>adat</td><td>5 eladás (m², ár)</td><td>billiónyi szó szövegből; a „címke” mindig a következő szó (önfelügyelt tanulás)</td></tr>
+    <tr><td>modell</td><td>$wx + b$, 2 paraméter</td><td>Transformer, milliárdnyi – a legnagyobbaknál ezermilliárdnyi – paraméter (12., 16. fejezet)</td></tr>
+    <tr><td>veszteség</td><td>MSE</td><td>keresztentrópia: $-\ln(\text{a valódi következő szó valószínűsége})$ (<a href="../02-matematikai-eszkoztar/#s26-c">2.6</a>)</td></tr>
+    <tr><td>optimalizálás</td><td>zárt képlet / gradiens módszer</td><td>mini-köteges gradiens módszer (AdamW), több százezer lépés, ezernyi GPU-n hetekig</td></tr>
+    <tr><td>általánosítás</td><td>teszt lakások</td><td>elzárt szövegeken mért veszteség (perplexitás), és rengeteg feladatalapú teszt</td></tr>
+  </table>
+  A különbség óriási – de a <b>szerkezet ugyanaz</b>. Aki ezt a fejezetet érti, az a nyelvi modellek tanításának vázát is érti.
+  <br><small>📅 Állapot: 2026. A konkrét számok (paraméterek, adat, lépésszám) modellenként és évről évre változnak; a négy alkatrész nem.</small>
+</div>
+<table>
+  <tr><th>Fogalom ebből a fejezetből</th><th>Hol bukkan fel újra?</th><th>Fejezet</th></tr>
+  <tr><td>jellemző, címke, adatszivárgás</td><td>adattisztítás, jellemzőképzés, kódolás</td><td>4.</td></tr>
+  <tr><td>modellcsalád, paraméter</td><td>logisztikus regresszió, fák, neurális hálók</td><td>5., 7., 9.</td></tr>
+  <tr><td>veszteség (MSE, MAE)</td><td>keresztentrópia, csuklóveszteség; a veszteség mint érték</td><td>5., 7., 21.</td></tr>
+  <tr><td>gradiens módszer, köteg, epoch</td><td>visszaterjesztés, Adam, tanulásiráta-ütemezés</td><td>10.</td></tr>
+  <tr><td>tanító / validációs / teszt halmaz</td><td>keresztvalidáció, metrikák, LLM-értékelés</td><td>6., 21.</td></tr>
+  <tr><td>alul- és túlillesztés</td><td>torzítás–variancia, regularizáció, korai leállítás</td><td>6., 10.</td></tr>
+  <tr><td>skálázás, polinomiális jellemzők</td><td>standardizálás, kölcsönhatások, normalizáló rétegek</td><td>4., 10.</td></tr>
+  <tr><td>munkafolyamat, monitorozás</td><td>telepítés, adateltolódás, MLOps</td><td>22.</td></tr>
+</table>
+</section>
+
+<!-- ===================================================== Összefoglalás -->
+<section id="s-sum">
+<h2>Összefoglalás</h2>
+<table>
+  <tr><th>Fogalom</th><th>Lényeg</th></tr>
+  <tr><td>Minta, jellemző, címke</td><td>sor; bemeneti oszlop; a jósolandó érték. Adat: $X$ ($n\times d$), $\mathbf y$ ($n$). Jellemző csak az lehet, ami a jósláskor ismert</td></tr>
+  <tr><td>Regresszió / osztályozás</td><td>a címke szám / kategória</td></tr>
+  <tr><td>Modell, paraméter</td><td>paraméteres függvény: $\hat y = wx + b$; $w$ súly, $b$ eltolás. A családot mi választjuk, a paramétereket a tanítás</td></tr>
+  <tr><td>Hiba</td><td>$e_i = \hat y_i - y_i$; az előjeles átlag nem méri a jóságot (kiejtik egymást)</td></tr>
+  <tr><td>MSE, RMSE, MAE</td><td>$\frac1n\sum e_i^2$; $\sqrt{\text{MSE}}$ (a címke egységében); $\frac1n\sum|e_i|$. Az MSE a nagy hibát jobban bünteti</td></tr>
+  <tr><td>Veszteségfelület</td><td>$L(w, b)$ rögzített adat mellett; MSE-nél konvex tál; a cél a tál alja</td></tr>
+  <tr><td>Legjobb konstans</td><td>MSE-re az átlag, MAE-re a medián – ez az alapvonal</td></tr>
+  <tr><td>Legkisebb négyzetek</td><td>$w = \sum(x_i - \bar x)(y_i - \bar y)/\sum(x_i - \bar x)^2$, $b = \bar y - w\bar x$; átmegy $(\bar x, \bar y)$-on</td></tr>
+  <tr><td>Gradiens módszer</td><td>$\partial L/\partial w = \frac2n\sum e_ix_i$, $\partial L/\partial b = \frac2n\sum e_i$; lépés: $-\eta\cdot$gradiens, egyszerre</td></tr>
+  <tr><td>Köteg, iteráció, epoch</td><td>$B$ minta egy lépéshez; egy frissítés; az összes minta egyszer = $\lceil n/B\rceil$ lépés. SGD: $B = 1$, mini-köteg: a kettő közt</td></tr>
+  <tr><td>Tanító / validációs / teszt halmaz</td><td>paraméterek / hiperparaméterek / végső, egyszeri értékelés. A tanítóhiba nem a valódi teljesítmény</td></tr>
+  <tr><td>Alul- / túlillesztés</td><td>mindkét hiba nagy / tanító kicsi, teszt nagy; a bonyolultság hiperparaméter</td></tr>
+  <tr><td>Több jellemző</td><td>$\hat y = \mathbf w^\top\mathbf x + b$, $\hat{\mathbf y} = X\mathbf w + b$; súly = hatás a többi rögzítésével</td></tr>
+  <tr><td>Polinomiális jellemzők</td><td>$x, x^2, \dots$ (és szorzatok) új oszlopként; a modell a paraméterekben lineáris marad</td></tr>
+  <tr><td>Skálázás</td><td>$z = (x - \bar x)/s$ vagy min–max; a tál kerek lesz, a gradiens módszer gyors; a számokat a tanító halmazból</td></tr>
+  <tr><td>Munkafolyamat</td><td>probléma → adat → előkészítés → modell → értékelés → telepítés → monitorozás (→ vissza)</td></tr>
+</table>
+
+<div class="box tip">
+  <span class="box-title">Melyik módszer mikor? – döntési táblázat</span>
+  <table>
+    <tr><th>Ha a feladatban ez áll…</th><th>…akkor ezt használd</th></tr>
+    <tr><td>a címke szám (ár, hőmérséklet, fogyasztás)</td><td>regresszió, MSE (vagy MAE) veszteséggel</td></tr>
+    <tr><td>a címke kategória (spam, kutya / macska)</td><td>osztályozás, keresztentrópia (5. fejezet)</td></tr>
+    <tr><td>gyors viszonyítási pont kell</td><td>konstans modell: átlag (MSE) vagy medián (MAE)</td></tr>
+    <tr><td>a nagy tévedés különösen drága</td><td>MSE / RMSE</td></tr>
+    <tr><td>vannak kiugró értékek, a tipikus hiba számít</td><td>MAE (medián)</td></tr>
+    <tr><td>lineáris modell, kevés jellemző, MSE</td><td>zárt képlet (legkisebb négyzetek)</td></tr>
+    <tr><td>nincs zárt képlet, vagy óriási az adat</td><td>gradiens módszer, mini-kötegekkel</td></tr>
+    <tr><td>a veszteség nő vagy NaN</td><td>kisebb $\eta$; ellenőrizd a skálázást</td></tr>
+    <tr><td>a gradiens módszer nagyon lassú, cikázik</td><td>standardizáld a jellemzőket</td></tr>
+    <tr><td>tanítóhiba kicsi, teszthiba nagy</td><td>túlillesztés: egyszerűbb modell, több adat</td></tr>
+    <tr><td>tanító- és teszthiba is nagy</td><td>alulillesztés: gazdagabb modell, jobb jellemzők (pl. polinomiális)</td></tr>
+    <tr><td>hiperparamétert kell választani</td><td>validációs halmaz; a teszt csak a végén, egyszer</td></tr>
+    <tr><td>az összefüggés görbe, de lineáris modellt akarsz</td><td>polinomiális (vagy más transzformált) jellemzők</td></tr>
+    <tr><td>a telepített modell lassan romlik</td><td>monitorozás, adateltolódás → újratanítás</td></tr>
+  </table>
+</div>
+</section>
+
+<!-- ===================================================== Ellenőrző kérdések -->
+<section id="s-check">
+<h2>Ellenőrző kérdések</h2>
+<p>Gondold végig a választ, aztán kattints a kártyára a megfordításhoz!</p>
+<div class="flashcards">
+  <div class="flash"><div class="inner"><div class="face front">Mi a négy alkatrésze minden gépi tanulási rendszernek?</div>
+    <div class="face back">Adat, modell (paraméteres függvény), veszteség, optimalizálás.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a különbség a jellemző és a paraméter között?</div>
+    <div class="face back">A jellemző az adat része (mintánként más), a paraméter a modellé (minden mintára ugyanaz, a tanítás állítja).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért nem jó mérce a hibák (előjeles) átlaga?</div>
+    <div class="face back">Mert a pozitív és negatív hibák kiejtik egymást: minden $(\bar x, \bar y)$-on átmenő egyenesé nulla.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi az MSE, és miért négyzet?</div>
+    <div class="face back">$\frac1n\sum(\hat y_i - y_i)^2$. Nem oltódnak ki a hibák, a nagy hibát jobban bünteti, és deriválható.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Melyik konstans a legjobb MSE, és melyik MAE szerint?</div>
+    <div class="face back">MSE: az átlag. MAE: a medián.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a legkisebb négyzetek egyenesének képlete?</div>
+    <div class="face back">$w = \sum(x_i - \bar x)(y_i - \bar y)/\sum(x_i - \bar x)^2$, $b = \bar y - w\bar x$.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a lineáris regresszió gradiense?</div>
+    <div class="face back">$\partial L/\partial w = \frac2n\sum e_ix_i$, $\partial L/\partial b = \frac2n\sum e_i$, ahol $e_i = \hat y_i - y_i$.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi az epoch?</div>
+    <div class="face back">Annyi lépés, amennyi alatt a modell minden tanító mintát egyszer látott: $\lceil n/B\rceil$ iteráció.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért kell teszt halmaz?</div>
+    <div class="face back">Mert a tanítóhiba túl optimista (a magoló modellé 0); csak nem látott adaton derül ki, hogy a modell általánosít-e.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Hogyan ismered fel a túlillesztést?</div>
+    <div class="face back">Kicsi tanítóhiba, nagy teszthiba (vagy validációs hiba).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért lineáris regresszió a $\hat y = w_1x + w_2x^2 + b$?</div>
+    <div class="face back">Mert a paraméterekben lineáris; az $x^2$ csak egy új jellemző.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért segít a standardizálás a gradiens módszernek?</div>
+    <div class="face back">Mert kerekebb lesz a veszteség tála, így egyetlen tanulási ráta minden irányban jó – nincs cikázás és lassú csúszás.</div></div></div>
+</div>
+</section>
+
+<!-- ===================================================== Vegyes gyakorló feladatok -->
+<section id="s-ex">
+<h2>Vegyes gyakorló feladatok</h2>
+<p>Itt már nincs megmondva, melyik szakaszhoz tartozik a feladat: neked kell eldönteni, melyik eszköz kell.</p>
+<details class="box practice">
+  <summary>✏️ Vegyes gyakorló feladatok – kattints a kinyitáshoz</summary>
+  <ol>
+    <li>Adat: $(1;\ 2)$, $(3;\ 4)$, $(5;\ 9)$. Mennyi a legjobb egyenes, az MSE-je, és mit jósol $x = 4$-re?
+      <details><summary>Tipp</summary>Zárt képlet: átlagok, eltérések, szorzatösszeg, négyzetösszeg.</details>
+      <details><summary>Megoldás</summary>$\bar x = 3$, $\bar y = 5$; eltérések: $x$: $-2, 0, 2$; $y$: $-3, -1, 4$. $w = (6 + 0 + 8)/8 = 1{,}75$, $b = 5 - 5{,}25 = -0{,}25$.
+        Jóslatok: 1,5; 5; 8,5; hibák: $-0{,}5;\ 1;\ -0{,}5$; MSE $= 1{,}5/3 = 0{,}5$. $\hat y(4) = 7 - 0{,}25 = 6{,}75$.</details></li>
+    <li>Címkék: $10, 12, 14, 20$. Egy modell hibái: $1, -1, 2, -2$. Mennyi az alapvonal MSE-je, a modellé és az $R^2$?
+      <details><summary>Tipp</summary>Az alapvonal a legjobb konstans.</details>
+      <details><summary>Megoldás</summary>Átlag: 14; alapvonal MSE: $(16 + 4 + 0 + 36)/4 = 14$. Modell MSE: $(1 + 1 + 4 + 4)/4 = 2{,}5$. $R^2 = 1 - 2{,}5/14 \approx 0{,}82$.</details></li>
+    <li>Két minta: $(0;\ 1)$, $(2;\ 5)$. A modell $(w, b) = (1, 0)$. Tegyél egy gradienslépést $\eta = 0{,}1$-gyel! Mennyi a veszteség előtte és utána?
+      <details><summary>Tipp</summary>Hibák → $\frac2n\sum e_ix_i$ és $\frac2n\sum e_i$ → mindkét paraméter egyszerre.</details>
+      <details><summary>Megoldás</summary>Jóslatok: 0, 2; hibák: $-1, -3$. $\partial L/\partial w = \frac22(0 - 6) = -6$, $\partial L/\partial b = \frac22(-4) = -4$. Új: $w = 1{,}6$, $b = 0{,}4$.
+        Veszteség: $(1 + 9)/2 = 5$ → jóslatok 0,4; 3,6, hibák $-0{,}6;\ -1{,}4$, $L = (0{,}36 + 1{,}96)/2 = 1{,}16$.</details></li>
+    <li>12 000 minta, ebből 80% tanító. Kötegméret 64, 20 epoch. Hány lépés a teljes tanítás?
+      <details><summary>Tipp</summary>Előbb a tanító minták száma, aztán lépés / epoch.</details>
+      <details><summary>Megoldás</summary>9600 tanító minta; $9600/64 = 150$ lépés epochonként; $20\cdot150 = 3000$ lépés.</details></li>
+    <li>Polinomfokszám szerint: tanítóhiba 4,1 → 1,0 → 0,4 → 0,2; validációs hiba 4,3 → 1,2 → 2,0 → 3,8 (fok: 1, 2, 3, 4). Melyik fokot választod, és mi történik a 3–4. foknál?
+      <details><summary>Tipp</summary>Melyik hibát kell nézni a választáshoz?</details>
+      <details><summary>Megoldás</summary>A 2. fokot (legkisebb validációs hiba, 1,2). A 3–4. foknál a tanítóhiba tovább csökken, a validációs nő: túlillesztés. Az 1. fok alulillesztés.</details></li>
+    <li>Egy jellemző átlaga a tanító halmazon 120, szórása 30. A standardizált modell: $\hat y = 5z + 50$. Mit jósol $x = 150$-re és $x = 90$-re?
+      <details><summary>Tipp</summary>Előbb alakítsd át a bemenetet a tanító halmaz számaival.</details>
+      <details><summary>Megoldás</summary>$z = 1$ → $55$; $z = -1$ → $45$.</details></li>
+    <li>$\hat y = 2x_1 + 0{,}5x_2 - 3$; egy minta: $\mathbf x = (4;\ 10)$, $y = 12$. Mennyi a hiba, és mennyi a gradiens erre az egy mintára ($w_1$, $w_2$, $b$ szerint)?
+      <details><summary>Tipp</summary>$\partial L/\partial w_j = 2e\,x_j$, $\partial L/\partial b = 2e$ egyetlen mintánál.</details>
+      <details><summary>Megoldás</summary>$\hat y = 8 + 5 - 3 = 10$, $e = -2$. Gradiens: $(2\cdot(-2)\cdot4;\ 2\cdot(-2)\cdot10;\ 2\cdot(-2)) = (-16;\ -40;\ -4)$. A $w_2$ kapja a legnagyobbat – mert $x_2$ nagy szám (skálázás!).</details></li>
+    <li>Valaki a nyers lakásadaton (m²) $\eta = 0{,}01$-gyel indítja a gradiens módszert $(0, 0)$-ból. A veszteség: $2192{,}8 \to 7{,}1$ millió $\to 23$ milliárd… Mi a baj, és mi a két lehetséges javítás?
+      <details><summary>Tipp</summary>Hol a stabilitási határ ennél az adatnál?</details>
+      <details><summary>Megoldás</summary>Szétszáll: a nyers m² miatt a határ $\eta \approx 0{,}000345$, a $0{,}01$ ennek közel harmincszorosa. Javítás: (1) sokkal kisebb $\eta$ (de akkor nagyon lassú);
+        (2) a jellemző standardizálása – ekkor $\eta = 0{,}1$ is gyors és stabil.</details></li>
+  </ol>
+</details>
+</section>
+
+<!-- ===================================================== Fejezetzáró teszt -->
+<section id="s-final">
+<h2>Fejezetzáró teszt</h2>
+<p>Vegyes feladatok az egész fejezetből. Ha legalább 80%-ot elérsz, nyugodtan továbbléphetsz a 4. fejezetre (adatok és jellemzők), ahol az
+„adat” alkatrészt nézzük meg közelebbről.</p>
+<div class="quiz" data-quiz="ai3-final"></div>
+</section>
+
+<!-- ===================================================== Szómagyarázó -->
+<section id="s-gloss">
+<h2>Szómagyarázó</h2>
+<p>A fejezetben előforduló idegen vagy kevésbé ismert szakkifejezések, betűrendben.</p>
+<dl class="glossary">
+  <dt id="g-epoch">epoch <span class="etym">gör. <em>epokhé</em> „megállás, megállapodott pont”</span></dt>
+  <dd><p>A csillagászatban a viszonyítási időpont, a köznyelvben „korszak” (vö. epochális). A gépi tanulásban a tanítás egy „fordulója”: az összes minta egyszer.</p></dd>
+
+  <dt id="g-extrapolacio">extrapoláció <span class="etym">lat. <em>extra</em> „kívül” + az <em>interpoláció</em> mintájára (lat. <em>interpolare</em> „felfrissít, átalakít”)</span></dt>
+  <dd><p>Jóslás az ismert adatok tartományán <em>kívül</em>. Az ellentéte, az interpoláció, a tartományon belüli közbülső értékek becslése.</p></dd>
+
+  <dt id="g-hiperparameter">hiperparaméter <span class="etym">gör. <em>hüper</em> „fölött” + paraméter</span></dt>
+  <dd><p>A paraméterek „fölötti” beállítás: nem a tanítás határozza meg, hanem a tanítás módját szabja meg (fokszám, tanulási ráta, kötegméret).</p></dd>
+
+  <dt id="g-hipotezis">hipotézistér <span class="etym">gör. <em>hüpotheszisz</em> „alapul vett feltevés” (<em>hüpo</em> „alatt” + <em>theszisz</em> „tétel”)</span></dt>
+  <dd><p>A modellcsalád másik neve: az összes „feltevés” (függvény), amely közül a tanítás választ.</p></dd>
+
+  <dt id="g-iteracio">iteráció <span class="etym">lat. <em>iterare</em> „megismétel”, az <em>iterum</em> „ismét” szóból</span></dt>
+  <dd><p>Egy lépés egy ismétlődő eljárásban; a gradiens módszerben egy paraméterfrissítés.</p></dd>
+
+  <dt id="g-median">medián <span class="etym">lat. <em>medianus</em> „középső”, a <em>medius</em> „közép” szóból</span></dt>
+  <dd><p>A nagyság szerint sorba rendezett adatok középső értéke (páros számú adatnál a két középső átlaga). A MAE-t minimalizáló konstans.</p></dd>
+
+  <dt id="g-optimalizalas">optimalizálás <span class="etym">lat. <em>optimus</em> „legjobb” (a <em>bonus</em> „jó” felsőfoka)</span></dt>
+  <dd><p>A legjobb (itt: legkisebb veszteségű) beállítás megkeresése. A gépi tanulásban szinte mindig minimalizálást jelent.</p></dd>
+
+  <dt id="g-parameter">paraméter <span class="etym">gör. <em>para</em> „mellett” + <em>metron</em> „mérték”</span></dt>
+  <dd><p>Eredetileg „mellékmérték”: egy görbecsalád tagjait megkülönböztető állandó. A modellben az állítható szám, amit a tanítás beállít.</p></dd>
+
+  <dt id="g-polinom">polinom <span class="etym">gör. <em>polü</em> „sok” + lat. <em>nomen</em> „név, tag” – a <em>binom</em> („kéttagú”) mintájára</span></dt>
+  <dd><p>„Soktagú” kifejezés: $w_0 + w_1x + w_2x^2 + \dots + w_kx^k$. A legmagasabb kitevő a fokszám.</p></dd>
+
+  <dt id="g-regresszio">regresszió <span class="etym">lat. <em>regressio</em> „visszatérés”, a <em>regredi</em> „visszamenni” igéből – F. Galton (1886)</span></dt>
+  <dd><p>Galton a „visszahúzódás az átlag felé” jelenségére használta; ma minden olyan feladat neve, ahol számot jósolunk.</p></dd>
+
+  <dt id="g-reziduum">reziduum <span class="etym">lat. <em>residuum</em> „maradék”, a <em>residere</em> „visszamaradni” igéből</span></dt>
+  <dd><p>A statisztikában a megfigyelés és a jóslat különbsége ($y_i - \hat y_i$): ami a modell után „megmaradt” megmagyarázatlanul.</p></dd>
+
+  <dt id="g-sztochasztikus">sztochasztikus <span class="etym">gör. <em>sztokhasztikosz</em> „célzásban ügyes, találgató”, a <em>sztokhosz</em> „céltábla” szóból</span></dt>
+  <dd><p>Véletlentől függő. A sztochasztikus gradiens módszer véletlenül kiválasztott mintákon (kötegeken) becsüli a gradienst.</p></dd>
+
+  <dt id="g-validacio">validáció <span class="etym">lat. <em>validus</em> „erős, érvényes”</span></dt>
+  <dd><p>Érvényesítés, ellenőrzés. A validációs halmazon döntjük el, melyik modell vagy hiperparaméter „érvényes”, mielőtt a teszt halmazhoz nyúlnánk.</p></dd>
+</dl>
+</section>
+
+<nav class="pager">
+  <a href="../02-matematikai-eszkoztar/">← 2. A gépi tanulás matematikai eszköztára</a>
+  <span class="next muted">4. Adatok és jellemzők (hamarosan) →</span>
+</nav>
+
+</main>
+</div>
+
+<footer class="site">
+  Források: O. Theobald: <em>Machine Learning for Absolute Beginners</em> (3. kiad.), 3., 5–6. fejezet · J. Mueller – L. Massaron: <em>Machine Learning for Dummies</em> (2. kiad.), 8–9. és 13. fejezet ·
+  Brink – Richards – Fetherolf: <em>Real-World Machine Learning</em>, 1. és 3. fejezet · R. T. Kneusel: <em>Practical Deep Learning</em>, 4. fejezet · A. Glassner: <em>Deep Learning – A Visual Approach</em>, 5. és 8–9. fejezet ·
+  Hastie – Tibshirani – Friedman: <em>The Elements of Statistical Learning</em>, 2–3. fejezet · R. T. Kneusel: <em>Math for Deep Learning</em>, 11. fejezet · V. J. Reddi et al.: <em>Machine Learning Systems</em> (<em>AI Workflow</em>) ·
+  Kiegészítés: a polinomillesztési kísérlet C. M. Bishop: <em>Pattern Recognition and Machine Learning</em> (2006) 1.1. szakaszának mintájára.
+</footer>
+</body>
+</html>

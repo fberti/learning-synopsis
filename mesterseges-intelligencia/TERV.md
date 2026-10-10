@@ -314,6 +314,13 @@ regresszión mutatjuk meg. Minden későbbi modell (a neurális hálótól az LL
 ### Kvízek
 `ai3-32`, `ai3-33`, `ai3-34`, `ai3-35`, `ai3-final`.
 
+> ✅ **Elkészült** (`03-tanulas-anatomiaja/`). Eltérések a tervtől: kvíz minden szakaszhoz (`ai3-31` … `ai3-37`, `ai3-final`);
+> futó példa: öt lakás (20, 40, 50, 60, 80 m² → 21, 35, 44, 51, 69 M Ft), legjobb egyenes $0{,}8x + 4$, 70 m² → 60 M Ft; a kézi
+> gradiens módszerhez a „kis adat” $(1;2), (2;5), (3;5)$. Új lépések: a legjobb konstans (átlag / medián, alapvonal) a 3.4 elején,
+> köteg–epoch–SGD külön lépésként, validációs halmaz a 3.5-ben, külön 3.8 Alkalmazás (🐍 Python: zárt képlet, scikit-learn, gradiens
+> módszer). Szemléltetések: `fit-a-line`, `loss-landscape` (három adatkészlettel: nyers, kis adat, standardizált – három helyen),
+> `best-constant`, `learning-rate-lab`, `polyfit-overfit` (Bishop-féle $\sin(2\pi x)$ + zaj, 10 + 10 pont).
+
 ### Csapdák
 A tanítóhiba nem a valódi teljesítmény · skálázatlan jellemzőknél a gradiens módszer cikázik · korreláció ≠ ok-okozat ·
 extrapoláció a tanítóadat tartományán kívül.

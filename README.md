@@ -39,7 +39,8 @@ synopsis/
     ├── index.html                  ← a témakör fejezetlistája és tanulási útvonalai
     ├── TERV.md                     ← a 24 fejezet részletes kidolgozási terve
     ├── 01-mi-a-mesterseges-intelligencia/  ← index.html, widgets.js, quizzes.js
-    └── 02-matematikai-eszkoztar/   ← index.html, widgets.js (a calc.js-re épül), quizzes.js
+    ├── 02-matematikai-eszkoztar/   ← index.html, widgets.js (a calc.js-re épül), quizzes.js
+    └── 03-tanulas-anatomiaja/      ← index.html, widgets.js (a calc.js-re épül), quizzes.js
 ```
 
 ## Közzététel GitHub Pages-en
