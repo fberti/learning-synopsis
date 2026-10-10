@@ -480,6 +480,17 @@ MLAB 7–8; MLD 10, 12–13; PDL 6–7; DLV 4, 7, 11; ESL 4, 14.
 ### Kvízek
 `ai6-62`, `ai6-63`, `ai6-64`, `ai6-65`, `ai6-67`, `ai6-final`.
 
+> ✅ **Elkészült** (`06-modellertekeles/`). Eltérések a tervtől: a sorrend „mit mérünk → hol mérünk → hogyan javítunk → mennyire biztos”: 6.1 osztályozási metrikák, 6.2 küszöb/ROC/AUC,
+> 6.3 regressziós metrikák, 6.4 felosztás, 6.5 CV, 6.6 torzítás–variancia, 6.7 regularizáció, 6.8 hangolás, 6.9 bizonytalanság (★★★), 6.10 Alkalmazás; kvíz minden szakaszhoz (`ai6-61` … `ai6-69`, `ai6-final`).
+> Futó példák: a fejezet kérdése két ajánlat egy kórháznak (1000 szűrt, 10 beteg; „A” = mindig egészséges, 99%; „B”: TP 8, FN 2, FP 40, TN 950, 95,8%), a kézi számolásokhoz tíz páciens
+> pontszámmal (4 beteg; 0,5-ös küszöbnél 3/1/1/5, AUC = 21/24 = 0,875). A 6.10-ben költség ($C_{FN} = 100$) alapján a 0,3-as küszöb nyer (180 vs 240), a felidézés Wilson-intervalluma [0,49; 0,94].
+> Új lépések: makró/mikro átlag (6.1), PR-görbe és kalibráció, Brier (6.2), eloszlás-eltolódás és ellenséges validáció (6.4), „minden tanulás a hajtáson belül” ESL 7.10.2-vel (6.5),
+> diagnózis az elérhető szinthez mérve (6.6), λ választása LOOCV-vel a 3.5 polinomján (6.7), egy-standard-hiba szabály és beágyazott CV az emlőrák-adatokon (6.8), Wilson, bootstrap, konform predikció (6.9).
+> Szemléltetések: `confusion-threshold` (binormális modell, gyakoriság-gombok, ROC/PR), `kfold-viz` (rendezett/időrendi adat, keverés/rétegzés/idősor), `bias-variance`, `learning-curve`,
+> `regularization-path` (ridge zárt alakban, lasso koordinátás ereszkedéssel; a számok egyeznek a scikit-learnnel), `tuning-search`, `bootstrap-ci`.
+> A forrásokból jelzett hibák az oldalon: PDL 11 (kétféle mátrixállás), DLV 3 (precizitás/felidézés, specificitás/NPV, „szükségszerű” csereviszony), DLV 8–9 (újrahasználható teszt, alulillesztés több adattal),
+> MLAB 6/11/18 (CV „egy modellé áll össze”, torzítás = hiba, hangolás tanítóhibával), AAMLP (MAPE ×100, StratifiedGroupKFold, ROC ferde adatra), MLQ 25/26/29 (`zscore`, konform kvantilis n = 15-nél, „teszt jobb → nincs túlillesztés”).
+
 ### Csapdák
 Pontosság kiegyensúlyozatlan adaton · hangolás a teszt halmazon (a teszt „elhasználása”) · idősor keresztvalidálása
 összekeverve · az *accuracy* = pontosság és a *precision* = precizitás összekeverése (tip-doboz) · jó AUC ≠ jó kalibráció.
