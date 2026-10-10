@@ -1,0 +1,1714 @@
+                    16
+       CONVOLUTIONAL NEUR AL
+            NET WORKS
+
+
+
+
+             This chapter is all about a deep learning
+             technique called convolution. Among its
+           uses, convolution has become the standard
+        method for classifying, manipulating, and gen-
+erating images. Convolution is easy to use in deep
+learning because it can be easily encapsulated in a
+­convolution layer (also called a convolutional layer). In
+ this chapter, we look at the key ideas behind convolu-
+ tion and the related techniques we use to make con-
+ volution work in practice. We will see how to arrange
+ a series of these operations to create a hierarchy of
+ operations, which turns a series of simple operations
+ into a powerful tool.
+                        In order to stay specific, in this chapter we focus our discussion of con-
+                    volution on working with images. Models that use convolution have been
+                    spectacularly successful in this domain. For example, they excel at basic
+                    classification tasks like determining if an image is a leopard or a cheetah,
+                    or a planet or a marble. We can recognize the people in a photograph
+                    (Sun, Wang, and Tang 2014); detect and classify different types of skin
+                    cancers (Esteva et al. 2017); repair image damage like dust, scratches, and
+                    blur (Mao, Shen, and Yang 2016); and classify people’s age and gender
+                    from their photos (Levi and Hassner 2015). Convolution-based networks
+                    are also useful in many other applications, such as natural language pro-
+                    cessing (Britz 2015), where we can work out the structure of sentences
+                    (Kalchbrenner, Grefenstette, and Blunsom 2014) or classify sentences into
+                    different categories (Kim 2014).
+
+
+      Introducing Convolution
+                    In deep learning, images are 3D tensors, with a height, width, and number
+                    of channels, or values per pixel. A grayscale image has only one value per
+                    pixel, and thus only one channel. A color image stored as RGB has three
+                    channels (with values for red, green, and blue). Sometimes people use
+                    the terms depth or fiber size to refer to the number of channels in a tensor.
+                    Unfortunately, depth is also used to refer to the number of layers in a deep
+                    network, and fiber size has not caught on widely. To avoid confusion, we
+                    always refer to the three dimensions of an image (and related 3D tensors)
+                    as height, width, and channels. Using our deep learning terminology, each
+                    image we provide to the network for processing is a sample. Each pixel in
+                    an image is a feature.
+                         When a tensor moves through a series of convolution layers, it often
+                    changes in width, height, and number of channels. If a tensor happens to
+                    have 1 or 3 channels, we can think of it as an image. But if a tensor has,
+                    say, 14 or 512 channels, it’s probably best not to think of it as an image any
+                    more. This suggests that we shouldn’t refer to individual elements of the
+                    tensor as pixels, which is an image-centric term. Instead, we call them ele-
+                    ments. Figure 16-1 shows these terms visually.
+
+
+
+
+                    Figure 16-1: Left: When our tensor has one or three channels, we can say that it’s made
+                    up of pixels. Right: For tensors with any number of channels, we call each slice through
+                    the channels an element.
+
+
+
+
+430    Chapter 16
+    A network in which the convolution layers play a central role is usually
+called a convolutional neural network, convnet, or CNN. Sometimes people also
+say CNN network (an example of “redundant acronym syndrome syndrome”
+[Memmott 2015]).
+
+Detecting Yellow
+To kick off our discussion of convolution, let’s consider processing a color
+image. Each pixel contains three numbers: one each for red, green, and
+blue. Suppose we want to create a grayscale output that has the same height
+and width as our color image, but where the amount of white in each pixel
+corresponds to the amount of yellow in its input pixel.
+    For simplicity, let’s assume our RGB values are numbers from 0 to
+1. Then a pixel that’s pure yellow has red and green values of 1, and a
+blue value of 0. As the red and green values decrease, or the blue value
+increases, the pixel’s color shifts away from yellow.
+    We want to combine each input pixel’s RGB values into a single number
+from 0 to 1 that represents “yellowness,” which is the output pixel’s value.
+Figure 16-2 shows one way to do this.
+
+                                 +1
+
+
+      Pixel’s
+   red value
+
+                                 +1
+
+
+     Pixel’s
+green value
+
+                                   1
+
+
+      Pixel’s
+  blue value
+Figure 16-2: Representing our yellow detector as a simple neuron
+
+    This sure looks familiar. It has the same structure as an artificial neu-
+ron. When we interpret Figure 16-2 as a neuron, +1, +1, and −1 are the three
+weights, and the numbers associated with the color values are the three
+inputs. Figure 16-3 shows how to apply this neuron to any pixel in an image.
+
+                                                           Convolutional Neural Networks   431
+                                                                           Blue        Green          Red
+
+                            1 pixel                    Weights
+
+
+
+
+                                                                     Activation
+                                                                      Function
+
+
+                                                                                   Output
+                                   Input
+                   Figure 16-3: Applying our neuron in Figure 16-2 to a pixel in an image
+
+                       We can apply this operation to every pixel in the input, creating a single
+                   output value for every pixel. The result is a new tensor with the same width
+                   and height as the input, but only one channel, as shown in Figure 16-4.
+
+
+
+
+                                                      Neuron
+                            1 pixel
+
+
+
+
+                                    Input                                                        Output
+                   Figure 16-4: Applying our neuron in Figure 16-3 to each pixel in the input produces an
+                   output tensor with the same width and height, but only one channel.
+
+
+
+432   Chapter 16
+    We often imagine applying the neuron to the upper-left pixel, then
+moving it one step at a time to the right until we reach the end of the row,
+then repeating this for the next row, and the next, until we reach the bot-
+tom right pixel. We say that we’re sweeping the neuron over the input, or
+scanning the input.
+    Figure 16-5 shows the result of this process on a picture of a yellow frog.
+As we intended, the more yellow that’s present in each input pixel, the more
+white we see in its corresponding output. We say that the neuron is identify-
+ing or detecting yellow in the input.
+
+
+
+
+Figure 16-5: An application of our yellow-finding operation. The image on the right runs
+from black to white, depending on the yellowness of the corresponding source pixel in the
+left image.
+
+     Of course there’s nothing special about yellow. We can build a little
+neuron to detect any color. When we use a neuron in this way, we often say
+that it is filtering the input. In this context, the weights are sometimes collec-
+tively called the filter values or just the filter. Inheriting language from their
+mathematical roots, the weights are also called the filter kernel or just the
+kernel. It’s also common to refer to the entire neuron as a filter. Whether the
+word filter refers to a neuron, or specifically to its weights, is usually clear
+from context.
+     This operation of sweeping the filter over the input corresponds to a
+mathematical operation called convolution (Oppenheim and Nawab 1996).
+We say that the right side of Figure 16-5 is the result of convolution of the
+color image with the yellow-detecting filter. We also say that we convolve the
+image with the filter. Sometimes we combine these terms and refer to a fil-
+ter (whether an entire neuron, or just its weights) as a convolution filter.
+
+Weight Sharing
+In the last section, we imagined sweeping our neuron over the input image,
+performing exactly the same operation at every pixel. If we want to go
+faster, we can create a huge grid of identical neurons and apply them to all
+the pixels simultaneously. In other words, we process the pixels in parallel.
+     In this approach, every neuron has identical weights. Rather than
+repeating the same weights in a separate piece of memory for every neuron,
+we can imagine that the weights are stored in some shared piece of mem-
+ory, as in Figure 16-6. We say that the neurons are weight sharing.
+
+                                                           Convolutional Neural Networks   433
+                                                        Shared
+                                                        weights
+
+
+
+
+Figure 16-6: We can apply our neuron to every pixel in the input simultaneously. Each neuron uses the same
+weights, found in a piece of shared memory.
+
+                         This lets us save on memory. In our yellow detector example, weight
+                    sharing also makes it easy to change the color we’re detecting. Rather than
+                    change the weights in thousands of neurons (or more), we just change the
+                    one set in the shared memory.
+                         We can actually implement this scheme on a GPU, which is capable of
+                    performing many identical sequences of operations at once. Weight sharing
+                    lets us save on precious GPU memory, freeing it up for other uses.
+
+                    Larger Filters
+                    So far, we’ve been sweeping our neuron over the image (or applying it in
+                    parallel using weight sharing), processing one pixel at a time, using only
+                    that pixel’s values for input. In many situations, it’s also useful to look at
+                    the pixels near the one we’re processing. Usually we consider a pixel’s eight
+                    immediate neighbors. That is, we use the values in a little three by three box
+                    that’s centered on the pixel.
+                         Figure 16-7 shows three different operations we can apply using a three
+                    by three block of numbers in this way: blurring, detecting horizontal edges,
+                    and detecting vertical edges.
+                         To compute each image, we center the block of weights over each pixel
+                    in turn and multiply each of the nine values under it by the corresponding
+                    weight. We add up the results and use their sum as the output value for that
+                    pixel. Let’s see how to implement this process with a neuron.
+
+
+
+434    Chapter 16
+       1   1   1                    1   1   1                    –1 0     1
+       1   1   1                    0   0   0                    –1 0     1
+       1   1   1                    –1 –1 –1                     –1 0     1
+
+
+
+
+Figure 16-7: Processing a grayscale image of the frog in Figure 16-5 by moving a three
+by three template of numbers over the image. From left to right, we blur the image, find
+horizontal edges, and find vertical edges.
+
+     For simplicity, we’ll stick with a grayscale input for now. We can think
+of the blocks of numbers in Figure 16-7 as weights, or filter kernels. In this
+scenario, we have a grid of nine weights that we place over a grid of nine
+pixel values. Each pixel value is multiplied by its corresponding weight, the
+results are summed up and run through an activation function, and we
+have our output. Figure 16-8 shows the idea.
+
+
+
+
+Figure 16-8: Processing a grayscale input (red) with a three by three filter (blue)
+
+
+
+
+                                                               Convolutional Neural Networks   435
+                        This figure shows how to process a single pixel (shown in dark red).
+                   We center the filter over the intended pixel and multiply each of the nine
+                   values in the input with its corresponding filter value. We add up all nine
+                   results and pass that sum through an activation function.
+                        The shape of the pixels that form a neuron’s input in this scheme is called
+                   that neuron’s local receptive field, or more simply its footprint. In Figure 16-8, the
+                   neuron’s footprint is a square, three pixels on a side. In our yellow detector,
+                   the footprint was a single pixel. When a filter’s footprint is larger than a single
+                   pixel, we sometimes emphasize that quality by calling a spatial filter.
+                        Note that the neuron in Figure 16-8 is just like any other neuron. It
+                   receives nine numbers as inputs, multiplies each one by its corresponding
+                   weight, adds the results together, and passes that number through an activa-
+                   tion function. It doesn’t know or care that these nine numbers are coming
+                   from a square region of the input, or even that they’re coming from an image.
+                        We apply this three by three filter to an image by convolving it with
+                   the image, just as before, by sweeping it over each pixel in turn. For each
+                   input pixel, we imagine centering the three by three grid of weights over
+                   that pixel, applying the neuron, and creating a single output value, as in
+                   Figure 16-9. We say that the pixel we’re centering the filter over is the anchor
+                   (or the reference point or zero point).
+
+
+
+
+                   Figure 16-9: Applying a three by three filter (center) to a grayscale
+                   image (left), creating a new single-channel image (right)
+
+                        We can design our filters to have footprints of any size and shape we
+                   like. In practice, small sizes are most common, since they are faster to evalu-
+                   ate than larger footprints. We usually use small squares with an odd num-
+                   ber of pixels on each side (often between one and nine). Such squares let us
+                   place the anchor in the center of the footprint. This keeps everything sym-
+                   metrical and easier to understand.
+                        Let’s put this into practice. Figure 16-10 shows the result of convolving a
+                   seven by seven input with a three by three filter. Note that if we were to cen-
+                   ter the filter over the input’s corners or edges, the filter’s footprint would
+                   extend beyond the input, and the neuron would require input values that
+                   aren’t present. We address this a little later. For now, let’s just limit ourselves
+
+
+436   Chapter 16
+to those locations where the filter sits entirely on top of the image. That
+means that the output image is only five by five.
+     We motivated our discussion by looking at spatial filters that can do
+things like blur an image or detect edges. But why are such things useful for
+deep learning? To answer this, let’s look at filters more closely.
+
+
+
+
+Figure 16-10: To convolve an image with a filter, we move the filter across the image and
+apply it at each position. We’re skipping corners and edges for this figure.
+
+
+Filters and Features
+Some biologists who study toads think that certain cells in the animal’s
+visual system are sensitive to specific types of visual patterns (Ewert et al.
+1985). The theory is that a toad is looking for particular shapes correspond-
+ing to the creatures it likes to eat and to certain motions that those animals
+make. People used to think that a toad’s eyes absorbed all the light that
+struck them, sent that mass of information to the brain, and it was the
+brain’s job to sift among the results looking for food. The new hypothesis is
+that the cells in the eye are doing some early steps in this detection process
+(such as finding edges) all by themselves, and they only fire and pass on
+information to the brain if they “think” they’re looking at prey.
+    The theory has been extended to the human visual system, where it
+has led to the surprising hypothesis that some individual neurons are so
+precisely fine-tuned that they only fire in response to pictures of specific
+
+                                                            Convolutional Neural Networks   437
+                   people. The original study that led to this suggestion showed people 87 dif-
+                   ferent images, including people, animals, and landmarks. In one volunteer
+                   they found a specific neuron that only fired when the volunteer was shown a
+                   photo of the actress Jennifer Aniston (Quiroga 2005). Even more curiously,
+                   that neuron only fired when Aniston was alone, and not when she was pic-
+                   tured together with other people, including famous actors.
+                        The idea that our neurons are precision pattern-matching devices is
+                   not universally accepted, but we’re not doing real neuroscience and biology
+                   here. We’re just looking for inspiration. And this idea of letting neurons
+                   perform detection work seems like some pretty great inspiration.
+                        The connection to convolution is that we can use filters to simulate the
+                   cells in the toad’s eyes. Our filters also pick out specific patterns and then
+                   pass on their discoveries to later filters that look for even bigger patterns.
+                   Some of the terminology we use for this process echoes terms that we’ve
+                   seen before. Specifically, we’ve been using the word feature to refer to one of
+                   the values contained in a sample. But in this context, the word feature also
+                   refers to a particular structure in an input that the filter is trying to detect,
+                   like an edge, a feather, or scaly skin. We say that a filter is looking for a stripe
+                   feature, or eyeglasses, or a sports car. Continuing this usage, the filters
+                   themselves are sometimes called feature detectors. When a feature detector
+                   has been swept over an entire input, we say that its output is a feature map
+                   (the word map in this context comes from mathematical language). The
+                   feature map tells us, pixel by pixel, how well the image around that pixel
+                   matched what the filter was looking for.
+                        Let’s see how feature detection works. In Figure 16-11 we show the process
+                   of using a filter to find short, isolated vertical white stripes in a binary image.
+
+
+
+
+                   Figure 16-11: 2D pattern matching with convolution. (a) The filter. (b) The input. (c)
+                   The feature map, scaled to [0, 1] for display. (d) Feature map entries with value 3. (e)
+                   Neighborhoods of (b) around the white pixels in (d).
+
+                       Figure 16-11(a) shows a three by three filter with values −1 (black) and 1
+                   (white). Figure 16-11(b) shows a noisy input image, consisting only of black
+                   and white pixels. Figure 16-11(c) shows the result of applying the filter to
+                   each pixel in the input image (except for the outermost border). Here the
+                   values range from −6 to +3, which we scaled to [0, 1] for display. The larger
+                   the value in this image, the better the match between the filter and the
+                   pixel (and its neighborhood). A value of +3 means the filter matched the
+                   image perfectly at that pixel.
+                       Figure 16-11(d) shows a thresholded version of Figure 16-11(c), where
+                   pixels with a value of +3 are shown in white, and all others are black. Finally,
+                   Figure 16-11(e) shows the noisy image of Figure 16-11(b) with the three by
+
+438   Chapter 16
+three grid of pixels around the white pixels in Figure 16-11(d) highlighted.
+We can see that the filter found those places in the image where the pixels
+matched the filter’s pattern.
+     Let’s see why this worked. In the top row of Figure 16-12 we show our
+filter and a three by three patch of the image, along with the pixel-by-pixel
+results.
+
+ –1 1 –1                 1     1     0           –1 1        0
+ –1 1 –1                 0     0     0           0     0     0             –3 + 1 = –2
+ –1 1 –1                 1     0     1           –1 0 –1
+
+
+ –1 1 –1                 0     1     0           0     1     0
+ –1 1 –1                 0     1     0           0     1     0             3
+ –1 1 –1                 0     1     0           0     1     0
+Figure 16-12: Applying a filter to two image fragments. From left to right, each row shows
+the filter, an input, and the result. The final number is the sum of the rightmost three by
+three grid.
+
+     Consider the pixels shown in the middle of the top row. The black
+pixels (shown in gray here), with a value of 0, don’t contribute to the out-
+put. The white pixels (shown in light yellow here), with a value of 1, get
+multiplied by either 1 or –1, depending on the filter value. In the top row
+of pixels, only one of the white pixels (the top center) is matched by a 1 in
+the filter. This gives a result of 1 × 1 = 1. The other three white pixels are
+matched up with −1, giving three results of −1 × 1 = −1. Adding these gives
+us −3 + 1 = −2.
+     In the lower row, our image matches the filter. All three weights of 1
+on the filter are sitting on white pixels, and there are no other white pixels
+in the input. The result is a score of 3, indicating a perfect match.
+     Figure 16-13 shows another filter, this time looking for diagonals. Let’s
+run it over the same image. This diagonal of three white pixels surrounded
+by black is present in two places.
+
+
+
+
+Figure 16-13: Another filter and its result on our random image. (a) The filter. (b) The
+input. (c) The feature map. (d) Feature map entries with value 3. (e) Neighborhoods of (b)
+around the white pixels in (d).
+
+
+                                                             Convolutional Neural Networks   439
+                        By sweeping a filter over the image and computing the output value at
+                   each pixel, we can hunt for lots of different simple patterns. In practice, our
+                   filter and pixel values are all real numbers (not just 0 and 1), so we can make
+                   much more complex patterns that find more complex features (Snavely 2013).
+                        If we take the output of a set of filters and feed them to another set of
+                   filters, we can look for patterns of patterns. If we feed that second set of
+                   outputs to a third set of filters, we can look for patterns of patterns of pat-
+                   terns. This process lets us build up from, say, a collection of edges, to a set
+                   of shapes, such as ovals and rectangles, to ultimately matching a pattern
+                   corresponding to some specific object, such as a guitar or bicycle.
+                        Applying successive groups of filters in this way, in concert with another
+                   technique we will soon discuss called pooling, enormously expands the sorts
+                   of patterns that we can detect. The reason is that the filters operate hierar-
+                   chically, where each filter’s patterns are combinations of the patterns found
+                   by earlier filters. Such a hierarchy allows us to look for features of great
+                   complexity, such as the face of a friend, the grain of a basketball, or the eye
+                   on the end of a peacock’s feather.
+                        If we had to work out these filters by hand, classifying images would be
+                   impractical. What are the proper weights in a chain of eight filters that tell
+                   us if a picture shows a kitten or an airplane? How could we even go about
+                   working out that problem? And how would we know when we found the best
+                   filters? In Chapter 1 we discussed expert systems, in which people tried to
+                   do this kind of feature engineering by hand. It’s a formidable task for simple
+                   problems, and it grows in complexity so quickly that really interesting prob-
+                   lems, such as distinguishing cats from airplanes, seem entirely out of reach.
+                        The beauty of CNNs is that they carry out the goals of expert systems,
+                   but we don’t have to figure out the values of the filters by hand. The learn-
+                   ing process that we’ve seen in previous chapters, involving measuring error,
+                   backpropagating the gradients, and then improving the weights, teaches a
+                   CNN to find the filters it needs. The learning process modifies the kernel of
+                   each filter (that is, the weights in each neuron), until the network is produc-
+                   ing results that match our targets. In other words, training tunes the values
+                   in the filters until they find the features that enable it to come up with the
+                   right class for the object in the image. And this can happen for hundreds or
+                   even thousands of filters, all at once.
+                        This can seem like magic. Starting with random numbers, the system
+                   learns what patterns it needs to look for in order to distinguish a piano
+                   from an apricot from an elephant, and then it learns what numbers to put
+                   into the filter kernels in order to find those patterns.
+                        That this process can even come close in one situation is remarkable.
+                   The fact that it often produces highly accurate results in a vast range of
+                   applications is one of the great discoveries in deep learning.
+
+                   Padding
+                   Earlier, we promised to return to the issue of what happens when a convolu-
+                   tion filter is centered over an element in a corner or on an edge of an input
+                   tensor. Let’s look at that now.
+
+
+440   Chapter 16
+     Suppose that we want to apply a 5 by 5 filter to a 10 by 10 input. If we’re
+somewhere in the middle of the tensor, as in Figure 16-14, then our job is
+easy. We pull out the 25 values from the input, and apply them to the convo-
+lution filter.
+
+
+
+
+Figure 16-14: A five by five filter located
+somewhere in the middle of a tensor. The
+bright red pixel is the anchor, while the
+lighter ones make up the receptive field.
+
+     But what if we’re on, or near, an edge, as in Figure 16-15?
+
+
+
+
+Figure 16-15: Near the edge, the filter’s
+receptive field can fall off the side of the
+input. What values do we use for these miss-
+ing elements?
+
+     The footprint of the filter is hanging off the edge of the input. There
+aren’t any input elements there. How do we compute an output value for
+the filter when it’s missing some of its inputs?
+     We have a few choices. One is to disallow this case so we can only place
+the footprint where it is entirely within the input image. The result is an
+output that’s smaller in height and width. Figure 16-16 shows this idea.
+     While simple, this is a lousy solution. We said that we often apply many
+filters in sequence. If we sacrificed one or more rings of elements each time,
+we would lose information with every step we take through the network.
+
+                                                     Convolutional Neural Networks   441
+                   Figure 16-16: We can avoid the “falling off the edge” problem by never letting our filter
+                   get that far. With a 5 by 5 filter, we can only center the filter over the elements marked
+                   here in blue, reducing our 10 by 10 input to a 6 by 6 output.
+
+                        A popular alternative is to use a technique called padding, which lets us
+                   create an output image of the same width and height as the input. The idea
+                   is that we add a border of extra elements around the outside of the input, as
+                   in Figure 16-17. All of these elements have the same value. If we place zeros
+                   in all the new elements, we call the technique zero-padding. In practice, we
+                   almost always use zeros, so people often refer to zero-padding as merely
+                   padding, with the understanding that if they mean to use any value other
+                   than zero, they say so explicitly.
+
+
+
+
+                   Figure 16-17: A better way to solve the “falling off
+                   the edge” problem is to add padding, or extra elements
+                   (in light blue), around the border of the input.
+
+
+
+
+442   Chapter 16
+             The thickness of the border depends on the size of the filter. We usually
+        use just enough padding so that the filter can be centered on every element
+        of the input. Every filter needs to have its input padded if we don’t want to
+        lose information from the sides.
+             Most deep learning libraries automatically calculate the necessary
+        amount of padding so that our output has the same width and height as our
+        input, and apply it for us as a default.
+
+
+Multidimensional Convolution
+        So far in this chapter, we’ve mostly been considering grayscale images
+        with only one channel of color information. We know that most color
+        images have three channels, representing the red, green, and blue compo-
+        nents of each pixel. Let’s see how to handle those. Once we can work with
+        images with three channels, we can work with tensors of any number of
+        channels.
+             To process an input with multiple channels, our filters (which can
+        have any footprint) need to have an identical number of channels. That’s
+        because each value in the input needs to have a corresponding value in the
+        filter. For an RGB image, a filter needs three channels. So, a filter with a
+        footprint of three by three needs to have three channels, for a total of 27
+        numbers, as shown in Figure 16-18.
+
+
+
+
+        Figure 16-18: A three-channel filter with a
+        three by three footprint. We’ve colored the
+        values to show which input channel’s values
+        they will multiply.
+
+            To apply this kernel to a three-channel color image, we proceed
+        much as before, but now we think in terms of blocks (or tensors of three
+        dimensions).
+            Let’s take the filter of Figure 16-18, with a three by three footprint and
+        three channels, and use it to process an RGB image with three color chan-
+        nels. For each input pixel, we center the filter’s footprint over that pixel
+        as before, and match up each of the 27 numbers in the image with the 27
+        numbers in the filter, as in Figure 16-19.
+
+
+
+
+                                                            Convolutional Neural Networks   443
+                    Figure 16-19: Convolving an RGB image with a three by three by three kernel. We can
+                    imagine that each channel is filtered by its own channel in the filter.
+
+                         In Figure 16-19, our input has three channels, so our filter has
+                    three channels as well. It may be helpful to think of the red, green, and
+                    blue channels as each getting filtered by their corresponding channel in
+                    the filter, as shown in Figure 16-19. In practice, we treat the input and the
+                    filter as three by three by three blocks, and each of the 27 input values get
+                    multiplied with its corresponding filter value.
+                         This idea generalizes to any number of channels. In order to make sure
+                    that every input value has a corresponding filter value, we can state the nec-
+                    essary property as a rule: every filter must have the same number of chan-
+                    nels as the tensor it’s filtering.
+
+
+      Multiple Filters
+                    We’ve been applying a single filter at a time, but that’s rare in practice.
+                    Usually we bundle up tens or hundreds of filters into one convolution layer
+                    and apply them all simultaneously (and independently) to that layer’s input.
+                         To see the general picture, imagine that we’ve been given a black-and-
+                    white image, and we want to look for several low-level features in the pixels,
+                    such as vertical stripes, horizontal stripes, isolated dots, and plus signs. We
+                    can create one filter for each of these features and run each one over the
+                    input independently. Each filter produces an output image with one chan-
+                    nel. Combining the four outputs gives us one tensor with four channels.
+                    Figure 16-20 shows the idea.
+
+444    Chapter 16
+                   Figure 16-20: We can run multiple filters (in color) over the same input (in gray). Each filter
+                   creates its own channel in the output. They are then combined to create a single element
+                   in the output tensor with four channels.
+
+                        Instead of a grayscale image with one channel, or a color image with
+                   three channels, we now have an output tensor with four channels. If we
+                   used seven filters, then the output is a new image with seven channels. The
+                   key thing to note here is that the output tensor has one channel for each
+                   filter that’s applied.
+                        Generally speaking, our filters can have any footprint, and we can apply
+                   as many of them as we like to any input image. Figure 16-21 shows this idea.
+
+
+
+
+Figure 16-21: When we convolve filters with an input, each filter must have as many channels as the input.
+The output tensor has one channel for each filter.
+
+                       The input tensor at the far left has seven channels. We’re applying
+                   four different filters, each with a three by three footprint, so each filter is a
+
+
+
+                                                                                  Convolutional Neural Networks   445
+                    tensor of size three by three by seven. The output of each filter is a feature
+                    map of a single channel. The output tensor is what we get from stacking
+                    these four feature maps, so it has four channels.
+                         Although in principle each filter we apply can have a different foot-
+                    print, in practice we almost always use the same footprint for every filter in
+                    any given convolution layer. For example, in Figure 16-21 all the filters have
+                    a footprint of three by three.
+                         Let’s gather together the two numerical rules from the previous section
+                    and this one. First, every filter in a convolution layer must have the same
+                    number of channels as that layer’s input tensor. Second, a convolution lay-
+                    er’s output tensor will have as many channels as there are filters in the layer.
+
+
+      Convolution Layers
+                    Let’s take a closer look at the mechanics of convolution layers. A convolu-
+                    tion layer is simply a bunch of filters gathered together. They’re applied
+                    independently to the input tensor, as in Figure 16-21, and their outputs are
+                    combined to create a new output tensor. The input is not changed by this
+                    process.
+                         When we create a convolution layer in code, we typically tell our
+                    library how many filters we want, what their footprint should be, and other
+                    optional details like whether we want to use padding and what activation
+                    function we want to use—the library takes care of all the rest. Most impor-
+                    tantly, training improves the kernel values in each filter, so that the filters
+                    learn the values that enable them to produce the best results.
+                         When we draw a diagram of a deep learner, we usually label our convo-
+                    lution layers with how many filters are used, their footprints, and their acti-
+                    vation function. Since it’s common to use the same padding all around the
+                    input, we often just provide a single value rather than two, with the under-
+                    standing that it applies to both width and height.
+                         Like the weights in fully connected layers, the values in a convolution
+                    layer’s filters start out with random values and are improved with train-
+                    ing. Also like fully connected layers, if we’re careful about choosing these
+                    random initial values, training usually goes faster. Most libraries offer a
+                    variety of initialization methods. Generally speaking, the built-in defaults
+                    normally work fine, and we rarely need to explicitly choose an initialization
+                    algorithm.
+                         If we do want to pick a method, the He algorithm is a good first choice
+                    (He et al. 2015; Karpathy 2016). If that’s not available, or doesn’t work well in
+                    a given situation, Glorot is a good second choice (Glorot and Bengio 2010).
+                         Let’s look at a couple of special types of convolution that have their
+                    own names.
+
+                    1D Convolution
+                    An interesting special case of sweeping a filter over an input is called
+                    1D convolution. Here we sweep over the input as usual in either height or
+                    width, but not the other (Snavely 2013). This is a popular technique when
+
+446    Chapter 16
+                  working with text, which can be represented as a grid where each element
+                  holds a single letter, and rows contain complete words (or a fixed number
+                  of letters) (Britz 2015).
+                       The basic idea is shown in Figure 16-22.
+ A f t e r                   A f t e r                  A f t e r                       A f t e r
+ t h e                       t h e                      t h e                           t h e
+ d o g s                     d o g s                    d o g s                         d o g s
+ w e n t                     w e n t                    w e n t                         w e n t
+ s w i m m i n g             s w i m m i n g            s w i m m i n g                 s w i m m i n g
+ w e                         w e                        w e                             w e
+ j u m p e d                 j u m p e d                j u m p e d                     g a v e
+
+
+Figure 16-22: An example of 1D convolution. The filter only moves downward.
+
+                       Here, we’ve created a filter that is the entire width of the input and two
+                  rows high. The first application of the filter processes everything in the first
+                  two rows. Then we move the filter down and process the next two rows. We
+                  don’t move the filter horizontally. The name 1D convolution comes from this
+                  single direction, or dimension, of movement.
+                       As always, we can have multiple filters sliding down the grid. We can
+                  perform 1D convolution on an input tensor of any number of dimensions,
+                  as long as the filter itself moves in just one dimension. There’s nothing oth-
+                  erwise special about 1D convolution: it’s just a filter that only moves in one
+                  direction. The technique has its own name to emphasize the filter’s limited
+                  mobility.
+                       The name 1D convolution is almost the same as the name of another,
+                  quite different, technique. Let’s look at that now.
+
+                  1×1 Convolutions
+                  Sometimes we want to reduce the number of channels in a tensor as it flows
+                  through a network. Often this is because we think that some of the chan-
+                  nels contain redundant information. This isn’t uncommon. For example,
+                  suppose we have a classifier that identifies the dominant object in a photo-
+                  graph. The classifier might have a dozen or more filters that look for eyes
+                  of different sorts: human eyes, cat eyes, fish eyes, and so on. If our classifier
+                  is going to ultimately lump all living things together into one class called
+                  “­living things,” then there’s no need to care about which kind of eye we
+                  find. It’s enough just to know that a particular region in the input image
+                  has an eye.
+                        Suppose that we have a layer containing filters that detect 12 different
+                  kinds of eyes. Then the output tensor from that layer will have at least 12
+                  channels, one from each filter. If we only care about whether or not an eye
+                  is found, then it would be useful to modify that tensor by combining, or
+                  compressing, those 12 channels into just 1 channel representing whether or
+                  not an eye is found at each location.
+                        This doesn’t require anything new. We want to process one input ele-
+                  ment at a time, so we create a filter with a footprint of one by one, like we
+                  saw in Figure 16-6. We make sure that we have at least 11 fewer filters than
+
+                                                                              Convolutional Neural Networks   447
+                      there are input channels. The result is a tensor of the same width and
+                      height as the input, but the multiple eye channels get crunched together
+                      into just one channel.
+                          We don’t have to do anything explicit to make this happen. The net-
+                      work learns weights for the filters such that the network produces the cor-
+                      rect output for each input. If that means combining all the channels for
+                      eyes, then the network learns to do that.
+                          Figure 16-23 shows how to use these filters to compress a tensor with
+                      300 channels into a new tensor of the same width and height, but with only
+                      175 channels.
+
+
+                                 175 filters,
+                                each 1x1x300
+
+
+
+                                 1x1x300
+                               pixel values     Multiply
+                                                and add
+
+
+
+
+                                                                                               Output
+                     Input
+                                                                                   175
+      300
+
+Figure 16-23: Applying 1×1 convolution to perform feature reduction
+
+                            The technique of using one by one filters has been given its own name.
+                      We say that we apply a one by one filter, often written as a 1×1 filter, and use
+                      that to perform 1×1 convolution (Lin, Chen, and Yan 2014).
+                            In Chapter 10 we talked about the value of preprocessing our input
+                      data in order to save processing time and memory. Rather than perform
+                      this processing once, before the data has entered our system, 1×1 convolu-
+                      tion lets us apply this compression and restructuring of the data on the fly,
+                      inside of the network. If our network produces information that can be
+                      compressed or removed entirely, then 1×1 convolutions can find and then
+                      compress or remove that data. We can do this anywhere, even in the middle
+                      of a network.
+                            When the channels are correlated, 1×1 convolution is particularly effec-
+                      tive (Canziani, Paszke, and Culurciello 2016; Culurciello 2017). This means
+                      that the filters on the previous layers have created results that are in sync
+                      with one another, so that when one goes up, we can predict by how much
+                      the others will go up or down. The better this correlation, the more likely
+                      it is that we can remove some of the channels and suffer little to no loss of
+                      information. The 1×1 filters are perfect for this job.
+
+
+
+448     Chapter 16
+           The term 1×1 convolution is uncomfortably close to 1D convolution, which
+       we discussed in the last section. But these names refer to quite distinct
+       techniques. When encountering either of these terms, it is worth taking a
+       moment to make sure we have the correct idea in mind.
+
+
+Changing Output Size
+       We’ve just seen how to change the number of channels in a tensor by using
+       1×1 convolution. We can also change the width and height, which is useful
+       for at least two reasons. The first is that if we can make the data flowing
+       through our network smaller, we can use a simpler network and save time,
+       computing resources, and energy. The second is that reducing the width
+       and height can make some operations, like classification, more efficient and
+       even more accurate. Let’s see why this is so.
+
+       Pooling
+       In previous sections, we applied each filter to one pixel, or one region of
+       pixels. The filter matches the feature it’s looking for if the underlying pixels
+       match the filter’s values. But what if some of the elements of the feature are
+       in slightly wrong places? Then the filter won’t match. There’s no way for the
+       filter to look around and report a match if one or more pieces of the pat-
+       tern it’s looking for are present but slightly out of position. This would be a
+       real problem if we didn’t address it. For example, suppose we’re looking for
+       a capital T on a page of text. Due to a minor mechanical error during print-
+       ing, a column of pixels was displaced downward by one pixel.
+            We still want to find the T. The situation is illustrated in Figure 16-24.
+
+
+
+
+            perfect                   perfect                   overlay                   filter result
+             filter                   image
+
+       Figure 16-24: From left to right: A five by five filter looking for a letter T, a misprinted T,
+       the filter on top of the image, and the filter’s resulting values. The filter would not report a
+       match to the letter T.
+
+           We begin with a five by five filter that is looking for a T in the center.
+       We illustrate this using blue for 1 and yellow for 0.
+           We’ve labeled this the “perfect filter,” a name that will make sense in a
+       moment. To its right is the misprinted text we’re going to examine, labeled
+       “perfect image.” To the right of that, we overlay the filter on the image. At
+       the far right is the result. Only when the filter and the input are both blue
+
+
+
+
+                                                                       Convolutional Neural Networks   449
+                      will the output be blue. Since the filter’s upper-right element did not find
+                      the blue pixel it was expecting, the filter as a whole reports either no match,
+                      or a weak one.
+                           If the upper-right element in the filter could look around and notice
+                      the blue pixel just below it, it could match the input. One way to make this
+                      happen is to let each filter element “see” more of the input. The most conve-
+                      nient way to do that mathematically is to make the filter a bit blurry.
+                           On the top row of Figure 16-25 we picked out one element of the filter
+                      and blurred it. If the filter finds a blue pixel anywhere in this larger, blurry
+                      region, it reports finding blue. If we do this for all the entries in the filter,
+                      we create a “blurry filter.” Thanks to this extended reach, the upper-right
+                      blue filter element now overlaps two blue pixels, and since the other blue
+                      elements also overlap blue pixels, the filter now reports a match.
+
+
+
+
+                    blurry             perfect               overlay              filter result
+                     filter            image
+
+
+
+Figure 16-25: Top row: Replacing a filter element with a bigger, blurrier version. Bottom row: Applying the
+blur to every filter element gives us a blurry filter. Applying this to the image matches the misprinted T.
+
+                           Unfortunately, we can’t blur filters like this. If we modified our filter
+                      values by blurring them, our training process would go haywire, since we
+                      would be altering the very values we’re trying to learn. But there’s nothing
+                      stopping us from blurring the input! This is particularly easy to see if the
+                      input is a picture, but we can blur any tensor. So rather than applying a
+                      blurry filter to a perfect input, let’s flip that around and apply a perfect fil-
+                      ter to a blurry input.
+                           The top row of Figure 16-26 shows a single pixel from the misprinted T,
+                      and the version of that pixel after it’s been blurred. After we apply this blur-
+                      ring to all the pixels, we can apply the perfect filter to this blurry image.
+                      Now every blue dot in the filter sees blue under it. Success!
+
+
+
+450    Chapter 16
+      perfect                   blurry                 overlay                       filter result
+       filter                  image
+
+
+Figure 16-26: Top row: The effect of blurring one pixel in the input. Bottom row: We apply
+the perfect filter to a blurred version of the image. This matches the misprinted T.
+
+    Taking this as our inspiration, we can come up with a technique to blur
+a tensor. We call the method pooling, or downsampling. Let’s see how pool-
+ing works numerically with a small tensor with a single channel. Suppose
+we start with a tensor that has a width and height of four, as shown in
+Figure 16-27(a).
+
+ 3     2     –3      2    3      2     –3      2
+
+ 1     6     20      5    1     6      20      5   3          6        6     20
+
+ 4    –13        2   6    4    –13         2   6   –2         5        4         9
+
+ –2    3         9   3    –2     3         9   3   Average              Max
+
+           (a)                       (b)                (c)                (d)                (e)
+
+Figure 16-27: Pooling, or downsampling, a tensor. (a) Our input tensor. (b) Subdividing (a)
+into two by two blocks. (c) The result of average pooling. (d) The result of max pooling. (e)
+Our icon for a pooling layer.
+
+    Let’s subdivide the width and height of this tensor into two by two
+blocks, as in Figure 16-27(b). To blur the input tensor, recall Figure 16-7. We
+saw that by convolving with a filter whose contents are all 1’s, the image got
+blurry. Such a filter is called a low-pass filter, or more specifically, a box filter.
+    To apply a box filter to a tensor, we can use a two by two filter where
+every weight is a 1. Applying this filter merely means adding up the four
+
+
+
+
+                                                                  Convolutional Neural Networks      451
+                   numbers in each two by two block. Because we don’t want our numbers to
+                   grow without bound, we divide the result by four to get the average value
+                   in that block. Since this average now stands in for the entire block, we save
+                   it just once. We do the same thing for the other three blocks. The result is
+                   a new tensor of size two by two, shown in Figure 16-27(c). This technique is
+                   called average pooling.
+                         There’s a variation on this method: instead of computing the average
+                   value, we just use the largest value in each block. This is called maximum
+                   pooling (or more often, just max pooling), and is shown in Figure 16-27(d).
+                   It’s common to think of these pooling operations as being carried out by
+                   a little utility layer. In Figure 16-27(e) we show our icon for such a pooling
+                   layer. Experience has shown that networks that use max pooling learn more
+                   quickly than those using average pooling, so when people speak of pooling
+                   with no other qualifiers, they usually mean max pooling.
+                         The power of pooling appears when we apply multiple convolution lay-
+                   ers in succession. Just as with a filter and a blurred input, if the first filter’s
+                   values aren’t in quite the expected locations, pooling helps the second
+                   layer’s filter still find them. For example, suppose that we have two layers in
+                   succession, and Layer 2 has a filter that is looking for a strong match from
+                   Layer 1, directly above a match of about half that value (maybe this is char-
+                   acteristic of a particular animal’s coloration). Nothing in the original 4 by 4
+                   tensor in Figure 16-27(a) fits that pattern. There’s a 20 over a 2, but the 2
+                   isn’t close to being half of 20. And there’s a 6 over 3, but 6 isn’t a very strong
+                   output. So Layer 2’s filter would fail to find what it was looking for. That’s
+                   too bad, because there is a 20 that’s close to being over a 9, which is what
+                   the filter wants to find. The problem is that the 20 and the 9 are not exactly
+                   vertical neighbors.
+                         But the max pooling version has the 20 over the 9. The pooling opera-
+                   tion is communicating to Layer 2 that there is a strong match of 20 some-
+                   where in the upper right two by two block, and a match of 9 somewhere
+                   in the block directly below the 20. That’s the pattern we’re looking for,
+                   and the filter will tell us that it found a match.
+                         We’ve discussed pooling for just one channel. When our tensors have
+                   multiple channels, we apply the same process to each channel. Figure 16-28
+                   shows the idea.
+                         We start with an input tensor of height and width 6 and one channel,
+                   padded with a ring of zeros. The convolution layer applies three filters, each
+                   producing a feature map of six by six. The output of the convolution layer is a
+                   tensor of size six by six by three. The pooling layer then conceptually considers
+                   each channel of this tensor, and applies max pooling to it, reducing each fea-
+                   ture map to three by three. Those feature maps are then combined as before
+                   to produce an output tensor of width and height 3, with three channels.
+
+
+
+
+452   Chapter 16
+                    Convolution layer                              Pooling layer
+
+
+
+
+                                                                                                  Pooling
+                                                                                                   layer
+                                                  Convolution                                     output
+  Input                                              layer
+                                                    output
+
+                                                                           Pooled
+                    Filters   Feature                            Pooling   feature
+                               maps                              blocks     maps
+
+Figure 16-28: Pooling, or downsampling, with multiple filters
+
+                        We’ve been using binary images and filters as examples. This means
+                   that a feature that straddles cell boundaries could be missed, or wind up
+                   in the wrong element in the pooled tensor. When we use real valued inputs
+                   and filter kernels, this problem is greatly reduced.
+                        Pooling is a powerful operation that frees filters from requiring their
+                   inputs to be in precisely the right place. Mathematicians refer to a change
+                   in location as translation or shift, and if some operation is insensitive to a
+                   certain kind of change it’s called invariant with respect to that operation.
+                   Combining these, we sometimes say that pooling allows our convolutions to
+                   be translationally invariant, or shift invariant (Zhang 2019).
+                        Pooling also has the bonus benefit of reducing the size of the tensors
+                   flowing through our network, which reduces both memory needs and exe-
+                   cution time.
+
+                   Striding
+                   We’ve seen how useful pooling is in a convolutional network. Though
+                   ­pooling layers are common, we can save time by bundling the pooling
+                    step right into the convolution process. This combined operation is much
+                    faster than two distinct layers. The tensors resulting from the two proce-
+                    dures usually contain different values, but experience has shown that the
+                    faster, combined operation usually produces results that are just as useful
+                    as the slower, sequential operations.
+                         As we saw, during convolution we can imagine starting the filter in the
+                    upper-left pixel of the input image (let’s assume we have padding). The fil-
+                    ter produces an output, then takes one step right, produces another output,
+
+
+                                                                       Convolutional Neural Networks   453
+                   moves another step right, and so on until it reaches the right edge of that
+                   row. Then it moves down one row and back to the left side, and the process
+                   repeats.
+                        But we don’t have to move in single steps. Suppose we move, or stride,
+                   more than one pixel to the right, or more than one pixel down, as we sweep
+                   our filter. Then our output will end up being smaller than the input. We
+                   usually use the word stride (and the related striding) only when we use steps
+                   greater than one in any dimension.
+                        To visualize striding, let’s see how the filter moves starting from the
+                   upper left. As the filter moves left to right, it produces a sequence of out-
+                   puts, and those get placed one after the other, also left to right, in the out-
+                   put. When the filter moves down, the new outputs go on a new line of cells
+                   in the output.
+                        Now suppose that instead of moving the filter to the right by one ele-
+                   ment on each horizontal step, we moved to the right by three elements. And
+                   perhaps on each vertical step we move down by two rows, rather than one.
+                   We still grow the output by one element for each output. The idea is shown
+                   in Figure 16-29.
+
+
+
+
+                   Figure 16-29: Our input scanning can skip over input elements as it moves. Here we move
+                   three elements to the right on each horizontal step, and two elements down on each verti-
+                   cal step.
+
+                        In Figure 16-29 we used a stride of three horizontally, and a stride of
+                   two vertically. More often we specify a single stride value for both axes. A
+                   stride of two on both axes can be thought of as evaluating every other pixel
+
+454   Chapter 16
+both horizontally and vertically. This results in an output that has half
+the input dimensions as the input, which means the output has the same
+dimensions as striding by one and then pooling with two by two blocks.
+Figure 16-30 shows where the filter lands in the input for a couple of differ-
+ent pairs of strides.
+
+
+
+
+Figure 16-30: Examples of striding. (a) A stride of two in both directions means centering
+the filter over every other pixel, both horizontally and vertically. (b) A stride of three in
+both directions means centering over every third pixel.
+
+     When we move by one element on every step, a filter with a three by
+three footprint processes the same input elements multiple times. When we
+stride by larger amounts, our filter can still process some elements multiple
+times, as shown in Figure 16-31.
+
+
+
+
+Figure 16-31: This three by three filter is moving with a stride of two in each dimension,
+reading left to right, top to bottom. The gray elements show what’s been processed so far.
+The green elements are those that have already been used by the filter on previous evalu-
+ations but are being used again.
+
+
+
+                                                              Convolutional Neural Networks   455
+                        There’s nothing wrong with reusing an input value repeatedly, but if
+                   we’re trying to save time, we might want to do as little computation as pos-
+                   sible. Then we can use striding to prevent any input element from being
+                   used more than once. For instance, if we’re moving a three by three filter
+                   over an image, we might use a stride of three in both directions, so that no
+                   pixel gets used more than once, as in Figure 16-32.
+
+
+
+
+                   Figure 16-32: Like Figure 16-31, only now we’re striding by three in each dimension.
+                   Every input element is processed exactly one time.
+
+                         The striding in Figure 16-32 produces an output tensor with a height
+                   and width that are each one-third of the input tensor’s height and width.
+                   Consider that in Figure 16-32 we processed a nine by six block of input ele-
+                   ments with just six filter evaluations. By doing this, we created a three by
+                   two block of outputs with no explicit pooling. If we don’t stride, and then
+                   pool, we need many more filter evaluations to cover the same region, and
+                   then we need to run the pooling operation on the filter outputs.
+                         Strided convolutions are faster than convolution without striding fol-
+                   lowed by pooling for two reasons. First, we evaluate the filter fewer times,
+                   and second, we don’t have an explicit pooling step to compute. Like pad-
+                   ding, striding can (and often is) carried out on any convolutional layer, not
+                   just the first.
+                         The filters learned from striding are usually different than those
+                   learned from convolution without striding followed by pooling. This
+                   means we can’t take a trained network and replace pairs of convolution
+                   and pooling with strided convolution (or vice versa) and expect things to
+                   still work properly. If we want to change our network’s architecture, we
+                   have to retrain it.
+                         Most of the time, training with strided convolution gives us final results
+                   that are roughly the same as those we get from convolution followed by
+                   pooling, delivered in less time. But sometimes the slower combination
+                   works better for a given dataset and architecture.
+
+
+456   Chapter 16
+Transposed Convolution
+We’ve seen how to reduce the size of the input, or downsize it, using either
+pooling or striding. We can also increase the size of the input, or upsize
+it. As with downsizing, when we upsize a tensor, we increase its width and
+height, but we don’t change the number of channels.
+     Just as with downsampling, we can upsize with a separate layer or build
+it into the convolution layer. A distinct upsampling layer usually just repeats
+the input tensor values as many times as we request. For example, if we
+upsample a tensor by two in both the width and height, each input element
+turns into a little two by two square. Figure 16-33 shows the idea.
+
+
+
+
+Figure 16-33: Upsampling a tensor by two in each direction. Left: The input tensor. Each
+element of this tensor is repeated twice vertically and horizontally. Right: The output ten-
+sor. The number of channels is unchanged.
+
+     We have seen that we can combine downsampling with convolution by
+using striding. We can also combine upsampling with convolution. This
+combined step is called transposed convolution, fractional striding, dilated convo-
+lution, or atrous convolution. The word transposed comes from the mathemati-
+cal operation of transposition, which we can use to write the equation for
+this operation. The word atrous is French for “with holes.” We’ll see where
+that term, and the others, come from in a moment. Note that some authors
+refer to the combination of upsampling and convolution as deconvolution,
+but it’s best to avoid that term, since it’s already in use and refers to a differ-
+ent idea (Zeiler et al. 2010). Following current practice, we’ll use the term
+transposed convolution.
+     Let’s see how transposed convolution works to enlarge a tensor
+(Dumoulin and Visin 2016). Suppose that we have a starting image of
+width and height three by three (remember, the number of channels won’t
+be changing), and we’d like to process it with a three by three filter, but
+we’d like to end up with a five by five image. One approach is to pad the
+input with two rings of zeros, as in Figure 16-34.
+
+
+
+
+                                                               Convolutional Neural Networks   457
+Figure 16-34: Our original three by three input is shown in white in the outer grids, padded with two ele-
+ments of zeros all around. The three by three filter now produces a five by five result, shown in the center.
+
+                        If we add more rings of zeros to the input, we get larger outputs, but
+                    they will produce rings of zeros around the central five by five core. That’s
+                    not very useful.
+                        An alternative way to enlarge the input is to spread it out before con-
+                    volving by inserting padding both around and between the input elements.
+                    Let’s try this out. Let’s insert a single row and column of zeros between each
+                    element of our starting three by three image, and pad all of that with two
+                    rings of zeros around the outside, like before. The result is that our three by
+                    three input now has dimensions nine by nine, though a lot of those entries
+                    are zero. When we sweep our three by three filter over this grid, we get a
+                    seven by seven output, as shown in Figure 16-35.
+                        Our original three by three image is shown in the outer grids with
+                    white pixels. We’ve inserted a row and column of zeros (blue) between each
+
+
+
+
+458    Chapter 16
+                   pixel, and then surrounded the whole thing with two rings of zeros. When
+                   we convolve our three by three filter (red) with this grid, we get a seven by
+                   seven result, shown in the center.
+
+
+
+
+Figure 16-35: Transposed convolution, convolving a three by three filter into a seven by seven result
+
+                       Figure 16-35 suggests where the names atrous (French for “with holes”)
+                   convolution and dilated convolution come from. We can make our output even
+                   bigger by inserting another row and column between each original input
+                   element, as in Figure 16-36. Now our 3 by 3 input has become an 11 by 11
+                   input, and the output is 9 by 9.
+
+
+
+
+                                                                                 Convolutional Neural Networks   459
+Figure 16-36: The same setup as Figure 16-35, only now we have two rows and columns between our origi-
+nal input pixels, producing the nine by nine result in the center
+
+                        We can’t push this technique any further without producing rows and
+                   columns of zeros in the output. The limit of two rows or columns of zeros
+                   is due to our filter having a footprint of three by three. If the filter was,
+                   say, five by five, we could use up to four rows and columns of zeros. This
+                   technique of inserting zeros can create little checkerboard-like artifacts
+                   in the output tensors. But library routines can usually avoid these if they
+                   take steps to handle the convolution and upsampling carefully (Odena,
+                   Dumoulin, and Olah 2018; Aitken et al. 2017).
+                        There is a connection between transposed convolution and striding.
+                   With some imagination, we can describe a transposed convolution process
+                   like that of Figure 16-36 as using a stride of one-third in each dimension.
+                   We don’t mean that we literally move one-third of an element, but rather
+
+460   Chapter 16
+         that we need to take three steps in the 11 by 11 grid to move the equivalent
+         of one step in the original 3 by 3 input. This point of view explains why the
+         method is sometimes called fractional striding.
+              Just as striding combines convolution with a downsampling (or pool-
+         ing) step, transposed convolution (or fractional striding) combines convolu-
+         tion with an upsampling step. This results in faster execution time, which is
+         always nice. A problem is that there is a limit to how much we can increase
+         the input size. In practice, we commonly double the input dimensions, and
+         use filters with a footprint of three by three, and transposed convolution
+         supports that combination without introducing extraneous zeros in the
+         output.
+              As with striding, the output of transposed convolution is different than
+         the output of upsampling followed by standard convolution, so if we’re
+         given a trained network using upsampling followed by convolution, we can’t
+         just replace those two layers with one transposed convolution layer and use
+         the same filters.
+              Transposed convolution is becoming more common than upsampling
+         followed by convolution because of the increased efficiency, and similarity
+         of the results (Springenberg et al. 2015).
+              We’ve covered a lot of basic tools, from different types of convolution to
+         padding and changing the output size. In the next section, we put these all
+         together to create a complete, but simple, convolutional network.
+
+
+Hierarchies of Filters
+         Many real visual systems seem to be arranged hierarchically (Serre 2014). In
+         broad terms, many biologists think of the processing in the visual system
+         as taking place in a series of layers, with each successive layer working at a
+         higher level of abstraction than the one before.
+              We’ve taken inspiration from biology already in this chapter, and we
+         can do it again now.
+              Let’s return to our discussion of the visual system of a toad. The first
+         layer of cells to receive light may be looking for “bug-colored blobs,” the
+         next may be looking for “combinations of blobs from the previous layer that
+         form bug-like shapes,” the next may be looking for “combinations of bug-
+         like shapes from the previous layer that look like a thorax with wings,” and
+         so on, up to the top layer, which looks for “flies” (these features are com-
+         pletely imaginary, and only meant to illustrate the idea).
+              This approach is nice conceptually because it lets us structure our
+         analysis of an image in terms of a hierarchy of image features and the filters
+         that look for them. It’s also nice for implementations because it’s a flexible
+         and efficient way to analyze an image.
+
+         Simplifying Assumptions
+         To illustrate the use of hierarchies, let’s solve a recognition problem with a
+         convolutional network. To focus this discussion just on the concepts, we’ll
+
+
+                                                              Convolutional Neural Networks   461
+                   make use of some simplifications. These simplifications in no way change
+                   the principles we’re demonstrating; they just make the pictures easier to
+                   draw and interpret.
+                        First, we restrict ourselves to binary images: just black and white, with
+                   no shades of gray (though for clarity, we draw them with beige and green
+                   for 0 and 1, respectively). In real applications, each channel in our input
+                   images is usually either an integer in the range [0, 255], or more commonly
+                   a real number in the range [0, 1].
+                        Second, our filters are also binary and look for exact matches in their
+                   inputs. In real networks, our filters use real numbers, and they match their
+                   inputs to different degrees, represented by different real numbers at their
+                   output.
+                        Third, we hand-create all of our filters. In other words, we do our own
+                   feature engineering. When we looked at expert systems, we said that their
+                   biggest problem was that they required people to manually build features,
+                   and here we are, doing just that! We’re doing so just for this discussion,
+                   however. In practice, our filter values are learned by training. Since we’re
+                   not interested in the training step right now, we’ll use handmade filters (we
+                   can think of them as filters that resulted from training).
+                        Fourth, we won’t use padding. This also is just to keep things simple.
+                        Finally, our example uses tiny input images that are just 12 pixels on a
+                   side. This is large enough to demonstrate the ideas but small enough that
+                   we can draw everything clearly on the page.
+                        With these simplifications in place, we’re ready to get started.
+
+                   Finding Face Masks
+                   Let’s suppose that we work at a museum that has received a big collection
+                   of art, and it’s our job to organize it all. One of our tasks is to find all of
+                   the drawings of grid-based face masks that are close matches to the simple
+                   mask in Figure 16-37.
+
+
+
+
+                   Figure 16-37: A simple binary mask
+                   on a 12 by 12 mesh
+
+                        Suppose we’re given the new mask in the middle of Figure 16-37. Let’s
+                   call this the candidate. We want to determine whether it’s roughly the “same”
+                   as the original mask, which we call the reference. We can just overlay the two
+                   masks and see if they match up, as in the right of Figure 16-38.
+
+
+462   Chapter 16
+Figure 16-38: Testing for similarity. On the left is our original mask, or reference. In the
+middle is a new mask, or candidate. To see if they’re close to one another, we can over-
+lay them, at the right.
+
+    In this case, it’s a perfect match, which is easy to detect. But what if a
+candidate is slightly different than the reference, as in Figure 16-39? Here
+one eye has moved down by one pixel.
+
+
+
+
+Figure 16-39: Like Figure 16-38, only the candidate’s left eye has moved down by one
+pixel. The overlay is now imperfect.
+
+    Let’s say that we still want to accept this candidate, since it has all the
+same features as the reference, and they’re mostly in the right places. But
+the overlay shows that they’re not identical, so a simple pixel-by-pixel com-
+parison won’t do the job.
+    In this simple example, we could come up with lots of ways to detect
+close matches, but let’s use convolution to determine that a candidate like
+the one in Figure 16-39 is “like” the reference. As mentioned earlier, we’re
+going to hand-engineer our filters. To describe our hierarchy, it’s easiest to
+work backward, from the final step of convolution to the first.
+    Let’s begin by describing the reference mask. Then we can determine if
+a candidate shares its qualities. Let’s say that our reference is characterized
+by having one eye in each of the upper corners, a nose in the middle, and a
+mouth under the nose. That description applies to all of the masks we saw
+in Figures 16-38 and 16-39.
+    We can formalize this description with a three by three filter, as in the
+top-left grid of Figure 16-40. This will be one of our last filters: if we run a
+candidate through a series of convolutions, ultimately producing a three
+by three tensor (we’ll see how that happens shortly), then if that tensor
+matches this filter, we’ve found a successful match, and an acceptable candi-
+date. The cells with an × in them mean “don’t care.” For instance, suppose
+
+                                                              Convolutional Neural Networks   463
+                   a candidate has a tattoo on one cheek that falls into the × to the right of
+                   the nose. This doesn’t affect our decision, so we explicitly don’t care about
+                   what’s in that cell.
+
+                    Eye           Eye
+                                                                  M             E            E
+                          Nose
+                                                            N                          N
+                          Mouth
+                                                      E                                M
+
+                                                                                       F
+
+                                   Eye
+                                                                  M                          E
+                                  Nose
+                                                            N                                N
+                                  Mouth
+                                                      E                                      M
+
+                                                                                       P
+                   Figure 16-40: Filters for mask recognition. Top and bottom rows: Finding a
+                   mask facing forward, or in profile. Left column: Characterizing the reference.
+                   Middle: An exploded version of the tensor described by the grid at the left.
+                   Right: An X-ray view of the filter (see text).
+
+                       Since our filters only contain the values 1 (green) and 0 (beige), we
+                   can’t make a filter like the upper left diagram of Figure 16-40 directly.
+                   Instead, since it’s looking for three different kinds of features, we need to
+                   redraw it as a filter with three channels, which we’ll apply to an input tensor
+                   with three channels. One input channel tells us all the locations where an
+                   eye was located in the input, the next tells us all the locations of a nose, and
+                   the last tells us all the locations of a mouth. Our upper-left diagram corre-
+                   sponds, then, to a three by three by three tensor, shown in the upper mid-
+                   dle diagram, where we’ve staggered the channels so we can read each one.
+                       We drew the staggered version because if we drew that tensor as a solid
+                   block, we wouldn’t be able to see most of the values on the N (nose) and
+                   M (mouth) channels. The staggered version is useful, but it will get too
+                   complicated when we start comparing tensors in the following discussion.
+                   Instead, let’s draw an “X-ray view” of the tensor, as in the upper right. We
+                   imagine we’re looking through the channels of the tensor, and we mark
+                   each cell with the names of all the channels that have a 1 in that cell.
+                       Since this filter is looking for a mask facing forward, we label it F. For
+                   fun, we can make another mask that’s looking for a face in profile, which
+                   we can call P. We won’t look at any candidates that would be matched by
+                   P, but we’re including it here to show the generality of this process. The
+                   layers to come, which operate before the filters of Figure 16-40, will tell
+
+464   Chapter 16
+us where they found an eye, nose, and mouth. We use that information in
+Figure 16-40 to recognize different arrangements of these facial features
+just by using different filters.
+
+Finding Eyes, Noses, and Mouths
+Let’s see how to turn a 12 by 12 candidate picture into the 3 by 3 grid
+required by the filters of Figure 16-40. We can do that with a series of con-
+volutions, each followed by a pooling step. Since the filters of Figure 16-40
+are trying to match eyes, a nose, and a mouth, we know that the convolu-
+tion layer before these filters has to produce those features. So, let’s design
+filters that search for them.
+     In Figure 16-41, we show three filters, each with a four by four foot-
+print. They’re labeled E4, N4, and M4. They look for an eye, a nose, and a
+mouth, respectively. The reason for placing the “4” at the end of each name
+will be clear in a moment.
+
+
+
+
+  E4                              N4                               M4
+Figure 16-41: Three filters that detect an eye, nose, and mouth
+
+     We can jump right in and apply these three filters to any candidate
+image. Since the images are 12 by 12, and we’re not padding, the outputs
+will be 10 by 10. If we pool those down to 3 by 3, we can then apply the fil-
+ters of Figure 16-40 to the output of the filters in Figure 16-41 to determine
+if the candidate is a mask looking forward, or in profile, or neither.
+     But applying four by four filters requires a lot of computation. Worse,
+if we want to look for another feature (like a winking eye), we have to build
+another four by four filter and also apply that to the whole image. We can
+make our system more flexible, and also faster, by introducing another layer
+of convolution before this one.
+     What features can make up our E4, N4, and M4 filters of Figure 16-41?
+If we think of each four by four filter as a grid of two by two blocks, then we
+need only four types of two by two blocks to make up all three filters. The
+top row of Figure 16-42 shows those four little blocks, and the rows below
+that show how they can be combined to make our eye, nose, and mouth
+filters. We’ve called these T, Q, L, and R for top, quartet, lower-left corner,
+and lower-right corner, respectively.
+
+
+                                                             Convolutional Neural Networks   465
+                                        T             Q              L             R
+
+                                                                                             R
+                                                                                        L             T T
+                   E4
+                                                                                   Q                  Q Q
+                                                                               T                         E
+
+
+
+                                                                                             R
+                                                                                        L             R L
+                   N4
+                                                                                   Q                  T T
+                                                                               T                         N
+
+
+
+                                                                                             R
+                                                                                        L              L R
+                   M4
+                                                                                   Q                   T T
+                                                                               T                         M
+
+                   Figure 16-42: Top row: The two by two filters T, Q, L, and R. Second row, left to right:
+                   Filter E4, breaking it into four smaller blocks and the tensor form of those blocks. The far
+                   right shows the X-ray view of the two by two by four filter E. Third and fourth rows: Filters
+                   N4 and M4.
+
+                       Starting with the eye filter E4, we break the four by four filter into four
+                   two by two blocks. The third drawing in the E4 row shows the four chan-
+                   nels that we expect as input, one each for T, Q, L, and R, drawn as a single
+                   tensor where we staggered the channels. To draw that tensor more conve-
+                   niently, we use the X-ray convention we saw in Figure 16-40. This gives us a
+                   new filter, of size two by two by four. This is the filter we really want to use
+                   to detect eyes, so we drop the “4” and just call this E.
+                       The N and M filters are created by the same process of subdivision and
+                   assembly from T, Q, L, and R.
+                       Now imagine running the little T, Q, L, and R filters over a candidate
+                   image. They’re looking for patterns of pixels. Then the E, N, and M filters
+                   look for specific arrangements of T, Q, L, and R patterns. And then the F
+                   and P filters look for specific arrangements of E, N, and M patterns. Thus,
+
+
+466   Chapter 16
+we have a series of convolution layers, with each output serving as the next
+layer’s input. Figure 16-43 shows this graphically.
+
+
+              E        E                   E
+                  N                        N
+                                                              Layer 3
+                  M                        M
+                   F                   P
+
+
+
+            T T            R L         L R
+            Q Q            T T         T T                    Layer 2
+              E             N              M
+
+
+
+
+                                                              Layer 1
+       T               Q           L            R
+
+
+
+
+Figure 16-43: Using three layers of convolution to analyze an input candidate
+
+    Now that we have our filters, we can start at the bottom and process an
+input. Along the way, we’ll see where to put the pooling layers.
+
+Applying Our Filters
+Let’s start at the bottom of Figure 16-43 and apply the filters of Layer 1.
+Figure 16-44 shows the result of sweeping the T filter over the 12 by 12 can-
+didate image. Because T is 2 by 2, it doesn’t have a center, so we arbitrarily
+place its anchor in its upper-left corner. Because we’re not padding, and
+the filter is 2 by 2, the output will be 11 by 11. In Figure 16-44, each loca-
+tion where T finds an exact match is marked in light green; otherwise, it’s
+marked in pink. We’ll call this output the T-map.
+    Now we want to make sure that the E, N, and M filters that are looking
+for T matches still succeed even if the T matches aren’t exactly where our
+reference mask had them. As we saw in the previous section, the way to make
+
+                                                           Convolutional Neural Networks   467
+                   filters robust to small displacements in their input is to use pooling. Let’s use
+                   the most common form of pooling: max pooling with two by two blocks.
+
+
+
+
+                                                     T
+
+
+
+                                                                      T-map
+                             Input
+                   Figure 16-44: Convolving the 12 by 12 input image with the 2 by 2 filter T
+                   produces the 11 by 11 output, or feature map, which we call the T-map.
+
+                        Figure 16-45 shows max pooling applied to the T-map. For each two
+                   by two block, if there’s at least one green value in the block, the output
+                   is green (recall that green elements have a value of 1, and the red are 0).
+                   When the pooling blocks fall off the right and bottom sides of the input, we
+                   just ignore the missing entries and apply pooling to the values we actually
+                   have. We call the result of pooling the T-pool tensor.
+
+
+
+
+                   Figure 16-45: Applying two by two max pooling to the T-map to produce the T-pool ten-
+                   sor. Green means 1, and pink means 0.
+
+                       The upper-left element of T-pool tells us if the T filter matched when
+                   placed on top of any of the four pixels in the upper left of the input. In this
+                   case, it did, so that element is turned green (that is, it’s assigned a value of 1).
+                       Let’s repeat this process for the other three first-layer filters (Q, L, and
+                   R). The results are shown in the left part of Figure 16-46.
+                       The four T, Q, L, and R filters together produce a result with four fea-
+                   ture maps, each six by six after pooling. Recall from Figure 16-40 that the
+                   E, N, and M filters are expecting a tensor with four channels. To combine
+                   these individual outputs into one tensor, we can just stack them up, as in
+
+
+
+468   Chapter 16
+                    the center of Figure 16-46. As usual, we then draw this as a 2D grid using
+                    our X-ray view convention. This gives us a tensor of four channels, which is
+                    just what Layer 2 is expecting as input.
+
+
+                                                                                           T   TL               TR T
+
+                                                                                           Q QL                 TQ TQ
+
+  T-pool               L-pool                                                              T    T QR L R
+
+                                                                        R-pool                        T     T
+                                                                  L-pool                             RL    L     R
+                                                            Q-pool                                    T     T
+                                                   T-pool
+  Q-pool               R-pool
+
+Figure 16-46: Left: The result of applying all four first-level filters to our candidate and then pooling. Center:
+Stacking up the outputs into a single tensor. Right: Drawing the six by six by four tensor in X-ray view.
+
+                        Now we can move up to the filters in Layer 2. Let’s start with E, in
+                    Figure 16-47.
+
+ T   TL            TR T
+ Q QL              TQ TQ
+
+ T    T QR L R                  T T
+          T    T                Q Q
+          RL   L   R
+                                   E
+          T    T                                                                                             E-pool
+                                                    E-map
+                                                                                 Pooling
+
+Figure 16-47: Applying the E filter. As before, from left to right, we have the input tensor, the E filter (both in
+our X-ray view), the result of applying that filter, the pooling grid, and the result of pooling.
+
+                         Figure 16-47 shows our input tensor (the output of Layer 1) and the E
+                    filter, both in X-ray view. To their right, we see the E-map resulting from
+                    applying the E filter, the process of applying two by two pooling to the
+                    E-map, and finally the E-pool feature map. We can see already how the
+                    pooling process allows the next filter to match the locations of the eyes,
+                    even though one eye is not located where it was in the reference mask.
+                         We can follow the same process for the N and M filters, producing a
+                    new output tensor for the second layer, as shown in Figure 16-48.
+                         Now we have a three by three tensor with three channels, just right for
+                    the filters we created for F and P back in Figure 16-40. We’re ready to move
+                    up another level to Layer 3.
+
+
+
+
+                                                                                     Convolutional Neural Networks   469
+                   E-pool
+                                                                                               E            E
+
+                   N-pool                                                                             N
+                                                                        M-pool
+                                                                    N-pool                            M
+
+                                                             E-pool
+                   M-pool
+                   Figure 16-48: Computing outputs for the E, N, and M filters, then stacking them up into a
+                   tensor with three channels
+
+                        This final step is easy: we just apply the F and P filters to their entire
+                   input, since their sizes are the same (that is, there’s no need to scan the
+                   filter over the image). The result is a tensor with shape one by one by two.
+                   If the element in the first channel in this tensor is green, then F matches,
+                   and the candidate should be accepted as a match to our reference. If it’s
+                   beige, the candidate’s not a match.
+
+                     E            E            E           E
+                           N                         N
+
+                           M                         M
+
+                                                     F               F-out
+
+                                 E                         E
+
+                                  N                         N
+                                 M                         M
+
+                                                     P               P-out
+                   Figure 16-49: Applying the F and P filters to the output tensor of the second layer. In this
+                   layer, each filter is the same size as the input, so the layer produces an output tensor of
+                   size one by one by two.
+
+                       And we’re done! We used three layers of convolution to characterize
+                   a candidate image as being either like, or unlike, a reference image. We
+                   found that our candidate with one eye dropped down by one pixel was still
+                   close enough to our reference that we should accept it.
+
+470   Chapter 16
+     We solved this problem by creating not just a sequence of convolutions,
+but a hierarchy. Each convolution used the results of the previous one. The
+first layer looked for patterns in the pixels, the second looked for patterns
+of those patterns, and the third looked for larger patterns still, correspond-
+ing to a face looking forward or in profile. Pooling enabled the network
+to recognize a candidate even though one important block of pixels was
+shifted a little.
+     Figure 16-50 shows our whole network at a glance. Since the only layers
+with neurons are convolution layers, we call this an all-convolutional network.
+
+
+12
+                                      6                           3
+                                                                                            1 2
+        12      1                         6 4                         3 3                    1
+
+                     (2,2)x4    2x2               (2,2)x3   2x2                 (3,3)x2
+                     no pad                        no pad                       no pad
+                    (T,Q,L,R)                     (E,N,M)                        (F,P)
+
+Figure 16-50: Our all-convolutional network for evaluating masks. We’re also showing
+the input, output, and intermediate tensors. The icons with nested boxes are convolution
+layers, the trapezoids are pooling layers.
+
+     In Figure 16-50, the icons with a box in a box represent convolution,
+and the trapezoids represent pooling layers.
+     If we want to match even more types of faces, we can just add more
+filters to the final layer. This lets us match any pattern of eyes, noses, and
+mouths that we want, with little additional cost. By reducing the size of
+the tensors in our network, pooling reduces the amount of computation
+we have to do. This means that not only is the network with pooling more
+robust than a version without pooling, it also consumes less memory and
+runs faster.
+     There’s a sense in which our filters are getting more powerful as we
+work our way up the levels. For example, our eye filter E is processing a four
+by four region, though it’s only two by two itself, because each of its tensor
+elements is the result of a two by two convolution. In this way, the filters at
+higher levels in a hierarchy are able to look for large and complex features,
+even though they use only small (and therefore fast) filters.
+     Higher levels are able to combine the results of lower levels in multiple
+ways. Suppose we want to classify a variety of different birds in a photo.
+Low-level filters may look for feathers or beaks, while higher filters are able
+to combine different types of feathers or beaks to recognize different spe-
+cies of birds, all in a single pass through a photo. We sometimes say that
+using this technique of convolution and pooling to analyze an input is
+applying a hierarchy of scales.
+
+
+
+
+                                                            Convolutional Neural Networks    471
+      Summary
+                   This chapter was all about convolution: the method of taking a filter or
+                   kernel (that is, a neuron with a set of weights) and moving it over an input.
+                   Each time we apply the filter to the input, we produce a single value of out-
+                   put. The filter may use just a single input element in its calculation, or it
+                   may have a larger footprint and use the values of multiple input elements.
+                   If a filter has a footprint that is larger than one by one, there will be places
+                   in the input where the filter “spills” over the edge, requiring input data
+                   that isn’t there. If we don’t place the filter in such places, the output has
+                   a smaller width or height (or both) than the input. To avoid this, we com-
+                   monly pad the input by surrounding it with enough rings of zeroes so that
+                   the filter can be placed over every input element.
+                        We can bundle up many filters into a single convolution layer. In such
+                   a layer, typically every filter has the same footprint and the same activation
+                   function. Every filter produces one channel per filter. The output of the
+                   layer has one channel per filter.
+                        If we want to change the width and height of a tensor, we can perform
+                   downsampling (to reduce either or both dimensions) or upsampling (to
+                   increase either or both dimensions). To downsample, we can use a pooling
+                   layer, which finds the average or maximum value in blocks from the input.
+                   To upsample, we can use an upsampling layer, which duplicates input ele-
+                   ments. Either of these techniques may be combined with the convolution
+                   step itself. To downsample, we use striding, in which the filter is moved by
+                   more than one step horizontally, vertically, or both. To upsample, we use
+                   fractional striding, or transposed convolution, in which we insert rows
+                   and/or columns of zeroes between the input elements.
+                        We saw that by applying convolutions in a series of layers with down­
+                   sampling, we are able to create a hierarchy of filters that work at different
+                   scales. This also means that the system enjoys the property of shift invari-
+                   ance, meaning that it’s able to find the patterns it seeks even if they’re not
+                   exactly where they’re expected to be.
+                        In the next chapter, we’ll examine real convnets and look at their filters
+                   to see how they do their jobs.
+
+
+
+
+472   Chapter 16
+

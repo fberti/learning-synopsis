@@ -745,13 +745,6 @@ MDL 7–8, 10–11; DLV 9, 14–15; PDL 9–10; MLQ 4–7, 10, 27; MLD 8, 14; ML
 ### Kvízek
 `ai11-112`, `ai11-113`, `ai11-115`, `ai11-116`, `ai11-final`.
 
-> ✅ **Elkészült** (`11-konvolucios-halok/`). Eltérések a tervtől: kvíz minden szakaszhoz (`ai11-111` … `ai11-118`, `ai11-final`); minden szakasz három lépés, 11.9 Alkalmazás.
-> Futó példa: a 8 × 8-as számjegyek egy 16 × 16-os lapon, csak középre téve tanítva; négy háló (`cnn-nets.js`): MLP 256–16–10 (96,9% → 1 px eltolás 44,7%), CNN-A konv.–konv.–globális max (2746 paraméter, 98,9% minden eltolásnál), CNN-B 2 × 2-es poolinggal (1 px: 79,8%, átlapolás), CNN-B + eltolásos bővítés (98,2%). Pixelkeverés: MLP 97,2% → 97,2%, CNN 98,1% → 93,7%.
-> 11.1: tenzor, paraméterrobbanás, keverés és eltolás · 11.2: 1D él, T betű függőleges/vízszintes élkeresővel ([[2,0,−2],[3,0,−3],[3,0,−3]]), keresztkorreláció (Kiegészítés), csíkkereső (DLV), Sobel 48 (HAW), kimeneti méret (Kiegészítés) · 11.3: csatornák, paraméterszám, ekvivariancia/invariancia, pooling és átlapolás (Kiegészítés), recepciós mező képlete (Kiegészítés), PDL 98,3% a teljesen összekötött rétegben ·
-> 11.4: LeNet-5 végigszámolva (61 706), ILSVRC-győztesek, AlexNet, VGG (18C² vs. 25C²), ResNet (degradáció, globális pooling) · 11.5: jellemzőkinyerés, finomhangolás (PDL 14-2. táblázat, AAMLP röntgen), önfelügyelt előtanítás, CLIP · 11.6: feladattípusok, YOLO, U-Net, IoU/Dice/NMS, címketartó bővítés · 11.7 (★★★): foltok, foltbeágyazás = konvolúció, induktív torzítás, N² ár, Swin/ConvNeXt · 11.8: 1:1 vs. 1:N, bázisarány (stadion: 15%), Gender Shades, NIST 2019, rövidítések (husky/farkas, röntgenjelölő), ellenséges példák, EU AI Act.
-> Saját transzfer-kísérlet (0–4 → 5–9 a számjegyeken) nem adott értelmes eredményt, ezért a PDL és az AAMLP számai szerepelnek. Szemléltetések: `shift-lab`, `convolution-lab`, `pooling-viz`, `receptive-field`, `cnn-shapes`, `iou-viz`, `vit-patches`, `digit-cnn`.
-> A forrásokból jelzett hibák az oldalon: DLV (VGG nem nyert osztályozásban, VGG-blokkméretek, pooling „eltolás-invariáns”), HAW (MLP „függetlennek tekinti”, top-1/top-5 keverése, 1998 vs. 1989, modernizált „LeNet”), PDL (1998, befagyasztott jellemzők tanító módban, „transzfer” szűk értelme), MLQ (relatív pozíció a ViT-ben), MLSYS (576 súly RGB-re, USPS-esettanulmány, „translation invariance”), AAMLP és MLSYS (ResNet „az eltűnő gradiens” ellen), MV (Gender Shades mint arcfelismerés, „egyetlen pixel” ellenséges példa).
-
 ### Csapdák
 A mélytanulás „konvolúciója” valójában keresztkorreláció (nem tükrözi a kernelt) · a kimeneti méret elszámolása ·
 a háló „rövidítéseket” tanulhat (háttér, vízjel a képen) · az arcfelismerés pontossága csoportonként eltérhet.

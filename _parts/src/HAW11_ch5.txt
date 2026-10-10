@@ -1,0 +1,713 @@
+                             5
+ CONVOLUTIONAL NEURAL NETWORKS: AI
+           LEARNS TO SEE
+
+
+
+
+Classical machine learning models struggle with
+appropriate feature selection, feature vector dimensionality,
+and the inability to learn from the structure inherent in the
+input. Convolutional neural networks (CNNs) overcome these
+issues by learning to generate new representations of their
+inputs while simultaneously classifying them, a process
+known as end-to-end learning. CNNs are the representation-
+learning data processors I referred to in Chapter 2.
+   Elements of what became CNNs appeared at various
+times throughout the history of neural networks, beginning
+with Rosenblatt’s Perceptron, but the architecture that
+ushered in the deep learning revolution was published in
+1998. Over a decade of additional improvements in
+computing capability were required to unleash the full
+power of CNNs with the appearance of AlexNet in 2012.
+   Convolutional networks exploit structure in their inputs.
+We’ll better understand what that means as the chapter
+progresses. In one dimension, the inputs might be values
+that change over time, also known as a time series. In two
+dimensions, we’re talking about images. Three-dimensional
+CNNs exist to interpret volumes of data, like a stack of
+magnetic resonance images or a volume constructed from a
+LiDAR point cloud. In this chapter, we’ll focus exclusively
+on two-dimensional CNNs.
+   The order in which features are presented to a
+traditional neural network is irrelevant. Regardless of
+whether we present feature vectors to the model as
+(x0,x1,x2) or (x2,x0,x1), the model will learn just as well
+because it assumes the features are independent and
+unrelated to each other. Indeed, a strong correlation
+between a pixel value and adjacent pixel values is something
+traditional machine learning models do not want, and their
+inability to achieve much success with such inputs held
+neural networks back for years.
+    Convolutional neural networks, on the other hand,
+exploit structure in their inputs. For a CNN, it matters
+whether we present the input as (x0,x1,x2) or (x2,x0,x1); the
+model might learn well with the former and poorly with
+the latter. This isn’t a weakness, but a strength, because we
+want to apply CNNs to situations where there is structure
+to learn—structure that helps determine how best to
+classify inputs.
+    Later in the chapter, we’ll compare the performance of a
+traditional neural network to a CNN when classifying
+small photos of animals and vehicles (the CIFAR-10 dataset
+of Chapter 3). At that time, we’ll learn the true power of
+exploiting structure. Before that, however, let’s conduct a
+little experiment. We have two datasets. The ﬁrst is our old
+friend, the MNIST digits dataset; the second is the same
+collection of digit images, but the order of the pixels in the
+images has been scrambled. The scrambling isn’t random
+but consistent so that the pixel at position (1,12) has been
+moved to, say, position (26,13), with similarly consistent
+moves for all other pixels. Figure 5-1 shows some examples
+of MNIST digits and scrambled versions of the same digits.
+Figure 5-1: Example MNIST digits (top) and scrambled versions of the same
+digits (bottom)
+    The scrambled digits are incomprehensible to me. The
+pixel information between the original and scrambled digits
+is the same—that is, the same collection of pixel values is
+present in both—but the structure is largely gone, and I can
+no longer discern the digits. I claim that a traditional neural
+network treats its inputs holistically and isn’t looking for
+structure. If that’s the case, a traditional neural network
+shouldn’t care that the digits have been scrambled; it should
+learn just as well when trained using the original or the
+scrambled dataset. As it turns out, that’s precisely what
+happens. The model learns equally well; scrambling
+changes nothing in terms of performance. Note, though,
+that the scrambled test digits must be used with the
+scrambled model; we shouldn’t expect the model to work
+when trained on one dataset and tested on the other.
+   We at present know only one fact about CNNs: they
+pay attention to structure in their inputs. Knowing this,
+should we expect a CNN trained on the scrambled dataset
+to perform as well as one trained on the original dataset?
+The scrambled digits are uninterpretable by us because
+local structure in the images has been destroyed.
+Therefore, we might expect a model that similarly wants to
+exploit local structure to be unable to interpret the
+scrambled digits. And that is the case: a CNN trained on
+the scrambled dataset performs poorly compared to one
+trained on the original dataset.
+  Why can’t we easily interpret the scrambled digits? We
+must explore what happens in the brain during vision to
+answer that question. Then we’ll circle back to relate that
+process to what CNNs do. As we’ll learn, CNNs follow the
+old adage: when in Rome, do as the Romans (humans) do.
+                                  ****
+   Vincent van Gogh is my favorite artist. Something about
+his style speaks to me, something strangely peaceful from a
+man tormented by mental illness. I believe the peace
+emanating from his work reﬂects his attempt to calm the
+turmoil within.
+   Consider Figure 5-2. It shows Van Gogh’s famous 1889
+painting of his bedroom in Arles. The image is in black and
+white, an unforgivable violence to Vincent’s use of color,
+but print restrictions require it.
+
+
+
+
+Figure 5-2: Van Gogh’s bedroom in Arles, 1889 (public domain)
+   What do you see in the painting? I’m not asking about a
+higher meaning or impression, but objectively, what do you
+see in the painting? I see a bed, two chairs, a small table, a
+window, and a pitcher on the table, among many other
+items. I suspect you see the same. You saw the bed, two
+chairs, and table, but how? Photons, particles of light,
+traveled from the image to your eye and were converted
+into discrete objects in your brain. Again, how?
+   I’m asking questions but not yet offering answers. That’s
+okay for two reasons. First, pondering the problem of
+segmenting an image into a collection of meaningful
+objects is worth some effort on our part. Second, no one
+yet knows the full answer to “how?” Neuroscientists do,
+however, understand the beginnings of the process.
+    We take for granted the ability to look at a scene and
+parse it into separate and identiﬁed objects. For us, the
+process is effortless, completely automatic. We shouldn’t be
+fooled. We’re the beneﬁciaries of hundreds of millions of
+years of evolution’s tinkering. For mammals, vision begins
+in the eye, but parsing and understanding begins in the
+primary visual cortex at the back of our brains.
+   The primary visual cortex, known as area V1, is sensitive
+to edges and orientation. Immediately, we encounter a clue
+to how vision works in the brain (as opposed to the eye).
+The brain takes the input sensations, spread over V1 as a
+warped image, and begins by seeking edges and the
+orientation of the edges. V1 is additionally sensitive to
+color. Mapping the entire visual ﬁeld over V1, with
+magniﬁcation so that most of V1 is occupied by the central
+2 percent of our visual ﬁeld, means that edge detection,
+orientation, and color are local to where they occur.
+   V1 sends its detections to area V2, which sends its
+detections to area V3, and so on through V4 to V5, with
+each area receiving, essentially, a representation of larger
+and more grouped elements of what is in the visual ﬁeld.
+The process starts with V1 and, eventually, delivers a fully
+parsed and understood representation of what the eyes see.
+As mentioned, the details much beyond V1 are murky, but
+for our purposes all we need to remember is that V1 is
+sensitive to edges, the orientation of edges, and colors (we
+might also include textures). Starting simply and grouping
+to separate objects in the scene is the name of the game.
+CNNs mimic this process. It’s fair to say that CNNs
+literally learn to see the world of their inputs.
+   CNNs decompose inputs into small parts, then groups
+of parts and still larger groups of groups of parts, until the
+entire input is transformed from a single whole into a new
+representation: one that is more easily understood by what
+amounts to a traditional neural network sitting at the top of
+the model. However, mapping the input to a new, more
+easily understood representation does not imply that the
+new representation is more easily understood by us.
+   Convolutional neural networks learn during training to
+partition inputs into parts, enabling the top layers of the
+network to classify successfully. In other words, CNNs
+learn new representations of their inputs and then classify
+those new representations. Indeed, “Learning New
+Representations from Old” was an early title for this
+chapter.
+   How do CNNs break their inputs into parts? To answer
+that question, we must ﬁrst understand the “convolution”
+part of “convolutional neural network.” Be warned, low-
+level details ahead.
+                             ****
+   Convolution is a mathematical operation with a formal
+deﬁnition involving integral calculus. Fortunately for us,
+convolution is a straightforward operation in digital images,
+using nothing more than multiplication and addition.
+Convolution slides a small square, known as a kernel, over
+the image from top to bottom and left to right. At each
+position, convolution multiplies the pixel values covered by
+the square with the corresponding kernel values. It then
+sums all those products to produce a single number that
+becomes the output pixel value for that position. Words
+only go so far here, so let’s try a picture. Consider Figure 5-
+3.
+
+
+
+
+Figure 5-3: Convolving a kernel over an image
+   The left side of Figure 5-3 shows a grid of numbers.
+These are the pixel values for the center portion of the
+image in Figure 5-4. Grayscale pixel values are typically in
+the range 0 through 255, where lower values are darker.
+The kernel is the 3×3 grid to the right. The convolution
+operation instructs us to multiply each pixel value by the
+corresponding kernel value. This produces the rightmost
+3×3 grid of numbers. The ﬁnal step sums all nine values to
+create a single output, 48, which replaces the center pixel in
+the output image, 60 → 48.
+   To complete the convolution, slide the 3×3 solid box one
+pixel to the right and repeat. When the end of a row is
+reached, move the box down one pixel and repeat for the
+next row, then process row-by-row until the kernel has
+covered the entire image. The convoluted image is the
+collection of new output pixels.
+    At ﬁrst, convolution might seem like a strange thing to
+do. However, in digital images, convolution is a
+fundamental operation. An appropriately deﬁned kernel
+lets us ﬁlter an image to enhance it in various ways. For
+example, Figure 5-4 shows four images. The upper left is
+the original image, a frequently used test image of Gold
+Hill in Shaftesbury, England. The remaining three images
+are ﬁltered versions of the original. Clockwise from the
+upper right, we have a blurred version, one showing
+horizontal edges, and one showing vertical edges. Each
+image is produced by convolving a kernel as described
+previously. The kernel of Figure 5-3 produces the
+horizontal-edge image at the lower right. Rotate the kernel
+by 90 degrees, and you get the vertical-edge image at the
+lower left. Finally, make all the kernel values 1, and you get
+the blurred image at the upper right. Note that the edge
+images are inverted to make the detected edges black
+instead of white.
+
+
+
+
+Figure 5-4: Convolution kernels in action
+    The critical point for us to remember is that convolving
+an image with different kernels highlights different aspects
+of the image. It isn’t hard to imagine an appropriate set of
+kernels extracting structure relevant to correctly classifying
+the image. This is exactly what CNNs do during end-to-
+end training and, in a sense, what our visual system does in
+area V1 when it detects edges, orientations, colors, and
+textures.
+   We’re making progress. We now have a handle on the
+core operation of a CNN, convolution, so let’s take the next
+step to learn how convolution is used within a model to
+extract structure and build a new representation of the
+input.
+                             ****
+    The traditional neural networks of Chapter 4 consist of
+a single kind of layer: a collection of fully connected nodes
+accepting input from the layer below to produce output for
+the layer above. Convolutional neural networks are more
+ﬂexible and support diverse layer types. Regardless, the
+data ﬂow is the same: from input to layer after layer to the
+network’s output.
+   In CNN parlance, the fully connected layers a
+traditional neural network uses are called dense layers.
+CNNs usually use dense layers at the top, near the output,
+because by that time the network has transformed the input
+into a new representation, one that the fully connected
+layers can classify successfully. CNNs make heavy use of
+convolutional layers and pooling layers.
+   Convolutional layers apply a collection of kernels to their
+input to produce multiple outputs, much as Figure 5-4
+produced three outputs from the one input image at the
+upper left. The kernels are learned during training using
+the same backpropagation and gradient descent approach
+we encountered in Chapter 4. The values of the learned
+kernels are the weights of the convolutional layer.
+   Pooling layers have no weights associated with them.
+There’s nothing to learn. Rather, pooling layers perform a
+ﬁxed operation on their inputs: they reduce the spatial
+extent of their inputs by keeping the largest value in a 2×2
+square moved without overlap across and then down. The
+net effect is similar to reducing the size of an image by a
+factor of two. Figure 5-5 illustrates the process of changing
+an 8×8 input into a 4×4 output, keeping the maximum value
+in each solid square. Pooling layers are a concession to
+reduce the number of parameters in the network.
+
+
+
+
+Figure 5-5: Pooling to reduce the spatial extent of the data
+    A typical CNN combines convolutional and pooling
+layers before topping things off with a dense layer or two.
+ReLU layers are used as well, usually after the
+convolutional and dense layers. For example, a classic
+CNN architecture known as LeNet consists of the
+following layers:
+
+
+
+
+   The model uses three convolutional layers, two pooling
+layers, and a single dense layer with 84 nodes. Each
+convolutional and dense layer is followed by a ReLU layer
+to map all negative inputs to zero while leaving all positive
+inputs untouched.
+    The number in parentheses for each convolutional layer
+is the number of ﬁlters to learn in that layer. A ﬁlter is a
+collection of convolutional kernels, with one kernel for
+each input channel. For example, the ﬁrst convolutional
+layer learns six ﬁlters. The input is a grayscale image with
+one channel, so this layer learns six kernels. The second
+convolutional layer learns 16 ﬁlters, each with 6 kernels,
+one for each of the 6 input channels from the ﬁrst
+convolutional layer. Therefore, the second convolutional
+layer learns a total of 96 kernels. Finally, the last
+convolutional layer learns 120 ﬁlters, each with 16 kernels,
+for another 1,920 kernels. All told, the LeNet model needs
+to learn 2,022 different convolutional kernels.
+    The hope is that learning so many kernels will produce a
+sequence of outputs that capture essential elements of the
+structures in the input. If training is successful, the output
+of the ﬁnal convolutional layer, as a vector input to the
+dense layer, will contain values that clearly differentiate
+between classes—at least, more clearly than can be
+accomplished by using the image alone.
+   If it feels like we’re in the weeds, we are, but we will not
+dig further. We’ve reached the lowest level of detail we’ll
+consider in the book, in fact, but it’s a necessary burden, as
+we cannot understand how CNNs work if we don’t
+understand convolution and convolutional layers.
+   Perhaps the best way to understand what the layers of a
+CNN are doing is to look at their effect on data ﬂowing
+through the network. Figure 5-6 shows how a LeNet
+model trained on MNIST digits manipulates two input
+images. The output of the ﬁrst convolutional layer is the six
+middle images, where gray represents zero, darker pixels
+are increasingly negative, and lighter pixels are increasingly
+positive. The six kernels of the ﬁrst convolutional layer
+each produce an output image for the single input image.
+The kernels highlight different portions of the inputs as
+transitions from dark to light.
+Figure 5-6: Input to ﬁrst convolutional layer to dense layer
+    The rightmost barcode-like pattern is a representation
+of the dense layer’s output. We’re ignoring the output of
+the second and third convolutional layers and jumping
+directly to the end of the model. The dense layer’s output is
+a vector of 84 numbers. For Figure 5-6, I mapped these
+numbers to pixel values, where larger values correspond to
+darker vertical bars.
+   Notice that the barcodes for the digits 0 and 8 differ. If
+the model learned well, we might expect the barcodes for
+the dense layer outputs to share commonalities across
+digits. In other words, the barcodes for zeros should look
+roughly similar, as should the barcodes for eights. Do they?
+Consider Figure 5-7.
+
+
+
+
+Figure 5-7: Dense layer output for sample inputs
+    This ﬁgure presents the dense layer outputs for ﬁve
+different zero and eight inputs. The barcodes are all
+different but share similarities according to digit. This is
+especially true for the zeros. The LeNet model has learned
+how to map each 28×28-pixel input image (784 pixels) into
+a vector of 84 numbers that show strong similarities by
+digit type. Based on our experience with traditional neural
+networks, we can appreciate that this mapping has
+produced something of lower dimensionality that preserves
+and even emphasizes differences between digits. The
+learned lower-dimensionality vector is akin to a complex
+concept explained with a few well-chosen words. This is
+exactly what we want a CNN to do. The trained model
+learned to “see” in the world of handwritten digits
+represented as small grayscale images. There’s nothing
+special about grayscale images, either. CNNs are quite
+happy to work with color images represented by red, green,
+and blue channels, or any number of channels, as when
+using multiband satellite imagery.
+   We might think of the model this way: the CNN layers
+before the dense layer learned how to act as a function
+producing an output vector from the input image. The true
+classiﬁer is the dense layer at the top, but it works well
+because the CNN learned the classiﬁer (dense layer) while
+simultaneously learning the mapping function.
+   I stated earlier that higher layers in the CNN pay
+attention to ever larger parts of the input. We can see that
+this is so by considering the portion of the input that
+inﬂuences the output of a kernel at a deeper layer. Figure 5-
+8 demonstrates this effect.
+
+
+
+
+Figure 5-8: The part of the input affecting deeper layers of the model
+   Begin on the right side of the image. The 3×3 grid of
+squares represents the output of a kernel at convolutional
+layer 1. We want to know what portion of the input
+inﬂuences the value of the shaded pixel. Looking at the
+previous convolutional layer, layer 0, we see that the layer 1
+output depends on the nine shaded values coming from the
+layer before.
+    The nine shaded values of convolutional layer 0 depend
+on the 5×5 shaded region of the input. It’s 5×5 because each
+of the nine values is found by sliding a 3×3 kernel over the
+shaded 5×5 region of the input. For example, the dotted
+portion of the middle value in layer 0 comes from the
+similarly shaded 3×3 region of the input. In this way, higher
+CNN layers are affected by larger and larger portions of
+the input. The technical term for this is the effective receptive
+ﬁeld, where the effective receptive ﬁeld of the rightmost
+shaded value in Figure 5-8 is the 5×5 shaded region of the
+input.
+                              ****
+   It’s time for an experiment. We now have a handle on
+how CNNs function, so let’s put that knowledge to work to
+compare a traditional neural network with a convolutional
+model. Which will win? I suspect you already know the
+answer, but let’s prove it and gain some experience along
+the way.
+   We need a dataset. Let’s use a grayscale version of
+CIFAR-10. This is a better choice than the dinosaur
+footprint dataset we used in the previous two chapters
+because the footprint images are outlines devoid of texture
+and background, and a CNN will not learn much more
+from such images than a traditional model. As we learned
+in Chapter 3, CIFAR-10 contains 32×32-pixel images of
+animals and vehicles, which will likely be more challenging.
+   We’ll train three models: a random forest, a traditional
+neural network, and a convolutional neural network. Is this
+sufﬁcient? We’ve come to appreciate that all three of these
+models involve randomness, so training once might not
+give us a fair representation of how each model performs.
+After all, we might get a lousy initialization or mix of trees
+that would throw one of the models off. Therefore, let’s
+train each model 10 times and average the results.
+   This experiment will help us understand the differences
+in performance between the models, but we can learn still
+more about the neural networks by tracking their errors as
+training progresses. The result is a graph, which I’ll present
+and then explain shortly. Before that, however, let me lay
+out the details of the models.
+   The training and test datasets are the same for each
+model. The traditional neural network and the random
+forest require vector inputs, so each 32×32-pixel image is
+unraveled into a vector of 1,024 numbers. The CNN works
+with the actual two-dimensional images. There are 50,000
+images in the training set, 5,000 for each of the 10 classes,
+and 10,000 images in the test set, 1,000 per class.
+   The random forest uses 300 trees. The traditional
+neural network has two hidden layers of 512 and 100
+nodes, respectively. The CNN is more complex, with four
+convolutional layers, two pooling layers, and a single dense
+layer of 472 nodes. Even though the CNN has many more
+layers, the total number of weights and biases to learn is
+nearly identical to the traditional model: 577,014 versus
+577,110.
+   We’ll train the neural networks for 100 epochs, meaning
+100 passes through the full training set. Fixing the
+minibatch size at 200 gives us 250 gradient descent steps
+per epoch. Therefore, during training, we’ll update the
+weights and biases of the networks 25,000 times. At the end
+of each epoch, we’ll capture the error made by the model
+on both the training and test sets. When the dust settles, a
+single graph will reveal everything we want to know.
+   Figure 5-9 is that graph. It’s the most complex graph
+we’ve seen, so let’s walk through it in detail, beginning with
+the axes.
+Figure 5-9: CIFAR-10 results for a CNN, MLP, and random forest
+   The label on the horizontal axis (x-axis) is “epoch,”
+which means a complete pass through the training set.
+Therefore, the graph shows things changing during
+training after every epoch. We also know that each epoch
+represents 250 gradient descent steps. The vertical axis (y-
+axis) is labeled “error” and runs from 0.1 to 0.8. This axis
+represents the fraction of the test or training samples that
+the model gets wrong. The lower the error, the better. A
+decimal value of 0.1 means 10 percent, and a value of 0.8
+means 80 percent.
+    The legend in the upper-right corner of the graph tells
+us that the circles and squares relate to the MLP, the
+traditional neural network, while the triangles and
+pentagons refer to the CNN. Speciﬁcally, the circles and
+triangles track the error on the test set for the MLP and
+CNN, respectively, as the models train. Similarly, the
+squares and pentagons track the error on the training set.
+Recall that the model’s performance on the training set is
+used to update the weights and biases. The test set is used
+for evaluation and does not contribute to how the model is
+trained.
+    The MLP plots show us how well the model learned the
+training set (squares) and the test set (circles) as training
+continued, epoch after epoch. It’s immediately apparent
+that the model learned the training set better than the test
+set because the training set error decreases continuously.
+This is what we expect. The gradient descent algorithm
+will update the weights and biases of the MLP, all 577,110
+of them, to arrive at a lower and lower error on the training
+set. However, we’re not interested in reaching zero error
+on the training set; instead, we want the smallest error
+possible on the test set because that gives us a reason to
+believe that the MLP has learned to generalize.
+    Now consider the circle plot showing us the test set
+error. It reaches a minimum of about 0.56, or 56 percent, at
+around 40 epochs. After that, the error increases slowly but
+steadily, up to 100 epochs. This effect is classic MLP
+overﬁtting. The training set error continues to decrease,
+but the test set error hits a minimum and continues to
+increase after that. Figure 5-9 tells us that stopping training
+at 40 epochs would have given us the best-performing
+MLP.
+   We’ll get to the CNN results, but for the moment,
+consider the dashed line at 58 percent error. It’s labeled
+“RF300” and shows us the test set error from a random
+forest with 300 trees. The random forest doesn’t learn by
+updating weights over epochs, so the 58 percent error is
+just that: the model’s error. I plotted it as a dashed line
+parallel to the horizontal axis so you can see that, brieﬂy,
+the MLP did slightly better than the random forest, but by
+100 epochs, the difference between the two models was
+negligible. In other words, we might take it that classical
+machine learning’s best effort on the grayscale CIFAR-10
+dataset is an error of about 56 to 58 percent. That’s not a
+good result. Additional time spent with the parameters of
+the random forest, or the MLP, or starting over with a
+support vector machine might lead to a slight reduction in
+the error. Still, it’s unlikely to overcome the fact that
+classical machine learning cannot do much with this
+dataset.
+    Finally, consider the CNN’s training (pentagon) and test
+(triangle) curves. By 100 epochs, the CNN is right around
+11 percent error on the training set and, more importantly,
+about 23 percent on the test set. In other words, the CNN
+is right 77 percent of the time, or nearly 8 times in 10.
+Random guessing will be correct about 10 percent of the
+time on a 10-class dataset, so the CNN has learned rather
+well, and far better than the MLP or random forest.
+   This is precisely the point of convolutional neural
+networks: by learning to represent the parts of the objects
+in an image, it becomes possible to learn a new
+representation (formally known as an embedding) that the
+dense layers of the network can successfully classify.
+   The ﬁrst CNN I trained, in 2015, attempted to detect
+small airplanes in satellite images. My initial, non-CNN
+approach worked, but it was noisy with many false positives
+(fake detections). The airplanes were there, but so were
+many other things that were not airplanes. I then trained a
+simple CNN like the one used in this experiment. It
+located the airplanes with ease, and virtually nothing but
+the airplanes. I was dumbfounded and realized then that
+deep learning was a paradigm shift. I’ll argue in Chapter 7
+that as of fall 2022, a new, more profound paradigm shift
+has occurred, but we have some ground yet to cover before
+we’re ready for that discussion.
+                            ****
+   The simple CNNs of this chapter don’t do justice to the
+zoo of available neural network architectures. A decade of
+fevered development has resulted in a few go-to CNN
+architectures, some with over 100 layers. The architectures
+have names like ResNet, DenseNet, Inception, MobileNet,
+and U-Net, among many others. The U-Net is worthy of a
+few words.
+   The CNNs we’ve explored so far accept an input image
+and return a class label like “dog” or “cat.” It doesn’t need
+to be this way. Some CNN architectures implement
+semantic segmentation, where the output is another image
+with every pixel labeled by the class to which it belongs. U-
+Nets do this. If every pixel of the dog is marked “dog,”
+extracting the dog from the image becomes trivial. A
+middle ground between a U-Net and CNNs that assign a
+single label to the entire image is a model that outputs a
+bounding box, a rectangle surrounding the detected object.
+The pervasiveness of AI means that you’ve likely already
+seen images with labeled bounding boxes. YOLO (“you
+only look once”) is a popular architecture producing
+labeled bounding boxes; Faster R-CNN is another.
+   We focused on image inputs here, but the input need
+not be an image. Anything representable in an image-like
+format, where there are two dimensions and structure
+within those dimensions, is a candidate for a 2D CNN. A
+good example is an audio signal, which we usually think of
+as one-dimensional, a voltage changing over time that
+drives the speaker. However, audio signals contain energy
+at different frequencies. The energy at different frequencies
+can be displayed in two dimensions: the horizontal
+dimension is time, and the vertical dimension is frequency,
+usually with lower frequencies at the bottom and higher
+frequencies at the top. The intensity of each frequency
+becomes the intensity of a pixel to transform the audio
+signal from a one-dimensional, time-varying voltage into a
+two-dimensional spectrogram, as shown in Figure 5-10.
+Figure 5-10: Mapping from one-dimensional data to a two-dimensional
+image
+   The spectrogram, here of a crying baby, contains a
+wealth of information and structure that the CNN can
+learn about to produce a better model than is possible with
+the one-dimensional audio signal alone. The key
+observation is that any transformation of the input data that
+extracts structure in a form amenable to a CNN is fair
+game.
+                                  ****
+    You have a dataset and need to build a CNN. What
+architecture should you use? What should the minibatch
+size be? What layers do you need, and in what order?
+Should you use 5×5 or 3×3 convolutional kernels? How
+many epochs of training is enough? Early on, before the
+development of standard architectures, each of those
+questions had to be answered by the person designing the
+network. It was a bit like medicine of the past: a mix of
+science, experience, and intuition. The art of neural
+networks meant that practitioners were in high demand,
+and it was difﬁcult for savvy software engineers to add deep
+learning to their repertoires. Some people wondered if
+software could be used to determine the model’s
+architecture and training parameters automatically (that is,
+its hyperparameters, introduced in Chapter 3). And so,
+automatic machine learning, or AutoML, was born.
+   Most cloud-based commercial machine learning
+platforms, like Microsoft’s Azure Machine Learning or
+Amazon’s SageMaker Autopilot, include an AutoML tool
+that will create the machine learning model for you; you
+need only supply the dataset. AutoML applies to more than
+just neural networks, and many tools include classical
+machine learning models as well. AutoML’s entire purpose
+is to locate the best model type for the supplied dataset
+with a minimum of user expertise required.
+    I want to argue that AutoML only goes so far and that
+the best deep learning practitioners will always outperform
+it, but that argument rings hollow. It reminds me of the
+assembly language programmers of old pontiﬁcating on the
+impossibility of compilers ever producing code that was as
+good as or better than what they could produce. There are
+few job openings these days for assembly language
+programmers, but tens of thousands for programmers using
+compiled languages (at least for now; see Chapter 8). That
+said, some of us still prefer to roll our own models.
+                             ****
+    A consequence of the deep learning revolution was the
+creation of powerful, open source machine learning toolkits
+with names like TensorFlow and PyTorch. Implementing a
+traditional, fully connected neural network is an exercise
+for machine learning students. It’s not trivial, but it’s
+something most people can accomplish with effort.
+Properly implementing a CNN, on the other hand,
+especially one supporting a multitude of layer types, is
+anything but trivial. The AI community committed early
+on to developing open source toolkits supporting deep
+learning, including CNNs. Without these toolkits, progress
+in AI would be painfully slow. Large tech companies like
+Google, Facebook (Meta), and NVIDIA also signed on,
+and their continued support for toolkit development is
+critical to AI.
+    What makes the toolkits powerful, besides the
+mountains of tested, high-performance code they contain,
+is their ﬂexibility. We now appreciate that training a neural
+network, CNN or otherwise, requires two steps:
+backpropagation and gradient descent. Backpropagation
+works only if the model’s layers support a particular
+mathematical operation known as differentiation.
+Differentiation is what ﬁrst semester calculus students
+learn. So long as the toolkits can automatically determine
+the derivatives (what you get when you differentiate), they
+allow users to implement arbitrary layers. The toolkits
+employ automatic differentiation by transforming the neural
+network into a computational graph.
+   It’s tempting to take a few steps down the path of
+automatic differentiation and computational graphs
+because the elegance and ﬂexibility therein is a beautiful
+marriage of mathematics and computer science.
+Unfortunately, you’ll need to take my word for it because
+the level of detail necessary is far beyond what we can
+explore in this book. One key point is that there are two
+primary approaches to automatic differentiation: forward
+and reverse. Forward automatic differentiation is easier to
+conceptualize and implement in code but is unsuited to
+neural networks. That’s too bad, in a way, because forward
+automatic differentiation is best implemented using dual
+numbers, an obscure type of number invented (discovered?)
+by English mathematician William Clifford in 1873. These
+were a prime example of math for math’s sake and largely
+forgotten until the age of computers, when they were
+suddenly made useful. Reverse automatic differentiation is
+best for neural networks but doesn’t use dual numbers.
+                             ****
+   This chapter was challenging. We dove more deeply
+into the details than we did in previous chapters or will in
+the following ones. A summary is deﬁnitely required.
+Convolutional neural networks:
+
+    Thrive on structure in their inputs, which is the
+    complete opposite of classical machine learning
+    models
+    Learn new representations of their inputs by breaking
+    them into parts and groups of parts
+    Use many different kinds of layers combined in
+    various ways
+    Can classify inputs, localize inputs, or assign a class
+    label to every pixel in their inputs
+    Are still trained via backpropagation and gradient
+    descent, just like traditional neural networks
+    Drove the creation of powerful, open source toolkits
+    that democratized deep learning
+
+   Convolutional neural networks follow in the tradition of
+classical machine learning models: they take an input and
+assign to it, in some fashion, a class label. The network
+operates as a mathematical function, accepting an input and
+producing an output. The next chapter introduces us to
+neural networks that generate output without input.
+   To paraphrase an old television show: you’re traveling
+through another dimension, a dimension not only of sight
+and sound but of mind, a journey into a wondrous land
+whose boundaries are that of imagination—next stop,
+generative AI.
+
+                     KEY TERMS
+  automatic differentiation, AutoML, bounding box,
+  computational graph, convolution, convolutional
+  layer, convolutional neural network, dense layer,
+  effective receptive ﬁeld, embedding, end-to-end
+  learning, ﬁlter, kernel, pooling layer, semantic
+  segmentation
+

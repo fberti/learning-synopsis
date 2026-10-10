@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>11. Konvolúciós hálók és gépi látás – Mesterséges intelligencia – Synopsis</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="../../assets/common.js"></script>
+  <script defer src="../../assets/quiz.js"></script>
+  <script defer src="../../assets/calc.js"></script>
+  <script defer src="cnn-nets.js"></script>
+  <script defer src="widgets.js"></script>
+  <script defer src="quizzes.js"></script>
+</head>
+<body>
+<div class="progressbar"></div>
+<header class="topbar">
+  <a class="brand" href="../../">📚 Synopsis</a>
+  <span class="crumbs"><a href="../../">Tartalomjegyzék</a> › <a href="../">Mesterséges intelligencia</a> › 11. fejezet</span>
+  <button class="icon-btn" data-theme-toggle title="Téma váltása">🌙</button>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <div class="toc-title">11. fejezet</div>
+  <ol>
+    <li><a href="#s111">11.1 A kép mint számtábla; miért nem elég az MLP?</a></li>
+    <li><a href="#s112">11.2 A konvolúció</a></li>
+    <li><a href="#s113">11.3 A konvolúciós háló felépítése</a></li>
+    <li><a href="#s114">11.4 Híres architektúrák</a></li>
+    <li><a href="#s115">11.5 Transzfertanulás és finomhangolás</a></li>
+    <li><a href="#s116">11.6 Feladattípusok: osztályozás, detektálás, szegmentálás</a></li>
+    <li><a href="#s117">11.7 Vision Transformer</a></li>
+    <li><a href="#s118">11.8 A gépi látás társadalmi oldala</a></li>
+    <li><a href="#s119">11.9 Alkalmazás: számjegyek bárhol a lapon</a>
+      <ol>
+        <li><a href="#s119-a">A kísérlet a böngészőben</a></li>
+        <li><a href="#s119-b">Válaszok a fejezet kérdéseire</a></li>
+      </ol>
+    </li>
+    <li><a href="#s-sum">Összefoglalás</a></li>
+    <li><a href="#s-check">Ellenőrző kérdések</a></li>
+    <li><a href="#s-ex">Vegyes gyakorló feladatok</a></li>
+    <li><a href="#s-final">Fejezetzáró teszt</a></li>
+    <li><a href="#s-gloss">Szómagyarázó</a></li>
+  </ol>
+</nav>
+
+<main class="content">
+
+<section class="hero" style="padding-top:.5rem">
+  <div class="kicker">Mesterséges intelligencia · 11. fejezet · ★★</div>
+  <h1>Konvolúciós hálók és gépi látás</h1>
+  <p class="lead">A <a href="../10-halo-tanitasa/#s109">10.9</a> számjegyfelismerője 97–98%-ot tud – amíg a számjegy pontosan ott van, ahol a tanítóképeken. Toljuk el egyetlen pixellel, és a háló a képek több mint felét elrontja. Egy ember észre sem venné a különbséget.
+  Ebben a fejezetben megnézzük, hogyan látnak a <b>konvolúciós hálók</b>: kis „nagyítók” csúsznak végig a képen, és <b>mindenhol ugyanazt a mintát</b> keresik. Ebből az egyetlen ötletből lett a 2012 utáni gépi látás – az arcfelismeréstől az önvezető autók kamerájáig. A végén azt is megnézzük, mire kell vigyázni, amikor egy gép „néz” minket.</p>
+</section>
+
+<div class="box tip">
+  <span class="box-title">Mit fogsz megtanulni?</span>
+  <ul style="margin:.2rem 0">
+    <li>hogyan lesz egy képből <b>számtábla</b> (tenzor), és miért nem jó rá a teljesen összekötött háló;</li>
+    <li>mi a <b>konvolúció</b>: hogyan talál meg egy 3 × 3-as <b>szűrő</b> egy élt – kézzel, számokkal; mit csinál a <b>kitöltés</b> és a <b>lépésköz</b>;</li>
+    <li>hogyan épül fel egy <b>konvolúciós háló</b>: csatornák, <b>pooling</b>, <b>recepciós mező</b>, és miért kell sokkal kevesebb paraméter;</li>
+    <li>mit hozott a <b>LeNet</b>, az <b>AlexNet</b>, a <b>VGG</b> és a <b>ResNet</b> – és mi az a maradékkapcsolat;</li>
+    <li>hogyan tanítunk jó képfelismerőt <b>kevés képből</b> egy előtanított háló újrahasznosításával;</li>
+    <li>mi a különbség az <b>osztályozás</b>, a <b>detektálás</b> és a <b>szegmentálás</b> között, és hogyan mérjük őket (<b>IoU</b>);</li>
+    <li>hogyan néz képet egy <b>Transformer</b> (ViT), és miért kell neki sokkal több adat;</li>
+    <li>milyen <b>társadalmi kérdéseket</b> vet fel a gépi látás: arcfelismerés, torzítás, „rövidítések”, támadások.</li>
+  </ul>
+</div>
+
+<div class="box">
+  <span class="box-title">🔁 Amit használni fogunk</span>
+  A <a href="../02-matematikai-eszkoztar/">2. fejezetből</a>: a kép mint tenzor (<a href="../02-matematikai-eszkoztar/#s21-c">2.1</a>), a skaláris szorzat (<a href="../02-matematikai-eszkoztar/#s22-b">2.2</a>), a softmax (<a href="../02-matematikai-eszkoztar/#s25-d">2.5</a>).
+  A <a href="../04-adatok-es-jellemzok/">4.</a> és az <a href="../05-osztalyozas/">5. fejezetből</a>: a kép mint adat (<a href="../04-adatok-es-jellemzok/#s41-b">4.1</a>), „ki találja ki a jellemzőket?” (<a href="../05-osztalyozas/#s56-c">5.6</a>).
+  A <a href="../06-modellertekeles/">6. fejezetből</a>: a tévesztési mátrix (<a href="../06-modellertekeles/#s61-a">6.1</a>), az eloszlás-eltolódás (<a href="../06-modellertekeles/#s64-c">6.4</a>), a „99%” csapdája (<a href="../06-modellertekeles/#s610-a">6.10</a>).
+  A <a href="../09-neuralis-halozatok/">9. fejezetből</a>: a neuron mint sablon (<a href="../09-neuralis-halozatok/#s91-c">9.1</a>), a ReLU (<a href="../09-neuralis-halozatok/#s94-b">9.4</a>), a paraméterszám (<a href="../09-neuralis-halozatok/#s96-b">9.6</a>), a 8 × 8-as számjegyek (<a href="../09-neuralis-halozatok/#s97-b">9.7</a>).
+  A <a href="../10-halo-tanitasa/">10. fejezetből</a>: a tanítás (<a href="../10-halo-tanitasa/#s102-a">10.2</a>), a maradékkapcsolat és a kötegnormalizálás (<a href="../10-halo-tanitasa/#s106-c">10.6</a>), az adatbővítés (<a href="../10-halo-tanitasa/#s107-d">10.7</a>).
+  <br><small>Jelölések: ★ alap · ★★ közép · ★★★ haladó (kihagyható). A 📐 jelű lenyílók levezetéseket rejtenek, a 🐍 jelűek rövid Python-kódot – a továbbhaladáshoz egyik sem kell.
+  Egy kép mérete $H \times W \times C$ (magasság × szélesség × csatornák); $k$ a szűrő oldalhossza, $p$ a kitöltés, $s$ a lépésköz.</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">🎯 A fejezet kérdése – miért esik szét a háló egyetlen pixeltől?</span>
+  Vegyük a <a href="../09-neuralis-halozatok/#s97">9.7</a> 8 × 8-as számjegyeit, és tegyük mindegyiket egy nagyobb, <b>16 × 16-os lap közepére</b>. Ezeken tanítunk egy ugyanolyan MLP-t, mint a 9. fejezetben (256 bemenet, 16 rejtett neuron, 10 kimenet). A 450 tesztképen <b>96,9%</b>-ot ér el. Aztán a tesztképeket kicsit elcsúsztatjuk a lapon:
+  <div class="tw" style="overflow-x:auto"><table style="max-width:560px;font-size:.9rem;text-align:center">
+    <tr><th>a tesztkép helye</th><th>középen</th><th>1 pixellel jobbra</th><th>2 pixellel jobbra</th><th>1 pixellel jobbra és le</th></tr>
+    <tr><td>helyes válasz (MLP)</td><td><b>96,9%</b></td><td><b>44,7%</b></td><td><b>11,8%</b></td><td><b>9,1%</b></td></tr>
+  </table></div>
+  Két pixel után a háló rosszabb, mint a vak találgatás (10%). Pedig a számjegy ugyanaz – csak máshol van. Négy kérdés:
+  <ol style="margin:.3rem 0">
+    <li>Mi a baj a teljesen összekötött hálóval, ha a bemenet <b>kép</b>?</li>
+    <li>Hogyan lehet <b>ugyanazt a mintát</b> a kép bármely pontján keresni – és közben <b>kevesebb</b> paramétert használni?</li>
+    <li>Hogyan lesz kis, helyi mintákból (élekből) <b>egész számjegy</b>, arc vagy macska?</li>
+    <li>Mit kezdjünk, ha <b>kevés</b> a képünk, és mire jó még a gépi látás az osztályozáson túl? Mire kell vigyázni?</li>
+  </ol>
+  A fejezet végén (<a href="#s119">11.9</a>) a böngésződben tolod el a számjegyeket négy különböző hálónak – és mindegyik kérdésre számokkal válaszolunk.
+</div>
+
+<p><b>Útiterv</b> – lépésről lépésre, az egyszerűtől a bonyolultig:</p>
+<ol>
+  <li><b>A probléma és az eszköz</b>
+    <ol>
+      <li><a href="#s111">A kép mint számtábla</a>: pixelek és csatornák; paraméterrobbanás; az MLP nem látja a szomszédságot.</li>
+      <li><a href="#s112">A konvolúció</a>: egy csúszó szűrő kézzel; a szűrő mint mintakereső; kitöltés és lépésköz.</li>
+    </ol></li>
+  <li><b>A konvolúciós háló</b>
+    <ol start="3">
+      <li><a href="#s113">Felépítés</a>: konvolúciós réteg és csatornák; pooling; recepciós mező és jellemzőhierarchia.</li>
+      <li><a href="#s114">Híres architektúrák</a>: LeNet; ImageNet, AlexNet és VGG; ResNet és a maradékkapcsolat.</li>
+    </ol></li>
+  <li><b>A gyakorlatban</b>
+    <ol start="5">
+      <li><a href="#s115">Transzfertanulás</a>: jellemzőkinyerés; finomhangolás; önfelügyelt előtanítás.</li>
+      <li><a href="#s116">Feladattípusok</a>: osztályozás, detektálás, szegmentálás; IoU; adatbővítés képekre.</li>
+      <li><a href="#s117">Vision Transformer</a>: a kép mint foltok sorozata; induktív torzítás és adatéhség. ★★★</li>
+      <li><a href="#s118">A társadalmi oldal</a>: arcfelismerés és bázisarány; torzítás; rövidítések és támadások.</li>
+    </ol></li>
+  <li><b>Összerakva</b>
+    <ol start="9">
+      <li><a href="#s119">Alkalmazás</a>: négy háló, eltolt számjegyek, jellemzőtérképek.</li>
+    </ol></li>
+</ol>

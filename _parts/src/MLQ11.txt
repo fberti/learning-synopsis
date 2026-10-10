@@ -1,0 +1,811 @@
+                                     2
+                 SELF-SUPERVISED LEARNING
+
+
+
+
+What is self-supervised learning, when is it useful, and what are the
+main approaches to implementing it?
+   Self-supervised learning is a pretraining procedure that lets neural
+networks leverage large, unlabeled datasets in a supervised fashion. This
+chapter compares self-supervised learning to transfer learning, a related
+method for pretraining neural networks, and discusses the practical
+applications of self-supervised learning. Finally, it outlines the main
+categories of self-supervised learning.
+
+
+Self-Supervised Learning vs. Transfer Learning
+Self-supervised learning is related to transfer learning, a technique in
+which a model pretrained on one task is reused as the starting point for
+a model on a second task. For example, suppose we are interested in
+training an image classifier to classify bird species. In transfer learning,
+we would pretrain a convolutional neural network on the ImageNet
+dataset, a large, labeled image dataset with many different categories,
+including various objects and animals. After pretraining on the general
+ImageNet dataset, we would take that pretrained model and train it on
+the smaller, more specific target dataset that contains the bird species of
+interest. (Often, we just have to change the class-specific output layer,
+but we can otherwise adopt the pretrained network as is.)
+   Figure 2-1 illustrates the process of transfer learning.
+
+
+
+
+Figure 2-1: Pretraining with conventional transfer learning
+   Self-supervised learning is an alternative approach to transfer
+learning in which the model is pretrained not on labeled data but on
+unlabeled data. We consider an unlabeled dataset for which we do not
+have label information, and then we find a way to obtain labels from the
+dataset’s structure to formulate a prediction task for the neural network,
+as illustrated in Figure 2-2. These self-supervised training tasks are also
+called pretext tasks.
+
+
+
+
+Figure 2-2: Pretraining with self-supervised learning
+    The main difference between transfer learning and self-supervised
+learning lies in how we obtain the labels during step 1 in Figures 2-1
+and 2-2. In transfer learning, we assume that the labels are provided
+along with the data-set; they are typically created by human labelers. In
+self-supervised learning, the labels can be directly derived from the
+training examples.
+    A self-supervised learning task could be a missing-word prediction in
+a natural language processing context. For example, given the sentence
+“It is beautiful and sunny outside,” we can mask out the word sunny,
+feed the network the input “It is beautiful and [MASK] outside,” and
+have the network predict the missing word in the “[MASK]” location.
+Similarly, we could remove image patches in a computer vision context
+and have the neural network fill in the blanks. These are just two
+examples of self-supervised learning tasks; many more methods and
+paradigms for this type of learning exist.
+    In sum, we can think of self-supervised learning on the pretext task
+as representation learning. We can take the pretrained model to fine-tune
+it on the target task (also known as the downstream task).
+
+
+Leveraging Unlabeled Data
+Large neural network architectures require large amounts of labeled
+data to perform and generalize well. However, for many problem areas,
+we don’t have access to large labeled datasets. With self-supervised
+learning, we can leverage unlabeled data. Hence, self-supervised
+learning is likely to be useful when working with large neural networks
+and with a limited quantity of labeled training data.
+    Transformer-based architectures that form the basis of LLMs and
+vision transformers are known to require self-supervised learning for
+pretraining to perform well.
+    For small neural network models such as multilayer perceptrons with
+two or three layers, self-supervised learning is typically considered
+neither useful nor necessary.
+    Self-supervised learning likewise isn’t useful in traditional machine
+learning with nonparametric models such as tree-based random forests
+or gradient boosting. Conventional tree-based methods do not have a
+fixed parameter structure (in contrast to the weight matrices, for
+example). Thus, conventional tree-based methods are not capable of
+transfer learning and are incompatible with self-supervised learning.
+Self-Prediction and Contrastive Self-Supervised
+Learning
+There are two main categories of self-supervised learning: self-
+prediction and contrastive self-supervised learning. In self-prediction,
+illustrated in Figure 2-3, we typically change or hide parts of the input
+and train the model to reconstruct the original inputs, such as by using a
+perturbation mask that obfuscates certain pixels in an image.
+
+
+
+
+Figure 2-3: Self-prediction after applying a perturbation mask
+   A classic example is a denoising autoencoder that learns to remove
+noise from an input image. Alternatively, consider a masked
+autoencoder that reconstructs the missing parts of an image, as shown
+in Figure 2-4.
+Figure 2-4: A masked autoencoder reconstructing a masked image
+    Missing (masked) input self-prediction methods are also commonly
+used in natural language processing contexts. Many generative LLMs,
+such as GPT, are trained on a next-word prediction pretext task (GPT
+will be discussed at greater length in Chapters 14 and 17). Here, we
+feed the network text fragments, where it has to predict the next word
+in the sequence (as we’ll discuss further in Chapter 17).
+    In contrastive self-supervised learning, we train the neural network to
+learn an embedding space where similar inputs are close to each other
+and dissimilar inputs are far apart. In other words, we train the network
+to produce embeddings that minimize the distance between similar
+training inputs and maximize the distance between dissimilar training
+examples.
+    Let’s discuss contrastive learning using concrete example inputs.
+Suppose we have a dataset consisting of random animal images. First,
+we draw a random image of a cat (the network does not know the label,
+because we assume that the dataset is unlabeled). We then augment,
+corrupt, or perturb this cat image, such as by adding a random noise
+layer and cropping it differently, as shown in Figure 2-5.
+Figure 2-5: Image pairs encountered in contrastive learning
+   The perturbed cat image in this figure still shows the same cat, so we
+want the network to produce a similar embedding vector. We also
+consider a random image drawn from the training set (for example, an
+elephant, but again, the network doesn’t know the label).
+   For the cat-elephant pair, we want the network to produce dissimilar
+embeddings. This way, we implicitly force the network to capture the
+image’s core content while being somewhat agnostic to small differences
+and noise. For example, the simplest form of a contrastive loss is the L2-
+norm (Euclidean distance) between the embeddings produced by model
+M(·). Let’s say we update the model weights to decrease the distance
+||M(cat) – M(cat′)||2 and increase the distance ||M(cat) –
+M(elephant)||2.
+   Figure 2-6 summarizes the central concept behind contrastive
+learning for the perturbed image scenario. The model is shown twice,
+which is known as a siamese network setup. Essentially, the same model is
+utilized in two instances: first, to generate the embedding for the
+original training example, and second, to produce the embedding for
+the perturbed version of the sample.
+
+
+
+
+Figure 2-6: Contrastive learning
+   This example outlines the main idea behind contrastive learning, but
+many subvariants exist. Broadly, we can categorize these into sample
+contrastive and dimension contrastive methods. The elephant-cat
+example in Figure 2-6 illustrates a sample contrastive method, where we
+focus on learning embeddings to minimize and maximize distances
+between training pairs. In dimension-contrastive approaches, on the
+other hand, we focus on making only certain variables in the embedding
+representations of similar training pairs appear close to each other while
+maximizing the distance of others.
+
+
+Exercises
+2-1. How could we apply self-supervised learning to video data?
+2-2. Can self-supervised learning be used for tabular data represented as
+     rows and columns? If so, how could we approach this?
+References
+   For more on the ImageNet dataset:
+   https://en.wikipedia.org/wiki/ImageNet.
+   An example of a contrastive self-supervised learning method: Ting
+   Chen et al., “A Simple Framework for Contrastive Learning of
+   Visual Representations” (2020), https://arxiv.org/abs/2002.05709.
+   An example of a dimension-contrastive method: Adrien Bardes,
+   Jean Ponce, and Yann LeCun, “VICRegL: Self-Supervised
+   Learning of Local Visual Features” (2022),
+   https://arxiv.org/abs/2210.01571.
+   If you plan to employ self-supervised learning in practice: Randall
+   Balestriero et al., “A Cookbook of Self-Supervised Learning”
+   (2023), https://arxiv.org/abs/2304.12210.
+   A paper proposing a method of transfer learning and self-
+   supervised learning for relatively small multilayer perceptrons on
+   tabular datasets: Dara Bahri et al., “SCARF: Self-Supervised
+   Contrastive Learning Using Random Feature Corruption” (2021),
+   https://arxiv.org/abs/2106.15147.
+   A second paper proposing such a method: Roman Levin et al.,
+   “Transfer Learning with Deep Tabular Models” (2022),
+   https://arxiv.org/abs/2206.15306.
+                                    5
+           REDUCING OVERFITTING WITH DATA
+
+
+
+
+Suppose we train a neural network classifier in a supervised fashion and
+notice that it suffers from overfitting. What are some of the common
+ways to reduce overfitting in neural networks through the use of altered
+or additional data?
+   Overfitting, a common problem in machine learning, occurs when a
+model fits the training data too closely, learning its noise and outliers
+rather than the underlying pattern. As a result, the model performs well
+on the training data but poorly on unseen or test data. While it is ideal
+to prevent overfitting, it’s often not possible to completely eliminate it.
+Instead, we aim to reduce or minimize overfitting as much as possible.
+   The most successful techniques for reducing overfitting revolve
+around collecting more high-quality labeled data. However, if collecting
+more labeled data is not feasible, we can augment the existing data or
+leverage unlabeled data for pretraining.
+
+
+Common Methods
+This chapter summarizes the most prominent examples of dataset-
+related techniques that have stood the test of time, grouping them into
+the following categories: collecting more data, data augmentation, and
+pretraining.
+
+Collecting More Data
+One of the best ways to reduce overfitting is to collect more (good-
+quality) data. We can plot learning curves to find out whether a given
+model would benefit from more data. To construct a learning curve, we
+train the model to different training set sizes (10 percent, 20 percent,
+and so on) and evaluate the trained model on the same fixed-size
+validation or test set. As shown in Figure 5-1, the validation accuracy
+increases as the training set sizes increase. This indicates that we can
+improve the model’s performance by collecting more data.
+
+
+
+
+Figure 5-1: The learning curve plot of a model fit to different training set sizes
+   The gap between training and validation performance indicates the
+degree of overfitting—the more extensive the gap, the more overfitting
+occurs. Conversely, the slope indicating an improvement in the
+validation performance suggests the model is underfitting and can
+benefit from more data. Typically, additional data can decrease both
+underfitting and overfitting.
+
+Data Augmentation
+Data augmentation refers to generating new data records or features
+based on existing data. It allows for the expansion of a dataset without
+additional data collection.
+   Data augmentation allows us to create different versions of the
+original input data, which can improve the model’s generalization
+performance. Why? Augmented data can help the model improve its
+ability to generalize, since it makes it harder to memorize spurious
+information via training examples or features—or, in the case of image
+data, exact pixel values for specific pixel locations. Figure 5-2 highlights
+common image data augmentation techniques, including increasing
+brightness, flipping, and cropping.
+Figure 5-2: A selection of different image data augmentation techniques
+   Data augmentation is usually standard for image data (see Figure 5-
+2) and text data (discussed further in Chapter 15), but data
+augmentation methods for tabular data also exist.
+   Instead of collecting more data or augmenting existing data, it is also
+possible to generate new, synthetic data. While more common for
+image data and text, generating synthetic data is also possible for tabular
+datasets.
+
+Pretraining
+As discussed in Chapter 2, self-supervised learning lets us leverage large,
+unlabeled datasets to pretrain neural networks. This can also help
+reduce over-fitting on the smaller target datasets.
+   As an alternative to self-supervised learning, traditional transfer
+learning on large labeled datasets is also an option. Transfer learning is
+most effective if the labeled dataset is closely related to the target
+domain. For instance, if we train a model to classify bird species, we can
+pretrain a network on a large, general animal classification dataset.
+However, if such a large animal classification dataset is unavailable, we
+can also pretrain the model on the relatively broad ImageNet dataset.
+   A dataset may be extremely small and unsuitable for supervised
+learning—for example, if it contains only a handful of labeled examples
+per class. If our classifier needs to operate in a context where the
+collection of additional labeled data is not feasible, we may also consider
+few-shot learning.
+
+
+Other Methods
+The previous sections covered the main approaches to using and
+modifying datasets to reduce overfitting. However, this is not an
+exhaustive list. Other common techniques include:
+
+    Feature engineering and normalization
+    The inclusion of adversarial examples and label or feature noise
+    Label smoothing
+    Smaller batch sizes
+    Data augmentation techniques such as Mixup, Cutout, and CutMix
+
+   The next chapter covers additional techniques to reduce overfitting
+from a model perspective, and it concludes by discussing which
+regularization techniques we should consider in practice.
+
+
+Exercises
+5-1. Suppose we train an XGBoost model to classify images based on
+     manually extracted features obtained from collaborators. The
+     dataset of labeled training examples is relatively small, but
+     fortunately, our collaborators also have a labeled training set from
+     an older project on a related domain. We’re considering
+     implementing a transfer learning approach to train the XGBoost
+     model. Is this a feasible option? If so, how could we do it? (Assume
+     we are allowed to use only XGBoost and not another classification
+     algorithm or model.)
+5-2. Suppose we’re working on the image classification problem of
+     implementing MNIST-based handwritten digit recognition. We’ve
+     added a decent amount of data augmentation to try to reduce
+     overfitting. Unfortunately, we find that the classification accuracy is
+     much worse than it was before the augmentation. What are some
+     potential reasons for this?
+
+
+References
+    A paper on data augmentation for tabular data: Derek Snow,
+    “DeltaPy: A Framework for Tabular Data Augmentation in
+    Python” (2020), https://github.com/firmai/deltapy.
+    The paper proposing the GReaT method for generating synthetic
+    tabular data using an auto-regressive generative large language
+    model: Vadim Borisov et al., “Language Models Are Realistic
+    Tabular Data Generators” (2022), https://arxiv.org/abs/2210.06280.
+    The paper proposing the TabDDPM method for generating
+    synthetic tabular data using a diffusion model: Akim Kotelnikov et
+    al., “TabDDPM: Modelling Tabular Data with Diffusion Models”
+    (2022), https://arxiv.org/abs/2209.15421.
+    Scikit-learn’s user guide offers a section on preprocessing data,
+    featuring techniques like feature scaling and normalization that can
+    enhance your model’s performance: https://scikit-
+    learn.org/stable/modules/preprocessing.xhtml.
+                                   11
+     CALCULATING THE NUMBER OF PARAMETERS
+
+
+
+
+How do we compute the number of parameters in a convolutional
+neural network, and why is this information useful?
+    Knowing the number of parameters in a model helps gauge the
+model’s size, which affects storage and memory requirements. The
+following sections will explain how to compute the convolutional and
+fully connected layer parameter counts.
+
+
+How to Find Parameter Counts
+Suppose we are working with a convolutional network that has two
+convolutional layers with kernel size 5 and kernel size 3, respectively.
+The first convolutional layer has 3 input channels and 5 output
+channels, and the second one has 5 input channels and 12 output
+channels. The stride of these convolutional layers is 1. Furthermore, the
+network has two pooling layers, one with a kernel size of 3 and a stride
+of 2, and another with a kernel size of 5 and a stride of 2. It also has two
+fully connected hidden layers with 192 and 128 hidden units each,
+where the output layer is a classification layer for 10 classes. The
+architecture of this network is illustrated in Figure 11-1.
+
+
+
+
+Figure 11-1: A convolutional neural network with two convolutional and two fully connected
+layers
+   What is the number of trainable parameters in this convolutional
+network? We can approach this problem from left to right, computing
+the number of parameters for each layer and then summing up these
+counts to obtain the total number of parameters. Each layer’s number of
+trainable parameters consists of weights and bias units.
+
+Convolutional Layers
+In a convolutional layer, the number of weights depends on the kernel’s
+width and height and the number of input and output channels. The
+number of bias units depends on the number of output channels only.
+To illustrate the computation step by step, suppose we have a kernel
+width and height of 5, one input channel, and one output channel, as
+illustrated in Figure 11-2.
+
+
+
+
+Figure 11-2: A convolutional layer with one input channel and one output channel
+   In this case, we have 26 parameters, since we have 5 × 5 = 25 weights
+via the kernel plus the bias unit. The computation to determine an
+output value or pixel z is z = b + ∑j wj xj, where xj represents an input
+pixel, wj represents a weight parameter of the kernel, and b is the bias
+unit.
+   Now, suppose we have three input channels, as illustrated in Figure
+11-3.
+
+
+
+
+Figure 11-3: A convolutional layer with three input channels and one output channel
+   In that case, we compute the output value by performing the
+aforementioned operation, ∑j wj xj, for each input channel and then add
+the bias unit. For three input channels, this would involve three
+different kernels with three sets of weights:
+
+
+
+
+    Since we have three sets of weights (w(1), w(2), and w(3) for j = [1, . . . ,
+25]), we have 3 × 25 + 1 = 76 parameters in this convolutional layer.
+    We use one kernel for each output channel, where each kernel is
+unique to a given output channel. Thus, if we extend the number of
+output channels from one to five, as shown in Figure 11-4, we extend
+the number of parameters by a factor of 5. In other words, if the kernel
+for one output channel has 76 parameters, the 5 kernels required for the
+five output channels will have 5 × 76 = 380 parameters.
+
+
+
+
+Figure 11-4: A convolutional layer with three input channels and five output channels
+   Returning to the neural network architecture illustrated in Figure
+11-1 at the beginning of this section, we compute the number of
+parameters in the convolutional layers based on the kernel size and
+number of input and output channels. For example, the first
+convolutional layer has three input channels, five output channels, and a
+kernel size of 5. Thus, its number of parameters is 5 × (5 × 5 × 3) + 5 =
+380. The second convolutional layer, with five input channels, 12 output
+channels, and a kernel size of 3, has 12 × (3 × 3 × 5) + 12 = 552
+parameters. Since the pooling layers do not have any trainable
+parameters, we can count 380 + 552 = 932 for the convolutional part of
+this architecture.
+    Next, let’s see how we can compute the number of parameters of
+fully connected layers.
+
+Fully Connected Layers
+Counting the number of parameters in a fully connected layer is
+relatively straightforward. A fully connected node connects each input
+node to each output node, so the number of weights is the number of
+inputs times the number of outputs plus the bias units added to the
+output. For example, if we have a fully connected layer with five inputs
+and three outputs, as shown in Figure 11-5, we have 5 × 3 = 15 weights
+and three bias units, that is, 18 parameters total.
+Figure 11-5: A fully connected layer with five inputs and three outputs
+    Returning once more to the neural network architecture illustrated
+in Figure 11-1, we can now calculate the parameters in the fully
+connected layers as follows: 192 × 128 + 128 = 24,704 in the first fully
+connected layer and 128 × 10 + 10 = 1,290 in the second fully connected
+layer, the output layer. Hence, we have 24,704 + 1,290 = 25,994 in the
+fully connected part of this network. After adding the 932 parameters
+from the convolutional layers and the 25,994 parameters from the fully
+connected layers, we can conclude that this network’s total number of
+parameters is 26,926.
+    As a bonus, interested readers can find PyTorch code to compute the
+number of parameters programmatically in the supplementary/q11-conv-
+size subfolder at https://github.com/rasbt/MachineLearning-QandAI-book.
+Practical Applications
+Why do we care about the number of parameters at all? First, we can
+use this number to estimate a model’s complexity. As a rule of thumb,
+the more parameters there are, the more training data we’ll need to
+train the model well.
+   The number of parameters also lets us estimate the size of the neural
+network, which in turn helps us estimate whether the network can fit
+into GPU memory. Although the memory requirement during training
+often exceeds the model size due to the additional memory required for
+carrying out matrix multiplications and storing gradients, model size
+gives us a ballpark sense of whether training the model on a given
+hardware setup is feasible.
+
+
+Exercises
+11-1. Suppose we want to optimize the neural network using a plain
+      stochastic gradient descent (SGD) optimizer or the popular Adam
+      optimizer. What are the respective numbers of parameters that
+      need to be stored for SGD and Adam?
+11-2. Suppose we’re adding three batch normalization (BatchNorm)
+      layers: one after the first convolutional layer, one after the second
+      convolutional layer, and another one after the first fully connected
+      layer (we typically do not want to add BatchNorm layers to the
+      output layer). How many additional parameters do these three
+      BatchNorm layers add to the model?
+                                  12
+  FULLY CONNECTED AND CONVOLUTIONAL LAYERS
+
+
+
+
+Under which circumstances can we replace fully connected layers with
+convolutional layers to perform the same computation?
+    Replacing fully connected layers with convolutional layers can offer
+advantages in terms of hardware optimization, such as by utilizing
+specialized hardware accelerators for convolution operations. This can
+be particularly relevant for edge devices.
+    There are exactly two scenarios in which fully connected layers and
+convolutional layers are equivalent: when the size of the convolutional
+filter is equal to the size of the receptive field and when the size of the
+convolutional filter is 1. As an illustration of these two scenarios,
+consider a fully connected layer with two input and four output units, as
+shown in Figure 12-1.
+Figure 12-1: Four inputs and two outputs connected via eight weight parameters
+   The fully connected layer in this figure consists of eight weights and
+two bias units. We can compute the output nodes via the following dot
+products:
+
+   Node 1 w1,1 × x1 + w1,2 × x2 + w1,3 × x3 + w1,4 × x4 + b1
+
+   Node 2 w2,1 × x1 + w2,2 × x2 + w2,3 × x3 + w2,4 × x4 + b2
+
+   The following two sections illustrate scenarios in which
+convolutional layers can be defined to produce exactly the same
+computation as the fully connected layer described.
+
+
+When the Kernel and Input Sizes Are Equal
+Let’s start with the first scenario, where the size of the convolutional
+filter is equal to the size of the receptive field. Recall from Chapter 11
+how we compute a number of parameters in a convolutional kernel with
+one input channel and multiple output channels. We have a kernel size
+of 2×2, one input channel, and two output channels. The input size is
+also 2×2, a reshaped version of the four inputs depicted in Figure 12-2.
+Figure 12-2: A convolutional layer with a 2×2 kernel that equals the input size and two
+output channels
+    If the convolutional kernel dimensions equal the input size, as
+depicted in Figure 12-2, there is no sliding window mechanism in the
+convolutional layer. For the first output channel, we have the following
+set of weights:
+
+
+
+
+   For the second output channel, we have the following set of weights:
+
+
+
+
+   If the inputs are organized as
+we calculate the first output channel as o1 = ∑i(W1 *x)i + b1, where the
+convolutional operator * is equal to an element-wise multiplication. In
+other words, we perform an element-wise multiplication between two
+matrices, W1 and x, and then compute the output as the sum over these
+elements; this equals the dot product in the fully connected layer.
+Lastly, we add the bias unit. The computation for the second output
+channel works analogously: o2 = ∑i(W2 * x)i + b2.
+   As a bonus, the supplementary materials for this book include
+PyTorch code to show this equivalence with a hands-on example in the
+supplementary/q12-fc-cnn-equivalence subfolder at
+https://github.com/rasbt/MachineLearning-QandAI-book.
+
+When the Kernel Size Is 1
+The second scenario assumes that we reshape the input into an input
+“image” with 1×1 dimensions where the number of “color channels”
+equals the number of input features, as depicted in Figure 12-3.
+
+
+
+
+Figure 12-3: The number of output nodes equals the number of channels if the kernel size is
+equal to the input size.
+   Each kernel consists of a stack of weights equal to the number of
+input channels. For instance, for the first output layer, the weights are
+while the weights for the second channel are:
+
+
+
+
+   To get a better intuitive understanding of this computation, check
+out the illustrations in Chapter 11, which describe how to compute the
+parameters in a convolutional layer.
+
+
+Recommendations
+The fact that fully connected layers can be implemented as equivalent
+convolutional layers does not have immediate performance or other
+advantages on standard computers. However, replacing fully connected
+layers with convolutional layers can offer advantages in combination
+with developing specialized hardware accelerators for convolution
+operations.
+   Moreover, understanding the scenarios where fully connected layers
+are equivalent to convolutional layers aids in understanding the
+mechanics of these layers. It also lets us implement convolutional neural
+networks without any use of fully connected layers, if desired, to
+simplify code implementations.
+
+
+Exercises
+12-1. How would increasing the stride affect the equivalence discussed
+      in this chapter?
+12-2. Does padding affect the equivalence between fully connected
+      layers and convolutional layers?
+                                 13
+LARGE TRAINING SETS FOR VISION TRANSFORMERS
+
+
+
+
+Why do vision transformers (ViTs) generally require larger training sets
+than convolutional neural networks (CNNs)?
+   Each machine learning algorithm and model encodes a particular set
+of assumptions or prior knowledge, commonly referred to as inductive
+biases, in its design. Some inductive biases are workarounds to make
+algorithms computationally more feasible, other inductive biases are
+based on domain knowledge, and some inductive biases are both.
+   CNNs and ViTs can be used for the same tasks, including image
+classification, object detection, and image segmentation. CNNs are
+mainly composed of convolutional layers, while ViTs consist primarily
+of multi-head attention blocks (discussed in Chapter 8 in the context of
+transformers for natural language inputs).
+   CNNs have more inductive biases that are hardcoded as part of the
+algorithmic design, so they generally require less training data than
+ViTs. In a sense, ViTs are given more degrees of freedom and can or
+must learn certain inductive biases from the data (assuming that these
+biases are conducive to optimizing the training objective). However,
+everything that needs to be learned requires more training examples.
+   The following sections explain the main inductive biases
+encountered in CNNs and how ViTs work well without them.
+
+
+Inductive Biases in CNNs
+The following are the primary inductive biases that largely define how
+CNNs function:
+  Local connectivity In CNNs, each unit in a hidden layer is
+  connected to only a subset of neurons in the previous layer. We can
+  justify this restriction by assuming that neighboring pixels are more
+  relevant to each other than pixels that are farther apart. As an
+  intuitive example, consider how this assumption applies to the
+  context of recognizing edges or contours in an image.
+  Weight sharing Via the convolutional layers, we use the same small
+  set of weights (the kernels or filters) throughout the whole image.
+  This reflects the assumption that the same filters are useful for
+  detecting the same patterns in different parts of the image.
+  Hierarchical processing CNNs consist of multiple convolutional
+  layers to extract features from the input image. As the network
+  progresses from the input to the output layers, low-level features are
+  successively combined to form increasingly complex features,
+  ultimately leading to the recognition of more complex objects and
+  shapes. Furthermore, the convolutional filters in these layers learn to
+  detect specific patterns and features at different levels of abstraction.
+  Spatial invariance CNNs exhibit the mathematical property of
+  spatial invariance, meaning the output of a model remains consistent
+  even if the input signal is shifted to a different location within the
+  spatial domain. This characteristic arises from the combination of
+  local connectivity, weight sharing, and the hierarchical architecture
+  mentioned earlier.
+    The combination of local connectivity, weight sharing, and
+hierarchical processing in a CNN leads to spatial invariance, allowing
+the model to recognize the same pattern or feature regardless of its
+location in the input image.
+    Translation invariance is a specific case of spatial invariance in which
+the output remains the same after a shift or translation of the input
+signal in the spatial domain. In this context, the emphasis is solely on
+moving an object to a different location within an image without any
+rotations or alterations of its other attributes.
+    In reality, convolutional layers and networks are not truly
+translation-invariant; rather, they achieve a certain level of translation
+equivariance. What is the difference between translation invariance and
+equivariance? Translation invariance means that the output does not
+change with an input shift, while translation equivariance implies that the
+output shifts with the input in a corresponding manner. In other words,
+if we shift the input object to the right, the results will correspondingly
+shift to the right, as illustrated in Figure 13-1.
+
+
+
+
+Figure 13-1: Equivariance under different image translations
+   As Figure 13-1 shows, under translation invariance, we get the same
+output pattern regardless of the order in which we apply the operations:
+transformation followed by translation or translation followed by
+transformation.
+   As mentioned earlier, CNNs achieve translation equivariance
+through a combination of their local connectivity, weight sharing, and
+hierarchical processing properties. Figure 13-2 depicts a convolutional
+operation to illustrate the local connectivity and weight-sharing priors.
+This figure demonstrates the concept of translation equivariance in
+CNNs, in which a convolutional filter captures the input signal (the two
+dark blocks) irrespective of where it is located in the input.
+
+
+
+
+Figure 13-2: Convolutional filters and translation equivariance
+   Figure 13-2 shows a 3×3 input image that consists of two nonzero
+pixel values in the upper-left corner (top portion of the figure) or upper-
+right corner (bottom portion of the figure). If we apply a 2×2
+convolutional filter to these two input image scenarios, we can see that
+the output feature maps contain the same extracted pattern, which is on
+either the left (top of the figure) or the right (bottom of the figure),
+demonstrating the translation equivariance of the convolutional
+operation.
+    For comparison, a fully connected network such as a multilayer
+perceptron lacks this spatial invariance or equivariance. To illustrate this
+point, picture a multilayer perceptron with one hidden layer. Each pixel
+in the input image is connected with each value in the resulting output.
+If we shift the input by one or more pixels, a different set of weights will
+be activated, as illustrated in Figure 13-3.
+
+
+
+
+Figure 13-3: Location-specific weights in fully connected layers
+   Like fully connected networks, ViT architecture (and transformer
+architecture in general) lacks the inductive bias for spatial invariance or
+equi-variance. For instance, the model produces different outputs if we
+place the same object in two different spatial locations within an image.
+This is not ideal, as the semantic meaning of an object (the concept that
+an object represents or conveys) remains the same based on its location.
+Consequently, it must learn these invariances directly from the data. To
+facilitate learning useful patterns present in CNNs requires pretraining
+over a larger dataset.
+    A common workaround for adding positional information in ViTs is
+to use relative positional embeddings (also known as relative positional
+encodings) that consider the relative distance between two tokens in the
+input sequence. However, while relative embeddings encode
+information that helps transformers keep track of the relative location
+of tokens, the transformer still needs to learn from the data whether and
+how far spatial information is relevant for the task at hand.
+
+
+ViTs Can Outperform CNNs
+The hardcoded assumptions via the inductive biases discussed in
+previous sections reduce the number of parameters in CNNs
+substantially compared to fully connected layers. On the other hand,
+ViTs tend to have larger numbers of parameters than CNNs, which
+require more training data. (Refer to Chapter 11 for a refresher on how
+to precisely calculate the number of parameters in fully connected and
+convolutional layers.)
+   ViTs may underperform compared to popular CNN architectures
+without extensive pretraining, but they can perform very well with a
+sufficiently large pretraining dataset. In contrast to language
+transformers, where unsupervised pretraining (such as self-supervised
+learning, discussed in Chapter 2) is a preferred choice, vision
+transformers are often pretrained using large, labeled datasets like
+ImageNet, which provides millions of labeled images for training, and
+regular supervised learning.
+   An example of ViTs surpassing the predictive performance of CNNs,
+given enough data, can be observed from initial research on the ViT
+architecture, as shown in the paper “An Image Is Worth 16x16 Words:
+Transformers for Image Recognition at Scale.” This study compared
+ResNet, a type of convolutional network, with the original ViT design
+using different dataset sizes for pretraining. The findings also showed
+that the ViT model excelled over the convolutional approach only after
+being pretrained on a minimum of 100 million images.
+
+
+Inductive Biases in ViTs
+ViTs also possess some inductive biases. For example, vision
+transformers patchify the input image to process each input patch
+individually. Here, each patch can attend to all other patches so that the
+model learns relationships between far-apart patches in the input image,
+as illustrated in Figure 13-4.
+Figure 13-4: How a vision transformer operates on image patches
+    The patchify inductive bias allows ViTs to scale to larger image sizes
+without increasing the number of parameters in the model, which can
+be computationally expensive. By processing smaller patches
+individually, ViTs can efficiently capture spatial relationships between
+image regions while benefiting from the global context captured by the
+self-attention mechanism.
+    This raises another question: how and what do ViTs learn from the
+training data? ViTs learn more uniform feature representations across
+all layers, with self-attention mechanisms enabling early aggregation of
+global information. In addition, the residual connections in ViTs
+strongly propagate features from lower to higher layers, in contrast to
+the more hierarchical structure of CNNs.
+    ViTs tend to focus more on global than local relationships because
+their self-attention mechanism allows the model to consider long-range
+dependencies between different parts of the input image. Consequently,
+the self-attention layers in ViTs are often considered low-pass filters
+that focus more on shapes and curvature.
+    In contrast, the convolutional layers in CNNs are often considered
+high-pass filters that focus more on texture. However, keep in mind that
+convolutional layers can act as both high-pass and low-pass filters,
+depending on the learned filters at each layer. High-pass filters detect an
+image’s edges, fine details, and texture, while low-pass filters capture
+more global, smooth features and shapes. CNNs achieve this by
+applying convolutional kernels of varying sizes and learning different
+filters at each layer.
+
+
+Recommendations
+ViTs have recently begun outperforming CNNs if enough data is
+available for pretraining. However, this doesn’t make CNNs obsolete, as
+methods such as the popular EfficientNetV2 CNN architecture are less
+memory and data hungry.
+    Moreover, recent ViT architectures don’t rely solely on large
+datasets, parameter numbers, and self-attention. Instead, they have
+taken inspiration from CNNs and added soft convolutional inductive
+biases or even complete convolutional layers to get the best of both
+worlds.
+    In short, vision transformer architectures without convolutional
+layers generally have fewer spatial and locality inductive biases than
+convolutional neural networks. Consequently, vision transformers need
+to learn data-related concepts such as local relationships among pixels.
+Thus, vision transformers require more training data to achieve good
+predictive performance and produce acceptable visual representations in
+generative modeling contexts.
+Exercises
+13-1. Consider the patchification of the input images shown in Figure
+      13-4. The size of the resulting patches controls a computational
+      and predictive performance trade-off. The optimal patch size
+      depends on the application and desired trade-off between
+      computational cost and model performance. Do smaller patches
+      typically result in higher or lower computational costs?
+13-2. Following up on the previous question, do smaller patches
+      typically lead to a higher or lower prediction accuracy?
+
+
+References
+    The paper proposing the original vision transformer model: Alexey
+    Dosovitskiy et al., “An Image Is Worth 16x16 Words: Transformers
+    for Image Recognition at Scale” (2020),
+    https://arxiv.org/abs/2010.11929.
+    A workaround for adding positional information in ViTs is to use
+    relative positional embeddings: Peter Shaw, Jakob Uszkoreit, and
+    Ashish Vaswani, “Self-Attention with Relative Position
+    Representations” (2018), https://arxiv.org/abs/1803.02155.
+    Residual connections in ViTs strongly propagate features from
+    lower to higher layers, in contrast to the more hierarchical
+    structure of CNNs: Maithra Raghu et al., “Do Vision Transformers
+    See Like Convolutional Neural Networks?” (2021),
+    https://arxiv.org/abs/2108.08810.
+    A detailed research article covering the EfficientNetV2 CNN
+    architecture: Mingxing Tan and Quoc V. Le, “EfficientNetV2:
+    Smaller Models and Faster Training” (2021),
+    https://arxiv.org/abs/2104.00298.
+    A ViT architecture that also incorporates convolutional layers:
+    Stéphane d’Ascoli et al., “ConViT: Improving Vision Transformers
+    with Soft Convolutional Inductive Biases” (2021),
+    https://arxiv.org/abs/2103.10697.
+Another example of a ViT using convolutional layers: Haiping Wu
+et al., “CvT: Introducing Convolutions to Vision Transformers”
+(2021), https://arxiv.org/abs/2103.15808.
+

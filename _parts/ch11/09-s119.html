@@ -1,0 +1,67 @@
+
+<!-- ===================================================== 11.9 -->
+<section id="s119">
+<h2>11.9 Alkalmazás: számjegyek bárhol a lapon</h2>
+<p>Most minden eszközt együtt használunk. Négy hálót tanítottunk ugyanazon az 1047 középre tett számjegyen (Adam, $\eta = 0{,}01$, a 300 validációs képpel korai leállítással – mint a <a href="../10-halo-tanitasa/#s109">10.9</a>-ben), és ugyanazon a 450 tesztképen mérjük őket – most bárhová tolhatod a számjegyet a 16 × 16-os lapon:</p>
+<div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;max-width:700px">
+  <tr><th>háló</th><th>felépítés</th><th>paraméter</th></tr>
+  <tr><td>MLP</td><td>256 – 16 (ReLU) – 10</td><td>4282</td></tr>
+  <tr><td>CNN-A</td><td>konv. $3 \times 3$ (8) – konv. $3 \times 3$ (32) – globális max – 10</td><td>2746</td></tr>
+  <tr><td>CNN-B</td><td>mint a CNN-A, az első konvolúció után $2 \times 2$-es max-poolinggal</td><td>2746</td></tr>
+  <tr><td>CNN-B + bővítés</td><td>CNN-B, véletlenül ±2 pixellel eltolt tanítóképekkel</td><td>2746</td></tr>
+</table></div>
+
+<h3 id="s119-a">A kísérlet a böngészőben</h3>
+<div class="widget" data-widget="digit-cnn"></div>
+<div class="box example">
+  <span class="box-title">Kísérletek – mindegyik egy szakasz egy gondolata</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Az MLP és az eltolás</b> (<a href="#s111-c">11.1</a>): válaszd az MLP-t, és tolj egyet jobbra. A hőtérkép (lent) mutatja, hogy a 450 tesztképből középen 436 (96,9%) jó, 1 pixellel jobbra 201 (44,7%), 2 pixellel 53 (11,8%) – csak a középső mező „világít”.</li>
+    <li><b>Súlymegosztás + globális maximum</b> (<a href="#s113-a">11.3</a>): a CNN-A hőtérképe szinte egyszínű: 445 jó válasz (98,9%) minden eltolásnál, amíg a számjegy a lapon belül van. Csak a legfelső és a legalsó sorban, ahol a számjegy a lap szélére ér, esik kicsit (93%, illetve 98%).</li>
+    <li><b>Jellemzőtérképek</b> (<a href="#s112-b">11.2</a>, <a href="#s113-c">11.3</a>): nézd meg az első réteg 8 szűrőjét – keress köztük élkeresőt (egyik oldalon narancs, a másikon kék). Tolj a számjegyen: a térképek vele együtt mozognak (ekvivariancia), a 32 globális maximum és a jóslat nem változik (invariancia).</li>
+    <li><b>Pooling és átlapolás</b> (<a href="#s113-b">11.3</a>): a CNN-B hőtérképe sakktábla-mintás – páros eltolásnál 98,4%, 1 pixellel jobbra 79,8%, átlósan 60,2%. A „🔍 Egy tévesztés” gomb ilyenkor olyan képet keres, amelyet a háló középen még jól ismert fel.</li>
+    <li><b>Adatbővítés</b> (<a href="#s116-c">11.6</a>): a CNN-B + bővítés hőtérképe megint egyenletes (98,2%, átlósan 97,6%) – ugyanaz a felépítés, csak másképp tanítva.</li>
+    <li><b>A saját kézírásod</b>: rajzolj egy számjegyet, és told a lap sarkába. Melyik háló bírja?</li>
+  </ol>
+</div>
+<details class="box">
+  <summary>🐍 Python – a CNN-A PyTorch-ban</summary>
+<pre><code>import torch, torch.nn as nn, numpy as np
+from sklearn.datasets import load_digits
+from sklearn.model_selection import train_test_split
+
+def lap(X, dx=0, dy=0):                        # 8×8 számjegy a 16×16-os lapra, (4+dx; 4+dy)-ra
+    L = np.zeros((len(X), 1, 16, 16), dtype=np.float32)
+    L[:, 0, 4+dy:12+dy, 4+dx:12+dx] = X.reshape(-1, 8, 8) / 16
+    return torch.tensor(L)
+
+d = load_digits()
+Xtr, Xte, ytr, yte = train_test_split(d.data, d.target, test_size=0.25, random_state=0, stratify=d.target)
+torch.manual_seed(0)
+net = nn.Sequential(nn.Conv2d(1, 8, 3, padding=1), nn.ReLU(),
+                    nn.Conv2d(8, 32, 3, padding=1), nn.ReLU(),
+                    nn.AdaptiveMaxPool2d(1), nn.Flatten(),   # globális max: 32 szám
+                    nn.Linear(32, 10))
+opt, lossfn = torch.optim.Adam(net.parameters(), lr=0.01), nn.CrossEntropyLoss()
+X, y = lap(Xtr), torch.tensor(ytr)
+for epoch in range(40):
+    for idx in torch.randperm(len(X)).split(32):
+        opt.zero_grad(); lossfn(net(X[idx]), y[idx]).backward(); opt.step()
+with torch.no_grad():
+    for dx in (0, 1, 2):
+        print(dx, (net(lap(Xte, dx)).argmax(1).numpy() == yte).mean())   # ugyanannyi minden eltolásnál</code></pre>
+  <small>Négy maggal futtatva: 99,3%, 98,7%, 96,9% és 99,6% – és mindegyik maggal hajszálpontosan ugyanannyi 0, 1 és 2 pixel eltolásnál. (Ez a változat korai leállítás nélkül, a teljes 1347 képen tanul, ezért a számok kicsit eltérnek a widget hálójáétól.)</small>
+</details>
+
+<h3 id="s119-b">Válaszok a fejezet kérdéseire</h3>
+<div class="box tip">
+  <span class="box-title">🎯 Miért esik szét a háló egyetlen pixeltől – és mi nem?</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Mi a baj az MLP-vel képeknél?</b> Minden súlya egy rögzített pixelhez tartozik: a paraméterszám a kép területével nő (egy $224 \times 224$-es képhez 1000 neuronnal 150 millió súly), és nem tudja, melyik pixel melyik mellett van – a pixelek összekeverése nem is zavarja (97,2% mindkétszer). Ezért ha a számjegy egy pixellel arrébb kerül, „idegen” súlyokra esik: 96,9% → 44,7% (<a href="#s111">11.1</a>).</li>
+    <li><b>Hogyan lehet ugyanazt a mintát bárhol keresni, kevés paraméterrel?</b> Konvolúcióval: egy kis szűrő (9 súly) végigcsúszik a képen, és minden helyen ugyanazt a mintát keresi (<a href="#s112">11.2</a>). A konvolúció <b>ekvivariáns</b> (a térkép a mintával együtt mozog), a globális maximum <b>invariáns</b> (nem kérdezi, hol). Együtt: a CNN-A 2746 paraméterrel minden eltolásnál 98,9% (<a href="#s113-a">11.3</a>). A pooling ezt csak részben adja (79,8% 1 pixelnél) – a hiányt az eltolásos adatbővítés pótolja (98,2%).</li>
+    <li><b>Hogyan lesz élekből számjegy, arc, macska?</b> Rétegenként: a pooling és a mélység miatt a recepciós mező nő ($3 \to 4 \to 8$ a CNN-B-ben, 212 pixel a VGG-16 végén), így a szűrők az élektől a formákon át a tárgyrészekig egyre nagyobb mintákat keresnek (<a href="#s113-c">11.3</a>). A LeNet, az AlexNet, a VGG és a ResNet ezt egyre mélyebbre vitte – a maradékkapcsolattal 152 rétegig (<a href="#s114">11.4</a>).</li>
+    <li><b>Kevés kép, más feladatok, kockázatok?</b> Kevés képnél egy előtanított háló törzsét használjuk újra, és csak a fejet (vagy a felső rétegeket, kis tanulási rátával) tanítjuk (<a href="#s115">11.5</a>). Ugyanaz a törzs detektál és szegmentál is, más fejjel; a találatot IoU-val mérjük (<a href="#s116">11.6</a>). A ViT a képet foltok sorozataként nézi – kevesebb beépített feltevéssel, ezért több adattal (<a href="#s117">11.7</a>).
+      És vigyázni kell: 1:N keresésben a kis hibaarány is sok hamis találat; a hibák csoportonként eltérhetnek; a háló rövidítést tanulhat, és megtéveszthető (<a href="#s118">11.8</a>).</li>
+  </ol>
+</div>
+</section>

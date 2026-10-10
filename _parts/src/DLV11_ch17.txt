@@ -1,0 +1,689 @@
+                                   17
+                  CON V NE T S IN PR AC TICE
+
+
+
+
+                      In the last chapter we discussed convolu-
+                      tion, and we wrapped up with a simpli-
+                    fied example of a convolutional network,
+                 or convnet.
+             In this chapter, we look at two real convnets designed for image clas-
+        sification. The first identifies grayscale handwritten digits, and the second
+        identifies what object is dominant in a color photograph, choosing from
+        1,000 different categories.
+
+
+Categorizing Handwritten Digits
+        Categorizing handwritten digits is a famous problem in machine learning
+        (LeCun et al. 1989), thanks to a freely available dataset called MNIST (pro-
+        nounced em´-nist). It contains 60,000 hand-drawn digits from 0 to 9, each a
+        grayscale picture rendered in white on a 28 by 28 black background, with
+        a label identifying the digit. The drawings were collected from census tak-
+        ers and students. Our job is to identify the digit in each image.
+                           We will use a simple convnet designed for this job that is included
+                       with the Keras machine learning library (Chollet 2017). Figure 17-1 shows
+                       the architecture in our schematic form and in the traditional box-and-
+                       label form.
+
+
+28 x 28 x 1                                                                                                  10
+
+                    32 x (3x3)    64 x (3x3)       2 x2    0.25           128        0.25      10
+                      ReLU          ReLU                                 ReLU                softmax
+
+
+
+
+                      Conv 2D          Conv 2D
+                                                          MaxPool      Dropout
+28 x 28 x 1          32 x (3x3)       64 x (3x3)
+                                                            2x2         0.25
+                       ReLU             ReLU
+
+
+
+
+                                                             Dense         Dropout          Dense 10
+                                               Flatten                                                       10
+                                                            128 ReLU        0.25             softmax
+
+Figure 17-1: A convnet for classifying MNIST digits. The input images are 28 by 28 by 1 channel. Two con-
+volution layers are followed by pooling, dropout, and flatten, then a dense (or fully connected) layer, another
+dropout, and a final dense layer with 10 outputs followed by softmax. Top: Our schematic version. Bottom:
+Traditional box-and-label form.
+
+                            The input to the net is the MNIST image, provided as a 3D tensor of
+                       shape 28 by 28 by 1 (the 1 refers to the single grayscale channel). Though
+                       there are two fully connected layers at the end, and various helper layers
+                       (such as dropout, flatten, and pooling), we still refer to this as a convolu-
+                       tional network, or convnet, because the convolution layers dominate the
+                       classification work. The first convolution layer runs 32 filters, each of size 3
+                       by 3, over the input. Each filter’s output is run through a ReLU activation
+                       function before it leaves the layer.
+                            By not specifying a stride, the filters will move by one element in each
+                       direction. We’re also not applying any padding. As we saw in Figure 16-10,
+                       this means that we lose a ring of elements after each convolution. That’s
+                       okay in this case because all MNIST images are supposed to have a border
+                       of four black pixels around the digit (not all images actually have this bor-
+                       der, but most do).
+                            The first layer’s input tensor is 28 by 28 by 1, so each filter in the first
+                       convolution layer is one channel deep. Because we have 32 filters, we don’t
+                       have any padding on the input, and the filters have a 3 by 3 footprint,
+                       the output of the first convolution layer is 26 by 26 by 32. The second
+
+
+
+
+474    Chapter 17
+convolution layer contains 64 filters with 3 by 3 footprints. The system
+knows that the input has 32 channels (because the previous layer had 32
+filters), so each filter is created as a tensor of shape 3 by 3 by 32. Because
+we’re still not using padding, we again lose a ring around the outside of the
+input, producing an output tensor that’s 24 by 24 by 64.
+     We could have used striding to reduce the size of the output, but here
+we use an explicit max pooling layer with blocks of size 2 by 2. That means
+for every nonoverlapping 2 by 2 block in the input, the layer outputs just
+one value containing the largest value in the block. Thus, the output of this
+layer is a tensor of size 12 by 12 by 64 (the pooling doesn’t change the num-
+ber of channels).
+     Next, we come to a dropout layer, represented by a diagonal slash.
+As we saw in Chapter 15, the dropout layer itself doesn’t actually do any
+processing. Instead, it instructs the system to apply dropout to the near-
+est preceding layer that contains neurons. The nearest layer preceding
+the dropout is pooling, but that has no neurons. As we continue to work
+backward, we find a convolution layer, which does have neurons. During
+training, the dropout algorithm is applied to this convolution layer (recall
+that dropout is only applied during training, and is otherwise ignored).
+Before each epoch of training, one-quarter of the neurons in this convo-
+lution layer are temporarily disabled. This should help hold off overfit-
+ting. By convention, we usually treat dropout as a layer, even though it
+does no computation. Note that since the dropout layer looks backward
+for the nearest layer with neurons, we could have placed it to the left of
+the pooling layer and nothing about the network would have changed. By
+convention, when we pool after convolution, we usually place those two
+layers together.
+     Now we leave the convolutional part of the network and prepare the
+values for output. We typically find these steps, or something like them, at
+the end of classification convnets. The output of the second convolution
+layer is a 3D tensor, but we want to feed that into a fully connected layer,
+which expects a list (or 1D tensor). A flatten layer, shown as two parallel
+lines, takes an input tensor of any number of dimensions and reorganizes
+it into a 1D tensor by placing all the elements together end-to-end. The list
+is made up starting with the first row in the tensor. We take the first ele-
+ment, and place its 64 values at the head of our list. Then we move to the
+second element, and place its 64 values at the end of the list. We continue
+doing this for every element in the row, and then we do it for the next row,
+and so on. Figure 17-2 shows the process. None of the values in the tensor
+are lost in this rearrangement.
+
+
+
+
+                                                           Convnets in Practice   475
+                   Figure 17-2: The action of a flatten layer. Top: The input tensor. Middle: Turning each
+                   channel into a list. Bottom: Placing the lists one after the other to make one large list.
+
+                       Returning to Figure 17-1, the flatten layer produces a list of 12 × 12 ×
+                   64 = 9,216 numbers. That list goes into a fully connected, or dense, layer
+                   of 128 neurons. That layer gets affected by dropout, where a quarter of the
+                   neurons are temporarily disconnected at the start of each batch during
+                   training.
+                       The 128 outputs of this layer go into a final dense layer with 10 neu-
+                   rons. The 10 outputs of this layer go into a softmax step so that they’re con-
+                   verted to probabilities. The 10 numbers that come out of this last layer give
+                   us the network’s prediction of the probability that the input image belongs
+                   to each of the 10 possible classes, corresponding to the digits 0 through 9.
+                       We trained this network for 12 epochs using the standard MNIST train-
+                   ing data. Its accuracy on the training and validation data sets is shown in
+                   Figure 17-3.
+                       The curves show we’ve achieved about 99 percent accuracy on both the
+                   training and validation data sets. Since the curves aren’t diverging, we’ve
+                   successfully avoided overfitting.
+
+
+
+
+476   Chapter 17
+Figure 17-3: The training performance of our convnet in Figure 17-2. We trained for 12
+epochs, and since the training and validation curves are not diverging, we’ve successfully
+avoided overfitting, while reaching about 99 percent accuracy on both data sets.
+
+   Let’s look at some predictions. Figure 17-4 shows some images from the
+MNIST validation set, labeled by the digit that the network gave the largest
+probability to. On this little set of examples, it did a perfect job.
+
+
+
+
+Figure 17-4: These are 24 randomly chosen images from the MNIST validation set. Each
+image is labeled with the output of the network, showing the digit with the highest prob-
+ability. The network classified all 24 of these digits correctly.
+
+    Just two convolution layers gave this system enough power to achieve 99
+percent accuracy.
+
+
+
+
+                                                                     Convnets in Practice   477
+      VGG16
+                   Let’s look at a bigger and more powerful convnet, called VGG16. It was
+                   trained to analyze color photographs and identify the dominant object in
+                   each photo by assigning probabilities to 1,000 different classes.
+                        VGG16 was trained on a famous dataset that was used as part of a con-
+                   test. The ILSVRC2014 competition was a public challenge in 2014. The goal
+                   was to build a neural network for classifying photos in a provided database of
+                   images (Russakovsky et al. 2015). The acronym ILSVRC stands for ImageNet
+                   Large Scale Visual Recognition Challenge, so the database of pictures is
+                   often called the ImageNet database. The ImageNet photo database is freely
+                   available online and is still widely used for training and testing new networks
+                   (newer, bigger versions of ImageNet are also available [Fei-Fei et al. 2020]).
+                        The original ImageNet database contained 1.2 million images, each
+                   manually labeled with one of 1,000 labels, describing the object most prom-
+                   inent in the photo. The challenge actually included several subchallenges,
+                   each with its own winners (ImageNet 2020). The winner of one of the
+                   classification tasks was VGG16 (Simonyan and Zisserman 2014). VGG is an
+                   acronym for the Visual Geometry Group, who developed the system. The 16
+                   refers to the network’s 16 computational layers (there are also some utility
+                   layers, such as dropout and flatten, that don’t do computation).
+                        VGG16 broke records for accuracy when it won the contest, and even
+                   though years have passed, it remains popular. This is largely because it still
+                   does very well at classifying images (even compared to newer, more sophis-
+                   ticated systems), and it has a simple structure that’s easy to modify and
+                   experiment with. The authors have released all the weights and how they
+                   preprocessed the training data. Even better, every deep learning library
+                   makes it easy to create a fully trained instance of VGG16 in our own code.
+                   Thanks to all of these qualities, VGG16 is a frequent starting point for proj-
+                   ects that involve image classification.
+                        Let’s look at the VGG16 architecture. Most of the work is done by a
+                   series of convolution layers. Utility layers appear along the way, and some
+                   flattening and fully connected layers appear at the very end, as they did in
+                   Figure 17-1.
+                        Before we feed any data to our model, we must preprocess it in the same
+                   way that the authors preprocessed their training data. That involves making
+                   sure that each channel has been adjusted by subtracting a specific value from
+                   all of its pixels (Simonyan and Zisserman 2014). To better discuss the shapes
+                   of the tensors flowing through the network, let’s assume each input image
+                   has a height and width of 224 to match the dimensions of the Imagenet data
+                   the network was trained on, and its colors have been correctly pre-processed.
+                   Once that’s done, we’re ready to feed our image to the network.
+                        We will present the VGG16 architecture as a series of six groups of
+                   ­layers. These groups are strictly conceptual and are just a way of gathering
+                    together related layers for our discussion. The first few groups have the
+                    same structure: two or three layers of convolution followed by a pooling
+                    layer.
+                        Group 1 is shown in Figure 17-5.
+
+478   Chapter 17
+   Input:
+224 x 224 x 3
+                   64 x (3x3)       64 x (3x3)       2x2
+                     ReLU             ReLU
+
+Figure 17-5: Group 1 of VGG16. We convolve the input tensor with 64 filters
+each of size 3 by 3. Then we convolve again with 64 new filters. Finally, we
+use max pooling to reduce the output tensor’s height and width by half.
+
+     The convolutions both apply zero padding to their inputs so there’s no
+loss in width or height. The max pooling step uses nonoverlapping blocks
+of size 2 by 2.
+     All of the convolution layers in VGG16 use the default ReLU activation
+function.
+     We’ve seen how useful pooling is for helping our filters recognize pat-
+terns even if they’ve been displaced. For the same reasons that we used
+pooling when matching masks in Chapter 16, we apply pooling here, too.
+     The output of the group in Figure 17-5 is a tensor of dimensions 112 by
+112 by 64. The values of 112 come from the input dimensions of 224 by 224
+that have been halved, and the 64 results from the 64 filters in the second
+convolution layer.
+     Group 2 is just like the first, only now we apply 128 filters in each convo-
+lution layer. Figure 17-6 shows the layers. The output of this group has size
+56 by 56 by 128.
+
+
+
+
+  128 x (3x3)        128 x (3x3)        2x2
+    ReLU               ReLU
+
+Figure 17-6: Group 2 of VGG16 is just like the first block in Figure 17-5,
+except that we use 128 filters in each convolution layer rather than 64.
+
+     Group 3 continues the pattern of doubling the number of filters in each
+convolution layer, but it repeats the convolution step three times instead of
+twice. Figure 17-7 shows Group 3. The tensor after the max pooling step has
+size 28 by 28 by 256.
+
+
+
+
+ 256 x (3x3)       256 x (3x3)        256 x (3x3)        2x2
+   ReLU              ReLU               ReLU
+
+Figure 17-7: Group 3 of VGG16 doubles the number of filters again to 256
+and repeats the convolution step three times rather than two as before.
+
+
+
+
+                                                                       Convnets in Practice   479
+                        Groups 4 and 5 of the network are the same. Each group is built from
+                    three steps of convolution with 512 filters, followed by a max pooling layer.
+                    The structure of these layers is shown in Figure 17-8. The tensor coming
+                    out of Group 4 has size 28 by 28 by 512, and the tensor after the max pool-
+                    ing layer in Group 5 has dimensions 14 by 14 by 512.
+
+
+
+
+                      512 x (3x3)         512 x (3x3)     512 x (3x3)        2x2
+                        ReLU                ReLU            ReLU
+                    Figure 17-8: Groups 4 and 5 of VGG16 are the same. They each have
+                    three convolution layers, followed by a two by two max pooling layer.
+
+                         This ends the convolution part of the network, and now we come to the
+                    wrap-up. As with the MNIST classifier we saw in Figure 17-1, we first flatten
+                    the tensor coming out of Group 5. We then run it through two dense layers
+                    of 4,096 neurons, each using ReLU, and each followed by dropout with an
+                    aggressive setting of 50 percent. Finally, the output goes into a dense layer
+                    with 1,000 neurons. The results are fed to softmax, which produces our out-
+                    put of 1,000 probabilities, one for each class that VGG16 was trained to rec-
+                    ognize. These final steps, which are typical for classification networks of this
+                    style, are shown in Figure 17-9.
+
+                                                                                    Output:
+                                                                                     1000
+                              4096         0.5    4096       0.5    1000
+                              ReLU                ReLU             softmax
+                    Figure 17-9: The final steps of processing in VGG16. We flatten the image,
+                    then run it through two dense layers each using ReLU, followed by dropout,
+                    then through a dense layer with softmax.
+
+                          Figure 17-10 shows the whole architecture in one place.
+                             2 times               2 times                3 times
+
+             Input:
+         3 x 224 x 224
+                            64 x (3x3)      2x2   128 x (3x3)   2x2      256 x (3x3)     2x2
+                              ReLU                  ReLU                   ReLU
+
+
+
+       3 times               3 times
+
+                                                                                                       Output
+
+      512 x (3x3)   2x2     512 x (3x3)     2x2          4096      0.5    4096         0.5    1000
+        ReLU                  ReLU                       ReLU             ReLU               softmax
+
+Figure 17-10: The VGG16 architecture in one place
+
+480    Chapter 17
+             This network works very well. Figure 17-11 shows four pictures shot
+         around Seattle on a phone’s camera.
+
+
+
+
+         Figure 17-11: Four photos shot around Seattle on a sunny day. The convnet of Figure 17-10
+         does a great job of identifying each image.
+
+              The convnet has never seen these images, but it does a great job with
+         them. Even the ambiguous round object in the upper right is assigned sen-
+         sible labels.
+              Let’s take a closer look at what’s going on inside VGG16 by looking at its
+         filters.
+
+
+Visualizing Filters, Part 1
+         VGG16’s success in classifying is due to the filters that were learned by its
+         convolution layers. It’s tempting to look at the filters and see what they’ve
+         learned, but the filters themselves are big blocks of numbers, which are
+         hard for us to interpret. Instead of trying to somehow make sense of a block
+         of numbers, we can visualize our filters indirectly by creating images that
+         trigger them. In other words, once we’ve selected a filter we want to visual-
+         ize, we can find a picture that causes that filter to output its biggest value.
+         That picture shows us what that filter is looking for.
+
+
+                                                                            Convnets in Practice   481
+                         We can do this with a little trick based on gradient descent, the algo-
+                    rithm that we saw in Chapter 14 as part of backpropagation. We flip gradi-
+                    ent descent around to create gradient ascent, which we use to climb up the
+                    gradient and increase the system’s error. Remember from Chapter 14 that
+                    during training, we use the system’s error to create gradients that we push
+                    backward through the network with backprop, enabling us to change the
+                    weights in order to reduce that error. For filter visualization, we’re going to
+                    ignore the network’s output and its error entirely. The only output we care
+                    about is the feature map that comes out of the particular filter (or neuron)
+                    we want to visualize. We know that when the filter sees information that it’s
+                    looking for, it produces a big output, so if we add up all of the output values
+                    of that filter for a given input image, it tells us how much of what the filter
+                    is looking for is in that image. We can use the sum of all the values in the
+                    feature map as a replacement for the network’s error.
+                         Figure 17-12 shows the idea.
+
+                                                      VGG16
+                          Block 1                          Block 2                   Block 5
+
+
+
+
+                                                       Filter 17
+
+
+
+
+Figure 17-12: Visualizing a filter. The sum of all the values in the feature map serves as the network’s error.
+
+                        We’re using VGG16, but for this visualization process we leave off the
+                    layers after the last convolution. We feed in a grid of random numbers and
+                    extract the filter map for the filter we want to visualize. That becomes our
+                    error. Now comes the tricky part: we use this error to compute the gradi-
+                    ents, but we don’t adjust the weights at all. The network itself and all of its
+                    weights are frozen. We just keep computing the gradients and pushing them
+                    back until we reach the input layer, which holds the pixel values of the
+                    input image. The gradients that arrive at this layer tell us how to change
+                    those pixel values to decrease the error, which we know is the filter’s out-
+                    put. Since we want to stimulate the neuron as much as we can, we want the
+                    “error” to be as big as possible, so we change the pixel values to increase,
+                    rather than decrease, this error. That makes the picture stimulate our
+                    selected neuron a little more than it did before.
+                        After doing this over and over, we will have adjusted our initially ran-
+                    dom pixel values so that they’re making the filter output the biggest values
+                    we can get it to produce. When we look at the input after it’s been modified
+
+
+
+482    Chapter 17
+in this way, we see a picture that makes that neuron produce a huge output,
+so the picture shows us what the filter is looking for (or at least gives us a
+general idea) (Zeiler and Fergus 2013). We will use this visualization pro-
+cess again in Chapter 23 when we look at the deep dreaming algorithm.
+     Because we start with random values in the input image, we get a dif-
+ferent final image every time we run this algorithm. But each image we
+make is roughly like the others, since they’re all based on maximizing the
+output of the same filter.
+     Let’s look at some images produced by this method. Figure 17-13 shows
+pictures produced for the 64 filters in the second convolution layer in the
+first block, or group, of VGG16 (we use the label block1_conv2 for this layer
+and similar names for the other layers we look at). In Figure 17-13 and the
+others like it to come, we’ve enhanced the color saturation to make the
+results easier to interpret.
+
+
+
+
+Figure 17-13: Images that get the biggest response from each of the
+64 filters in the block1_conv2 layer of VGG16
+
+
+
+
+                                                                      Convnets in Practice   483
+                        It seems that a lot of these layers are looking for edges in different ori-
+                   entations. Some have values that are too subtle for us to interpret easily.
+                        Let’s move forward to block 3, and look at the first 64 filters from the
+                   first convolution layer there. Figure 17-14 shows images that stimulate these
+                   filters the most.
+
+
+
+
+                   Figure 17-14: Images that get the biggest response from the first 64 filters in the
+                   block3_conv1 layer of VGG16
+
+
+                        Now we’re talking! As we’d expect, the filters here are looking for more
+                   complex textures, combining the simpler patterns found by prior layers.
+                   Let’s move farther along and look at the first 64 filters from the first convo-
+                   lution layer of block 4, in Figure 17-15.
+
+
+
+
+484   Chapter 17
+Figure 17-15: Images that get the biggest response from the first 64 filters in the block4_
+conv1 layer of VGG16
+
+
+     These are fascinating glimpses into what VGG16 has learned. We can
+see some of the structures it has found to be useful in order to classify the
+object in an image. The filters seem to be hunting for patterns that involve
+a lot of different kinds of flowing and interlocking textures like those we’d
+find on animals and other surfaces in the world around us.
+     We can really see the value of the convolution hierarchy here. Each
+layer of convolution looks for patterns in the output of the previous layer,
+letting us work our way up from low-level details like stripes and edges to
+complex and rich geometrical structures.
+
+
+
+
+                                                                       Convnets in Practice   485
+                      Just for fun, let’s look at close-ups of a few of these filters. Figure 17-16
+                   shows larger views of nine patterns from the first few layers.
+
+
+
+
+                   Figure 17-16: Close-ups of some manually selected images that triggered the largest filter
+                   responses from the first few layers of VGG16
+
+                        Figure 17-17 shows patterns that triggered big responses from filters in
+                   the last few layers.
+                        These patterns are exciting and beautiful. They also have an organic
+                   feeling about them, probably because the ImageNet database ­contains
+                   many images of animals.
+
+
+
+
+486   Chapter 17
+         Figure 17-17: Close-ups of some manually selected images that triggered the largest filter
+         responses from the last few layers of VGG16
+
+
+
+
+Visualizing Filters, Part 2
+         Another way to visualize a filter is to run an image through VGG16, and
+         look at the feature map produced by that filter. That is, we feed an image
+         to VGG16 and let it run through the network, but as before, we ignore
+         the network’s output. Instead, we extract the feature map for the filter
+         we’re interested in, and draw it like a picture. This is possible because
+         each feature map always has a single channel, so we can draw it as a
+         grayscale image.
+             Let’s give it a spin. Figure 17-18 shows our input image of a drake, or
+         male duck. This is the starting image for all of our visualizations in this
+         section.
+
+
+
+
+                                                                              Convnets in Practice   487
+                   Figure 17-18 The drake image that we use to visualize filter outputs
+
+                       To get a feeling for things, Figure 17-19 shows the response from the
+                   very first filter on the very first convolution layer of the network. Since the
+                   output of a filter has just one channel, we can draw it in grayscale. We’ve
+                   chosen to instead use a heatmap from black to reds to yellow.
+
+
+
+
+                   Figure 17-19: The response of filter 0 in layer block1_conv1 in VGG16 to the
+                   duck image in Figure 17-18
+
+
+488   Chapter 17
+     This filter is looking for edges. Consider the tail in the lower right. An
+edge that’s light on top and darker below gets a very large output from the
+filter, whereas an edge in the other direction gets a very low output. Less
+extreme changes cause smaller outputs, and regions of constant color have
+middling outputs.
+     Figure 17-20 shows the responses from the first 32 filters in the first con-
+volution layer of the first block.
+
+
+
+
+Figure 17-20: The responses of the first 32 filters in VGG convolution layer block1_conv1
+
+    A lot of these filters seem to be looking for edges, but others seem to
+be looking for particular features of the image. Let’s look at close-ups of
+8 manually selected filters chosen from all 64 of the filters on this layer,
+shown in Figure 17-21.
+
+
+
+
+Figure 17-21: Close-ups of eight manually chosen filter responses from VGG16’s first con-
+volution layer, block1_conv1
+
+
+
+
+                                                                     Convnets in Practice   489
+                        The third image in the top row seems to be looking for the duck’s feet,
+                   or maybe it’s just interested in bright orange things. The left-most image in
+                   the bottom row looks like it’s searching for the waves and sand behind the
+                   duck, though the image to its right appears to be responding most to the
+                   blue waves. Some more experimentation with other inputs would help us
+                   nail down these interpretations, but it’s fun to see how much we can guess
+                   from a single image.
+                        Let’s move farther into the network, out to the third block of con­
+                   volution layers. The outputs here are smaller by a factor of four on
+                   each side than those coming out of the first block because they’ve gone
+                   through two pooling layers. We expect that they are looking for clusters
+                   of features. Figure 17-22 shows the responses for the first convolution layer
+                   in block 3.
+
+
+
+
+                   Figure 17-22: The responses of the first 32 filters in the VGG convolution layer
+                   block3_conv1
+
+
+                       It’s interesting that a lot of edge finding still seems to be going on. This
+                   suggests that strong edges are an important cue for VGG16 as it works to
+                   figure out what an image is showing, even in the third set of convolutions.
+                   But lots of other regions are also bright.
+                       Let’s jump all the way to the last block. Figure 17-23 shows the
+                   responses for the first 32 filters for the first convolution layer in
+                   block 5.
+
+
+
+
+490   Chapter 17
+        Figure 17-23: Filter responses for the first 32 filters in VGG convolution layer block5_conv1
+
+             As we’d expect, these images are even smaller, having passed through
+        two more pooling layers that each reduce the size by a factor of two on each
+        side. At this point, the duck is hardly visible because the system is combin-
+        ing features from the previous layers. Some of the filters are barely respond-
+        ing. They are probably responsible for finding high-level features that aren’t
+        present in the duck image.
+             In Chapter 23 we’ll look at a couple of creative applications that use the
+        filter responses in a convnet.
+
+
+Adversaries
+        Although VGG16 does very well at predicting the correct label for many
+        images, we can change an image in ways so small that they’re undetect-
+        able to the human eye, but that fools the classifier into assigning the wrong
+        label. In fact, this process can mess up the results of any convolution-based
+        classifier.
+             The trick to fooling a convnet involves creating a new image called
+        an adversary. This image is created from the starting image by adding an
+        adversarial perturbation (or more simply, a perturbation). The perturbation
+        is another image, the same size as the image we want to classify, typically
+        with very small values. If we add the perturbation to our original image,
+        the changes are usually so small that most people can’t detect any differ-
+        ence, even in the finest details. But if we ask VGG16 to classify the perturbed
+        image, it gives us the wrong answer. Sometimes we can find a single pertur-
+        bation that messes up the results for every image we give to a particular clas-
+        sifier, which we call a universal perturbation (Moosavi-Dezfooli et al. 2016).
+
+
+
+
+                                                                               Convnets in Practice   491
+                        Let’s see this in action. On the left of Figure 17-24 we see an image of
+                   a tiger. All of the pixel values in this image are between 0 and 255. The sys-
+                   tem correctly classifies it as a tiger with about 80 percent confidence, with
+                   smaller confidences for related animals such as a tiger cat and a jaguar.
+
+
+
+
+                   Figure 17-24: An adversarial attack on an image. Left: The input and VGG16’s top five
+                   classes. Middle: The adversarial image, where the pixel values are in the range of about
+                   [–2, 2], but shown here scaled to the range [0, 255] so they can be seen. Right: The result
+                   of adding the image and the original (unscaled) adversary together, and the new top
+                   five classes.
+
+                        In the middle of Figure 17-24 we show an image computed by an algo-
+                   rithm designed to find adversaries. All of the values in this image are about
+                   in the range [–2, 2], but for this figure, we scaled the values to the range
+                   [0, 255] so they’d be easier to see. In the top right of Figure 17-23 we show
+                   the result of adding the tiger and the adversary, so each of the original tiger’s
+                   pixels is changed by a value within the range [–2, 2]. To our eyes, the tiger
+                   seems unchanged. Even the thin whiskers look the same. Below that image
+                   are VGG16’s top five predictions for this new image. The system comes up
+                   with completely different predictions for the image, none of which come
+                   anywhere close to the correct class. Except for the low-probability class of
+                   brain coral, the system doesn’t even think this image is an animal.
+                        The perturbation image in Figure 17-24 may look random to our eyes,
+                   but it’s not. This picture was specifically computed to throw off VGG16’s
+                   prediction for the image of the tiger.
+                        There are many different ways to compute adversarial images (Rauber,
+                   Brendel, and Bethge 2018). The range of values in the perturbations these
+
+492   Chapter 17
+      methods create for a given image can vary considerably, so to find the small-
+      est perturbation, it’s often worth trying a few different methods, also called
+      attacks. We can compute adversaries to achieve different goals (Rauber and
+      Brendel 2017b). For example, we can ask for a perturbation that simply
+      causes the input to be misclassified. Another option asks for a perturbation
+      that causes the input to be classified as a specific, desired class. To make
+      Figure 17-24, we used an algorithm that is designed to make the classifier’s
+      top seven predictions much more unlikely. That is, it takes in the starting
+      image and the top seven predictions from the classifier and produces an
+      adversary. When we add the adversary to the input and hand that to the
+      classifier, none of its new top seven predictions contain any of the previous
+      top seven predictions.
+           We have to carefully construct adversarial perturbations, which sug-
+      gests that they’re exploiting something subtle in our convnets.
+           We may find a way to build convnets that resist these attacks, but con-
+      volutional networks may be inherently vulnerable to these subtle image
+      manipulations (Gilmer et al. 2018). The existence of adversaries suggests
+      that convnets still hold surprises for us, and they shouldn’t be considered
+      foolproof. There’s more to be learned about what’s going on inside of con-
+      volutional networks.
+
+
+Summary
+      In this chapter we looked at a couple of real convnets: a small one for clas-
+      sifying handwritten MNIST digits and the larger VGG16 network for clas-
+      sifying photos. Though our MNIST network was quite small, it was able to
+      classify digits with about 99 percent accuracy.
+           We looked at the structure of VGG16, and then two different types of
+      visualizations of its filters. We saw that the filters in this network start by
+      looking for simple structures like edges and build up to complex and beau-
+      tiful organic patterns.
+           Finally, we saw that convolutional networks used as image classifiers are
+      susceptible to being fooled by adjusting the pixel values by tiny amounts
+      that are imperceptible to a human observer.
+           In the next chapter we’ll look at how to build networks that figure out
+      how to compress an input into a much smaller representation and then
+      expand that again to produce something close to the original.
+
+
+
+
+                                                                  Convnets in Practice   493
+

@@ -1,0 +1,2875 @@
+                         13
+   EXPERIMENTS WITH KERAS AND
+             MNIST
+
+
+
+             In the last chapter, we covered the essen-
+            tial components and functionality of a
+          CNN. In this chapter, we’ll work with our
+       test model from Chapter 12. We’ll first learn
+how to implement and train it in Keras. After that,
+we’ll conduct a set of experiments that will build our
+intuition for how different architectures and learn-
+ing parameter choices affect the model.
+    From there, we’ll move beyond classification of simple input images and
+expand the network by converting it into a fully convolutional model capa-
+ble of processing arbitrary inputs and locating digits wherever they occur in
+the input.
+    After fully convolutional networks, we’ll wander a little deeper into the
+pool of deep learning and fulfill a promise made in Chapter 7: we’ll explore
+how well CNNs perform on the scrambled MNIST digit experiment. We
+saw in Chapter 10 that scrambling the pixels of the digits made it virtually
+impossible for us to see what the digit was but had little to no effect on how
+well a traditional neural network was able to interpret the digits. Is the same
+true with a CNN? We’ll find out.
+      Building CNNs in Keras
+                      The model from Figure 12-3 is straightforward to implement in Python us-
+                      ing the keras library. We’ll list the code first, explain it, and then run it to
+                      see what sort of output it produces. The code naturally falls into three sec-
+                      tions. The first loads the MNIST data and configures it for Keras; the sec-
+                      ond builds the model; and the third trains the model and applies it to the
+                      test data.
+
+
+                      Loading the MNIST Data
+                      Listing 13-1 has the first part of our code.
+
+                      import keras
+                      from keras.datasets import mnist
+                      from keras.models import Sequential
+                      from keras.layers import Dense, Dropout, Flatten
+                      from keras.layers import Conv2D, MaxPooling2D
+                      from keras import backend as K
+
+                      batch_size = 128
+                      num_classes = 10
+                      epochs = 12
+                      img_rows, img_cols = 28, 28
+
+                    ¶ (x_train, y_train), (x_test, y_test) = mnist.load_data()
+
+                    · if K.image_data_format() == 'channels_first':
+                          x_train = x_train.reshape(x_train.shape[0], 1, img_rows, img_cols)
+                          x_test = x_test.reshape(x_test.shape[0], 1, img_rows, img_cols)
+                          input_shape = (1, img_rows, img_cols)
+                      else:
+                          x_train = x_train.reshape(x_train.shape[0], img_rows, img_cols, 1)
+                          x_test = x_test.reshape(x_test.shape[0], img_rows, img_cols, 1)
+                          input_shape = (img_rows, img_cols, 1)
+
+                    ¸ x_train = x_train.astype('float32')
+                      x_test = x_test.astype('float32')
+                      x_train /= 255
+                      x_test /= 255
+
+                    ¹ y_train = keras.utils.to_categorical(y_train, num_classes)
+                      y_test = keras.utils.to_categorical(y_test, num_classes)
+
+                      Listing 13-1: Loading and data preprocessing
+
+
+
+
+310    Chapter 13
+     Keras is a rather large toolkit consisting of many modules. We import
+the library first and then specific functions from it. The mnist module gives
+us access to the MNIST data from within Keras; the Sequential model type is
+for implementing a CNN. Our CNN will need some specific layers, the ones
+we saw used in Figure 12-3: Dense, Dropout, Flatten, Conv2D, and Max-
+Pool2D, all of which we import. Keras supports a plethora of other layers; I
+encourage you to spend some quality time with their documentation pages:
+https://keras.io/.
+     Next, we set the learning parameters, including the number of epochs,
+classes, and minibatch size. There are 10 classes, and the images are 28×28
+pixel grayscale. Like sklearn, in Keras, you specify the number of epochs
+(full passes through the training set), not the number of minibatches that
+should be processed. Keras automatically processes the entire training set
+per epoch in sets of the minibatch size—here 128 samples at a time. Recall
+that MNIST’s training set consists of 60,000 samples, so there are at least
+60, 000/128 = 468 minibatches per epoch using integer division. There will
+be 469 if Keras uses the remainder, the samples that do not build a complete
+minibatch. Remember that each minibatch process results in a gradient de-
+scent step: an update of the parameters of the network.
+     After loading the MNIST train and test data ¶ come a few lines of
+code that may seem somewhat mysterious at first ·. Keras is a higher-level
+toolkit that uses potentially different lower-level backends. In our case, the
+backend is TensorFlow, which we installed in Chapter 1. Different backends
+expect the model input in different forms. The image_data_format function
+returns a string indicating where the underlying toolkit expects to see the
+number of channels or filters for convolutional layers. The TensorFlow back-
+end returns channels_last, meaning it expects an image to be represented
+as a 3D array of H × W × C, where H is the image height, W is the image
+width, and C is the number of channels. For a grayscale image like MNIST,
+the number of channels is 1. The code in · reformats the input images to
+match what Keras is expecting to see.
+     The next block of code converts the byte image values to floating-point
+numbers in the range [0, 1] ¸. This is the only scaling done to the input
+data, and this type of scaling is typical of CNNs that work with images.
+     Finally, the to_categorical function is used to map the class labels in
+y_test to one-hot vector representations ¹, which is how Keras wants to
+see the labels. As we’ll see, the model has 10 outputs, so the mapping is to
+a vector of 10 elements; each element is 0 except for the element whose
+index corresponds to the label in y_test. That element is set to 1. For ex-
+ample, y_test[333] is of class 6 (a “6” digit). After the call to to_categorical,
+y_test[333] becomes
+
+array([0.,0.,0.,0.,0.,0.,1.,0.,0.,0.], dtype=float32)
+
+where all entries are 0 except index 6, which is 1.
+
+
+
+
+                                                      Experiments with Keras and MNIST   311
+                   Building Our Model
+                   With the dataset preprocessed, we can build our model. The code shown in
+                   Listing 13-2 builds the exact model we defined with pictures in Figure 12-3.
+
+                   model = Sequential()
+                   model.add(Conv2D(32, kernel_size=(3, 3),
+                                    activation='relu',
+                                    input_shape=input_shape))
+                   model.add(Conv2D(64, (3, 3), activation='relu'))
+                   model.add(MaxPooling2D(pool_size=(2, 2)))
+                   model.add(Dropout(0.25))
+                   model.add(Flatten())
+                   model.add(Dense(128, activation='relu'))
+                   model.add(Dropout(0.5))
+                   model.add(Dense(num_classes, activation='softmax'))
+
+                   model.compile(loss=keras.losses.categorical_crossentropy,
+                                 optimizer=keras.optimizers.Adadelta(),
+                                 metrics=['accuracy'])
+
+                   print("Model parameters = %d" % model.count_params())
+                   print(model.summary())
+
+                   Listing 13-2: Building the MNIST model
+
+                        Keras defines the model as an instance of the Sequential class. The
+                   model is built by adding layers to that instance, hence all the calls to the add
+                   method. The argument to add is the new layer. The layers are added from
+                   the input side to the output side, so the first layer we need to add is the 2D
+                   convolutional layer that uses a 3 × 3 kernel on the input image. Note, we are
+                   not specifying the number of images nor the minibatch size; Keras will han-
+                   dle that for us when the model is put together and trained. Right now, we
+                   are defining the architecture.
+                        Using the architecture defined in Figure 12-3, the first layer is a Conv2D
+                   layer. The first argument is the number of filters; here, 32. The kernel size
+                   is given as a tuple, (3,3). Kernels don’t need to be square, hence the kernel
+                   width and height. It’s possible that the spatial relationship of the parts of
+                   your input might be better detected with a non-square kernel. If so, Keras
+                   lets you use one. That said, almost all kernels in practical use are square.
+                   After the kernel, we define an activation function to apply to the output of
+                   the convolutional layer, here a ReLU. The shape of the input to this layer
+                   is explicitly defined via input_shape, and we saw that earlier for our MNIST
+                   model using a TensorFlow backend, the shape is a tuple, (28,28,1).
+                        Next, we add the second convolutional layer. This one has 64 filters,
+                   also using a 3 × 3 kernel and a ReLU activation on the output. Note, we do
+                   not need to specify the shape here: Keras knows the input shape because it
+                   knows the shape of the previous convolutional layer’s output.
+
+
+
+312   Chapter 13
+     Max pooling comes next. We explicitly state that the pooling size is
+2 × 2, with an implied stride of 2. If we wanted to use average pooling here,
+we would replace MaxPooling2D with AveragePooling2D.
+     After pooling comes our first dropout layer, which uses a 25 percent
+probability of dropping an output, here the output of the max-pooling layer.
+     We discussed earlier how Keras separates the operations of a fully con-
+nected layer into Flatten and Dense layers. This allows more fine-grained
+control of the architecture. We add a Flatten layer to map the pooling out-
+put to a vector and then pass this vector to a Dense layer to implement the
+classic fully connected layer. The dense layer has 128 nodes and uses a
+ReLU for the activation function. If we want dropout on the output of the
+dense layer, we need to add it explicitly, so we add one with a probability of
+50 percent.
+     The final dense layer has 10 nodes, one for each possible class label. The
+activation is set to softmax to get a softmax output on the inputs to this layer.
+Since this is the last layer we define, the output of this layer, the softmax
+probabilities for membership in each of the 10 classes, is the output of the
+entire model.
+     To configure the model for training, we need to call the compile method.
+This sets the loss function used during training (loss) and the specific opti-
+mization algorithm to use (optimizer). The metrics keyword is used to define
+which metrics to report during training. For our example, we are using the
+categorical cross-entropy loss, which is the multiclass version of the binary
+cross-entropy loss. We described this loss function in Chapter 9; it is the go-
+to loss function for many CNNs.
+     We will need to discuss the optimizer keyword more thoroughly. In
+Chapter 9, we presented gradient descent and the more common version,
+stochastic gradient descent. As you might expect, the machine learning
+community has not been content to simply use this algorithm as is; much
+research has been done to see if it can be improved upon for training neural
+networks. This has led to the development of multiple variations on gradi-
+ent descent, many of which Keras supports.
+     If we want, we can use classic stochastic gradient descent here. The ex-
+ample, however, is using a variant called Adadelta. This is itself a variant
+of the Adagrad algorithm that seeks to change the learning rate (step size)
+intelligently during training. For practical purposes, we should consider
+Adadelta an improved version of stochastic gradient descent. Keras also sup-
+ports other optimization approaches that we do not intend to cover here,
+but you can read about in the Keras documentation, particularly Adam and
+RMSprop.
+     After the call to compile, our model is defined. The convenience meth-
+ods count_params and summary produce output characterizing the model itself.
+When we run the code, we’ll see the sort of output they produce.
+
+
+
+
+                                                    Experiments with Keras and MNIST   313
+                   Training and Evaluating the Model
+                   Finally, with both data and model defined, we can train and then evaluate
+                   the model on the test data. The code for this is in Listing 13-3.
+
+                   history = model.fit(x_train, y_train,
+                             batch_size=batch_size,
+                             epochs=epochs,
+                             verbose=1,
+                             validation_data=(x_test, y_test))
+                   score = model.evaluate(x_test, y_test, verbose=0)
+                   print('Test loss:', score[0])
+                   print('Test accuracy:', score[1])
+                   model.save("mnist_cnn_model.h5")
+
+                   Listing 13-3: Training and testing the MNIST model
+
+                        The fit method trains the network using the supplied training samples
+                   (x_train) and a one-hot vector version of the associated class label (y_test).
+                   We also pass in the number of epochs and the minibatch size. Setting verbose
+                   to 1 will produce the output shown in Listing 13-4. Lastly, we have validation
+                   _data. For this example, we’re being a bit sloppy and passing in all the test
+                   data instead of holding some back for final testing. (This is just a simple ex-
+                   ample, after all.) Normally, we’d hold some test data back to use after the
+                   final model has been trained. This ensures that results on this held-out test
+                   data represent what we might encounter when using the model in the wild.
+                        Notice that the fit method returns something. This is a History object,
+                   and its history property holds a per epoch summary of the training and vali-
+                   dation loss and accuracy values. We can use these to make summary plots if
+                   we wish.
+                        Once the model is trained, we can get a score, similar to the score of
+                   sklearn, by calling the evaluate method and passing in the test data. The
+                   method returns a list with the loss and accuracy of the model on the sup-
+                   plied data, which we simply print.
+                        We can use the save method to write the model itself to disk for future
+                   use. Notice the file extension. Keras dumps the model in an HDF5 file.
+                   HDF5 is a generic hierarchical data format widely used in scientific circles.
+                   In this case, the file contains all the weights and biases of the model and the
+                   layer structure.
+
+
+
+
+314   Chapter 13
+    Running this code produces the output shown in Listing 13-4:
+
+Using TensorFlow backend.
+Model parameters = 1199882
+
+Layer (type)                 Output Shape              Param #
+==============================================================
+conv2d_1 (Conv2D)            (None, 26, 26, 32)        320
+conv2d_2 (Conv2D)            (None, 24, 24, 64)        18496
+max_pooling2d_1 (MaxPooling2 (None, 12, 12, 64)        0
+dropout_1 (Dropout)          (None, 12, 12, 64)        0
+flatten_1 (Flatten)          (None, 9216)              0
+dense_1 (Dense)              (None, 128)               1179776
+dropout_2 (Dropout)          (None, 128)               0
+dense_2 (Dense)              (None, 10)                1290
+==============================================================
+Total params: 1,199,882
+Trainable params: 1,199,882
+Non-trainable params: 0
+
+Train on 60000 samples, validate on 10000 samples
+Epoch 1/12-loss:0.2800 acc:0.9147 val_loss:0.0624 val_acc:0.9794
+Epoch 2/12-loss:0.1003 acc:0.9695 val_loss:0.0422 val_acc:0.9854
+Epoch 3/12-loss:0.0697 acc:0.9789 val_loss:0.0356 val_acc:0.9880
+Epoch 4/12-loss:0.0573 acc:0.9827 val_loss:0.0282 val_acc:0.9910
+Epoch 5/12-loss:0.0478 acc:0.9854 val_loss:0.0311 val_acc:0.9901
+Epoch 6/12-loss:0.0419 acc:0.9871 val_loss:0.0279 val_acc:0.9908
+Epoch 7/12-loss:0.0397 acc:0.9883 val_loss:0.0250 val_acc:0.9914
+Epoch 8/12-loss:0.0344 acc:0.9891 val_loss:0.0288 val_acc:0.9910
+Epoch 9/12-loss:0.0329 acc:0.9895 val_loss:0.0273 val_acc:0.9916
+Epoch 10/12-loss:0.0305 acc:0.9909 val_loss:0.0296 val_acc:0.9904
+Epoch 11/12-loss:0.0291 acc:0.9911 val_loss:0.0275 val_acc:0.9920
+Epoch 12/12-loss:0.0274 acc:0.9916 val_loss:0.0245 val_acc:0.9916
+Test loss: 0.02452171179684301
+Test accuracy: 0.9916
+
+Listing 13-4: MNIST training output
+
+     We’ve excluded some informational and warning messages from the
+lower-level TensorFlow toolkit and condensed the output to make it easier to
+follow in the text.
+
+
+
+
+                                                   Experiments with Keras and MNIST   315
+                        At the start of the run, Keras informs us that TensorFlow is our back-
+                   end. It also shows us the shape of the training data, the now familiar 60,000
+                   samples with a shape of 28 × 28 × 1 (×1 since the images are grayscale). We
+                   have the usual 10,000 test samples as well.
+                        Next comes a report on the model. This report shows the layer type,
+                   shape of the output from the layer, and the number of parameters in the
+                   layer. For example, the first convolutional layer uses 32 filters and 3 × 3 ker-
+                   nels, so the output with a 28 × 28 input will be 26 × 26 × 32. The None listed
+                   for each layer is in the place where the number of elements in the minibatch
+                   normally is. The printout is showing only the relationship between the lay-
+                   ers; because nothing in the architecture changes the number of elements in
+                   the minibatch, there’s no need to explicitly mention the minibatch elements
+                   (hence the None). The parameters are 3 × 3 × 32 for the filters plus an addi-
+                   tional 32 bias terms for the 320 parameters listed.
+                        As mentioned in Chapter 12, the lion’s share of the parameters in the
+                   model are between the Flatten layer and the Dense layer. The layer named
+                   dense_2 is the softmax layer mapping the 128 elements of the Dense layer to
+                   the 10 elements of the softmax: 128 × 10 + 10 = 1290, where the additional
+                   10 are the bias terms. Note that the Dropout and Pooling layers have no pa-
+                   rameters because there is nothing to learn in those layers.
+                        After the report on the model’s structure, we have the verbose output of
+                   the training call to fit. We asked for 12 epochs—12 full passes through the
+                   training data—using a minibatch of 128 samples. The output lists the stats
+                   for each pass. We see that the loss goes down as we train, which is expected
+                   if the model is learning, and that the accuracy (acc) on the training data goes
+                   up. The validation data is used during training to test the model, but this
+                   data is not used to update the model’s weights and biases. The loss on the
+                   validation data is also going down with each epoch, but more slowly. What
+                   we don’t want to see here is the validation loss going up, though it will jump
+                   around somewhat, especially if the validation set is not very big. We see an
+                   opposite effect with the validation accuracy (val_acc). It is going up for each
+                   epoch of training. If the model were to start overfitting, we’d see this accu-
+                   racy go down after some point. This is the value of validation data: to tell us
+                   when to stop training.
+                        The final two lines of output are the loss and accuracy of the model on
+                   the test samples passed to the evaluate method. Since the validation and test
+                   sets are the same in this example, these lines match the output for epoch
+                   12. The final accuracy of this model is 99.16 percent—certainly a very good
+                   accuracy to see.
+
+
+
+
+316   Chapter 13
+Plotting the Error
+We can use the saved history to plot the loss or error (1 – accuracy) as a func-
+tion of the training epoch. The plots are similar in shape, so we show only
+the error plot in Figure 13-1.
+
+
+
+
+Figure 13-1: The MNIST training and validation errors as a function of epoch
+
+     The error on the training data falls off quickly and, as we’ve seen be-
+fore, tends toward 0 as training continues. In this case, the validation error
+falls slightly and then levels off at a value similar to the training error. At this
+point in the book, you might have alarm bells going off in your head when
+you look at Figure 13-1. The initial training error is greater than the initial
+validation error!
+     The full cause of this is hard to pin down, but one component is using
+dropout in the network. Dropout is applicable only during training, and be-
+cause of the dropping of nodes in layers, dropout is in effect training many
+models at once, which, initially, causes a large error before the model “set-
+tles down” and the error drops per epoch. We can see that this might be the
+case here because if we simply comment out the Dropout layers in Listing 13-4
+and retrain, we get a new error plot, Figure 13-2.
+
+
+
+
+                                                          Experiments with Keras and MNIST   317
+                   Figure 13-2: The MNIST training and validation errors as a function of epoch
+                   when no Dropout layers are present
+
+                        In Figure 13-2, we see that the validation error quickly becomes greater
+                   than the training error, as we would expect. Additionally, we see that the
+                   final validation error is much greater than the final validation error for
+                   Figure 13-1, about 10 percent versus 1 percent. This is also something we
+                   expect if dropout is actually a sensible thing to use, which it is. Note also
+                   that by the 12th epoch, the training set error is roughly the same regard-
+                   less of the presence of Dropout layers.
+                        Finally, some of what we see in Figures 13-1 and 13-2 is due to the way
+                   Keras reports training and validation accuracies. The reported training ac-
+                   curacy (and loss) at the end of an epoch is the average over the epoch, but,
+                   of course, this is changing as the model learns and tends to increase. How-
+                   ever, the validation accuracy reported is for the model as it is at the end of
+                   the epoch, so at times is it possible for the training accuracy to be reported
+                   as less than the validation accuracy.
+                        Now that we’ve seen how to build a simple CNN and run it on a dataset,
+                   we are in a position to start experimenting with CNNs. Of course, there are
+                   an infinite number of experiments we could perform—just look at the rate
+                   at which new papers on deep learning appear on sites like arxiv.org or the
+                   explosion of attendance at machine learning conferences—so we need to
+                   restrict ourselves to some basic explorations. Hopefully, these will motivate
+                   you to explore more on your own.
+
+
+
+
+318   Chapter 13
+Basic Experiments
+        We did a bit of experimentation already when we removed the Dropout
+        layer. All our experiments follow the same general pattern: make a slightly
+        different version of the model, train it, and evaluate it against the test set.
+        We will try three different types of experiments. The first type modifies the
+        architecture of the model; removing Dropout layers falls into this category.
+        The second type explores the interplay between training set size, minibatch
+        size, and epochs. The last type alters the optimizer used during training.
+             In all three cases, to avoid excessive code listings, we’ll simply comment
+        on the variation to the code in the previous section with the understand-
+        ing that the remaining code is the same from experiment to experiment.
+        We’ll number the experiments, and you can match the results with the num-
+        ber to find the actual Python source code for the experiment. The code is
+        available from the website associated with this book: https://nostarch.com/
+        practical-deep-learning-python/.
+             In the previous section, we used the entire training set of 60,000 sam-
+        ples for training and the whole test set of 10,000 samples for both validation
+        and as the final test set. Here, we’ll restrict ourselves to using the first 1,000
+        or 1,024 training samples as the entire training set. Additionally, we’ll use
+        the first 1,000 samples of the test set as the validation set and reserve the last
+        9,000 samples for the final test set we’ll use when training is complete. We’ll
+        report the accuracy of these 9,000 images that were unseen during training.
+        The results will include the baseline model accuracy and number of parame-
+        ters, for comparison purposes.
+             Bear in mind that unless stated otherwise, the accuracies we present rep-
+        resent a single training session for each experiment. You should get slightly
+        different results if you run these experiments yourself, but those slight dif-
+        ferences shouldn’t outweigh the larger differences in accuracy that will re-
+        sult from changing the model and/or training process.
+             Finally, the models in this section are multiclass, so we could examine
+        the confusion matrices to see how the models are making their mistakes.
+        However, it would be exceedingly tedious to do this for each experiment.
+        Instead, we will use the overall accuracy as our metric, trusting that it is a
+        sufficient measure in this case.
+
+
+        Architecture Experiments
+        Architecture modifications imply removing or adding new layers or altering
+        the parameters of a layer. We’ve made a number of architecture modifica-
+        tions and compiled the resulting accuracies in Table 13-1.
+
+
+
+
+                                                             Experiments with Keras and MNIST   319
+                   Table 13-1: Results from Modifying the Model Architecture
+
+                    Exp.   Modification                             Test accuracy   Parameters
+                    0      Baseline                                 92.70%          1,199,882
+                    1      Add Conv3, 3 × 3 × 64 before Pooling     94.30%          2,076,554
+                    2      Duplicate Conv2, Pooling layer           94.11%          261,962
+                    3      Conv1, 3 × 3 × 32 to 5 × 5 × 32          93.56%          1,011,978
+                    4      Dense layer to 1,024 nodes               92.76%          9,467,274
+                    5      Conv1, Conv2, halve number of filters    92.38%          596,042
+                    6      Second Dense layer with 128 nodes        91.90%          1,216,394
+                    7      Dense layer to 32 nodes                  91.43%          314,090
+                    8      Remove Pooling layer                     90.68%          4,738,826
+                    9      No ReLU after conv layers                90.48%          1,199,882
+                    10     Remove Conv2                             89.39%          693,962
+
+
+                        In Table 13-1, the baseline results and model size are given first, fol-
+                   lowed by the various experiments from most accurate to least accurate. Let’s
+                   look at the table and interpret the results.
+                        First, we see that adding a third convolutional layer after the second con-
+                   volutional layer (Experiment 1) improves the performance of the model but
+                   also adds 876,672 parameters. Increasing the depth of the network seems to
+                   improve the performance of the model but at the expense of increasing the
+                   number of parameters.
+                        However, in Experiment 2 we also increase the depth of the network by
+                   duplicating the second convolutional layer and the following pooling layer,
+                   but because of the second pooling layer, the total number of parameters in
+                   the network goes down by 937,920. This is a substantial saving for virtually
+                   the same performance. This indicates that depth is good, but so is the judi-
+                   cious use of pooling layers to keep the number of parameters small. For this
+                   dataset, Experiment 2 is a solid architecture to use.
+                        Next, we see that an adjustment to the kernel size of the first convolu-
+                   tional layer, Experiment 3, leads to an improvement relative to the baseline.
+                   There are more parameters in the first convolutional layer (832 versus 320),
+                   but because of the edge effects when using an exact convolution, by the time
+                   we get to the output of the Flatten layer, there are now only 7744 values ver-
+                   sus 9216 for the baseline model. This means that the large matrix between
+                   the Flatten and Dense layers goes from 1,179,776 down to 991,360 parame-
+                   ters with a net result that the model overall has 187,904 fewer parameters.
+                        This is good: better performance and fewer parameters to learn. Is there
+                   a downside to the change of Experiment 3? Not really. Instead, one might
+                   argue that adjusting the kernel size for the first convolutional layer has made
+                   the model more appropriate for the spatial information in the digit images,
+                   thereby making the new representation learned by the convolutional and
+                   pooling layers that much better at separating the classes. In general, there
+
+
+
+
+320   Chapter 13
+seems to be a best kernel size for the first convolutional layer, the layer that
+deals with the input to the model. That kernel size is related to the spatial
+structure of the inputs: some sizes will be better at detecting input features
+that are better for separating the classes. This general rule does not appear
+to hold for higher convolutional layers, and there the prevailing wisdom is to
+use 3 × 3 kernels for most convolutional layers except the first.
+     Can we combine Experiment 3 and Experiment 2? Certainly. We simply
+make the first convolutional layer of Experiment 2 use a 5 × 5 kernel instead
+of a 3 × 3 kernel. If we do this, we get a model with an overall accuracy of
+94.23 percent that needs only 188,746 parameters. With this trivial change,
+we’ve achieved the performance of Experiment 10 by using only 9 percent of
+the parameters.
+     You might be tempted to simply increase the size of the Dense layer, the
+layer that can be thought of as using the new feature representation discov-
+ered by the convolutional and pooling layers below it. However, doing so
+(Experiment 4) results in no real improvement in overall accuracy, but with
+a substantial increase in the number of parameters. We know the cause: the
+9,216 × 128 weight matrix between the Flatten and Dense layers is now a
+9,216 × 1,024 matrix. Clearly, for CNNs, we want to create the best feature
+representation so that a simpler top layer can be used.
+     With Experiment 5, we see that we can make the model significantly
+smaller, a reduction of 603,840 parameters, while still achieving the same
+overall accuracy by simply halving the number of filters learned in each of
+the convolutional layers: 32 → 16 for Conv1 and 64 → 32 for Conv2. Again,
+this is a good optimization provided the slight (perhaps in this case mean-
+ingless) difference in accuracy is acceptable. If we look again at Figure 12-8,
+we can see that, especially for the second convolutional layer with 64 filters,
+the responses are very similar for many filters. This implies that there are re-
+dundant filters that are not adding much to the new feature representation
+presented to the Dense layers. Despite halving the number of filters learned,
+there are still filters that learn to capture the important aspects of the input
+data used to separate the classes.
+     Experiment 7 plays with the Dense layer nodes, and Experiment 6
+adds a second Dense layer. Neither offers a real benefit. For Experiment
+7, the change in the number of model parameters is significant due to the
+9,216 × 128 matrix weight becoming a 9,216 × 32 matrix. However, 32
+nodes does not seem to be the ideal number to make use of the new feature
+representation. The second Dense layer of Experiment 6 isn’t too awful in
+terms of increasing the number of parameters to learn, but it isn’t buying
+us much, either. If we use a larger training set, we might get some improve-
+ment, but we’ll leave that as an exercise for the reader.
+     In the previous chapter, we read about the criticisms levied against pool-
+ing layers. What if we remove the pooling layer entirely (Experiment 8)?
+First, we see that accuracy drops relative to the baseline model. Worse, we
+
+
+
+
+                                                    Experiments with Keras and MNIST   321
+                   see that the size of the network has increased dramatically, from 1,199,882
+                   parameters to 4,738,826, by a factor of nearly four. This is due to the in-
+                   crease in the number of elements in the output of the Flatten layer, which
+                   has gone from 9,216 to 36,864, resulting in a weight matrix of 36, 864 × 128
+                   + 128 = 4, 718, 720 elements. This example demonstrates why we use pool-
+                   ing layers even with the price they bring in terms of the loss of information
+                   about the relative position of object parts.
+                        Each of the convolutional layers in the baseline model uses ReLU on
+                   its outputs. Removing these ReLU operations, Experiment 9, leads to a 2
+                   percent reduction in accuracy on the test set. Clearly, the ReLU is helping
+                   somewhat. What might it be doing? The ReLU leaves positive values un-
+                   changed and sets negative values to 0. When used with the output of a con-
+                   volutional layer, the ReLU is keeping more strongly activated responses to
+                   the filters, positive responses, while suppressing negative responses. This
+                   seems to be helping the entire process of learning a new representation of
+                   the input.
+                        Finally, Experiment 10 removed Conv2 entirely. This has the greatest
+                   effect on the overall accuracy because the features passed to the Dense layer
+                   are then based solely on the output of the first convolutional layer filters.
+                   There was no opportunity for the model to learn from these outputs and
+                   develop filter responses based on the larger effective receptive field seen by
+                   the second convolutional layer.
+                        However, given what we saw in the results of Experiment 3, which in-
+                   creased the kernel size used by the first convolutional layer, we might won-
+                   der whether this change from 3 × 3 to 5 × 5 kernels might somewhat com-
+                   pensate for the loss of the second convolutional layer. Fortunately, this is
+                   very easy to test. We simply change the 3 × 3 kernel parameter of Conv1
+                   to a 5 × 5 and train again. Doing this validates our intuition: the resulting
+                   overall accuracy increases to 92.39 percent, virtually the same as the base-
+                   line model. Also, this 5 × 5 model has only 592,074 parameters, making the
+                   change inexpensive in terms of the number of model parameters.
+                        From all of these results, do we have a winner, an architecture that is
+                   lean but highly effective? We do—it is Experiment 2 with a 5 × 5 kernel for
+                   the first convolutional layer. In Keras, to build this architecture, we need the
+                   code in Listing 13-5.
+
+                   model = Sequential()
+                   model.add(Conv2D(32, kernel_size=(5, 5),
+                                    activation='relu',
+                                    input_shape=input_shape))
+                   model.add(Conv2D(64, (3, 3), activation='relu'))
+                   model.add(MaxPooling2D(pool_size=(2, 2)))
+                   model.add(Dropout(0.25))
+
+                   model.add(Conv2D(64, (3, 3), activation='relu'))
+                   model.add(MaxPooling2D(pool_size=(2, 2)))
+                   model.add(Dropout(0.25))
+
+
+
+322   Chapter 13
+model.add(Flatten())
+model.add(Dense(128, activation='relu'))
+model.add(Dropout(0.5))
+model.add(Dense(num_classes, activation='softmax'))
+
+Listing 13-5: Building the architecture for Experiment 2
+
+     We’ve simply duplicated the Conv2D, MaxPooling2D, and Dropout layers and
+used (5,5) for the kernel size of the first layer.
+     If we train this model using all 60,000 samples of the MNIST training
+set, we get a final held-out test set accuracy of 99.51 percent for an error of
+0.49 percent. This is using all 10,000 samples. According to benchmarks.ai, a
+website that tracks current bests on different machine learning datasets, the
+state-of-the-art MNIST error is 0.21 percent, so we are not state of the art,
+but we are better than the 99.16 percent accuracy we saw in Listing 13-4 for
+the default architecture.
+
+
+Training Set Size, Minibatches, and Epochs
+These experiments examine the interplay between training set size, mini-
+batch size, and number of epochs. Our model will be the default model we
+were using previously, Experiment 0, but this time we’ll use 1,024 samples
+for the training set. We’ll be using powers of two as the minibatch sizes; this
+is a convenient size, as all of our minibatch sizes divide it evenly.
+     Recall, Keras, like sklearn, runs through a given number of epochs, or
+full passes through the training set. Additionally, the minibatch size (batch
+_size) specifies the number of samples used in each iteration, after which
+the average error (the cross-entropy loss) is used to update the parameters.
+Therefore, each processed minibatch leads to a single gradient descent step,
+and the training set size divided by the minibatch size is the number of gra-
+dient descent steps taken per epoch.
+     For our experiments, we’ll use the following minibatch sizes:
+
+1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024
+
+     For a training set of 1,024 samples (approximately 100 for each digit),
+the number of gradient descent steps per epoch is the reverse of this list:
+1,024 for a batch size of 1, down to 1 for a batch size of 1,024.
+     Let’s generate two plots. The first will plot the final test set accuracy for
+the two cases: a fixed number of gradient descent steps regardless of mini-
+batch size, and a fixed number of epochs irrespective of minibatch size. The
+second plot will show us the clock time to train the model for each case. The
+code leading to the plots is in Experiments 26 through 31 (fixed number of
+gradient descent steps) and Experiments 32 through 42 (fixed number of
+epochs).
+     The test set accuracy as a function of minibatch size is given as the mean
+of five runs in Figure 13-3, and the standard error of the mean given by the
+error bars. Let’s look at the fixed number of gradient descent steps regard-
+less of minibatch size (triangles). In some toolkits, this is referred to as using
+
+                                                           Experiments with Keras and MNIST   323
+                   a fixed number of iterations, where iteration means a single update leading
+                   to a gradient descent step.
+
+
+
+
+                   Figure 13-3: MNIST test set accuracy as a function of minibatch size and fixed gradient
+                   descent steps or fixed epochs
+
+                        The number of gradient descent steps was fixed at 1,024. This means
+                   that we need to change the number of epochs, depending on how many
+                   minibatches are in the training set. For the case of a single sample used
+                   per update (batch_size=1), we get the required 1,024 steps in a single epoch,
+                   so we set the number of epochs to 1. For a minibatch size of two, we get
+                   512 steps per epoch, so we set the number of epochs in the code to 2 to get
+                   1,024 steps overall. The pattern continues: to get the 1,024 gradient descent
+                   steps for each minibatch size, we need to set the number of epochs to the
+                   minibatch size.
+                        We see that except for the smallest minibatch sizes, when we fix the
+                   number of gradient descent steps, we get very consistent overall accura-
+                   cies. After minibatch sizes of about 16, things do not change too much. The
+                   general rule for CNNs is to use smaller batch sizes. This seems to help with
+                   model generalization for datasets that are not as simple as MNIST, and, as
+                   we’ll soon see, decreases training time significantly.
+                        The second curve of Figure 13-3 shows the accuracy for a fixed number
+                   of epochs (circles). If we change the minibatch size but do not increase the
+                   number of training epochs to make the number of gradient descent steps
+                   remain constant, we’ll be using larger and better estimates of the gradient,
+                   but we’ll also be taking fewer steps. We see that doing this quickly results
+                   in a substantial decrease in accuracy. We should not be surprised. With
+
+324   Chapter 13
+a minibatch size of one, training for 12 epochs gives us a model that took
+12 × 1, 024 = 12, 288 gradient descent steps. Granted, the gradient estimate
+was particularly noisy in this case since we use only one training sample to
+estimate it, but with lots of steps, we arrived at a well-performing model all
+the same. By the time we get to a minibatch of 1,024 samples, the size of our
+training set, we see that we took only 12 gradient descent steps before calling
+it a day. No wonder the results are so poor.
+     The second plot of this section is Figure 13-4.
+
+
+
+
+Figure 13-4: Model training time as a function of minibatch size and fixed gradient
+descent steps or fixed epochs
+
+     As before, let’s start with the fixed number of gradient descent steps (tri-
+angles). We see immediately that the training time is linearly proportional
+to the minibatch size. This is reasonable since we just saw that we need to
+increase the number of epochs to keep the number of gradient descent
+steps constant while increasing the minibatch size. Therefore, the amount
+of data passed through the network is increasing proportionally, so the time
+required for the forward and backward training passes will increase propor-
+tionally as well. From this, we see that large minibatch sizes cost clock time.
+     For a fixed number of epochs, we see a different story. For tiny mini-
+batch sizes, training time goes up due to the number of forward and back-
+ward passes. For the case of a minibatch of one, we need 12,288 such passes,
+as we just saw. However, by the time we get to minibatches of even 32 sam-
+ples at a time, we have only 1024/32 = 32 passes per epoch for a total of
+384 for the entire training session. This is far fewer than for the smallest
+
+
+
+                                                          Experiments with Keras and MNIST   325
+                   minibatch size, so we might expect the training time for minibatches this
+                   size or larger to be roughly constant in time, as we see in Figure 13-4.
+                        What can we glean from these two plots? The following: to balance run
+                   time and accuracy, we want to use minibatch sizes that are large enough
+                   to give us a reasonable estimate of the gradient but small enough that, for
+                   a fixed number of model updates (gradient descent steps), we can train
+                   quickly. This argues for minibatch sizes in the 16 to 128 range, in general.
+                   Indeed, a review of the deep learning literature sees minibatches in this
+                   range almost exclusively for most applications. For this example, minibatch
+                   sizes above 16, based on Figure 13-3 (triangles), result in models that are all
+                   basically the same in terms of accuracy, but the training time for a model us-
+                   ing a minibatch size of 16, according to Figure 13-4 (triangles), compared to
+                   one of size 1,024, is a few seconds versus approximately 30 minutes.
+
+
+                   Optimizers
+                   So far, all of our experiments have used the same gradient descent algo-
+                   rithm, or optimizer: Adadelta. Let’s take a look at how our MNIST model
+                   does if we change the optimizer but leave everything else fixed. Our model
+                   is Experiment 0, the model we’ve been using all along in this chapter. We’ll
+                   continue to use 1,000 test samples for validation and 9,000 to determine our
+                   final accuracy. However, instead of using the first 1,000 or 1,024 training
+                   samples, we’ll increase the number to the first 16,384 samples. We fix the
+                   minibatch size at 128 and the number of epochs to 12, as before. We’ll re-
+                   port the results as mean and standard error over five runs.
+                        Keras currently supports the following optimizers: stochastic gradient
+                   descent (SGD), RMSprop, Adagrad, Adadelta, and Adam. We’ll train us-
+                   ing each of these in turn. For Adagrad, Adadelta, and Adam, we leave the
+                   parameters at their default settings, as recommended by the Keras docu-
+                   mentation. For RMSprop, the only parameter the Keras documentation rec-
+                   ommends adjusting is the learning rate (lr), which we set to 0.01, a typical
+                   value. For SGD, we set the learning rate to 0.01 as well and set standard mo-
+                   mentum to 0.9, also a very typical value. The code is found in Experiments
+                   43 through 47.
+                        Figure 13-5 shows the test set accuracy (top) and training time (bottom)
+                   for each of the optimizers.
+
+
+
+
+326   Chapter 13
+Figure 13-5: Test set accuracy (top) and training time (bottom) by optimization algorithm
+
+
+
+
+                                                           Experiments with Keras and MNIST   327
+                         First, notice that there is not too much difference between the results
+                    produced by each optimizer. This is good news. However, by looking at the
+                    error bars, it seems clear that Adadelta, Adagrad, and Adam all perform
+                    slightly better than SGD or RMSprop. This is borne out in the deep learning
+                    literature as well, though each dataset should be looked at independently.
+                         In terms of training time, the different optimizers are also roughly equiv-
+                    alent, though SGD is fastest and consistently so. This performance differ-
+                    ence might be important for a very large dataset. Adam is also consistently
+                    faster than Adadelta for basically the same performance. Again, these results
+                    are evident in the literature where both SGD and Adam are widely used.
+                         This section has been thorough in terms of minute details associated
+                    with changing model architectures and training parameters. Hopefully, it
+                    has helped you develop intuition about how to configure a CNN and how
+                    to train it. Rules of thumb are hard to present in this area, but I have given
+                    some general guidance. Exceptions to these rules abound, however, and you
+                    have to simply try things, observe the results, and adapt when presented with
+                    a new dataset.
+                         Let’s move on now from classifying simple inputs to answering the ques-
+                    tion of how to make a model that can locate targets in arbitrary images.
+
+
+      Fully Convolutional Networks
+                    We introduced fully convolutional networks in Chapter 12. Let’s take our
+                    basic MNIST CNN model and convert it to a fully convolutional version and
+                    see how we can use it to locate digits in larger images. Our basic approach is
+                    to train the model using fully connected layers, as before, and then to create
+                    a fully convolutional version and update the weights with those from the
+                    fully connected model. We can then apply the new model to arbitrary size
+                    inputs to locate digits (hopefully).
+
+
+                    Building and Training the Model
+                    First, we train our base model on the full MNIST dataset. The only change
+                    we’ll make is to train for 24 epochs instead of just 12. The output of this pro-
+                    cess is an HDF5 file that contains the trained weights and biases. All we then
+                    need to do is create the fully convolutional version by changing the fully con-
+                    nected layer and copy the weights and biases from the old model to the new.
+                    The code for this is straightforward, as shown in Listing 13-6.
+
+                    from keras.models import Sequential, load_model
+                    from keras.layers import Dense, Dropout, Flatten
+                    from keras.layers import Conv2D, MaxPooling2D
+
+
+
+
+328    Chapter 13
+¶ weights = load_model('mnist_cnn_base_model.h5').get_weights()
+
+  model = Sequential()
+  model.add(Conv2D(32, kernel_size=(3, 3),
+                   activation='relu',
+                · input_shape=(None,None,1)))
+  model.add(Conv2D(64, (3, 3), activation='relu'))
+  model.add(MaxPooling2D(pool_size=(2, 2)))
+  model.add(Dropout(0.25))
+
+¸ model.add(Conv2D(128, (12,12), activation='relu'))
+  model.add(Dropout(0.5))
+
+¹ model.add(Conv2D(10, (1,1), activation='softmax'))
+
+º model.layers[0].set_weights([weights[0], weights[1]])
+  model.layers[1].set_weights([weights[2], weights[3]])
+  model.layers[4].set_weights([weights[4].reshape([12,12,64,128]), weights[5]])
+  model.layers[6].set_weights([weights[6].reshape([1,1,128,10]), weights[7]])
+
+  model.save('mnist_cnn_fcn_model.h5')
+
+  Listing 13-6: Creating the trained fully connected model
+
+       After importing the necessary Keras modules, we load the trained
+  weights from the fully connected model ¶. Then, we construct the fully con-
+  volutional version much as we did for the fully connected version. However,
+  there are some key differences. The first has to do with the input convolu-
+  tional layer ·. In the fully connected model, we specified the input image
+  size here, 28×28 pixels with one channel (grayscale). For the fully convolu-
+  tional case, we do not know the size of the input, so we use None instead for
+  the width and height. We do know that the input will be a single channel
+  image, so we leave the 1.
+       Since the Dense layers are the reason we have to use fixed size inputs, we
+  replace them with equivalent convolutional layers ¸. We replace
+
+  model.add(Flatten())
+  model.add(Dense(128, activation='relu'))
+
+  with
+
+  model.add(Conv2D(128, (12,12), activation='relu'))
+
+
+
+
+                                                             Experiments with Keras and MNIST   329
+                        The (12,12) is the output size of the max-pooling layer above, and the
+                   128 is the number of filters to learn that stand in for the 128 nodes we had
+                   before. Again, the critical point here is that the output of this convolutional
+                   layer is 1 × 1 × 128 because convolving a 12 × 12 input with a 12 × 12 ker-
+                   nel produces a single output value. The difference is that the convolutional
+                   layer is not tied to any fixed input size as the combination of Flatten and
+                   Dense was.
+                        The final softmax layer also needs to be made fully convolutional ¹.
+                   There are ten outputs, one per digit, and the activation remains the same.
+                   The kernel size, however, is 1 × 1. The input to this layer is 1 × 1 × 128,
+                   so the kernel size to cover it is 1 × 1. Again, if we were to work through the
+                   math, we’d see that a 1 × 1 × 128 input to a 1 × 1 × 10 convolutional layer
+                   matches that of a fully connected layer of 128 nodes mapped to 10 nodes in
+                   the next layer. The difference here is that if the input is larger than 1 × 1,
+                   we can still convolve over it.
+                        Now that we’ve constructed the fully convolutional version of our model,
+                   we need to copy the weights from the trained fully connected model to it º.
+                   We loaded the trained weights into weights. This is a list of NumPy arrays
+                   for the weights and biases, layer by layer. So, weights[0] refers to the weights
+                   of the first Conv2D layer, and weights[1] are the biases. Similarly, weights[2]
+                   and weights[3] are the weights and bias values for the second convolutional
+                   layer. We set them in the new fully convolutional model by updating the
+                   proper layers via the set_weights method. Layers 0 and 1 are the two con-
+                   volutional layers.
+                        Layer 4 is the new Conv2D layer that replaced the Flatten and Dense layers
+                   of the original model. Here when we set the weights, we need to reshape
+                   them to match the form of a convolutional layer: 12 × 12 × 64 × 128. This
+                   is for a 12 × 12 kernel mapped over 64 inputs leading to 128 outputs. The
+                   64 is the number of 12 × 12 outputs from the pooling layer above.
+                        Finally, we set the output layer weights. Again, we need to reshape them
+                   to 1 × 1 × 128 × 10 for the 1 × 1 × 128 input and 10 outputs. The biases
+                   for the two new Conv2D layers are in weights[5] and weights[7], so we add them
+                   as well.
+                        The fully convolutional model is now defined and completely populated
+                   with the weights and biases from the fully connected model. Figure 13-6
+                   shows the mapping between models, with the original architecture on the
+                   left and the fully convolutional architecture on the right. The boxes repre-
+                   sent layers, with the top set of numbers being the input and the bottom the
+                   output. For the fully convolutional model, input height and width are arbi-
+                   trary and marked with “--”.
+
+
+
+
+330   Chapter 13
+           (28,28,1)                         (--,--,1)
+Input                                                     Input
+           (28,28,1)                         (--,--,1)
+
+
+           (28,28,1)                         (--,--,1)
+Conv                                                      Conv
+          (26,26,32)                        (--,--,32)
+
+
+          (26,26,32)                        (--,--,32)
+Conv                                                      Conv
+          (24,24,64)                        (--,--,64)
+
+
+          (24,24,64)                        (--,--,64)
+Pool                                                      Pool
+          (12,12,64)                        (--,--,64)
+
+
+          (12,12,64)
+Flatten
+             9216
+                                            (--,--,64)
+                                                          Conv (12×12)
+                                            (–,--,128)
+             9216
+Dense
+             128
+
+
+             128                            (--,--,128)
+Dense                                                     Conv (1×1)
+              10                            (--,--,10)
+
+Figure 13-6: Mapping a fully connected model (left) to a fully
+convolutional model (right)
+
+    All that is left to do is write the new fully convolutional model to disk,
+and it’s ready to use. Let’s see how.
+
+
+Making the Test Images
+To test the fully convolutional model, we first need images with digits. Un-
+like our training images, which were small and had a single digit in the cen-
+ter, we want larger test images that contain many digits in arbitrary loca-
+tions. The MNIST dataset consists of shades of gray on a black background;
+therefore, our test images should have a black background also. This will
+make the test images come from the same “domain” as the training images,
+which, as we’ve emphasized before, is critical. Making models adapt to dif-
+ferent data domains is an active research area. Search for domain adaptation.
+     Making the test images by using Python and the digits from the MNIST
+test set is straightforward. We didn’t use the test set images for training, so
+using them to make our larger test images isn’t cheating. The code is shown
+in Listing 13-7.
+
+
+
+
+                                                            Experiments with Keras and MNIST   331
+                   import os
+                   import sys
+                   import numpy as np
+                   import random
+                   from PIL import Image
+
+                   os.system("rm -rf images; mkdir images")
+
+                   if (len(sys.argv) > 1):
+                       N = int(sys.argv[1])
+                   else:
+                       N = 10
+
+                   x_test = np.load("data/mnist/mnist_test_images.npy")
+
+                   for i in range(N):
+                    ¶ r,c = random.randint(6,12), random.randint(6,12)
+                       g = np.zeros(r*c)
+                    · for j in range(r*c):
+                           if (random.random() < 0.15):
+                               g[j] = 1
+                       g = g.reshape((r,c))
+                       g[:,0] = g[0,:] = g[:,-1] = g[-1,:] = 0
+
+                   ¸ img = np.zeros((28*r,28*c), dtype="uint8")
+                       for x in range(r):
+                           for y in range(c):
+                               if (g[x,y] == 1):
+                                ¹ n = random.randint(0, x_test.shape[0])
+                                   im = x_test[n]
+                                   img[28*x:(28*x+28), 28*y:(28*y+28)] = im
+
+                       Image.fromarray(img).save("images/image_%04d.png" % i)
+
+                   Listing 13-7: Building large MNIST test set images
+
+                        We’re making use of the MNIST test set file we created in Chapter 5. We
+                   could just as quickly have loaded the test images through Keras, as we did
+                   earlier for our basic CNN experiments. The code itself creates an output di-
+                   rectory, images, and gets the number of images to build from the command
+                   line, if given (N).
+                        The images are of random sizes ¶. Here, r and c are the number of rows
+                   and columns in the large image in terms of the number of 28 × 28 MNIST
+                   digits. To decide where to place our digits so they don’t overlap, we create a
+                   grid, g, with either a 0 or a 1 in each possible digit position (r*c of them) ·.
+                   There is a 15 percent chance that any grid position will contain a 1. We then
+                   reshape the grid into an actual 2D array and set the border positions of the
+                   grid to 0 to ensure that no digits appear on the edge of the image.
+
+332   Chapter 13
+     The actual output image is then defined ¸ as the number of rows and
+columns are multiplied by 28, the width and height of the MNIST digit. We
+loop over each digit position (x and y), and if the grid value at that row and
+column is 1, then we select a digit at random and copy it to the current row
+and column digit position in the output image (img) ¹. When every grid po-
+sition has been examined, the image is written to disk so that we can use it
+with our fully convolutional network.
+
+
+Testing the Model
+Let’s test the model—first on single MNIST digits and then on the randomly
+generated large digit images. The fully convolutional model should work as
+well with single MNIST digits as the fully connected model did. The code to
+test this assertion is in Listing 13-8.
+
+import numpy as np
+from keras.models import load_model
+
+x_test = np.load("data/mnist/mnist_test_images.npy")/255.0
+y_test = np.load("data/mnist/mnist_test_labels.npy")
+model = load_model("mnist_cnn_fcn_model.h5")
+
+N = y_test.shape[0]
+nc = nw = 0.0
+for i in range(N):
+ ¶ p = model.predict(x_test[i][np.newaxis,:,:,np.newaxis])
+    c = np.argmax(p)
+    if (c == y_test[i]):
+        nc += 1
+    else:
+        nw += 1
+print("Single MNIST digits, n=%d, accuracy = %0.2f%%" % (N, 100*nc/N))
+
+Listing 13-8: Verifying that the fully convolutional model works with single MNIST digits
+
+     We load the MNIST test images and labels, along with the fully convolu-
+tional model, and then loop over each test image and ask the model to make
+a prediction ¶. Note, the image is 2D, but we must pass a 4D array to the
+predict method, hence using np.newaxis to create the missing axes. The pre-
+diction for the digit is stored in p as a vector of per class probabilities. The
+label associated with the largest of these probabilities is the label assigned
+to the input digit by the model c. If c matches the actual test label, we incre-
+ment the number of correct predictions (nc); otherwise, we increment the
+number of wrong predictions (nw). Once all 10,000 test images have been
+processed, we can output the overall accuracy, which is 99.25 percent for my
+training of the fully convolutional model.
+     Okay, the fully convolutional model is highly accurate, but so what? We
+passed single-digit images to it as inputs and got a single output value. We
+had this capability before with the fully connected model. To expose the
+
+                                                            Experiments with Keras and MNIST   333
+                   utility of the fully convolutional model, let’s now pass the large MNIST digit
+                   images as input. In code, we do this as shown in Listing 13-9.
+
+                   import os
+                   import numpy as np
+                   from keras.models import load_model
+                   from PIL import Image
+
+                   model = load_model("mnist_cnn_fcn_model.h5")
+
+                   os.system("rm -rf results; mkdir results")
+                   n = len(os.listdir("images"))
+
+                   for i in range(n):
+                       f = "images/image_%04d.png" % i
+                    ¶ im = np.array(Image.open(f))/255.0
+                       p = model.predict(im[np.newaxis,:,:,np.newaxis])
+                       np.save("results/results_%04d.npy" % i, p[0,:,:,:])
+
+                   Listing 13-9: Running the fully convolutional model over large test images
+
+                        We import the necessary modules and then load the fully convolutional
+                   model. We then create a new output directory, results, and find the number
+                   of large digit images (n). Next, we loop over each of the large digit images.
+                        After loading the image from disk, being careful to make a NumPy array
+                   from it and scaling it by 255 since the training data was also scaled by 255 ¶,
+                   we make a prediction and store the model output in p. Notice, we make a
+                   4D input to predict, just as we did for the single digits earlier, but this time,
+                   im is larger than 28 × 28 and contains multiple digits. Because the model is
+                   fully convolutional, this isn’t an issue; we will not get an error. Instead, p is a
+                   4D array with the first dimension of one, the number of input images, and a
+                   final dimension of ten, the number of digits. The middle two dimensions of
+                   p are a function of the size of the input passed to the predict method. Since
+                   the input was larger than 28×28 pixels, the entire model convolved over the
+                   input image as though the model was a convolutional layer with a kernel of
+                   28 × 28. Specifically, the output of this convolution has height and width of
+                                                   H – 28          W – 28
+                                              h=          + 1, w =        +1
+                                                     2               2
+
+                   where H, W are the height and width of the input image and h, w are the
+                   height and width of the output array from predict. The 28 in the formula
+                   is the size of the inputs we initially trained on, 28 × 28 digit images. Where
+                   did the mysterious 2 come from in the denominator? This is the stride of
+                   the 28 × 28 kernel over the input image. It is 2 because that is the factor the
+                   input image is changed by when it gets down to the fully convolutional out-
+                   put layers. The input was 28 × 28, but, after the two convolutional layers
+                   and the pooling layer, the input is mapped to 12 × 12 and ⌊28/12⌋ = 2.
+
+
+
+334   Chapter 13
+     We stated that the array in p is 4D; now we know we get a specific-size
+output based on convolving a 28 × 28 region over the input image using a
+stride of 2. What do we get at each of the h, w output array positions? The
+last element of the 4D output has size 10; these are the per class predictions
+at the specific h, w output position that corresponds to the 28 × 28 kernel.
+     Let’s make this abstract description more concrete. The upper-left cor-
+ner of Figure 13-7 shows one of the large input images where we’ve inverted
+it to make it black on a white background and added a border so you can see
+the full size of the image.
+
+                               0                             1
+
+
+
+
+ 2                             3                             4
+
+
+
+
+ 5                             6                             7
+
+
+
+
+ 8                             9
+
+
+
+
+Figure 13-7: Per digit heatmap output of the fully convolutional model for the input
+image on the upper left. The model was trained on the standard MNIST dataset.
+
+
+
+
+                                                            Experiments with Keras and MNIST   335
+                          The image in the top left of Figure 13-7 is 336 pixels wide and 308 pix-
+                     els tall, meaning the output from passing this image to the model will be an
+                     array that is 1 × 141 × 155 × 10, exactly what we expect from the equations
+                     on page 334 for the output array dimensions. The output array represents
+                     the model’s predictions at each of the 28 × 28 regions of the input image
+                     when using a stride of 2. There is one prediction for each digit. For exam-
+                     ple, if p is the 4D output of the predict method for the image on the left of
+                     Figure 13-7, then p[0,77,88,:] will return a 10-element vector representing
+                     the per class probabilities of each digit class for the 28 × 28 input region of
+                     the image that maps to 77 × 88. In this case, we get the following:
+
+                     array([0.10930195, 0.12363277, 0.131005 , 0.10506018, 0.05257199,
+                            0.07958104, 0.0947836 , 0.11399861, 0.08733559, 0.10272926],
+                           dtype=float32)
+
+                     This tells us that there is no strong likelihood, according to the model, that
+                     any particular digit is present at this location. We know this because all the
+                     output probabilities are much lower than even the minimum cutoff thresh-
+                     old of 0.5. The output of predict can be thought of as a probability map,
+                     typically called a heatmap, giving us the probability that there is a digit in
+                     that location. The model output can be thought of as 10 heatmaps, one for
+                     each digit.
+                          The remaining images of Figure 13-7 show the heatmaps for each of the
+                     10 digits, again inverted so that higher probabilities are darker. The heat-
+                     maps were thresholded at 0.98, meaning any probability value less than 0.98
+                     was set to 0. This removes the weak outputs like the ones we just saw. We
+                     are interested only in the model’s strongest responses per digit. To make
+                     the heat maps, we double the size of the output from the model and set the
+                     output image locations with an offset to account for the position of the con-
+                     volutional output. This is akin to what we saw in Figure 12-1, where the con-
+                     volution operation returns an output that is smaller than the input when no
+                     zero padding is used. Specifically, the code that produces the digit heatmaps
+                     is in Listing 13-10.
+
+                     import os
+                     import sys
+                     import numpy as np
+                     from PIL import Image
+
+                   ¶ threshold = float(sys.argv[1])
+                     iname = sys.argv[2]
+                     rname = sys.argv[3]
+                     outdir= sys.argv[4]
+                     os.system("rm -rf %s; mkdir %s" % (outdir, outdir))
+
+                   · img = Image.open(iname)
+                     c,r = img.size
+                     hmap = np.zeros((r,c,10))
+
+
+336   Chapter 13
+  res = np.load(rname)
+  x,y,_ = res.shape
+  xoff = (r - 2*x) // 2
+  yoff = (c - 2*y) // 2
+
+¸ for j in range(10):
+      h = np.array(Image.fromarray(res[:,:,j]).resize((2*y,2*x)))
+      hmap[xoff:(xoff+x*2), yoff:(yoff+y*2),j] = h
+  np.save("%s/graymaps.npy" % outdir, hmap)
+¹ hmap[np.where(hmap < threshold)] = 0.0
+  for j in range(10):
+      img = np.zeros((r,c), dtype="uint8")
+      for x in range(r):
+          for y in range(c):
+           º img[x,y] = int(255.0*hmap[x,y,j])
+      img = 255-img
+      Image.fromarray(img).save("%s/graymap_digit_%d.png" % (outdir, j))
+
+  Listing 13-10: Building heatmap images
+
+       Here we’re calling the output images graymaps because they’re grayscale
+  images representing the response of the model to different locations in the
+  input image. We first pass in the threshold value, the source image name,
+  the response of the model to that source image, and an output directory
+  where the graymaps will be written ¶. This directory is overwritten each
+  time. Next, the source image is loaded to get its dimensions ·. These are
+  used to create the output heatmaps (hmap). We also load the associated model
+  responses (res) and calculate the offsets. Note that hmap is the same size as
+  the image. We then fill in each digit graymap of hmap with the resized model
+  response ¸ and store the full set of graymaps in the output directory.
+       To make the output grayscale images like those shown in Figure 13-7,
+  we first threshold the heatmaps, setting any value less than the supplied
+  cutoff to 0 ¹. Then, for each digit, we create an output image and simply
+  scale the remaining heatmap values by 255 since they are probabilities in the
+  range [0, 1) º. Then, before writing the image to disk, we invert by subtract-
+  ing from 255. This makes stronger activations dark and weaker activations
+  lighter. Because of the strong threshold applied (0.98), our output graymaps
+  are effectively binary; this is what we want to indicate where the model is
+  most certain of a digit being located.
+       Let’s look back at Figure 13-7 and see if we can interpret these responses.
+  The source image has one 0 on the lower right. If we look at the graymap for
+  digit 0, we see a single dark blob in that location. This means the model has
+  indicated a strong response that there is a 0 digit at that location. So far, so
+  good. However, we also see another strong response from the model near
+  the 4 on the left side of the input image. The model has made a mistake.
+  The input has two 4s in it. If we look at the graymaps for digit 4, we see two
+  dark blobs corresponding to these digits, but we also see many other small
+  areas of strong activation near other digits that are not 4s. The model we
+
+
+                                                     Experiments with Keras and MNIST   337
+                   trained was over 99 percent accurate on single MNIST test digits, so why are
+                   the responses of the fully convolutional model so noisy? Just look at all the
+                   small strong responses for 2s when the input does not contain any 2s. Some-
+                   times, the model is doing well, as for 8s where the graymap shows strong
+                   responses for all the 8s in the input, but then it does poorly for other digits
+                   like 7s. And, there are no 5s at all, but the model is returning many hits.
+                         Here is an opportunity for us to expand our thinking and intuition. We
+                   trained the model on the standard MNIST digit dataset. All of the digits in
+                   this dataset are well centered in the images. However, when the model is
+                   convolved over the large input image, there will be many times when the
+                   input to the model is not a well-centered digit but only part of a digit. The
+                   model has never seen partial digits, and since it must give an answer, it some-
+                   times offers answers that are meaningless—the part of a digit it sees may be
+                   part of a 6, for example, but the model “thinks” it is a 5.
+                         One possible solution is to teach the model about partial MNIST digits.
+                   We can do this by augmenting the standard MNIST dataset with shifted ver-
+                   sions of its digits. Imagine a 4 shifted to the lower right so that only part of
+                   it is visible. It will still be labeled a 4, so the model will have an opportunity
+                   to learn what a shifted 4 digit looks like. The code to make this shifted data-
+                   set is in the file make_shifted_mnist_dataset.py, but we’ll show only the func-
+                   tion that makes a shifted copy of an input MNIST digit here. This function
+                   is called four times for each training and test image (to create a shifted test
+                   dataset). We keep the original centered digit and four randomly shifted
+                   copies of it to make a dataset that is five times as large as the original. The
+                   random shift function is.
+
+                   def shifted(im):
+                       r,c = im.shape
+                       x = random.randint(-r//4, r//4)
+                       y = random.randint(-c//4, c//4)
+                       img = np.zeros((2*r,2*c), dtype="uint8")
+                       xoff = r//2 + x
+                       yoff = c//2 + y
+                       img[xoff:(xoff+r), yoff:(yoff+c)] = im
+                       img = img[r//2:(r//2+r),c//2:(c//2+c)]
+                       return img
+
+                   with im being the input image supplied as a NumPy array. Based on the
+                   input size, we pick random x and y shifts that can be positive or negative
+                   and up to one-quarter of the image size. Varying this limit to, say, one-third
+                   or one-half would be worth the experiment. A new image is created (img),
+                   which is twice the size of the original. The original is then put into the larger
+                   image at an offset based on the shift positions, and the center portion of
+
+
+
+
+338   Chapter 13
+the larger image, matching the input image dimensions, is returned as the
+offset version of the input.
+     To use the augmented dataset, we need first to retrain the fully con-
+nected MNIST model, then rebuild the fully convolutional model using the
+new weights and biases, and, finally, run the large test images through the
+model as before. Doing all of this leads to new graymaps (Figure 13-8).
+
+                               0                             1
+
+
+
+
+ 2                             3                             4
+
+
+
+
+ 5                             6                             7
+
+
+
+
+ 8                             9
+
+
+
+
+Figure 13-8: Per digit heatmap output of the fully convolutional model for the upper-left
+input image. The model was trained on the MNIST dataset augmented by shifting the
+digits.
+
+
+
+
+                                                            Experiments with Keras and MNIST   339
+                         We see a vast improvement, so we have impressive evidence that our in-
+                    tuition was correct: the initial model was unable to deal effectively with par-
+                    tial digits, but when we trained it with partial digits included, the resulting
+                    responses were robust over the actual digits and very weak to nonexistent
+                    for other digits. We really should not be surprised by these results. Our first
+                    model did not represent the space of inputs that the model would see when
+                    used in the wild. It knew nothing about partial MNIST digits. The second
+                    model was trained on a dataset that is a better representation of the space of
+                    possible inputs, so it performs significantly better.
+                         Using fully convolutional networks in this way has been superseded in
+                    recent years by other, more advanced techniques that we do not have space
+                    nor computing power to work with in this book. Many models that localize
+                    objects in images output not a heatmap, but a bounding box covering the
+                    image. For example, the YOLO model (https://pjreddie.com/darknet/yolo/) is
+                    capable of real-time object detection in images, and it uses bounding boxes
+                    around the objects with their label. In Chapter 12, we mentioned seman-
+                    tic segmentation and U-Nets as current state-of-the-art models that assign
+                    a class label to each pixel of the input. Both of these approaches are useful
+                    and are, in a sense, extensions of the fully convolutional model approach we
+                    just demonstrated here.
+
+
+      Scrambled MNIST Digits
+                    In Chapter 10, we showed that scrambling the order of the pixels in an MNIST
+                    digit (Figure 7-3), provided the remapping of pixels is deterministically ap-
+                    plied to each image, poses no problem for a traditional neural network. It
+                    is still able to train well and assign class labels just as effectively as with un-
+                    scrambled digits. See Figure 10-9.
+                          Let’s see if this still holds with CNNs. We made the scrambled MNIST
+                    digit dataset in Chapter 5. All we need to do here is substitute it for the stan-
+                    dard MNIST dataset in our baseline CNN model, the one we started the
+                    chapter with. If we train this model with the scrambled data, and do so re-
+                    peatedly to get some error bars, we get Figure 13-9.
+
+
+
+
+340    Chapter 13
+Figure 13-9: Test set error per epoch for a model trained on unscrambled and
+scrambled MNIST digits. Mean and SE over six training sessions.
+
+      Here we see that unlike the traditional neural network, the CNN does
+have some trouble: the test error for the scrambled digits is higher than for
+the unscrambled digits. Why? Recall, the CNN uses convolution and learns
+kernels that help create a new representation of the input, one that a simple
+model, the top layers, can readily use to distinguish between classes.
+      Convolution generates responses that are spatially dependent. In the
+case of the scrambled digits, that spatial dependence is mostly eliminated;
+it is only by considering the digit image as a whole, like a traditional neural
+network, that a class determination can be made. This means there is little
+for the lower layers of the CNN to learn. Of course, the CNN is still learning
+and does a better job with the scrambled digits than the traditional model
+in the end, about 2 percent error versus 4.4 percent, but the distinction be-
+tween scrambled and unscrambled is more significant.
+
+
+
+
+                                                         Experiments with Keras and MNIST   341
+      Summary
+                    In this chapter, we built our intuition around CNNs by working with the
+                    MNIST dataset. We explored the effect of basic architecture changes; learned
+                    about the interplay among training set size, minibatch size, and number of
+                    training epochs; and explored the effect of the optimization algorithm.
+                         We saw how to convert a model using fully connected layers into a fully
+                    convolutional model. We then learned how to apply that model to search for
+                    digits in arbitrarily sized input images. We also learned that we needed to
+                    increase the expressiveness of our dataset to do a better job of representing
+                    the distribution of inputs the model sees when used.
+                         Finally, we saw via an experiment with the scrambled MNIST digits that
+                    the strength of CNNs—their ability to learn spatial relationships within data—
+                    can sometimes be of little help when the spatial relationships are weak or
+                    nonexistent.
+                         In the next chapter, we’ll continue our exploration of basic CNNs with a
+                    new dataset, one of actual images: CIFAR-10.
+
+
+
+
+342    Chapter 13
+                                 14
+             EXPERIMENTS WITH CIFAR-10
+
+
+
+                     In this chapter, we’ll perform a series of
+                    experiments with the CIFAR-10 dataset we
+                  built in Chapter 5. First, we’ll see how two
+               models, one shallow, the other deeper, perform
+        on the full dataset. After that, we’ll work with grouped
+        subsets of the entire dataset to see if we can tell the
+        difference between animals and vehicles. Next, we’ll
+        answer the question of what’s better for the CIFAR-
+        10 dataset, a single multiclass model or a set of binary
+        models, one per class.
+            We’ll close the chapter by introducing transfer learning and fine-tuning.
+        These are important concepts, often confounded, that are widely used in the
+        machine learning community, so we should develop an intuitive feel for how
+        they work.
+
+
+A CIFAR-10 Refresher
+        Before we dive into the experiments, let’s refamiliarize ourselves with the
+        dataset we’re working with. CIFAR-10 is a 10-class dataset from the Cana-
+        dian Institute for Advanced Research (CIFAR). We built this dataset in
+                    Chapter 5 but deferred its use until now. CIFAR-10 consists of 32×32-pixel
+                    RGB images of animals (six classes) and vehicles (four classes). Take a look
+                    at Figure 5-4 for some sample images. The training set has 50,000 images,
+                    5,000 from each class, so it is a balanced dataset. The test set consists of
+                    10,000 images, 1,000 from each class. CIFAR-10 is probably the second most
+                    widely used standard dataset in machine learning after MNIST. There is also
+                    a 100-class version, CIFAR-100, that we’ll not work with in this book, but
+                    you’ll see it pop up often in the literature.
+                         As of this writing, the best performing model on unaugmented CIFAR-
+                    10 has achieved a 1 percent error on the test set (benchmarks.ai). The model
+                    that did this has 557 million parameters. Our models will be significantly
+                    smaller and have a much larger test error. However, this is a true image
+                    dataset, unlike MNIST, which is very clean and has a uniform black back-
+                    ground for every digit. Because of the variation in natural images, especially
+                    in their backgrounds, we might expect models to have a harder time learn-
+                    ing the CIFAR-10 classes compared to MNIST.
+                         For reference throughout the chapter, here are CIFAR-10 classes:
+
+
+                                          Label   Class         Label   Class
+                                          0        airplane     5       dog
+                                          1        automobile   6       frog
+                                          2        bird         7       horse
+                                          3        cat          8       ship
+                                          4        deer         9       truck
+
+
+      Working with the Full CIFAR-10 Dataset
+                    Let’s train two different models on the entire CIFAR-10 dataset. The first
+                    model is the same one we used in Chapter 13 for the MNIST dataset. We’ll
+                    refer to this model as our shallow model because it has only two convolu-
+                    tional layers. We’ll need to adapt it a touch for the 32 × 32 RGB inputs, but
+                    that’s straightforward enough to do. The second model, which we’ll call our
+                    deep model, uses multiple convolutional layers before the pooling and fully
+                    connected layers.
+                         Additionally, we’ll experiment with both stochastic gradient descent
+                    and Adadelta as our optimization algorithms. We’ll fix the minibatch size
+                    at 64 and train for 60 epochs for a total of 46,875 gradient descent steps.
+                    For SGD, we’ll use a learning rate of 0.01 and a momentum of 0.9. Recall,
+                    Adadelta is adaptive and alters the learning rate on the fly. We can decrease
+                    the learning rate for SGD as training progresses, but 0.01 is relatively small,
+                    and we have a large number of gradient descent steps, so we’ll just leave it
+                    a constant.
+                         The shallow model has 1,626,442 parameters, while the deep model has
+                    only 1,139,338. The deep model is deep because it has more layers, but
+
+
+
+
+344    Chapter 14
+because each convolutional layer is using exact convolution, the output de-
+creases by two each time (for a 3 × 3 kernel). Therefore, the flatten layer
+after the pooling layer has only 7,744 values compared to 12,544 for the shal-
+low model. The weight matrix between the flatten layer and the dense layer
+of 128 nodes contains the vast majority of the parameters, 7, 744 × 128 =
+991, 232 compared to 12, 544 × 128 = 1, 605, 632. Thus, going deeper has
+actually reduced the number of parameters to learn. This slightly counter-
+intuitive result reminds us of the large expense incurred by fully connected
+layers and some of the initial motivation for the creation of CNNs.
+
+
+Building the Models
+You’ll find the code for the shallow model in cifar10_cnn.py (Adadelta) and
+cifar10_cnn_SGD.py (SGD). We’ll work through the code in pieces. The shal-
+low model starts in much the same way as for the MNIST dataset, as shown
+in Listing 14-1.
+
+import keras
+from keras.models import Sequential
+from keras.layers import Dense, Dropout, Flatten
+from keras.layers import Conv2D, MaxPooling2D
+from keras import backend as K
+import numpy as np
+
+batch_size = 64
+num_classes = 10
+epochs = 60
+img_rows, img_cols = 32, 32
+
+x_train = np.load("cifar10_train_images.npy")
+y_train = np.load("cifar10_train_labels.npy")
+x_test = np.load("cifar10_test_images.npy")
+y_test = np.load("cifar10_test_labels.npy")
+
+if K.image_data_format() == 'channels_first':
+    x_train = x_train.reshape(x_train.shape[0], 3, img_rows, img_cols)
+    x_test = x_test.reshape(x_test.shape[0], 3, img_rows, img_cols)
+    input_shape = (3, img_rows, img_cols)
+else:
+    x_train = x_train.reshape(x_train.shape[0], img_rows, img_cols, 3)
+    x_test = x_test.reshape(x_test.shape[0], img_rows, img_cols, 3)
+    input_shape = (img_rows, img_cols, 3)
+
+x_train = x_train.astype('float32')
+x_test = x_test.astype('float32')
+
+
+
+
+                                                        Experiments with CIFAR-10   345
+                   x_train /= 255
+                   x_test /= 255
+
+                   y_train = keras.utils.to_categorical(y_train, num_classes)
+                   y_test = keras.utils.to_categorical(y_test, num_classes)
+
+                   Listing 14-1: Preparing the CIFAR-10 dataset
+
+                       We import the necessary modules and load the CIFAR-10 dataset from
+                   the NumPy files we created in Chapter 5. Notice that the image dimensions
+                   are now 32 × 32, not 28 × 28, and that the number of channels is 3 (RGB)
+                   instead of 1 (grayscale). As before, we scale the inputs by 255 to map the im-
+                   ages to [0, 1] and convert the label numbers to one-hot vectors using
+                   to_categorical.
+                       Next, we define the model architecture (Listing 14-2).
+
+                   model = Sequential()
+                   model.add(Conv2D(32, kernel_size=(3, 3),
+                                    activation='relu',
+                                    input_shape=input_shape))
+                   model.add(Conv2D(64, (3, 3), activation='relu'))
+                   model.add(MaxPooling2D(pool_size=(2, 2)))
+                   model.add(Dropout(0.25))
+                   model.add(Flatten())
+                   model.add(Dense(128, activation='relu'))
+                   model.add(Dropout(0.5))
+                   model.add(Dense(num_classes, activation='softmax'))
+
+                   model.compile(loss=keras.losses.categorical_crossentropy,
+                                 optimizer=keras.optimizers.Adadelta(),
+                                 metrics=['accuracy'])
+
+                   Listing 14-2: Building the shallow CIFAR-10 model
+
+                        This step is identical to the MNIST version for the shallow model (see
+                   Listing 13-1). For the deep model, we add more convolutional layers, as
+                   shown in Listing 14-3.
+
+                   model = Sequential()
+                   model.add(Conv2D(32, kernel_size=(3, 3),
+                                    activation='relu',
+                                    input_shape=input_shape))
+
+                   model.add(Conv2D(64, (3,3), activation='relu'))
+                   model.add(Conv2D(64, (3,3), activation='relu'))
+                   model.add(Conv2D(64, (3,3), activation='relu'))
+                   model.add(Conv2D(64, (3,3), activation='relu'))
+
+                   model.add(MaxPooling2D(pool_size=(2,2)))
+                   model.add(Dropout(0.25))
+
+346   Chapter 14
+model.add(Flatten())
+model.add(Dense(128, activation='relu'))
+model.add(Dropout(0.5))
+model.add(Dense(128, activation='relu'))
+model.add(Dropout(0.5))
+model.add(Dense(num_classes, activation='softmax'))
+
+model.compile(loss=keras.losses.categorical_crossentropy,
+              optimizer=keras.optimizers.Adadelta(),
+              metrics=['accuracy'])
+
+Listing 14-3: Building the deep CIFAR-10 model
+
+    The extra convolutional layers give the model the opportunity to learn
+a better representation of the input data, which for CIFAR-10 is more com-
+plex than the simple MNIST images. The representation might be better
+because a deeper network can learn more abstract representations that en-
+compass larger structures in the inputs.
+    The code snippets in Listings 14-2 and 14-3 compile the model using
+Adadelta as the optimization algorithm. We also want a version of each that
+uses SGD. If we replace the reference to Adadelta() in the compile method
+with the following
+
+optimizer=keras.optimizers.SGD(lr=0.01, momentum=0.9)
+
+we’ll use SGD with the learning rate and momentum values we indicated
+earlier. For completeness, the rest of the code for both shallow and deep
+models is shown in Listing 14-4.
+
+print("Model parameters = %d" % model.count_params())
+print(model.summary())
+
+history = model.fit(x_train, y_train,
+          batch_size=batch_size,
+          epochs=epochs,
+          verbose=1,
+          validation_data=(x_test[:1000], y_test[:1000]))
+
+score = model.evaluate(x_test[1000:], y_test[1000:], verbose=0)
+print('Test loss:', score[0])
+print('Test accuracy:', score[1])
+
+model.save("cifar10_cnn_model.h5")
+
+Listing 14-4: Training and testing the CIFAR-10 models
+
+     This code summarizes the model architecture and number of parame-
+ters, trains by calling the fit method using the first 1,000 test samples for
+validation, and then evaluates the trained model on the remaining 9,000 test
+
+                                                         Experiments with CIFAR-10   347
+                   samples by calling the evaluate method. We report the test loss and accuracy.
+                   Then we write the model to disk (save), and store the history showing the
+                   per epoch loss and accuracy during training. We’ll use the history files to
+                   generate plots showing the loss and error (1 – accuracy) as a function of the
+                   training epoch.
+                        Listing 14-4 gives us four files: shallow model + Adadelta, shallow model
+                   + SGD, deep model + Adadelta, and deep model + SGD. Let’s run each of
+                   these to see our final test accuracy and then look at plots of the training pro-
+                   cess to see what we can learn.
+                        Running the code trains and evaluates the models. This takes some time
+                   on our CPU-only system, about eight hours total. The random initializa-
+                   tion Keras uses means that when you run the code yourself, you should see
+                   slightly different answers. When I ran the code, I got Table 14-1.
+
+                   Table 14-1: Test Set Accuracies
+                   by Model Size and Optimizer
+
+                                Shallow   Deep
+                    Adadelta    71.9%     74.8%
+                    SGD         70.0%     72.8%
+
+
+
+                       The table tells us that using Adadelta gave us a more accurate model for
+                   both shallow and deep models compared to SGD. We also see that the deep
+                   model outperforms the shallow model regardless of optimizer. Adaptive
+                   optimizers like Adadelta and Adam (also in Keras) are generally preferred
+                   to plain old SGD for this reason. However, I have seen claims that SGD is
+                   ultimately just as good or better once the learning rate is set up right and de-
+                   creased as training proceeds. Of course, nothing prevents us from starting
+                   with an adaptive optimizer and then switching to SGD after some number of
+                   epochs. The idea here is that the adaptive optimizer “gets close” to a mini-
+                   mum of the loss function while SGD fine-tunes the process at that point.
+
+
+                   Analyzing the Models
+                   Let’s look at how the loss changes during training. Figure 14-1 shows the
+                   loss per epoch for the shallow and deep models using Adadelta (top) and
+                   SGD (bottom).
+
+
+
+
+348   Chapter 14
+Figure 14-1: Training loss for shallow and deep models using Adadelta (top)
+and SGD (bottom)
+
+
+
+
+                                                               Experiments with CIFAR-10   349
+                        Starting with the Adadelta loss plot, we see that compared to SGD,
+                   the loss is not as low. We also see that for the shallow model, the loss is in-
+                   creasing slightly per epoch. This is a counterintuitive result and seems to
+                   contradict conventional wisdom that the training loss should only decrease.
+                   There are reports of this happening with Adam, another adaptive optim-
+                   izer, so it is likely an artifact of the adaptation algorithm. Regardless, as we
+                   saw in Table 14-1, Adadelta leads to higher accuracies for both shallow and
+                   deep models.
+                        On the bottom of Figure 14-1, we see that SGD leads to a smaller loss
+                   for the shallow model compared to the deep model. This is typically inter-
+                   preted as a hint for potential overfitting. The model is learning the details of
+                   the training set as the loss tends to 0. The shallow model using SGD was the
+                   least performant model according to Table 14-1. The deep model using SGD
+                   did not have such a small loss, at least up to 60 training epochs.
+                        What about the validation set accuracy during training? Figure 14-2
+                   plots the error by epoch. The error is easier to understand visually; it should
+                   tend toward 0 as accuracy increases. Again, the Adadelta models are on the
+                   top, and the SGD models are on the bottom.
+                        As expected, regardless of optimizer, the deeper model performed bet-
+                   ter and had a lower validation set error during training. Note, the validation
+                   set error is not the final, held-out test set error, but instead the portion of
+                   the test set used during training, the first 1,000 samples in this case.
+                        The SGD curves on the bottom of Figure 14-2 follow what our intui-
+                   tion should tell us: as the model trains, it gets better, leading to a smaller
+                   error. The deep model quickly overtakes the shallow model—again, an intu-
+                   itive result. Also, the curves are relatively smooth as the model gets better
+                   and better.
+                        The Adadelta error plots on the top of Figure 14-2 are a different story.
+                   There is an obvious decrease in the error after the first few epochs. How-
+                   ever, after that, the validation set error jumps around somewhat chaoti-
+                   cally though still following our intuition that the deep model should have a
+                   smaller error than the shallow model. This chaotic result is due to the adap-
+                   tive nature of the Adadelta algorithm, which is adjusting the learning rate on
+                   the fly to search for a better minimum. From the results of Table 14-1, it’s
+                   clear that Adadelta is finding better-performing models.
+
+
+
+
+350   Chapter 14
+Figure 14-2: Validation set error for shallow and deep models using Adadelta (top)
+and SGD (bottom)
+
+
+
+
+                                                               Experiments with CIFAR-10   351
+                         These experiments tell us that adaptive optimization algorithms and
+                    deeper networks (to a point) tend toward better-performing models. While
+                    recognizing the danger inherent in attempting to offer advice in this field,
+                    it seems safe to say that one should start with adaptive optimization and use
+                    a large enough model. To find out just what large enough means, I suggest
+                    starting with a modest model and, after training, making it deeper and see-
+                    ing if that improves things. Eventually, the model will be too large for the
+                    training set, so there will be a cutoff point where increasing the size of the
+                    model no longer helps. In that case, get more training data, if possible.
+                         Let’s now shift our attention to working with subsets of CIFAR-10.
+
+
+      Animal or Vehicle?
+                    Four of the ten classes in CIFAR-10 are vehicles; the remaining six are an-
+                    imals. Let’s build a model to separate the two and see what we can learn
+                    from it. We already have the images; all we need do is recode the labels so
+                    that all the vehicles are marked as class 0 and all the animals as class 1. Do-
+                    ing this is straightforward, as shown in Listing 14-5.
+
+                    import numpy as np
+                    y_train = np.load("cifar10_train_labels.npy")
+                    y_test = np.load("cifar10_test_labels.npy")
+                    for i in range(len(y_train)):
+                        if (y_train[i] in [0,1,8,9]):
+                            y_train[i] = 0
+                        else:
+                            y_train[i] = 1
+                    for i in range(len(y_test)):
+                        if (y_test[i] in [0,1,8,9]):
+                            y_test[i] = 0
+                        else:
+                            y_test[i] = 1
+                    np.save("cifar10_train_animal_vehicle_labels.npy", y_train)
+                    np.save("cifar10_test_animal_vehicle_labels.npy", y_test)
+
+                    Listing 14-5: Adjusting the labels of CIFAR-10 into vehicles (class 0) and animals (class 1)
+
+                         We load the existing train and test label files, already matched in order
+                    with the train and test image files, and build new label vectors mapping the
+                    vehicle classes—classes 0, 1, 8, and 9—to 0 and all the others to 1.
+                         The code in the previous section for building and training the model
+                    remains the same except for the definition of the model architecture and
+                    the particular file we load for the train and test labels. The number of
+                    classes (num_classes) is set to 2, the minibatch size is 128, and we’ll train for
+                    12 epochs. The training set isn’t completely balanced—there are 20,000 vehi-
+                    cles and 30,000 animals—but the imbalance isn’t severe, so we should be
+
+
+
+
+352    Chapter 14
+in good shape. Remember that when one class is scarce, it becomes difficult
+for the model to learn it well. We’ll stick with Adadelta as the optimizer and
+use the first 1,000 test samples for validation and the remaining 9,000 for fi-
+nal test. We’ll use the same shallow architecture used in the previous section.
+     Training this model on the CIFAR-10 images with the recoded labels
+gives us a final test accuracy of 93.6 percent. Let’s be a little pedantic and
+calculate all the performance metrics from Chapter 11. To do this, we up-
+date the tally_predictions function defined in that chapter (Listing 11-1)
+to work with a Keras model. We’ll also use basic_metrics (Listing 11-2) and
+advanced_metrics (Listing 11-3) from Chapter 11. The updated code for
+tally_predictions is shown in Listing 14-6.
+
+def tally_predictions(model, x, y):
+    pp = model.predict(x)
+    p = np.zeros(pp.shape[0], dtype="uint8")
+ ¶ for i in range(pp.shape[0]):
+        p[i] = 0 if (pp[i,0] > pp[i,1]) else 1
+    tp = tn = fp = fn = 0
+    for i in range(len(y)):
+        if (p[i] == 0) and (y[i] == 0):
+            tn += 1
+        elif (p[i] == 0) and (y[i] == 1):
+            fn += 1
+        elif (p[i] == 1) and (y[i] == 0):
+            fp += 1
+        else:
+            tp += 1
+    score = float(tp+tn) / float(tp+tn+fp+fn)
+    return [tp, tn, fp, fn, score]
+
+Listing 14-6: Calculating basic metrics for Keras models
+
+     We pass in the model, test samples (x), and test labels (y). Unlike the
+sklearn version of tally_predictions, here we first use the model to predict
+per class probabilities (pp). This returns a 2D array, one row for each sample
+in x, where the columns are the probabilities assigned per class. Here there
+are two columns because there are only two classes: vehicle or animal.
+     Before we can tally the true positives, true negatives, false positives (vehi-
+cle classified as animal), and false negatives (animal classified as vehicle), we
+need to assign a class label to each test sample. We do this by looping over
+the predictions, row by row, and asking whether the probability for class 0 is
+greater than class 1 or not ¶. Once we have assigned a predicted class label
+(p), we can calculate the tallies and return them along with the overall score
+(accuracy). We pass the list returned by tally_predictions to basic_metrics
+and then pass the output of both of these functions to advanced_metrics, as in
+Chapter 11.
+
+
+
+
+                                                           Experiments with CIFAR-10   353
+                       The full set of binary classifier metrics gives us the following:
+
+                                             Metric                      Result
+                                             TP                          5,841
+                                             FP                          4,80
+                                             TN                          3,520
+                                             FN                          159
+
+                                             TPR (sensitivity, recall)   0.9735
+                                             TNR (specificity)           0.8800
+                                             PPV (precision)             0.9241
+                                             NPV                         0.9568
+                                             FPR                         0.1200
+                                             FNR                         0.0265
+
+                                             F1                          0.9481
+                                             MCC                         0.8671
+                                             κ                           0.8651
+                                             Informedness                0.8535
+                                             Markedness                  0.8808
+                                             Accuracy                    0.9361
+
+
+                   We see that this is a well-performing model although a specificity of 88 per-
+                   cent is a little on the low side. As argued in Chapter 11, the Matthews corre-
+                   lation coefficient (MCC) is possibly the best single number for characteriz-
+                   ing a binary classifier. Here we have an MCC of 0.8671 out of 1.0, indicative
+                   of a good model.
+                        Recall that the sensitivity is the probability that an animal is called an
+                   “animal” by this model, and the specificity is the probability that a vehicle is
+                   called a “vehicle.” The precision is the probability that when the model as-
+                   signs a label of “animal,” it is correct, and the NPV (negative predictive value)
+                   is the probability of the model being correct when it assigns a label of “ve-
+                   hicle.” Note also that the false positive rate (FPR) is 1 – specificity, and the
+                   false negative rate (FNR) is 1 – sensitivity.
+                        A little more code will calculate the ROC curve and its area:
+
+                   from sklearn.metrics import roc_auc_score, roc_curve
+                   def roc_curve_area(model, x, y):
+                       pp = model.predict(x)
+                       p = np.zeros(pp.shape[0], dtype="uint8")
+                       for i in range(pp.shape[0]):
+                           p[i] = 0 if (pp[i,0] > pp[i,1]) else 1
+                       auc = roc_auc_score(y,p)
+                       roc = roc_curve(y,pp[:,1])
+                       return [auc, roc]
+
+                       Again, we pass in the trained model, the test samples (x), and the animal
+                   or vehicle labels (y). We also convert the output probabilities to class predic-
+                   tions, as we did in Listing 14-6. The AUC is 0.9267, and Figure 14-3 shows
+                   the ROC curve (note the zoomed axes). This curve is steep and close to the
+                   upper-left corner of the plot—all good signs of a well-performing model.
+
+354   Chapter 14
+Figure 14-3: ROC curve for the animal or vehicle model
+
+     We grouped animals and vehicles and asked a single model to learn
+something about the difference between them. Clearly, some character-
+istics differentiate the two classes, and the model has learned to use them
+successfully. However, unlike most binary classifiers, we know finer label as-
+signments for the test data. For example, we know which of the animals are
+birds or deer or frogs. Likewise, we know which samples are airplanes, ships,
+or trucks.
+     When the model makes a mistake, the mistake is either a false positive
+(calling a vehicle an animal) or a false negative (calling an animal a vehicle).
+We chose animals to be class 1, so false positives are cases where a vehicle
+was called an animal. The converse is true for false negatives. We can use
+the full class labels to tell us how many of the false positives are represented
+by which vehicle classes, and we can do the same for the false negatives to
+tell us which animal classes were assigned to the vehicle class. A few lines of
+code in Listing 14-7 give us what we are after.
+
+import numpy as np
+from keras.models import load_model
+x_test = np.load("cifar10_test_images.npy")/255.0
+y_label= np.load("cifar10_test_labels.npy")
+y_test = np.load("cifar10_test_animal_vehicle_labels.npy")
+model = load_model("cifar10_cnn_animal_vehicle_model.h5")
+pp = model.predict(x_test)
+p = np.zeros(pp.shape[0], dtype="uint8")
+for i in range(pp.shape[0]):
+    p[i] = 0 if (pp[i,0] > pp[i,1]) else 1
+
+                                                         Experiments with CIFAR-10   355
+                     hp = []; hn = []
+                   ¶ for i in range(len(y_test)):
+                         if (p[i] == 0) and (y_test[i] == 1):
+                             hn.append(y_label[i])
+                         elif (p[i] == 1) and (y_test[i] == 0):
+                             hp.append(y_label[i])
+                     hp = np.array(hp)
+                     hn = np.array(hn)
+                     a = np.histogram(hp, bins=10, range=[0,9])[0]
+                     b = np.histogram(hn, bins=10, range=[0,9])[0]
+                     print("vehicles as animals: %s" % np.array2string(a))
+                     print("animals as vehicles: %s" % np.array2string(b))
+
+                     Listing 14-7: Using the fine class labels to determine which classes account for false
+                     positives and false negatives
+
+                          First, we load the test set images, actual labels (y_label), and animal or
+                     vehicle labels (y_test). Then, as before, we load the model and get the model
+                     predictions (p). We want to keep track of the actual class label for each false
+                     positive and false negative, the mistakes the classifier has made. We do this
+                     by looping over the predictions and comparing them to the animal or vehi-
+                     cle labels ¶. When there is an error, we keep the actual label of the sample,
+                     be it an FN (hn) or FP (hp). Note that this works because when we defined the
+                     animal or vehicle labels, we were careful to keep the order the same as the
+                     original label set.
+                          Once we have the actual labels for all FP and FN cases, we use histogram
+                     to do the tallying for us. There are 10 actual class labels, so we tell histogram
+                     that we want to use 10 bins. We also need to specify the range for the bins
+                     (range=[0,9]). We want only the counts themselves, so we need to keep only
+                     the first array returned by histogram, hence the [0] at the end of the call. Fi-
+                     nally, we print the arrays to get
+
+                     vehicles as animals: [189 69   0 0     0   0 0    0 105 117]
+                     animals as vehicles: [ 0 0 64 34 23 11 12 15 0 0]
+
+                           This means that of the vehicles the model called “animal,” 189 of them
+                     were of class 0, airplane. The vehicle class least likely to be identified as an
+                     animal is class 1, automobile. Ships and trucks were similarly likely to be mis-
+                     taken for an animal. Going the other way, we see that class 2, birds, were
+                     most likely to be mistaken for vehicles and class 5, dogs, were least likely to
+                     be misclassified, though frogs were a close second.
+                           What to make of this? The most commonly misclassified vehicle is an
+                     airplane, while the most commonly misclassified animal is a bird. This makes
+                     sense: a picture of an airplane and a picture of a bird flying do look similar.
+                     I’ll leave it to you to make connections among the other categories.
+
+
+
+
+356   Chapter 14
+Binary or Multiclass?
+        Conventional wisdom in machine learning is that a multiclass model will
+        generally outperform multiple binary models. While this is almost certainly
+        true for large datasets, large models, and situations with many classes, like
+        the ImageNet dataset of 1,000 classes, how does it pan out for small models
+        like the ones we’re working with in this chapter? Let’s find out.
+             There are 5,000 instances of each class in the CIFAR-10 dataset and 10
+        classes. This means we can train 10 binary models where the target class
+        (class 1) is one of the 10 classes, and the other class is everything else. This
+        is known as a one-vs-rest approach. To classify an unknown sample, we run it
+        through each of the 10 classifiers and assign the label of the model return-
+        ing the most confident answer. The datasets are all imbalanced, 5,000 class 1
+        instances to 45,000 class 0, but, as we’ll see, there is still enough data to learn
+        the difference between classes.
+             We need some code to train 10 one-vs-rest models. We’ll use the shallow
+        architecture we’ve used before, with a minibatch size of 128, and we’ll train
+        for 12 epochs. Before we can train, however, we need to reassign the class
+        labels for the train and test sets so that all instances of the target class are a 1
+        and everything else is a 0. To build the per class labels, we’ll use Listing 14-8.
+
+        import sys
+        import numpy as np
+      ¶ class1 = eval("["+sys.argv[1]+"]")
+        y_train = np.load("cifar10_train_labels.npy")
+        y_test = np.load("cifar10_test_labels.npy")
+        for i in range(len(y_train)):
+            if (y_train[i] in class1):
+                y_train[i] = 1
+            else:
+                y_train[i] = 0
+        for i in range(len(y_test)):
+            if (y_test[i] in class1):
+                y_test[i] = 1
+            else:
+                y_test[i] = 0
+        np.save(sys.argv[2], y_train)
+        np.save(sys.argv[3], y_test)
+
+        Listing 14-8: Building the per class labels
+
+             This code makes use of the command line. To call it, use something like
+
+        $ python3 make_label_files.py 1 train_1.npy test_1.npy
+
+             The first argument is the desired target class label, here 1 for automo-
+        biles, and the next two arguments are the names in which to store the new
+
+
+
+
+                                                                    Experiments with CIFAR-10   357
+                   label assignments for the train and test images. The code itself loops over
+                   the actual train and test labels, and if the label is the target class, the corre-
+                   sponding output label is 1; otherwise, it is 0.
+                        This code is more flexible than mapping a single class. By using eval ¶,
+                   we can pass in a comma-separated string of all the CIFAR-10 labels we want
+                   to treat as the target class. For example, to use this code to make labels for
+                   the animal versus vehicle example of the previous section, we’d make the
+                   first argument 2,3,4,5,6,7.
+                        Once we have new labels for each of the 10 classes, we can use them to
+                   train 10 models. All we need do is change num_classes to 2 and load each of
+                   the respective reassigned label files for y_train and y_test. At the bottom of
+                   the file, we need to change the call to model.save to store the per class models
+                   as well. We’ll assume the models are in files named cifar10_cnn_<X>_model.h5
+                   where <X> is a digit, 0–9, representing a CIFAR-10 class label. Our multi-
+                   class model is the shallow architecture trained on the full CIFAR-10 dataset
+                   for 12 epochs (cifar10_cnn_model.h5). To train the binary models, use the
+                   train_single_models script. This script calls cifar10_cnn_arbitrary.py to train a
+                   model using a specified binary dataset.
+                        To test the models, we need to first load them all from disk along with
+                   the test set data. Then we need to run all the data through the multiclass
+                   model and each of the individual class models keeping the predictions. From
+                   the predictions, we can assign class labels and build confusion matrices to
+                   see how well each approach does. First, let’s load the test set and the models:
+
+                   x_test = np.load("cifar10_test_images.npy")/255.0
+                   y_test = np.load("cifar10_test_labels.npy")
+                   mm = load_model("cifar10_cnn_model.h5")
+                   m = []
+                   for i in range(10):
+                       m.append(load_model("cifar10_cnn_%d_model.h5" % i))
+
+                        Notice that we are scaling the test set by 255, as we did with the training
+                   data. We’ll keep the multiclass model in mm and load the 10 single class mod-
+                   els into the list, m.
+                        Next, we apply the models to each test set sample:
+
+                   mp = np.argmax(mm.predict(x_test), axis=1)
+                   p = np.zeros((10,10000), dtype="float32")
+                   for i in range(10):
+                       p[i,:] = m[i].predict(x_test)[:,1]
+                   bp = np.argmax(p, axis=0)
+
+                        Calling predict with the 10,000 test samples returns a 10,000 × 10 ma-
+                   trix for the multiclass model or 10,000 × 2 for the individual models. Each
+                   row corresponds to a test sample, and each column is the model’s output for
+                   each class. For the multiclass case, we set mp to the maximum value across
+                   the columns (axis=1) to get a vector of 10,000 values, each of which is the
+                   predicted class label.
+
+
+358   Chapter 14
+     We loop over the individual models and call predict, keeping only the
+class 1 probabilities. These are placed into p, where the rows are the indi-
+vidual model outputs for that class label, and the columns are the specific
+class 1 prediction probabilities for each of the 10,000 test samples. If we
+return the maximum value across the rows by using argmax and axis=0, we’ll
+get the class label of the model that had the highest predicted probability for
+each test sample. This is what is in bp.
+     With our predictions in hand, we can generate the confusion matrices:
+
+cm = np.zeros((10,10), dtype="uint16")
+cb = np.zeros((10,10), dtype="uint16")
+
+for i in range(10000):
+    cm[y_test[i],mp[i]] += 1
+    cb[y_test[i],bp[i]] += 1
+
+np.save("cifar10_multiclass_conf_mat.npy", cm)
+np.save("cifar10_binary_conf_mat.npy", cb)
+
+   Here rows represent the true class label, and columns represent the
+model’s predicted label. We also store the confusion matrices for future use.
+   We can display the confusion matrices with the code in Listing 14-9:
+
+print("One-vs-rest confusion matrix (rows true, cols predicted):")
+print("%s" % np.array2string(100*(cb/1000.0), precision=1))
+print()
+print("Multiclass confusion matrix:")
+print("%s" % np.array2string(100*(cm/1000.0), precision=1))
+
+Listing 14-9: Displaying the confusion matrices. See cifar10_one_vs_many.py
+
+     We divide the counts in cb and cm by 1,000 because each class is repre-
+sented by that many samples in the test set. This converts the confusion ma-
+trix entries to a fraction and then a percent when multiplied by 100.
+     So, how did we do? The multiple one-vs-rest classifiers produced
+
+  Class   0       1       2       3       4      5       6         7          8             9
+  0       75.0    2.8     3.4     2.1     1.7    0.4     2.3       0.2        4.1           8.0
+  1       0.8     84.0    0.2     0.9     0.3    0.3     1.1       0.0        1.2           11.2
+  2       6.5     1.6     54.0    6.3     9.5    5.3     9.1       2.3        0.8           4.6
+  3       1.6     3.6     3.8     52.1    7.1    12.9    10.6      2.2        0.9           5.2
+  4       1.8     0.8     3.6     6.5     67.6   2.3     8.6       5.3        1.3           2.2
+  5       1.4     1.4     3.5     16.9    4.7    61.8    4.0       2.6        0.5           3.2
+  6       0.8     0.7     1.4     3.4     2.8    1.0     86.4      0.2        0.3           3.0
+  7       1.5     1.3     1.7     4.9     5.2    5.2     1.5       71.5       0.1           7.1
+  8       5.3     4.4     0.1     1.1     0.5    0.6     1.1       0.5        79.1          7.3
+  9       1.7     4.0     0.2     0.8     0.1    0.4     0.5       0.3        0.8           91.2
+
+
+
+
+                                                                Experiments with CIFAR-10       359
+                   And the multiclass classifier came up with
+
+                     Class   0      1      2      3      4       5      6      7      8      9
+                     0       70.2   1.6    6.0    2.6    3.3     0.5    1.8    0.9    9.8    3.3
+                     1       2.0    79.4   1.0    1.3    0.5     0.5    1.3    0.4    2.8    10.8
+                     2       5.2    0.6    56.2   6.6    13.5    6.1    7.3    2.6    1.4    0.5
+                     3       1.2    1.1    7.2    57.7   10.2    11.5   7.3    1.7    1.2    0.9
+                     4       1.9    0.2    5.2    4.6    77.4    1.6    4.8    2.7    1.5    0.1
+                     5       1.0    0.2    6.4    20.7   7.7     56.8   2.7    3.5    0.8    0.2
+                     6       0.3    0.1    4.5    5.2    5.7     1.5    82.4   0.0    0.0    0.3
+                     7       1.4    0.2    4.0    6.3    10.1    4.1    0.9    71.7   0.1    1.2
+                     8       4.7    3.0    0.8    2.0    1.3     0.6    1.0    0.6    82.6   3.4
+                     9       2.4    6.1    0.7    2.6    1.2     0.7    1.2    1.6    3.2    80.3
+
+
+                        The diagonals are the correct class assignments. Ideally, the matrix
+                   would be only diagonal elements. All other elements are mistakes, cases
+                   where the model or models chose the wrong label. Since each class is equally
+                   represented in the test set, we can calculate an overall accuracy for both
+                   models by using the unweighted average of the diagonals. If we do this, we
+                   get the following:
+
+                                                   one-vs-rest: 72.3%
+                                                   multiclass: 71.5%
+
+                   The one-vs-rest classifiers have the slight edge in this case, though the differ-
+                   ence is less than 1 percent. Of course, we needed to do 10 times the work
+                   to get the one-vs-rest confusion matrix—ten classifiers were used instead of
+                   just one. The multiclass model was about 10 percent better on class 4 (deer)
+                   than the one-vs-rest models, but it was approximately 11 percent worse on
+                   class 9 (trucks). These are the two most substantial per class differences in
+                   accuracy. The multiclass model is confusing trucks with class 8, ships (3.2
+                   percent), and class 1, cars (6.1 percent), more often than the one-vs-rest
+                   models. We can see how this might happen. Trucks and cars have wheels,
+                   and trucks and ships are (especially at the low resolution of CIFAR-10) both
+                   box-like.
+                        Did we arrive at a definitive answer regarding one-vs-rest or multiclass
+                   models? No, nor could we in general. However, we did, objectively, get
+                   slightly better performance by using the multiple models.
+                        One argument given against using multiple models, besides the extra
+                   computation necessary, is that using a single model for multiple classes pro-
+                   vides the model with the opportunity to see examples that are similar to a
+                   particular class but are not instances of that class. These hard negatives serve
+                   to regularize the model by forcing it to (indirectly) pay attention to features
+                   that are dissimilar between classes instead of features that might be strongly
+                   associated with a class but are also present in other classes. We first encoun-
+                   tered hard negatives in Chapter 4.
+
+
+
+360   Chapter 14
+             However, in this case, it’s difficult to say that the argument holds. For
+        the multiclass model, class 9 (trucks) was more likely to be confused with
+        class 1 (car, 6.1 percent) than one-vs-rest models (4.0 percent). One possi-
+        ble explanation might be that the multiclass model was forced, with limited
+        training data, to try to learn the difference between trucks, cars, and other
+        vehicles, while the one-vs-rest models were, individually, trying to learn only
+        the difference between a truck and any other vehicle.
+
+
+Transfer Learning
+        We’ll use the term transfer learning to refer to taking a pretrained deep net-
+        work and using it to produce new features for another machine learning
+        model. Our transfer learning example will be a toy model meant to show the
+        process, but many models have been built using features generated by large
+        pretrained networks that used huge datasets. In particular, many models
+        have been built using features generated by AlexNet and the various ResNet
+        architectures, which were pretrained on the ImageNet dataset.
+             We’ll use the pretrained model to turn input images into output fea-
+        ture vectors, which we’ll then use to train classical machine learning models.
+        When a model is used to turn an input into another feature representation,
+        typically a new feature vector, the output is often called an embedding: we are
+        using the pretrained network to embed the inputs we want to classify into
+        another space—one that we hope will let us build a useful model. We can use
+        transfer learning when the model we want to develop has too few training
+        examples to make a good model on its own.
+             When using transfer learning, it is helpful to know or believe that both
+        models were trained using similar data. If you read the literature, you’ll
+        find that this is true for many of the typical transfer learning examples. The
+        inputs are natural images of some class, and the embedding models were
+        trained on natural images. By natural image, I mean a photograph of some-
+        thing in the world as opposed to an x-ray or other medical image. Clearly,
+        the CIFAR-10 images and the MNIST images are quite different from each
+        other, so we shouldn’t hope for too much success with transfer learning.
+        We’re using what we have on hand to demonstrate the technique.
+             We’ll use a shallow CIFAR-10 model like the ones we just saw to gen-
+        erate the embedding vectors. This model was trained on the full CIFAR-
+        10 dataset for 12 epochs. We’ll embed the MNIST dataset by passing the
+        MNIST digit images through the pretrained model, keeping the output of
+        the Dense layer, the 128-node vectors used to generate the 10-class softmax
+        predictions.
+
+
+
+
+                                                                 Experiments with CIFAR-10   361
+                       We need to consider a few things before making the embedding. First,
+                   the CIFAR-10 model was trained on 32 × 32 RGB images. Therefore, we
+                   need to make the MNIST digit images fit this input expectation. Second,
+                   even though there are 10 classes for both CIFAR-10 and MNIST, this is only
+                   a coincidence; in practice, the number of classes between the two datasets
+                   do not need to match.
+                       How should we get the 28 × 28 MNIST images into a model that’s ex-
+                   pecting 32 × 32 RGB images? Typically, when working with image data
+                   and transfer learning, we’ll resize the images to make them fit. Here, since
+                   the MNIST digits are smaller than the CIFAR-10 images, we can center the
+                   28 × 28 digit image in the middle of a 32 × 32 input. Moreover, we can turn
+                   a grayscale image into an RGB image by setting each channel (red, green,
+                   and blue) to the single grayscale input.
+                       The code for all of the following is in transfer_learning.py. Setting up the
+                   embedding process looks like this:
+
+                   import numpy as np
+                   from keras.models import load_model
+                   from keras import backend as K
+                   from keras.datasets import mnist
+
+                   (x_train, y_train), (x_test, y_test) = mnist.load_data()
+                   x_train = x_train/255.0
+                   x_test = x_test/255.0
+                   model = load_model("cifar10_cnn_model.h5")
+
+                        We first load the modules we need from Keras. Then we load the Keras
+                   model file, cifar10_cnn_model.h5, which contains a shallow model from the
+                   first section of this chapter trained for 12 epochs on the full CIFAR-10
+                   dataset.
+                        Once we have the data loaded and scaled, we can pass each MNIST train
+                   and test image through the Keras model and extract the 128-node vector
+                   from the Dense layer. This turns each MNIST image into a 128-element vec-
+                   tor; see Listing 14-10.
+
+                   train = np.zeros((60000,128))
+                   k = 0
+                   for i in range(600):
+                       t = np.zeros((100,32,32,3))
+                    ¶ t[:,2:30,2:30,0] = x_train[k:(k+100)]
+                       t[:,2:30,2:30,1] = x_train[k:(k+100)]
+                       t[:,2:30,2:30,2] = x_train[k:(k+100)]
+                       _ = model.predict(t)
+                    · out = [model.layers[5].output]
+                       func = K.function([model.input, K.learning_phase()], out)
+
+
+
+
+362   Chapter 14
+    train[k:(k+100),:] = func([t, 1.])[0]
+    k += 100
+np.save("mnist_train_embedded.npy", train)
+
+test = np.zeros((10000,128))
+k = 0
+for i in range(100):
+    t = np.zeros((100,32,32,3))
+    t[:,2:30,2:30,0] = x_test[k:(k+100)]
+    t[:,2:30,2:30,1] = x_test[k:(k+100)]
+    t[:,2:30,2:30,2] = x_test[k:(k+100)]
+    _ = model.predict(t)
+    out = [model.layers[5].output]
+    func = K.function([model.input, K.learning_phase()], out)
+    test[k:(k+100),:] = func([t, 1.])[0]
+    k += 100
+np.save("mnist_test_embedded.npy", test)
+
+Listing 14-10: Running the MNIST images through the pretrained CIFAR-10 model
+
+     There are 60,000 MNIST training images. We pass each through the
+Keras model in blocks of 100 to be more efficient than processing each im-
+age individually; this means we need to process 600 sets of 100. We do the
+same for the test images, of which there are 10,000, so we process 100 sets of
+100. We’ll store the output vectors in train and test.
+     The processing loop for both the train and test images first creates a
+temporary array, t, to hold the current set of 100 images. To use the Keras
+model predict method, we need a four-dimensional input: the number of
+images, height, width, and number of channels. We load t by copying the
+current set of 100 train or test images, indexed by k, to t; we do that three
+times, once for each channel ¶. With t loaded, we call the predict method
+of the model. We throw the output away, since we’re after the values output
+by the Dense layer of the Keras model. This is layer 5 for the shallow archi-
+tecture ·. The output of func is the 100 output vectors of the Dense layer we
+get after passing the inputs through the network. We assign these to the cur-
+rent block of 100 in train and move to the next set of 100. When we’ve pro-
+cessed the entire MNIST dataset, we keep the embedded vectors in a NumPy
+file. Then we repeat every step we used to process the training set for the
+test set.
+     At this point, we have our embedded vectors, so it’s natural to ask wheth-
+er or not the embedding is helping separate the classes. We can see if this is
+true by using a t-SNE plot of the vectors by class label (Figure 14-4).
+
+
+
+
+                                                            Experiments with CIFAR-10   363
+                   Figure 14-4: t-SNE plot showing the separation by class for the embedded MNIST
+                   digit vectors
+
+                       Compare this figure with Figure 12-10, which shows the separation for a
+                   model trained explicitly on MNIST digits. That model shows a clear, unam-
+                   biguous separation of the classes, but Figure 14-4 is far less clear. However,
+                   even though there is overlap, there are concentrations of the classes in dif-
+                   ferent parts of the plot, so we have some reason to hope that a model might
+                   be able to learn how to classify digits using these vectors.
+                       Let’s train some models using the embedded vectors. For this, we’ll
+                   head back into the world of classical machine learning. We’ll train some of
+                   the models we trained in Chapter 7 by using the vector form of the MNIST
+                   digits images.
+                       The code to train and test the models is straightforward. We’ll train a
+                   Nearest Centroid, 3-Nearest Neighbor, Random Forest with 50 trees, and a
+                   linear SVM with C = 0.1, as shown in Listing 14-11.
+
+                   from sklearn.neighbors import KNeighborsClassifier
+                   from sklearn.ensemble import RandomForestClassifier
+                   from sklearn.neighbors import NearestCentroid
+                   from sklearn.svm import LinearSVC
+
+                   clf0 = NearestCentroid()
+                   clf0.fit(train, y_train)
+                   nscore = clf0.score(test, y_test)
+
+                   clf1 = KNeighborsClassifier(n_neighbors=3)
+                   clf1.fit(train, y_train)
+
+364   Chapter 14
+kscore = clf1.score(test, y_test)
+
+clf2 = RandomForestClassifier(n_estimators=50)
+clf2.fit(train, y_train)
+rscore = clf2.score(test, y_test)
+
+clf3 = LinearSVC(C=0.1)
+clf3.fit(train, y_train)
+sscore = clf3.score(test, y_test)
+
+print("Nearest Centroid      : %0.2f" % nscore)
+print("3-NN                  : %0.2f" % kscore)
+print("Random Forest         : %0.2f" % rscore)
+print("SVM                   : %0.2f" % sscore)
+
+Listing 14-11: Training classical models using the MNIST embedded vectors
+
+    We load the relevant sklearn modules, create the specific model in-
+stances, and call fit, passing in the 128-element training vectors and the as-
+sociated class labels. The score method returns the overall accuracy of the
+now trained model on the test set.
+    Running this code gives us scores of
+
+                            Model                  Score
+                            Nearest Centroid       0.6799
+                            3-Nearest Neighbors    0.9010
+                            Random Forest (50)     0.8837
+                            SVM (C=0.1)            0.8983
+
+
+which we can compare to the scaled scores for same models in Table 7-10:
+
+                            Model                  Score
+                            Nearest Centroid       0.8203
+                            3-Nearest Neighbors    0.9705
+                            Random Forest (50)     0.9661
+                            SVM (C=0.1)            0.9181
+
+
+     Clearly, in this case, our embedding is not giving us a head start over
+the raw data. We should not be surprised by this: we knew our two datasets
+were fairly distinct, and the t-SNE plot showed that the pretrained CIFAR-10
+model was not ideally suited to separating the MNIST images in the embed-
+ding space. The poor separation of the classes in Figure 14-4 explains the
+poor performance of the Nearest Centroid model: 68 percent accuracy ver-
+sus 82 percent when trained on the digit images themselves. Moreover, by
+their very nature, digit images are already distinct from each other, espe-
+cially on a uniform background, since the digits were intended by humans to
+be easily distinguished by sight.
+
+                                                              Experiments with CIFAR-10   365
+                       A bit of code gives us the confusion matrix for any of these models:
+
+                   def conf_mat(clf,x,y):
+                       p = clf.predict(x)
+                       c = np.zeros((10,10))
+                       for i in range(p.shape[0]):
+                           c[y[i],p[i]] += 1
+                       return c
+                   cs = conf_mat(clf, test, y_test)
+                   cs = 100.0*cs / cs.sum(axis=1)
+                   np.set_printoptions(suppress=True)
+                   print(np.array2string(cs, precision=1, floatmode="fixed"))
+
+                        Here clf is any of the models, test is the embedded test set, and y_test
+                   is the labels. We return the confusion matrix with counts in each element,
+                   so we divide by the sum of the rows, since the row represents the true label,
+                   and multiply by 100 to get percents. Then we print the array using NumPy
+                   commands to get a single digit of accuracy and no scientific notation.
+                        We know already why the Nearest Centroid result is so poor. What about
+                   the Random Forest and SVM? The confusion matrix for the Random Forest
+                   model is shown here:
+
+                    Class   0      1      2      3      4      5      6         7      8      9
+                    0       96.7   0.0    0.5    0.5    0.4    0.2    0.9       0.0    0.4    0.3
+                    1       0.0    98.6   0.5    0.0    0.4    0.1    0.4       0.0    0.1    0.1
+                    2       1.8    0.2    87.0   2.5    1.0    1.0    1.7       0.8    4.1    0.6
+                    3       1.1    0.1    2.5    80.8   0.2    6.7    0.9       1.1    6.0    1.6
+                    4       0.3    0.4    1.3    0.0    88.3   0.1    1.9       1.7    0.6    5.2
+                    5       0.6    0.8    0.7    9.8    1.6    78.8   1.8       1.1    1.6    0.8
+                    6       3.0    0.4    0.6    0.0    0.7    1.0    93.5      0.2    0.4    0.0
+                    7       0.2    1.0    2.9    0.1    2.7    0.4    0.0       87.7   0.7    4.4
+                    8       1.4    0.1    2.7    5.0    1.5    1.6    0.6       0.8    84.0   2.0
+                    9       2.2    0.2    1.3    1.6    2.9    0.6    0.3       3.4    1.5    86.2
+
+
+                       We’ve highlighted the two lowest-performing classes, 3 and 5, along with
+                   the two digits they are most often confused with. We see that the model is
+                   confusing 3’s with 5’s and 8’s. The SVM confusion matrix shows the same
+                   effect. If we take Figure 14-4 and show only classes 3, 5, and 8, then we get
+                   Figure 14-5. Considerable mixing between the classes is plain to see.
+
+
+
+
+366   Chapter 14
+        Figure 14-5: t-SNE plot showing class 3 (plus), class 5 (cross), and class 8 (triangle right)
+
+             The purpose of this section was to introduce the idea of transfer learn-
+        ing through an example that used the datasets we had on hand. As you can
+        see, this experiment was not a success. The datasets we used were very dif-
+        ferent from each other, so we might have expected this to be the case, but it
+        was useful to verify for ourselves. In the next section, we’ll see how we can
+        go one step beyond transfer learning.
+
+
+Fine-Tuning a Model
+        In the previous section, we defined transfer learning as using weights from
+        a model trained on one dataset with data from a (hopefully very similar)
+        dataset. We used the weights to map the inputs to a new space and trained
+        models on the mapped data. In this section, we’ll do something similar, but
+        instead of leaving the weights as they are, we’ll let the weights vary while we
+        continue training the model with a new, smaller dataset. We are calling this
+        fine-tuning.
+
+
+
+
+                                                                           Experiments with CIFAR-10   367
+                        In fine-tuning, we are training a neural network, but instead of initializ-
+                   ing the weights to random values, selected according to an intelligent initial-
+                   ization scheme, we start with the weights from a model trained on a similar
+                   but different dataset. We might use fine-tuning when we do not have a lot of
+                   training data, but we believe our data comes from a distribution that’s very
+                   similar to one for which we have either a lot of data or a trained model. For
+                   example, we might have access to the weights of a large model trained with
+                   a large dataset, like the ImageNet dataset we’ve mentioned previously. It is
+                   quite simple to download such a pretrained model. Additionally, we might
+                   have a small dataset of images for classes that are not in ImageNet; say, pho-
+                   tographs of guppies, angelfish, and tetras. These are popular freshwater
+                   aquarium fish not in ImageNet. We can start with a larger model pretrained
+                   on ImageNet and fine-tune using the smaller fish dataset. That way, we can
+                   take advantage of the fact that the model is already well adapted to inputs of
+                   this kind and, hopefully, get a good model with a small dataset.
+                        Our experiment will use CIFAR-10. Our goal is to train a model to dif-
+                   ferentiate between images of dogs and cats using the deep architecture from
+                   the first section of this chapter. However, our dataset is small; we have ap-
+                   proximately 500 images of each class to work with. We also have a larger
+                   dataset, all the vehicles from CIFAR-10.
+                        Therefore, we’ll train the following models with this data:
+                       1.   The shallow architecture using the small dog and cat dataset.
+                       2.   The deep architecture using the small dog and cat dataset.
+                       3.   The deep architecture pretrained on the vehicle data and fine-tuned
+                            on the small dog and cat dataset.
+                       For the last case, we’ll train several variations using different combina-
+                   tions of frozen weights.
+
+
+                   Building Our Datasets
+                   Before we get to fine-tuning, we need to build our datasets. We’ll use unaug-
+                   mented CIFAR-10 to construct the small dog and cat dataset. We’ll use aug-
+                   mented CIFAR-10 to construct the vehicle dataset. We augmented CIFAR-10
+                   in Chapter 5.
+                        Building the small dog and cat dataset is straightforward, as shown in
+                   Listing 14-12.
+
+                   x_train = np.load("cifar10_train_images.npy")[:,2:30,2:30,:]
+                   y_train = np.load("cifar10_train_labels.npy")
+                   x_test = np.load("cifar10_test_images.npy")[:,2:30,2:30,:]
+                   y_test = np.load("cifar10_test_labels.npy")
+                   xtrn = []; ytrn = []
+                   xtst = []; ytst = []
+
+                   for i in range(y_train.shape[0]):
+                       if (y_train[i]==3):
+
+368   Chapter 14
+        xtrn.append(x_train[i])
+        ytrn.append(0)
+    if (y_train[i]==5):
+        xtrn.append(x_train[i])
+        ytrn.append(1)
+for i in range(y_test.shape[0]):
+    if (y_test[i]==3):
+        xtst.append(x_test[i])
+        ytst.append(0)
+    if (y_test[i]==5):
+        xtst.append(x_test[i])
+        ytst.append(1)
+
+np.save("cifar10_train_cat_dog_small_images.npy", np.array(xtrn)[:1000])
+np.save("cifar10_train_cat_dog_small_labels.npy", np.array(ytrn)[:1000])
+np.save("cifar10_test_cat_dog_small_images.npy", np.array(xtst)[:1000])
+np.save("cifar10_test_cat_dog_small_labels.npy", np.array(ytst)[:1000])
+
+Listing 14-12: Building the small dog and cat dataset
+
+      We load the full CIFAR-10 data, train and test, and then loop over each
+sample. If the class is 3, cat, or 5, dog, we add the image and label to our
+lists, making sure to recode the class label so that 0 is cat and 1 is dog. When
+all the samples have been added, we keep the first 1,000 and write them
+to disk to be our small dog and cat training and test sets. Keeping the first
+1,000 samples gives us a dataset that is close to split 50/50 between classes.
+      Notice that immediately after loading the CIFAR-10 images, we sub-
+script them with [:,2:30,2:30,:]. Recall, the augmented version of the data-
+set includes small shifts of the image, so when we built it in Chapter 5, we re-
+duced the size from 32 × 32 to 28 × 8. Therefore, when we build our vehicle
+dataset, we’ll be working with images that are 28×28 pixels. The subscript
+extracts the center 28 × 28 region of each image. The first dimension is the
+number of images in the train or test set. The last dimension is the number
+of channels—three since these are RGB images.
+      Building the vehicle dataset is equally straightforward (Listing 14-13).
+
+x_train = np.load("cifar10_aug_train_images.npy")
+y_train = np.load("cifar10_aug_train_labels.npy")
+x_test = np.load("cifar10_aug_test_images.npy")
+y_test = np.load("cifar10_test_labels.npy")
+
+vehicles= [0,1,8,9]
+xv_train = []; xv_test = []
+yv_train = []; yv_test = []
+
+for i in range(y_train.shape[0]):
+    if (y_train[i] in vehicles):
+        xv_train.append(x_train[i])
+        yv_train.append(vehicles.index(y_train[i]))
+
+                                                         Experiments with CIFAR-10   369
+                   for i in range(y_test.shape[0]):
+                       if (y_test[i] in vehicles):
+                           xv_test.append(x_test[i])
+                           yv_test.append(vehicles.index(y_test[i]))
+
+                   np.save("cifar10_train_vehicles_images.npy", np.array(xv_train))
+                   np.save("cifar10_train_vehicles_labels.npy", np.array(yv_train))
+                   np.save("cifar10_test_vehicles_images.npy", np.array(xv_test))
+                   np.save("cifar10_test_vehicles_labels.npy", np.array(yv_test))
+
+                   Listing 14-13: Building the vehicle dataset
+
+                        Here we work with the augmented versions. The augmented test set is
+                   28×28 pixels per image using the central region of the original test set. Also,
+                   as we loop through the train and test sets looking for samples that are in one
+                   of the vehicle classes, we can do our recoding of the class label by asking for
+                   the index into the vehicles list of the element matching the current sample’s
+                   class label, hence using index on vehicles. The vehicle dataset has 200,000
+                   samples in the training set, 50,000 from each of the four classes.
+                        To proceed then, we need to (1) train the deep model on the vehicle
+                   dataset; (2) adapt the model to the dog and cat dataset; and (3) train the
+                   deep model initialized with the weights from the vehicle model. We’ll also
+                   train the shallow and deep models from scratch, using the dog and cat data-
+                   set for comparison purposes.
+                        We gave the code for the deep model in the first section of this chapter
+                   so we won’t reproduce it here. In particular, see Listing 14-3. The code it-
+                   self is in the file cifar10_cnn_vehicles.py. The relevant changes for the vehicle
+                   model are shown here:
+
+                   batch_size = 64
+                   num_classes = 4
+                   epochs = 12
+                   img_rows, img_cols = 28,28
+
+                   x_train = np.load("cifar10_train_vehicles_images.npy")
+                   y_train = np.load("cifar10_train_vehicles_labels.npy")
+                   x_test = np.load("cifar10_test_vehicles_images.npy")
+                   y_test = np.load("cifar10_test_vehicles_labels.npy")
+
+                        We use a minibatch size of 64. There are four classes (airplane, auto-
+                   mobile, ship, truck), and we’ll train for 12 epochs. When we’re done train-
+                   ing, we’ll store the model in cifar10_cnn_vehicles_model.h5 so we can use
+                   its weights and biases for fine-tuning the dog and cat model. Training this
+                   model takes several hours on our CPU system. The final test accuracy is 88.2
+                   percent, so it is performing well enough for our purposes.
+
+
+
+
+370   Chapter 14
+Adapting Our Model for Fine-Tuning
+Now we need to adapt the vehicle model for the dog and cat dataset and
+fine-tuning. Specifically, we need to replace the top softmax layer that ex-
+pects four classes with one that expects two. We also need to decide which
+layer’s weights we’ll freeze and which we’ll update during training. This step
+is essential, and we’ll see how our choices affect the fine-tuning results.
+     When fine-tuning, it’s standard practice to freeze lower-level weights;
+they are not updated at all when training. The idea here is that if our new
+data is similar to the data used for the pretraining step, the lower levels of
+the model are already adapted, and we should not change them. We allow
+only the higher-level layers to change as these are the ones that need to learn
+about the representation of the new data. Which layers we freeze and which
+we allow to train depends on the size of the model and the data itself. Ex-
+perimentation is required. Note that the transfer learning of the previous
+section can be considered fine-tuning with all the weights frozen.
+     Note that if we’re using SGD with fine-tuning, we typically reduce the
+learning rate by a factor of, say, 10. The rationale is the same as for freezing
+the lower-level weights: the model is already “close” to a desired minimum
+of the error function, so we don’t need big steps to find it. Our experiment
+will use Adadelta, which will adjust the learning rate step size for us.
+     The deep model has multiple convolutional layers. We’ll experiment
+with freezing the first two; these are the lowest and are most likely already
+tuned to the low-level features of the CIFAR-10 dataset, at least the vehicles.
+Of course, since our dog and cat images come from CIFAR-10 as well, we
+know that they are from the same parent distribution or domain as the vehi-
+cle images. We’ll also experiment with a model that freezes all the convolu-
+tional layers and allows only the dense layers to be adapted during training.
+Doing this is reminiscent of transfer learning, though we’ll allow the dense
+layers to update their weights.
+     Let’s create the code for fine-tuning by using the vehicle model that we
+trained earlier (Listing 14-14).
+
+import keras
+from keras.models import load_model
+from keras.layers import Dense
+from keras import backend as K
+import numpy as np
+
+batch_size = 64
+num_classes = 2
+epochs = 36
+img_rows, img_cols = 28,28
+
+x_train = np.load("cifar10_train_cat_dog_small_images.npy")
+
+
+
+
+                                                         Experiments with CIFAR-10   371
+                     y_train = np.load("cifar10_train_cat_dog_small_labels.npy")
+                     x_test = np.load("cifar10_test_cat_dog_small_images.npy")
+                     y_test = np.load("cifar10_test_cat_dog_small_labels.npy")
+
+                     if K.image_data_format() == 'channels_first':
+                         x_train = x_train.reshape(x_train.shape[0], 3, img_rows, img_cols)
+                         x_test = x_test.reshape(x_test.shape[0], 3, img_rows, img_cols)
+                         input_shape = (3, img_rows, img_cols)
+                     else:
+                         x_train = x_train.reshape(x_train.shape[0], img_rows, img_cols, 3)
+                         x_test = x_test.reshape(x_test.shape[0], img_rows, img_cols, 3)
+                         input_shape = (img_rows, img_cols, 3)
+
+                     x_train = x_train.astype('float32')
+                     x_test = x_test.astype('float32')
+                     x_train /= 255
+                     x_test /= 255
+
+                     y_train = keras.utils.to_categorical(y_train, num_classes)
+                     y_test = keras.utils.to_categorical(y_test, num_classes)
+
+                     Listing 14-14: Fine-tuning the vehicle model. See cifar10_cnn_cat_dog_fine_tune_3.py.
+
+                          These lines should be familiar by now. First we load and preprocess the
+                     small dog and cat dataset. Note that we are using a minibatch size of 64, two
+                     classes (0 = cat, 1 = dog), and 36 epochs.
+                          Next, we need to load the vehicle model, strip off its top layer, and re-
+                     place it with a two-class softmax (Listing 14-15). This is also where we will
+                     freeze some combination of the first two convolutional layers.
+
+                     model = load_model("cifar10_cnn_vehicles_model.h5")
+
+                   ¶ model.layers.pop()
+                   · model.outputs = [model.layers[-1].output]
+                     model.layers[-1].outbound_nodes = []
+                   ¸ model.add(Dense(num_classes, name="softmax", activation='softmax'))
+
+                   ¹ model.layers[0].trainable = False
+                     model.layers[1].trainable = False
+
+                     model.compile(loss=keras.losses.categorical_crossentropy,
+                                   optimizer=keras.optimizers.Adadelta(),
+                                   metrics=['accuracy'])
+
+                     Listing 14-15: Adjusting the vehicle model for dogs and cats
+
+                          After we load the model, we use Keras to remove the top layer ¶. We
+                     need to patch the model to make the next-to-top layer look like the top layer;
+                     this allows the add method to work correctly ·. Then, we add a new softmax
+                     layer for two classes ¸. This example is set to freeze the weights of the first
+
+372   Chapter 14
+two convolutional layers ¹. We’ll test each possible combination involving
+the first two convolutional layers. Finally, we compile the updated model
+and specify the Adadelta optimizer.
+     We train the model by calling the fit method, as before as shown in
+Listing 14-16.
+
+score = model.evaluate(x_test[100:], y_test[100:], verbose=0)
+print('Initial test loss:', score[0])
+print('Initial test accuracy:', score[1])
+
+history = model.fit(x_train, y_train,
+          batch_size=batch_size,
+          epochs=epochs,
+          verbose=0,
+          validation_data=(x_test[:100], y_test[:100]))
+
+score = model.evaluate(x_test[100:], y_test[100:], verbose=0)
+print('Test loss:', score[0])
+print('Test accuracy:', score[1])
+
+model.save("cifar10_cnn_cat_dog_fine_tune_3_model.h5")
+
+Listing 14-16: Training and testing the dog and cat model
+
+     We are calling evaluate using the last 90 percent of the test data, before
+calling fit. This will give us an indication of how well the dog and cat mod-
+el does when using the vehicle weights as they are. Then we call fit and
+evaluate a second time. Finally, we save the model and the training history.
+This model froze both of the first two convolutional layers. Other models
+will freeze or unfreeze these layers for the remaining three possibilities.
+     We mentioned earlier that we’d also train a model by freezing all of the
+convolutional layers. In essence, this is saying that we want to preserve what-
+ever new representation the vehicle model learned and apply it directly to
+the dog and cat model , allowing only the top fully connected layers to ad-
+just themselves. This is almost the same as the transfer learning approach of
+the previous section. To freeze all the convolutional layers, we replace the
+direct assignments to specific layers’ trainable property with a loop over all
+the layers:
+
+for i in range(5):
+    model.layers[i].trainable = False
+
+
+
+Testing Our Model
+Let’s run the fine-tuning tests. We’ll train each possible combination six
+times so we can get statistics on the mean accuracies. This accounts for the
+stochastic nature of the initialization process. Although we initialized the
+model with pretrained weights, we added a new top softmax layer with two
+
+                                                            Experiments with CIFAR-10   373
+                   outputs. The output of the dense layer below it has 128 nodes, so each mod-
+                   el needs to randomly initialize 128 × 2 + 2 = 258 weights and biases for the
+                   new layer. This is the source of the difference.
+                        Without training, the initial model accuracy hovers around 50 to 51 per-
+                   cent, with each model slightly different because of the initialization we just
+                   mentioned. This is a two-class model, so this means that without any train-
+                   ing, it is randomly guessing between dog and cat.
+                        After we have trained all of the models and tallied all of the per model
+                   accuracies, we get Table 14-2, where we present accuracy as mean ± stan-
+                   dard error.
+
+                   Table 14-2: Dog and Cat Test Set Accuracies for the Shallow,
+                   Deep, and Fine-Tuned Deep Models
+
+                    Model         Freeze Conv0   Freeze Conv1    Accuracy (%)
+                    Shallow       --             --              64.375 ± 0.388
+                    Deep          --             --              61.142 ± 0.509
+                    Fine-tune 0   False          False           62.683 ± 3.689
+                    Fine-tune 1   True           False           69.142 ± 0.934
+                    Fine-tune 2   False          True            68.842 ± 0.715
+                    Fine-tune 3   True           True            70.050 ± 0.297
+                    Freeze all    --             --              57.042 ± 0.518
+
+
+                        What to make of these results? First, we see that training the deep ar-
+                   chitecture from scratch with the small dog and cat dataset is not particularly
+                   effective: only about 61 percent accurate. Training the shallow architecture
+                   from scratch does better, with an accuracy of around 64 percent. These are
+                   our baselines. Will fine-tuning a model trained on different data help? From
+                   looking at the fine-tune results, the answer is “yes,” but clearly, not all the
+                   fine-tuning options are equally effective: two are even worse than the best
+                   from-scratch result (“Fine-tune 0” and “Freeze all”). So, we do not want to
+                   freeze all the convolutional layers, nor do we want to be free to update all
+                   of them.
+                        This leaves fine-tune models 1, 2, and 3 to consider. The “Fine-tune 3”
+                   model performed best, though the differences between these models are
+                   not statistically significant. Let’s go with freezing the first two convolutional
+                   layers, then. What might be happening to make this approach better than
+                   the other models? By freezing these lowest layers, we are fixing them and
+                   preventing them from being changed by training. These layers were trained
+                   on a much larger vehicle dataset that included standard augmentations like
+                   shifts and rotates. And, as we already saw in Figure 12-4, the kernels learned
+                   by these lower layers are edge and texture detectors. They have been con-
+                   ditioned to learn about the sorts of structures present in CIFAR-10 images,
+                   and, since our dog and cat dataset is also from CIFAR-10, it is reasonable to
+                   believe that the same kernels will be useful with those images as well.
+
+
+
+
+374   Chapter 14
+           However, when we froze all the convolutional layers of the deep archi-
+      tecture, we saw a significant decrease in performance. This implies that
+      higher-level convolutional layers are not well-adapted to the dog and cat
+      structures, which, again, makes perfect sense. Because of their effective re-
+      ceptive fields, higher layers are learning about larger structures in the input
+      images; these are also the larger structures that distinguish dogs from cats. If
+      we cannot modify these layers, there is no opportunity for them to be condi-
+      tioned on the very things that we need them to learn.
+           This fine-tuning example shows the power of the technique when it is
+      applicable. However, like most things in machine learning, there is only in-
+      tuition as to why and when it’s successful. Recent work has shown that some-
+      times, fine-tuning a large model trained on a dataset that is not very close
+      to the intended dataset can lead to performance that is no better than train-
+      ing a shallower model, provided enough data is present. For example, see
+      “Transfusion: Understanding Transfer Learning for Medical Imaging” by
+      Maithra Raghu et al. This paper uses transfer learning/fine-tuning between
+      pretrained ImageNet models and medical images and shows that shallow
+      models trained from scratch are often just as good.
+
+
+Summary
+      This chapter explored convolutional neural networks applied to the CIFAR-
+      10 dataset. We started by training two architectures, one shallow, the other
+      deep, on the full dataset. We then asked whether or not we can train a model
+      to distinguish between animals and vehicles. Next, we answered the ques-
+      tion of whether or not a single multiclass model or multiple binary models
+      performed better for CIFAR-10. After this, we introduced two fundamental
+      techniques, transfer learning and fine-tuning, and showed how to implement
+      them in Keras. These techniques should be understood and in your deep
+      learning bag of tricks going forward.
+           In the next chapter, we’ll present a case study with a dataset we have not
+      yet worked with. We’ll assume the role of data scientists tasked with making
+      a model for this dataset and work our way through, from initial data process-
+      ing to model exploration and final model construction.
+
+
+
+
+                                                               Experiments with CIFAR-10   375
+

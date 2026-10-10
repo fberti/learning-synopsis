@@ -1,0 +1,1970 @@
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+
+Approaching image classification & segmentation
+
+When it comes to images, a lot has been achieved in the last few years. Computer
+vision is progressing quite fast, and it feels like many problems of computer vision
+are now much easier to solve. With the advent of pretrained models and cheaper
+compute, it’s now as easy as pie to train a near state-of-the-art model at home for
+most of the problems related to images. But there are many different types of image
+problems. You can have the standard classification of images in two or more
+categories to a challenging problem like self-driving cars. We won’t look at self-
+driving cars in this book, but we will obviously deal with some of the most common
+image problems.
+
+What are the different approaches that we can apply to images? Image is nothing
+but a matrix of numbers. The computer cannot see the images as humans do. It only
+looks at numbers, and that’s what the images are. A grayscale image is a two-
+dimensional matrix with values ranging from 0 to 255. 0 is black, 255 is white and
+in between you have all shades of grey. Previously, when there was no deep learning
+(or when deep learning was not popular), people used to look at pixels. Each pixel
+was a feature. You can do this easily in Python. Just read the grayscale image using
+OpenCV or Python-PIL, convert to a numpy array and ravel (flatten) the matrix. If
+you are dealing with RGB images, then you have three matrices instead of one. But
+the idea remains the same.
+
+═════════════════════════════════════════════════════════════════════════
+import numpy as np
+import matplotlib.pyplot as plt
+
+# generate random numpy array with values from 0 to 255
+# and a size of 256x256
+random_image = np.random.randint(0, 256, (256, 256))
+# initialize plot
+plt.figure(figsize=(7, 7))
+# show grayscale image, nb: cmap, vmin and vmax
+plt.imshow(random_image, cmap='gray', vmin=0, vmax=255)
+plt.show()
+═════════════════════════════════════════════════════════════════════════
+
+The code above generates a random matrix using numpy. This matrix consists of
+values ranging from 0 to 255 (included) and is of size 256x256 (also known as
+pixels).
+
+                                           185
+                          Approaching (Almost) Any Machine Learning Problem
+
+
+
+
+                      Image                              Ravelled version of the image
+
+
+
+
+                 Figure 1: A 2-D image array (single channel) and its ravelled version
+
+As you can see that the ravelled version is nothing but a vector of size M, where M
+= N * N. In this case, this vector is of the size 256 * 256 = 65536.
+
+Now, if we go ahead and do it for all the images in our dataset, we have 65536
+features for each sample. We can now quickly build a decision tree model or
+random forest or SVM-based model on this data. The models will look at pixel
+values and would try to separate positive samples from negative samples (in case
+of a binary classification problem).
+
+All of you must have heard about the cats vs dogs problem. It's a classic one. But
+let's try something different. If you remember, at the beginning of the chapter on
+evaluation metrics, I introduced you to a dataset of pneumothorax images. So, let’s
+try building a model to detect if an X-ray image of a lung has pneumothorax or not.
+That is, a (not so) simple binary classification.
+
+               No pneumothorax                                   Pneumothorax
+
+
+
+
+            Figure 2: Comparison of non-pneumothorax and pneumothorax x-ray images8.
+
+8
+    https://www.kaggle.com/c/siim-acr-pneumothorax-segmentation
+
+                                                 186
+                      Approaching (Almost) Any Machine Learning Problem
+
+
+
+In figure 2, you can see a comparison between non-pneumothorax and
+pneumothorax images. As you must have already noticed, it is quite difficult for a
+non-expert (like me) to even identify which of these images have pneumothorax.
+
+The original dataset is about detecting where exactly pneumothorax is present, but
+we have modified the problem to find if the given x-ray image has pneumothorax
+or not. Don’t worry; we will cover the where part in this chapter. The dataset
+consists of 10675 unique images and 2379 have pneumothorax (note that these
+numbers are after some cleaning of data and thus do not match original dataset). As
+a data doctor would say: this is a classic case of skewed binary classification.
+Therefore, we choose the evaluation metric to be AUC and go for a stratified k-fold
+cross-validation scheme.
+
+You can flatten out the features and try some classical methods like SVM, RF for
+doing classification, which is perfectly fine, but it won't get you anywhere near state
+of the art. Also, the images are of size 1024x1024. It’s going to take a long time to
+train a model on this dataset. For what it’s worth, let’s try building a simple random
+forest model on this data. Since the images are grayscale, we do not need to do any
+kind of conversion. We will resize the images to 256x256 to make them smaller and
+use AUC as a metric as discussed before.
+
+Let’s see how this performs.
+
+═════════════════════════════════════════════════════════════════════════
+import os
+
+import numpy as np
+import pandas as pd
+
+from PIL import Image
+from sklearn import ensemble
+from sklearn import metrics
+from sklearn import model_selection
+from tqdm import tqdm
+
+
+def create_dataset(training_df, image_dir):
+    """
+    This function takes the training dataframe
+    and outputs training array and labels
+    :param training_df: dataframe with ImageId, Target columns
+    :param image_dir: location of images (folder), string
+    :return: X, y (training array with features and labels)
+
+                                            187
+                    Approaching (Almost) Any Machine Learning Problem
+
+
+
+   """
+   # create empty list to store image vectors
+   images = []
+   # create empty list to store targets
+   targets = []
+   # loop over the dataframe
+   for index, row in tqdm(
+       training_df.iterrows(),
+       total=len(training_df),
+       desc="processing images"
+   ):
+       # get image id
+       image_id = row["ImageId"]
+       # create image path
+       image_path = os.path.join(image_dir, image_id)
+       # open image using PIL
+       image = Image.open(image_path + ".png")
+       # resize image to 256x256. we use bilinear resampling
+       image = image.resize((256, 256), resample=Image.BILINEAR)
+       # convert image to array
+       image = np.array(image)
+       # ravel
+       image = image.ravel()
+       # append images and targets lists
+       images.append(image)
+       targets.append(int(row["target"]))
+   # convert list of list of images to numpy array
+   images = np.array(images)
+   # print size of this array
+   print(images.shape)
+   return images, targets
+
+
+if __name__ == "__main__":
+    csv_path = "/home/abhishek/workspace/siim_png/train.csv"
+    image_path = "/home/abhishek/workspace/siim_png/train_png/"
+
+   # read CSV with imageid and target columns
+   df = pd.read_csv(csv_path)
+
+   # we create a new column called kfold and fill it with -1
+   df["kfold"] = -1
+
+   # the next step is to randomize the rows of the data
+   df = df.sample(frac=1).reset_index(drop=True)
+
+   # fetch labels
+
+
+                                          188
+                    Approaching (Almost) Any Machine Learning Problem
+
+
+
+    y = df.target.values
+
+    # initiate the kfold class from model_selection module
+    kf = model_selection.StratifiedKFold(n_splits=5)
+
+    # fill the new kfold column
+    for f, (t_, v_) in enumerate(kf.split(X=df, y=y)):
+        df.loc[v_, 'kfold'] = f
+
+    # we go over the folds created
+    for fold_ in range(5):
+        # temporary dataframes for train and test
+        train_df = df[df.kfold != fold_].reset_index(drop=True)
+        test_df = df[df.kfold == fold_].reset_index(drop=True)
+
+        # create train dataset
+        # you can move this outside to save some computation time
+        xtrain, ytrain = create_dataset(train_df, image_path)
+
+        # create test dataset
+        # you can move this outside to save some computation time
+        xtest, ytest = create_dataset(test_df, image_path)
+
+        # fit random forest without any modification of params
+        clf = ensemble.RandomForestClassifier(n_jobs=-1)
+        clf.fit(xtrain, ytrain)
+
+        # predict probability of class 1
+        preds = clf.predict_proba(xtest)[:, 1]
+
+        # print results
+        print(f"FOLD: {fold_}")
+        print(f"AUC = {metrics.roc_auc_score(ytest, preds)}")
+        print("")
+═════════════════════════════════════════════════════════════════════════
+
+This gives a mean AUC of around 0.72.
+
+Which is not bad but hopefully, we can do a lot better. You can use this approach
+for images, and this is how it was used in good old times. SVM was quite famous
+for image datasets. Deep Learning has been proved to be the state of the art when
+solving such problems, hence we could try that next.
+
+
+
+
+                                          189
+                           Approaching (Almost) Any Machine Learning Problem
+
+
+
+I won’t go into the history of deep learning and who invented what. Instead, let’s
+take a look at one of the most famous deep learning models AlexNet and see what’s
+happening there.
+
+
+
+
+    Figure 3: AlexNet architecture9. Please note that the input size in this figure is not 224x224 but
+                                               227x227
+
+Nowadays, you might say that it is a basic deep convolutional neural network,
+but it is the foundation of many new deep nets (deep neural networks). We see that
+the network in figure 3 is a convolutional neural network with five convolution
+layers, two dense layers and an output layer. We see that there is also max pooling.
+What is it? Let’s look at some terms which you will come across when doing deep
+learning.
+
+
+
+
+                Figure 4: An image of size 8x8 with a filter of size 3x3 and stride of 2.
+
+Figure 4 introduces two new terms: filter and strides. Filters are nothing but two-
+dimensional matrices which are initialized by a given function. “He initialization”
+
+9
+ A. Krizhevsky, I. Sutskever, and G. Hinton. Imagenet classification with deep convolutional neural
+networks. In NIPS, 2012
+
+                                                   190
+                       Approaching (Almost) Any Machine Learning Problem
+
+
+
+which is also known “Kaiming normal initialization” is a good choice for
+convolutional neural networks. It is because most modern networks use ReLU
+(Rectified Linear Units) activation function and proper initialization is required to
+avoid the problem of vanishing gradients (when gradients approach zero and
+weights of network do not change). This filter is convolved with the image.
+Convolution is nothing but a summation of elementwise multiplication (cross-
+correlation) between the filter and the pixels it is currently overlapping in a given
+image. You can read more about convolution in any high school mathematics
+textbook. We start convolution of this filter from the top left corner of the image,
+and we move it horizontally. If we move it by 1 pixel, the stride is 1. If we move it
+by 2 pixels, the stride is 2. And that’s what stride is.
+
+Stride is a useful concept even in natural language processing, e.g. in question and
+answering systems when you have to filter answer from a large text corpus. When
+we are exhausted horizontally, we move the filter by the same stride downwards
+vertically, starting from left again. Figure 4 also shows a filter going outside the
+image. In these cases, it’s not possible to calculate the convolution. So, we skip it.
+If you don’t want to skip it, you will need to pad the image. It must also be noted
+that convolution will decrease the size of the image. Padding is also a way to keep
+the size of the image the same. In figure 4, A 3x3 filter is moving horizontally and
+vertically, and every time it moves, it skips two columns and two rows (i.e. pixels)
+respectively. Since it skips two pixels, stride = 2. And resulting image size is [(8-3)
+/ 2] + 1 = 3.5. We take the floor of 3.5, so its 3x3. You can do it by hand by moving
+the filters on a pen and paper.
+
+
+
+
+        Figure 5: Padding enables us to provide an image with the same size as the input
+
+
+                                              191
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+We see the effect of padding in figure 5. Now, we have a 3x3 filter which is moving
+with a stride of 1. Size of the original image is 6x6, and we have added padding of
+1. The padding of 1 means increasing the size of the image by adding zero pixels
+on each side once. In this case, the resulting image will be of the same size as the
+input image, i.e. 6x6. Another relevant term that you might come across when
+dealing with deep neural networks is dilation, as shown in figure 6.
+
+
+
+
+                              Figure 6: Example of dilation
+
+In dilation, we expand the filter by N-1, where N is the value of dilation rate or
+simply known as dilation. In this kind of kernel with dilation, you skip some pixels
+in each convolution. This is particularly effective in segmentation tasks. Please note
+that we have only talked about 2-dimensional convolutions. There are 1-d
+convolutions too and also in higher dimensions. All work on the same underlying
+concept.
+
+Next comes max-pooling. Max pooling is nothing but a filter which returns max.
+So, instead of convolution, we are extracting the max value of pixels. Similarly,
+average pooling or mean-pooling returns mean of pixels. They are used in the
+same way as the convolutional kernel. Pooling is faster than convolution and is a
+way to down-sample the image. Max pooling detects edges and average pooling
+smoothens the image.
+
+
+
+
+                                           192
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+There are way too many concepts in convolutional neural networks and deep
+learning. The ones that I discussed are some of the basics that will help you get
+started. Now, we are well prepared to start building our first convolutional neural
+network in PyTorch. PyTorch provides an intuitive and easy way to implement deep
+neural networks, and you don’t need to care about back-propagation. We define the
+network in a python class and a forward function that tells PyTorch how the layers
+are connected to each other. In PyTorch, the image notation is BS, C, H, W, where,
+BS is the batch size, C channels, H is height and W is the width. Let’s see how
+AlexNet is implemented in PyTorch.
+
+═════════════════════════════════════════════════════════════════════════
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+
+class AlexNet(nn.Module):
+    def __init__(self):
+        super(AlexNet, self).__init__()
+        # convolution part
+        self.conv1 = nn.Conv2d(
+            in_channels=3,
+            out_channels=96,
+            kernel_size=11,
+            stride=4,
+            padding=0
+        )
+        self.pool1 = nn.MaxPool2d(kernel_size=3, stride=2)
+        self.conv2 = nn.Conv2d(
+            in_channels=96,
+            out_channels=256,
+            kernel_size=5,
+            stride=1,
+            padding=2
+        )
+        self.pool2 = nn.MaxPool2d(kernel_size=3, stride=2)
+        self.conv3 = nn.Conv2d(
+            in_channels=256,
+            out_channels=384,
+            kernel_size=3,
+            stride=1,
+            padding=1
+        )
+        self.conv4 = nn.Conv2d(
+            in_channels=384,
+
+
+                                           193
+              Approaching (Almost) Any Machine Learning Problem
+
+
+
+       out_channels=256,
+       kernel_size=3,
+       stride=1,
+       padding=1
+   )
+   self.pool3 = nn.MaxPool2d(kernel_size=3, stride=2)
+
+    # dense part
+    self.fc1 = nn.Linear(
+        in_features=9216,
+        out_features=4096
+    )
+    self.dropout1 = nn.Dropout(0.5)
+    self.fc2 = nn.Linear(
+        in_features=4096,
+        out_features=4096
+    )
+    self.dropout2 = nn.Dropout(0.5)
+    self.fc3 = nn.Linear(
+        in_features=4096,
+        out_features=1000
+    )
+def forward(self, image):
+    # get the batch size, channels, height and width
+    # of the input batch of images
+    # original size: (bs, 3, 227, 227)
+    bs, c, h, w = image.size()
+    x = F.relu(self.conv1(image)) # size: (bs, 96, 55, 55)
+    x = self.pool1(x) # size: (bs, 96, 27, 27)
+    x = F.relu(self.conv2(x)) # size: (bs, 256, 27, 27)
+    x = self.pool2(x) # size: (bs, 256, 13, 13)
+    x = F.relu(self.conv3(x)) # size: (bs, 384, 13, 13)
+    x = F.relu(self.conv4(x)) # size: (bs, 256, 13, 13)
+    x = self.pool3(x) # size: (bs, 256, 6, 6)
+    x = x.view(bs, -1) # size: (bs, 9216)
+    x = F.relu(self.fc1(x)) # size: (bs, 4096)
+    x = self.dropout1(x) # size: (bs, 4096)
+    # dropout does not change size
+    # dropout is used for regularization
+    # 0.3 dropout means that only 70% of the nodes
+    # of the current layer are used for the next layer
+    x = F.relu(self.fc2(x)) # size: (bs, 4096)
+    x = self.dropout2(x) # size: (bs, 4096)
+    x = F.relu(self.fc3(x)) # size: (bs, 1000)
+    # 1000 is number of classes in ImageNet Dataset
+    # softmax is an activation function that converts
+    # linear output to probabilities that add up to 1
+
+
+                                    194
+                      Approaching (Almost) Any Machine Learning Problem
+
+
+
+        # for each sample in the batch
+        x = torch.softmax(x, axis=1) # size: (bs, 1000)
+        return x
+═════════════════════════════════════════════════════════════════════════
+
+When you have a 3x227x227 image, and you apply a convolutional filter of size
+11x11, it means that you are applying a filter of size 11x11x3 and convolving it
+with an image of size 227x227x3. So, now, you need to think in 3 dimensions
+instead of 2. The number of output channels is the number of different convolutional
+filters of the same size applied to the image individually. So, in the first
+convolutional layer, the input channels are 3, which is the original input, i.e. the R,
+G, B channels. PyTorch’s torchvision offers many different models like AlexNet,
+and it must be noted that this implementation of AlexNet is not the same as
+torchvision’s. Torchvision’s implementation of AlexNet is a modified AlexNet
+from another paper: Krizhevsky, A. One weird trick for parallelizing convolutional
+neural networks. CoRR, abs/1404.5997, 2014.
+
+You can design your own convolutional neural networks for your task, and many
+times it is a good idea to start from something on your own. Let’s build a network
+to classify images from our initial dataset of this chapter into categories of having
+pneumothorax or not. But first, let’s prepare some files. The first step would be to
+create a folds file, i.e. train.csv but with a new column kfold. We will create five
+folds. Since I have shown how to do this for different datasets in this book, I will
+skip this part and leave it an exercise for you. For PyTorch based neural networks,
+we need to create a dataset class. The objective of the dataset class is to return an
+item or sample of data. This sample of data should consist of everything you need
+in order to train or evaluate your model.
+
+═════════════════════════════════════════════════════════════════════════
+# dataset.py
+import torch
+
+import numpy as np
+
+from PIL import Image
+from PIL import ImageFile
+
+# sometimes, you will have images without an ending bit
+# this takes care of those kind of (corrupt) images
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+
+
+class ClassificationDataset:
+
+                                            195
+              Approaching (Almost) Any Machine Learning Problem
+
+
+
+"""
+A general classification dataset class that you can use for all
+kinds of image classification problems. For example,
+binary classification, multi-class, multi-label classification
+"""
+def __init__(
+    self,
+    image_paths,
+    targets,
+    resize=None,
+    augmentations=None
+):
+    """
+    :param image_paths: list of path to images
+    :param targets: numpy array
+    :param resize: tuple, e.g. (256, 256), resizes image if not None
+    :param augmentations: albumentation augmentations
+    """
+    self.image_paths = image_paths
+    self.targets = targets
+    self.resize = resize
+    self.augmentations = augmentations
+
+def __len__(self):
+    """
+    Return the total number of samples in the dataset
+    """
+    return len(self.image_paths)
+
+def __getitem__(self, item):
+    """
+    For a given "item" index, return everything we need
+    to train a given model
+    """
+    # use PIL to open the image
+    image = Image.open(self.image_paths[item])
+    # convert image to RGB, we have single channel images
+    image = image.convert("RGB")
+    # grab correct targets
+    targets = self.targets[item]
+
+   # resize if needed
+   if self.resize is not None:
+       image = image.resize(
+           (self.resize[1], self.resize[0]),
+           resample=Image.BILINEAR
+       )
+
+
+                                    196
+                    Approaching (Almost) Any Machine Learning Problem
+
+
+
+        # convert image to numpy array
+        image = np.array(image)
+
+        # if we have albumentation augmentations
+        # add them to the image
+        if self.augmentations is not None:
+            augmented = self.augmentations(image=image)
+            image = augmented["image"]
+
+        # pytorch expects CHW instead of HWC
+        image = np.transpose(image, (2, 0, 1)).astype(np.float32)
+
+        # return tensors of image and targets
+        # take a look at the types!
+        # for regression tasks,
+        # dtype of targets will change to torch.float
+        return {
+            "image": torch.tensor(image, dtype=torch.float),
+            "targets": torch.tensor(targets, dtype=torch.long),
+        }
+═════════════════════════════════════════════════════════════════════════
+
+Now we need engine.py. engine.py has training and evaluation functions. Let’s see
+how engine.py looks like.
+
+═════════════════════════════════════════════════════════════════════════
+# engine.py
+import torch
+import torch.nn as nn
+
+from tqdm import tqdm
+
+
+def train(data_loader, model, optimizer, device):
+    """
+    This function does training for one epoch
+    :param data_loader: this is the pytorch dataloader
+    :param model: pytorch model
+    :param optimizer: optimizer, for e.g. adam, sgd, etc
+    :param device: cuda/cpu
+    """
+
+    # put the model in train mode
+    model.train()
+
+    # go over every batch of data in data loader
+    for data in data_loader:
+
+                                          197
+                  Approaching (Almost) Any Machine Learning Problem
+
+
+
+       # remember, we have image and targets
+       # in our dataset class
+       inputs = data["image"]
+       targets = data["targets"]
+
+       # move inputs/targets to cuda/cpu device
+       inputs = inputs.to(device, dtype=torch.float)
+       targets = targets.to(device, dtype=torch.float)
+
+       # zero grad the optimizer
+       optimizer.zero_grad()
+       # do the forward step of model
+       outputs = model(inputs)
+       # calculate loss
+       loss = nn.BCEWithLogitsLoss()(outputs, targets.view(-1, 1))
+       # backward step the loss
+       loss.backward()
+       # step optimizer
+       optimizer.step()
+       # if you have a scheduler, you either need to
+       # step it here or you have to step it after
+       # the epoch. here, we are not using any learning
+       # rate scheduler
+
+
+def evaluate(data_loader, model, device):
+    """
+    This function does evaluation for one epoch
+    :param data_loader: this is the pytorch dataloader
+    :param model: pytorch model
+    :param device: cuda/cpu
+    """
+    # put model in evaluation mode
+    model.eval()
+
+   # init lists to store targets and outputs
+   final_targets = []
+   final_outputs = []
+
+   # we use no_grad context
+   with torch.no_grad():
+
+       for data in data_loader:
+           inputs = data["image"]
+           targets = data["targets"]
+           inputs = inputs.to(device, dtype=torch.float)
+           targets = targets.to(device, dtype=torch.float)
+
+
+                                        198
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+             # do the forward step to generate prediction
+             output = model(inputs)
+
+             # convert targets and outputs to lists
+             targets = targets.detach().cpu().numpy().tolist()
+             output = output.detach().cpu().numpy().tolist()
+
+             # extend the original list
+             final_targets.extend(targets)
+             final_outputs.extend(output)
+
+    # return final output and final targets
+    return final_outputs, final_targets
+═════════════════════════════════════════════════════════════════════════
+
+Once we have engine.py, we are ready to create a new file: model.py. model.py will
+consist of our model. It’s a good idea to keep it separate because that allows us to
+easily experiment with different models and different architectures. A PyTorch
+library called pretrainedmodels has a lot of different model architectures, such as
+AlexNet, ResNet, DenseNet, etc. There are different model architectures which
+have been trained on large image dataset called ImageNet. We can use them with
+their weights after training on ImageNet, and we can also use them without these
+weights. If we train without the ImageNet weights, it means our network is learning
+everything from scratch. This is what model.py looks like.
+
+═════════════════════════════════════════════════════════════════════════
+# model.py
+import torch.nn as nn
+import pretrainedmodels
+
+
+def get_model(pretrained):
+    if pretrained:
+        model = pretrainedmodels.__dict__["alexnet"](
+            pretrained='imagenet'
+        )
+    else:
+        model = pretrainedmodels.__dict__["alexnet"](
+            pretrained=None
+        )
+    # print the model here to know whats going on.
+    model.last_linear = nn.Sequential(
+        nn.BatchNorm1d(4096),
+        nn.Dropout(p=0.25),
+        nn.Linear(in_features=4096, out_features=2048),
+
+
+                                           199
+                      Approaching (Almost) Any Machine Learning Problem
+
+
+
+         nn.ReLU(),
+         nn.BatchNorm1d(2048, eps=1e-05, momentum=0.1),
+         nn.Dropout(p=0.5),
+         nn.Linear(in_features=2048, out_features=1),
+    )
+    return model
+═════════════════════════════════════════════════════════════════════════
+
+If you print the final model, you will be able to see what it looks like:
+
+═════════════════════════════════════════════════════════════════════════
+AlexNet(
+  (avgpool): AdaptiveAvgPool2d(output_size=(6, 6))
+  (_features): Sequential(
+    (0): Conv2d(3, 64, kernel_size=(11, 11), stride=(4, 4), padding=(2,
+2))
+    (1): ReLU(inplace=True)
+    (2): MaxPool2d(kernel_size=3, stride=2, padding=0, dilation=1,
+ceil_mode=False)
+    (3): Conv2d(64, 192, kernel_size=(5, 5), stride=(1, 1), padding=(2,
+2))
+    (4): ReLU(inplace=True)
+    (5): MaxPool2d(kernel_size=3, stride=2, padding=0, dilation=1,
+ceil_mode=False)
+    (6): Conv2d(192, 384, kernel_size=(3, 3), stride=(1, 1), padding=(1,
+1))
+    (7): ReLU(inplace=True)
+    (8): Conv2d(384, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1,
+1))
+    (9): ReLU(inplace=True)
+    (10): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1,
+1))
+    (11): ReLU(inplace=True)
+    (12): MaxPool2d(kernel_size=3, stride=2, padding=0, dilation=1,
+ceil_mode=False)
+  )
+  (dropout0): Dropout(p=0.5, inplace=False)
+  (linear0): Linear(in_features=9216, out_features=4096, bias=True)
+  (relu0): ReLU(inplace=True)
+  (dropout1): Dropout(p=0.5, inplace=False)
+  (linear1): Linear(in_features=4096, out_features=4096, bias=True)
+  (relu1): ReLU(inplace=True)
+  (last_linear): Sequential(
+    (0): BatchNorm1d(4096, eps=1e-05, momentum=0.1, affine=True,
+track_running_stats=True)
+    (1): Dropout(p=0.25, inplace=False)
+    (2): Linear(in_features=4096, out_features=2048, bias=True)
+
+                                            200
+                    Approaching (Almost) Any Machine Learning Problem
+
+
+
+    (3): ReLU()
+    (4): BatchNorm1d(2048, eps=1e-05, momentum=0.1, affine=True,
+track_running_stats=True)
+    (5): Dropout(p=0.5, inplace=False)
+    (6): Linear(in_features=2048, out_features=1, bias=True)
+  )
+)
+═════════════════════════════════════════════════════════════════════════
+
+Now, we have everything, and we can start training. We will do so using train.py.
+
+═════════════════════════════════════════════════════════════════════════
+# train.py
+import os
+
+import pandas as pd
+import numpy as np
+
+import albumentations
+import torch
+
+from sklearn import metrics
+from sklearn.model_selection import train_test_split
+
+import dataset
+import engine
+from model import get_model
+
+
+if __name__ == "__main__":
+    # location of train.csv and train_png folder
+    # with all the png images
+    data_path = "/home/abhishek/workspace/siim_png/"
+
+    # cuda/cpu device
+    device = "cuda"
+
+    # let's train for 10 epochs
+    epochs = 10
+
+    # load the dataframe
+    df = pd.read_csv(os.path.join(data_path, "train.csv"))
+
+    # fetch all image ids
+    images = df.ImageId.values.tolist()
+
+
+
+
+                                          201
+                  Approaching (Almost) Any Machine Learning Problem
+
+
+
+   # a list with image locations
+   images = [
+     os.path.join(data_path, "train_png", i + ".png") for i in images
+   ]
+
+   # binary targets numpy array
+   targets = df.target.values
+
+   # fetch out model, we will try both pretrained
+   # and non-pretrained weights
+   model = get_model(pretrained=True)
+
+   # move model to device
+   model.to(device)
+
+   # mean and std values of RGB channels for imagenet dataset
+   # we use these pre-calculated values when we use weights
+   # from imagenet.
+   # when we do not use imagenet weights, we use the mean and
+   # standard deviation values of the original dataset
+   # please note that this is a separate calculation
+   mean = (0.485, 0.456, 0.406)
+   std = (0.229, 0.224, 0.225)
+
+   # albumentations is an image augmentation library
+   # that allows you do to many different types of image
+   # augmentations. here, i am using only normalization
+   # notice always_apply=True. we always want to apply
+   # normalization
+   aug = albumentations.Compose(
+       [
+           albumentations.Normalize(
+               mean, std, max_pixel_value=255.0, always_apply=True
+           )
+       ]
+   )
+
+    # instead of using kfold, i am using train_test_split
+    # with a fixed random state
+    train_images, valid_images, train_targets, valid_targets =
+train_test_split(
+        images, targets, stratify=targets, random_state=42
+    )
+
+   # fetch the ClassificationDataset class
+   train_dataset = dataset.ClassificationDataset(
+       image_paths=train_images,
+
+
+                                        202
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+         targets=train_targets,
+         resize=(227, 227),
+         augmentations=aug,
+    )
+
+    # torch dataloader creates batches of data
+    # from classification dataset class
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset, batch_size=16, shuffle=True, num_workers=4
+    )
+
+    # same for validation data
+    valid_dataset = dataset.ClassificationDataset(
+        image_paths=valid_images,
+        targets=valid_targets,
+        resize=(227, 227),
+        augmentations=aug,
+    )
+
+    valid_loader = torch.utils.data.DataLoader(
+        valid_dataset, batch_size=16, shuffle=False, num_workers=4
+    )
+
+    # simple Adam optimizer
+    optimizer = torch.optim.Adam(model.parameters(), lr=5e-4)
+
+    # train and print auc score for all epochs
+    for epoch in range(epochs):
+        engine.train(train_loader, model, optimizer, device=device)
+        predictions, valid_targets = engine.evaluate(
+            valid_loader, model, device=device
+        )
+        roc_auc = metrics.roc_auc_score(valid_targets, predictions)
+        print(
+            f"Epoch={epoch}, Valid ROC AUC={roc_auc}"
+        )
+═════════════════════════════════════════════════════════════════════════
+
+Let’s train it without pretrained weights:
+
+═════════════════════════════════════════════════════════════════════════
+Epoch=0, Valid ROC AUC=0.5737161981475328
+Epoch=1, Valid ROC AUC=0.5362868001588292
+Epoch=2, Valid ROC AUC=0.6163448214387008
+Epoch=3, Valid ROC AUC=0.6119219143780944
+Epoch=4, Valid ROC AUC=0.6229718888519726
+Epoch=5, Valid ROC AUC=0.5983014999635341
+
+                                           203
+                   Approaching (Almost) Any Machine Learning Problem
+
+
+
+Epoch=6, Valid ROC AUC=0.5523236874306134
+Epoch=7, Valid ROC AUC=0.4717721611306046
+Epoch=8, Valid ROC AUC=0.6473408263980617
+Epoch=9, Valid ROC AUC=0.6639862888260415
+═════════════════════════════════════════════════════════════════════════
+
+This AUC is around 0.66 which is even lower than our random forest model. What
+happens when we use pretrained weights?
+
+═════════════════════════════════════════════════════════════════════════
+Epoch=0, Valid ROC AUC=0.5730387429803165
+Epoch=1, Valid ROC AUC=0.5319813942934937
+Epoch=2, Valid ROC AUC=0.627111577514323
+Epoch=3, Valid ROC AUC=0.6819736959393209
+Epoch=4, Valid ROC AUC=0.5747117168950512
+Epoch=5, Valid ROC AUC=0.5994619255609669
+Epoch=6, Valid ROC AUC=0.5080889443530546
+Epoch=7, Valid ROC AUC=0.6323792776512727
+Epoch=8, Valid ROC AUC=0.6685753182661686
+Epoch=9, Valid ROC AUC=0.6861802387300147
+═════════════════════════════════════════════════════════════════════════
+
+The AUC is much better now. However, it is still lower. The good thing about
+pretrained models is that we can try many different models easily. Let’s try
+resnet18 with pretrained weights.
+
+═════════════════════════════════════════════════════════════════════════
+# model.py
+import torch.nn as nn
+import pretrainedmodels
+
+
+def get_model(pretrained):
+    if pretrained:
+        model = pretrainedmodels.__dict__["resnet18"](
+            pretrained='imagenet'
+        )
+    else:
+        model = pretrainedmodels.__dict__["resnet18"](
+            pretrained=None
+        )
+    # print the model here to know whats going on.
+    model.last_linear = nn.Sequential(
+        nn.BatchNorm1d(512),
+        nn.Dropout(p=0.25),
+        nn.Linear(in_features=512, out_features=2048),
+
+                                         204
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+         nn.ReLU(),
+         nn.BatchNorm1d(2048, eps=1e-05, momentum=0.1),
+         nn.Dropout(p=0.5),
+         nn.Linear(in_features=2048, out_features=1),
+    )
+    return model
+═════════════════════════════════════════════════════════════════════════
+
+When trying this model, I also changed the image size to 512x512 and added a step
+learning rate scheduler which multiplies the learning rate by 0.5 after every 3
+epochs.
+
+═════════════════════════════════════════════════════════════════════════
+Epoch=0, Valid ROC AUC=0.5988225569880796
+Epoch=1, Valid ROC AUC=0.730349343208836
+Epoch=2, Valid ROC AUC=0.5870943169939142
+Epoch=3, Valid ROC AUC=0.5775864444138311
+Epoch=4, Valid ROC AUC=0.7330502499939224
+Epoch=5, Valid ROC AUC=0.7500336296524395
+Epoch=6, Valid ROC AUC=0.7563722113724951
+Epoch=7, Valid ROC AUC=0.7987463837994215
+Epoch=8, Valid ROC AUC=0.798505708937384
+Epoch=9, Valid ROC AUC=0.8025477500546988
+═════════════════════════════════════════════════════════════════════════
+
+This model seems to perform the best. However, you might be able to tune the
+different parameters and image size in AlexNet to get a better score. Using
+augmentations will improve the score further. Optimising deep neural networks is
+difficult but not impossible. Choose Adam optimizer, use a low learning rate,
+reduce learning rate on a plateau of validation loss, try some augmentations, try
+preprocessing the images (e.g. cropping if needed, this can also be considered pre-
+processing), change the batch size, etc. There’s a lot that you can do to optimize
+your deep neural network.
+
+ResNet is an architecture much more complicated compared to AlexNet. ResNet
+stands for Residual Neural Network and was introduced by K. He, X. Zhang, S. Ren
+and J. Sun in the paper, deep residual learning for image recognition, in 2015.
+ResNet consists of residual blocks that transfer the knowledge from one layer to
+further layers by skipping some layers in between. These kinds of connections of
+layers are known as skip-connections since we are skipping one or more layers.
+Skip-connections help with the vanishing gradient issue by propagating the
+gradients to further layers. This allows us to train very large convolutional neural
+networks without loss of performance. Usually, the training loss increases at a given
+
+                                           205
+                            Approaching (Almost) Any Machine Learning Problem
+
+
+
+point if we are using a large neural network, but that can be prevented by using
+skip-connections. This can be better understood by figure 7.
+
+
+
+
+     Figure 7: Comparison of simple convnet and residual convnet10. See the skip connections. Please
+                           note that the final layers are omitted in this figure.
+
+A residual block is quite simple to understand. You take the output from a layer,
+skip some layers and add that output to a layer further in the network. The dotted
+lines mean that the input shape needs to be adjusted as max-pooling is being used
+and use of max-pooling changes the size of the output.
+
+ResNet comes in many different variations: 18, 34, 50, 101 and 152 layers and all
+of them are available with weights pre-trained on ImageNet dataset. These days
+pretrained models work for (almost) everything but make sure that you start with
+smaller models, for example, begin with resnet-18 rather than resnet-50. Some other
+ImageNet pre-trained models include:
+
+       -    Inception
+       -    DenseNet (different variations)
+
+10
+     K. He, X. Zhang, S. Ren and J. Sun, Deep residual learning for image recognition, 2015
+
+                                                  206
+                       Approaching (Almost) Any Machine Learning Problem
+
+
+
+     -   NASNet
+     -   PNASNet
+     -   VGG
+     -   Xception
+     -   ResNeXt
+     -   EfficientNet, etc.
+
+A majority of the pre-trained state-of-the-art models can be found in pytorch-
+pretrainedmodels repository on GitHub: https://github.com/Cadene/pretrained-
+models.pytorch. It is out of the scope of this chapter (and this book) to discuss these
+models in details. Since we are only looking at applications, let’s see how a pre-
+trained model like this can be used for a segmentation task.
+
+
+
+
+                                Figure 8: U-Net architecture11.
+
+Segmentation is a task which is quite popular in computer vision. In a segmentation
+task, we try to remove/extract foreground from background. Foreground and
+
+11
+  O. Ronneberger, P. Fischer and T. Brox. U-Net: Convolutional networks for biomedical image
+segmentation. In MICCAI, 2015
+
+                                             207
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+background can have different definitions. We can also say that it is a pixel-wise
+classification task in which your job is to assign a class to each pixel in a given
+image. The pneumothorax dataset that we are working on is, in fact, a segmentation
+task. In this task, given the chest radiographic images, we are required to segment
+pneumothorax. The most popular model used for segmentation tasks is U-Net. The
+structure is represented in figure 8.
+
+U-Nets have two parts: encoder and decoder. The encoder is the same as any
+convnet you have seen till now. The decoder is a bit different. Decoder consists of
+up-convolutional layers. In up-convolutions (transposed convolutions), we use
+filters that when applied to a small image, creates a larger image. In PyTorch, you
+can use ConvTranspose2d for this operation. It must be noted that up-convolution
+is not the same as up-sampling. Up-sampling is an easy process in which we apply
+a function to an image to resize it. In up-convolution, we learn the filters. We take
+some parts of the encoder as inputs to some of the decoders. This is important for
+the up-convolutional layers.
+
+Let’s see how this U-Net is implemented.
+
+═════════════════════════════════════════════════════════════════════════
+# simple_unet.py
+import torch
+import torch.nn as nn
+from torch.nn import functional as F
+
+
+def double_conv(in_channels, out_channels):
+    """
+    This function applies two convolutional layers
+    each followed by a ReLU activation function
+    :param in_channels: number of input channels
+    :param out_channels: number of output channels
+    :return: a down-conv layer
+    """
+    conv = nn.Sequential(
+        nn.Conv2d(in_channels, out_channels, kernel_size=3),
+        nn.ReLU(inplace=True),
+        nn.Conv2d(out_channels, out_channels, kernel_size=3),
+        nn.ReLU(inplace=True)
+    )
+    return conv
+
+
+def crop_tensor(tensor, target_tensor):
+
+                                           208
+                  Approaching (Almost) Any Machine Learning Problem
+
+
+
+   """
+   Center crops a tensor to size of a given target tensor size
+   Please note that this function is applicable only to
+   this implementation of unet. There are a few assumptions
+   in this implementation that might not be applicable to all
+   networks and all other use-cases.
+   Both tensors are of shape (bs, c, h, w)
+   :param tensor: a tensor that needs to be cropped
+   :param target_tensor: target tensor of smaller size
+   :return: cropped tensor
+   """
+   target_size = target_tensor.size()[2]
+   tensor_size = tensor.size()[2]
+   delta = tensor_size - target_size
+   delta = delta // 2
+   return tensor[
+       :,
+       :,
+       delta:tensor_size - delta,
+       delta:tensor_size - delta
+   ]
+
+
+class UNet(nn.Module):
+    def __init__(self):
+        super(UNet, self).__init__()
+
+       # we need only one max_pool as it is not learned
+       self.max_pool_2x2 = nn.MaxPool2d(kernel_size=2, stride=2)
+
+       self.down_conv_1 = double_conv(1, 64)
+       self.down_conv_2 = double_conv(64, 128)
+       self.down_conv_3 = double_conv(128, 256)
+       self.down_conv_4 = double_conv(256, 512)
+       self.down_conv_5 = double_conv(512, 1024)
+
+       self.up_trans_1 = nn.ConvTranspose2d(
+           in_channels=1024,
+           out_channels=512,
+           kernel_size=2,
+           stride=2
+       )
+       self.up_conv_1 = double_conv(1024, 512)
+
+       self.up_trans_2 = nn.ConvTranspose2d(
+           in_channels=512,
+           out_channels=256,
+
+
+                                        209
+              Approaching (Almost) Any Machine Learning Problem
+
+
+
+       kernel_size=2,
+       stride=2
+   )
+   self.up_conv_2 = double_conv(512, 256)
+
+   self.up_trans_3 = nn.ConvTranspose2d(
+       in_channels=256,
+       out_channels=128,
+       kernel_size=2,
+       stride=2
+   )
+   self.up_conv_3 = double_conv(256, 128)
+
+   self.up_trans_4 = nn.ConvTranspose2d(
+       in_channels=128,
+       out_channels=64,
+       kernel_size=2,
+       stride=2
+   )
+   self.up_conv_4 = double_conv(128, 64)
+
+   self.out = nn.Conv2d(
+       in_channels=64,
+       out_channels=2,
+       kernel_size=1
+   )
+
+def forward(self, image):
+    # encoder
+    x1 = self.down_conv_1(image)
+    x2 = self.max_pool_2x2(x1)
+    x3 = self.down_conv_2(x2)
+    x4 = self.max_pool_2x2(x3)
+    x5 = self.down_conv_3(x4)
+    x6 = self.max_pool_2x2(x5)
+    x7 = self.down_conv_4(x6)
+    x8 = self.max_pool_2x2(x7)
+    x9 = self.down_conv_5(x8)
+
+   # decoder
+   x = self.up_trans_1(x9)
+   y = crop_tensor(x7, x)
+   x = self.up_conv_1(torch.cat([x, y], axis=1))
+   x = self.up_trans_2(x)
+   y = crop_tensor(x5, x)
+   x = self.up_conv_2(torch.cat([x, y], axis=1))
+   x = self.up_trans_3(x)
+
+
+                                    210
+                          Approaching (Almost) Any Machine Learning Problem
+
+
+
+             y = crop_tensor(x3, x)
+             x = self.up_conv_3(torch.cat([x, y], axis=1))
+             x = self.up_trans_4(x)
+             y = crop_tensor(x1, x)
+             x = self.up_conv_4(torch.cat([x, y], axis=1))
+
+             # output layer
+             out = self.out(x)
+
+             return out
+
+
+if __name__ == "__main__":
+    image = torch.rand((1, 1, 572, 572))
+    model = UNet()
+    print(model(image))
+═════════════════════════════════════════════════════════════════════════
+
+Please note that the implementation of U-Net that I have shown above is the original
+implementation of the U-Net paper. There are many variations that can be found on
+the internet. Some prefer to use bilinear sampling instead of transposed
+convolutions for up-sampling, but that’s not the real implementation of the paper.
+It might, however, perform better. In the original implementation shown above,
+there is a single channel image with two channels in the output: one for foreground
+and one for the background. As you can see, this can be customized for any number
+of classes and any number of input channels very easily. The input image size is
+different than output image size in this implementation as we are using convolutions
+without padding.
+
+We see that the encoder part of the U-Net is a nothing but a simple convolutional
+network. We can, thus, replace this with any network such as ResNet. The
+replacement can also be done with pretrained weights. Thus, we can use a ResNet
+based encoder which is pretrained on ImageNet and a generic decoder. In place of
+ResNet, many different network architectures can be used. Segmentation Models
+Pytorch12 by Pavel Yakubovskiy is an implementation of many such variations
+where an encoder can be replaced by a pretrained model. Let’s apply a ResNet based
+U-Net for pneumothorax detection problem.
+
+Most of the problems like this should have two inputs: the original image and a
+mask. In the case of multiple objects, there will be multiple masks. In our
+pneumothorax dataset, we are provided with RLE instead. RLE stands for run-
+12
+     https://github.com/qubvel/segmentation_models.pytorch
+
+                                                211
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+length encoding and is a way to represent binary masks to save space. Going deep
+into RLE is beyond the scope of this chapter. So, let’s assume that we have an input
+image and corresponding mask. Let’s first design a dataset class which outputs
+image and mask images. Please note that we will create these scripts in such a way
+that they can be applied to almost any segmentation problem. The training dataset
+is a CSV file consisting only of image ids which are also filenames.
+
+═════════════════════════════════════════════════════════════════════════
+# dataset.py
+import os
+import glob
+import torch
+
+import numpy as np
+import pandas as pd
+
+from PIL import Image, ImageFile
+
+from tqdm import tqdm
+from collections import defaultdict
+from torchvision import transforms
+
+from albumentations import (
+    Compose,
+    OneOf,
+    RandomBrightnessContrast,
+    RandomGamma,
+    ShiftScaleRotate,
+)
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+
+
+class SIIMDataset(torch.utils.data.Dataset):
+    def __init__(
+        self,
+        image_ids,
+        transform=True,
+        preprocessing_fn=None
+    ):
+        """
+        Dataset class for segmentation problem
+        :param image_ids: ids of the images, list
+        :param transform: True/False, no transform in validation
+        :param preprocessing_fn: a function for preprocessing image
+        """
+
+
+                                           212
+          Approaching (Almost) Any Machine Learning Problem
+
+
+
+# we create a empty dictionary to store iamge
+# and mask paths
+self.data = defaultdict(dict)
+
+# for augmentations
+self.transform = transform
+
+# preprocessing function to normalize
+# images
+self.preprocessing_fn = preprocessing_fn
+
+# albumentation augmentations
+# we have shift, scale & rotate
+# applied with 80% probability
+# and then one of gamma and brightness/contrast
+# is applied to the image
+# albumentation takes care of which augmentation
+# is applied to image and mask
+self.aug = Compose(
+        [
+            ShiftScaleRotate(
+                shift_limit=0.0625,
+                scale_limit=0.1,
+                rotate_limit=10, p=0.8
+            ),
+            OneOf(
+                [
+                    RandomGamma(
+                        gamma_limit=(90, 110)
+                    ),
+                    RandomBrightnessContrast(
+                        brightness_limit=0.1,
+                        contrast_limit=0.1
+                    ),
+                ],
+                p=0.5,
+            ),
+        ]
+    )
+
+# going over all image_ids to store
+# image and mask paths
+for imgid in image_ids:
+    files = glob.glob(os.path.join(TRAIN_PATH, imgid, "*.png"))
+    self.data[counter] = {
+        "img_path": os.path.join(
+            TRAIN_PATH, imgid + ".png"
+
+
+                                213
+                  Approaching (Almost) Any Machine Learning Problem
+
+
+
+               ),
+               "mask_path": os.path.join(
+                   TRAIN_PATH, imgid + "_mask.png"
+               ),
+           }
+
+   def __len__(self):
+       # return length of dataset
+       return len(self.data)
+
+   def __getitem__(self, item):
+       # for a given item index,
+       # return image and mask tensors
+       # read image and mask paths
+       img_path = self.data[item]["img_path"]
+       mask_path = self.data[item]["mask_path"]
+
+       # read image and convert to RGB
+       img = Image.open(img_path)
+       img = img.convert("RGB")
+
+       # PIL image to numpy array
+       img = np.array(img)
+
+       # read mask image
+       mask = Image.open(mask_path)
+
+       # convert to binary float matrix
+       mask = (mask >= 1).astype("float32")
+
+       # if this is training data, apply transforms
+       if self.transform is True:
+           augmented = self.aug(image=img, mask=mask)
+           img = augmented["image"]
+           mask = augmented["mask"]
+
+       # preprocess the image using provided
+       # preprocessing tensors. this is basically
+       # image normalization
+       img = self.preprocessing_fn(img)
+
+        # return image and mask tensors
+        return {
+            "image": transforms.ToTensor()(img),
+            "mask": transforms.ToTensor()(mask).float(),
+        }
+═════════════════════════════════════════════════════════════════════════
+
+
+                                        214
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+Once, we have the dataset class; we can create a training function.
+
+═════════════════════════════════════════════════════════════════════════
+# train.py
+import os
+import sys
+import torch
+
+import numpy as np
+import pandas as pd
+import segmentation_models_pytorch as smp
+import torch.nn as nn
+import torch.optim as optim
+
+from apex import amp
+from collections import OrderedDict
+from sklearn import model_selection
+from tqdm import tqdm
+from torch.optim import lr_scheduler
+
+from dataset import SIIMDataset
+
+# training csv file path
+TRAINING_CSV = "../input/train_pneumothorax.csv"
+
+# training and test batch sizes
+TRAINING_BATCH_SIZE = 16
+TEST_BATCH_SIZE = 4
+
+# number of epochs
+EPOCHS = 10
+
+# define the encoder for U-Net
+# check: https://github.com/qubvel/segmentation_models.pytorch
+# for all supported encoders
+ENCODER = "resnet18"
+
+# we use imagenet pretrained weights for the encoder
+ENCODER_WEIGHTS = "imagenet"
+
+# train on gpu
+DEVICE = "cuda"
+
+def train(dataset, data_loader, model, criterion, optimizer):
+    """
+    training function that trains for one epoch
+    :param dataset: dataset class (SIIMDataset)
+
+
+                                           215
+               Approaching (Almost) Any Machine Learning Problem
+
+
+
+:param data_loader: torch dataset loader
+:param model: model
+:param criterion: loss function
+:param optimizer: adam, sgd, etc.
+"""
+# put the model in train mode
+model.train()
+
+# calculate number of batches
+num_batches = int(len(dataset) / data_loader.batch_size)
+
+# init tqdm to track progress
+tk0 = tqdm(data_loader, total=num_batches)
+
+# loop over all batches
+for d in tk0:
+    # fetch input images and masks
+    # from dataset batch
+    inputs = d["image"]
+    targets = d["mask"]
+
+   # move images and masks to cpu/gpu device
+   inputs = inputs.to(DEVICE, dtype=torch.float)
+   targets = targets.to(DEVICE, dtype=torch.float)
+
+   # zero grad the optimizer
+   optimizer.zero_grad()
+
+   # forward step of model
+   outputs = model(inputs)
+
+   # calculate loss
+   loss = criterion(outputs, targets)
+
+   # backward loss is calculated on a scaled loss
+   # context since we are using mixed precision training
+   # if you are not using mixed precision training,
+   # you can use loss.backward() and delete the following
+   # two lines of code
+   with amp.scale_loss(loss, optimizer) as scaled_loss:
+       scaled_loss.backward()
+
+   # step the optimizer
+   optimizer.step()
+
+# close tqdm
+tk0.close()
+
+
+                                     216
+                  Approaching (Almost) Any Machine Learning Problem
+
+
+
+def evaluate(dataset, data_loader, model):
+    """
+    evaluation function to calculate loss on validation
+    set for one epoch
+    :param dataset: dataset class (SIIMDataset)
+    :param data_loader: torch dataset loader
+    :param model: model
+    """
+    # put model in eval mode
+    model.eval()
+    # init final_loss to 0
+    final_loss = 0
+    # calculate number of batches and init tqdm
+    num_batches = int(len(dataset) / data_loader.batch_size)
+    tk0 = tqdm(data_loader, total=num_batches)
+
+   # we need no_grad context of torch. this save memory
+   with torch.no_grad():
+       for d in tk0:
+           inputs = d["image"]
+           targets = d["mask"]
+           inputs = inputs.to(DEVICE, dtype=torch.float)
+           targets = targets.to(DEVICE, dtype=torch.float)
+           output = model(inputs)
+           loss = criterion(output, targets)
+           # add loss to final loss
+           final_loss += loss
+   # close tqdm
+   tk0.close()
+   # return average loss over all batches
+   return final_loss / num_batches
+
+
+if __name__ == "__main__":
+
+   # read the training csv file
+   df = pd.read_csv(TRAINING_CSV)
+
+   # split data into training and validation
+   df_train, df_valid = model_selection.train_test_split(
+       df, random_state=42, test_size=0.1
+   )
+
+   # training and validation images lists/arrays
+   training_images = df_train.image_id.values
+   validation_images = df_valid.image_id.values
+
+
+
+                                        217
+              Approaching (Almost) Any Machine Learning Problem
+
+
+
+# fetch unet model from segmentation models
+# with specified encoder architecture
+model = smp.Unet(
+    encoder_name=ENCODER,
+    encoder_weights=ENCODER_WEIGHTS,
+    classes=1,
+    activation=None,
+)
+# segmentation model provides you with a preprocessing
+# function that can be used for normalizing images
+# normalization is only applied on images and not masks
+prep_fn = smp.encoders.get_preprocessing_fn(
+    ENCODER,
+    ENCODER_WEIGHTS
+)
+
+# send model to device
+model.to(DEVICE)
+# init training dataset
+# transform is True for training data
+train_dataset = SIIMDataset(
+    training_images,
+    transform=True,
+    preprocessing_fn=prep_fn,
+)
+
+# wrap training dataset in torch's dataloader
+train_loader = torch.utils.data.DataLoader(
+    train_dataset,
+    batch_size=TRAINING_BATCH_SIZE,
+    shuffle=True,
+    num_workers=12
+)
+
+# init validation dataset
+# augmentations is disabled
+valid_dataset = SIIMDataset(
+    validation_images,
+    transform=False,
+    preprocessing_fn=prep_fn,
+)
+
+# wrap validation dataset in torch's dataloader
+valid_loader = torch.utils.data.DataLoader(
+    valid_dataset,
+    batch_size=TEST_BATCH_SIZE,
+    shuffle=True,
+
+
+                                    218
+              Approaching (Almost) Any Machine Learning Problem
+
+
+
+    num_workers=4
+)
+
+# NOTE: define the criterion here
+# this is left as an excercise
+# code won't work without defining this
+# criterion = ……
+
+# we will use Adam optimizer for faster convergence
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+# reduce learning rate when we reach a plateau on loss
+scheduler = lr_scheduler.ReduceLROnPlateau(
+    optimizer, mode="min", patience=3, verbose=True
+)
+# wrap model and optimizer with NVIDIA's apex
+# this is used for mixed precision training
+# if you have a GPU that supports mixed precision,
+# this is very helpful as it will allow us to fit larger images
+# and larger batches
+model, optimizer = amp.initialize(
+    model, optimizer, opt_level="O1", verbosity=0
+)
+# if we have more than one GPU, we can use both of them!
+if torch.cuda.device_count() > 1:
+    print(f"Let's use {torch.cuda.device_count()} GPUs!")
+    model = nn.DataParallel(model)
+
+# some logging
+print(f"Training batch size: {TRAINING_BATCH_SIZE}")
+print(f"Test batch size: {TEST_BATCH_SIZE}")
+print(f"Epochs: {EPOCHS}")
+print(f"Image size: {IMAGE_SIZE}")
+print(f"Number of training images: {len(train_dataset)}")
+print(f"Number of validation images: {len(valid_dataset)}")
+print(f"Encoder: {ENCODER}")
+
+# loop over all epochs
+for epoch in range(EPOCHS):
+    print(f"Training Epoch: {epoch}")
+    # train for one epoch
+    train(
+        train_dataset,
+        train_loader,
+        model,
+        criterion,
+        optimizer
+    )
+
+
+                                    219
+                         Approaching (Almost) Any Machine Learning Problem
+
+
+
+        print(f"Validation Epoch: {epoch}")
+        # calculate validation loss
+        val_log = evaluate(
+            valid_dataset,
+            valid_loader,
+            model
+        )
+        # step the scheduler
+        scheduler.step(val_log["loss"])
+        print("\n")
+═════════════════════════════════════════════════════════════════════════
+
+In segmentation problems you can use a variety of loss functions, for example,
+pixel-wise binary cross-entropy, focal loss, dice loss etc. I’m leaving it for the
+reader to decide the appropriate loss given the evaluation metric. When you train a
+model like this, you will create a model that tries to predict the location of
+pneumothorax, as shown in figure 9. In the above code, we used mixed precision
+training using NVIDIA apex. Please note that this is available natively in PyTorch
+from version 1.6.0+.
+
+
+
+
+     Figure 9: Example of pneumothorax detection from the trained model (might not be correct
+                                          prediction).
+
+I have included some of the commonly used functions in a python package called
+Well That’s Fantastic Machine Learning (WTFML). Let’s see how this helps us to
+build a multi-class classification model for plant images from the plant pathology
+challenge of FGVC 202013.
+
+13
+  Ranjita Thapa , Noah Snavely , Serge Belongie , Awais Khan. The Plant Pathology 2020 challenge
+dataset to classify foliar disease of apples. ArXiv e-prints
+
+                                               220
+                  Approaching (Almost) Any Machine Learning Problem
+
+
+
+═════════════════════════════════════════════════════════════════════════
+import os
+
+import pandas as pd
+import numpy as np
+
+import albumentations
+import argparse
+import torch
+import torchvision
+import torch.nn as nn
+import torch.nn.functional as F
+
+from sklearn import metrics
+from sklearn.model_selection import train_test_split
+
+from wtfml.engine import Engine
+from wtfml.data_loaders.image import ClassificationDataLoader
+
+
+class DenseCrossEntropy(nn.Module):
+    # Taken from:
+    # https://www.kaggle.com/pestipeti/plant-pathology-2020-pytorch
+    def __init__(self):
+        super(DenseCrossEntropy, self).__init__()
+
+   def forward(self, logits, labels):
+       logits = logits.float()
+       labels = labels.float()
+
+       logprobs = F.log_softmax(logits, dim=-1)
+
+       loss = -labels * logprobs
+       loss = loss.sum(-1)
+
+       return loss.mean()
+
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.base_model = torchvision.models.resnet18(pretrained=True)
+        in_features = self.base_model.fc.in_features
+        self.out = nn.Linear(in_features, 4)
+
+   def forward(self, image, targets=None):
+       batch_size, C, H, W = image.shape
+
+
+                                        221
+                  Approaching (Almost) Any Machine Learning Problem
+
+
+
+
+       x = self.base_model.conv1(image)
+       x = self.base_model.bn1(x)
+       x = self.base_model.relu(x)
+       x = self.base_model.maxpool(x)
+
+       x = self.base_model.layer1(x)
+       x = self.base_model.layer2(x)
+       x = self.base_model.layer3(x)
+       x = self.base_model.layer4(x)
+
+       x = F.adaptive_avg_pool2d(x, 1).reshape(batch_size, -1)
+       x = self.out(x)
+
+       loss = None
+       if targets is not None:
+           loss = DenseCrossEntropy()(x, targets.type_as(x))
+
+       return x, loss
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--data_path", type=str,
+    )
+    parser.add_argument(
+        "--device", type=str,
+    )
+    parser.add_argument(
+        "--epochs", type=int,
+    )
+    args = parser.parse_args()
+
+   df = pd.read_csv(os.path.join(args.data_path, "train.csv"))
+   images = df.image_id.values.tolist()
+   images = [
+       os.path.join(args.data_path, "images", i + ".jpg")
+       for i in images
+   ]
+   targets = df[["healthy", "multiple_diseases", "rust", "scab"]].values
+
+   model = Model()
+   model.to(args.device)
+
+   mean = (0.485, 0.456, 0.406)
+   std = (0.229, 0.224, 0.225)
+
+
+                                        222
+              Approaching (Almost) Any Machine Learning Problem
+
+
+
+aug = albumentations.Compose(
+    [
+        albumentations.Normalize(
+            mean,
+            std,
+            max_pixel_value=255.0,
+            always_apply=True
+        )
+    ]
+)
+
+(
+    train_images, valid_images,
+    train_targets, valid_targets
+) = train_test_split(images, targets)
+
+train_loader = ClassificationDataLoader(
+    image_paths=train_images,
+    targets=train_targets,
+    resize=(128, 128),
+    augmentations=aug,
+).fetch(
+    batch_size=16,
+    num_workers=4,
+    drop_last=False,
+    shuffle=True,
+    tpu=False
+)
+
+valid_loader = ClassificationDataLoader(
+    image_paths=valid_images,
+    targets=valid_targets,
+    resize=(128, 128),
+    augmentations=aug,
+).fetch(
+    batch_size=16,
+    num_workers=4,
+    drop_last=False,
+    shuffle=False,
+    tpu=False
+)
+
+optimizer = torch.optim.Adam(model.parameters(), lr=5e-4)
+scheduler = torch.optim.lr_scheduler.StepLR(
+    optimizer, step_size=15, gamma=0.6
+)
+
+
+
+                                    223
+                          Approaching (Almost) Any Machine Learning Problem
+
+
+
+    for epoch in range(args.epochs):
+        train_loss = Engine.train(
+            train_loader, model, optimizer, device=args.device
+        )
+        valid_loss = Engine.evaluate(
+            valid_loader, model, device=args.device
+        )
+        print(
+            f"{epoch}, Train Loss={train_loss} Valid Loss={valid_loss}"
+        )
+═════════════════════════════════════════════════════════════════════════
+
+Once you have the data14, you can run the script using:
+
+═════════════════════════════════════════════════════════════════════════
+❯ python plant.py --data_path ../../plant_pathology --device cuda --
+epochs 2
+100%|█████████████| 86/86 [00:12<00:00, 6.73it/s, loss=0.723]
+100%|█████████████ 29/29 [00:04<00:00, 6.62it/s, loss=0.433]
+0, Train Loss=0.7228777609592261 Valid Loss=0.4327834551704341
+100%|█████████████| 86/86 [00:12<00:00, 6.74it/s, loss=0.271]
+100%|█████████████ 29/29 [00:04<00:00, 6.63it/s, loss=0.568]
+1, Train Loss=0.2708700496790021 Valid Loss=0.56841839541649
+═════════════════════════════════════════════════════════════════════════
+
+As you can see, how this makes our life simple and code easy to read and
+understand. PyTorch without any wrappers work best. There is a lot more in
+images than just classification, and if I start writing about all of them, I’ll have to
+write another book. So, I have decided to do that instead: Approaching (Almost)
+Any Image Problem.
+
+
+
+
+14
+     https://www.kaggle.com/c/plant-pathology-2020-fgvc7
+
+                                                224
+

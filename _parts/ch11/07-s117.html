@@ -1,0 +1,142 @@
+
+<!-- ===================================================== 11.7 -->
+<section id="s117">
+<h2>11.7 Vision Transformer ★★★</h2>
+<p>A 12. fejezet Transformere szövegre készült: szavak (tokenek) sorozatát dolgozza fel, és minden szó minden másikra „figyelhet”. 2020-ban kiderült, hogy képekre is működik – ha a képet <b>szavakra</b> vágjuk. Ez a szakasz a 12. fejezet után érthető igazán; most a képi oldalát nézzük meg.</p>
+
+<h3 id="s117-a">1. lépés: a kép mint foltok sorozata</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a 16 × 16-os lap 16 foltban</span>
+  Vágjuk a 16 × 16-os lapot $4 \times 4$-es <b>foltokra</b>: $4 \cdot 4 = 16$ folt, mindegyik 16 számmal. Soronként sorba rakva ez egy <b>16 hosszú sorozat</b>, mintha egy 16 szavas mondat lenne. Minden foltot <b>ugyanaz</b> a lineáris réteg alakít egy $d$ hosszú vektorrá (beágyazás), hozzáadjuk a folt <b>helyét</b> jelző vektort, és elé teszünk egy külön [CLS] tokent, amelyből a végén az osztályt jósoljuk: 17 token.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – Vision Transformer (ViT; A. Dosovitskiy és társai, 2020)</span>
+  <ol style="margin:.2rem 0">
+    <li>A $H \times W \times C$-s képet $P \times P$-s foltokra vágjuk: $N = \dfrac{H}{P}\cdot\dfrac{W}{P}$ folt, mindegyik $P^2 C$ szám.</li>
+    <li>Minden foltot ugyanazzal a lineáris réteggel $d$ hosszú vektorrá alakítunk (<b>foltbeágyazás</b>), és hozzáadunk egy tanult <b>pozícióbeágyazást</b>.</li>
+    <li>Elé teszünk egy tanult [CLS] tokent: $N + 1$ token.</li>
+    <li>Ezt a sorozatot egy Transformer-kódoló dolgozza fel (önfigyelem + kis MLP, maradékkapcsolatokkal, rétegnormalizálással – 12. fejezet).</li>
+    <li>A [CLS] token végső vektorából egy lineáris fej jósolja az osztályt.</li>
+  </ol>
+  A cikk címe: „Egy kép 16 × 16 szót ér” (<em>An Image is Worth 16x16 Words</em>).
+</div>
+<div class="widget" data-widget="vit-patches"></div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy valódi ViT</span>
+    $224 \times 224 \times 3$-as kép, $P = 16$: $14 \cdot 14 = 196$ folt, mindegyik $16 \cdot 16 \cdot 3 = 768$ szám; a [CLS]-sel 197 token. A ViT-B/16-ban $d = 768$, így a foltbeágyazás $768 \cdot 768 + 768 = 590\,592$ paraméter; a teljes modell kb. 86 millió.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a foltbeágyazás konvolúció</span>
+    „Minden $16 \times 16$-os foltra ugyanaz a lineáris réteg” – ez pontosan egy $16 \times 16$-os, <b>16-os lépésközű</b> konvolúció 768 szűrővel: $768 \cdot (16 \cdot 16 \cdot 3 + 1) = 590\,592$ paraméter. A szűrők nem fednek át, és a kimenet $14 \times 14 \times 768$ (<a href="#s112-c">11.2</a>).
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Hely nélkül a foltok „zsák”-ot alkotnak.</b> A figyelem a sorrendre érzéketlen (ahogy az MLP is a pixelek sorrendjére, <a href="#s111-c">11.1</a>); a pozícióbeágyazás nélkül a háló nem tudná, melyik folt hol volt. Az eredeti ViT egyszerű, tanult abszolút pozícióvektorokat használt (a <em>Machine Learning and AI Beyond the Basics</em> relatív pozíciókat ír – azok későbbi változatokban jelentek meg).</li>
+    <li><b>Más felbontás – más tokenszám.</b> Ha a kép nagyobb, több folt lesz; a megtanult pozícióvektorokat ilyenkor át kell skálázni.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – foltok</summary>
+  <ol>
+    <li>Hány folt és hány token lesz egy $224 \times 224$-es képből $P = 32$-vel? És $P = 14$-gyel?
+      <details><summary>Megoldás</summary>$P = 32$: $7 \cdot 7 = 49$ folt, 50 token. $P = 14$: $16 \cdot 16 = 256$ folt, 257 token.</details></li>
+    <li>Hány szám egy folt $P = 16$-nál szürkeárnyalatos képen?
+      <details><summary>Megoldás</summary>$16 \cdot 16 \cdot 1 = 256$.</details></li>
+    <li>A 16 × 16-os lapot $2 \times 2$-es foltokra vágod. Hány token lesz a [CLS]-sel együtt, és hány szám egy folt?
+      <details><summary>Megoldás</summary>$8 \cdot 8 = 64$ folt + 1 = 65 token; foltonként 4 szám.</details></li>
+    <li>Hány paramétere van a foltbeágyazásnak, ha a 16 × 16-os lapot $4 \times 4$-es foltokra vágod, és $d = 32$?
+      <details><summary>Megoldás</summary>$16 \cdot 32 + 32 = 544$ (16 bemenet foltonként, 32 kimenet, torzításokkal).</details></li>
+    <li>(nehezebb) Egy $384 \times 384$-es képet $P = 16$-tal dolgozol fel. Hány folt lesz? Hányszorosa ez a $224$-es kép foltszámának?
+      <details><summary>Megoldás</summary>$24 \cdot 24 = 576$ folt; $576/196 \approx 2{,}94$-szerese – a tokenszám a pixelszámmal arányos.</details></li>
+  </ol>
+</details>
+
+<h3 id="s117-b">2. lépés: induktív torzítás – miért kell a ViT-nek sok adat?</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – mi van beépítve, és mit kell megtanulni?</span>
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.86rem;max-width:660px">
+    <tr><th>tulajdonság</th><th>CNN</th><th>ViT</th></tr>
+    <tr><td>lokalitás (először a szomszédok)</td><td>beépítve: $3 \times 3$-as szűrők</td><td>tanulnia kell: a figyelem az 1. rétegtől minden foltra kiterjed</td></tr>
+    <tr><td>eltolás-ekvivariancia</td><td>beépítve: súlymegosztás</td><td>csak a foltokon belül; a többit tanulnia kell</td></tr>
+    <tr><td>a 2D szomszédság</td><td>beépítve: a rács</td><td>a pozícióvektorokból kell kitalálnia</td></tr>
+  </table></div>
+  A ViT tanult pozícióvektorai a tanítás végén valóban „rácsot” mutatnak: a szomszédos foltok vektorai hasonlítanak – de ezt <b>adatból</b> kellett megtanulnia.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – induktív torzítás</span>
+  Az <b>induktív torzítás</b> azoknak a feltevéseknek az összessége, amelyeket egy modell felépítése <b>előre</b> „tud” a feladatról (<a href="#s111-c">11.1</a>). Erős torzítás: kevés adatból is jól általánosít – ha a feltevés igaz. Gyenge torzítás: rugalmasabb, de több adat kell, hogy a jó szabályt megtalálja.
+  <br>A CNN erős képi torzítással dolgozik, a ViT gyengével. Ezért (Dosovitskiy és társai, 2020): csak ImageNeten (1,3 millió kép) tanítva a ViT <b>gyengébb</b> a hasonló méretű ResNeteknél; 14 millió képpel (ImageNet-21k) felzárkózik; 300 millió képpel (JFT-300M) <b>jobb</b>.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – kevés adattal is lehet (DeiT, 2021)</span>
+    H. Touvron és társai a ViT-et csak ImageNeten tanították, de erős adatbővítéssel, regularizációval és egy CNN-tanár „desztillálásával” – és versenyképes lett. Amit a felépítés nem ad meg, azt a bővítés és a tanár pótolhatja.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a mi lapunk</span>
+    A CNN-A 2746 paraméterrel, 1047 képből tanult meg minden eltolást (<a href="#s113-a">11.3</a>), mert a súlymegosztás ezt „ingyen” adta. Egy ViT-nek ugyanehhez eltolt képek ezreit kellene látnia – ugyanaz a helyzet, mint az eltolással bővített MLP-nél (<a href="#s111-c">11.1</a>).
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>„A ViT jobb” – mihez képest és mennyi adattal?</b> Kis adaton (néhány ezer kép) nulláról tanítva a CNN szinte mindig jobb; a ViT előnye az előtanított, nagy modelleknél jön elő.</li>
+    <li><b>Felügyelt vagy önfelügyelt?</b> Az eredeti ViT-et felügyelten, címkézett képeken tanították elő; a ma elterjedt képi alapmodellek többnyire önfelügyelten (<a href="#s115-c">11.5</a>). A források néha keverik a kettőt.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – induktív torzítás</summary>
+  <ol>
+    <li>Melyik modellnek erősebb az induktív torzítása képekre: MLP, CNN vagy ViT? Állítsd sorba!
+      <details><summary>Megoldás</summary>CNN (lokalitás + súlymegosztás) &gt; ViT (foltok, de globális figyelem) &gt; MLP (semmi képi feltevés; még a pixelek sorrendje sem számít).</details></li>
+    <li>500 címkézett röntgenképed van. CNN-t vagy ViT-et tanítanál nulláról?
+      <details><summary>Megoldás</summary>CNN-t – vagy még inkább egy előtanított modellt finomhangolnék. Nulláról a ViT ennyi adatból nem tanulja meg a képi szerkezetet.</details></li>
+    <li>Mit jelent, hogy egy modell „gyenge induktív torzítású”? Előny vagy hátrány?
+      <details><summary>Megoldás</summary>Kevés feltevést épít be a feladatról, többet kell az adatból megtanulnia. Kevés adatnál hátrány (rosszabb általánosítás), nagyon sok adatnál előny lehet (nem köti meg egy rossz feltevés).</details></li>
+    <li>Igaz-e: „a ViT figyelme az első rétegtől globális, ezért nem lát kis részleteket”?
+      <details><summary>Megoldás</summary>Nem: a figyelem <b>lehet</b> globális, de megtanulhat helyi is lenni (sok fej a korai rétegekben valóban a közeli foltokra figyel). A felépítés csak nem kényszeríti rá.</details></li>
+    <li>(nehezebb) Miért segít a ViT-nek a CNN-tanárból való desztillálás?
+      <details><summary>Megoldás</summary>A CNN-tanár jóslatai a CNN induktív torzítását „hordozzák”: a ViT a tanár puha valószínűségeit is utánozza, így közvetve átveszi a lokalitásra és eltolásra épülő általánosítást – kevesebb adatból.</details></li>
+  </ol>
+</details>
+
+<h3 id="s117-c">3. lépés: mennyibe kerül? – a figyelem négyzetes ára</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – kisebb foltok</span>
+  Az önfigyelemben minden token minden tokenre figyel: $N$ tokennél $N^2$ pár. $224$-es képen, $P = 16$: $197^2 = 38\,809$ pár. $P = 8$-cal: $28 \cdot 28 = 784$ folt, $785^2 = 616\,225$ pár – <b>kb. 16-szor</b> annyi, pedig a kép ugyanaz.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – a figyelem költsége</span>
+  Ha a foltméret felére csökken (vagy a kép oldalhossza kétszeresére nő), a tokenek száma kb. <b>négyszeresére</b>, a figyelmi párok száma kb. <b>tizenhatszorosára</b> nő. Egy konvolúciós réteg költsége ezzel szemben a pixelek számával csak <b>arányosan</b> nő.
+  Ezért a nagy felbontású feladatokra (szegmentálás, detektálás) a ViT-családban helyi, ablakos figyelmet vezettek be (Swin Transformer, 2021) – vagyis visszahozták a <b>lokalitást</b>.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – $448$-as kép</span>
+    $P = 16$: $28 \cdot 28 = 784$ folt, 785 token, $616\,225$ pár – ugyanannyi, mint a $224$-es kép $P = 8$-cal. A pixelek négyszerese a figyelem tizenhatszorosát kéri.
+  </div>
+  <div class="box tip">
+    <span class="box-title">📅 Állapot: 2026</span>
+    A határ elmosódott: a ConvNeXt (2022) Transformer-fogásokkal modernizált CNN, a Swin ablakos figyelme konvolúciószerű. A nagy, előtanított képi alapmodellek többnyire ViT-alapúak; kis eszközökön és valós idejű feladatokban gyakran CNN fut. A választás inkább az adattól, az előtanított modellek elérhetőségétől és a hardvertől függ, mint az „architektúra-háborútól”.
+  </div>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a figyelem ára</summary>
+  <ol>
+    <li>Hány figyelmi pár van $224$-es képnél $P = 32$-vel (a [CLS]-sel)?
+      <details><summary>Megoldás</summary>$50^2 = 2500$.</details></li>
+    <li>A kép oldalát $224$-ről $672$-re növeled, $P = 16$ marad. Hányszorosára nő a foltok száma és a figyelmi párok száma (a [CLS]-t elhanyagolva)?
+      <details><summary>Megoldás</summary>Az oldal háromszoros, a foltszám kilencszeres ($42^2 = 1764$), a párok száma kb. 81-szeres.</details></li>
+    <li>Egy konvolúciós réteg költsége hányszorosára nő ugyanebben az esetben?
+      <details><summary>Megoldás</summary>Kilencszeresére – a pixelek számával arányosan.</details></li>
+    <li>Miért nem választunk egyszerűen $P = 1$-et (minden pixel egy token)?
+      <details><summary>Megoldás</summary>$224 \cdot 224 = 50\,176$ token, kb. 2,5 milliárd figyelmi pár rétegenként – kezelhetetlen. A foltok a hossz csökkentését szolgálják.</details></li>
+    <li>(nehezebb) Ablakos figyelemnél minden token csak a saját $7 \times 7$-es ablakának tokenjeire figyel. Hány pár van egy $56 \times 56$-os tokenrácson, és mennyi lenne teljes figyelemmel?
+      <details><summary>Megoldás</summary>$64$ ablak ($8 \times 8$), mindegyikben $49^2 = 2401$ pár: $153\,664$ pár. Teljes figyelemmel $3136^2 = 9\,834\,496$ – 64-szer annyi. A költség így a tokenszámmal csak lineárisan nő.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai11-117"></div>
+</section>

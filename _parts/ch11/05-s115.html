@@ -1,0 +1,166 @@
+
+<!-- ===================================================== 11.5 -->
+<section id="s115">
+<h2>11.5 Transzfertanulás és finomhangolás ★★</h2>
+<p>Az ImageNet-hálók 1,2 millió képen tanultak, napokig, sok GPU-n. Neked viszont lehet, hogy csak 500 fotód van a saját feladatodhoz – mondjuk beteg és egészséges levelekről. Nulláról tanítva egy mély háló ezt bemagolná. Szerencsére nem kell nulláról kezdeni.</p>
+
+<h3 id="s115-a">1. lépés: jellemzőkinyerés – a törzs marad, a fej új</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – macskák és kutyák, 1000 képből (PDL 14. fejezet)</span>
+  Egy konvolúciós hálót 1000 macska- és kutyaképen tanítanak, nulláról: a tesztpontosság <b>61–64%</b> – alig jobb a pénzfeldobásnál. Ugyanez a háló, ha előbb egy <b>másik</b> feladaton (járművek felismerése, 200 000 kép) tanult, és csak az utolsó rétegét cseréljük le, jóval többre képes (a 2. lépésben számokkal).
+  <b>Miért?</b> Az első rétegek éleket, színfoltokat, textúrákat keresnek (<a href="#s113-c">11.3</a>) – ezek egy autón és egy macskán ugyanúgy hasznosak. Ezt a tudást nem kell újra megtanulni.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – transzfertanulás, jellemzőkinyerés</span>
+  <b>Transzfertanulás</b> (<em>transfer learning</em>): egy feladaton (sok adaton) tanított háló tudását egy másik feladatra visszük át. Legegyszerűbb formája a <b>jellemzőkinyerés</b>:
+  <ol style="margin:.3rem 0">
+    <li>vesszük az előtanított háló <b>törzsét</b> (a konvolúciós részt, a globális poolingig);</li>
+    <li>a súlyait <b>befagyasztjuk</b> (nem tanulnak tovább);</li>
+    <li>a régi <b>fejet</b> (1000 ImageNet-osztály) eldobjuk, és helyette újat teszünk – annyi kimenettel, ahány osztályunk van;</li>
+    <li>csak az új fejet tanítjuk.</li>
+  </ol>
+  A törzs így egy <b>jellemzőgép</b>: minden képből egy (pl. 512 vagy 2048 hosszú) vektort csinál, és erre tanítunk egy kis osztályozót – akár logisztikus regressziót (<a href="../05-osztalyozas/#s54">5.4</a>).
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – mennyi tanul?</span>
+    ResNet-18 (11,7 millió paraméter, a törzs végén 512 szám), 5 levélbetegség: az új fej $512 \cdot 5 + 5 = 2565$ paraméter. A háló paramétereinek kb. 0,02%-a tanul – ennyihez néhány száz kép is elég lehet.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – röntgenképek (AAMLP)</span>
+    Légmell felismerése mellkasröntgenen (AUC, <a href="../06-modellertekeles/#s62-c">6.2</a>): pixelek + véletlen erdő 0,72; AlexNet nulláról 0,66; ImageNeten előtanított AlexNet 0,69; előtanított ResNet-18, nagyobb felbontással 0,80. (Az utolsó lépésben több dolog is változott egyszerre, így az ugrás nem csak az előtanításé.)
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Ugyanúgy kell előkészíteni a képet,</b> mint az előtanításkor: ugyanaz a méret, és ugyanaz a csatornánkénti normalizálás (ImageNet-hálóknál a megadott átlagokkal és szórásokkal). Különben a törzs „idegen” bemenetet kap.</li>
+    <li><b>Befagyasztásnál is kiértékelő módban</b> fusson a törzs (dropout ki, kötegnormalizálás a tárolt statisztikákkal, <a href="../10-halo-tanitasa/#s108-a">10.8</a>). A <em>Practical Deep Learning</em> egyik kódja épp tanító módban nyeri ki a jellemzőket, bekapcsolt dropouttal – ez rontja az eredményt.</li>
+    <li><b>Terminológia.</b> Néhány forrás (DLV, PDL) a „transzfertanulás” szót csak a befagyasztott változatra használja, a finomhangolást külön dolognak tekinti. Szokásosabb: a transzfertanulás a gyűjtőfogalom, a jellemzőkinyerés és a finomhangolás két módja.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – jellemzőkinyerés</summary>
+  <ol>
+    <li>Egy ResNet-50 törzse 2048 számot ad. Három osztályod van. Hány paramétere van az új fejnek?
+      <details><summary>Megoldás</summary>$2048 \cdot 3 + 3 = 6147$.</details></li>
+    <li>A VGG-16 utolsó rétegét (4096 → 1000) cseréled egy 2 kimenetes rétegre, a többit befagyasztod. Hány paraméter tanul?
+      <details><summary>Megoldás</summary>$4096 \cdot 2 + 2 = 8194$ – a 138 millióból.</details></li>
+    <li>Miért nem kell a befagyasztott törzs gradiensét kiszámolni a tanítás során? Mit spórolunk vele?
+      <details><summary>Megoldás</summary>Mert a súlyai nem változnak. A visszaterjesztés megállhat a fejnél: a tanítás sokkal gyorsabb, és a törzs köztes értékeit sem kell tárolni (<a href="../10-halo-tanitasa/#s108-c">10.8</a>). Sőt, minden kép jellemzővektorát egyszer kiszámolhatjuk és elmenthetjük.</details></li>
+    <li>Az ImageNet-háló bemenetét 0–1 közé skálázva és ImageNet-átlaggal normálva tanították. Te 0–255-ös képeket adsz neki. Mi történik?
+      <details><summary>Megoldás</summary>Az első réteg 255-ször nagyobb jeleket kap, mint amire a szűrői beálltak; a jellemzők torzak lesznek, a fej rossz bemenetből tanul. A transzfer haszna nagyrészt elvész.</details></li>
+    <li>(nehezebb) Egy kórház 300 bőrelváltozás-fotóval rendelkezik, két osztállyal. Írd le lépésenként, hogyan építenél osztályozót egy ImageNeten előtanított ResNet-18-ból!
+      <details><summary>Megoldás</summary>(1) Képek átméretezése 224-re, ImageNet-normalizálás. (2) A törzs befagyasztva, kiértékelő módban: minden képből 512 jellemző. (3) Új fej: $512 \cdot 2 + 2 = 1026$ paraméter (vagy logisztikus regresszió) – rétegzett keresztvalidációval (<a href="../06-modellertekeles/#s65-c">6.5</a>), mert kevés a kép. (4) Ha ez kevés, finomhangolás kis tanulási rátával (2. lépés).</details></li>
+  </ol>
+</details>
+
+<h3 id="s115-b">2. lépés: finomhangolás – mennyit engedjünk tanulni?</h3>
+<p>A befagyasztott törzs az eredeti feladat jellemzőit adja. Ha az új feladat más, érdemes a törzset is <b>kicsit</b> hozzáigazítani.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – melyik réteget fagyasszuk be? (PDL, 14-2. táblázat)</span>
+  Járműveken előtanított, 5 konvolúciós rétegű háló, utána macska–kutya, 1000 tanítókép, 6 futás átlaga:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.86rem;text-align:center;max-width:560px">
+    <tr><th>beállítás</th><th>tesztpontosság</th></tr>
+    <tr><td>nulláról (sekély / mély háló)</td><td>64,4% / 61,1%</td></tr>
+    <tr><td>minden réteg tanul (finomhangolás)</td><td>62,7% ± 3,7</td></tr>
+    <tr><td>az 1. konvolúciós réteg befagyasztva</td><td>69,1%</td></tr>
+    <tr><td>az 1–2. befagyasztva</td><td><b>70,1%</b></td></tr>
+    <tr><td>mind az 5 befagyasztva</td><td>57,0%</td></tr>
+  </table></div>
+  A legjobb a középút: az <b>alsó</b> (általános) rétegek maradnak, a <b>felsők</b> (járműspecifikus) alkalmazkodnak.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – finomhangolás (<em>fine-tuning</em>)</span>
+  Az előtanított súlyokból indulunk, és az új adaton a törzs (egy részét vagy egészét) is tovább tanítjuk – <b>kis tanulási rátával</b> (tipikusan az eredeti tizedével), hogy a hasznos jellemzők ne „felejtődjenek el” az első lépésekben.
+  Szokásos menet: előbb csak az új fejet tanítjuk (jellemzőkinyerés), aztán felolvasztjuk a felső rétegeket, és együtt finomhangolunk.
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.86rem;margin-top:.4rem">
+    <tr><th></th><th>hasonló feladat (pl. ImageNet → kutyafajták)</th><th>eltérő feladat (pl. ImageNet → röntgen)</th></tr>
+    <tr><td><b>kevés adat</b></td><td>jellemzőkinyerés, csak a fej tanul</td><td>alsó rétegek fagyasztva, felsők finomhangolva – óvatosan</td></tr>
+    <tr><td><b>sok adat</b></td><td>finomhangolás az egészen</td><td>finomhangolás az egészen (vagy akár nulláról)</td></tr>
+  </table></div>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – ha a két feladat túl messze van</span>
+    A PDL ugyanígy próbálta a CIFAR-10 (fényképek) hálójának jellemzőit MNIST-számjegyekre: 3 legközelebbi szomszéddal 90,1%, míg a nyers pixeleken 97,1%. A fényképeken tanult jellemzők a fekete-fehér számjegyekhez rosszabbak voltak a pixeleknél.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a tanulási ráta</span>
+    Ha a nulláról tanításnál $\eta = 0{,}01$ volt jó, finomhangoláskor $0{,}001$-gyel kezdünk. Adamnál gyakran $10^{-4}$ – és bemelegítéssel (<a href="../10-halo-tanitasa/#s105-c">10.5</a>), mert az új, véletlen fej eleinte nagy gradienseket küld vissza.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Nagy tanulási ráta = elfelejtett előtanítás.</b> Az első néhány nagy lépés szétzilálhatja a jó jellemzőket (a táblázatban a „minden réteg tanul” sor nagy szórása ezt mutatja).</li>
+    <li><b>Kevés adatnál a finomhangolás is túlilleszt.</b> Validációs halmaz, korai leállítás, adatbővítés itt is kell (<a href="../10-halo-tanitasa/#s107">10.7</a>).</li>
+    <li><b>Az előtanítás nem mindig segít.</b> Orvosi képeken kis hálók nulláról is lehetnek ugyanolyan jók (M. Raghu és társai, 2019) – mindig mérj egy nulláról tanított összevetést is.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – finomhangolás</summary>
+  <ol>
+    <li>A táblázat alapján: miért rosszabb az „összes befagyasztva” (57%) a „két alsó befagyasztva” (70%) beállításnál?
+      <details><summary>Megoldás</summary>A felső rétegek a járművek nagyobb részleteit (kerék, ablak) keresik; ezek egy macska–kutya feladatban kevéssé hasznosak, és befagyasztva nem tudnak alkalmazkodni.</details></li>
+    <li>És miért rosszabb a „minden réteg tanul” (62,7%) beállítás?
+      <details><summary>Megoldás</summary>Az 1000 kép kevés: a teljes háló túl sok paramétert hangol rajtuk, és az alsó rétegek általános jellemzői is elromolhatnak. A nagy szórás (±3,7) is a bizonytalanságra utal.</details></li>
+    <li>Sok (100 000) címkézett műholdképed van, és egy ImageNet-hálót használnál. Fagyasztanál?
+      <details><summary>Megoldás</summary>Inkább az egészet finomhangolnám: sok az adat, és a műholdkép eléggé eltér a hétköznapi fotóktól (felülnézet, más textúrák). Az előtanított súlyok jó kiindulópontot adnak.</details></li>
+    <li>Nulláról $\eta = 0{,}1$-gyel tanítottál SGD-vel. Milyen $\eta$-val kezdenéd a finomhangolást?
+      <details><summary>Megoldás</summary>Kb. $0{,}01$-gyel (tizedével), és a teljes hálónál esetleg még kisebbel az alsó rétegeken.</details></li>
+    <li>(nehezebb) Egy csapat ezt írja: „Előtanított ResNettel 0,80-as AUC-t értünk el, a nulláról tanított AlexNettel 0,66-ot, tehát az előtanítás 0,14-et hozott.” Mi a hiba az érvelésben?
+      <details><summary>Megoldás</summary>Két dolog változott egyszerre (a háló és az előtanítás), sőt az AAMLP-ben a felbontás és a tanulási ráta ütemezése is. Az előtanítás hatását ugyanazon a hálón, mindkét módon tanítva lehet mérni – és több futással (<a href="../10-halo-tanitasa/#s108-b">10.8</a>).</details></li>
+  </ol>
+</details>
+
+<h3 id="s115-c">3. lépés: előtanítás címkék nélkül – önfelügyelt tanulás</h3>
+<p>Az ImageNet 1,2 millió képét kézzel címkézték – drága és lassú munka. Az internet viszont tele van <b>címkézetlen</b> képpel. Lehet-e előtanítani címkék nélkül?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – „ugyanaz a macska?”</span>
+  Vegyünk egy macskafotót, és készítsünk belőle két változatot: kivágva és kicsit elszínezve. A háló feladata: a két változat beágyazása (jellemzővektora) legyen <b>közel</b> egymáshoz, egy elefántfotóé pedig <b>távol</b>. Ehhez nem kell tudni, hogy macska van a képen – a feladatot a kép maga adja.
+  Kétdimenziós játékvektorokkal: macska A $(0{,}9;\ 0{,}1)$, macska B $(0{,}8;\ 0{,}3)$, elefánt $(-0{,}2;\ 0{,}9)$. Koszinusz-hasonlóság (<a href="../02-matematikai-eszkoztar/#s23-c">2.3</a>): A–B $0{,}97$, A–elefánt $-0{,}11$. A tanítás ezt a különbséget növeli.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – önfelügyelt előtanítás (MLQ 2. fejezet)</span>
+  A címkét <b>magából az adatból</b> állítjuk elő egy kitalált feladattal; az így tanult törzset aztán transzfertanulással használjuk. Két fő változat képekre:
+  <ul style="margin:.2rem 0">
+    <li><b>kontrasztív tanulás:</b> ugyanannak a képnek két bővített változata közel, különböző képeké távol (pl. SimCLR, 2020);</li>
+    <li><b>maszkolt képmodellezés:</b> a kép foltjainak nagy részét letakarjuk, és a hálónak kell kitalálnia a hiányzót (pl. MAE, 2021 – a 12. fejezet maszkolt nyelvi modelljeinek képi párja).</li>
+  </ul>
+  A transzfertanulás és az önfelügyelt tanulás csak abban különbözik, honnan jön az előtanítás címkéje: emberi címkézésből vagy az adatból.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – kép és szöveg együtt</span>
+    A CLIP (OpenAI, 2021) 400 millió kép–felirat párból tanult: a kép és a hozzá tartozó szöveg beágyazása legyen közel. Utána új osztályokat <b>tanítás nélkül</b> is felismer: a képet a „fénykép egy kutyáról”, „fénykép egy macskáról” szövegek közül a legközelebbihez sorolja.
+  </div>
+  <div class="box example">
+    <span class="box-title">📅 Állapot: 2026 – alapmodellek</span>
+    Ma a képes feladatok többségét egy nagy, önfelügyelten előtanított <b>alapmodell</b> (pl. DINOv2, 2023; szegmentálásra a SAM, 2023) jellemzőiből indítják. A „saját háló nulláról” inkább kivétel: nagyon eltérő adatnál vagy nagyon kis eszközön.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A bővítés a feladat része.</b> A kontrasztív tanulás azt tanulja meg, hogy a bővítések <b>nem számítanak</b>. Ha a színt is torzítjuk, a háló színvak lesz – baj, ha később érett és éretlen paradicsomot kell megkülönböztetni.</li>
+    <li><b>A webes adat torzításait is átveszi.</b> Amit a képek és feliratok sztereotipikusan együtt mutatnak, azt a modell is együtt tanulja (<a href="#s118-b">11.8</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – önfelügyelt előtanítás</summary>
+  <ol>
+    <li>Számold ki a koszinusz-hasonlóságot a macska B $(0{,}8;\ 0{,}3)$ és az elefánt $(-0{,}2;\ 0{,}9)$ vektor között!
+      <details><summary>Megoldás</summary>$\dfrac{-0{,}16 + 0{,}27}{\sqrt{0{,}73}\cdot\sqrt{0{,}85}} = \dfrac{0{,}11}{0{,}788} \approx 0{,}14$ – kicsi, ahogy kell.</details></li>
+    <li>Mi a „címke” a maszkolt képmodellezésben?
+      <details><summary>Megoldás</summary>A letakart foltok eredeti pixelei: a háló ezeket jósolja, és a veszteség az eltérésük.</details></li>
+    <li>Miért jó, ha az előtanításhoz nem kell emberi címke?
+      <details><summary>Megoldás</summary>Mert címkézetlen képből nagyságrendekkel több van (milliárdok), és nem kell hozzá drága, lassú, hibázó kézi munka. A nagyobb előtanító adat jobb, általánosabb jellemzőket ad.</details></li>
+    <li>Melyik bővítést nem használnád egy kontrasztív előtanításnál, ha a cél a későbbi közlekedésitábla-felismerés? Miért?
+      <details><summary>Megoldás</summary>Az erős színtorzítást (a tábla színe jelentéssel bír) és a tükrözést (a balra és jobbra mutató nyíl más tábla). A bővítés azt mondja a hálónak: „ez nem számít”.</details></li>
+    <li>(nehezebb) Egy CLIP-szerű modell a „fénykép egy ápolóról” szövegre túlnyomórészt nőket, az „orvosról” túlnyomórészt férfiakat mutató képeket talál közelinek. Honnan jön ez, és mit jelent egy alkalmazásnál?
+      <details><summary>Megoldás</summary>A webes kép–felirat párok gyakoriságaiból: a modell a statisztikai együttjárást tanulja meg, a társadalmi sztereotípiákkal együtt. Egy keresőben vagy szűrőben ez fel is erősítheti őket, ezért mérni és kezelni kell (<a href="#s118-b">11.8</a>).</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai11-115"></div>
+</section>

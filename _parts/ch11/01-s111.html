@@ -1,0 +1,180 @@
+
+<!-- ===================================================== 11.1 -->
+<section id="s111">
+<h2>11.1 A kép mint számtábla; miért nem elég az MLP? ★</h2>
+<p>Mielőtt új hálót építenénk, nézzük meg pontosan, mit kap a háló, amikor „képet lát”, és hol akad el vele az eddigi, teljesen összekötött háló (MLP, <a href="../09-neuralis-halozatok/#s93">9.3</a>).</p>
+
+<h3 id="s111-a">1. lépés: pixelek és csatornák – a kép tenzor</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy kézzel írt 1-es</span>
+  A <a href="../09-neuralis-halozatok/#s97-b">9.7</a> egyik tesztképe így néz ki a háló szemével: 8 sor, 8 oszlop, minden mezőben a tinta erőssége 0 (üres) és 16 (fekete) között.
+  <div class="two-col" style="align-items:center">
+    <div class="tw" style="overflow-x:auto"><table style="font-family:var(--mono);font-size:.8rem;text-align:center;max-width:300px">
+      <tr><td>0</td><td>0</td><td>0</td><td>0</td><td><b>12</b></td><td>5</td><td>0</td><td>0</td></tr>
+      <tr><td>0</td><td>0</td><td>0</td><td>2</td><td><b>16</b></td><td><b>12</b></td><td>0</td><td>0</td></tr>
+      <tr><td>0</td><td>0</td><td>1</td><td><b>12</b></td><td><b>16</b></td><td><b>11</b></td><td>0</td><td>0</td></tr>
+      <tr><td>0</td><td>2</td><td><b>12</b></td><td><b>16</b></td><td><b>16</b></td><td><b>10</b></td><td>0</td><td>0</td></tr>
+      <tr><td>0</td><td>6</td><td><b>11</b></td><td>5</td><td><b>15</b></td><td>6</td><td>0</td><td>0</td></tr>
+      <tr><td>0</td><td>0</td><td>0</td><td>1</td><td><b>16</b></td><td>9</td><td>0</td><td>0</td></tr>
+      <tr><td>0</td><td>0</td><td>0</td><td>2</td><td><b>16</b></td><td><b>11</b></td><td>0</td><td>0</td></tr>
+      <tr><td>0</td><td>0</td><td>0</td><td>3</td><td><b>16</b></td><td>8</td><td>0</td><td>0</td></tr>
+    </table></div>
+    <div>Ha a nagy számokat (félkövér) befeketíted, kirajzolódik az 1-es: ferde felső vonás, függőleges szár.
+    A háló ebből <b>64 számot</b> kap – semmi mást. Nem tudja, hogy „ez egy szár”; csak a számokat látja.</div>
+  </div>
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – a kép mint tenzor (<a href="../02-matematikai-eszkoztar/#s21-c">2.1</a>)</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Szürkeárnyalatos kép:</b> $H \times W$-s mátrix (magasság × szélesség); minden elem egy <b>pixel</b> fényessége.</li>
+    <li><b>Színes kép:</b> $H \times W \times 3$-as tömb: három <b>csatorna</b> (vörös, zöld, kék – RGB), mindegyik egy $H \times W$-s mátrix. Egy pixel tehát három szám, általában 0 és 255 között.</li>
+    <li><b>Köteg:</b> a háló egyszerre sok képet kap, ezért a bemenet négydimenziós: $B \times C \times H \times W$ (PyTorch), illetve $B \times H \times W \times C$ (Keras, TensorFlow).</li>
+  </ul>
+  A számok száma a méretek szorzata: $H \cdot W \cdot C$ képenként. Tanítás előtt a pixelértékeket skálázzuk (pl. 255-tel osztunk), mint minden jellemzőt (<a href="../03-tanulas-anatomiaja/#s36-c">3.6</a>).
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy színes pixel</span>
+    $(255;\ 200;\ 0)$: sok vörös, sok zöld, semmi kék – sárgás narancs. $(0;0;0)$ fekete, $(255;255;255)$ fehér, $(128;128;128)$ középszürke: ha a három csatorna egyenlő, a szín szürke.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy szokásos bemenet</span>
+    Sok képfelismerő $224 \times 224$-es színes képet kap: $224 \cdot 224 \cdot 3 = 150\,528$ szám. Egy 32 képes köteg $32 \cdot 150\,528 = 4\,816\,896$ szám – 4 bájtos lebegőpontos számokkal kb. 19 MB.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">Terminológia – csatorna, nem „mélység”</span>
+  Angolul a csatorna <em>channel</em>; néha <em>depth</em>-nek is hívják, de ez könnyen összekeveredik a háló mélységével (a rétegek számával). Mi a <b>csatorna</b> szót használjuk.
+  A háló belsejében a „képnek” már 8, 64 vagy 512 csatornája is lehet – ezek nem színek, hanem jellemzők. Ezért ott inkább <b>elemről</b> beszélünk, nem pixelről.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A tengelyek sorrendje.</b> Ugyanaz a köteg PyTorch-ban $B \times C \times H \times W$, Kerasban $B \times H \times W \times C$. Ha rossz sorrendben adod át, a program sokszor hiba nélkül fut – csak értelmetlen eredményt ad.</li>
+    <li><b>0–255 vagy 0–1?</b> A tanításkor és a használatkor ugyanúgy kell skálázni. Ha a háló 0–1 közötti számokon tanult, és 0–255-ös képet kap, minden jel 255-ször nagyobb.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a kép mint tenzor</summary>
+  <ol>
+    <li>Hány számból áll egy $28 \times 28$-as szürkeárnyalatos MNIST-számjegy? És egy $32 \times 32$-es színes CIFAR-10-kép?
+      <details><summary>Megoldás</summary>$28 \cdot 28 = 784$; $\;32 \cdot 32 \cdot 3 = 3072$.</details></li>
+    <li>Milyen színű a $(0;\ 0;\ 255)$ és a $(255;\ 255;\ 0)$ pixel? És a $(40;\ 40;\ 40)$?
+      <details><summary>Megoldás</summary>Kék; sárga (vörös + zöld); sötétszürke (a három csatorna egyenlő és kicsi).</details></li>
+    <li>Egy köteg 10 darab $64 \times 64$-es színes képből áll. Mi az alakja PyTorch-ban, és hány szám?
+      <details><summary>Megoldás</summary>$10 \times 3 \times 64 \times 64$; $\;10 \cdot 3 \cdot 64 \cdot 64 = 122\,880$ szám.</details></li>
+    <li>Egy Full HD-s színes kép $1920 \times 1080$ pixeles. Hány szám?
+      <details><summary>Megoldás</summary>$1920 \cdot 1080 \cdot 3 = 6\,220\,800$ – több mint hatmillió.</details></li>
+    <li>(nehezebb) Egy egyperces, $640 \times 480$-as színes videó másodpercenként 30 képkockából áll. Hány szám ez, és hány bájt, ha minden szám egy bájt (0–255)?
+      <details><summary>Megoldás</summary>$60 \cdot 30 = 1800$ kocka, mindegyik $640 \cdot 480 \cdot 3 = 921\,600$ szám: összesen $1\,658\,880\,000$ szám, kb. 1,66 GB. (Ezért tömörítik a videót – és ezért dolgoznak a videós hálók kis felbontással.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s111-b">2. lépés: paraméterrobbanás – minden neuron minden pixelt lát</h3>
+<p>Az MLP első rétegében <b>minden neuron minden bemeneti számhoz</b> kapcsolódik (<a href="../09-neuralis-halozatok/#s96-b">9.6</a>). Kis képnél ez rendben van. Nézzük, mi lesz, ha a kép nő.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a 8 × 8-as kép és a 16 × 16-os lap</span>
+  A 9.7 hálójának 16 rejtett neuronja van. A 8 × 8-as képnél minden neuronnak 64 súlya van: $64 \cdot 16 = 1024$ súly és 16 torzítás.
+  Ha a képet a 16 × 16-os lapra tesszük, ugyanez a réteg $256 \cdot 16 = 4096$ súlyt kér – a <b>négyszeresét</b>, pedig a számjegy ugyanakkora maradt, csak több lett körülötte az üres hely.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – az első teljesen összekötött réteg mérete</span>
+  $$\text{súlyok száma} = (H \cdot W \cdot C) \cdot n,$$ plusz $n$ torzítás,
+  ahol $n$ a rejtett neuronok száma. <b>Miért?</b> Minden neuron minden bemeneti számot a saját súlyával szoroz. A súlyok száma tehát a <b>kép területével</b> nő: kétszeres oldalhossz – négyszeres súlyszám.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – MNIST</span>
+    $28 \times 28 = 784$ bemenet, 100 rejtett neuron: $784 \cdot 100 = 78\,400$ súly. Ez még kezelhető.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy fénykép</span>
+    $224 \times 224 \times 3 = 150\,528$ bemenet, 1000 rejtett neuron: $150\,528\,000$ súly – csak az első rétegben. 4 bájttal számolva kb. 600 MB.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Sok paraméter – sok adat.</b> A baj nem csak a memória: minél több a szabad paraméter, annál több tanítókép kell, hogy a háló ne magoljon be (<a href="../06-modellertekeles/#s66-b">6.6</a>).</li>
+    <li><b>„Kicsinyítsük le a képet!”</b> Részben működik (a CIFAR-10 képei ezért $32 \times 32$-esek), de a részletek elvesznek: egy röntgenképen a kis árnyék, egy táblán a felirat.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – az első réteg mérete</summary>
+  <ol>
+    <li>Hány súlya (torzítás nélkül) van egy 50 neuronos rejtett rétegnek, ha a bemenet $28 \times 28$-as szürke kép?
+      <details><summary>Megoldás</summary>$784 \cdot 50 = 39\,200$.</details></li>
+    <li>Egy $32 \times 32$-es színes képre 512 neuronos rejtett réteget teszel. Hány paramétere van a rétegnek a torzításokkal együtt?
+      <details><summary>Megoldás</summary>$3072 \cdot 512 + 512 = 1\,573\,376$.</details></li>
+    <li>A kép oldalhosszát megduplázod (pl. $112 \to 224$), a neuronok száma marad. Hányszorosára nő az első réteg súlyszáma?
+      <details><summary>Megoldás</summary>Négyszeresére: a súlyszám a pixelek számával arányos, az pedig az oldalhossz négyzetével.</details></li>
+    <li>Mennyi a 16 × 16-os lapon tanított MLP (256–16–10) összes paramétere?
+      <details><summary>Megoldás</summary>$256 \cdot 16 + 16 + 16 \cdot 10 + 10 = 4096 + 16 + 160 + 10 = 4282$. A 8 × 8-as változaté 1210 volt (<a href="../09-neuralis-halozatok/#s96-b">9.6</a>).</details></li>
+    <li>(nehezebb) Egy 12 megapixeles telefonfotó $4000 \times 3000$ pixeles, színes. Hány súlya lenne egy 1000 neuronos első rétegnek? Hány GB ez 4 bájtos számokkal?
+      <details><summary>Megoldás</summary>$4000 \cdot 3000 \cdot 3 = 36\,000\,000$ bemenet, $\times 1000 = 36\,000\,000\,000$ súly – 36 milliárd, $\cdot 4$ bájt = 144 GB. Egyetlen rétegre. Ezért kell más ötlet.</details></li>
+  </ol>
+</details>
+
+<h3 id="s111-c">3. lépés: az MLP nem látja a szomszédságot – keverés és eltolás</h3>
+<p>A nagy paraméterszámnál is nagyobb baj, hogy az MLP <b>nem tudja, melyik pixel melyiknek a szomszédja</b>. Két kísérlet mutatja meg.</p>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">1. kísérlet – keverjük össze a pixeleket</span>
+    Mind a 256 pixelt egy rögzített, véletlen sorrendbe rakjuk – minden képen ugyanabba. Az eredmény embernek olvashatatlan zaj. Így tanítunk és tesztelünk (5 futás átlaga):
+    <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;margin-top:.3rem">
+      <tr><th></th><th>eredeti</th><th>összekeverve</th></tr>
+      <tr><td>MLP</td><td>97,2%</td><td><b>97,2%</b></td></tr>
+      <tr><td>konvolúciós háló (<a href="#s113">11.3</a>)</td><td>98,1%</td><td><b>93,7%</b></td></tr>
+    </table></div>
+    Az MLP-nek <b>mindegy</b> a sorrend: a keverés csak átszámozza a bemeneteit. A konvolúciós hálónak nem mindegy – az a szomszédságot használja.
+    <small>(Kiegészítés: HAW 5. és PDL 13. fejezete MNIST-en mutatja ugyanezt; mi a 16 × 16-os lapon ismételtük meg.)</small>
+  </div>
+  <div class="box example">
+    <span class="box-title">2. kísérlet – toljuk el a számjegyet</span>
+    A háló csak középre tett számjegyeken tanult. Egy pixel eltolás után a pontosság 96,9%-ról 44,7%-ra esik, kettő után 11,8%-ra (a fejezet kérdése).
+    <b>Miért?</b> Az MLP minden súlya <b>egyetlen, rögzített pixelhez</b> tartozik. Ha a 3-as íve egy pixellel arrébb kerül, olyan súlyokra esik, amelyek tanításkor ott sosem láttak tintát. A háló szemében ez egy egészen másik kép.
+  </div>
+</div>
+<div class="widget" data-widget="shift-lab"></div>
+<div class="box def">
+  <span class="box-title">Két elvárás egy képfelismerőtől</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Lokalitás:</b> a kép jelentése először kis, összefüggő foltokból áll össze (él, sarok, ív); egymás melletti pixeleket együtt kell nézni.</li>
+    <li><b>Eltolástűrés:</b> ugyanaz a minta a kép bármely pontján ugyanazt jelenti; egy 3-as attól még 3-as, hogy pár pixellel arrébb van.</li>
+  </ol>
+  Az MLP egyiket sem „tudja” előre: mindkettőt az adatból kellene megtanulnia, pozíciónként külön. A konvolúciós háló mindkettőt <b>beépítve</b> hozza (<a href="#s112">11.2</a>, <a href="#s113">11.3</a>). Az ilyen beépített feltevés neve <b>induktív torzítás</b> (<a href="#s117-b">11.7</a>).
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – hány helyen lehet egy él?</span>
+    Egy $3 \times 3$-as minta a 16 × 16-os lapon $14 \cdot 14 = 196$ különböző helyre eshet. Az MLP-nek mind a 196 helyen <b>külön</b> kell megtanulnia, hogyan néz ki – külön súlyokkal, külön példákból.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – és ha eltolt képeken tanítjuk?</span>
+    Ha a tanítóképeket véletlenül ±2 pixellel eltologatjuk (adatbővítés, <a href="../10-halo-tanitasa/#s107-d">10.7</a>), az MLP minden helyen kb. 73%-ot ér el (5 futás átlaga): mindenhol közepes. A 16 rejtett neuronjának 25 helyet kell „megjegyeznie” – ehhez kevés.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az MLP nem „függetlennek tekinti” a pixeleket.</b> Bármilyen összefüggést megtanulhat közöttük – csak nem tudja előre, melyik pixel melyik mellett van. (A <em>How AI Works</em> 5. fejezete úgy fogalmaz, hogy a hagyományos háló „függetlennek feltételezi” a jellemzőket; ez pontatlan: az MLP a bemenetek <b>sorrendjére</b> érzéketlen, nem a kapcsolatukra.)</li>
+    <li><b>A tesztképek legyenek olyanok, mint a valóság.</b> A 96,9% csak középre tett számjegyekre igaz. Ha a használatban máshol lesznek, a tesztnek is ilyennek kell lennie – ez az eloszlás-eltolódás (<a href="../06-modellertekeles/#s64-c">6.4</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – szomszédság és eltolás</summary>
+  <ol>
+    <li>Egy MLP-t összekevert pixelű képeken tanítasz és tesztelsz (mindig ugyanazzal a keveréssel). Rosszabb lesz, mint az eredeti képeken?
+      <details><summary>Megoldás</summary>Lényegében nem: a keverés csak a bemenetek sorszámát cseréli fel, az MLP számára ez ugyanaz a feladat (a 16 × 16-os lapon 97,2% mindkétszer). Embernek viszont olvashatatlan lenne.</details></li>
+    <li>Hány helyre eshet egy $5 \times 5$-ös minta egy $28 \times 28$-as képen, ha teljesen a képen belül kell lennie?
+      <details><summary>Megoldás</summary>$(28 - 5 + 1)^2 = 24^2 = 576$ helyre.</details></li>
+    <li>A középre tett számjegyeken tanított MLP 2 pixel eltolásnál 11,8%-ot ér el. Mennyit érne el a vak találgatás? Mit jelent, hogy alig jobb nála?
+      <details><summary>Megoldás</summary>10 osztálynál 10%. Az eltolt képen az MLP tudása gyakorlatilag elveszett: a megtanult súlyok más pixelekhez tartoznak, mint ahol most a tinta van.</details></li>
+    <li>Melyik kísérlet mutatja, hogy egy háló <b>használja</b> a szomszédságot: a keverés vagy az eltolás?
+      <details><summary>Megoldás</summary>A keverés: ha a háló a szomszédságra épít, a keverés rontja (a konvolúciós hálónál 98,1% → 93,7%); ha nem épít rá, nem változik (MLP). Az eltolás azt méri, mennyire tűri a háló a helyváltozást.</details></li>
+    <li>(nehezebb) Egy kamera mindig pontosan középre fényképezi a csavarokat egy futószalagon, és a hibás csavart kell felismerni. Kell-e itt eltolástűrés? Mi a helyzet egy közlekedési kamerával, amelyik gyalogosokat keres?
+      <details><summary>Megoldás</summary>A futószalagnál a hely rögzített, így egy MLP is jól működhet (bár a lokalitás ott is segít). A közlekedési kamerán a gyalogos bárhol lehet, bármekkora méretben – ott az eltolástűrés alapkövetelmény.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai11-111"></div>
+</section>

@@ -1,0 +1,212 @@
+
+<!-- ===================================================== 11.3 -->
+<section id="s113">
+<h2>11.3 A konvolúciós háló felépítése ★★</h2>
+<p>Egy szűrő egyféle mintát keres. Egy számjegy felismeréséhez sokféle kell: függőleges, vízszintes, ferde élek, ívek, végpontok. Ebben a szakaszban a szűrőkből <b>réteget</b>, a rétegekből <b>hálót</b> építünk – és megnézzük, hogyan lesz ebből eltolástűrés.</p>
+
+<h3 id="s113-a">1. lépés: sok szűrő – csatornák és a konvolúciós réteg</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a T három szűrővel, ReLU után</span>
+  A <a href="#s112-a">11.2</a> függőleges élkeresője a T szárának bal szélére pozitív, a jobb szélére negatív választ adott. Ha a kimenetre ReLU jön (<a href="../09-neuralis-halozatok/#s94-b">9.4</a>), a negatív rész eltűnik – a jobb élt elveszítjük. Ezért vegyünk <b>három</b> szűrőt:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.86rem;text-align:center;max-width:620px">
+    <tr><th>szűrő</th><th>„bal él” $(-1, 0, 1)$</th><th>„jobb él” $(1, 0, -1)$</th><th>„felső él” (vízszintes)</th></tr>
+    <tr><td>ReLU utáni térkép</td><td>$\begin{pmatrix}2&0&0\\3&0&0\\3&0&0\end{pmatrix}$</td><td>$\begin{pmatrix}0&0&2\\0&0&3\\0&0&3\end{pmatrix}$</td><td>$\begin{pmatrix}2&2&2\\0&0&0\\0&0&0\end{pmatrix}$</td></tr>
+  </table></div>
+  Három szűrő – három $3 \times 3$-as térkép. Egymásra rakva ez egy $3 \times 3 \times 3$-as tömb: a kimenetnek <b>három csatornája</b> van, mindegyik egy mintáé. A következő réteg ezt kapja bemenetként, és egy szűrője már <b>mindhárom csatornán egyszerre</b> néz: „bal él és jobb él egymás mellett, fölöttük vízszintes él” – ez már egy T alakú mintára utal.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – konvolúciós réteg</span>
+  Bemenet: $H \times W \times C_{\text{be}}$-s tömb. A réteg $C_{\text{ki}}$ darab szűrőt tartalmaz, mindegyik $k \times k \times C_{\text{be}}$-s, saját torzítással. Minden szűrő végigcsúszik a bemeneten (a csatornák mentén is összead), és egy térképet ad; ezekre jön az aktiváció (ReLU).
+  <ol style="margin:.3rem 0">
+    <li>A szűrőnek <b>annyi csatornája van, ahány a bemenetnek</b>.</li>
+    <li>A kimenetnek <b>annyi csatornája van, ahány szűrő</b>.</li>
+  </ol>
+  $$\text{paraméterek} = C_{\text{ki}} \cdot (k \cdot k \cdot C_{\text{be}} + 1).$$
+  <b>Miért ilyen kevés?</b> Mert a súlyok <b>nem függenek a kép méretétől</b>: ugyanaz a $C_{\text{ki}}$ szűrő dolgozik minden helyen (súlymegosztás), és mindegyik csak egy $k \times k$-as környéket lát (lokalitás).
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a mi hálónk első két rétege</span>
+    1. réteg: 1 csatornás bemenet (szürke lap), 8 szűrő, $3 \times 3$: $8 \cdot (9 + 1) = 80$ paraméter.<br>
+    2. réteg: 8 csatornás bemenet, 32 szűrő, $3 \times 3 \times 8$: $32 \cdot (72 + 1) = 2336$ paraméter.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – színes kép</span>
+    A VGG első rétege (<a href="#s114-b">11.4</a>): RGB bemenet, 64 szűrő, $3 \times 3 \times 3$: $64 \cdot (27 + 1) = 1792$ paraméter. Egy $224 \times 224 \times 3$-as képen – míg egy 64 neuronos teljesen összekötött réteg kb. 9,6 millió súlyt kérne.
+  </div>
+</div>
+<p>Most már összerakhatunk egy teljes hálót a 16 × 16-os lapra. Az utolsó lépés új: a 32 térkép mindegyikéből csak a <b>legnagyobb értéket</b> tartjuk meg (<b>globális maximum</b>), és ebből a 32 számból jósol egy kis teljesen összekötött réteg.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa folytatása – CNN-A a 16 × 16-os lapon</span>
+  <p style="margin:.2rem 0">lap $16 \times 16 \times 1$ → konv. $3 \times 3$, 8 szűrő, ReLU → $16 \times 16 \times 8$ → konv. $3 \times 3$, 32 szűrő, ReLU → $16 \times 16 \times 32$ → globális max → 32 szám → teljesen összekötött réteg, 10 kimenet (softmax).
+  Paraméterek: $80 + 2336 + (32 \cdot 10 + 10) = 2746$ – kevesebb, mint az MLP 4282-je.</p>
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>a tesztkép helye</th><th>középen</th><th>1 px jobbra</th><th>2 px jobbra</th><th>1 px jobbra és le</th></tr>
+    <tr><td>MLP (4282 paraméter)</td><td>96,9%</td><td>44,7%</td><td>11,8%</td><td>9,1%</td></tr>
+    <tr><td>CNN-A (2746 paraméter)</td><td><b>98,9%</b></td><td><b>98,9%</b></td><td><b>98,9%</b></td><td><b>98,9%</b></td></tr>
+  </table></div>
+  Hajszálpontosan ugyanannyi – ugyanaz a 445 kép jó a 450-ből. Pedig ez a háló is csak középre tett képeket látott.
+</div>
+<div class="box def">
+  <span class="box-title">Ekvivariancia és invariancia</span>
+  <ul style="margin:.2rem 0">
+    <li>A konvolúció <b>eltolás-ekvivariáns</b>: ha a bemenetet eltolod, a térkép ugyanúgy eltolódik (<a href="#s112-b">11.2</a>). Képletben: $f(\text{eltolt } \mathbf x) = \text{eltolt } f(\mathbf x)$.</li>
+    <li>A globális maximum <b>eltolás-invariáns</b>: a térkép legnagyobb értéke nem függ attól, hol van. Képletben: $g(\text{eltolt } \mathbf y) = g(\mathbf y)$.</li>
+  </ul>
+  Együtt: a minta bárhol van, a 32 szám ugyanaz, tehát a jóslat is ugyanaz. A háló azt kérdezi: <b>„volt-e valahol a képen ilyen minta, és mennyire erős?”</b> – azt nem, hogy hol.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A ReLU nem hagyható ki.</b> Két konvolúció aktiváció nélkül egyetlen (nagyobb) konvolúció – ugyanaz a csapda, mint az MLP-nél (<a href="../09-neuralis-halozatok/#s93-c">9.3</a>): két $3 \times 3$-as szűrő egymás után egy $5 \times 5$-ös szűrőt ad.</li>
+    <li><b>Szűrőnként egy torzítás</b>, nem helyenként. A paraméterszámba a $+1$ szűrőnként kerül be.</li>
+    <li><b>A szűrő a bemenet összes csatornáján átér.</b> Egy RGB-képen dolgozó $3 \times 3$-as szűrőnek 27 súlya van, nem 9. (A <em>Machine Learning Systems</em> egy helyen 64 darab $3 \times 3$-as szűrőre 576 súlyt ír egy színes képre – ez csak 1 csatornára igaz; RGB-re 1728.)</li>
+    <li><b>A szélek.</b> Az ekvivariancia csak addig pontos, amíg a minta a lapon belül marad. Ha a számjegyet 4 pixellel feljebb toljuk, a teteje a lap szélére kerül – a CNN-A pontossága ott 93%-ra esik.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a konvolúciós réteg</summary>
+  <ol>
+    <li>Egy réteg bemenete $32 \times 32 \times 3$, 16 darab $5 \times 5$-ös szűrője van. Hány csatornás a kimenete, és hány paramétere van a rétegnek?
+      <details><summary>Megoldás</summary>16 csatorna. $16 \cdot (5 \cdot 5 \cdot 3 + 1) = 16 \cdot 76 = 1216$ paraméter.</details></li>
+    <li>Egy $5 \times 5 \times 2$-es bemenetre három $3 \times 3 \times 2$-es szűrő megy. Hány súlya van a rétegnek a torzításokon kívül? Hány súlyt kérne egy teljesen összekötött réteg, amely ugyanezt a $3 \times 3 \times 3$-as kimenetet adja?
+      <details><summary>Megoldás</summary>Konvolúció: $3 \cdot 18 = 54$ súly (+3 torzítás). Teljesen összekötött: $50$ bemenet × $27$ kimenet $= 1350$ súly. (A példa a <em>Practical Deep Learning</em> 12. fejezetéből való.)</details></li>
+    <li>Mennyi a VGG második rétegének paraméterszáma, ha 64 csatornás bemenetre 64 darab $3 \times 3$-as szűrő megy?
+      <details><summary>Megoldás</summary>$64 \cdot (3 \cdot 3 \cdot 64 + 1) = 64 \cdot 577 = 36\,928$.</details></li>
+    <li>Az MLP-t és a CNN-A-t 4 pixellel balra tolt képeken teszteled. Melyiknél vársz nagy esést, és miért?
+      <details><summary>Megoldás</summary>Az MLP-nél (kb. 10% körüli lesz, mint minden nagyobb eltolásnál). A CNN-A-nál nem: a számjegy még belefér a lapba, a térképek csak eltolódnak, a globális maximum nem változik – 98,9% marad.</details></li>
+    <li>(nehezebb) Egy $1 \times 1$-es konvolúció 300 csatornás bemenetből 175 csatornás kimenetet csinál. Mit csinál „képileg”, és hány paramétere van?
+      <details><summary>Megoldás</summary>Minden helyen külön-külön, a 300 csatorna értékéből 175 új számot számol (ugyanazzal a teljesen összekötött réteggel minden pixelben) – a csatornákat keveri és tömöríti, a térbeli méret marad. $175 \cdot (300 + 1) = 52\,675$ paraméter.</details></li>
+  </ol>
+</details>
+
+<h3 id="s113-b">2. lépés: pooling – kisebb térkép, kis eltolások tűrése</h3>
+<p>A térképek ugyanakkorák, mint a kép. Egy $224 \times 224$-es képen 64 szűrő után ez $3{,}2$ millió szám – rétegenként. A térképeket érdemes <b>összesűríteni</b>.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy 4 × 4-es térkép összesűrítése</span>
+  Osszuk a térképet négy $2 \times 2$-es ablakra, és mindegyikből tartsunk meg egy számot:
+  <div class="two-col" style="align-items:center">
+    <div class="tw" style="overflow-x:auto"><table style="font-family:var(--mono);font-size:.85rem;text-align:center;max-width:180px">
+      <tr><td style="background:var(--accent-soft)">1</td><td style="background:var(--accent-soft)">3</td><td style="background:var(--warn-soft)">0</td><td style="background:var(--warn-soft)">2</td></tr>
+      <tr><td style="background:var(--accent-soft)"><b>5</b></td><td style="background:var(--accent-soft)">0</td><td style="background:var(--warn-soft)">1</td><td style="background:var(--warn-soft)">1</td></tr>
+      <tr><td style="background:var(--ok-soft)">0</td><td style="background:var(--ok-soft)">2</td><td style="background:var(--bad-soft)">4</td><td style="background:var(--bad-soft)">0</td></tr>
+      <tr><td style="background:var(--ok-soft)">1</td><td style="background:var(--ok-soft)">1</td><td style="background:var(--bad-soft)">0</td><td style="background:var(--bad-soft)"><b>7</b></td></tr>
+    </table></div>
+    <div><b>max-pooling:</b> $\begin{pmatrix}5&2\\2&7\end{pmatrix}$ – ablakonként a legnagyobb.<br>
+    <b>átlagoló pooling:</b> $\begin{pmatrix}2{,}25&1\\1&2{,}75\end{pmatrix}$ – ablakonként az átlag.</div>
+  </div>
+  16 számból 4 lett. A max-pooling azt őrzi meg, hogy <b>„volt-e erős találat az ablakban”</b>, azt nem, hogy pontosan hol.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – pooling (összevonás)</span>
+  A térképet $k \times k$-as ablakokra bontjuk ($s$ lépésközzel, általában $k = s = 2$), és ablakonként egy számot tartunk meg: a <b>maximumot</b> (max-pooling) vagy az <b>átlagot</b> (átlagoló pooling). Csatornánként külön történik, így a csatornák száma marad.
+  A kimenet mérete ugyanazzal a képlettel számolható, mint a konvolúcióé (<a href="#s112-c">11.2</a>): $2 \times 2$, $s = 2$ felezi az oldalt. A pooling-rétegnek <b>nincs paramétere</b>.
+  <br><b>Globális pooling:</b> az ablak az egész térkép – csatornánként egyetlen szám marad (a CNN-A ilyen globális maximummal végződik). A modern hálók többnyire <b>globális átlagoló poolinggal</b> zárnak.
+  <br><small>Miért jó? (1) Kevesebb szám: a következő rétegnek negyedannyi helyen kell számolnia. (2) Nagyobb rálátás: a következő szűrő ugyanannyi súllyal kétszer nagyobb területet lát (<a href="#s113-c">3. lépés</a>). (3) Kis eltolás tűrése: ha a maximum az ablakon belül mozdul el, a kimenet nem változik.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – CNN-B: pooling a két konvolúció között</span>
+    Tegyünk $2 \times 2$-es max-poolingot az első konvolúció után: a második réteg $16 \times 16$ helyett $8 \times 8$-as térképeken dolgozik. A szorzások száma ott $16 \cdot 16 \cdot 32 \cdot 72 = 589\,824$ helyett $147\,456$ – negyedannyi. A paraméterszám nem változik (2746).
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a „20 a 9 fölött” (DLV)</span>
+    Egy térképen a 20-as érték egy oszloppal arrébb van, mint ahol a következő szűrő keresné. Max-pooling után a 20 ugyanabba a cellába kerül, amelyikbe a szűrő vár – a minta „összeáll”. A pooling apró elcsúszásokat simít el.
+  </div>
+</div>
+<div class="widget" data-widget="pooling-viz"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktató – a pooling nem tesz eltolás-invariánssá (Kiegészítés)</span>
+  Sok forrás (DLV, PDL, MLSYS) azt írja, hogy a pooling „eltolás-invariánssá” teszi a hálót. Mérjük meg! A CNN-B ugyanaz, mint a CNN-A, csak pooling van benne:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>a tesztkép helye</th><th>középen</th><th>1 px jobbra</th><th>2 px jobbra</th><th>1 px jobbra és le</th></tr>
+    <tr><td>CNN-A (pooling nélkül)</td><td>98,9%</td><td>98,9%</td><td>98,9%</td><td>98,9%</td></tr>
+    <tr><td>CNN-B (2 × 2 max-pooling)</td><td>98,4%</td><td><b>79,8%</b></td><td>98,4%</td><td><b>60,2%</b></td></tr>
+    <tr><td>CNN-B, eltolt képekkel tanítva</td><td>98,4%</td><td>98,2%</td><td>98,4%</td><td>97,6%</td></tr>
+  </table></div>
+  A 2 pixeles eltolást tökéletesen tűri – a páratlant nem. A pooling minden második helyről „mintát vesz”: 2 pixel eltolás után ugyanazok a pixelek kerülnek egy ablakba, 1 után mások. Ez az <b>átlapolás</b> (<em>aliasing</em>), és a nagy hálókban is megvan (A. Azulay – Y. Weiss, R. Zhang, 2019).
+  A gyógymód a gyakorlatban: <b>adatbővítés</b> eltolt képekkel (utolsó sor), vagy pooling előtti elmosás.
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – pooling</summary>
+  <ol>
+    <li>$2 \times 2$-es max- és átlagoló pooling (lépésköz 2) a $\begin{pmatrix}2&0&1&4\\3&1&0&2\\0&0&5&1\\6&2&3&3\end{pmatrix}$ térképen?
+      <details><summary>Megoldás</summary>Max: $\begin{pmatrix}3&4\\6&5\end{pmatrix}$. Átlag: $\begin{pmatrix}1{,}5&1{,}75\\2&3\end{pmatrix}$.</details></li>
+    <li>Egy $24 \times 24 \times 64$-es tömbre $2 \times 2$-es max-pooling megy. Mekkora a kimenet, és hány paramétere van a rétegnek?
+      <details><summary>Megoldás</summary>$12 \times 12 \times 64$ (a számok száma $36\,864$-ről $9216$-ra esik). Paramétere nincs.</details></li>
+    <li>Az AlexNet $3 \times 3$-as, 2-es lépésközű („átfedő”) max-poolingot használ. Mekkora lesz egy $55 \times 55$-ös térképből?
+      <details><summary>Megoldás</summary>$\lfloor (55 - 3)/2 \rfloor + 1 = 27$.</details></li>
+    <li>Egy $10 \times 10$-es térképre $3 \times 3$-as, 2-es lépésközű átlagoló pooling megy. Mekkora a kimenet? (A <em>Machine Learning and AI Beyond the Basics</em> 11. fejezetének példája.)
+      <details><summary>Megoldás</summary>$\lfloor (10 - 3)/2 \rfloor + 1 = \lfloor 3{,}5 \rfloor + 1 = 4$.</details></li>
+    <li>(nehezebb) Egy térkép egyetlen erős értéke a (2; 2) helyről a (2; 3) helyre csúszik (sor; oszlop, 0-tól számolva). Változik-e a $2 \times 2$-es max-pooling kimenete? És ha a (2; 3)-ról a (2; 4)-re?
+      <details><summary>Megoldás</summary>Az oszlopok ablakai: 0–1, 2–3, 4–5. A 2 → 3 lépés ablakon belül marad: a kimenet nem változik. A 3 → 4 lépés átlép a következő ablakba: a kimenetben is egy cellával arrébb kerül. Ezért tűri a pooling csak „néha” az 1 pixeles eltolást.</details></li>
+  </ol>
+</details>
+
+<h3 id="s113-c">3. lépés: recepciós mező és jellemzőhierarchia – a teljes háló</h3>
+<p>Egy $3 \times 3$-as szűrő egy $3 \times 3$-as foltot lát. Egy számjegy viszont 8 × 8 pixeles. Hogyan lát rá a háló az egészre?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két réteg egy számsoron</span>
+  Az első réteg 3 széles szűrője egy kimenetéhez 3 bemenet kell. A második réteg egy kimenetéhez az első réteg 3 szomszédos kimenete kell – azokhoz együtt $3 + 1 + 1 = 5$ bemenet. Két $3 \times 3$-as réteg után minden szám egy $5 \times 5$-ös foltot „lát” a képből, háromnál $7 \times 7$-est.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – recepciós mező (Kiegészítés: a képlet)</span>
+  Egy réteg egy elemének <b>recepciós mezeje</b> a bemeneti kép azon része, amelytől az értéke függ. Rétegről rétegre:
+  $$r_\ell = r_{\ell-1} + (k_\ell - 1)\cdot j_{\ell-1}, \qquad j_\ell = j_{\ell-1}\cdot s_\ell, \qquad r_0 = j_0 = 1,$$
+  ahol $k_\ell$ a réteg ablakmérete, $s_\ell$ a lépésköze, $j$ pedig az „ugrás”: hány bemeneti pixelnyire vannak egymástól a szomszédos elemek.
+  <b>Miért?</b> Egy új réteg $k$ szomszédos elemet néz; ezek egymástól $j$ pixelre vannak, így a látott terület $(k - 1)\cdot j$-vel szélesebb. A lépésközös rétegek (pooling) után $j$ nő – onnan minden réteg gyorsabban tágítja a mezőt.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – CNN-B</span>
+    konv. $3 \times 3$: $r = 3$, $j = 1$; pooling $2 \times 2$: $r = 3 + 1 \cdot 1 = 4$, $j = 2$; konv. $3 \times 3$: $r = 4 + 2 \cdot 2 = \mathbf 8$.
+    A második réteg minden eleme egy $8 \times 8$-as foltot lát – pont akkorát, mint egy számjegy. (A CNN-A második rétege pooling nélkül csak $5 \times 5$-öt.)
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – VGG-16</span>
+    13 darab $3 \times 3$-as konvolúció és 5 pooling után az utolsó elem recepciós mezeje <b>212 pixel</b> – majdnem a teljes $224$-es kép. A mély rétegek az egész tárgyat látják.
+  </div>
+</div>
+<div class="widget" data-widget="receptive-field"></div>
+<div class="box def">
+  <span class="box-title">A jellemzők hierarchiája – és a teljes háló</span>
+  A recepciós mező rétegről rétegre nő, ezért a rétegek egyre nagyobb mintákat keresnek: az első réteg <b>éleket, színfoltokat</b>; a középsők <b>sarkokat, íveket, textúrákat</b>; a mélyek <b>tárgyrészeket</b> (szem, kerék, betű); a legmélyebbek egész <b>tárgyakat</b>. Ezt a tanult szűrők képei meg is mutatják (M. Zeiler – R. Fergus, 2013; DLV 17. fejezet).
+  Egy tipikus konvolúciós háló (CNN):
+  $$\big[\text{konvolúció} \to \text{ReLU} \to (\text{pooling})\big] \times N \;\to\; \text{globális pooling vagy lapítás} \;\to\; \text{teljesen összekötött réteg(ek)} \;\to\; \text{softmax}.$$
+  Az első rész a <b>jellemzőkinyerő</b> (törzs), a vége az <b>osztályozó fej</b>.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – hol vannak a paraméterek? (PDL)</span>
+    A Keras klasszikus MNIST-hálója: konv. 32, konv. 64, pooling → $12 \times 12 \times 64 = 9216$ szám, <b>lapítás</b> (sorba rakás), aztán 128 neuronos teljesen összekötött réteg és 10 kimenet. Összesen $1\,199\,882$ paraméter – ebből $9216 \cdot 128 + 128 = 1\,179\,776$, azaz <b>98,3%</b> az egyetlen teljesen összekötött rétegben.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – lapítás helyett globális pooling</span>
+    Ha a $12 \times 12 \times 64$-es tömb helyett csatornánként egy számot (64-et) adunk tovább, a 128 neuronos réteg $64 \cdot 128 + 128 = 8320$ paraméter. És a jóslat nem függ attól, hol volt a minta – a lapítás után ugyanis minden helyhez megint külön súly tartozik, mint az MLP-ben.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A lapítás visszahozza a helyfüggést.</b> Ha a konvolúciók után lapítunk, és utána teljesen összekötött réteg jön, az megint pozíciónként tanul. Ezért nem „eltolás-invariáns” egy CNN önmagában (PDL 13. fejezete maga is megmutatja: az eltolt számjegyeken a hálója hibázik, amíg eltolt képekkel nem tanítja).</li>
+    <li><b>A recepciós mező széle alig számít.</b> A képlet a <b>legnagyobb</b> területet adja, amelytől egy elem függhet; a gyakorlatban a közepe sokkal többet nyom („effektív recepciós mező”, W. Luo és társai, 2016).</li>
+    <li><b>Az emberi látórendszer csak ihlet.</b> A hierarchia a látókéreg felépítésére emlékeztet (D. Hubel – T. Wiesel, 1959–62), de a CNN nem az agy modellje.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – recepciós mező és felépítés</summary>
+  <ol>
+    <li>Mekkora a recepciós mező három $3 \times 3$-as konvolúció után (lépésköz 1, pooling nélkül)? És egyetlen $7 \times 7$-es után?
+      <details><summary>Megoldás</summary>$1 + 2 + 2 + 2 = 7$ – ugyanannyi. (Hogy ez miért éri meg, azt a <a href="#s114-b">11.4</a> mutatja.)</details></li>
+    <li>konv. $3 \times 3$ → pooling $2 \times 2$ → konv. $3 \times 3$ → pooling $2 \times 2$. Mekkora a recepciós mező a végén, és mennyi az ugrás?
+      <details><summary>Megoldás</summary>$r$: 3, 4, 8, 10; $j$: 1, 2, 2, 4. A végén $r = 10$, $j = 4$.</details></li>
+    <li>Egy háló utolsó konvolúciós rétege $7 \times 7 \times 512$-es tömböt ad. Hány bemenete van a következő rétegnek lapítás után, és hány globális átlagoló pooling után?
+      <details><summary>Megoldás</summary>Lapítás: $7 \cdot 7 \cdot 512 = 25\,088$. Globális pooling: 512.</details></li>
+    <li>Az előző feladatban 4096 neuronos teljesen összekötött réteg jön. Hány paramétere van lapítás után, és hány globális pooling után?
+      <details><summary>Megoldás</summary>$25\,088 \cdot 4096 + 4096 = 102\,764\,544$ (ez a VGG-16 első teljesen összekötött rétege), illetve $512 \cdot 4096 + 4096 = 2\,101\,248$ – majdnem ötvenszer kevesebb.</details></li>
+    <li>(nehezebb) Hány réteg $3 \times 3$-as konvolúció kell (pooling nélkül), hogy a recepciós mező a 16 × 16-os lap egészét lefedje? És ha a második réteg után $2 \times 2$-es pooling jön?
+      <details><summary>Megoldás</summary>Pooling nélkül $r = 1 + 2L \ge 16$ → $L = 8$ réteg (r = 17). Poolinggal: 3, 5 (két konv.), pooling: 6 ($j = 2$), aztán rétegenként +4: 10, 14, 18 → az 5. konvolúciós rétegnél már lefedi.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai11-113"></div>
+</section>

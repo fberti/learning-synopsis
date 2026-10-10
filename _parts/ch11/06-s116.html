@@ -1,0 +1,161 @@
+
+<!-- ===================================================== 11.6 -->
+<section id="s116">
+<h2>11.6 Feladattípusok: osztályozás, detektálás, szegmentálás ★★</h2>
+<p>Eddig egy kérdést tettünk fel a képnek: <b>mi van rajta?</b> Egy önvezető autónak ez kevés: tudnia kell, <b>hol</b> van a gyalogos, <b>hány</b> van, és <b>pontosan melyik pixel</b> az úttest.</p>
+
+<h3 id="s116-a">1. lépés: mi van rajta, hol, és pontosan mely pixeleken?</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy utcakép, négy kérdés</span>
+  Egy fotón két gyalogos, egy autó és egy járda látszik.
+  <ol style="margin:.2rem 0">
+    <li><b>Osztályozás:</b> „Van-e gyalogos a képen?” → egy valószínűség-eloszlás az osztályokra.</li>
+    <li><b>Objektumdetektálás:</b> „Hol vannak a gyalogosok és az autók?” → minden objektumra egy <b>befoglaló téglalap</b> (bal felső és jobb alsó sarok), egy osztály és egy pontszám: 3 téglalap.</li>
+    <li><b>Szemantikus szegmentálás:</b> „Melyik pixel úttest, járda, ember, autó?” → <b>minden pixelre</b> egy osztály; a két gyalogos egyetlen „ember” folt.</li>
+    <li><b>Példányszegmentálás:</b> „Melyik pixel melyik emberé?” → objektumonként külön maszk; a két gyalogos két külön folt.</li>
+  </ol>
+</div>
+<div class="box def">
+  <span class="box-title">A feladatok és a kimenetük</span>
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem">
+    <tr><th>feladat</th><th>kimenet egy $H \times W$-s képre</th><th>tipikus háló</th></tr>
+    <tr><td>osztályozás</td><td>$K$ valószínűség</td><td>CNN + globális pooling + fej (<a href="#s113-c">11.3</a>)</td></tr>
+    <tr><td>objektumdetektálás</td><td>változó számú (osztály, téglalap, pontszám)</td><td>kétlépcsős (Faster R-CNN, 2015) vagy egylépcsős (YOLO, 2016)</td></tr>
+    <tr><td>szemantikus szegmentálás</td><td>$H \times W$ címke (minden pixelre egy osztályozás)</td><td>kódoló–dekódoló, pl. U-Net (2015)</td></tr>
+    <tr><td>példányszegmentálás</td><td>objektumonként egy maszk</td><td>detektálás + maszk, pl. Mask R-CNN (2017)</td></tr>
+  </table></div>
+  Mindegyik ugyanarra a konvolúciós <b>törzsre</b> épül (gyakran előtanítva, <a href="#s115">11.5</a>); csak a <b>fej</b> más. A szegmentáló háló <b>teljesen konvolúciós</b>: nincs benne lapítás, ezért bármekkora képet elfogad, és a kimenete is térkép.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a YOLO ötlete</span>
+    Az első YOLO a képet $7 \times 7$-es rácsra osztotta. Minden cella 2 téglalapot jósol (4 koordináta + 1 bizonyosság mindegyikhez) és 20 osztály valószínűségét: a kimenet $7 \times 7 \times 30 = 1470$ szám – <b>egyetlen</b> előre menetből. Innen a név: <em>You Only Look Once</em>.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a U-Net alakja</span>
+    A kódoló rész poolinggal zsugorít (egyre nagyobb recepciós mező: <b>mi</b> van ott), a dekódoló rész visszanagyít (<b>hol</b> pontosan), és rövidzárak hozzák át a korai, részletgazdag térképeket. Az eredeti U-Net kitöltés nélkül egy $572 \times 572$-es képből $388 \times 388$-as maszkot adott.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A szegmentálás = sok osztályozás.</b> Egy $224 \times 224$-es képen $50\,176$ pixelt kell osztályozni. A pontosság itt is félrevezet: ha a kép 95%-a háttér, a „minden háttér” válasz 95%-os (<a href="../06-modellertekeles/#s61-a">6.1</a>) – ezért IoU-t és Dice-t mérünk (2. lépés).</li>
+    <li><b>A detektálásnál a jóslatok száma változik.</b> Nincs „egy kimenet = egy objektum” megfeleltetés; a jóslatokat a valódi objektumokhoz kell párosítani – átfedés alapján.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – melyik feladat?</summary>
+  <ol>
+    <li>Egy alkalmazás megmondja, milyen növény levele van a képen. Melyik feladattípus?
+      <details><summary>Megoldás</summary>Osztályozás: egy kép – egy címke.</details></li>
+    <li>Egy raktári kamera megszámolja a polcon a dobozokat. Melyik feladattípus kell?
+      <details><summary>Megoldás</summary>Objektumdetektálás: minden dobozra egy téglalap; a darabszám a téglalapok száma.</details></li>
+    <li>Egy orvosi program kiszínezi a CT-szeleten a daganatot, hogy a térfogatát meg lehessen mérni. Melyik?
+      <details><summary>Megoldás</summary>Szegmentálás (szemantikus, ha csak „daganat / nem daganat”): pixelenkénti címke kell, a téglalap pontatlan volna.</details></li>
+    <li>Hány számot ad ki egy YOLO-szerű háló $13 \times 13$-as ráccsal, cellánként 5 téglalappal (mindegyik 5 szám) és 80 osztállyal (cellánként egyszer)?
+      <details><summary>Megoldás</summary>$13 \cdot 13 \cdot (5 \cdot 5 + 80) = 169 \cdot 105 = 17\,745$.</details></li>
+    <li>(nehezebb) Egy szegmentáló háló egy olyan képhalmazon, ahol a pixelek 98%-a háttér, 98%-os pixelpontosságot ér el. Jó-e? Mit kérdeznél?
+      <details><summary>Megoldás</summary>Nem tudni: a „mindenhol háttér” válasz is 98%. Meg kell nézni az objektum-osztály IoU-ját vagy Dice-értékét – azt, hogy a valódi objektumpixelek mekkora részét találja meg, és mennyi a téves.</details></li>
+  </ol>
+</details>
+
+<h3 id="s116-b">2. lépés: mennyire talált? – az IoU</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két téglalap</span>
+  Egy autó valódi téglalapja $A$: $(1;\ 1)$-től $(5;\ 5)$-ig, a háló jóslata $B$: $(2;\ 1)$-től $(6;\ 5)$-ig. Mindkettő $4 \times 4 = 16$ egység. A közös rész $3 \times 4 = 12$, az egyesítés $16 + 16 - 12 = 20$.
+  Az átfedés aránya $12/20 = 0{,}6$. Ha a jóslat egy egységgel jobbra lóg, még elég jó; ha nagyon mellé megy, az arány 0-hoz közelít.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – IoU és Dice</span>
+  $$\mathrm{IoU}(A, B) = \frac{|A \cap B|}{|A \cup B|} = \frac{|A \cap B|}{|A| + |B| - |A \cap B|}, \qquad \mathrm{Dice}(A, B) = \frac{2\,|A \cap B|}{|A| + |B|}.$$
+  Az IoU (<em>intersection over union</em>, metszet per unió; Jaccard-index) 0 és 1 között van: 1 a tökéletes fedés, 0 a nincs közös rész. A Dice ugyanazt méri másképp skálázva: $\mathrm{Dice} = \dfrac{2\,\mathrm{IoU}}{1 + \mathrm{IoU}}$. Téglalapokra és szegmentálási maszkokra (pixelhalmazokra) egyaránt használjuk.
+  <br><small>Detektálásnál egy jóslat <b>találat</b>, ha az IoU-ja egy valódi objektummal legalább egy küszöb (gyakran 0,5). Ezzel a jóslatok TP/FP-re, a meg nem talált objektumok FN-re oszlanak – és jöhet a precizitás és a felidézés (<a href="../06-modellertekeles/#s61-b">6.1</a>); a versenyek ezekből átlagolt mérőszámot (mAP) közölnek.</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – átlós elcsúszás</span>
+    $A$: $(0;0)$–$(4;4)$, $B$: $(2;2)$–$(6;6)$. Metszet $2 \times 2 = 4$, unió $16 + 16 - 4 = 28$: $\mathrm{IoU} = 4/28 \approx 0{,}143$ – ránézésre „félig fedik”, valójában rossz találat.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – kettős jóslat (NMS)</span>
+    A háló ugyanarra az autóra két téglalapot ad: $(0;0)$–$(4;4)$ 0,9-es és $(1;0)$–$(5;4)$ 0,8-as pontszámmal. Az IoU-juk 0,6 &gt; 0,5, ezért a gyengébbet eldobjuk. Ez a <b>nem-maximum elfojtás</b> (NMS): a legerősebb jóslat marad, a vele erősen átfedők kiesnek.
+  </div>
+</div>
+<div class="widget" data-widget="iou-viz"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az unióból ne felejtsd kivonni a metszetet</b> – különben kétszer számolod, és az IoU sosem érheti el az 1-et.</li>
+    <li><b>Az IoU szigorúbb, mint amilyennek látszik.</b> Két egyforma négyzet, amelyek egymáshoz képest fél oldalnyira csúsznak el egy irányban, csak $1/3$-os IoU-t adnak.</li>
+    <li><b>Kis tárgyaknál</b> egyetlen pixel elcsúszás is nagyot ront az IoU-n; ezért a mérőszámokat gyakran méret szerint külön is közlik.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – IoU</summary>
+  <ol>
+    <li>$A$: $(0;0)$–$(10;10)$, $B$: $(0;0)$–$(5;10)$. Mennyi az IoU és a Dice?
+      <details><summary>Megoldás</summary>Metszet 50, unió $100 + 50 - 50 = 100$: $\mathrm{IoU} = 0{,}5$. $\mathrm{Dice} = 100/150 \approx 0{,}667$.</details></li>
+    <li>$A$: $(2;2)$–$(6;6)$, $B$: $(3;3)$–$(5;5)$ (a jóslat a valódi téglalap belsejében van). IoU?
+      <details><summary>Megoldás</summary>Metszet 4 (az egész $B$), unió 16: $\mathrm{IoU} = 0{,}25$ – túl kicsi jóslat, rossz találat.</details></li>
+    <li>Két $4 \times 2$-es téglalap vízszintesen fél hosszukkal elcsúszva: $(0;0)$–$(4;2)$ és $(2;0)$–$(6;2)$. IoU?
+      <details><summary>Megoldás</summary>Metszet $2 \cdot 2 = 4$, unió $8 + 8 - 4 = 12$: $1/3$.</details></li>
+    <li>Egy szegmentálásnál a Dice 0,8. Mennyi az IoU?
+      <details><summary>Megoldás</summary>$\mathrm{IoU} = \mathrm{Dice}/(2 - \mathrm{Dice}) = 0{,}8/1{,}2 \approx 0{,}667$. (A Dice mindig legalább akkora, mint az IoU.)</details></li>
+    <li>(nehezebb) Egy képen 4 valódi gyalogos van. A háló 3 téglalapot ad: kettő 0,5 fölötti IoU-val két különböző gyalogost talál, a harmadik egy oszlopra mutat. Mennyi a precizitás és a felidézés?
+      <details><summary>Megoldás</summary>TP = 2, FP = 1, FN = 2. Precizitás $2/3 \approx 0{,}67$, felidézés $2/4 = 0{,}5$.</details></li>
+  </ol>
+</details>
+
+<h3 id="s116-c">3. lépés: adatbővítés képekre – mit szabad?</h3>
+<p>Az adatbővítést a <a href="../10-halo-tanitasa/#s107-d">10.7</a> általánosan bevezette. Képeknél ez a legolcsóbb és leghatásosabb regularizáló – ha a feladathoz illik.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a CNN-B és az eltolás</span>
+  A pooling miatt a CNN-B a páratlan eltolásokra érzékeny volt (<a href="#s113-b">11.3</a>). Ha a tanítás során minden köteget véletlenül $-2$ és $+2$ pixel között eltolunk, ugyanaz a háló:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:560px">
+    <tr><th></th><th>középen</th><th>1 px jobbra</th><th>1 px jobbra és le</th></tr>
+    <tr><td>CNN-B</td><td>98,4%</td><td>79,8%</td><td>60,2%</td></tr>
+    <tr><td>CNN-B + eltolásos bővítés</td><td>98,4%</td><td><b>98,2%</b></td><td><b>97,6%</b></td></tr>
+  </table></div>
+  A bővítés megmutatta a hálónak, amit a felépítése nem garantált.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – a bővítés címketartó legyen</span>
+  Tipikus képi bővítések: <b>eltolás, véletlen kivágás, átméretezés, tükrözés, kis forgatás, fényesség/kontraszt/szín változtatása, zaj, elmosás, kitakarás</b>. Mindegyik csak akkor jó, ha a kép <b>címkéje nem változik</b> tőle – és ha a használat során is előfordulhat.
+  Detektálásnál és szegmentálásnál a <b>téglalapot és a maszkot is ugyanúgy</b> kell átalakítani, mint a képet.
+  <br><small>Csak a tanítóadaton bővítünk; a validációs és tesztképek maradnak (<a href="../10-halo-tanitasa/#s107-d">10.7</a>). Kiértékeléskor néha a jóslatot több bővített változat átlagából adjuk (<em>test-time augmentation</em>).</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – tükrözés: macska igen, számjegy nem</span>
+    Egy tükrözött macska is macska – jó bővítés. Egy tükrözött 2-es viszont nem számjegy, egy tükrözött „b” pedig „d” lesz. A 180°-os forgatás a 6-osból 9-est csinál. Számjegyekre csak kis eltolás, forgatás, vastagítás illik.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a téglalap is fordul</span>
+    Egy 10 egység széles képen az autó téglalapja $x = 2$-től $5$-ig tart. Vízszintes tükrözés után: $x = 10 - 5 = 5$-től $10 - 2 = 8$-ig. Ha csak a képet tükröznéd, a háló rossz helyen tanulná az autót.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Orvosi képek:</b> a mellkasröntgen tükrözése „áttolja” a szívet a másik oldalra – ez egy ritka rendellenesség képe, nem egy szokásos röntgené. A bővítés tudást is ront, ha nem gondoljuk végig.</li>
+    <li><b>A színtorzítás elveheti a jelet,</b> ha a szín maga a lényeg (érett / éretlen gyümölcs, közlekedési lámpa).</li>
+    <li><b>Bővítés helyett jobb adat.</b> A bővítés csak a már meglévő képek változatait adja. Ha a használatban egészen más képek jönnek (éjszaka, eső, más kamera), azokból kell gyűjteni (<a href="../06-modellertekeles/#s64-c">6.4</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – adatbővítés</summary>
+  <ol>
+    <li>Melyik bővítés címketartó egy „van-e kutya a képen?” feladatnál: vízszintes tükrözés, függőleges tükrözés, kis forgatás, szürkévé alakítás?
+      <details><summary>Megoldás</summary>A vízszintes tükrözés, a kis forgatás és (többnyire) a szürkévé alakítás igen. A függőleges tükrözés címkét tart ugyan, de fejjel lefelé álló kutyát ritkán látunk – inkább ront, mint javít.</details></li>
+    <li>Egy 20 egység széles képen a téglalap $x = 3$-tól $9$-ig tart. Hol lesz vízszintes tükrözés után?
+      <details><summary>Megoldás</summary>$x = 20 - 9 = 11$-től $20 - 3 = 17$-ig.</details></li>
+    <li>Miért kell a szegmentálási maszkot pontosan ugyanazzal a véletlen kivágással és forgatással átalakítani, mint a képet?
+      <details><summary>Megoldás</summary>Mert a maszk pixelenként mondja meg a címkét: ha a kép elfordul, de a maszk nem, a címkék rossz pixelekhez tartoznak – a háló hibás dolgot tanul.</details></li>
+    <li>Egy közlekedésitábla-felismerőt tükrözött képekkel bővítesz. Mi lehet a baj?
+      <details><summary>Megoldás</summary>A „balra kanyarodni tilos” tábla tükörképe a „jobbra kanyarodni tilos”, a feliratok pedig olvashatatlanok lesznek: a bővítés címkét vált.</details></li>
+    <li>(nehezebb) A <em>Practical Deep Learning</em> egy középre tett számjegyeken tanított hálót csúsztat végig egy nagy képen, és sok hamis 2-est és 5-öst talál a számjegyek között. Mi az oka, és mi a javítás?
+      <details><summary>Megoldás</summary>A háló sosem látott „fél” vagy elcsúszott számjegyet, így ezekre is magabiztosan mond valamit. Javítás: eltolt (részben kilógó) számjegyekkel bővíteni a tanítóadatot – a könyv ezzel tiszta térképeket kap.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai11-116"></div>
+</section>

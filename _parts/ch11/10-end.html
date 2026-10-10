@@ -1,0 +1,235 @@
+
+<!-- ===================================================== Összefoglalás -->
+<section id="s-sum">
+<h2>Összefoglalás</h2>
+<div class="tw" style="overflow-x:auto"><table>
+  <tr><th>Fogalom</th><th>Lényeg</th></tr>
+  <tr><td>Kép mint tenzor</td><td>$H \times W \times C$ szám (RGB: 3 csatorna, 0–255); köteg: $B \times C \times H \times W$ (PyTorch)</td></tr>
+  <tr><td>Az MLP baja</td><td>az első réteg súlyszáma a pixelszámmal nő; minden súly egy rögzített pixelé – nem látja a szomszédságot, és nem tűri az eltolást (96,9% → 44,7% 1 pixelnél)</td></tr>
+  <tr><td>Konvolúció</td><td>$Y_{i,j} = \sum_{a,b} K_{a,b}X_{i+a,j+b} + b_0$ – csúszó skaláris szorzat; a mélytanulásban tükrözés nélkül (keresztkorreláció)</td></tr>
+  <tr><td>Szűrő</td><td>mintadetektor: a kimenet ott nagy, ahol az ablak hasonlít rá; a számait a háló tanulja</td></tr>
+  <tr><td>Kimeneti méret</td><td>$\lfloor (n + 2p - k)/s \rfloor + 1$; „same”: $p = (k - 1)/2$, $s = 1$</td></tr>
+  <tr><td>Konvolúciós réteg</td><td>$C_{\text{ki}}$ szűrő, mindegyik $k \times k \times C_{\text{be}}$; paraméter: $C_{\text{ki}}(k^2 C_{\text{be}} + 1)$, a képmérettől független</td></tr>
+  <tr><td>Ekvivariancia / invariancia</td><td>konvolúció: az eltolt kép térképe eltolt; globális pooling: az eredmény nem függ a helytől</td></tr>
+  <tr><td>Pooling</td><td>ablakonként max vagy átlag, csatornánként; nincs paramétere; felezi az oldalt; csak részleges eltolástűrés (átlapolás)</td></tr>
+  <tr><td>Recepciós mező</td><td>$r_\ell = r_{\ell-1} + (k_\ell - 1)j_{\ell-1}$, $j_\ell = j_{\ell-1}s_\ell$; két $3 \times 3$ = 5, három = 7</td></tr>
+  <tr><td>Jellemzőhierarchia</td><td>élek → textúrák, formák → tárgyrészek → tárgyak; törzs (jellemzők) + fej (osztályozó)</td></tr>
+  <tr><td>LeNet-5 (1998)</td><td>konvolúció és összevonás váltakozva, kb. 60 000 paraméter; csekkolvasás</td></tr>
+  <tr><td>AlexNet (2012)</td><td>ImageNet top-5 15,3% (26,2% helyett); ReLU, dropout, adatbővítés, GPU; kb. 62 millió paraméter</td></tr>
+  <tr><td>VGG (2014)</td><td>csak $3 \times 3$: két réteg $18C^2$ súly egy $5 \times 5$ $25C^2$-e helyett; 138 millió paraméter, 89% a végén</td></tr>
+  <tr><td>ResNet (2015)</td><td>$\mathbf y = \mathbf x + F(\mathbf x)$; a degradáció ellen; 152 réteg, 3,57%; globális átlagoló pooling a végén</td></tr>
+  <tr><td>Transzfertanulás</td><td>előtanított törzs + új fej; jellemzőkinyerés (fagyasztva) vagy finomhangolás (kis $\eta$); önfelügyelt előtanítás címkék nélkül</td></tr>
+  <tr><td>Feladattípusok</td><td>osztályozás, detektálás (téglalap + osztály), szemantikus és példányszegmentálás (pixelenkénti címke)</td></tr>
+  <tr><td>IoU, Dice</td><td>$|A\cap B|/|A\cup B|$; $2|A \cap B|/(|A| + |B|)$; találat, ha IoU ≥ 0,5; NMS</td></tr>
+  <tr><td>Képi adatbővítés</td><td>címketartó átalakítások (eltolás, kivágás, tükrözés, szín…); téglalap és maszk együtt; csak a tanítóadaton</td></tr>
+  <tr><td>Vision Transformer</td><td>$P \times P$-s foltok → tokenek + pozíció + [CLS]; gyenge induktív torzítás → sok adat; a figyelem ára $N^2$</td></tr>
+  <tr><td>Társadalmi oldal</td><td>1:N keresésben $N \cdot q$ hamis találat; csoportonként mérj; rövidítések, ellenséges példák; EU AI Act</td></tr>
+</table></div>
+
+<div class="box tip">
+  <span class="box-title">Melyik eszköz mikor? – döntési táblázat</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>Ha a feladatban ez áll…</th><th>…akkor ezt használd</th></tr>
+    <tr><td>egy konvolúciós kimenet egy eleme kell</td><td>a szűrő és az ablak elemenkénti szorzatainak összege (+ torzítás); tükrözés nélkül</td></tr>
+    <tr><td>mekkora lesz a térkép?</td><td>$\lfloor (n + 2p - k)/s \rfloor + 1$ – poolingra is</td></tr>
+    <tr><td>hány paramétere van egy rétegnek?</td><td>konvolúció: $C_{\text{ki}}(k^2 C_{\text{be}} + 1)$; teljesen összekötött: $n_{\text{be}}n_{\text{ki}} + n_{\text{ki}}$; pooling: 0</td></tr>
+    <tr><td>mekkora területet lát egy elem?</td><td>recepciós mező: $r \mathrel{+}= (k - 1)\,j$, $j \mathrel{*}= s$</td></tr>
+    <tr><td>a minta bárhol lehet a képen</td><td>konvolúció + globális pooling; eltolásos adatbővítés</td></tr>
+    <tr><td>sok paraméter a háló végén</td><td>lapítás helyett globális átlagoló pooling</td></tr>
+    <tr><td>mély háló nem tanul, a tanító hiba is nő</td><td>maradékkapcsolatok (+ normalizálás)</td></tr>
+    <tr><td>kevés címkézett kép</td><td>előtanított törzs: jellemzőkinyerés, aztán óvatos finomhangolás; adatbővítés</td></tr>
+    <tr><td>„hol van?” / „mely pixelek?”</td><td>detektálás (téglalapok, NMS) / szegmentálás (U-Net); mérés IoU-val, Dice-szel</td></tr>
+    <tr><td>nagyon sok adat, nagy előtanított modell</td><td>ViT vagy ViT-alapú alapmodell; kevés adatnál CNN</td></tr>
+    <tr><td>arcazonosítás, keresés sok ember között</td><td>$N \cdot q$ hamis találat; csoportonkénti mérés; jogi keretek</td></tr>
+  </table></div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabályok</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Egy szűrő, minden helyen.</b> A konvolúció súlyai nem függenek a kép méretétől.</li>
+    <li><b>A szűrőnek annyi csatornája van, ahány a bemenetnek; a kimenetnek annyi, ahány szűrő.</b></li>
+    <li><b>Konvolúció: ekvivariáns. Globális pooling: invariáns.</b> A lapítás és a lépésköz ezt rontja.</li>
+    <li><b>Két $3 \times 3$ jobb, mint egy $5 \times 5$:</b> ugyanaz a rálátás, kevesebb súly, több nemlinearitás.</li>
+    <li><b>Ne nulláról kezdj.</b> Előtanított törzs, új fej, kis tanulási ráta.</li>
+    <li><b>A bővítés mondja meg a hálónak, mi nem számít</b> – csak címketartó legyen.</li>
+    <li><b>Egy hibaarány semmit nem mond</b> bázisarány, küszöb és csoportonkénti bontás nélkül.</li>
+  </ul>
+</div>
+</section>
+
+<!-- ===================================================== Ellenőrző kérdések -->
+<section id="s-check">
+<h2>Ellenőrző kérdések</h2>
+<p>Gondold végig a választ, aztán kattints a kártyára a megfordításhoz!</p>
+<div class="flashcards">
+  <div class="flash"><div class="inner"><div class="face front">Hány szám egy $224 \times 224$-es színes kép?</div>
+    <div class="face back">$224 \cdot 224 \cdot 3 = 150\,528$ – három csatorna (RGB), mindegyik egy $224 \times 224$-es mátrix.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért nő meredeken egy MLP paraméterszáma a kép méretével?</div>
+    <div class="face back">Mert az első réteg minden neuronja minden bemeneti számhoz kapcsolódik: súlyok = pixelek × csatornák × neuronok. Kétszeres oldal – négyszeres súlyszám.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért nem zavarja az MLP-t, ha a pixeleket rögzítetten összekeverjük?</div>
+    <div class="face back">Mert nem tudja, melyik pixel melyik mellett van: a keverés csak átszámozza a bemeneteit. Ugyanezért nem tűri az eltolást sem.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit számol egy konvolúció egy helyen?</div>
+    <div class="face back">A szűrő és az alatta lévő ablak skaláris szorzatát (elemenkénti szorzatok összege) plusz a torzítást.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a különbség a matematikai konvolúció és a mélytanulásbeli „konvolúció” között?</div>
+    <div class="face back">A matematikai tükrözi a kernelt, a mélytanulási könyvtárak nem (keresztkorreláció). Tanult szűrőnél mindegy; kézi számolásnál az előjelek megfordulhatnak.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért mintakereső egy szűrő?</div>
+    <div class="face back">Mert a skaláris szorzat ott nagy, ahol az ablak hasonlít a szűrőre (pozitív súlynál világos, negatívnál sötét). A kimenet a minta térképe.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a kimeneti méret képlete?</div>
+    <div class="face back">$\lfloor (n + 2p - k)/s \rfloor + 1$ – $n$ a bemenet, $k$ a szűrő, $p$ a kitöltés, $s$ a lépésköz. Méretmegtartó: $p = (k - 1)/2$, $s = 1$.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Hány paramétere van egy konvolúciós rétegnek?</div>
+    <div class="face back">$C_{\text{ki}} \cdot (k \cdot k \cdot C_{\text{be}} + 1)$: szűrőnként $k^2 C_{\text{be}}$ súly és 1 torzítás. Nem függ a kép méretétől.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi az ekvivariancia és az invariancia?</div>
+    <div class="face back">Ekvivariáns: az eltolt bemenet eltolt kimenetet ad (konvolúció). Invariáns: az eltolás nem változtat a kimeneten (globális pooling).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit csinál a max-pooling, és miért nem tesz teljesen eltolástűrővé?</div>
+    <div class="face back">Ablakonként a legnagyobb értéket tartja meg (felezi az oldalt, nincs paramétere). Lépésköze miatt csak az ablakon belüli elmozdulást tűri; 1 pixeles eltolás átlapolást okozhat (CNN-B: 98,4% → 79,8%).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Hogyan nő a recepciós mező?</div>
+    <div class="face back">$r_\ell = r_{\ell-1} + (k_\ell - 1)\,j_{\ell-1}$, ahol $j$ a lépésközök szorzata. Két $3 \times 3$: 5; poolinggal közte: 8.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért jobb két $3 \times 3$-as réteg egy $5 \times 5$-ösnél (VGG)?</div>
+    <div class="face back">Ugyanaz a recepciós mező (5), de $18C^2$ súly $25C^2$ helyett, és két ReLU egy helyett.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit hozott az AlexNet 2012-ben?</div>
+    <div class="face back">ImageNet top-5 hiba 15,3% (a második 26,2%); ReLU, dropout, adatbővítés, két GPU; kb. 62 millió paraméter. A mélytanulás áttörése.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a degradáció, és mit tesz ellene a ResNet?</div>
+    <div class="face back">A mélyebb „sima” háló tanító hibája is nagyobb. A maradékblokk $\mathbf y = \mathbf x + F(\mathbf x)$: könnyű az identitás, és a gradiens a rövidzáron csillapítás nélkül jut vissza.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Hol van a VGG-16 paramétereinek többsége, és hogyan kerüli ezt a ResNet?</div>
+    <div class="face back">A végén, a teljesen összekötött rétegekben (89%; az első egymaga 102,8 millió). A ResNet globális átlagoló poolinggal, egyetlen kis réteggel zár.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a jellemzőkinyerés és a finomhangolás?</div>
+    <div class="face back">Jellemzőkinyerés: az előtanított törzs befagyasztva, csak az új fej tanul. Finomhangolás: a törzs (egy része) is tanul, kis tanulási rátával.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi az önfelügyelt előtanítás?</div>
+    <div class="face back">A címkét az adatból állítjuk elő (pl. ugyanannak a képnek két változata legyen közel; letakart foltok kitalálása), így címkézetlen képekből is előtaníthatunk.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miben különbözik az osztályozás, a detektálás és a szegmentálás?</div>
+    <div class="face back">Osztályozás: mi van a képen. Detektálás: hol – téglalap + osztály objektumonként. Szegmentálás: minden pixel osztálya (példányszegmentálásnál objektumonként külön).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi az IoU?</div>
+    <div class="face back">Metszet per unió: $|A \cap B|/(|A| + |B| - |A \cap B|)$. Detektálásnál gyakran 0,5 fölött számít találatnak.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mikor jó egy képi adatbővítés?</div>
+    <div class="face back">Ha nem változtatja a címkét, és a használatban is előfordul. Számjegyeknél a tükrözés és a 180°-os forgatás nem jó (6 ↔ 9); detektálásnál a téglalapot is át kell alakítani.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Hogyan néz képet a ViT, és miért kell neki sok adat?</div>
+    <div class="face back">$P \times P$-s foltokra vágja, ezek a tokenek (+ pozíció, [CLS]), és Transformerrel dolgozza fel. A lokalitást és az eltolást nem kapja beépítve (gyenge induktív torzítás) – ezeket adatból kell tanulnia.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért sok a hamis találat egy arckeresésnél?</div>
+    <div class="face back">1:N keresésnél $N$ összevetés van: $N \cdot q$ hamis egyezés várható (1 millió arc, 0,1% → 1000). A ritkán előforduló keresett személy mellett a riasztások nagy része hamis.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a rövidítés (shortcut) és az ellenséges példa?</div>
+    <div class="face back">Rövidítés: a háló egy véletlen mellékjelet (hó, jelölő, vízjel) tanul a valódi helyett. Ellenséges példa: láthatatlan, gradienssel kiszámolt zaj, amely megfordítja a jóslatot.</div></div></div>
+</div>
+</section>
+
+<!-- ===================================================== Vegyes gyakorló feladatok -->
+<section id="s-ex">
+<h2>Vegyes gyakorló feladatok</h2>
+<p>Itt már nincs megmondva, melyik szakaszhoz tartozik a feladat: neked kell eldönteni, melyik eszköz kell.</p>
+<details class="box practice">
+  <summary>✏️ Vegyes gyakorló feladatok – kattints a kinyitáshoz</summary>
+  <ol>
+    <li>Egy $4 \times 4$-es kép: $\begin{pmatrix}3&1&0&2\\3&1&0&2\\5&5&1&1\\5&5&1&1\end{pmatrix}$, a szűrő $\begin{pmatrix}1&-1\\1&-1\end{pmatrix}$, lépésköz 2, kitöltés nincs. Mekkora a kimenet, és mi az értéke?
+      <details><summary>Tipp</summary>Először a méret a képlettel, aztán ablakonként a szorzatösszeg.</details>
+      <details><summary>Megoldás</summary>$\lfloor (4 - 2)/2 \rfloor + 1 = 2$. Ablakok: $3 - 1 + 3 - 1 = 4$; $0 - 2 + 0 - 2 = -4$; $5 - 5 + 5 - 5 = 0$; $1 - 1 + 1 - 1 = 0$. Kimenet: $\begin{pmatrix}4&-4\\0&0\end{pmatrix}$ – a felső sorban két függőleges él, ellentétes iránnyal.</details></li>
+    <li>Egy háló: $64 \times 64 \times 3$-as kép → konv. $3 \times 3$, 16 szűrő, $p = 1$ → $2 \times 2$-es max-pooling → konv. $3 \times 3$, 32 szűrő, $p = 1$ → $2 \times 2$-es max-pooling → globális átlagoló pooling → 5 kimenet. Add meg a méreteket és a paraméterszámot!
+      <details><summary>Tipp</summary>Méret: képlet rétegenként; paraméter: $C_{\text{ki}}(k^2C_{\text{be}} + 1)$, a pooling 0.</details>
+      <details><summary>Megoldás</summary>$64 \times 64 \times 16 \to 32 \times 32 \times 16 \to 32 \times 32 \times 32 \to 16 \times 16 \times 32 \to 32 \to 5$. Paraméterek: $16 \cdot 28 = 448$; $32 \cdot 145 = 4640$; $32 \cdot 5 + 5 = 165$; összesen $5253$. (Lapítással a fej $8192 \cdot 5 + 5 = 40\,965$ lenne.)</details></li>
+    <li>konv. $5 \times 5$, lépésköz 2 → konv. $3 \times 3$ → konv. $3 \times 3$. Mekkora a recepciós mező a végén?
+      <details><summary>Tipp</summary>$r \mathrel{+}= (k - 1)j$, és $j$ a lépésköz után változik.</details>
+      <details><summary>Megoldás</summary>$r = 5$, $j = 2$; $r = 5 + 2 \cdot 2 = 9$; $r = 9 + 2 \cdot 2 = 13$.</details></li>
+    <li>Valódi téglalap $(0;0)$–$(6;6)$, jóslat $(2;0)$–$(8;6)$. Találat-e 0,5-ös küszöbbel? És 0,75-össel?
+      <details><summary>Tipp</summary>Metszet, unió, arány.</details>
+      <details><summary>Megoldás</summary>Metszet $4 \cdot 6 = 24$, unió $36 + 36 - 24 = 48$: IoU = 0,5. 0,5-ös küszöbbel (≥) éppen találat, 0,75-össel nem.</details></li>
+    <li>Egy $256 \times 256$-os képet $16 \times 16$-os foltokra vágsz egy ViT-hez. Hány token lesz a [CLS]-sel, és hány figyelmi pár?
+      <details><summary>Tipp</summary>$(H/P)^2 + 1$, és minden token minden tokennel.</details>
+      <details><summary>Megoldás</summary>$16^2 + 1 = 257$ token, $257^2 = 66\,049$ pár.</details></li>
+    <li>200 fotód van öt madárfajról. Mit csinálnál: kis CNN nulláról, ViT nulláról, vagy előtanított CNN/ViT? Milyen bővítést használnál?
+      <details><summary>Tipp</summary>Kevés adat, a fotók hasonlók az ImageNet képeihez.</details>
+      <details><summary>Megoldás</summary>Előtanított törzs (ImageNeten vagy önfelügyelten tanított), befagyasztva, új 5 kimenetes fejjel; ha kevés, a felső rétegek óvatos finomhangolása. Bővítés: vízszintes tükrözés, véletlen kivágás, kis forgatás, enyhe fényesség-változtatás – erős színtorzítás nem, mert a tollazat színe fajjelleg. Nulláról (főleg ViT-tel) 200 képből nem lenne jó.</details></li>
+    <li>Egy cikk ezt állítja: „CNN-ünk eltolás-invariáns, mert konvolúciós rétegekből és poolingból áll; ezért nem kellett adatbővítés.” Mit kérdeznél vissza?
+      <details><summary>Tipp</summary>Ekvivariancia vs. invariancia; mi van a háló végén; mit tesz a lépésköz.</details>
+      <details><summary>Megoldás</summary>A konvolúció csak ekvivariáns; invariáns a háló csak globális pooling esetén, és a lépésközös pooling ezt is rontja (átlapolás – a CNN-B 1 pixelnél 98,4%-ról 79,8%-ra esett). Ha a végén lapítás és teljesen összekötött réteg van, a háló megint helyfüggő. Meg kell mérni eltolt képeken – és valószínűleg kell bővítés.</details></li>
+    <li>Egy beléptetőrendszer napi 20 000 belépőt ellenőriz 1:1-ben, 0,5% hamis elutasítással. A gyártó szerint a hamis elutasítás a sötétebb bőrű dolgozóknál ötször gyakoribb, akik a belépők 10%-át adják. Hányan akadnak el naponta, és kik?
+      <details><summary>Tipp</summary>Írd fel a két csoport hibaarányát úgy, hogy az átlag 0,5% legyen.</details>
+      <details><summary>Megoldás</summary>Legyen a világosabb bőrűeknél $x$, a sötétebbeknél $5x$: $0{,}9x + 0{,}1 \cdot 5x = 1{,}4x = 0{,}5\%$, így $x \approx 0{,}357\%$, $5x \approx 1{,}79\%$. Naponta $18\,000 \cdot 0{,}357\% \approx 64$ és $2000 \cdot 1{,}79\% \approx 36$ ember: összesen 100, de a 10%-nyi csoport adja az elakadások 36%-át. Csoportonként kell mérni és javítani.</details></li>
+  </ol>
+</details>
+</section>
+
+<!-- ===================================================== Fejezetzáró teszt -->
+<section id="s-final">
+<h2>Fejezetzáró teszt</h2>
+<p>Vegyes feladatok az egész fejezetből. Ha legalább 80%-ot elérsz, nyugodtan továbbléphetsz a 12. fejezetre – ott a szavak és a sorozatok jönnek, és a Transformer, amelyet a ViT képekre is alkalmazott.</p>
+<div class="quiz" data-quiz="ai11-final"></div>
+</section>
+
+<!-- ===================================================== Szómagyarázó -->
+<section id="s-gloss">
+<h2>Szómagyarázó</h2>
+<p>A fejezetben előforduló idegen vagy kevésbé ismert szakkifejezések, betűrendben.</p>
+<dl class="glossary">
+  <dt id="g-adatbovites">adatbővítés <span class="etym">ang. <em>data augmentation</em>; lat. <em>augere</em> „növel”</span></dt>
+  <dd><p>A tanítóképek véletlen, címkét megőrző átalakítása (eltolás, kivágás, tükrözés, színváltoztatás), hogy a háló ne a mellékes részleteket tanulja meg.</p></dd>
+
+  <dt id="g-csatorna">csatorna <span class="etym">ang. <em>channel</em></span></dt>
+  <dd><p>A kép vagy a jellemzőtérkép egy „rétege”: színes képen a vörös, zöld, kék; a háló belsejében egy-egy szűrő kimenete.</p></dd>
+
+  <dt id="g-detektalas">objektumdetektálás <span class="etym">lat. <em>detegere</em> „felfed, leleplez”</span></dt>
+  <dd><p>A képen lévő tárgyak megtalálása: objektumonként egy befoglaló téglalap, egy osztály és egy pontszám.</p></dd>
+
+  <dt id="g-ekvivariancia">ekvivariancia <span class="etym">lat. <em>aequus</em> „egyenlő” + <em>variare</em> „változtat”</span></dt>
+  <dd><p>Egy művelet tulajdonsága: ha a bemenetet eltoljuk, a kimenet ugyanúgy eltolódik. A konvolúció eltolás-ekvivariáns.</p></dd>
+
+  <dt id="g-finomhangolas">finomhangolás <span class="etym">ang. <em>fine-tuning</em></span></dt>
+  <dd><p>Egy előtanított háló továbbtanítása az új feladat adatain, kis tanulási rátával, a törzzsel (vagy egy részével) együtt.</p></dd>
+
+  <dt id="g-invariancia">invariancia <span class="etym">lat. <em>in-</em> „nem” + <em>variare</em> „változtat”</span></dt>
+  <dd><p>Egy függvény tulajdonsága: bizonyos átalakítás (pl. eltolás) után ugyanazt adja. A globális pooling eltolás-invariáns.</p></dd>
+
+  <dt id="g-iou">IoU <span class="etym">ang. <em>intersection over union</em> „metszet per unió”; Jaccard-index (P. Jaccard, 1901)</span></dt>
+  <dd><p>Két terület (téglalap, maszk) átfedésének mértéke: a közös rész és az egyesítés területének aránya, 0 és 1 között.</p></dd>
+
+  <dt id="g-jellemzoterkep">jellemzőtérkép <span class="etym">ang. <em>feature map</em></span></dt>
+  <dd><p>Egy szűrő kimenete a kép minden helyén: megmutatja, hol és mennyire erősen van jelen a keresett minta.</p></dd>
+
+  <dt id="g-kitoltes">kitöltés <span class="etym">ang. <em>padding</em> „bélés, párnázás”</span></dt>
+  <dd><p>Nullák (vagy más értékek) a kép széle köré, hogy a szűrő a szélső pixelekre is ráférjen, és a térkép mérete megmaradjon.</p></dd>
+
+  <dt id="g-konvolucio">konvolúció <span class="etym">lat. <em>convolvere</em> „összegöngyölít, összecsavar”</span></dt>
+  <dd><p>Egy szűrő végigcsúsztatása a képen, minden helyen skaláris szorzattal. A mélytanulásban tükrözés nélkül (matematikai nevén keresztkorreláció).</p></dd>
+
+  <dt id="g-lepeskoz">lépésköz <span class="etym">ang. <em>stride</em> „lépés, lépéshossz”</span></dt>
+  <dd><p>Ennyi pixelt lép a szűrő (vagy a pooling-ablak) egyszerre; 2-es lépésköz nagyjából felezi a térkép oldalát.</p></dd>
+
+  <dt id="g-maradek">maradékkapcsolat <span class="etym">ang. <em>residual (skip) connection</em>; lat. <em>residuum</em> „maradék”</span></dt>
+  <dd><p>Rövidzár néhány réteg körül: a blokk kimenete $\mathbf x + F(\mathbf x)$, így a rétegek csak a változást tanulják. A ResNet alapja.</p></dd>
+
+  <dt id="g-pooling">pooling (összevonás) <span class="etym">ang. <em>pool</em> „összead, közös kasszába tesz”</span></dt>
+  <dd><p>A térkép ablakonkénti összesűrítése a maximummal vagy az átlaggal; globális változatában csatornánként egyetlen szám marad.</p></dd>
+
+  <dt id="g-receptiv">recepciós mező <span class="etym">lat. <em>recipere</em> „befogad”; ang. <em>receptive field</em> (az idegélettanból)</span></dt>
+  <dd><p>A bemeneti kép azon része, amelytől egy réteg egy elemének értéke függ; rétegről rétegre nő.</p></dd>
+
+  <dt id="g-szegmentalas">szegmentálás <span class="etym">lat. <em>segmentum</em> „levágott darab”</span></dt>
+  <dd><p>A kép minden pixelének osztályba sorolása (szemantikus), illetve objektumonként külön maszk (példányszegmentálás).</p></dd>
+
+  <dt id="g-szuro">szűrő, kernel <span class="etym">ang. <em>filter</em>; <em>kernel</em> „mag”</span></dt>
+  <dd><p>A konvolúció kis súlymátrixa (pl. $3 \times 3 \times C$), amely egy mintát keres; a háló tanulja. Néha a kernel egy csatorna mátrixa, a szűrő a csatornák együttese.</p></dd>
+
+  <dt id="g-transzfer">transzfertanulás <span class="etym">lat. <em>transferre</em> „átvisz”</span></dt>
+  <dd><p>Egy feladaton tanult háló tudásának átvitele egy másikra: előtanított törzs, új fej; jellemzőkinyerés vagy finomhangolás.</p></dd>
+
+  <dt id="g-vit">Vision Transformer (ViT) <span class="etym">lat. <em>visio</em> „látás”; ang. <em>transform</em> „átalakít” (A. Dosovitskiy és társai, 2020)</span></dt>
+  <dd><p>A képet foltok sorozataként feldolgozó Transformer; gyenge képi induktív torzítással, ezért sok (elő)tanító adattal jó.</p></dd>
+</dl>
+</section>
+
+<nav class="pager">
+  <a href="../10-halo-tanitasa/">← 10. A háló tanítása</a>
+  <span class="next muted">12. Beágyazások, szekvenciák és a figyelemmechanizmus (hamarosan) →</span>
+</nav>
+
+</main>
+</div>
+
+<footer class="site">
+  Források: A. Glassner: <em>Deep Learning – A Visual Approach</em>, 16–17. fejezet · R. T. Kneusel: <em>How AI Works</em>, 5. fejezet · R. T. Kneusel: <em>Practical Deep Learning</em>, 12–14. fejezet ·
+  S. Raschka: <em>Machine Learning and AI Beyond the Basics</em>, 2., 5., 11–13. fejezet · V. J. Reddi és társai: <em>Machine Learning Systems</em> (<em>DNN Architectures</em>) · A. Thakur: <em>Approaching (Almost) Any Machine Learning Problem</em> (<em>Image classification &amp; segmentation</em>) ·
+  J. W. Rettberg: <em>Machine Vision</em> (2023), 1–5. fejezet ·
+  Kiegészítés: D. Hubel – T. Wiesel (1959, 1962) · K. Fukushima (1980) · Y. LeCun és társai (1989, 1998) · J. Deng, Fei-Fei Li és társai (2009, ImageNet) · A. Krizhevsky – I. Sutskever – G. Hinton (2012) · M. Zeiler – R. Fergus (2013) · C. Szegedy és társai (2013, 2014) · I. Goodfellow és társai (2014) ·
+  K. Simonyan – A. Zisserman (2014) · K. He és társai (2015) · O. Ronneberger és társai (2015) · S. Ren és társai (2015) · J. Redmon és társai (2016) · M. T. Ribeiro és társai (2016) · W. Luo és társai (2016) · K. He és társai (2017, Mask R-CNN) · J. Buolamwini – T. Gebru (2018) · J. Zech és társai (2018) · K. Eykholt és társai (2018) ·
+  A. Azulay – Y. Weiss (2019) · R. Zhang (2019) · M. Raghu és társai (2019) · L. F. Barrett és társai (2019) · P. Grother és társai (NIST IR 8280, 2019) · T. Chen és társai (2020, SimCLR) · A. Dosovitskiy és társai (2020) · A. Radford és társai (2021, CLIP) · H. Touvron és társai (2021, DeiT) · Z. Liu és társai (2021, Swin; 2022, ConvNeXt) · K. He és társai (2021, MAE) ·
+  az Európai Unió 2024/1689 rendelete (AI Act) · adatok: scikit-learn <em>digits</em> (UCI Optical Recognition of Handwritten Digits).
+</footer>
+</body>
+</html>

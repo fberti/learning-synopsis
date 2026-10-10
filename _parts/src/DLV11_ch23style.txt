@@ -1,0 +1,467 @@
+                   gradients on the pixels, causing them to excite the filters even more, and
+                   around it goes, with the picture changing more and more each time we
+                   repeat the loop.
+                       Since this is an artistic process, we usually watch the output after every
+                   update (or every few updates), and stop it when we like what we’re seeing.
+
+                   Running Deep Dreaming
+                   Let’s put this algorithm to work, using the frog in Figure 23-3 as our start-
+                   ing point.
+
+
+
+
+                   Figure 23-3: A calm and thoughtful frog
+
+                        Figure 23-4 shows some “dreams” from our frog image, using some fil-
+                   ters (and weights on them) that we chose by trial and error.
+
+
+
+
+                   Figure 23-4: Some deep dream results from the starting frog image (in the upper-left corner)
+
+
+
+678   Chapter 23
+     We’re seeing lots of eyes in Figure 23-4 because some of our selected
+filters responded to eyes. If we had selected filters that responded to, say,
+horses and shoes, then we would expect to see lots of horses and shoes in
+our images.
+     Figure 23-5 shows the results starting from an image of a dog. The
+changes to the image are mostly of a finer texture because the dog image is
+about 1,000 pixels on each side, more than four times the size of the images
+that the network trained on. The image in the lower-right used a version
+of the dog image that was scaled to the same size as the network’s training
+data, 224 by 224.
+
+
+
+
+Figure 23-5: Deep dreaming about a dog
+
+    The original name for this technique was inceptionism (Mordvintsev,
+Olah, and Tyka 2015) in honor of the movie Inception, but it has come to be
+more frequently known as deep dreaming. The name is a poetic suggestion
+that the network is “dreaming” about the original image, and the image
+we get back shows us where the network’s dream went. Deep dreaming
+has become popular not only because of the wild images it creates, but
+because it’s not hard to implement using modern deep learning libraries
+(Bonaccorso 2020).
+    Many variations on this basic algorithm have been explored (Tyka
+2015), but they only scratch the surface. We can imagine schemes to auto-
+matically determine the weights on the layers or even apply weights to the
+individual filters on each layer. We can “mask” the activation maps before
+
+                                                         Creative Applications   679
+                    we add them up so that some areas (like the background) are ignored, or
+                    we can mask the updates to the pixels so that some pixels in the original
+                    image are not changed at all in response to one set of layer outputs, but are
+                    instead allowed to change a lot in response to some other set of layer out-
+                    puts. We can even apply different combinations of layers and weights to dif-
+                    ferent regions of the input image. The deep dreaming approach to making
+                    art has lots of room left for new discoveries.
+                         There’s no “right” or “best” way to do deep dreaming. It’s a creative
+                    exercise in which we follow our aesthetics, hunches, or wild guesses to hunt
+                    for images that appeal to us. It can be hard to predict what’s going to come
+                    out from any particular combination of network, layers, and weights, so the
+                    process rewards patience and a lot of experimenting.
+
+
+      Neural Style Transfer
+                    We can use a variation on the deep dreaming technique to do something
+                    remarkable: transfer one artist’s style onto another image. This process is
+                    called neural style transfer.
+
+                    Representing Style
+                    Cultures often celebrate the idiosyncratic visual style of artists. Let’s focus
+                    on paintings. What characterizes the style of a painting? That’s a big ques-
+                    tion, because “style” can include someone’s world view, which influences
+                    choices as diverse as their subject matter, composition, materials, and
+                    tools. Let’s focus strictly on visual appearance. Even narrowed down this
+                    way, it’s hard to precisely identify what “style” means for a painting, but we
+                    might say that it refers to how colors and shapes are used to create forms,
+                    and the types and distributions of those forms across the canvas (Art Story
+                    Foundation 2020; Wikipedia 2020).
+                          Rather than try to refine this description, let’s see if we can find some-
+                    thing that seems like it’s in the ballpark, while also being something we can
+                    formalize in terms of the layers and filters of a deep convolutional network.
+                          Our goal in this section is to take a picture we want to modify, called
+                    the base image, and a second picture whose style we want to match, called the
+                    style reference. For example, our frog could be our base image, and any paint-
+                    ing could be the style reference. We want to use these to create a new image,
+                    called the generated image, which has the content of the base image expressed
+                    in the style of the style reference.
+                          To get started, we will make an assertion that comes out of nowhere. We
+                    say that we can characterize the style of an image (such as a painting) by
+                    looking at the layer activations it produces and finding pairs of layers that
+                    activate in roughly the same way. This idea comes from a seminal paper
+                    published in 2015 (Gatys, Ecker, and Bethge 2015). Without getting into the
+                    details, the process begins by running the style reference through a deep
+                    convolutional network. As with deep dreaming, we ignore its output, and
+                    instead focus on just the convolution filters.
+
+
+680    Chapter 23
+     All of the activation maps in a given layer have the same size, so we can
+easily compare them to one another. Let’s start with the first activation map
+in a layer (that is, the first filter’s output). We can compare that to the acti-
+vation map produced by the second filter and produce a score for the pair.
+If the two maps are very similar (that is, the filters are firing in the same
+places), we assign the pair a high score, and if the maps are very different,
+we give that pair a low score. We then compare the first map to the third
+map and compute their score, then compare the first and the fourth map,
+compute their score, and so on. Then we can start with the second map and
+compare it to every other map in the layer. We can organize the results in
+a grid, with as many cells on each side as there are filters in the layer. The
+value in each cell of the grid tells us the score for that pair of layers. This
+grid is called a Gram matrix. Let’s make one such Gram matrix for every
+layer.
+     Now we can restate our notion of style more formally: the style of an
+image is represented by the Gram matrices for all the layers. That is, each
+style produces its own particular form of Gram matrices.
+     Let’s see if this claim is true. Figure 23-6 shows a famous self-portrait
+by Pablo Picasso from 1907. There’s a ton of style here, such as big blocks of
+color and thick dark lines. Let’s run this through VGG16 and save the Gram
+matrix at each layer. We’ll call those the style matrices, and save them as the
+representation of the style for this image.
+
+
+
+
+Figure 23-6: A 1907 self-portrait by Pablo Picasso
+
+     If the Gram matrices represent style, then we can use them to modify a
+starting image of random noise. We run the noisy input image through the
+network and compute its Gram matrices, which we call the image matrices.
+If the style matrices really do somehow represent the style of the Picasso
+image, then if we can change the colors of the pixels in the noisy image
+so that eventually the image matrices come close to the style matrices, the
+noisy image should take on the style of the painting.
+     Let’s do just that. We’ll run the noise through the network, compute
+the image matrix at each layer, and compare that to the style matrix we
+saved for that layer. We’ll add up the differences between these two matri-
+ces so the more different they are, the bigger the result. Then we’ll add
+
+                                                            Creative Applications   681
+                   together these differences for all the layers, and this is the error for our net-
+                   work. As with deep dreaming, we use this error to compute the gradients
+                   for the entire network, including the pixels at the start, but we only modify
+                   the colors of the pixels. Unlike deep dreaming, our goal now is to minimize
+                   the error, and thereby change the pixels so that their colors produce Gram
+                   matrices that are like those of the style reference.
+                        Figure 23-7 shows the result of this process. For this visualization, we
+                   computed each layer’s error as the sum of the differences of all the matrices
+                   in all layers up to and including that layer.
+
+                                      Conv 1                   Conv 2                   Conv 3
+
+                   Block 1
+
+
+
+                   Block 2
+
+
+
+                   Block 3
+
+
+
+                   Block 4
+
+
+
+                   Block 5
+
+                   Figure 23-7: The result of getting noise to match the Gram matrices in VGG16
+
+                        This is remarkable. By the time we get to the three convolution layers
+                   in Block 3, we’re generating abstracts that are very similar to our original
+                   style reference in Figure 23-6. The splotches of color show similar gradual
+                   changes in color. There are dark lines between some regions of different
+                   colors, and we can even see brushstroke textures.
+                        The Gram matrices have indeed captured the style of Picasso’s paint-
+                   ing. But why? The anticlimactic answer is that nobody really knows (Li et
+                   al. 2017). We have different ways to write down the mathematics of what
+                   the Gram matrices are measuring, but that doesn’t help us understand why
+                   this technique captures this elusive idea we call style. Neither the original
+                   paper on neural style transfer (Gatys, Ecker, and Bethge 2015), nor a some-
+                   what more detailed follow-up (Gatys, Ecker, and Bethge 2016) explains
+                   how the authors hit on this idea or why it works so well.
+
+682   Chapter 23
+Representing Content
+In deep dreaming, we started with an image and manipulated it by chang-
+ing its pixels. If we try the same thing with neural transfer and start with an
+image rather than noise, the image quickly gets lost. The effect of minimiz-
+ing the differences between the Gram matrices causes big changes to the
+input image, moving it toward the style we want, but losing the content of
+the image in the process.
+     A solution to this problem is to still start with noise, because it works
+so well (as shown by Figure 23-7), but retain the essence of the original
+image by adding a second error term. In addition to imposing a style loss
+that punishes the input for being a poor match to the style reference (as
+measured by the difference in the Gram matrices), we also impose a con-
+tent loss that punishes the input for being too much unlike the base image
+(the picture we want to stylize). By starting with noise and adding together
+these two error terms (usually with different emphasis), we cause the pix-
+els in the noise to change so that they simultaneously more closely match
+the colors of the picture we want to modify and the style in which we want
+it to be shown.
+     Gathering the content loss is easy. We take our base image, like our frog
+in Figure 23-3, and run it through the network. Then we save the activa-
+tion map of every filter. From then on, any time we feed a new image to the
+network, the content loss is just the difference between the filter responses
+for that input and the responses we got from our base image. After all, if all
+the filters respond to an input the same way as the starting image, then the
+input is the starting image (or something very close to it).
+
+Style and Content Together
+To recap, we feed our style reference through the network and save the
+Gram matrix for every pair of filters after each layer. Next, we find a base
+picture we’d like to stylize, run that through the network, and save the fea-
+ture maps produced by every filter.
+     Using this saved data, we can create a stylized version of our picture. We
+start with noise and feed it to the network. The block diagram of the whole
+process is shown in Figure 23-8.
+     Let’s start with the content loss. In the light blue rounded-corner rect-
+angle at the far left, we gather up the feature maps from the filters on the
+first convolution layer and compute the difference between these maps and
+the ones we saved from the base image (such as the frog). We do the same
+with the feature maps from the second convolution layer. We can do this for
+all the layers, but for this figure and the examples that follow we stopped
+after two (this is another personal choice, guided by experimentation).
+We add together all of these differences, or content losses, and scale their
+sum by some value that lets us control how much the content of the pic-
+ture should influence the changes we ultimately make to the colors of the
+input image.
+
+
+
+                                                           Creative Applications   683
+             Build matrix                Build matrix   Build matrix     Build matrix   Build matrix
+
+
+
+
+Difference    Difference    Difference    Difference     Difference       Difference     Dfference
+
+
+
+
+ Content                                                               Style
+  weight                                                               weight
+
+
+
+
+Figure 23-8: A block diagram of neural style transfer
+
+                           Now we address the style. For each layer, in the light yellow rounded-
+                      corner rectangles, we compute the Gram matrix that tells us how much
+                      each filter’s output corresponds with every other filter’s output. We then
+                      compare those matrices with the style matrices we saved earlier. We add up
+                      all of these differences to get the style loss and scale them by some value
+                      that let us control how much influence the style has when we modify the
+                      pixel colors.
+                           The sum of the content and style losses is our error. As with deep
+                      dreaming, we compute the gradients throughout the network and all the
+                      way back to the pixels. And again, we leave the weights in the network
+                      untouched. Unlike deep dreaming, we modify the values of the pixels to
+                      minimize this total error, because we want the input to match the content
+
+
+
+
+684    Chapter 23
+                    and style information we previously saved. The result is that the original
+                    noise slowly changes so that it is simultaneously more like the original
+                    image and also has the filter relationships of the style.
+                        As with deep dreaming, implementing neural style transfer is straightfor-
+                    ward with modern deep learning libraries (Chollet 2017; Majumdar 2020).
+
+                    Running Style Transfer
+                    Let’s see how well this works in practice. We again used VGG16 as our net-
+                    work and followed the process summarized in Figure 23-8.
+                        Figure 23-9 shows nine images, each with a distinctive style. These are
+                    our style references.
+
+
+
+
+Figure 23-9: Nine images with different styles, which serve as our style references. From left to right and top
+down, they are Starry Night, by Vincent van Gogh, The Shipwreck of the Minotaur, by J. M. W. Turner, The
+Scream, by Edvard Munch, Seated Female Nude, by Pablo Picasso, Self-Portrait 1907, by Pablo Picasso,
+Nighthawks, by Edward Hopper, Sergeant Croce, by the author, Water Lilies, Yellow and Lilac, by Claude
+Monet, and Composition VII by Wassily Kandinsky.
+
+
+
+
+                                                                                         Creative Applications   685
+                        Let’s apply these styles to our old friend the frog. Figure 23-10 shows
+                    the results.
+
+
+
+
+Figure 23-10: Applying the nine styles in Figure 23-9 to a photograph of a frog (top)
+
+                        Wow. That worked great. These images bear close examination,
+                    because they have a lot of detail. At a first glance, we can see that the color
+                    palette of each style reference has been transferred to the frog photo. But
+                    notice the textures and edges, and how blocks of color are shaped. These
+                    images are not just color shifted frogs, or some kind of overlay or blend of
+                    two images. Instead, these are high-quality, detailed images of the frog in
+                    the different styles. To see this more clearly, Figure 23-11 shows the same
+                    zoomed-in region from each frog.
+                        These images are significantly different, and all match the style they’re
+                    based on.
+                        Let’s see another example. Figure 23-12 shows our styles applied to a
+                    photograph of a town.
+
+
+
+
+686    Chapter 23
+Figure 23-11: Details for the nine styled frogs of Figure 23-10
+
+                         These images are all the more remarkable when we remember that every
+                    one of them started out as random noise. For each image, we weighted the
+                    content loss by 0.025 and the style loss by 1, so the style had 40 times more
+                    influence on the changes to the pixels than the content did. In these exam-
+                    ples, a little bit of content went a long way.
+                         As Figures 23-10 through 23-12 show, the basic algorithm of neural
+                    style transfer produces terrific results. The technique has been extended
+                    and modified in many ways to improve the flexibility of the algorithm, the
+                    types of results it produces, and the range of control that artists can apply
+                    to create the results they want (Jing et al. 2018). It’s even been applied
+                    to video and spherical images that completely surround a viewer (Ruder,
+                    Dosovitskiy, and Brox 2018).
+                         As with deep dreaming, neural style transfer is a general algorithm that
+                    allows for a lot of variation and exploration. There are surely many interest-
+                    ing and beautiful artistic effects waiting to be discovered.
+
+
+
+
+                                                                              Creative Applications   687
+Figure 23-12: Applying our nine styles of Figure 23-9 to a photograph of a town seen from above (top)
+
+
+
+      Generating More of This Book
+                    Just for fun, we ran the text of the first edition of this book (except for this
+                    section) through an RNN that generates new text word by word, as dis-
+                    cussed in Chapter 19. The full text contained about 427,000 words, drawn
+                    from a vocabulary of about 10,300 words. To learn this text, we used a net-
+                    work built from two layers of LSTMs, with 128 cells each.
+                         The algorithm develops its output autoregressively, by finding the next
+                    most likely word based on the text it has created so far, then the next most
+                    likely word, then the next, and so on, until we stop it. Generating text this
+
+
+
+
+688    Chapter 23
+way is like the game of creating messages by repeatedly choosing just one
+of the three or four words suggested by a cell phone when you are typing a
+text (Lowensohn 2014).
+     Here are a few sentences manually selected from the output after
+250 iterations. They are included here exactly as generated, including
+punctuation.
+
+•   The responses of the samples in all the red circles share two numbers, like
+    the bottom of the last step, when their numbers would influence the input with
+    respect to its category.
+•   The gradient depends on the loss are little pixels on the wall.
+•   Let’s look at the code for different dogs in this syllogism.
+
+     It’s surprising how close these come to making sense!
+     Whole sentences are fun, but some of the most entertaining and poetic
+bits came out soon after the start of training, when the system was generat-
+ing only fragments. Here are some manually selected excerpts after just 10
+epochs, again presented exactly as they were produced:
+
+•   Set of of apply, we + the information.
+•   Suppose us only parametric.
+•   The usually quirk (alpha train had we than that to use them way up).
+
+     These are mostly incoherent, but from these synthetic phrases we can
+distill a grain of truth: one of the primary goals of this book has definitely
+been to “+ the information.”
+     RNNs are great, but transformer-based generators are even better. We
+fine-tuned a medium-sized instance of the GPT-2 generator on the current
+edition of this book (again, except for this section). Here are a few hand-
+picked fragments of output, selected for their creative range (the second set
+appear to be figure captions).
+
+•   This is the neural network that’s been hailed as the queen of artificial neurons.
+    It’s no surprise that her name is Christine, but it does speak volumes about the
+    state of the field.
+•   We can chain together several of these versions into a single tensor of a classi-
+    fier that is essentially a jack-in-the-box.
+•   Let’s use a small utility to take a shortcut that will let us make word predictions
+    on the fly, even if we aren’t the right person online or offline.
+•   In this view, a 1 in this range is a perfect integer, while a 0 in this range is a
+    hyper-realized string of numbers. The approach we adopted in Chapter 6 is to
+    treat all 0’s as incomplete, and all 1’s as incomplete, since we still have some
+    information about the system we’re evaluating.
+•   Figure 10-7: A grid of negative images that don’t have labels.
+•   Figure 10-10: A deep learning system learns how to create and remove license
+    plates from a dataset.
+
+
+
+                                                                   Creative Applications   689
+      Summary
+                    We started this chapter by looking at deep dreaming, a method for manipu-
+                    lating an image to stimulate chosen filters in a network and create wild,
+                    psychedelic images. Then we looked at neural style transfer. Using this tech-
+                    nique, we slowly change an input of random noise to become simultane-
+                    ously more like an input image and like a style reference, such as works by
+                    various painters. Finally, we used a little RNN and a transformer to produce
+                    new text from the manuscript of this book. It’s fun to make new text that
+                    seems familiar or reasonable on first glance!
+
+
+      Final Thoughts
+                    This book has covered only the basic ideas of deep learning. The field is
+                    developing at a startling pace. Every year new breakthroughs seem to defy
+                    all expectations of what computers can recognize, analyze, predict, and
+                    synthesize.
+                         Just keeping up with new work can be a full-time job. One way to stay
+                    up on new developments is to watch a website called the arXiv (pronounced
+                    “archive”) server at https://arxiv.org/, or more specifically, the machine
+                    learning section at https://arxiv.org/list/cs.LG/recent. This site hosts preprints
+                    of new papers before they appear in journals and conferences. But even
+                    watching arXiv can be overwhelming, so many people use the arXiv Sanity
+                    Preserver at http://www.arxiv-sanity.com and the Semantic Sanity project at
+                    https://s2-sanity.apps.allenai.org/cold-start. Both sites help filter the repository
+                    for just those papers involving specific keywords and ideas.
+                         In this book we’ve focused on the technical background of deep learn-
+                    ing. It’s important to keep in mind that when we use these systems in ways
+                    that can affect people, we need to take into account much more than just
+                    algorithms (O’Neil 2016). Because of their efficiency, deep learning systems
+                    are being widely and rapidly deployed, often with little oversight or consid-
+                    eration of their impact on the societies they affect.
+                         Deep learning systems are being used today to influence or determine
+                    job offers, school admissions, jail sentences, personal and business loans,
+                    and even the interpretation of medical tests. Deep learning systems control
+                    what people see in their news and social media feeds, choosing items not
+                    to build a healthy and well-informed society, but to increase the profits of
+                    the organizations delivering those feeds (Orlowski 2020). Deep learning
+                    systems in “smart speakers” and “smart displays” (which also contain micro-
+                    phones and cameras) listen and watch people in their homes without pause,
+                    sometimes sending their captured data up to a remote server for analysis.
+                    Cultures used to fear such constant surveillance, but now people pay for
+                    these devices and willingly put them in their previously private spaces, such
+                    as their homes and bedrooms. Deep learning is being used to single out
+                    potentially troublesome children in schools, evaluate the honesty of people
+                    answering questions at border crossings, and identify individuals at protests
+                    and other gatherings by recognizing their faces. Mistakes made by these
+
+
+690    Chapter 23
+

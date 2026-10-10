@@ -48,8 +48,7 @@ synopsis/
     ├── 07-fak-svm-egyuttes/        ← index.html, widgets.js (a calc.js-re épül), quizzes.js
     ├── 08-felugyelet-nelkuli-tanulas/ ← index.html, widgets.js (a calc.js-re épül), quizzes.js, digits-data.js
     ├── 09-neuralis-halozatok/      ← index.html, widgets.js (calc.js + ml.js), quizzes.js, digit-net.js
-    ├── 10-halo-tanitasa/           ← index.html, widgets.js (calc.js + ml.js), quizzes.js, digits-data.js
-    └── 11-konvolucios-halok/       ← index.html, widgets.js (calc.js), quizzes.js, cnn-nets.js (előre tanított MLP és CNN-ek)
+    └── 10-halo-tanitasa/           ← index.html, widgets.js (calc.js + ml.js), quizzes.js, digits-data.js
 ```
 
 ## Közzététel GitHub Pages-en

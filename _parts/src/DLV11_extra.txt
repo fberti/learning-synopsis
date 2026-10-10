@@ -1,0 +1,198 @@
+=== DLV p542-543 (pdf 572-573): fine-tuning / transfer learning
+                          Now we can create a computer-friendly, numerical representation of any
+                    sentence. We can generate more text by handing this list of numbers to a
+                    trained autoregressive network. The network predicts the number of the next
+                    word, that word gets appended to the words used as its input, the network
+                    then predicts the next word, which again gets appended to the words used as
+                    its input, and so on. For us to see what text this corresponds to, we can turn
+                    each number back into its corresponding word. For many of our discussions
+                    in the following pages, we take these transformations into numbers as a given
+                    and illustrate our inputs and outputs as words, not numbers. We’ll see later
+                    that while a single number is workable, there’s a much richer way to represent
+                    words that includes their context and how they’re used in a sentence.
+
+                    Fine-Tuning and Downstream Networks
+                    It’s often useful to train a system on a generic database and then specialize
+                    it. For example, we might enhance a general-purpose image classifier into
+                    one that can recognize leaf shapes and tell us what kind of tree they came
+                    from. The process is called transfer learning. When used with a classifier,
+                    it often involves freezing the existing network, adding a few new layers at
+                    the end of the classification section, and training those. That way, the new
+                    layers can make use of all the information that the existing network has
+                    learned to extract from each image.
+                          In NLP, we say that a system that has learned from a general data-
+                    base is pretrained. Then when we want to learn a new type of specialized
+                    language, like the language used in law, poetry, or engineering, we fine-
+                    tune the network with the new data. Unlike transfer learning, we typically
+                    modify all the weights in the system when we fine-tune.
+                          If we don’t want to retrain the system, we can create a second model to
+                    take the language system’s output and turn it into something more useful
+                    to us, which is close in spirit to transfer learning. Here the language model
+                    is frozen, and its output is fed to a new model. We call this second model
+                    a downstream network, which carries out a downstream task. Some language
+                    models are designed to create rich, dense summaries of their input text so
+                    they can be used to drive a wide variety of downstream tasks.
+                          These two approaches of fine-tuning and downstream training are use-
+                    ful conceptual distinctions, but in practice, many systems blend together
+                    some of both techniques.
+
+
+      Fully Connected Prediction
+                    As we’ve discussed, we’re going to treat language as sequences of numbers.
+                    To get a feeling for working with such sequences in general, let’s set aside
+                    language for a moment and focus just on the numbers. We’ll build a tiny
+                    network that learns to take in a few numbers from a sequence, and produce
+                    the next number. We’ll do it in perhaps the simplest possible way, with just
+                    two layers: a fully connected layer of a mere five neurons, followed by a fully
+                    connected layer with a single neuron, as in Figure 19-1. We’ll use a leaky
+
+
+542    Chapter 19
+ReLU activation function with slope 0.1 on the first layer and no activation
+function on the output layer.
+
+
+
+
+       5                          1
+  leaky ReLU                    no AF
+Figure 19-1: A tiny network for sequence prediction
+
+
+Testing Our Network
+To try out this tiny network, let’s use a synthetic dataset created by add-
+ing a bunch of sine waves together. The first 500 samples are shown
+in Figure 19-2.
+
+
+
+
+Figure 19-2: Synthetic training data
+
+    To train our system, we’ll take the first five values from our dataset and
+ask our little network to produce the sixth value. Then we’ll take values 2
+through 6 of the dataset and ask it to predict the seventh value. We say that
+we’re using a sliding window to choose each set of inputs, as in Figure 19-3.
+
+  Inputs
+
+
+
+Sample 1
+
+
+Sample 2
+
+
+Sample 3
+
+Sample 4
+
+
+
+Figure 19-3: Using a sliding window to create training samples,
+shown in blue, from 5-element sequences of the training data. The
+value we want to predict for each sample is in red.
+
+                                                              Recurrent Neural Networks   543
+=== DLV p582-583 (pdf 612-613): skip connections
+                       This approach first appeared in a paper with the great title, “Attention
+                   Is All You Need” (Vaswani et al. 2017). The authors called their attention-
+                   based model a transformer (an unfortunately ambiguous name, but it’s now
+                   firmly stuck in the language of the field). The transformer model works so
+                   well that we now have a new class of language models that not only can be
+                   trained in parallel, but also can outperform RNNs in a wide variety of tasks.
+                       Transformers use three more ideas we haven’t discussed yet. Let’s cover
+                   them now, so when we get to the actual transformer architecture, it will be
+                   smooth sailing.
+
+                   Skip Connections
+                   The first new idea we cover is called a residual connection or skip connec-
+                   tion (He et al. 2015). The inspiration is to reduce the amount of work that’s
+                   required of a deep network layer.
+                        Let’s start with an analogy. Suppose you’re painting a real, physical
+                   portrait using acrylic paints on canvas. After weeks of sittings, the portrait
+                   is done, and you send it to your subject for their approval. They say that they
+                   like it, but they regret having worn a particular ring on one finger, and wish
+                   they’d worn a different one that they like more. Can you change that?
+                        One way to proceed would be to invite your subject back to the studio
+                   and paint a whole new portrait from scratch on a blank canvas, only this
+                   time with the new ring on their finger. That would require a lot of time and
+                   effort. If they’d allow it, a more expeditious approach would be to take the
+                   portrait you have, and unobtrusively paint the new ring over the old one.
+                        Now consider a layer in a deep network. A tensor comes in, and the
+                   layer does some processing to change that tensor. If the layer only needs to
+                   change the input by small amounts, or only in some places, then it would be
+                   wasteful to expend resources processing the parts of the tensor that don’t
+                   need to change. Just as with the painting, it would be much more efficient
+                   for the layer to compute only the changes it wants to make. Then it can
+                   combine those changes with the original input to produce its output.
+                        This idea works beautifully in deep learning networks. It lets us make
+                   layers that are smaller and faster, and it even improves the flow of gradients
+                   in backpropagation, which lets us efficiently train networks of dozens or
+                   even hundreds of layers.
+                        The mechanism is shown on the left side of Figure 20-17. We feed an
+                   input tensor to some layer as usual, let it compute the changes, and then we
+                   add the layer’s output to its input tensor.
+
+
+
+
+                   Figure 20-17: Left: A skip connection, shown in red. Right: We can place a skip connec-
+                   tion around multiple layers.
+
+
+
+
+582   Chapter 20
+    The extra line in the drawing that carries the input to the addition
+node is called a skip connection, or a residual connection because of its math-
+ematical interpretation.
+    We can place a skip connection around multiple layers in sequence, if
+we like, as on the right of Figure 20-17.
+    The skip connection works because each layer is trying to reduce its
+own contribution to the final error, while participating in the network
+made up of all the other layers. The skip connection is part of the network,
+so the layer learns it doesn’t need to process the parts of the tensor that
+don’t change. This makes the layer’s job simpler, enabling it to be smaller
+and faster.
+    We’ll see later that transformers use skip connections not just for effi-
+ciency and speed, but also because they allow the transformer to cleverly
+keep track of the location of each element in its input.
+
+Norm-Add
+The second idea on our road to transformers is really more of a conceptual
+and notational shorthand. In transformers, we usually apply a regulariza-
+tion step called layer normalization, or layer norm, to the outputs of a layer, as
+shown on the left in Figure 20-18 (Vaswani et al. 2017). Layer norm belongs
+to the class of regularization techniques that we saw in Chapter 15, such
+as dropout and batchnorm, which help control overfitting by keeping the
+values flowing through the network from getting too big or too small. The
+layer norm step learns to adjust the values coming out of a layer so that they
+approximate the shape of a Gaussian bump with a mean of 0 and standard
+deviation of 1.
+
+
+
+
+Figure 20-18: Left: A layer normalization followed by the addition step of a skip connec-
+tion. Right: A combined icon for norm-add. This is just a visual and conceptual shorthand
+for the network on the left.
+
+     Performing layer norms is important in getting a transformer to
+work well, but there’s some flexibility about exactly where this step can be
+located. A popular approach places the layer norm just before the addition
+step of a skip connection, as in the left side of Figure 20-18. Since these
+two operations always come in pairs, it’s convenient to combine them into
+a single operation that we call norm-add. Our icon for norm-add is a combi-
+nation of the layer norm and summation icons, and is shown on the right
+in Figure 20-18. This is just a visual shorthand for the two separate steps of
+layer norm followed by skip connection addition.
+     People have experimented with other locations for the layer norm oper-
+ation, such as before the layer (Vaswani et al. 2017), or after the addition
+node (TensorFlow 2020b). These approaches differ in their details, but in
+
+
+
+                                                                Attention and Transformers   583
+
