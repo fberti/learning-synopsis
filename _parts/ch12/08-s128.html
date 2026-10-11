@@ -1,0 +1,69 @@
+
+<!-- ===================================================== 12.8 -->
+<section id="s128">
+<h2>12.8 Alkalmazás: kritikák és levelek</h2>
+<p>Most minden eszközt együtt használunk – először a saját kis kísérletünkön, aztán egy valódi magyar nyelvi modellen.</p>
+<div class="box example">
+  <span class="box-title">A kísérlet – egy mesterséges filmkritika-nyelv</span>
+  Minden kritika egy vagy két tagmondat. Egy tagmondat: alany (film, zene, történet, vége, látvány, rendezés) + állító vagy tagadó alak + esetleg egy fokozó szó + melléknév (öt pozitív: jó, izgalmas, szép, eredeti, remek; öt negatív: rossz, unalmas, gyenge, zavaros, fárasztó). Például: „a film nagyon jó volt”, „a zene nem volt túl rossz”. Két tagmondatot „, és”-sel (azonos ítélet) vagy „, de”-vel (ellentétes ítélet; ilyenkor a második dönt) kötünk össze. A címke szabálya: melléknév előjele, a „nem” megfordítja, „de” után a második tagmondat számít.
+  3000 tanító-, 500 validációs és 1500 tesztkritika; hat modell, mindegyik 5 különböző véletlen adatkészlettel és kezdéssel tanítva (PyTorch, scikit-learn). Az eredmények (a teszt helyes válaszai, 5 futás átlaga):
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.86rem;text-align:center;max-width:720px">
+    <tr><th style="text-align:left">modell</th><th>paraméter</th><th>egy tagmondat</th><th>„…, és …”</th><th>„…, de …”</th><th>összesen</th></tr>
+    <tr><td style="text-align:left">szózsák + logisztikus regresszió (12.1)</td><td>28</td><td>54,9%</td><td>51,1%</td><td>51,3%</td><td><b>51,2%</b></td></tr>
+    <tr><td style="text-align:left">szózsák + szópárok (12.1)</td><td>207</td><td>100%</td><td>100%</td><td>86,7%</td><td>93,5%</td></tr>
+    <tr><td style="text-align:left">átlagolt beágyazás + MLP (12.3)</td><td>385</td><td>100%</td><td>74,7%</td><td>51,2%</td><td>63,5%</td></tr>
+    <tr><td style="text-align:left">RNN (12.3)</td><td>641</td><td>100%</td><td>100%</td><td>100%</td><td><b>100%</b></td></tr>
+    <tr><td style="text-align:left">Transformer pozíció nélkül (12.5)</td><td>2689</td><td>98,0%</td><td>74,6%</td><td>49,5%</td><td>62,5%</td></tr>
+    <tr><td style="text-align:left">Transformer (12.6)</td><td>2929</td><td>100%</td><td>99,9%</td><td>100%</td><td><b>99,9%</b></td></tr>
+  </table></div>
+</div>
+
+<h3 id="s128-a">A kísérlet a böngészőben</h3>
+<div class="widget" data-widget="review-lab"></div>
+<div class="box example">
+  <span class="box-title">Kísérletek – mindegyik egy szakasz egy gondolata</span>
+  <ol style="margin:.2rem 0">
+    <li><b>A tagadás XOR-ja</b> (<a href="#s121-b">12.1</a>): próbáld ki egymás után: „a zene jó volt”, „a zene rossz volt”, „a zene nem volt jó”, „a zene nem volt rossz”. A sima szózsák a négyből legfeljebb hármat találhat el – a „nem” egyetlen súlya nem tudja hol megfordítani, hol nem a melléknévét. Nézd meg a jellemzők súlyait a vizsgálópanelen!</li>
+    <li><b>A csere</b> (<a href="#s121-b">12.1</a>, <a href="#s123-a">12.3</a>, <a href="#s125-c">12.5</a>): írj egy „…, de …” kritikát, és nyomd meg „a két tagmondat cseréje” gombot. A szózsák, az átlagoló modell és a pozíció nélküli Transformer kimenete <b>hajszálpontosan ugyanaz</b> marad – nekik ugyanaz a két mondat. Ha mindkét tagmondat állító, a szópáros modellé is (a szópárok halmaza nem változik). Az RNN és a Transformer ítélete megfordul.</li>
+    <li><b>A szópárok határa</b> (<a href="#s121-b">12.1</a>): a szópáros modell a tagadást már tudja, a „de”-s mondatoknál viszont téved, ha mindkét tagmondat állító: ilyenkor a cserével ugyanazok a szópárok jönnek ki. Próbáld ki tagadó tagmondattal is – akkor a csere már változtat.</li>
+    <li><b>A figyelem térképe</b> (<a href="#s124-c">12.4</a>, <a href="#s125-a">12.5</a>): „a film jó volt, de a vége unalmas volt” esetén az 1. fej szinte minden tokenje az „unalmas”-ra figyel – a mondat eleji „jó”-ra senki. A „nem volt túl rossz”-ban az egyik fej a „rossz”-ra, a másik a „nem”-re. A felcserélt mondatban viszont a fejek egy „volt”-ra figyelnek – a térkép nem mindig olvasható emberi szemmel. A súly azt mutatja, honnan kever a modell, nem azt, miért dönt így.</li>
+    <li><b>Ami sosem fordult elő</b>: kössön a „de” két azonos ítéletű tagmondatot („a film jó volt, de a vége szép volt”). Ilyet a modellek sosem láttak – nézd meg, mit mondanak. Egy modell csak arra a nyelvre megbízható, amelyen tanult (<a href="../06-modellertekeles/#s64-c">6.4</a>).</li>
+  </ol>
+</div>
+<div class="box tip">
+  <span class="box-title">Mit mutat – és mit nem – ez a kísérlet?</span>
+  A mesterséges nyelvet szándékosan úgy választottuk, hogy a sorrend számítson. Ezért itt a szózsák pénzfeldobás, valódi kritikákon viszont 89% (<a href="#s127-b">12.7</a>). Az is igaz, hogy ezen a rövid nyelven az RNN is tökéletes: a döntő szó mindig a mondat végén van, ami az RNN-nek kedvez. A hosszú távú függésnél (<a href="#s123-c">12.3</a>) már nem volt az. A tanulság nem az, hogy „a Transformer mindig nyer”, hanem hogy <b>minden modell annyit tud, amennyit a felépítése megenged</b>: a zsák nem lát sorrendet, a pozíció nélküli figyelem sem, az RNN felejt, a figyelem pozícióval mindent lát – ha van elég adat.
+</div>
+
+<h3 id="s128-b">A „levél” egy valódi modellben</h3>
+<p>Térjünk vissza a fejezet első kérdéséhez! A <b>huBERT</b> egy magyar szövegeken előtanított BERT-base modell (12 blokk, 12 fej, $d = 768$). Hat mondatot adtunk neki, mindegyikben szerepel a „levél” szó: háromban a fa levele, háromban a postai levél. Minden rétegben kivettük a „levél” token vektorát, és páronként koszinusz-hasonlóságot számoltunk.</p>
+<div class="widget" data-widget="hubert-context"></div>
+<div class="box example">
+  <span class="box-title">Mit látunk?</span>
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:560px">
+    <tr><th>réteg</th><th>0 (beágyazás)</th><th>4</th><th>8</th><th>12 (utolsó)</th></tr>
+    <tr><td>azonos jelentésű párok átlaga</td><td>0,97</td><td>0,952</td><td>0,935</td><td>0,966</td></tr>
+    <tr><td>eltérő jelentésű párok átlaga</td><td>0,97</td><td>0,832</td><td>0,822</td><td>0,893</td></tr>
+  </table></div>
+  A 0. rétegben a hat „levél” szinte azonos – ez a <b>statikus</b> szóbeágyazás (+ pozíció), amely nem tudja, melyik levélről van szó (<a href="#s122-c">12.2</a>). Néhány figyelemréteg után a két jelentés <b>szétválik</b>: a fa levelei egymáshoz, a postai levelek egymáshoz hasonlítanak jobban. A modell senkitől nem kapta meg a jelentéseket – a szomszédos szavakból (fáról, lehullik, postán, bélyeg) „rakta össze” őket, az önfigyelemmel (<a href="#s125-a">12.5</a>).
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Ne az abszolút számot nézd.</b> A BERT-szerű modellek vektorai mind egy szűk „kúpban” vannak, ezért szinte minden koszinusz 0,8 fölötti. A két átlag <b>különbsége</b> a beszédes.</li>
+    <li><b>Hat mondat nem statisztika.</b> Ez szemléltetés, nem mérés: más mondatokkal a számok mások lesznek.</li>
+    <li><b>Egy fordítómodell is tévedhet.</b> Az <em>opus-mt-hu-en</em> (egy 6 + 6 blokkos kódoló–dekódoló) a „Lehullott a levél a fáról.” mondatot postai levélnek fordította, a „sárga” szóval már helyesen (<a href="#s124-c">12.4</a>). A kontextusfüggő vektor <b>lehetővé teszi</b> a helyes döntést, de nem garantálja – a kis modell a gyakoribb jelentés felé húz.</li>
+  </ul>
+</div>
+
+<h3 id="s128-c">Válaszok a fejezet kérdéseire</h3>
+<div class="box tip">
+  <span class="box-title">🎯 Honnan tudja a gép, mit jelent egy szó, és mit egy mondat?</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Hogyan lesz a szövegből szám, és mit veszítünk?</b> A tokenizáló darabokra vágja (szó, részszó, írásjel), és minden darab egy sorszámot kap. A szózsák és a TF-IDF megszámolja, súlyozza a tokeneket – a <b>sorrendet</b> eldobja. Ezért ugyanaz a „jó volt, de unalmas” és az „unalmas volt, de jó”, és ezért nem tudja egy lineáris modell kezelni a „nem”-et (XOR): 51,2% (<a href="#s121">12.1</a>).</li>
+    <li><b>Hogyan hordozhatja egy vektor a jelentést?</b> A beágyazás minden tokenhez egy sűrű vektort rendel, amelyet a gép a <b>szomszédos szavakból</b> tanul (disztribúciós hipotézis, word2vec, GloVe). A hasonló szavak közel kerülnek (<em>cat</em>–<em>dog</em> 0,922), és az irányoknak jelentése van (<em>paris − france + hungary</em> → <em>budapest</em>) – az adat torzításaival együtt. A statikus vektor viszont szavanként egy: a „levél” két jelentését összemossa (<a href="#s122">12.2</a>).</li>
+    <li><b>Hogyan számít bele a sorrend, és miért felejt a háló?</b> A rekurrens háló szóról szóra frissít egy rejtett állapotot – így a „de” utáni szó dönthet (RNN: 100%). De a gradiens lépésenként szorzódik, és elhal: a mondat elején álló „nem”-et a sima RNN 10 tanításból csak kétszer tanulta meg. Az LSTM cellaállapota egy „egyenes úton” viszi át az információt (<a href="#s123">12.3</a>).</li>
+    <li><b>Hogyan dönti el a modell, melyik szóra figyeljen?</b> A figyelem puha keresés: a lekérdezés minden kulccsal pontszámot kap, a softmax súlyokat ad, a válasz az értékek keveréke (<a href="#s124">12.4</a>). Az önfigyelemben a mondat minden tokenje így kérdezi meg az összes többit; $\sqrt{d_k}$-val skálázunk, több fejjel többféle kapcsolatot keresünk, és pozíciókódolással adjuk vissza a sorrendet – nélküle a Transformer is „zsák” (62,5%) (<a href="#s125">12.5</a>). Blokkokba rendezve, maradékkapcsolattal és normalizálással ez a Transformer, maszkkal pedig szöveget is ír (<a href="#s126">12.6</a>). Azért nyert, mert párhuzamosan tanítható, ezért óriási szövegen előtanítható, és a mérete kiszámíthatóan növelhető (<a href="#s127">12.7</a>). A huBERT rétegeiben látszik is: a „levél” vektora a környezettől függően a fa vagy a posta felé mozdul.</li>
+  </ol>
+</div>
+</section>

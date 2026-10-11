@@ -1,0 +1,198 @@
+
+<!-- ===================================================== 12.3 -->
+<section id="s123">
+<h2>12.3 Szekvenciák: rekurrens hálók ★★</h2>
+<p>Most már minden szónak van jelentést hordozó vektora. De egy mondat nem szavak halmaza: a sorrend számít. Hogyan adjunk egy hálónak <b>változó hosszú</b>, <b>rendezett</b> bemenetet?</p>
+
+<h3 id="s123-a">1. lépés: a sorrend számít – átlag helyett emlékezet</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – átlagoljuk a szóvektorokat!</span>
+  A legegyszerűbb ötlet: a mondat vektora legyen a szavai beágyazásainak <b>átlaga</b>. Ez rögzített hosszú, bármilyen hosszú mondatból. A kísérletünkben (<a href="#s128">12.8</a>) egy háló 8 dimenziós szóvektorokat tanult, átlagolta őket, és egy kis MLP döntött:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:560px">
+    <tr><th>átlagolt beágyazás + MLP</th><th>egy tagmondat</th><th>„…, és …”</th><th>„…, de …”</th><th>összesen</th></tr>
+    <tr><td>helyes válasz (5 futás átlaga)</td><td><b>100%</b></td><td>74,7%</td><td><b>51,2%</b></td><td>63,5%</td></tr>
+  </table></div>
+  A tagadást már megtanulta (a nemlineáris MLP-nek a XOR nem gond). A „de”-s mondatokon viszont pénzfeldobás: a „jó volt, de unalmas” és az „unalmas volt, de jó” szavai ugyanazok, így az átlaguk is.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – szekvencia és a szekvenciás feladatok (Kiegészítés)</span>
+  A <b>szekvencia</b> (sorozat) elemek rendezett listája: $\mathbf x_1, \mathbf x_2, \ldots, \mathbf x_n$, ahol $n$ mondatonként más. Feladattípusok:
+  <ul style="margin:.2rem 0">
+    <li><b>sok → egy:</b> egy egész sorozatból egy címke (véleményelemzés, spamszűrés);</li>
+    <li><b>sok → sok, elemenként:</b> minden tokenhez egy címke (szófaj, tulajdonnév felismerése);</li>
+    <li><b>sorozatból sorozat:</b> más hosszú kimenet (fordítás, összefoglalás) – <a href="#s124">12.4</a>;</li>
+    <li><b>a következő elem jóslása:</b> szöveggenerálás (<a href="#s126-b">12.6</a>).</li>
+  </ul>
+  <b>Miért nem jó az MLP?</b> Rögzített számú bemenete van, és minden helynek külön súlya – ugyanaz a baj, mint a képeknél az eltolással (<a href="../11-konvolucios-halok/#s111-c">11.1</a>): ha a „nem” egy szóval arrébb kerül, más súlyokra esik.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – mit őriz meg az átlag?</span>
+    Szóvektorok: jó $= (1)$, unalmas $= (-1)$, de $= (0)$. A „jó de unalmas” átlaga $(1 + 0 - 1)/3 = 0$, az „unalmas de jó”-é szintén 0. Az átlag a <b>tartalmat</b> megőrzi, a <b>sorrendet</b> nem.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – változó hossz</span>
+    „a film jó volt” 4 token, „a film nem volt túl jó , de a vége remek volt” 12. Egy MLP-nek 12 bemenet kellene, a rövid mondatot pedig ki kellene tölteni (nullákkal „párnázni”). A 13 tokenes mondat már nem is férne bele.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az átlag nem haszontalan.</b> Valódi kritikákon az előtanított szóvektorok átlaga + logisztikus regresszió kb. 86%-ot ér el az IMDB-n (Thakur) – a szózsák (89%) alatt, de nem rosszul. Ahol a sorrend ritkán dönt, olcsó és jó.</li>
+    <li><b>A szópárok (<a href="#s121-b">12.1</a>) csak a szomszédos sorrendet látják.</b> Ami három szóval arrébb dől el, azt nem.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – sorrend és átlag</summary>
+  <ol>
+    <li>Szóvektorok: jó $= (1;\ 0)$, rossz $= (-1;\ 0)$, nem $= (0;\ 1)$. Mi a „nem jó” és a „jó nem” átlaga?
+      <details><summary>Megoldás</summary>Mindkettő $(0{,}5;\ 0{,}5)$ – az átlag nem tudja, melyik szó jött előbb.</details></li>
+    <li>Melyik feladattípus: (a) egy e-mailről eldönteni, hogy kéretlen-e; (b) egy mondat minden szavához megadni a szófaját; (c) magyar mondatot angolra fordítani?
+      <details><summary>Megoldás</summary>(a) sok → egy; (b) sok → sok, elemenként; (c) sorozatból sorozat.</details></li>
+    <li>Az átlagoló modell a „de”-s kritikákon 51,2%-ot ért el. Mit jelent ez?
+      <details><summary>Megoldás</summary>Gyakorlatilag tippel: két kimenetnél az 50% a vak találgatás. A „de”-s mondatpárok átlaga azonos, így a modell a párok egyik felét biztosan eltéveszti.</details></li>
+    <li>Miért tanulta meg az átlagoló modell a tagadást (egy tagmondatnál 100%), a szózsák + logisztikus regresszió pedig nem?
+      <details><summary>Megoldás</summary>Az átlag után egy rejtett rétegű MLP jön, amely nemlineáris: a „nem” és a melléknév kölcsönhatását (XOR) le tudja írni. A logisztikus regresszió csak súlyozott összeget számol.</details></li>
+    <li>(nehezebb) Egy MLP 20 tokenes ablakot kap (rövidebb mondatnál nullákkal kitöltve). Mi a gond, ha a „nem” a tanítóadatban mindig a 3. helyen állt, a tesztben pedig az 5.-en?
+      <details><summary>Megoldás</summary>Az MLP minden helyhez külön súlyokat tanul: az 5. hely súlyai nem tanulták meg, mit jelent a „nem”. Ez a szöveges megfelelője a 11.1 eltolási problémájának. Megoldás: minden helyen <b>ugyanazokat</b> a súlyokat használni – ezt teszi a rekurrens háló.</details></li>
+  </ol>
+</details>
+
+<h3 id="s123-b">2. lépés: a rekurrens háló – egy cella, sok lépés</h3>
+<p>Olvassunk úgy, mint egy ember: szóról szóra, és közben tartsunk fejben egy rövid összefoglalót arról, amit eddig olvastunk. Minden új szónál frissítjük az összefoglalót.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egyetlen számnyi emlékezet</span>
+  Legyen a „memória” egyetlen szám, $h$, kezdetben 0. Minden szónál: $h_{\text{új}} = \tanh(0{,}5 \cdot h_{\text{régi}} + x)$, ahol $x$ a szó értéke: jó $= +1$, unalmas $= -1$, de $= 0$.
+  <div class="two-col" style="margin-top:.3rem">
+    <div><b>„jó de unalmas”</b><br>
+      $h_1 = \tanh(0 + 1) = 0{,}7616$<br>
+      $h_2 = \tanh(0{,}3808 + 0) = 0{,}3634$<br>
+      $h_3 = \tanh(0{,}1817 - 1) = -0{,}6741$ → negatív</div>
+    <div><b>„unalmas de jó”</b><br>
+      $h_1 = \tanh(0 - 1) = -0{,}7616$<br>
+      $h_2 = \tanh(-0{,}3808 + 0) = -0{,}3634$<br>
+      $h_3 = \tanh(-0{,}1817 + 1) = 0{,}6741$ → pozitív</div>
+  </div>
+  Ugyanazok a szavak, ellentétes végeredmény – a sorrend számít. A régi tartalom minden lépésben „halványul” (a $0{,}5$-ös szorzó miatt), ezért a <b>legutóbbi</b> erős szó dönt. A „de” után éppen ez kell.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – rekurrens neurális háló (RNN)</span>
+  A <b>rejtett állapot</b> $\mathbf h_t$ egy $h$ hosszú vektor; $\mathbf h_0 = \mathbf 0$. Minden lépésben
+  $$\mathbf h_t = \tanh\big(\mathbf h_{t-1} W + \mathbf x_t U + \mathbf b\big),$$
+  ahol $\mathbf x_t$ a $t$-edik token beágyazása, $U$ ($d \times h$), $W$ ($h \times h$) és $\mathbf b$ tanult paraméterek. A kimenet a sok → egy feladatnál az utolsó állapotból jön ($\mathbf h_n$ után egy lineáris réteg), elemenkénti feladatnál minden $\mathbf h_t$-ből.
+  <ul style="margin:.2rem 0">
+    <li><b>Minden lépésben ugyanaz a $W$, $U$, $\mathbf b$</b> – súlymegosztás <b>időben</b>, ahogy a konvolúció <b>térben</b> osztja meg a súlyait (<a href="../11-konvolucios-halok/#s113-a">11.3</a>). Ezért bármilyen hosszú sorozatot feldolgoz, és a „nem” bármelyik helyen ugyanazt jelenti.</li>
+    <li>Paraméterszám: $d \cdot h + h \cdot h + h$.</li>
+    <li>Tanítás: a hálót „kiterítjük” időben (minden lépés egy réteg, közös súlyokkal), és visszaterjesztést futtatunk rajta (<a href="../10-halo-tanitasa/#s103">10.3</a>). A közös súlyok gradiensei lépésenként összeadódnak. Neve: <b>időbeli visszaterjesztés</b> (<em>backpropagation through time</em>, BPTT).</li>
+  </ul>
+  <small>(J. Elman, 1990; a gondolat a 80-as évekből való.)</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a kísérlet RNN-je</span>
+    $d = 8$ dimenziós szóvektorok, $h = 16$ rejtett állapot: $8 \cdot 16 + 16 \cdot 16 + 16 = 400$ paraméter a cellában, plusz $28 \cdot 8 = 224$ a beágyazásban és $16 + 1 = 17$ a kimeneti neuronban – összesen 641. A „de”-s kritikákon <b>100%</b> (5 futásból mind az ötben).
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy nagyobb cella</span>
+    100 hosszú bemenet, 128 hosszú rejtett állapot: $100 \cdot 128 + 128 \cdot 128 = 12\,800 + 16\,384 = 29\,184$ súly, plusz 128 torzítás. Minden lépésben ennyi szorzás – és a lépések csak egymás után végezhetők el.
+  </div>
+</div>
+<div class="widget" data-widget="rnn-unroll"></div>
+<div class="box tip">
+  <span class="box-title">Hasonlat – a rejtett állapot mint jegyzet</span>
+  A rejtett állapot nem a bemenetek listája, hanem egy <b>tömörített jegyzet</b>: nem „jó, aztán de, aztán unalmas”, hanem „eddig inkább negatív”. A <em>Deep Learning – A Visual Approach</em> egy fagylaltkehellyel szemlélteti: nem azt jegyzed meg, hogy „három gombóc, aztán egyet kivettünk”, hanem hogy „két gombóc van benne”. A háló maga tanulja meg, mit érdemes feljegyezni.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Lépésről lépésre, nem egyszerre.</b> $\mathbf h_t$-hez kell $\mathbf h_{t-1}$, ahhoz $\mathbf h_{t-2}$ … Egy 1000 tokenes szöveg 1000 egymás utáni lépés – a GPU párhuzamosságát nem lehet kihasználni (<a href="#s127-a">12.7</a>).</li>
+    <li><b>A tanítás memóriát eszik.</b> A visszaterjesztéshez minden közbülső $\mathbf h_t$-t meg kell őrizni, így a memória a sorozat hosszával nő.</li>
+    <li><b>Ne keverd az RNN-t a Transformerrel.</b> Az RNN sorban olvas és egyetlen állapotvektorban emlékszik; a Transformer (<a href="#s126">12.6</a>) egyszerre látja az összes tokent.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – az RNN cellája</summary>
+  <ol>
+    <li>A kiinduló példa szabályával ($h_{\text{új}} = \tanh(0{,}5\,h + x)$) számold ki: „jó”, aztán két „semleges” szó ($x = 0$).
+      <details><summary>Megoldás</summary>$0{,}7616$; $\tanh(0{,}3808) = 0{,}3634$; $\tanh(0{,}1817) = 0{,}1797$. Minden lépésben kb. a felére halványul.</details></li>
+    <li>És fordítva: két semleges szó, aztán „jó”?
+      <details><summary>Megoldás</summary>$0$; $0$; $\tanh(1) = 0{,}7616$ – az utolsó szó teljes erővel számít.</details></li>
+    <li>Hány paramétere van egy RNN-cellának, ha $d = 50$ és $h = 100$?
+      <details><summary>Megoldás</summary>$50 \cdot 100 + 100 \cdot 100 + 100 = 5000 + 10\,000 + 100 = 15\,100$.</details></li>
+    <li>Hány paramétere lesz ugyanennek a cellának, ha a mondatok 10 helyett 1000 tokenesek?
+      <details><summary>Megoldás</summary>Ugyanannyi, 15&nbsp;100: a súlyok minden lépésben közösek. Csak a számítás és a tanítás memóriaigénye nő.</details></li>
+    <li>(nehezebb) Mi lesz a kiinduló példában, ha a szorzó $0{,}5$ helyett $1{,}5$? Számold ki a „jó de unalmas” mondatra!
+      <details><summary>Megoldás</summary>$h_1 = \tanh(1) = 0{,}7616$; $h_2 = \tanh(1{,}1424) = 0{,}8152$; $h_3 = \tanh(1{,}2228 - 1) = \tanh(0{,}2228) = 0{,}2192$ – pozitív! Az erős visszacsatolás miatt a háló „ragaszkodik” a régihez, és az „unalmas” nem tudja átfordítani. A $W$ mérete dönti el, mennyit felejt a háló.</details></li>
+  </ol>
+</details>
+
+<h3 id="s123-c">3. lépés: hosszú távú függés – felejtés és az LSTM</h3>
+<p>A „de”-nél jól jött, hogy a háló felejt. De mi van, ha a döntő szó a mondat <b>elején</b> áll, és utána még sok szó jön?</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – mennyi jut vissza?</span>
+  A tanításhoz azt kell tudni, mennyire változik az utolsó állapot, ha egy korábbit kicsit megmozdítunk. Egy lépésre (a láncszabállyal, <a href="../02-matematikai-eszkoztar/#s27-d">2.7</a>):
+  $$\frac{\partial h_t}{\partial h_{t-1}} = w \cdot \big(1 - h_t^2\big),\qquad \text{és mivel } 0 \lt 1 - h_t^2 \le 1:\quad \left|\frac{\partial h_t}{\partial h_{t-1}}\right| \le |w|.$$
+  $k$ lépésen át ezek a tényezők összeszorzódnak. $w = 0{,}5$-nél 10 lépés után a hatás legfeljebb $0{,}5^{10} \approx 0{,}000\,98$ – ezredrésze sincs. A 10 szóval korábbi bemenet gyakorlatilag nem kap tanítójelet.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – eltűnő és robbanó gradiens időben</span>
+  Az időbeli visszaterjesztésben a gradiens lépésenként a $W$ mátrixszal és a $\tanh$ deriváltjával szorzódik. Ha ezek „átlagosan” 1-nél kisebbek, a gradiens <b>exponenciálisan eltűnik</b>; ha nagyobbak, <b>felrobban</b> (S. Hochreiter, 1991; Y. Bengio és társai, 1994). Ugyanaz a jelenség, mint a mély hálóknál (<a href="../10-halo-tanitasa/#s106-b">10.6</a>) – csak itt a „mélység” a mondat hossza.
+  <ul style="margin:.2rem 0">
+    <li>A robbanás ellen: <b>gradiensvágás</b> – ha a gradiens hossza egy küszöb fölé nő, levágjuk a küszöbre.</li>
+    <li>Az eltűnés ellen: más cella kell – ez az LSTM.</li>
+  </ul>
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – LSTM (hosszú rövid távú memória) (Kiegészítés)</span>
+  Az LSTM (S. Hochreiter, J. Schmidhuber, 1997; a felejtőkapu: F. Gers és társai, 2000) a rejtett állapot mellé egy <b>cellaállapotot</b> ($\mathbf c_t$) is visz, és három <b>kapuval</b> szabályozza, mi kerül bele és mi marad meg:
+  $$\mathbf c_t = \mathbf f_t \odot \mathbf c_{t-1} + \mathbf i_t \odot \mathbf g_t,\qquad \mathbf h_t = \mathbf o_t \odot \tanh(\mathbf c_t),$$
+  ahol a felejtő ($\mathbf f_t$), a beíró ($\mathbf i_t$) és a kiolvasó ($\mathbf o_t$) kapu egy-egy szigmoidos réteg (értékük 0 és 1 között), $\mathbf g_t$ pedig egy $\tanh$-os réteg – mind a négy $\mathbf h_{t-1}$-ből és $\mathbf x_t$-ből számol; $\odot$ az elemenkénti szorzás.
+  <b>Miért segít?</b> A cellaállapot mentén nincs $\tanh$ és nincs $W$-szorzás, csak a felejtőkapu: $\partial \mathbf c_t / \partial \mathbf c_{t-1} = \mathbf f_t$. Ha a háló $\mathbf f_t \approx 1$-et tanul, az információ (és a gradiens) sok lépésen át megmarad. Ez ugyanaz az ötlet, mint a maradékkapcsolat (<a href="../11-konvolucios-halok/#s114-c">11.4</a>): egy „egyenes út”, amelyen a jel csillapítás nélkül halad.
+  Paraméterszám: négy réteg, $4\,(d h + h^2 + h)$. A <b>GRU</b> (K. Cho és társai, 2014) két kapuval és cellaállapot nélkül hasonlót ér el, $\tfrac34$ annyi paraméterrel.
+</div>
+<div class="box example">
+  <span class="box-title">Példa – egy kísérlet: tagadás a mondat elején</span>
+  Mondatok: „<b>nem</b> igaz, hogy a film, amit [$F$ darab töltelékszó] láttunk, <b>jó</b> volt” – a töltelékszavak véletlenszerűek (tegnap, este, moziban, végre…), a „nem” pedig az esetek felében hiányzik. A címke a „nem” és a melléknév együttese (XOR). A „nem” és a mondat vége között $11 + F$ lépés van. 4000 tanítómondat, $F$ = 0…20 vegyesen; 10 független tanítás átlaga:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>töltelékszavak száma ($F$)</th><th>0</th><th>2</th><th>5</th><th>10</th><th>15</th><th>20</th></tr>
+    <tr><td>sima RNN ($h = 16$)</td><td>76,7%</td><td>66,8%</td><td>62,4%</td><td>59,6%</td><td>62,1%</td><td>60,4%</td></tr>
+    <tr><td>LSTM ($h = 16$)</td><td>100%</td><td>100%</td><td>100%</td><td>100%</td><td>99,9%</td><td>99,9%</td></tr>
+    <tr><td>Transformer (<a href="#s126">12.6</a>)</td><td>100%</td><td>100%</td><td>100%</td><td>100%</td><td>100%</td><td>100%</td></tr>
+  </table></div>
+  A sima RNN a 10 tanításból <b>kettőben</b> tanulta meg a feladatot (ott minden távolságon 100%); a többi nyolcban 10 töltelékszónál 44–56%-ot ért el, vagyis tippelt, négyben már töltelékszó nélkül is. Az LSTM és a Transformer mind a tíz tanításban 99,6–100%-ot hozott. A sima RNN <b>tudná</b> ábrázolni a megoldást – csak a gradiens nem jut el hozzá.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – eltűnés és robbanás</span>
+    Ha a gradiens lépésenként 60%-kal csökken (szorzó 0,4), 8 lépés után $0{,}4^8 \approx 0{,}000\,66$-od marad. Ha 60%-kal nő (szorzó 1,6), $1{,}6^8 \approx 42{,}9$-szeres lesz. Egy kis eltérés 1-től sok lépés után óriási különbség.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a felejtőkapu ereje</span>
+    $\mathbf f = 0{,}99$ mellett 50 lépés után $0{,}99^{50} \approx 0{,}61$ marad a cellaállapotból – az információ még bőven ott van. $\mathbf f = 0{,}9$-nél $0{,}9^{50} \approx 0{,}005$: elveszett. A háló maga tanulja meg, melyik elemet mennyire őrizze.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az LSTM-et is időbeli visszaterjesztéssel tanítjuk.</b> A <em>Deep Learning – A Visual Approach</em> azt írja, hogy az LSTM-nek nincs szüksége „ismételt másolatokra”, ezért elkerüli a problémát – ez pontatlan. Az LSTM-et ugyanúgy kiterítjük időben; a különbség a cellaállapot <b>összeadásos</b> frissítése.</li>
+    <li><b>Az LSTM az eltűnést enyhíti, a robbanást nem.</b> Arra továbbra is gradiensvágás kell.</li>
+    <li><b>A hosszú memória sem végtelen.</b> Az LSTM is egyetlen, rögzített hosszú vektorban tárol mindent, és ugyanúgy lépésről lépésre halad. Mindkét korlát a fordításnál lesz igazán fájó (<a href="#s124">12.4</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – felejtés és LSTM</summary>
+  <ol>
+    <li>Mennyi $0{,}9^{20}$ és $1{,}1^{20}$? Mit mutat a kettő együtt?
+      <details><summary>Megoldás</summary>$\approx 0{,}122$ és $\approx 6{,}73$. Egy kis, 10%-os eltérés 1-től 20 lépés után 8-szoros vagy 7-szeres változás – a hosszú láncok nagyon érzékenyek.</details></li>
+    <li>$w = 0{,}5$ esetén legfeljebb mekkora a 20 lépéssel korábbi állapot hatása?
+      <details><summary>Megoldás</summary>$0{,}5^{20} \approx 9{,}5 \cdot 10^{-7}$ – egymilliomod alatt.</details></li>
+    <li>Hány paramétere van egy LSTM-cellának, ha $d = 8$ és $h = 16$? Hányszorosa ez a sima RNN-nek?
+      <details><summary>Megoldás</summary>$4 \cdot (8 \cdot 16 + 16 \cdot 16 + 16) = 4 \cdot 400 = 1600$ – négyszerese (négy réteg: három kapu és a jelölt $\mathbf g$).</details></li>
+    <li>Mi történik a cellaállapottal, ha $\mathbf f_t = 1$ és $\mathbf i_t = 0$? És ha $\mathbf f_t = 0$?
+      <details><summary>Megoldás</summary>$\mathbf f = 1$, $\mathbf i = 0$: $\mathbf c_t = \mathbf c_{t-1}$, változatlanul továbbviszi (tökéletes emlékezet). $\mathbf f = 0$: $\mathbf c_t = \mathbf i_t \odot \mathbf g_t$, a régit teljesen elfelejti.</details></li>
+    <li>(nehezebb) A kísérletben négy sima RNN még töltelékszavak nélkül ($F = 0$) is csak kb. 50%-ot ért el, pedig ott „csak” 11 lépés a távolság. Mi lehet az oka, ha a tanítóadatban $F$ 0 és 20 között vegyesen szerepelt?
+      <details><summary>Megoldás</summary>A tanítás egy közös súlykészletet keres minden hosszra. A hosszú mondatokon a gradiens szinte nulla a „nem”-re nézve, a rövideken is kicsi ($11$ lépés), így a háló sokszor el sem indul a jó megoldás felé: a „nem”-et figyelmen kívül hagyva ragad le kb. 50%-on. Hogy sikerül-e, az a véletlen kezdősúlyokon múlik – ezért kellett 10 tanítás az őszinte képhez.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai12-123"></div>
+</section>

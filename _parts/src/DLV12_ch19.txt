@@ -1,0 +1,1191 @@
+RECURRENT NEUR AL NET WORKS
+                           19
+           In most of this book we’ve considered every
+           sample as an isolated entity, unrelated to any
+          other samples. This makes sense for things
+      like photographs. If we’re classifying an image
+and decide that we’re looking at a cat, it doesn’t matter
+if the image before or after this one is a dog, a squirrel, or an airplane. The
+images are independent of each other. But if an image is a frame of a movie,
+then it can be helpful to look at it in the context of the other images around
+it. For example, we can track objects that might be temporarily obscured.
+     When we work with multiple samples whose order matters, we call that
+a sequence. The flow of words in any human language are an important type
+of sequence and will be our focus in this chapter.
+     Algorithms that understand and process sequences have another bonus:
+they are frequently capable of generating, or creating, new sequences. Trained
+systems can generate stories (Deutsch 2016a) or TV scripts (Deutsch 2016b),
+Irish jigs (Sturm 2015b), polyphonic melodies (LISA Lab 2018), and com-
+plex songs (Johnson 2015; O’Brien and Román 2017). We can create lyrics
+(Krishan 2016) for pop music (Chu, Urtasun, and Fidler 2016), folk music
+(Sturm 2015a), rap (Barrat 2018), or country (Moocarme 2020). We can turn
+                    speech into text (Geitgey 2016; Graves, Mohamed, and Hinton 2013) and
+                    write captions for images and video (Karpathy and Li 2013; Mao et al. 2015).
+                         In this chapter, we look at a method for handling sequences based on
+                    remembering something about each element as it comes by. The models we
+                    build are called recurrent neural networks (RNNs).
+                         When we work with sequences, each element of the input is called
+                    a token. A token represents a word, or a fragment of a word, a measurement,
+                    or anything else we can represent numerically. In this chapter, we use lan-
+                    guage as our most frequent source of data, and we focus on whole words, so
+                    we use word and token interchangeably.
+
+
+      Working with Language
+                    The general field that studies natural language is called natural language
+                    understanding, or NLU. Most of today’s algorithms are unconcerned with any
+                    kind of actual understanding of the language they process. Instead, they
+                    extract statistics from the data and use those statistics as the basis for tasks
+                    like answering questions or generating text. These techniques are generally
+                    called natural language processing, or NLP.
+                         We saw in Chapters 16 and 17 that convolutional neural networks, or
+                    CNNs, can recognize objects in photos without having any actual under-
+                    standing of the photo. They just process the statistics of the pixels. In the
+                    same way, NLP systems don’t understand the language they manipulate.
+                    Instead, they assign numbers to words and find useful statistical relation-
+                    ships between those numbers.
+                         In a fundamental sense, these systems have no knowledge that there is
+                    even a thing such as language, or that the objects they manipulate have seman-
+                    tic meanings. As always, the system is using statistics to generate outputs that
+                    we declare to be acceptable in a given situation, without even a glimmer of
+                    comprehension of what it’s doing or what the outputs might mean to a person.
+
+                    Common Natural Language Processing Tasks
+                    The applications of natural language algorithms are commonly called tasks.
+                    Here are some popular tasks:
+                        Sentiment Analysis: Given opinionated text like a movie review, deter-
+                        mine whether the overall sense is positive or negative.
+                        Translation: Turn text into another language.
+                        Answer Questions: Answer questions about the text, like who is the
+                        hero, or what actions occurred.
+                        Summarize or Paraphrase: Provide a short overview of the text, empha-
+                        sizing the main points.
+                        Generate New Text: Given some starting text, write more text that
+                        seems to follow from it.
+                        Logical Flow: If a sentence first asserts a premise and the following sen-
+                        tence asserts a conclusion based on that premise, determine whether
+                        the conclusion logically follows from the premise.
+
+540    Chapter 19
+     In this chapter and the next, we focus mainly on two tasks: translation
+and text generation. The other tasks have much in common with these
+(Rajpurkar, Jia, and Liang 2018; Roberts, Raffel, and Shazeer, 2020). In
+particular, logical flow is extra difficult and benefits from human-computer
+partnerships (Full Fact 2020).
+     Translation requires, at a minimum, the text we want to translate, and
+the source and target languages. We might also want to know some context
+to help us understand idioms and other language features that change
+from one place to another or over time.
+     Text generation typically starts with a seed or prompt. The algorithm takes
+that as the start of the text and then builds from there. Typically, it does this
+one word at a time. Given a prompt, it predicts the next word. That word
+is added to the end of the prompt, and the system uses that new, longer
+prompt to predict the next word after it. We can repeat this process end-
+lessly to produce a sentence, essay, or book. We call this technique autoregres-
+sion because we’re predicting, or regressing, the next word in the sequence
+by automatically appending previous outputs together and using them as the
+input. Autoregressive systems are called autoregressors. More generally, creat-
+ing text algorithmically is called natural language generation, or NLG.
+     Both translation and text generation make use of a concept called a
+language model. This is any kind of computation that takes a sequence of
+words as an input and tells us how likely it is that the sequence is a well-
+formed sentence. Note that it doesn’t tell us if it’s a particularly well-written
+sentence, or even if it’s meaningful or true. It’s often convenient to refer to
+a trained neural network as itself being a language model (Jurafsky 2020).
+
+Transforming Text into Numbers
+To build systems that can help us with translation and text generation, we have
+to first transform our text into a form that’s useful to the computer. As usual,
+we’ll turn everything into numbers. There are two popular ways to do this.
+     The first is character based, where we number all the symbols that can
+appear in our text. The most extensive tabulation of written characters
+in human language is called Unicode. The most recent version, Unicode
+13.0.0, encompasses 154 written human languages and identifies 143,859
+distinct characters (Unicode Consortium 2020). We can assign every sym-
+bol from any of these writing systems a unique number from 0 to about
+144,000. In this chapter, we keep things simple and show a few examples of
+text generation using the 89 characters most common in English text.
+     The second approach is word based, where we number all the words that
+can appear in our text. Counting all the words in all the languages of the
+world would be a daunting task. In this book, we stick to English, but even
+there, we have no definitive count of the number of words. Most modern
+English dictionaries have about 300,000 entries (Dictionary.com 2020).
+Imagine working through the dictionary and assigning each entry a unique
+number starting at 0. These words and their corresponding numbers would
+then make up our vocabulary. Most of the examples in this chapter take a
+word-based approach.
+
+
+                                                         Recurrent Neural Networks   541
+                          Now we can create a computer-friendly, numerical representation of any
+                    sentence. We can generate more text by handing this list of numbers to a
+                    trained autoregressive network. The network predicts the number of the next
+                    word, that word gets appended to the words used as its input, the network
+                    then predicts the next word, which again gets appended to the words used as
+                    its input, and so on. For us to see what text this corresponds to, we can turn
+                    each number back into its corresponding word. For many of our discussions
+                    in the following pages, we take these transformations into numbers as a given
+                    and illustrate our inputs and outputs as words, not numbers. We’ll see later
+                    that while a single number is workable, there’s a much richer way to represent
+                    words that includes their context and how they’re used in a sentence.
+
+                    Fine-Tuning and Downstream Networks
+                    It’s often useful to train a system on a generic database and then specialize
+                    it. For example, we might enhance a general-purpose image classifier into
+                    one that can recognize leaf shapes and tell us what kind of tree they came
+                    from. The process is called transfer learning. When used with a classifier,
+                    it often involves freezing the existing network, adding a few new layers at
+                    the end of the classification section, and training those. That way, the new
+                    layers can make use of all the information that the existing network has
+                    learned to extract from each image.
+                          In NLP, we say that a system that has learned from a general data-
+                    base is pretrained. Then when we want to learn a new type of specialized
+                    language, like the language used in law, poetry, or engineering, we fine-
+                    tune the network with the new data. Unlike transfer learning, we typically
+                    modify all the weights in the system when we fine-tune.
+                          If we don’t want to retrain the system, we can create a second model to
+                    take the language system’s output and turn it into something more useful
+                    to us, which is close in spirit to transfer learning. Here the language model
+                    is frozen, and its output is fed to a new model. We call this second model
+                    a downstream network, which carries out a downstream task. Some language
+                    models are designed to create rich, dense summaries of their input text so
+                    they can be used to drive a wide variety of downstream tasks.
+                          These two approaches of fine-tuning and downstream training are use-
+                    ful conceptual distinctions, but in practice, many systems blend together
+                    some of both techniques.
+
+
+      Fully Connected Prediction
+                    As we’ve discussed, we’re going to treat language as sequences of numbers.
+                    To get a feeling for working with such sequences in general, let’s set aside
+                    language for a moment and focus just on the numbers. We’ll build a tiny
+                    network that learns to take in a few numbers from a sequence, and produce
+                    the next number. We’ll do it in perhaps the simplest possible way, with just
+                    two layers: a fully connected layer of a mere five neurons, followed by a fully
+                    connected layer with a single neuron, as in Figure 19-1. We’ll use a leaky
+
+
+542    Chapter 19
+ReLU activation function with slope 0.1 on the first layer and no activation
+function on the output layer.
+
+
+
+
+       5                          1
+  leaky ReLU                    no AF
+Figure 19-1: A tiny network for sequence prediction
+
+
+Testing Our Network
+To try out this tiny network, let’s use a synthetic dataset created by add-
+ing a bunch of sine waves together. The first 500 samples are shown
+in Figure 19-2.
+
+
+
+
+Figure 19-2: Synthetic training data
+
+    To train our system, we’ll take the first five values from our dataset and
+ask our little network to produce the sixth value. Then we’ll take values 2
+through 6 of the dataset and ask it to predict the seventh value. We say that
+we’re using a sliding window to choose each set of inputs, as in Figure 19-3.
+
+  Inputs
+
+
+
+Sample 1
+
+
+Sample 2
+
+
+Sample 3
+
+Sample 4
+
+
+
+Figure 19-3: Using a sliding window to create training samples,
+shown in blue, from 5-element sequences of the training data. The
+value we want to predict for each sample is in red.
+
+                                                              Recurrent Neural Networks   543
+                        From our starting 500 values, we can make 495 samples in this way. We
+                    trained our little network on these samples for 50 epochs. When we run the
+                    training data through again and ask for predictions, we get the results on
+                    the left of Figure 19-4, showing the original training data in blue, and the
+                    predictions in orange. Not bad!
+
+
+
+
+Figure 19-4: Left: Training data and predictions. Right: Test data and predictions.
+
+                         Let’s now run this on 250 points of test data from later in the curves.
+                    The data and predictions are shown on the right of Figure 19-4. The pre-
+                    dictions aren’t perfect, but they are pretty great, considering how small our
+                    network is.
+                         This was easy data, though, since it was so smooth. Let’s try a more
+                    realistic dataset composed of the average number of sunspots recorded
+                    monthly from 1749 to 2018 (Kaggle 2020). Figure 19-5 shows the inputs and
+                    outputs using the same arrangement as in Figure 19-4. The peaks and val-
+                    leys correspond to the roughly 11-year solar cycle. Though it doesn’t quite
+                    reach the extremes of the data, our tiny regressor seems to follow the gen-
+                    eral ups and downs of the data quite well.
+
+
+
+
+Figure 19-5: Left: Training sunspot data and predictions. Right: Test data and predictions.
+
+                        Unfortunately, this little network is not going to be able to generate
+                    enjoyable novels. To see why, let’s change our data to numbered words. For
+                    our text, we’ll use the first six chapters of Charles Dickens’ novel A Tale of
+
+
+
+544    Chapter 19
+                    Two Cities (Dickens 1859). To make processing easier, we stripped out all the
+                    punctuation and turned everything into lowercase.
+                         Since we’re going to work at word level, we need to assign a number to
+                    every word we’ll use. Numbering an entire dictionary would be overkill, and
+                    we’d miss all the people and place names in the text. Instead, let’s build our
+                    vocabulary from the book itself. Let’s assign the value 0 to the first word in
+                    the book and then work our way forward one word at a time. Each time we
+                    see a word we haven’t seen before, we assign it the next available number.
+                    This opening chunk of the novel contains 17,267 words total but has a vocab-
+                    ulary of only 3,458 unique words, so our words have values from 0 to 3,457.
+                         Now that every word in this part of the novel has a number, we split the
+                    database into training and test sets. At the end of the training data, we have
+                    only seen about 3,000 unique words. So that we don’t ask the network to
+                    predict word numbers it hasn’t been trained with, we removed all sequences
+                    in the test set where any word numbers (or the target) are above this value.
+                    That is, the test data consists of sequences that only use words that are pres-
+                    ent in the training data.
+                         We repeated the previous experiment and fed windows of five consecu-
+                    tive word numbers to the little network of Figure 19-1, collecting from the
+                    output its prediction of the next word. We told it to train for 50 epochs, but
+                    the error quickly stopped improving and early stopping brought training to
+                    a close after 8 epochs, giving us the results in Figure 19-6. As we can see in
+                    the training data on the left, the word numbers gradually increase as we get
+                    further into the book. The orange lines are the word numbers predicted by
+                    the system in response to each set of five inputs.
+
+
+
+
+Figure 19-6: Left: Training and predictions for the first roughly 12,000 words from the first six chapters of A
+Tale of Two Cities. Right: Test data and predictions for roughly 2,000 more words.
+
+                        That’s not good at all. The predictions definitely aren’t matching either
+                    the training or test data. The structure of the test data and predictions is
+                    easier to see in the close-up shown in Figure 19-7.
+
+
+
+
+                                                                                      Recurrent Neural Networks   545
+Figure 19-7: Close-up of 500 pieces of test data and predictions from Figure 19-6
+
+                        The predictions appear to vaguely follow the targets, but they’re way off.
+
+                    Why Our Network Failed
+                    Let’s turn the numbers of Figure 19-7 back into words. Here’s a typical
+                    extract:
+                        pricked hollows mud crosses argument ripples loud want joints upon har-
+                        ness followed side three intensely atop fired wrote pretence
+
+                         That’s not great literature, even if we put some punctuation back in.
+                    A number of things went wrong here. First, this one little network clearly
+                    doesn’t have anywhere near enough power for this job. We’d need many
+                    more neurons, maybe on many layers, to get anywhere near readable text.
+                         Even much larger fully connected networks will struggle with this task,
+                    though, because they have no way of capturing the structure of the text,
+                    also called its semantics. The structure of language is fundamentally differ-
+                    ent than that of the curves and sunspot data we saw before. Consider the
+                    five-word string Just yesterday, I saw a. This fragment can be completed by
+                    any noun. By one estimate, the number of nouns in English runs to at least
+                    tens of thousands (McCrae 2018). How could any network possibly guess the
+                    one we want? One answer is to make the window bigger, so the network has
+                    more preceding words and may be able to make a more informed choice.
+                    For example, given the input, I’ve been spending my time watching tigers very
+                    closely. Just yesterday, I saw a, most English nouns can now be reasonably
+                    ruled out as unlikely.
+                         Let’s try this out. We enlarged our little network in Figure 19-1 to have
+                    20 neurons on the first layer. We gave it 20 elements at a time and asked it
+                    to predict the 21st. The results for the curve data are shown in Figure 19-8.
+                         Though the training data is still pretty okay, the test results are much
+                    worse. To handle all the information coming from this bigger window, we
+                    need a far bigger network. Making the window bigger means we need a big-
+                    ger network, which means it needs more training data, more memory, more
+                    compute power, more electricity, and more training time.
+
+
+
+546    Chapter 19
+Figure 19-8: An enlarged network predicting sine wave data using a window of 20 elements
+
+                        But there’s an even bigger problem that won’t improve just by using a
+                  bigger network. The issue is that even a tiny error in the prediction leads
+                  to incomprehensible text. To see this, let’s arbitrarily look at the words that
+                  were assigned values 1,003 and 1,004. These numbers correspond to the
+                  words keep and flint. The words seem entirely unrelated, but searching the
+                  text turns up this passage near the start of the book: he had only to shut him-
+                  self up inside, keep the flint and steel sparks well off the straw. The word the has
+                  already appeared as the third word of the book, so since neither keep nor
+                  flint had appeared earlier, when we numbered the book’s words, keep and
+                  flint were assigned successive numbers.
+                        Suppose that in response to some input, our network predicts the next
+                  word to be 1,003.49. We need to turn this into an integer to look up the cor-
+                  responding word. The nearest integer is 1,003, giving us keep. But if the sys-
+                  tem predicts the slightly larger value 1,003.51, the nearest integer is 1,004,
+                  giving us flint. These two words are entirely unrelated. This demonstrates
+                  that even a tiny numerical difference in the prediction can create nonsensi-
+                  cal output.
+                        Looking back on our predictions in the graphs for this network, we can
+                  see lots of errors that didn’t seem too terrible for the curve and sunspot
+                  data, but would wreak havoc on language data. Throwing more compute
+                  power at this problem will reduce it, but our need for pinpoint accuracy
+                  won’t go away.
+                        Our little network of Figure 19-1 is hiding another flaw: it doesn’t track
+                  the locations of the words in its input. Suppose we are given the sentence,
+                  Bob told John that he was hungry, and we want to know who the pronoun he
+                  refers to. The answer is Bob. But word order matters, because if we instead
+                  were given the sentence, John told Bob that he was hungry, then he would refer
+                  to John. The need for accuracy would encourage us to extend the network
+                  with more fully connected layers, and we’d lose the implicit ordering of the
+                  words when they arrived at the first layer. Later layers wouldn’t have any
+                  chance at working out which word corresponds to he.
+                        To address these issues, and many others, we want something more
+                  sophisticated than fully connected layers and words represented by single
+                  numbers. We might try using a CNN, and there has been some work on
+
+
+                                                                              Recurrent Neural Networks   547
+                    using CNNs to handle sequence data (Chen and Wu 2017; van den Oord et
+                    al. 2016), but those tools are still developing. Instead, let’s look at something
+                    explicitly designed to handle sequences.
+
+
+      Recurrent Neural Networks
+                    A better way to handle language is to build a network that is explicitly
+                    designed to manage words as an ordered sequence. One such type of net-
+                    work, and the focus of this chapter, is the recurrent neural network, or
+                    RNN. Such networks build on a few concepts we haven’t looked at before, so
+                    let’s consider them now and then use them to build an RNN.
+
+                    Introducing State
+                    RNNs make use of an idea called state. This is just a description of a sys-
+                    tem (such as a neural network) at any given time. For example, imagine
+                    preheating an oven. In this process, the oven takes on three unique states:
+                    off; preheating; and at the desired temperature. The state can also contain
+                    additional information. For example, as the oven warms up, we can pack
+                    three pieces of information into the oven’s state: its current status (such as
+                    preheating); the temperature it’s currently at; and the temperature it’s aim-
+                    ing for. So, a state can represent the current condition of a system, plus any
+                    other information it’s convenient to remember.
+                         Because state is so important, let’s see some of its subtleties with
+                    another example.
+                         Suppose that you’re working at an ice cream shop and you’re learning
+                    how to make a simple fudge sundae. In this story, you play the role of the
+                    system, and the recipe you’re building up in your head is your state.
+                         Before getting any instructions, your starting state or initial state would
+                    be “An empty cup.” So, let’s say you have an empty cup. Your starting state is
+                    shown at the far left of Figure 19-9.
+
+                                                                                                  Marty’s
+                        A cup with                 A cup with                                     favorite
+An empty                                                                      Marty’s
+                        3 scoops                   2 scoops                                        with a
+  cup                                                                         favorite
+                        of vanilla                 of vanilla                                      cherry
+                                                                                                   on top
+
+              Put in                  Remove                        Add                   Add
+              vanilla                 1 scoop                      syrup                 cherry
+
+Figure 19-9: Your evolving state, or recipe, as you learn to make a dessert
+
+                        Your manager says that the first step is to put in some vanilla ice
+                    cream. So, you update your internal recipe, or state, to “An empty cup
+                    with three scoops of vanilla ice cream.” You put three scoops of ice cream
+                    into the cup.
+
+
+
+
+548    Chapter 19
+     Your manager says that’s too much, and you should remove one scoop.
+You do so, and you update your state to “An empty cup with two scoops of
+vanilla ice cream.”
+     Now your manager says to pour on enough chocolate syrup to cover
+the ice cream. You do this, and update your state to “an empty cup with two
+scoops of vanilla ice cream covered in chocolate syrup.” But this reminds
+you of your friend Marty, because this is his favorite dessert. So, you sim-
+plify your state by throwing out what you had, now remembering only
+“Marty’s favorite.”
+     Finally, your manager says you should place a cherry on the top. So, you
+update your state to “Marty’s favorite with a cherry on top.” Congratulations,
+your sundae is complete!
+     There are a few key things to take away from this story and the concept
+of state.
+     First, your state is not simply a snapshot of the current situation or a list
+of the information you were given. It captures both of those ideas, perhaps
+in a compressed or modified form. For example, instead of remembering to
+put in three scoops of ice cream and then removing one, you remembered
+instead to put in two scoops.
+     Second, after receiving new information at each step, you updated
+your state and produced an output. The output depends on the input you
+received and your internal state, but an outside observer can’t see your
+state, and so they might not understand how your output resulted from the
+input you just received. In fact, outside observers usually don’t get to see a
+system’s internal state. We emphasize this by sometimes referring to a sys-
+tem’s state as its hidden state.
+     Finally, the order of the inputs matters. This is the essential aspect of
+this example that makes it about a sequence, rather than just a bunch of
+inputs, and thus distinguishes it from our simple, fully connected layer at
+the start of the chapter. If you’d put the chocolate in the cup first, you’d
+have made quite a different dessert, and you probably wouldn’t have created
+a reference to your friend Marty in your state.
+     We call each input a time step. This makes sense when the inputs rep-
+resent events in time, as they were here. Other sequences might not have a
+time component, like a sequence describing the depth of a river at succes-
+sive points along its length from its source to its terminus. In particular,
+words in a sentence have a time component when they’re spoken aloud, but
+that idea doesn’t really apply when they’re printed. Nevertheless, the term
+time step is widely used to refer to each successive element of a sequence.
+
+Rolling Up Our Diagram
+If we had a long sequence of inputs to process, a drawing like Figure 19-9
+can consume a lot of space on the page. So, we usually draw something like
+this in a more compact form, as in Figure 19-10. We’ve put hyphens between
+the words here to suggest that each little phrase is to be understood as a
+single chunk of information.
+
+
+
+                                                         Recurrent Neural Networks   549
+                    Put-in-vanilla
+                   Remove-1-scoop
+                     Add-sauce
+                     Add-cherry
+
+                   Figure 19-10: The rolled-up version of Figure 19-9
+
+                         The loop on the right represents the state between one input and the
+                   next. After each input, the system (represented by the big, light blue box)
+                   creates a new state, which goes into the black square. This square is called
+                   the delay, and we can think of it as a little piece of memory. When the next
+                   input arrives, the system pulls the state out of the delay and computes an
+                   output and a new state. That new state again emerges from the system and
+                   sits in the delay until the next input arrives. The purpose of the delay is to
+                   make it clear that the state produced during each time step is not imme-
+                   diately used again in some way, but is held until it’s needed to process the
+                   next input.
+                         We say that the diagram in Figure 19-9 is the unrolled version of the
+                   process. The more compact version in Figure 19-10 is called the rolled-up or
+                   rolled version.
+                         In deep learning, we implement the process of managing state and
+                   presenting output by packaging everything up into a recurrent cell, as shown
+                   in Figure 19-11. The word recurrent refers to the fact that we use the state
+                   memory over and over, even though its contents usually change from one
+                   input to the next (note that this is not the word recursive, which sounds simi-
+                   lar but means something quite different). The workings of the cell are usu-
+                   ally managed by multiple neural networks. As usual, these networks learn
+                   how to do their job when we train the complete network, which contains
+                   Figure 19-11 as a layer.
+                         We’ll see that even though a cell’s internal state is usually private, some
+                   networks can make good use of this information, so here we show the
+                   exported state as a dashed line, suggesting that it’s available, but can be
+                   ignored if not needed.
+                         We often place a recurrent cell on a layer of its own and call that a recur-
+                   rent layer. A network that is dominated by recurrent layers is called a recurrent
+                   neural network, or RNN. The same term is frequently applied to the recur-
+                   rent layers themselves, and sometimes even the recurrent cells, since they
+                   have neural networks inside them. The correct interpretation is usually
+                   clear from context.
+
+
+
+550   Chapter 19
+     Output
+
+
+                                            State
+    Neural
+   networks           State
+
+
+
+      Input
+
+Figure 19-11: A recurrent neural cell. The hidden state can be exported
+outside of the cell if needed.
+
+    The internal state of a recurrent cell is saved as a tensor. Because this
+tensor is frequently just a one-dimensional list of numbers, we sometimes
+speak of the width or size of a recurrent cell, referring to the number of
+memory elements in the state. If all cells in a network have the same width,
+we sometimes refer to it as the network’s width.
+    The left side of Figure 19-12 shows our icon for a recurrent cell, which
+we usually use in unrolled diagrams. The right side shows the icon when we
+place the cell in a layer, where we roll it up for convenience. In the layer ver-
+sion, we don’t draw the cell’s internal state.
+
+             Output                       Output
+
+
+
+State                       State
+
+
+              Input                        Input
+
+Figure 19-12: Left: Our icon for a recurrent cell. Right: Our icon for a recurrent layer.
+
+     We could use the bare-bones recurrent cell in Figure 19-11 to build up a
+language model. Suppose that the box marked “neural networks” holds a small
+neural network, built from any layers we like. We could feed the cell sequences
+of words (in numerical form). After each word, the cell would produce an
+output predicting the next word to come, and update its internal state to
+remember the words that have come so far. To replicate our experiment from
+the start of this chapter, we could feed the cell five words in a row, ignoring
+the cell’s outputs for the first four. Its output after the fifth input would be its
+prediction for the sixth word. If we’re training and the prediction isn’t correct,
+then as usual, we use backpropagation and optimization to improve the values
+of the weights in the neural networks inside the cell and continue training.
+The goal is that eventually the networks will become so good at interpreting
+input and controlling the state that they will be able to make good predictions.
+
+                                                                   Recurrent Neural Networks   551
+                   Recurrent Cells in Action
+                   Let’s see how a recurrent cell might predict the next word of a five-word
+                   sequence. We can see the inputs and possible outputs with an unrolled dia-
+                   gram, shown in Figure 19-13.
+
+                         swam        night       best       party       times
+
+
+
+
+                            it        was         the        best         of
+
+                   Figure 19-13: A recurrent cell predicting words. The diagram is in unrolled form.
+                   Predictions come out of the top of the cell, whereas state is indicated by the open
+                   horizontal arrow.
+
+                         We begin with a cell whose hidden state has been initialized to some-
+                   thing generic like all zeros, representing that nothing has been learned
+                   yet. That’s the open circle at the far left. The first word, it, arrives. The cell
+                   considers the input and its hidden state, and predicts the next word, swam.
+                   The cell is telling us that the sentence that begins with it is most likely to
+                   continue with the word swam, but we ignore this because we only care about
+                   the prediction after the fifth word.
+                         Now comes the interesting part. Using the information it learned dur-
+                   ing training, the RNN updates its hidden state to contain some representa-
+                   tion of the fact that it received the word it as input, and produced swam as
+                   output.
+                         Now comes the second word from the text, was. Again, the cell consults
+                   its hidden state and the input, and produces a new output prediction. Here
+                   it’s night, completing the phrase it was night. The cell updates its hidden state
+                   to remember receiving it and then was and then predicting night. Again, we
+                   ignore the prediction of night.
+                         This goes on until we provide the fifth word, of. If we’re near the start
+                   of training, the system might produce something like jellyfish, complet-
+                   ing the sentence it was the best of jellyfish. But after enough training on the
+                   original text, the networks inside the recurrent cell will have learned how
+                   to represent the consecutive words of the phrase it was the best of inside the
+                   hidden state in such a way that the word times has a high probability.
+
+                   Training a Recurrent Neural Network
+                   Suppose that we’re at the start of training the recurrent cell in Figure 19-13.
+                   We give it the five words of input, and then compute an error by comparing
+                   the cell’s final prediction with the next word from the text. If the prediction
+                   doesn’t match the text, we run backprop and then optimization as usual.
+                   Looking at the diagram, we start by finding the gradients in the rightmost
+                   cell in the diagram, then we propagate the gradients to the preceding cell
+
+
+552   Chapter 19
+to its left, then propagate the gradients again to the cell preceding that,
+and so on. It’s important to apply backprop in sequence because these are
+sequential steps of processing.
+     But we can’t really apply optimization to each box in Figure 19-13
+because these are all the same cell! To the system, it looks like just one
+instance of Figure 19-11 sitting on a layer of its own, rather than some
+unrolled list of repeated uses of the same cell. Somehow we have to apply
+backprop to the same layer repeatedly, which can create a confusing mess
+of bookkeeping. To handle this, we use a special variant of backpropaga-
+tion, called backpropagation through time, or BPTT. It handles these details so
+that we can interpret Figure 19-13 literally for the purposes of training.
+     BPTT allows us to train a recurrent cell efficiently, but it doesn’t solve
+the training problem completely. Suppose that while using BPTT, we com-
+pute a gradient for a particular weight in the rightmost cell in Figure 19-13.
+Then as we propagate the gradient left, we find that the gradient for that
+same weight in the previous cell is smaller. This means that as we push the
+gradient to the left, through the same cell over and over, the same process
+will repeat and the gradient will get smaller and smaller. If the gradient
+gets 60 percent smaller each time, then after just eight cells, it is down to
+less than a thousandth of its original size. All it takes for this process to get
+started is for a gradient to become smaller as we move backward, which is
+common. Then it inevitably gets smaller by the same percentage on every
+step backward.
+     This is very bad news. Recall that when a gradient becomes very small,
+learning slows down, and if a gradient becomes zero, learning stops entirely.
+This is not only bad for the recurrent cell, which stops learning, but for
+neurons on the layers that precede it, because they lose the opportunity to
+improve, too. The whole learning process can grind to a halt long before
+we’ve reached the network’s smallest possible error.
+     This phenomenon is called the vanishing gradient problem (Hochreiter
+et al. 2001; Pascanu, Mikolov, and Bengio 2013). A similar problem comes
+up if the gradient gets larger every time we step backward through the
+unrolled diagram. After the same eight steps, a gradient that grows by 60
+percent on each step is almost 43 times larger by the time it reaches the first
+cell. This is called the exploding gradient problem (R2RT 2016). These are
+serious problems that can prevent a network from learning.
+
+Long Short-Term Memory and Gated Recurrent Networks
+We can avoid both vanishing and exploding gradients with a fancier recur-
+rent cell, called a long short-term memory, or LSTM. The name can be confus-
+ing, but it refers to the fact that the internal state changes frequently, so
+it can be considered a short-term memory. But sometimes we can choose
+to keep some information in the state for a long time. It might make more
+sense to think of this as a selectively persistent short-term memory. A block dia-
+gram of an LSTM is shown in Figure 19-14.
+
+
+
+
+                                                          Recurrent Neural Networks   553
+                                          State
+
+
+
+                                                                          Select             Output
+                                                                         network
+
+
+                      Forget                 Remember
+                     network                  network
+
+
+
+Input
+
+
+Figure 19-14: A block diagram of a long short-term memory, or LSTM
+
+                          The LSTM uses three internal neural networks. The first is used to
+                     remove (or forget) information from the state that is no longer needed. The
+                     second inserts new information the cell wants to remember. The third net-
+                     work presents a version of the internal state as the cell’s output.
+                          The convention is that “forgetting” a number simply means moving it
+                     toward zero, and remembering a new number means adding it in to the
+                     appropriate location in the state memory.
+                          The LSTM doesn’t require repeated copies of itself, like the basic recur-
+                     rent cell of Figure 19-11, so it avoids the problems of vanishing and explod-
+                     ing gradients. We can place this LSTM cell on a layer and train the neural
+                     networks inside it using normal backprop and optimization. A practical
+                     implementation has many details that we’ve skipped over here, but they fol-
+                     low this general flow (Hochreiter et al. 2001; Olah 2015).
+                          The LSTM has proven to be such a good way to implement a recurrent
+                     cell that when people speak of “an RNN” they often mean a network that
+                     uses the LSTM in particular. A popular variation of the LSTM is the gated
+                     recurrent unit, or GRU. It’s not uncommon to try out both the LSTM and
+                     GRU in a network to see which performs better on a specific task.
+
+
+      Using Recurrent Neural Networks
+                     It’s easy to build a network with a recurrent cell (whether it’s an LSTM, a
+                     GRU, or something else). We just place a recurrent layer in our network and
+                     train as usual.
+
+                     Working with Sunspot Data
+                     Let’s demonstrate this with our sunspot data. We’ll train a network with
+                     a single recurrent layer holding a tiny LSTM with just three values in its
+
+554     Chapter 19
+                   hidden state, as shown in Figure 19-15 (our convention in this book is that
+                   a recurrent cell is an LSTM unless stated otherwise). Let’s compare this to
+                   the output of our old fully connected network of five neurons in Figure 19-1.
+                   We have to be careful about comparing apples and oranges, because these
+                   approaches are so different, but both networks are about as small as they can
+                   be and still do something useful.
+
+
+
+
+                            3
+                   Figure 19-15: A tiny RNN consisting of a single LSTM with three values in its hidden state
+
+                       Like before, let’s train using five sequential values taken from the train-
+                   ing data. In contrast to the fully connected layer, which received all five val-
+                   ues at once, the RNN gets the values one at a time in five successive steps. The
+                   results are shown in Figure 19-16. Keeping in mind our warning about apples
+                   and oranges, the results for this little RNN look very much like the results
+                   from our fully connected network, shown in Figure 19-5 (the loss values and
+                   overall error measured during training were also roughly the same).
+
+
+
+
+Figure 19-16: Predicting sunspot data with the tiny RNN of Figure 19-15
+
+
+                   Generating Text
+                   The last results were encouraging, so let’s try the next challenge and use an
+                   RNN to generate text. Rather than predict the next word, as we did earlier,
+                   for this example let’s give our system a sequence of letters and ask it to predict
+                   the next letter. As we saw earlier, this is a much easier task, because there are
+                   far fewer letters than words. We’ll use 89 symbols from the standard English
+                   keyboard as our character set. With luck, using characters will let us get away
+                   with a smaller network than a word-based approach would require.
+                        Let’s train our RNN on sequences of characters taken from the col-
+                   lected short stories of Sherlock Holmes, and ask it to predict the next char-
+                   acter (Doyle 1892).
+                        Training an RNN requires tradeoffs. We can use more cells, or more
+                   state in each cell, but these all cost time or memory. Larger networks let us
+                   work with longer windows, which will probably lead to better predictions.
+
+                                                                                   Recurrent Neural Networks   555
+                   On the other hand, using fewer, smaller units and smaller windows makes
+                   the system faster, so we can run through more training samples in any
+                   given span of time. As usual, the best choice for any given system and data
+                   requires some experimentation.
+                       After some trial and error, we settled on the network of Figure 19-17.
+                   This can surely be improved, but it’s small and works well enough for this
+                   discussion. Our input window is 40 characters long. Each LSTM cell con-
+                   tains 128 elements of state memory. The final fully connected layer has 89
+                   outputs, one for each possible symbol. The small box after the last fully
+                   connected layer is our shorthand in this chapter (and Chapter 20) for a
+                   softmax activation function. Thus, the output of this network is a list of 89
+                   probabilities, one for each possible character. We’ll choose the most prob-
+                   able character every time.
+
+
+                   40                                              89
+
+                             128         128           89
+                   Figure 19-17: A small RNN for processing text one character at a time
+
+                        To create the training set, we chopped up the original source material
+                   into about a half-million overlapping strings of 40 characters, starting every
+                   third character.
+                        Once training is done, we can generate new text by autoregression, cre-
+                   ating each new 40-character input by adding the last output to the end of
+                   the previous input and dropping that previous input’s first entry (Chen et
+                   al. 2017). We can repeat this as many times as we desire. Figure 19-18 illus-
+                   trates autoregression for a window of four characters.
+
+                    p    r   a c          t
+
+
+                             r   a c      t
+                        p
+                             r   a c      t        i
+
+
+                                       a c     t   i
+                                   r
+                                       a c     t   i        c
+
+
+                                               c   t   i    c
+                                          a
+
+                   Figure 19-18: Generating text one character at a time with autoregression
+
+                      To watch the progress of the network, after each epoch of training, we
+                   generated some text using the network so far. We started with a seed of 40
+
+
+556   Chapter 19
+sequential characters starting from a random location in the source mate-
+rial. A nice thing about autoregression is that we can run it as long as we
+like and generated unlimited amounts of output. Here is the beginning of
+one run after the first epoch of training (the seed is shown in red):
+    er price.” “If he waits a little longer wew fet ius ofuthe henss lollinod fo snof
+    thasle, anwt wh alm mo gparg lests and and metd tingen, at uf tor alkibto-
+    Panurs the titningly ad saind soot on ourne” Fy til, Min, bals’ thid the
+
+     In a sense, that’s remarkably good. The “words” are about English-sized,
+and although they’re not real words, they could be. That is, they’re not
+strings of random characters. Many of them can even be easily pronounced.
+And this was after just a single epoch. After 50 epochs, things improved a
+lot. Here’s some output in response to a new random seed.
+    nt blood to the face, and no man could hardly question off his pockets of
+    trainer, that name to say, yisligman, and to say I am two out of them, with a
+    second. “I conturred these cause they not you means to know hurried at your
+    little platter.’ “‘Why shoubing, you shout it of them,” Treating, I found this
+    step-was another write so put.” “Excellent!” Holmes to be so lad, reached.
+
+     Wow. Things are much better. Most of these words are real. The punc-
+tuation is great. And even some of the words that aren’t in the dictionary,
+like conturred and shoubing, seem like they could be.
+     Remember that the system has no knowledge of words at all. It only
+knows the probabilities of letters following sequences of other letters. For
+such a simple network, this is remarkable. By letting this run, we can gener-
+ate as much of this text as we like. It doesn’t get any more coherent, but it
+doesn’t get any more incoherent, either.
+     A larger model with bigger LSTMs, more of them, or both, will give us
+increasingly credible results at the cost of more training time (Karpathy 2015).
+
+Different Architectures
+We can incorporate recurrent cells into other types of networks, extending
+the capabilities of some types of networks we’ve already seen. We can also
+combine multiple recurrent cells to perform sequence operations beyond
+what any one cell can do. Let’s look at a few examples.
+
+CNN-LSTM Networks
+We can mix our LSTM cells with a CNN to create a hybrid called a CNN-
+LSTM network. This is great for jobs like classifying video frames. The con-
+volutional layers are responsible for finding and identifying objects, while
+the recurrent layers that come after are responsible for tracking how the
+objects move from one frame to the next.
+
+Deep RNNs
+Another way to use recurrent cells is to stack up many of them in a
+row. We call the result a deep RNN. We just take the outputs from the
+cells on one layer and use them as the inputs to the cells on the next
+
+                                                               Recurrent Neural Networks   557
+                      layer. Figure 19-19 shows one way to connect things up for three layers,
+                      drawn in both rolled-up and unrolled forms. As usual, the RNN units on
+                      each layer have their own internal weights and hidden state.
+Output                            Output0    Output1       Output2      Output3       Output4
+
+
+
+                      Initial
+                      state
+
+
+
+
+                      Initial
+                      state
+
+
+
+
+                      Initial
+                      state
+
+
+
+Input                              Input0     Input1        Input2       Input3        Input4
+
+Figure 19-19: A deep RNN. Left: The network using our icons. Right: The layers in unrolled form.
+
+                          The appeal of this architecture is that each RNN can be specialized for
+                      a particular task. For example, in Figure 19-19 the first layer might translate
+                      an input sentence into an abstract, common language, the second might
+                      rephrase it to change the mood, and then the third could translate that
+                      into a different target language. By training each LSTM individually, we
+                      gain the advantages of specialization, such as the freedom to update or
+                      improve each layer independently of the others. If we replace one LSTM
+                      layer with another, we will need to do some extra training on the whole net-
+                      work to make sure the layers work together smoothly.
+
+                      Bidirectional RNNs
+                      Let’s return to translation and consider just how hard the problem is. Take
+                      the sentence, “I saw the hot dog train.” We can find at least six different ways
+                      to interpret this (witnessing an exercise routine by a warm dog, an attractive
+                      dog, or a frankfurter, and witnessing a locomotive pulling a chain of each of
+                      these three kinds of things). Some interpretations are goofier than the oth-
+                      ers, but they’re all valid. Which one do we choose when we translate?
+                           Another famous sentence is, “I saw the man on the hill in Texas with
+                      the telescope at noon on Monday,” which has 132 interpretations (Mooney
+                      2019). Aside from the words themselves, delivery also makes a huge dif-
+                      ference in meaning. By stressing each word of, “I didn’t say he stole the
+                      money,” we can produce seven completely distinct meanings (Bryant 2019).
+
+558      Chapter 19
+                   Linguistic ambiguity is at the heart of a classic line from Groucho Marx in
+                   the film Animal Crackers: “One morning I shot an elephant in my pajamas.
+                   How he got into my pajamas, I’ll never know” (Heerman 1930).
+                        One way to get a handle on all this complexity is to consider multiple
+                   words in a sentence as we translate it, rather than each word one at a time.
+                   For example, consider these sentences: I cast my fate to the wind, The cast on
+                   my arm is heavy, and The cast of the play is all here. These sentences illustrate
+                   that the English word cast is a homonym, or a word that can have different
+                   meanings. Linguists call this polysemy, and it’s a feature in many languages
+                   (Vicente and Falkum 2017). Our three sentences involving cast translate
+                   into Portuguese as, respectively, Eu lancei meu destino ao vento, O gesso
+                   no meu braço é pesado, and O elenco da peça está todo aqui. The word cast
+                   translates, respectively, to lancei, gesso, and elenco (Google 2020). In these
+                   examples, the only way to choose the proper word in Portuguese is to know
+                   the words that follow cast in the original sentence, in addition to those that
+                   come before.
+                        If we’re translating in real time, then we may not know which transla-
+                   tion to use based only on the words we’ve heard so far. In such situations,
+                   all we can do is guess, or wait for more words to arrive, and then try to
+                   catch up. But if we’re working with the whole sentence, such as when we’re
+                   translating a written book or story, we have all the words already available.
+                        One way to use the later words in the sentence is to feed the words
+                   into our RNN backward, such as wind the to fate my cast I. But this doesn’t
+                   solve the problem in general because sometimes we might need the earlier
+                   words, too. What we really want is to have both the preceding and following
+                   words available.
+                        We can do this with our existing tools and a bit of cleverness, by creat-
+                   ing two independent RNNs. The first gets the words in their forward, or
+                   natural order. The second gets the words in their backward order, as shown
+                   in Figure 19-20. We call this a bidirectional RNN, or a bi-RNN (Schuster and
+                   Paliwal 1997).
+                                 Output0       Output1      Output2      Output3         Output4
+
+Output
+
+
+
+                                                                                                                  Initial
+                                                                                                                  state
+
+
+ input             Initial
+                   state
+
+
+
+                                    Input0        Input1       Input2        Input3          Input4                         
+
+
+
+
+Figure 19-20: A bidirectional RNN, or bi-RNN. Left: Our icon for this layer. Right: An unrolled bi-RNN diagram.
+
+
+
+                                                                                      Recurrent Neural Networks     559
+                           In Figure 19-20 we feed the sentence simultaneously to the lower recur-
+                      rent cell in forward order and the upper recurrent cell in backward order.
+                      That is, we give input 0 to the lower cell at the same time we give input 4 to the
+                      upper cell. Then we give input 1 to the lower cell while we give input 3 to the
+                      upper cell, and so on. Once all the words have been processed, each recurrent
+                      cell will have produced an output for each word. We simply concatenate those
+                      outputs and that’s the output of the bi-RNN.
+                           We can stack up lots of bi-RNNs to make a deep bi-RNN. Figure 19-21 shows
+                      such a network with three bi-RNN layers. On the left is our schematic for this
+                      layer, and on the right, we draw each layer in its unrolled form. In this dia-
+                      gram, we have three layers, each containing two independent recurrent cells.
+
+                                   Output0     Output1     Output2     Output3     Output4
+
+
+
+
+                                                                                                    Initial
+                                                                                                    state
+
+
+                      Initial
+                      state
+
+Output
+
+
+
+
+                                                                                                    Initial
+                                                                                                    state
+
+
+                      Initial
+                      state
+
+
+
+
+Input
+                                                                                                    Initial
+                                                                                                    state
+
+
+                      Initial
+                      state
+
+
+
+                                    Input0      Input1      Input2      Input3       Input4
+
+Figure 19-21: A deep bi-RNN. Left: A block diagram using our captions. Right: An unrolled deep bi-RNN.
+
+560      Chapter 19
+                       As before, part of the value here is that each bi-RNN can be indepen-
+                   dently trained for a different task, and a new bi-RNN can be swapped in if
+                   we find (or train) another one that performs better.
+
+
+    Seq2Seq
+                   A challenge for any translation system is that different languages use differ-
+                   ent word orders. A classic version of this is that in English, adjectives usually
+                   precede nouns, while it’s not so simple in French. For example, I love my
+                   big friendly dog translates to J’adore mon gros chien amical, where chien corre-
+                   sponds to dog, but the adjectives gros and amical, corresponding to big and
+                   friendly, surround the noun.
+                        This suggests that instead of translating one word at a time, we should
+                   translate entire sentences. This makes even more sense when the input and
+                   output sentences have different lengths. Take the five-word English sen-
+                   tence My dog is eating dinner. In Portuguese, this takes only four words: Meu
+                   cachorro está jantando, while in Scottish Gaelic it takes six: Tha mo chù ag ithe
+                   dinnear (Google 2020).
+                        So rather than work word by word, let’s turn a complete sequence
+                   into another complete sequence, possibly of a different length. A popu-
+                   lar algorithm for converting one entire sequence into another sequence
+                   is called seq2seq (for “sequence to sequence”) (Sutskever, Vinyals, and Le
+                   2014).
+                        The key idea of seq2seq is to use two RNNs, which we treat as an encoder
+                   and a decoder. Let’s see how the system works after training is done. We feed
+                   our input to the encoder, one word at a time, as usual, but we ignore its out-
+                   puts. When the whole input has been processed, we take the encoder’s final
+                   hidden state and hand that to the decoder. The decoder uses the encoder’s
+                   final hidden state as its own initial hidden state and produces the output
+                   sequence using autoregression. Figure 19-22 shows the idea.
+
+                                                              La       lune      est   pleine [END]
+
+
+                                             Context
+                                              vector
+
+
+      The      moon       is       full
+                                                           [START]
+
+Figure 19-22: The architecture of seq2seq. The encoder, left, processes the input and sends its hidden state to
+the decoder, right, which produces the output.
+
+                       In Figure 19-22 we’re explicitly showing the autoregression step by feed-
+                   ing the output of each decoder step to the input of the next. If the encoder-
+                   decoder architecture looks familiar, it’s because it’s the same basic structure
+
+
+
+                                                                                    Recurrent Neural Networks   561
+                   as the autoencoders we saw in Chapter 18. In this use, what we previously
+                   called the latent vector is now called the context vector.
+                        Let’s look a little more closely at each of these two RNNs and how they
+                   translate a sentence.
+                        The encoder starts with its hidden state set to some initial value, such as
+                   all zeros. It consumes the first word, updates its hidden state, and computes
+                   an output value. We simply ignore the output value. The only thing we care
+                   about is the evolving hidden state inside the encoder.
+                        When the last word has been processed, the hidden state of the
+                   encoder is used to initialize the hidden state of the decoder.
+                        Like any RNN, the decoder needs an input. By convention, we give
+                   the decoder a special start token. This can be written any way we like so
+                   long as it’s obviously special and not part of the normal vocabulary of our
+                   inputs or outputs. A common convention writes it in all capitals between
+                   square or angle brackets, such as [START]. Like all the words in our vocabu-
+                   lary, this special token gets its own unique number.
+                        Now that the decoder has an input, it updates its hidden state (initially,
+                   the final hidden state from the encoder) and produces an output value. We
+                   do pay attention to this output, because it’s the first word of our translation.
+                        Now we use autoregression to make the rest of the translation. The
+                   decoder takes in the previous output word as input, updates its hidden
+                   state, and produces a new output. This continues until the decoder decides
+                   that there are no more words to produce. It marks this by producing
+                   another special token, such as [END], and stops.
+                        We trained a seq2seq model to translate from English to Dutch (Hughes
+                   2020). Both RNNs had 1,024 elements in their state. The training data con-
+                   sisted of about 50,000 sentences in Dutch, along with their English transla-
+                   tions (Kelly 2020). We used about 40,000 sentences for training, and the rest
+                   for testing. We trained for ten epochs. In the following two examples, we
+                   provide an English sentence, the Dutch translation provided by seq2seq, and
+                   the translation of the Dutch back to English provided by Google Translate.
+
+                       do you know what time it is
+                       weet u hoe laat het is
+                       Do you know what time it is
+
+
+                       i like playing the piano
+                       ik speel graag piano
+                       i like to play the piano
+
+                       Those are pretty great results for such a small network and training set!
+                   On the other hand, our small model doesn’t degrade too gracefully when
+                   the inputs get more complex, as this set of inputs and outputs shows:
+                       John told Sam that his bosses said that if he worked late, they would give him a
+                       bonus
+                       hij nodig had hij een nieuw hij te helpen
+                       he needed a new he help
+
+562   Chapter 19
+                       The seq2seq method has much to recommend it. It’s conceptually sim-
+                  ple, it works well in many situations, and it’s easy to implement in modern
+                  libraries (Chollet 2017; Robertson 2017). But seq2seq has a built-in limita-
+                  tion in the form of the context vector. This is just the hidden state of the
+                  encoder after the last word, so it’s of a fixed, finite size. This one vector has
+                  to hold everything about the sentence, since it’s the only information that
+                  the decoder gets.
+                       If we give the encoder a sentence that begins The table has four sturdy,
+                  then we can imagine a reasonable amount of memory could retain enough
+                  information about each word in the sequence that it could remember we’re
+                  talking about a table, and the next word should be legs. But no matter how
+                  much memory we give to our encoder’s hidden state, we can always make a
+                  sentence longer than it can remember. For example, suppose our sentence
+                  was The table, despite all the long-distance moves, the books dropped onto it, the
+                  kids running full-speed into it, serving variously as a fort, a stepladder, and a door-
+                  stop, still had four sturdy. The next word should still be legs, but our hidden
+                  state would have to become a lot bigger to remember enough information
+                  to work that out.
+                       No matter how big our hidden state is, a bigger sentence can always come
+                  along and require more memory than we have. This is called the long-term
+                  dependency problem (Hochreiter et al. 2001; Olah 2015). Figure 19-23 shows an
+                  unrolled seq2seq diagram where the input has many words (Karim 2019). A
+                  context vector that could remember all of that information would need to
+                  be large, with correspondingly large neural networks inside each RNN to
+                  manage and control it.
+
+
+
+                                                                   Context vector
+
+
+
+
+Figure 19-23: Encoding a very long input sentence before sending it a decoder
+
+                       Maybe depending on a single context vector to represent every use-
+                  ful piece of information in the input isn’t the best way to do things. The
+                  seq2seq architecture ignores all of the encoder’s hidden states except the
+                  last. For a long input, those intermediate hidden states can hold informa-
+                  tion that gets forgotten by the time we reached the end of the sentence.
+                       The dependence on a single context vector plus the need to train one
+                  word at a time are big problems for RNN architectures. Though they’re use-
+                  ful in many applications, these are serious drawbacks.
+                       Despite these problems, RNNs are a popular way to handle sequences,
+                  particularly if they’re not too large.
+
+
+
+
+                                                                                Recurrent Neural Networks   563
+      Summary
+                    We’ve covered a lot in this chapter about processing language and sequences.
+                    We saw that we can predict the next element of a sequence with fully con-
+                    nected layers, but they have problems because there’s no memory of the
+                    inputs. We saw how to use recurrent cells with local, or hidden, memory to
+                    maintain a record of everything they’ve seen in a single context vector that is
+                    modified with each input.
+                         We saw some examples of using RNNs, and then how to use two RNNs
+                    to build a translator called seq2seq. Though seq2seq is simple and can do a
+                    good job, it has two drawbacks that are common to most RNN systems. For
+                    example, the system relies on one context vector to carry all the informa-
+                    tion about the sentence. Second, the network needs to be trained one word
+                    at a time.
+                         Despite these issues, RNNs are a popular and powerful tool for process-
+                    ing sequential data of any kind, from language to seismic data, song lyrics,
+                    and medical histories.
+                         In the next chapter, we’ll look at another way to handle sequences that
+                    avoids the limitations of RNNs.
+
+
+
+
+564    Chapter 19
+

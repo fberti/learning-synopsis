@@ -1,0 +1,202 @@
+
+<!-- ===================================================== 12.5 -->
+<section id="s125">
+<h2>12.5 Önfigyelem ★★★</h2>
+<p>A 12.4-ben a figyelem két mondatot kötött össze, és alatta még mindig rekurrens háló dolgozott. 2017-ben jött a kérdés: <b>mi lenne, ha a rekurziót elhagynánk</b>, és a mondat minden szava a <b>saját mondata</b> összes szavára figyelne? Akkor minden szó olyan vektort kapna, amely a környezetétől függ – éppen ez kellett a „levél”-hez.</p>
+
+<h3 id="s125-a">1. lépés: minden szó minden szóra figyel – Q, K, V kézzel</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a „levél” két mondatban</span>
+  Kétdimenziós, kézzel választott szóvektorok; az első szám a „természet”, a második a „posta” jelleg:
+  <div class="two-col" style="margin-top:.3rem">
+    <div><b>A mondat:</b> fa $= (2;\ 0)$, levél $= (1;\ 1)$, hullik $= (1;\ 0)$</div>
+    <div><b>B mondat:</b> posta $= (0;\ 2)$, levél $= (1;\ 1)$, érkezik $= (0;\ 1)$</div>
+  </div>
+  A „levél” mindkettőben $(1;\ 1)$ – félúton a két jelentés között. Most a „levél” „megkérdezi” a mondat minden szavát (az A mondatban):
+  <ol style="margin:.3rem 0">
+    <li><b>Pontszámok</b> (skaláris szorzat): levél·fa $= 2$, levél·levél $= 2$, levél·hullik $= 1$.</li>
+    <li><b>Skálázás</b> $\sqrt d = \sqrt 2$-vel (miért? lásd 2. lépés): $1{,}414;\ 1{,}414;\ 0{,}707$.</li>
+    <li><b>Softmax</b>: $(0{,}401;\ 0{,}401;\ 0{,}198)$.</li>
+    <li><b>Súlyozott összeg</b>: $0{,}401\cdot(2;0) + 0{,}401\cdot(1;1) + 0{,}198\cdot(1;0) = (1{,}401;\ 0{,}401)$.</li>
+  </ol>
+  A B mondatban ugyanígy $(0{,}401;\ 1{,}401)$ jön ki. A két „levél” bemenete azonos volt (koszinuszuk 1), a kimenetük koszinusza már csak <b>0,529</b>: az egyik a természet, a másik a posta felé mozdult. Ez a <b>kontextusfüggő</b> vektor.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – önfigyelem (<em>self-attention</em>)</span>
+  A mondat tokenjeinek vektorai $\mathbf x_1, \ldots, \mathbf x_n$. Minden token három szerepben is megjelenik, három tanult mátrixszal:
+  $$\mathbf q_i = \mathbf x_i W_Q\ \ (\text{lekérdezés: mit keresek?}),\qquad \mathbf k_j = \mathbf x_j W_K\ \ (\text{kulcs: mit kínálok?}),\qquad \mathbf v_j = \mathbf x_j W_V\ \ (\text{érték: mit adok át?})$$
+  Az $i$-edik token új vektora:
+  $$\mathbf z_i = \sum_{j=1}^{n} a_{ij}\,\mathbf v_j,\qquad a_{ij} = \operatorname{softmax}_j\!\left(\frac{\mathbf q_i\cdot\mathbf k_j}{\sqrt{d_k}}\right),$$
+  ahol $d_k$ a kulcsvektorok hossza. Ez ugyanaz a puha keresés, mint a 12.4-ben – csak itt a lekérdezés, a kulcsok és az értékek <b>ugyanabból a mondatból</b> jönnek (innen az „ön-”).
+  <b>Miért három mátrix?</b> Mert egy szónak más kell, amikor kérdez, és más, amikor kérdezik: a „levél” mint kérdező a „mi esett le / mi jött meg?” típusú szavakat keresi, mint kulcs viszont azt hirdeti, hogy főnév. A kiinduló példában mindhárom mátrix az egységmátrix volt; a valódi hálóban a gradiens módszer tanulja őket.
+</div>
+<div class="box example">
+  <span class="box-title">Példa – a teljes súlymátrix (A mondat, $W$ = egységmátrix)</span>
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:560px">
+    <tr><th>ki kérdez ↓ / kire figyel →</th><th>fa</th><th>levél</th><th>hullik</th><th>új vektor</th></tr>
+    <tr><td>fa</td><td>0,673</td><td>0,164</td><td>0,164</td><td>$(1{,}673;\ 0{,}164)$</td></tr>
+    <tr><td>levél</td><td>0,401</td><td>0,401</td><td>0,198</td><td>$(1{,}401;\ 0{,}401)$</td></tr>
+    <tr><td>hullik</td><td>0,503</td><td>0,248</td><td>0,248</td><td>$(1{,}503;\ 0{,}248)$</td></tr>
+  </table></div>
+  Minden sor összege 1. A B mondatban a súlyok pontosan ugyanezek (a két mondat egymás tükörképe), csak az új vektorok két koordinátája cserél helyet.
+</div>
+<div class="widget" data-widget="qkv-calculator"></div>
+<div class="box tip">
+  <span class="box-title">Rögzített és bemenetfüggő súlyok</span>
+  Egy teljesen összekötött rétegben a súlyok a tanítás után <b>rögzítettek</b>: minden mondatra ugyanazok. Az önfigyelemben az $a_{ij}$ keverési súlyokat <b>minden mondatra újra kiszámoljuk</b> a tokenekből – csak a $W_Q$, $W_K$, $W_V$ rögzített. A háló tehát mondatonként dönti el, ki kire figyeljen (S. Raschka, <em>Machine Learning and AI Beyond the Basics</em>, 8. fejezet).
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Nem biztos, hogy a szó önmagára figyel a legjobban.</b> Ha $W_Q = W_K$, a saját pontszám gyakran nagy; tanult, különböző mátrixokkal viszont egy fej akár szinte csak a szomszéd szóra figyelhet. (A <em>Deep Learning – A Visual Approach</em> szerint „minden szó önmagával kapja a legnagyobb pontszámot” – ez nem szabály.)</li>
+    <li><b>A súlyok soronként adnak 1-et.</b> Az oszlopok összege bármi lehet: egy fontos szóra többen is figyelhetnek.</li>
+    <li><b>A kimenet ugyanannyi vektor, mint a bemenet.</b> Az önfigyelem nem összegzi a mondatot, hanem minden tokennek új, kontextusfüggő vektort ad.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – önfigyelem kézzel</summary>
+  <ol>
+    <li>Az A mondatban (fa, levél, hullik) mennyi a „hullik” pontszáma a három tokenre (skálázás előtt)?
+      <details><summary>Megoldás</summary>hullik·fa $= 2$, hullik·levél $= 1$, hullik·hullik $= 1$.</details></li>
+    <li>Két token: $\mathbf x_1 = (1;\ 0)$, $\mathbf x_2 = (0;\ 1)$, $W$ = egységmátrix, $d = 2$. Mennyi az első token súlysora és új vektora?
+      <details><summary>Megoldás</summary>Pontszámok $1$ és $0$, skálázva $0{,}707$ és $0$; softmax: $(0{,}670;\ 0{,}330)$; új vektor $(0{,}670;\ 0{,}330)$.</details></li>
+    <li>Ha egy mondat 4 tokenből áll, hány $a_{ij}$ súlyt számol egy önfigyelem-réteg (egy fejjel)? Hány sorösszeg 1?
+      <details><summary>Megoldás</summary>$4 \cdot 4 = 16$ súly; 4 sor, mindegyik összege 1.</details></li>
+    <li>Mi lesz a „levél” új vektora az A mondatban, ha a „fa” helyett „posta” áll (posta $= (0;\ 2)$, levél $= (1;\ 1)$, hullik $= (1;\ 0)$)?
+      <details><summary>Megoldás</summary>Pontszámok: 2, 2, 1 – ugyanazok! Súlyok $(0{,}401;\ 0{,}401;\ 0{,}198)$; új vektor $0{,}401\cdot(0;2) + 0{,}401\cdot(1;1) + 0{,}198\cdot(1;0) = (0{,}599;\ 1{,}203)$ – most a posta felé húz. A súly a <b>kulcsból</b>, az irány az <b>értékből</b> jön.</details></li>
+    <li>(nehezebb) Legyen $W_V$ = egységmátrix, de $W_Q = W_K = \begin{pmatrix}0 & 0\\ 0 & 0\end{pmatrix}$. Mit csinál ekkor az önfigyelem?
+      <details><summary>Megoldás</summary>Minden lekérdezés és kulcs nulla, minden pontszám 0, minden súly $1/n$: minden token új vektora a mondat összes vektorának <b>átlaga</b> lesz. Ez a 12.3 átlagoló modellje – az önfigyelem annak „okos” változata, ahol a súlyok tartalomfüggők.</details></li>
+  </ol>
+</details>
+<details class="box">
+  <summary>🐍 Python – a kiinduló példa NumPy-jal</summary>
+<pre><code>import numpy as np
+X = np.array([[2, 0], [1, 1], [1, 0]], dtype=float)   # fa, levél, hullik
+W_Q = W_K = W_V = np.eye(2)                            # egyelőre egységmátrixok
+Q, K, V = X @ W_Q, X @ W_K, X @ W_V
+S = Q @ K.T / np.sqrt(K.shape[1])                      # pontszámok, ÷√d
+A = np.exp(S - S.max(axis=1, keepdims=True))
+A = A / A.sum(axis=1, keepdims=True)                   # soronkénti softmax
+Z = A @ V
+print(A.round(3))   # [[0.673 0.164 0.164] [0.401 0.401 0.198] [0.503 0.248 0.248]]
+print(Z.round(3))   # [[1.673 0.164] [1.401 0.401] [1.503 0.248]]</code></pre>
+</details>
+
+<h3 id="s125-b">2. lépés: mátrixalak, skálázás $\sqrt d$-vel – és az ár</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – miért kell osztani?</span>
+  Két véletlen vektor, $d$ elemmel, minden elem 0 várható értékű és 1 szórású. A skaláris szorzatuk $d$ szorzat összege, ezért a szórásnégyzete $d$, a szórása $\sqrt d$. Szimulációval (20&nbsp;000 párral): $d = 2$-nél a szórás 1,42, $d = 64$-nél 7,97, $d = 512$-nél 22,6. Ilyen nagy pontszámokra a softmax „bekeményedik”:
+  $$\operatorname{softmax}(1;\ 2;\ 3) = (0{,}090;\ 0{,}245;\ 0{,}665),\qquad \operatorname{softmax}(8;\ 16;\ 24) = (0{,}0000;\ 0{,}0003;\ 0{,}9997).$$
+  A második már szinte kemény keresés: egy szóra figyel, a többit eldobja – és a gradiens is szinte nulla, a háló nem tanul. $\sqrt d$-vel osztva a pontszámok szórása megint kb. 1.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – skálázott skaláris szorzatú figyelem, mátrixalakban</span>
+  Rakjuk a tokenvektorokat egy $n \times d$-s $X$ mátrix soraiba. Ekkor $Q = XW_Q$, $K = XW_K$ ($n \times d_k$), $V = XW_V$ ($n \times d_v$), és
+  $$\text{Figyelem}(Q, K, V) = \operatorname{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right) V,$$
+  ahol a softmax <b>soronként</b> hat. Méretek: $QK^\top$ egy $n \times n$-es pontszámmátrix (minden tokenpárra egy szám), a kimenet $n \times d_v$-s. (A. Vaswani és társai, 2017.)
+  <b>Miért mátrixalak?</b> Mert így az egész egy-két mátrixszorzás – a GPU erre van kitalálva (<a href="../02-matematikai-eszkoztar/#s22-d">2.2</a>). Nincs „előző lépés”: minden token egyszerre számolható.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – méretek a kísérlet hálójában</span>
+    „a film jó volt , de a vége unalmas volt”: $n = 10$ token, $d = 16$, két fej, fejenként $d_k = 8$. $X$: $10 \times 16$; $W_Q$ fejenként $16 \times 8$; $Q$: $10 \times 8$; $QK^\top$: $10 \times 10 = 100$ pontszám fejenként.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a négyzetes ár</span>
+    A pontszámok száma $n^2$ (fejenként, rétegenként): 5 tokennél 25, 1000-nél egymillió, 128&nbsp;000-nél (egy hosszú könyv) kb. 16,4 milliárd. Kétszer hosszabb szöveg – <b>négyszer</b> annyi pontszám (vö. a ViT foltjaival, <a href="../11-konvolucios-halok/#s117-c">11.7</a>).
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Előbb osztunk, aztán softmax.</b> A sorrend számít: a softmax után osztani mást ad (a súlyok összege már nem 1). A <em>Deep Learning – A Visual Approach</em> szövege fordítva írja.</li>
+    <li><b>$\sqrt{d_k}$, nem $\sqrt{d}$.</b> Több fejnél (3. lépés) egy fej kulcsvektora csak $d_k = d/h$ hosszú; ezzel kell osztani. (A <em>Foundations of Large Language Models</em> egyik képlete $\sqrt d$-t ír.)</li>
+    <li><b>A négyzetes költség a hosszú szövegek fő gondja.</b> A FlashAttention (T. Dao és társai, 2022) okos sorrendben számol, így a <b>memóriaigény</b> lineáris lesz – a műveletek száma viszont marad $n^2$-es.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – mátrixalak és skálázás</summary>
+  <ol>
+    <li>$n = 6$ token, $d = 12$, $d_k = d_v = 4$. Mekkora $X$, $W_Q$, $Q$, $QK^\top$ és a kimenet?
+      <details><summary>Megoldás</summary>$X$: $6 \times 12$; $W_Q$: $12 \times 4$; $Q$: $6 \times 4$; $QK^\top$: $6 \times 6$; kimenet: $6 \times 4$.</details></li>
+    <li>Mekkora a véletlen $q\cdot k$ skaláris szorzat szórása $d_k = 64$-nél és $d_k = 128$-nál, ha az elemek szórása 1? Mivel osztunk?
+      <details><summary>Megoldás</summary>$\sqrt{64} = 8$ és $\sqrt{128} \approx 11{,}3$; ezekkel osztunk.</details></li>
+    <li>Mennyi $\operatorname{softmax}(2;\ 1;\ 0)$? És $\operatorname{softmax}(16;\ 8;\ 0)$?
+      <details><summary>Megoldás</summary>$(0{,}665;\ 0{,}245;\ 0{,}090)$; illetve $\approx (0{,}9997;\ 0{,}0003;\ 0{,}0000)$ – nyolcszoros pontszámoknál szinte „egy a nyertes”.</details></li>
+    <li>Hány pontszámot számol egy 12 rétegű, rétegenként 12 fejes modell egy 512 tokenes szövegre?
+      <details><summary>Megoldás</summary>$512^2 = 262\,144$ fejenként, rétegenként; $\times 144 = 37\,748\,736$ – kb. 38 millió.</details></li>
+    <li>(nehezebb) Egy modell 4096 tokenes szövegeken tanult. Hányszor annyi pontszám kell egy 32&nbsp;768 tokenes szövegre? És a tokenenkénti előrecsatolt rétegekre (12.6)?
+      <details><summary>Megoldás</summary>A szöveg 8-szor hosszabb: a figyelemben $8^2 = 64$-szer annyi pontszám, a tokenenkénti rétegekben csak 8-szor annyi számítás. Hosszú szövegnél a figyelem viszi el a költség nagyját.</details></li>
+  </ol>
+</details>
+
+<h3 id="s125-c">3. lépés: több fej – és a sorrend visszahozása</h3>
+<p>Két hiányosság maradt. Egy fej csak egyféle kérdést tehet fel („ki a hasonló?”), pedig egy szóhoz egyszerre többféle kapcsolat kell (ki az alany? mire vonatkozik a tagadás?). És ami ennél is meglepőbb: az önfigyelem <b>nem tudja, milyen sorrendben</b> jönnek a szavak.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a pozíció nélküli Transformer</span>
+  Az önfigyelem minden tokenpárt ugyanúgy kezel, bárhol állnak. Ha a szavakat összekeverjük, minden token ugyanazt az új vektort kapja, csak más helyen – a mondatvektor (az átlaguk) <b>ugyanaz</b>. A kísérletünkben a Transformer pozícióinformáció nélkül:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th></th><th>egy tagmondat</th><th>„…, és …”</th><th>„…, de …”</th><th>összesen</th></tr>
+    <tr><td>Transformer pozíció nélkül</td><td>98,0%</td><td>74,6%</td><td><b>49,5%</b></td><td>62,5%</td></tr>
+    <tr><td>ugyanez tanult pozícióvektorokkal</td><td>100%</td><td>99,9%</td><td><b>100%</b></td><td>99,9%</td></tr>
+  </table></div>
+  Pozíció nélkül pontosan ott bukik el, ahol az átlagoló modell (12.3) – hiszen ő is egy „zsák”. A mondat két „a” tokenje ebben a modellben ráadásul pontosan ugyanazt a figyelemsort kapja.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – többfejű figyelem és pozíciókódolás</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Többfejű figyelem</b> (<em>multi-head</em>): $h$ független fej, mindegyik saját $W_Q^{(i)}, W_K^{(i)}, W_V^{(i)}$ mátrixokkal, $d_k = d/h$ méretben. A fejek kimeneteit egymás mellé tesszük ($n \times d$), és egy $W_O$ ($d \times d$) mátrixszal keverjük. Paraméter: $4d^2$ (+ $4d$ torzítás) – <b>ugyanannyi, mint egy teljes szélességű fejnek</b>.</li>
+    <li><b>Pozíciókódolás:</b> minden token vektorához hozzáadunk egy, a <b>helyétől</b> függő $\mathbf p_i$ vektort: $\mathbf x_i + \mathbf p_i$. Változatok:
+      <ul>
+        <li><b>szinuszos</b> (az eredeti Transformer): $p_{i,2k} = \sin\big(i/10000^{2k/d}\big)$, $p_{i,2k+1} = \cos\big(i/10000^{2k/d}\big)$;</li>
+        <li><b>tanult</b> (BERT, GPT-2, a mi kísérletünk): egy $n_{\max} \times d$-s táblázat, mint a szóbeágyazás;</li>
+        <li><b>forgatásos</b> (RoPE, J. Su és társai, 2021): nem a bemenethez adja, hanem minden rétegben a $\mathbf q$ és $\mathbf k$ vektort forgatja el a pozícióval arányos szöggel, így a pontszám a két token <b>távolságától</b> függ. 📅 Állapot: 2026 – a legtöbb mai nagy nyelvi modell (Llama, Mistral, Qwen, DeepSeek) ezt használja.</li>
+      </ul></li>
+  </ul>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a szinuszos kód, $d = 4$</span>
+    <span style="font-family:var(--mono);font-size:.88rem">
+    $\mathbf p_0 = (0;\ 1;\ 0;\ 1)$<br>
+    $\mathbf p_1 = (0{,}8415;\ 0{,}5403;\ 0{,}0100;\ 1{,}0000)$<br>
+    $\mathbf p_2 = (0{,}9093;\ -0{,}4161;\ 0{,}0200;\ 0{,}9998)$<br>
+    $\mathbf p_3 = (0{,}1411;\ -0{,}9900;\ 0{,}0300;\ 0{,}9996)$</span><br>
+    Az első két elem gyorsan „forog” (mint a másodpercmutató), a második kettő lassan (mint az óramutató). Együtt minden pozíció egyedi.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – fejek és méretek</span>
+    Az eredeti Transformer: $d = 512$, $h = 8$ fej, $d_k = 64$. A figyelemréteg paraméterei: $4 \cdot 512^2 = 1\,048\,576$ súly, plusz $4 \cdot 512 = 2048$ torzítás. A kísérletünk hálója: $d = 16$, $h = 2$, $d_k = 8$; $4 \cdot (16^2 + 16) = 1088$ paraméter.
+  </div>
+</div>
+<div class="widget" data-widget="positional-encoding"></div>
+<div class="box tip">
+  <span class="box-title">Hasonlat – több fej, többféle hasonlóság</span>
+  Egy dalszövegíró többféleképpen keres „hasonló” szót: ami <b>jelentésben</b> illik, ami <b>rímel</b>, aminek ugyanannyi a <b>szótagja</b>. Egyetlen pontszám ezt nem tudja egyszerre. A fejek külön-külön tanulhatnak ilyen szempontokat – például az egyik a tagadószóra, a másik az alanyra figyelhet (A. Glassner: <em>Deep Learning – A Visual Approach</em>). Hogy egy fej valójában mit tanul, azt nem mi döntjük el.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A pozíciót hozzáadjuk, nem hozzáfűzzük.</b> A $\mathbf x_i + \mathbf p_i$ összeg „összekeveri” a jelentést és a helyet – mégis működik, mert a háló megtanulja szétválasztani (nagy $d$-nél bőven van hely).</li>
+    <li><b>A RoPE nem a bemeneti vektorhoz adódik</b>, hanem rétegenként a lekérdezést és a kulcsot forgatja; az értéket nem érinti. (Erre a <em>Foundations of Large Language Models</em> megfogalmazása félrevezető lehet.)</li>
+    <li><b>Több fej nem több paraméter.</b> A fejek a $d$ dimenziót osztják fel egymás között, így a figyelemréteg $4d^2$ súlyú marad, akárhány fej van.</li>
+    <li><b>A tanult pozícióvektor nem nyújtható.</b> Egy 512 pozícióra tanult táblázat az 513. tokenre nem tud mit mondani – ezért terjedtek el a távolságalapú megoldások.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – fejek és pozíciók</summary>
+  <ol>
+    <li>$d = 768$ és $h = 12$. Mekkora egy fej $d_k$-ja, és hány súlya van a figyelemrétegnek (torzítás nélkül)?
+      <details><summary>Megoldás</summary>$d_k = 64$; $4 \cdot 768^2 = 2\,359\,296$.</details></li>
+    <li>Ugyanez $h = 1$ fejjel: hány súly?
+      <details><summary>Megoldás</summary>Ugyanannyi, $2\,359\,296$ – a fejek száma nem változtat a súlyszámon.</details></li>
+    <li>Számold ki a szinuszos kód első két elemét az 1-es pozícióra, $d = 4$-nél!
+      <details><summary>Megoldás</summary>$k = 0$: $\sin(1/10000^0) = \sin 1 \approx 0{,}8415$; $\cos 1 \approx 0{,}5403$.</details></li>
+    <li>Egy pozíció nélküli Transformer a „jó volt, de unalmas” és az „unalmas volt, de jó” mondatra ugyanazt mondja. Miért nem segít ezen több fej vagy több réteg?
+      <details><summary>Megoldás</summary>Mert pozíció nélkül minden fej és minden réteg csak a tokenek <b>tartalmától</b> függ: összekevert bemenetre összekevert kimenetet ad. Ami a végén átlagol, annak mindegy a sorrend. Több fej ugyanilyen „vak” fejeket ad.</details></li>
+    <li>(nehezebb) A RoPE a $\mathbf q_i$-t $i\theta$, a $\mathbf k_j$-t $j\theta$ szöggel forgatja el (kétdimenziós esetben). Miért függ a $\mathbf q_i \cdot \mathbf k_j$ pontszám csak $i - j$-től, és nem $i$-től és $j$-től külön?
+      <details><summary>Megoldás</summary>Két vektor skaláris szorzata csak a hosszuktól és a <b>közbezárt szögüktől</b> függ. Ha az egyiket $i\theta$-val, a másikat $j\theta$-val forgatjuk, a köztük lévő szög $(i - j)\theta$-val változik – a közös elforgatás kiesik. Ezért a pontszám a relatív távolságot „látja”.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai12-125"></div>
+</section>

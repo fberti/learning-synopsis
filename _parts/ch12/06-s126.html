@@ -1,0 +1,184 @@
+
+<!-- ===================================================== 12.6 -->
+<section id="s126">
+<h2>12.6 A Transformer ★★★</h2>
+<p>Megvan a fő alkatrész, a többfejű önfigyelem. A <b>Transformer</b> (A. Vaswani és társai, 2017: „<em>Attention Is All You Need</em>”) ebből épít egy ismételhető blokkot – néhány, a korábbi fejezetekből ismerős elemmel kiegészítve.</p>
+
+<h3 id="s126-a">1. lépés: a blokk – figyelem, maradékkapcsolat, normalizálás, előrecsatolt háló</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a kísérlet Transformere, alkatrészenként</span>
+  A <a href="#s128">12.8</a> kritikaosztályozója egyetlen blokkból áll ($d = 16$, 2 fej). Egy token útja és a paraméterek:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.86rem;max-width:680px">
+    <tr><th>lépés</th><th>mit csinál</th><th>paraméter</th></tr>
+    <tr><td>szóbeágyazás</td><td>28 tokenes szótár → 16 dimenziós vektor</td><td>$28 \cdot 16 = 448$</td></tr>
+    <tr><td>pozícióvektor (tanult)</td><td>legfeljebb 15 pozíció, hozzáadjuk</td><td>$15 \cdot 16 = 240$</td></tr>
+    <tr><td>többfejű önfigyelem</td><td>$W_Q, W_K, W_V, W_O$ és torzítások</td><td>$4 \cdot (16 \cdot 16 + 16) = 1088$</td></tr>
+    <tr><td>összeadás + rétegnormalizálás</td><td>$\mathbf x \leftarrow \operatorname{LN}(\mathbf x + \text{figyelem})$</td><td>$2 \cdot 16 = 32$</td></tr>
+    <tr><td>előrecsatolt háló</td><td>16 → 32 (ReLU) → 16, tokenenként</td><td>$16 \cdot 32 + 32 + 32 \cdot 16 + 16 = 1072$</td></tr>
+    <tr><td>összeadás + rétegnormalizálás</td><td>$\mathbf x \leftarrow \operatorname{LN}(\mathbf x + \text{FFN})$</td><td>$32$</td></tr>
+    <tr><td>átlag + kimeneti neuron</td><td>a 16 dimenziós tokenvektorok átlaga → 1 szám</td><td>$16 + 1 = 17$</td></tr>
+    <tr><th colspan="2">összesen</th><th>2929</th></tr>
+  </table></div>
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – Transformer-blokk</span>
+  A blokk bemenete és kimenete is $n \times d$-s. Két rész, mindkettő körül <b>maradékkapcsolattal</b> (<a href="../11-konvolucios-halok/#s114-c">11.4</a>) és <b>rétegnormalizálással</b> (<a href="../10-halo-tanitasa/#s106-c">10.6</a>):
+  $$\mathbf z = \operatorname{LN}\big(\mathbf x + \text{TöbbfejűFigyelem}(\mathbf x)\big),\qquad \mathbf y = \operatorname{LN}\big(\mathbf z + \operatorname{FFN}(\mathbf z)\big).$$
+  <ul style="margin:.2rem 0">
+    <li><b>Előrecsatolt háló</b> (FFN): $\operatorname{FFN}(\mathbf z) = \operatorname{ReLU}(\mathbf z W_1 + \mathbf b_1)\,W_2 + \mathbf b_2$, rejtett mérete jellemzően $4d$. <b>Tokenenként</b> külön fut, ugyanazokkal a súlyokkal: a figyelem „beszélget” a tokenek között, az FFN mindegyiken külön „gondolkodik”.</li>
+    <li><b>Rétegnormalizálás</b>: tokenenként a $d$ elem átlagát kivonjuk, szórásával osztunk, majd tanult $\gamma$-val szorzunk és $\beta$-t adunk hozzá. Nem függ a kötegtől.</li>
+    <li>A fenti, „utó-normalizált” (<em>post-LN</em>) változat az eredeti 2017-es és a BERT-é. A GPT-2 óta a legtöbb modell <b>elő-normalizált</b> (<em>pre-LN</em>): $\mathbf x + \operatorname{F}(\operatorname{LN}(\mathbf x))$ – mélyebb hálóknál stabilabban tanul.</li>
+  </ul>
+  Egy blokk paraméterszáma ($d_{\text{ff}} = 4d$ mellett): figyelem $4d^2 + 4d$, FFN $8d^2 + 5d$, két LN $4d$ – összesen $\mathbf{12d^2 + 13d}$. A modell $N$ ilyen blokk egymás után.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – rétegnormalizálás egy tokenen</span>
+    $\mathbf x = (1;\ 2;\ 3;\ 6)$: átlag 3, szórásnégyzet $(4 + 1 + 0 + 9)/4 = 3{,}5$, szórás $\approx 1{,}871$. Normálva: $(-1{,}069;\ -0{,}535;\ 0;\ 1{,}604)$ – átlag 0, szórás 1. Aztán jön $\gamma$ és $\beta$.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy BERT-blokk</span>
+    $d = 768$: $12 \cdot 768^2 + 13 \cdot 768 = 7\,087\,872$ paraméter. A BERT-base 12 ilyen blokkja $85\,054\,464$; a szó-, pozíció- és mondatbeágyazásokkal és a kimeneti réteggel együtt <b>109&nbsp;482&nbsp;240</b> – ez a „110 millió paraméteres BERT”.
+  </div>
+</div>
+<div class="widget" data-widget="transformer-block"></div>
+<div class="box tip">
+  <span class="box-title">Hasonlat – a maradékkapcsolat mint javítás egy festményen</span>
+  Ha egy portrén csak a gyűrűt kell kicserélni, nem festjük újra az egész képet: a régire festjük rá az újat. A maradékkapcsolatos blokk is csak a <b>változást</b> számolja ki ($\mathbf x + F(\mathbf x)$), és ha nincs mit változtatni, $F \approx 0$ elég. A gradiens pedig az „$\mathbf x +$” úton csillapítás nélkül jut vissza – ezért lehet 12, 48 vagy 96 blokkot egymásra tenni.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Utó- vagy elő-normalizálás?</b> Utó: $\operatorname{LN}(\mathbf x + F(\mathbf x))$. Elő: $\mathbf x + F(\operatorname{LN}(\mathbf x))$. A kettő <b>nem</b> egyenértékű. Két forrásunk is hibás képletet ír: a <em>Hitchhiker's Guide to Agentic AI</em> az utó-, a <em>Foundations of Large Language Models</em> az elő-normalizálásét.</li>
+    <li><b>A rétegnormalizálás nem kötegnormalizálás.</b> A kötegnormalizálás egy jellemzőt normál a köteg mintái között; a rétegnormalizálás egy token jellemzőit egymás között (<a href="../10-halo-tanitasa/#s106-c">10.6</a>). Változó hosszú szövegeknél ez az előbbi nem működne jól.</li>
+    <li><b>A paraméterek nagy része az FFN-ben van</b>, nem a figyelemben: blokkonként $8d^2$ a $4d^2$-tel szemben.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a blokk</summary>
+  <ol>
+    <li>Normáld rétegnormalizálással (γ = 1, β = 0) a $(2;\ 4;\ 6;\ 8)$ vektort!
+      <details><summary>Megoldás</summary>Átlag 5, szórásnégyzet $(9 + 1 + 1 + 9)/4 = 5$, szórás $\approx 2{,}236$. Eredmény: $(-1{,}342;\ -0{,}447;\ 0{,}447;\ 1{,}342)$.</details></li>
+    <li>Hány paramétere van egy blokknak $d = 512$-nél ($d_{\text{ff}} = 2048$)?
+      <details><summary>Megoldás</summary>$12 \cdot 512^2 + 13 \cdot 512 = 3\,145\,728 + 6656 = 3\,152\,384$.</details></li>
+    <li>A $d = 768$-as blokkban hány paraméter van a figyelemben és hány az FFN-ben?
+      <details><summary>Megoldás</summary>Figyelem: $4 \cdot 768^2 + 4 \cdot 768 = 2\,362\,368$. FFN: $8 \cdot 768^2 + 5 \cdot 768 = 4\,722\,432$ – kétszer annyi.</details></li>
+    <li>Mit kap egy token az FFN-ből a többi tokenről?
+      <details><summary>Megoldás</summary>Közvetlenül semmit: az FFN tokenenként fut. A többi token információja csak a figyelemrétegen keresztül jut el hozzá.</details></li>
+    <li>(nehezebb) A GPT-3 blokkjaiban $d = 12\,288$, és 96 blokk van. Becsüld meg a blokkok paraméterszámát a $12d^2$ közelítéssel!
+      <details><summary>Megoldás</summary>$12 \cdot 12\,288^2 \approx 1{,}81 \cdot 10^9$ blokkonként, $\times 96 \approx 1{,}74 \cdot 10^{11}$ – kb. 174 milliárd. A beágyazással együtt kb. 174,6 milliárd: a „175 milliárd paraméteres GPT-3”.</details></li>
+  </ol>
+</details>
+
+<h3 id="s126-b">2. lépés: maszkolt figyelem – ne less előre!</h3>
+<p>Eddig osztályoztunk. Most írjunk is: a modell feladata legyen a <b>következő token</b> megjóslása. Ez a szöveggenerálás alapja.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – három jóslás egyetlen menetben</span>
+  „a film jó volt”: a modell minden helyen a következő tokent jósolja.
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.86rem;text-align:center;max-width:620px">
+    <tr><th>hely</th><th>ennyit láthat</th><th>ezt kell kitalálnia</th></tr>
+    <tr><td>1</td><td>a</td><td>film</td></tr>
+    <tr><td>2</td><td>a film</td><td>jó</td></tr>
+    <tr><td>3</td><td>a film jó</td><td>volt</td></tr>
+  </table></div>
+  Az önfigyelem viszont <b>minden</b> tokent lát. Ha a 2. helyen a „jó”-t kell kitalálni, de a figyelem a 3. tokenre (a „jó”-ra) is ránézhet, a feladat triviális: csak lemásolja. Le kell tiltani, hogy egy token a <b>későbbiekre</b> figyeljen.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – kauzális maszk</span>
+  A pontszámmátrixhoz a softmax <b>előtt</b> hozzáadunk egy $M$ maszkot: $M_{ij} = 0$, ha $j \le i$, és $M_{ij} = -\infty$, ha $j > i$:
+  $$\operatorname{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}} + M\right) V.$$
+  Mivel $e^{-\infty} = 0$, a jövőbeli tokenek súlya pontosan 0; a megmaradt súlyok összege így is 1. A súlymátrix <b>alsó háromszög</b> alakú.
+  <b>Miért jó?</b> Egyetlen menetben az összes hely jóslását kiszámoljuk – mind tanítójel. A tanítás így a teljes szövegen párhuzamosan fut (a dekódoló a helyes előző tokeneket kapja – „tanári vezetés”, 12.4).
+  <b>Generáláskor</b> viszont tokenenként haladunk: a modell jósol egy tokent, hozzáfűzzük a bemenethez, és újra jósol (autoregresszió).
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egyenlő pontszámok, maszkkal</span>
+    Ha minden pontszám egyenlő, a maszkolt súlymátrix sorai: $(1;\ 0;\ 0;\ 0)$, $(\tfrac12;\ \tfrac12;\ 0;\ 0)$, $(\tfrac13;\ \tfrac13;\ \tfrac13;\ 0)$, $(\tfrac14;\ \tfrac14;\ \tfrac14;\ \tfrac14)$. Az első token csak magát látja.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a „levél” maszkkal</span>
+    Az A mondat (fa, levél, hullik) maszkkal: a „fa” csak magára figyel → $(2;\ 0)$; a „levél” a fára és magára, $0{,}5$–$0{,}5$ súllyal → $(1{,}5;\ 0{,}5)$; a „hullik” sora változatlan. Próbáld ki a fenti számolóban (<a href="#s125-a">12.5</a>) a „kauzális maszk” kapcsolóval!
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Melyik háromszög?</b> Ha a sor a lekérdező token, az oszlop a kulcs, akkor a főátló <b>fölötti</b> elemek ($j > i$) kapnak $-\infty$-t. A <em>Foundations of Large Language Models</em> szövege épp fordítva fogalmaz – az a modell a jövőbe látna.</li>
+    <li><b>A maszk a modell része, nem csak tanítási trükk.</b> Generáláskor sincs jövő: a már leírt tokenek vektorai nem változhatnak meg attól, ami utánuk jön.</li>
+    <li><b>Párhuzamos tanítás, soros generálás.</b> A tanítás gyors, de egy 500 tokenes válasz 500 egymás utáni lépés (a gyorsítás trükkjei, pl. a kulcs–érték gyorsítótár: 16. fejezet).</li>
+    <li><b>A kitöltő (<em>padding</em>) tokeneket is maszkoljuk.</b> Ha egy kötegben a rövidebb mondatokat kitöltjük, a kitöltésre senki ne figyeljen – ugyanígy $-\infty$-nel.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – maszkolt figyelem</summary>
+  <ol>
+    <li>Írd fel az 5 tokenes kauzális maszkot (0 és $-\infty$)! Hány $-\infty$ van benne?
+      <details><summary>Megoldás</summary>A főátló fölötti elemek: $4 + 3 + 2 + 1 = 10$ darab $-\infty$, a többi 15 elem 0.</details></li>
+    <li>Hány „következő token” tanítójel keletkezik egy 512 tokenes szövegből egyetlen menetben?
+      <details><summary>Megoldás</summary>Minden helyen egy: 511 (ha az utolsó token utánit nem ismerjük), illetve 512, ha a szöveg végét jelző tokent is jósoltatjuk.</details></li>
+    <li>Pontszámok egy sorban maszk előtt: $(2;\ 1;\ 3)$, a sor a 2. token (a 3. jövőbeli). Mennyi a súly maszkkal?
+      <details><summary>Megoldás</summary>A 3. elem $-\infty$ lesz: $\operatorname{softmax}(2;\ 1) = (0{,}731;\ 0{,}269)$, a 3. súly 0.</details></li>
+    <li>Miért nem kell maszk egy osztályozó (pl. véleményelemző) Transformernél?
+      <details><summary>Megoldás</summary>Mert ott nem a következő tokent jósoljuk: a teljes mondat ismert, és minden token nyugodtan figyelhet a későbbiekre is (a „de” után álló szóra például éppen kell).</details></li>
+    <li>(nehezebb) Egy RNN-nyelvmodell és egy maszkolt Transformer is a következő tokent jósolja. Miért tanítható a Transformer sokkal gyorsabban, és miért nem gyorsabb a generálásuk ugyanilyen mértékben?
+      <details><summary>Megoldás</summary>Tanításkor a teljes szöveg ismert: a Transformer minden helyet egyszerre számol (néhány nagy mátrixszorzás), az RNN-nek viszont lépésről lépésre kell haladnia. Generáláskor a következő token még nem létezik, így mindkettő tokenenként halad – a Transformer itt „csak” azzal nyer, hogy minden lépésben közvetlenül eléri az összes korábbi tokent.</details></li>
+  </ol>
+</details>
+
+<h3 id="s126-c">3. lépés: kódoló, dekódoló, mindkettő – BERT és GPT</h3>
+<p>A blokkból háromféle modellt szokás építeni: maszk nélkül, maszkkal, vagy a kettőt összekötve.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – ugyanaz a mondat, két feladat</span>
+  „Esik az eső, ezért [?] viszek.” A „[?]” helyére jó szót választani két irányból lehet: a <b>bal oldal</b> („Esik az eső, ezért”) és a <b>jobb oldal</b> („viszek”) is segít – esernyőt. Egy kódoló mindkét oldalt látja; egy dekódoló csak a balt, és ezért tud <b>folytatni</b>: „Esik az eső, ezért…” → „esernyőt”, „otthon”, „taxival”…
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – a három Transformer-család</span>
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.86rem">
+    <tr><th></th><th>csak kódoló (<em>encoder-only</em>)</th><th>csak dekódoló (<em>decoder-only</em>)</th><th>kódoló–dekódoló</th></tr>
+    <tr><td>figyelem</td><td>kétirányú, maszk nélkül</td><td>kauzális maszkkal</td><td>kódoló: kétirányú; dekódoló: maszkolt + keresztfigyelem a kódolóra</td></tr>
+    <tr><td>előtanítás</td><td>maszkolt nyelvi modell: a tokenek 15%-át elrejtjük, kitalálandó</td><td>következő token jóslása</td><td>elrontott szöveg helyreállítása, fordítás</td></tr>
+    <tr><td>mire jó?</td><td>osztályozás, keresés, beágyazás (mondatvektor)</td><td>szöveggenerálás, párbeszéd – a mai nagy nyelvi modellek</td><td>fordítás, összefoglalás</td></tr>
+    <tr><td>példák</td><td>BERT (2018), RoBERTa, huBERT</td><td>GPT (2018), GPT-2 (2019), GPT-3 (2020), mai LLM-ek</td><td>az eredeti Transformer (2017), T5, BART, opus-mt</td></tr>
+  </table></div>
+  <b>BERT</b> (J. Devlin és társai, 2018): a bemenet elején egy <code>[CLS]</code>, a mondatok között <code>[SEP]</code> token; osztályozáshoz a <code>[CLS]</code> kimeneti vektorára teszünk egy kis réteget. A kiválasztott 15% tokenből 80% helyére <code>[MASK]</code>, 10%-éra véletlen token kerül, 10% marad.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – mennyi tanítójel?</span>
+    Egy 512 tokenes szövegben a BERT kb. $0{,}15 \cdot 512 \approx 77$ helyen tanul (ebből kb. 61 <code>[MASK]</code>, 8 véletlen, 8 változatlan). A GPT ugyanebből a szövegből minden helyen tanul – több mint hatszor annyi jelet kap.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – méretek</span>
+    BERT-base: 12 blokk, $d = 768$, 12 fej, kb. 110 millió paraméter. BERT-large: 24 / 1024 / 16, kb. 340 millió. GPT-2: 48 / 1600 / 25, 1,5 milliárd, 1024 tokenes kontextus. GPT-3: 96 / 12&nbsp;288 / 96, 175 milliárd, 2048 token.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">Miért a dekódoló nyert a nagy modelleknél? (📅 Állapot: 2026)</span>
+  Egyetlen modell, egyetlen egyszerű cél (következő token), és ugyanez a cél előtanításkor és használatkor. Minden szöveg minden tokenje tanítójel. A kérdés–válasz, a fordítás, az összefoglalás is felírható „folytasd a szöveget” feladatként. A kódolók (BERT-szerűek) ma is élnek – keresésben, osztályozásban és mondatbeágyazásokban (18. fejezet) gyorsak és olcsók.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A BERT nem szöveggenerátor.</b> Kitölt egy-egy lyukat, de folyó szöveget írni nem erre tanult; generálásra dekódoló kell.</li>
+    <li><b>A BERT második előtanító feladata</b> (következő mondat jóslása, NSP): „a B mondat valóban az A után jött-e, vagy egy véletlen mondat?” – nem a két mondat sorrendjét kérdezi (S. Raschka könyve így írja). A RoBERTa (2019) megmutatta, hogy ez a feladat el is hagyható.</li>
+    <li><b>Az első dekódoló-modell nem a GPT-2 volt</b>, hanem a GPT (2018) – még a BERT előtt. A GPT-2 kontextusa 1024 token, legnagyobb változatában 25 fejjel (a <em>Deep Learning – A Visual Approach</em> 512 tokent és 12 fejet ír).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – BERT és GPT</summary>
+  <ol>
+    <li>Melyik családot választanád: (a) e-mailek témába sorolása; (b) chatbot; (c) magyar szöveg angolra fordítása?
+      <details><summary>Megoldás</summary>(a) kódoló (BERT-szerű) + osztályozó réteg; (b) dekódoló (GPT-szerű); (c) kódoló–dekódoló (vagy egy nagy dekódoló, utasítással).</details></li>
+    <li>Egy 200 tokenes szövegben hány pozíciót választ ki a BERT maszkolásra, és ebből kb. hány kap <code>[MASK]</code>-ot?
+      <details><summary>Megoldás</summary>$0{,}15 \cdot 200 = 30$ pozíció; ebből $0{,}8 \cdot 30 = 24$ kap <code>[MASK]</code>-ot, 3 véletlen tokent, 3 marad.</details></li>
+    <li>Miért nem jósolhat a BERT a „következő tokenre” ugyanúgy, mint a GPT?
+      <details><summary>Megoldás</summary>Mert a figyelme kétirányú (nincs kauzális maszk): a „következő” token ott van a bemenetében, és egyszerűen kinézhetné onnan.</details></li>
+    <li>Mi a <code>[CLS]</code> token szerepe a BERT-ben?
+      <details><summary>Megoldás</summary>Egy mesterséges első token, amely a figyelemmel az egész mondatból gyűjt információt; a kimeneti vektorára tett kis réteggel osztályozunk.</details></li>
+    <li>(nehezebb) Miért kap a 10%-nyi kiválasztott token véletlen szót, és 10% miért marad változatlan a BERT maszkolásában?
+      <details><summary>Megoldás</summary>Mert használatkor nincs <code>[MASK]</code> token a szövegben. Ha a modell csak a <code>[MASK]</code> helyén próbálkozna, a valódi szavak vektorát „elhanyagolhatná”. Így viszont sosem tudhatja biztosan, melyik tokent kell ellenőriznie – minden token vektorának a kontextusból is értelmesnek kell lennie.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai12-126"></div>
+</section>

@@ -1,0 +1,192 @@
+
+<!-- ===================================================== 12.1 -->
+<section id="s121">
+<h2>12.1 Szövegből számok ★</h2>
+<p>A háló csak számokkal tud számolni. Az első feladat tehát az, hogy a szövegből számsorozat legyen. Ez egyszerűnek hangzik – de már itt eldől, mit fog „látni” a modell, és mit nem.</p>
+
+<h3 id="s121-a">1. lépés: tokenek és szótár</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy kritika darabokra</span>
+  „A film nem volt jó, de a vége remek volt!” Kisbetűsítünk, és a szóközöknél, valamint az írásjelek előtt vágunk:
+  <div class="tw" style="overflow-x:auto"><table style="font-family:var(--mono);font-size:.85rem;text-align:center;max-width:640px">
+    <tr><th>token</th><td>a</td><td>film</td><td>nem</td><td>volt</td><td>jó</td><td>,</td><td>de</td><td>a</td><td>vége</td><td>remek</td><td>volt</td><td>!</td></tr>
+    <tr><th>sorszám</th><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>0</td><td>7</td><td>8</td><td>3</td><td>9</td></tr>
+  </table></div>
+  12 darab lett, ebből 10 különböző (az „a” és a „volt” kétszer szerepel). A különbözőket az első előfordulásuk sorrendjében számoztuk meg. A mondatból így a $0, 1, 2, 3, 4, 5, 6, 0, 7, 8, 3, 9$ számsorozat lett.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – token, tokenizálás, szótár</span>
+  <ul style="margin:.2rem 0">
+    <li>A <b>token</b> a szöveg egy darabja, amelyet a modell egy egységnek tekint: szó, írásjel, szódarab vagy betű.</li>
+    <li>A <b>tokenizálás</b> a szöveg feldarabolása tokenekre. A <b>tokenizáló</b> az a szabály vagy program, amely ezt elvégzi.</li>
+    <li>A <b>szótár</b> (<em>vocabulary</em>) a lehetséges tokenek listája; mérete $V$. Minden token egy <b>sorszámot</b> (azonosítót, ID-t) kap $0$ és $V - 1$ között. A szótárban nem szereplő tokenekre egy közös „ismeretlen” jel (<code>[UNK]</code>) áll.</li>
+  </ul>
+  <b>Miért így?</b> A modell bemenete ezután egy egész számokból álló sorozat. A számok csak <b>címkék</b>: a 4-es a „jó” neve, nem a mennyisége.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a magyar ragozás</span>
+    „ház”, „házak”, „házban”, „házaimban”, „házunkból”: öt különböző szóalak, egy szótő. Ha minden szóalak külön token, a magyar szótár <b>milliós</b> nagyságrendű lesz, és a ritka alakok alig fordulnak elő a tanítószövegben. A ragozó nyelvekben a szóalapú tokenizálás különösen pazarló.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – részszó-tokenek egy valódi modellben</span>
+    A magyar huBERT modell tokenizálója kb. 32&nbsp;000 tokent ismer. Gyakori szót egyben hagy, ritkát darabol:
+    <span style="font-family:var(--mono);font-size:.88rem">ház → ház · házaimban → háza|##imb|##an · filmjeinkben → filmje|##ink|##ben · szeretlek → szeret|##lek · ChatGPT → Ch|##at|##G|##P|##T</span>.
+    A „##” azt jelzi, hogy a darab az előzőhöz tapad. Így véges szótárral minden szó leírható.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">Terminológia – token, nem „szó”</span>
+  A <b>token</b> szót akkor is használjuk, ha a darab nem egész szó. A <b>részszó</b> (<em>subword</em>) tokenizálók (BPE, WordPiece) a tanítószövegből tanulják meg, mely betűsorozatokat érdemes egyben tartani; a működésüket a 16. fejezetben nézzük meg. Egy angol szövegben átlagosan kb. 1,3 token jut egy szóra; magyarban több, mert a szavak hosszabbak és ragozottak.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A sorszám nem jelentés.</b> A fenti számozásban a „jó” 4-es, a vessző 5-ös, a „remek” 8-as. Ha a nyers sorszámot adnánk a hálónak, a „jó” közelebb lenne a vesszőhöz, mint a „remek”-hez, és egy 4,49-es jóslat „jó”, egy 4,51-es „vessző” lenne. A sorszámot ezért sosem használjuk mennyiségként (<a href="#s122-a">12.2</a>).</li>
+    <li><b>Ugyanaz a tokenizáló kell tanításkor és használatkor.</b> Ha a modell kisbetűsített szövegen tanult, a „Film” szót nem ismeri fel, ha nem kisbetűsítünk.</li>
+    <li><b>A kisbetűsítés információt is eldob.</b> „Alma” lehet gyümölcs vagy cégnév; a mondat eleje és a tulajdonnév is elvész.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – tokenek és szótár</summary>
+  <ol>
+    <li>Tokenizáld (kisbetűsítve, az írásjelet külön tokenként): „A zene nem volt rossz.” Hány token, hány különböző?
+      <details><summary>Megoldás</summary>a · zene · nem · volt · rossz · . – 6 token, mind különböző.</details></li>
+    <li>A fenti példa szótárával (a = 0, film = 1, nem = 2, volt = 3, jó = 4, „,” = 5, de = 6, vége = 7, remek = 8, „!” = 9) milyen számsorozat lesz ebből: „A vége jó volt!”?
+      <details><summary>Megoldás</summary>$0, 7, 4, 3, 9$.</details></li>
+    <li>Hány token és hány különböző token van ebben: „a film a film a film”?
+      <details><summary>Megoldás</summary>6 token, 2 különböző (a, film).</details></li>
+    <li>Mi történik a „szuper” szóval, ha a szótár csak a fenti 10 tokent ismeri? És egy részszó-tokenizálóval?
+      <details><summary>Megoldás</summary>Szóalapú szótárral <code>[UNK]</code> lesz – minden ismeretlen szó ugyanazt a jelet kapja, a jelentése elvész. Részszó-tokenizálóval darabokra bomlik (végső esetben betűkre), így leírható marad.</details></li>
+    <li>(nehezebb) Miért tud egy kb. 32&nbsp;000-es részszó-szótár milliónyi magyar szóalakot leírni? Mi az ára?
+      <details><summary>Megoldás</summary>A gyakori tövek és toldalékok külön darabok, és ezek szabadon összeilleszthetők („háza” + „##imb” + „##an”). Az ár: hosszabb tokensorozat (egy szóból 2–9 token is lehet), és a darabok nem mindig értelmes nyelvtani egységek („##imb”). A modellnek a darabokból kell összeraknia a jelentést.</details></li>
+  </ol>
+</details>
+
+<h3 id="s121-b">2. lépés: szózsák és szópárok – mennyit tud a számolás?</h3>
+<p>A <a href="../04-adatok-es-jellemzok/#s45-c">4.5</a>-ben már láttuk a legegyszerűbb ötletet: számoljuk meg, melyik szó hányszor fordul elő. Most megnézzük, meddig jutunk vele egy valódi feladatban – és pontosan hol akad el.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – négy rövid kritika</span>
+  D1: „a film jó volt” · D2: „a film nem volt jó” · D3: „a zene unalmas volt” · D4: „a film remek”. A szótár (első előfordulás szerint): a, film, jó, volt, nem, zene, unalmas, remek.
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th></th><th>a</th><th>film</th><th>jó</th><th>volt</th><th>nem</th><th>zene</th><th>unalmas</th><th>remek</th></tr>
+    <tr><td>D1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+    <tr><td>D2</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>0</td><td>0</td><td>0</td></tr>
+    <tr><td>D3</td><td>1</td><td>0</td><td>0</td><td>1</td><td>0</td><td>1</td><td>1</td><td>0</td></tr>
+    <tr><td>D4</td><td>1</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td></tr>
+  </table></div>
+  Mennyire hasonlít D1 és D2? Koszinusz-hasonlósággal (<a href="../02-matematikai-eszkoztar/#s23-c">2.3</a>): $\cos = \dfrac{4}{\sqrt 4 \cdot \sqrt 5} = \dfrac{4}{2 \cdot 2{,}236} \approx 0{,}894$. Nagyon hasonlók – pedig az egyik dicsér, a másik nem.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – szózsák, $n$-gram</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Szózsák</b> (<em>bag of words</em>): a dokumentum egy $V$ hosszú vektor; a $j$-edik elem a $j$-edik token előfordulásainak száma. A sorrend elvész.</li>
+    <li><b>Szópár</b> (bigram), általában <b>$n$-gram</b>: $n$ egymás utáni token, saját oszloppal. Egy $m$ tokenből álló szövegben $m - 1$ szópár van. A szópárok a <b>szomszédos</b> szavak sorrendjét megőrzik, a távolabbiakét nem.</li>
+  </ul>
+  A szózsákra bármilyen klasszikus osztályozó tehető, például logisztikus regresszió (<a href="../05-osztalyozas/#s53">5.3</a>): minden token kap egy súlyt, a pontszám a súlyok összege.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – ugyanaz a zsák</span>
+    „a film jó volt , de a vége unalmas volt” és „a film unalmas volt , de a vége jó volt”: pontosan ugyanazok a tokenek, ugyanannyiszor. A két szózsákvektor <b>azonos</b>, a koszinuszuk 1. Egy szózsákra épülő modell a kettőre <b>mindig ugyanazt</b> mondja – legfeljebb az egyiket találhatja el.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a szópárok segítenek</span>
+    D2 szópárjai: „a film”, „film nem”, „nem volt”, „volt jó”. A „volt jó” sorrend a mi kritikáinkban csak tagadásban fordul elő (állítva „jó volt”-ot mondunk). A szópár tehát hordozza azt, amit az egyes szavak nem: hogy a „nem” a „jó”-ra vonatkozik.
+  </div>
+</div>
+<div class="box example">
+  <span class="box-title">Példa – miért pénzfeldobás a szózsák a mi kritikáinkon?</span>
+  A fejezet kísérletében (<a href="#s128">12.8</a>) minden kritika egy vagy két tagmondat: „a film nagyon jó volt”, „a zene nem volt túl rossz”, „…, de a vége unalmas volt”. Nézzük csak a tagadást! Egy lineáris modell pontszáma $w_{\text{jó}} + w_{\text{nem}}$ alakú. A négy esethez ez kellene:
+  $$w_{\text{jó}} > 0,\quad w_{\text{jó}} + w_{\text{nem}} \lt 0,\quad w_{\text{rossz}} \lt 0,\quad w_{\text{rossz}} + w_{\text{nem}} > 0.$$
+  A második miatt $w_{\text{nem}} \lt -w_{\text{jó}} \lt 0$, a negyedik miatt $w_{\text{nem}} > -w_{\text{rossz}} > 0$ – ellentmondás. Ez a XOR-probléma (<a href="../05-osztalyozas/#s56-a">5.6</a>) szövegben. Ezért ért el a szózsák + logisztikus regresszió csak <b>51,2%</b>-ot. Szópárokkal <b>93,5%</b> lett – de a „de”-s kritikákon csak 86,7%. Az ok: ha mindkét tagmondat állító („a … volt”), a két tagmondat felcserélésével <b>pontosan ugyanazok a szópárok</b> jönnek ki (a tagmondatok határán mindkét sorrendben „volt ,”, „, de”, „de a” áll). Ez a „de”-s kritikák kb. negyede; ezeknek a felét a modell szükségképpen eltéveszti, így kb. 87,5% a felső korlát.
+</div>
+<div class="box tip">
+  <span class="box-title">Valódi kritikákon a szózsák erős</span>
+  A mi mesterséges nyelvünk szándékosan „gonosz”: minden kritikában ott a tagadás vagy két ellentétes ítélet. Valódi filmkritikákban sok, egymást erősítő árulkodó szó van („pocsék”, „unalmas”, „pazar”). Az IMDB-adatkészlet 50&nbsp;000 angol kritikáján a szózsák + logisztikus regresszió kb. <b>89%</b>-ot ér el (A. Thakur, <em>Approaching (Almost) Any Machine Learning Problem</em>, 5-szörös keresztvalidációval). <b>Hüvelykujjszabály: szövegosztályozásnál először mindig a szózsákot próbáld ki</b> – sokszor elég, és ehhez mérheted a többit.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A tiltólista elviheti a lényeget.</b> Sok kész „stop word” lista tartalmazza a „nem”, „no”, „not” szavakat. Témafelismerésnél ez rendben van, véleményelemzésnél tönkreteszi a modellt.</li>
+    <li><b>Több $n$-gram – sokkal több oszlop.</b> Egy 50&nbsp;000 szavas szótárhoz elméletben $50\,000^2 = 2{,}5$ milliárd szópár tartozhat. A gyakorlatban csak a tanítóadatban elég gyakoriakat tartjuk meg.</li>
+    <li><b>A szótárat csak a tanítóadatból építsd</b> (<a href="../04-adatok-es-jellemzok/#s47-b">4.7</a>) – különben a teszt szavai „beszivárognak”.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – szózsák és szópárok</summary>
+  <ol>
+    <li>A fenti szótárral (a, film, jó, volt, nem, zene, unalmas, remek) mi a szózsákja ennek: „a zene jó volt”?
+      <details><summary>Megoldás</summary>$(1, 0, 1, 1, 0, 1, 0, 0)$.</details></li>
+    <li>Mennyi D1 és az előző mondat koszinusz-hasonlósága?
+      <details><summary>Megoldás</summary>Közös: a, jó, volt → skaláris szorzat 3; mindkét vektor hossza $\sqrt 4 = 2$. $\cos = 3/4 = 0{,}75$.</details></li>
+    <li>Sorold fel a „nem volt túl rossz” szópárjait! Általában hány szópárja van egy $m$ tokenes szövegnek?
+      <details><summary>Megoldás</summary>„nem volt”, „volt túl”, „túl rossz” – 3 darab; általában $m - 1$.</details></li>
+    <li>Miért nem segít a szópár a „de”-s kritikáknál annyira, mint a tagadásnál?
+      <details><summary>Megoldás</summary>Mert a döntő melléknév nem a „de” szomszédja („de a vége unalmas volt”), és a szópárok csak azt rögzítik, mi áll közvetlenül egymás mellett. Ha mindkét tagmondat „a …”-val kezdődik és „volt”-tal végződik, a tagmondatok cseréje után ugyanaz a szópár-halmaz marad – a modell nem tudhatja, melyik tagmondat jött a „de” <b>után</b>. Ehhez hosszabb $n$-gramok vagy sorrendet követő modell kell.</details></li>
+    <li>(nehezebb) Mutasd meg, hogy egy szózsákra épülő lineáris modell nem tudja helyesen kezelni egyszerre a „jó”, „nem jó”, „rossz”, „nem rossz” mondatokat! Melyik korábbi problémára vezethető vissza?
+      <details><summary>Megoldás</summary>A pontszámok: $w_j$, $w_j + w_n$, $w_r$, $w_r + w_n$. Kellene $w_j > 0$, $w_j + w_n \lt 0$, $w_r \lt 0$, $w_r + w_n > 0$. Az első kettőből $w_n \lt 0$, az utolsó kettőből $w_n > 0$ – ellentmondás. Ez a XOR-probléma (<a href="../05-osztalyozas/#s56-a">5.6</a>): a „nem” megfordítja a másik szó hatását, ezt összeadással nem lehet leírni. (A torzítás sem segít: mind a négy mondatban ugyanannyi.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s121-c">3. lépés: TF-IDF – a ritka szó többet ér</h3>
+<p>A szózsákban minden szó egyformán számít. Pedig az „a” minden kritikában ott van, semmit nem árul el; a „nem” ritka, és sokat. Súlyozzuk a szavakat aszerint, hogy mennyire ritkák!</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – melyik szó árulkodó?</span>
+  A négy kritikában (D1–D4) hány dokumentumban szerepel az egyes szó?
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th></th><th>a</th><th>film</th><th>jó</th><th>volt</th><th>nem</th><th>zene</th><th>unalmas</th><th>remek</th></tr>
+    <tr><td>hány dokumentumban</td><td>4</td><td>3</td><td>2</td><td>3</td><td>1</td><td>1</td><td>1</td><td>1</td></tr>
+    <tr><td>$\ln(4/\text{ennyi})$</td><td>0</td><td>0,288</td><td>0,693</td><td>0,288</td><td>1,386</td><td>1,386</td><td>1,386</td><td>1,386</td></tr>
+  </table></div>
+  Az „a” mindenhol ott van: a súlya $\ln(4/4) = \ln 1 = 0$. A csak egyszer előforduló szavak súlya $\ln 4 \approx 1{,}386$.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – TF-IDF</span>
+  Legyen $N$ a dokumentumok száma, $\text{tf}(t, D)$ a $t$ token előfordulásainak száma a $D$ dokumentumban, $\text{df}(t)$ pedig azoknak a dokumentumoknak a száma, amelyekben $t$ előfordul. Ekkor
+  $$\text{idf}(t) = \ln\frac{N}{\text{df}(t)},\qquad \text{tfidf}(t, D) = \text{tf}(t, D)\cdot \text{idf}(t).$$
+  <b>Miért?</b> A $\text{tf}$ azt méri, mennyire jellemző a szó erre a dokumentumra; az $\text{idf}$ azt, mennyire ritka a gyűjteményben. A logaritmus tompít: ha egy szó tízszer ritkább, a súlya nem tízszeresére nő, csak $\ln 10 \approx 2{,}3$-del nagyobb lesz. A mindenhol előforduló szó súlya 0.
+  <small>(Karen Spärck Jones, 1972: az „inverz dokumentumgyakoriság” ötlete a keresőkből jön – ma is ez a klasszikus keresők egyik alapja.)</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – D2 TF-IDF-vektora</span>
+    D2 = „a film nem volt jó”: minden szó egyszer.
+    $$(0;\ 0{,}288;\ 0{,}693;\ 0{,}288;\ 1{,}386;\ 0;\ 0;\ 0)$$
+    A legnagyobb súlyt a „nem” kapta – éppen az a szó, amelyik D1-től megkülönbözteti.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a hasonlóság megváltozik</span>
+    D1 = $$(0;\ 0{,}288;\ 0{,}693;\ 0{,}288;\ 0;\ 0;\ 0;\ 0)$$ A koszinusz D1 és D2 között most $\approx 0{,}502$ (a szózsáknál 0,894 volt). A közös, semmitmondó szavak („a”, „volt”) kevésbé számítanak, a „nem” jobban.
+  </div>
+</div>
+<div class="widget" data-widget="tfidf-table"></div>
+<div class="box tip">
+  <span class="box-title">Változatok – melyik TF-IDF?</span>
+  A könyvek és a programok más-más képletet használnak. A scikit-learn alapbeállítása: $\text{idf}(t) = \ln\dfrac{1 + N}{1 + \text{df}(t)} + 1$, és a végén minden dokumentumvektort 1 hosszúra normál. Így a mindenhol előforduló szó súlya 1, nem 0 (az „a”-é a fenti példában 1, a „nem”-é $\ln(5/2) + 1 \approx 1{,}916$). Más változatok a $\text{tf}$-et osztják a dokumentum hosszával, vagy $1 + \ln \text{tf}$-et használnak. <b>Mindig írd le, melyiket használod</b> – a számok különböznek, a gondolat ugyanaz.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A TF-IDF is zsák.</b> Csak súlyozza a szavakat; a sorrendet ugyanúgy eldobja. A „jó volt, de unalmas” és az „unalmas volt, de jó” TF-IDF-vektora is azonos.</li>
+    <li><b>A ritka nem mindig fontos.</b> Egy elgépelés („fimm”) nagyon ritka, ezért nagy súlyt kap. Ezért szokás a csak 1–2 dokumentumban előforduló tokeneket kidobni.</li>
+    <li><b>Az idf-et a tanítóadatból számold</b>, és a tesztnél ugyanazt használd.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – TF-IDF</summary>
+  <ol>
+    <li>$N = 10$ dokumentum. Mennyi az idf, ha egy szó 10, 5, illetve 1 dokumentumban fordul elő?
+      <details><summary>Megoldás</summary>$\ln 1 = 0$; $\ln 2 \approx 0{,}693$; $\ln 10 \approx 2{,}303$.</details></li>
+    <li>A négy kritikánál mennyi a „nem” és a „film” TF-IDF-je D2-ben?
+      <details><summary>Megoldás</summary>„nem”: $1 \cdot \ln 4 \approx 1{,}386$; „film”: $1 \cdot \ln(4/3) \approx 0{,}288$.</details></li>
+    <li>Egy új dokumentum: „jó jó jó” (a „jó” df-je továbbra is 2, $N = 4$). Mennyi a „jó” TF-IDF-je?
+      <details><summary>Megoldás</summary>$3 \cdot \ln 2 \approx 2{,}079$.</details></li>
+    <li>Miért nem változik meg a koszinusz-hasonlóság, ha $\ln$ helyett tízes alapú logaritmust használunk?
+      <details><summary>Megoldás</summary>Mert $\lg x = \ln x / \ln 10$: minden idf ugyanazzal a számmal szorzódik, így minden TF-IDF-vektor is. A koszinusz csak az irányt nézi, a nyújtás nem változtat rajta.</details></li>
+    <li>(nehezebb) Számold ki a scikit-learn-féle idf-et ($\ln\frac{1+N}{1+\text{df}} + 1$) az „a”, a „jó” és a „nem” szóra a négy kritikánál! Miért adnak hozzá 1-et?
+      <details><summary>Megoldás</summary>„a”: $\ln(5/5) + 1 = 1$; „jó”: $\ln(5/3) + 1 \approx 1{,}511$; „nem”: $\ln(5/2) + 1 \approx 1{,}916$. A $+1$ miatt a mindenhol előforduló szó sem tűnik el teljesen; a $1 +$ a törtben pedig úgy viselkedik, mintha lenne egy extra dokumentum, amelyben minden szó szerepel – így a nullával osztás sem fordulhat elő.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai12-121"></div>
+</section>

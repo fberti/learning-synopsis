@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>12. Beágyazások, szekvenciák és a figyelemmechanizmus – Mesterséges intelligencia – Synopsis</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="../../assets/common.js"></script>
+  <script defer src="../../assets/quiz.js"></script>
+  <script defer src="../../assets/calc.js"></script>
+  <script defer src="glove-data.js"></script>
+  <script defer src="real-attention.js"></script>
+  <script defer src="review-models.js"></script>
+  <script defer src="widgets.js"></script>
+  <script defer src="quizzes.js"></script>
+</head>
+<body>
+<div class="progressbar"></div>
+<header class="topbar">
+  <a class="brand" href="../../">📚 Synopsis</a>
+  <span class="crumbs"><a href="../../">Tartalomjegyzék</a> › <a href="../">Mesterséges intelligencia</a> › 12. fejezet</span>
+  <button class="icon-btn" data-theme-toggle title="Téma váltása">🌙</button>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <div class="toc-title">12. fejezet</div>
+  <ol>
+    <li><a href="#s121">12.1 Szövegből számok</a></li>
+    <li><a href="#s122">12.2 Beágyazások</a></li>
+    <li><a href="#s123">12.3 Szekvenciák: rekurrens hálók</a></li>
+    <li><a href="#s124">12.4 A figyelemmechanizmus</a></li>
+    <li><a href="#s125">12.5 Önfigyelem</a></li>
+    <li><a href="#s126">12.6 A Transformer</a></li>
+    <li><a href="#s127">12.7 Miért nyert a Transformer?</a></li>
+    <li><a href="#s128">12.8 Alkalmazás: kritikák és levelek</a>
+      <ol>
+        <li><a href="#s128-a">A kísérlet a böngészőben</a></li>
+        <li><a href="#s128-b">A „levél” egy valódi modellben</a></li>
+        <li><a href="#s128-c">Válaszok a fejezet kérdéseire</a></li>
+      </ol>
+    </li>
+    <li><a href="#s-sum">Összefoglalás</a></li>
+    <li><a href="#s-check">Ellenőrző kérdések</a></li>
+    <li><a href="#s-ex">Vegyes gyakorló feladatok</a></li>
+    <li><a href="#s-final">Fejezetzáró teszt</a></li>
+    <li><a href="#s-gloss">Szómagyarázó</a></li>
+  </ol>
+</nav>
+
+<main class="content">
+
+<section class="hero" style="padding-top:.5rem">
+  <div class="kicker">Mesterséges intelligencia · 12. fejezet · ★★–★★★</div>
+  <h1>Beágyazások, szekvenciák és a figyelem&shy;mechanizmus</h1>
+  <p class="lead">A <a href="../11-konvolucios-halok/">11. fejezet</a> hálói képet néztek: egy rácsot, amelyen a szomszédos pixelek összetartoznak. A szöveg más. Szavak sorozata, ahol egy szó jelentése sokszor a mondat <b>túlsó végén</b> dől el, és ahol két mondat ugyanazokból a szavakból állhat – mégis mást jelent.
+  Ebben a fejezetben lépésről lépésre építjük fel, hogyan „olvas” egy gép: szövegből számok, számokból <b>jelentést hordozó vektorok</b>, vektorokból <b>sorozat</b>, és végül a <b>figyelem</b>, amellyel minden szó megkérdezheti az összes többit. Ebből az ötletből lett a <b>Transformer</b> – a mai nagy nyelvi modellek motorja.</p>
+</section>
+
+<div class="box tip">
+  <span class="box-title">Mit fogsz megtanulni?</span>
+  <ul style="margin:.2rem 0">
+    <li>hogyan lesz a szövegből <b>token</b>, <b>szózsák</b> és <b>TF-IDF</b>-vektor – és mit veszítünk közben;</li>
+    <li>mi a <b>beágyazás</b>: miért kerül közel egymáshoz a „macska” és a „kutya”, és miért ad a <em>king − man + woman</em> <em>queen</em>-t;</li>
+    <li>hogyan dolgoz fel egy <b>rekurrens háló</b> egy sorozatot, és miért <b>felejt</b> – mit javít ezen az <b>LSTM</b>;</li>
+    <li>mi a <b>figyelemmechanizmus</b>: puha keresés lekérdezéssel, kulcsokkal és értékekkel;</li>
+    <li>hogyan számol az <b>önfigyelem</b> (kézzel, három szóra), miért osztunk $\sqrt d$-vel, és miért kell <b>pozíciókódolás</b>;</li>
+    <li>miből áll egy <b>Transformer</b>-blokk, mi a különbség a <b>BERT</b> és a <b>GPT</b> között, és <b>miért nyert</b> ez az architektúra.</li>
+  </ul>
+</div>
+
+<div class="box">
+  <span class="box-title">🔁 Amit használni fogunk</span>
+  A <a href="../02-matematikai-eszkoztar/">2. fejezetből</a>: a skaláris szorzat (<a href="../02-matematikai-eszkoztar/#s22-b">2.2</a>), a mátrixszorzás (<a href="../02-matematikai-eszkoztar/#s22-d">2.2</a>), a koszinusz-hasonlóság (<a href="../02-matematikai-eszkoztar/#s23-c">2.3</a>), a softmax (<a href="../02-matematikai-eszkoztar/#s25-d">2.5</a>).
+  A <a href="../04-adatok-es-jellemzok/">4. fejezetből</a>: a one-hot kódolás (<a href="../04-adatok-es-jellemzok/#s43-b">4.3</a>) és a szózsák (<a href="../04-adatok-es-jellemzok/#s45-c">4.5</a>).
+  Az <a href="../05-osztalyozas/">5. fejezetből</a>: a logisztikus regresszió (<a href="../05-osztalyozas/#s53">5.3</a>) és a XOR-probléma (<a href="../05-osztalyozas/#s56-a">5.6</a>).
+  A <a href="../08-felugyelet-nelkuli-tanulas/">8. fejezetből</a>: a PCA (<a href="../08-felugyelet-nelkuli-tanulas/#s83">8.3</a>) és a mátrixfaktorizáció (<a href="../08-felugyelet-nelkuli-tanulas/#s86-c">8.6</a>).
+  A <a href="../10-halo-tanitasa/">10. fejezetből</a>: a visszaterjesztés (<a href="../10-halo-tanitasa/#s103">10.3</a>), az eltűnő gradiens és a rétegnormalizálás (<a href="../10-halo-tanitasa/#s106">10.6</a>).
+  A <a href="../11-konvolucios-halok/">11. fejezetből</a>: a súlymegosztás (<a href="../11-konvolucios-halok/#s113-a">11.3</a>), a maradékkapcsolat (<a href="../11-konvolucios-halok/#s114-c">11.4</a>), az előtanítás (<a href="../11-konvolucios-halok/#s115">11.5</a>) és a Vision Transformer (<a href="../11-konvolucios-halok/#s117">11.7</a>).
+  <br><small>Jelölések: ★ alap · ★★ közép · ★★★ haladó (kihagyható). A 📐 jelű lenyílók levezetéseket rejtenek, a 🐍 jelűek rövid Python-kódot – a továbbhaladáshoz egyik sem kell.
+  $n$ a sorozat hossza (tokenek száma), $V$ a szótár mérete, $d$ egy vektor hossza (dimenziója). A vektorok sorvektorok, ahogy a Transformer-irodalomban szokás: egy $n$ tokenből álló mondat egy $n \times d$-s mátrix, soronként egy token.</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">🎯 A fejezet kérdése – honnan tudja a gép, mit jelent egy szó, és mit egy mondat?</span>
+  Két mondatpár, két rejtvény.
+  <div class="two-col" style="margin-top:.4rem">
+    <div>
+      <b>1. Ugyanaz a szó, más jelentés.</b><br>
+      „Lehullott a levél a fáról.” – „Megjött a levél a postán.”<br>
+      Egy valódi, nyilvános magyar–angol fordítóprogram (<em>opus-mt-hu-en</em>) az elsőt így fordítja: <b>„The letter fell from the tree.”</b> – a levél postai levél lett. Ha viszont egyetlen szót beszúrunk – „Lehullott egy <b>sárga</b> levél a fáról.” –, már helyes: <b>„A yellow leaf fell from the tree.”</b>
+    </div>
+    <div>
+      <b>2. Ugyanazok a szavak, ellentétes ítélet.</b><br>
+      „A film jó volt, de a vége unalmas volt.” – „A film unalmas volt, de a vége jó volt.”<br>
+      Egy egyszerű mesterséges nyelven 3000 ilyen filmkritikán tanítottunk egy klasszikus szövegosztályozót (szózsák + logisztikus regresszió). Az 1500 tesztkritikán az eredmény: <b>51,2%</b> helyes – annyi, mint egy pénzfeldobás.
+    </div>
+  </div>
+  Négy kérdés:
+  <ol style="margin:.3rem 0">
+    <li>Hogyan lesz a szövegből <b>szám</b>, és mit veszítünk el közben?</li>
+    <li>Hogyan kaphat egy szó olyan számokat, amelyek a <b>jelentését</b> hordozzák?</li>
+    <li>Hogyan számíthat bele a <b>sorrend</b> – és miért felejt a háló, ha a fontos szó messze van?</li>
+    <li>Hogyan dönti el a modell, hogy egy szó értelmezéséhez <b>melyik másik szóra figyeljen</b> – és miért lett ebből a mai nyelvi modellek motorja?</li>
+  </ol>
+  A fejezet végén (<a href="#s128">12.8</a>) hat különböző modellt próbálsz ki a böngésződben ugyanazokon a kritikákon, és egy valódi magyar nyelvi modellben (huBERT) megnézed, mi történik a „levél” szóval.
+</div>
+
+<p><b>Útiterv</b> – lépésről lépésre, az egyszerűtől a bonyolultig:</p>
+<ol>
+  <li><b>A szövegből vektor</b>
+    <ol>
+      <li><a href="#s121">Szövegből számok</a>: tokenek és szótár; szózsák és szópárok; TF-IDF.</li>
+      <li><a href="#s122">Beágyazások</a>: a one-hot vektor korlátja; sűrű vektorok, koszinusz, vektoraritmetika; a szomszédok és a word2vec.</li>
+    </ol></li>
+  <li><b>A sorrend</b>
+    <ol start="3">
+      <li><a href="#s123">Rekurrens hálók</a>: átlag helyett emlékezet; az RNN cellája; felejtés és az LSTM.</li>
+      <li><a href="#s124">A figyelemmechanizmus</a>: a fordítás szűk keresztmetszete; a figyelem mint puha keresés; figyelem a fordításban.</li>
+    </ol></li>
+  <li><b>A Transformer</b>
+    <ol start="5">
+      <li><a href="#s125">Önfigyelem</a>: Q, K, V kézzel; mátrixalak és $\sqrt d$; több fej és pozíciókódolás. ★★★</li>
+      <li><a href="#s126">A Transformer</a>: a blokk; maszkolt figyelem; BERT és GPT. ★★★</li>
+      <li><a href="#s127">Miért nyert?</a> Párhuzamosítás; önfelügyelt előtanítás; skálázás és korlátok.</li>
+    </ol></li>
+  <li><b>Összerakva</b>
+    <ol start="8">
+      <li><a href="#s128">Alkalmazás</a>: hat modell, ugyanazok a kritikák; a „levél” egy valódi modellben.</li>
+    </ol></li>
+</ol>

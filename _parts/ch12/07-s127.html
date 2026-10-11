@@ -1,0 +1,173 @@
+
+<!-- ===================================================== 12.7 -->
+<section id="s127">
+<h2>12.7 Miért nyert a Transformer? ★★</h2>
+<p>A kísérletünkben (12.3) az LSTM is 100%-ot ért el. Mégis a Transformer lett a nyelvi modellek, majd a képi (<a href="../11-konvolucios-halok/#s117">11.7</a>), hang- és fehérjemodellek alapja is. Három ok, és egy őszinte lista a korlátokról.</p>
+
+<h3 id="s127-a">1. lépés: párhuzamosítás – egyszerre minden token</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – 1000 token, két háló</span>
+  <ul style="margin:.2rem 0">
+    <li><b>RNN:</b> rétegenként 1000 egymás utáni lépés; mindegyikben egy kis mátrixszorzás. Az 1. token információja a 1000.-hoz 999 lépésen át, a rejtett állapoton „átpréselve” jut el.</li>
+    <li><b>Transformer:</b> rétegenként néhány <b>nagy</b> mátrixszorzás, minden token egyszerre. Az 1. token a 1000.-hoz <b>egyetlen</b> figyelemlépéssel eljut.</li>
+  </ul>
+  Egy GPU több ezer szorzást végez párhuzamosan – a sok kicsi, egymásra váró lépés nem tudja kihasználni, a kevés nagy igen.
+</div>
+<div class="box def">
+  <span class="box-title">Összehasonlítás – egy réteg költsége (A. Vaswani és társai, 2017 nyomán)</span>
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;max-width:640px">
+    <tr><th></th><th>műveletek</th><th>egymás utáni lépések</th><th>út két token között</th></tr>
+    <tr><td>rekurrens réteg</td><td>$\sim n\,d^2$</td><td>$n$</td><td>$n$ lépés</td></tr>
+    <tr><td>önfigyelem</td><td>$\sim n^2 d$</td><td>1</td><td>1 lépés</td></tr>
+  </table></div>
+  <b>Miért ez dönt?</b> A tanítás ideje nem a műveletek számán, hanem azon múlik, mennyi <b>vár egymásra</b>. A rövid út pedig a tanulásnak is jó: a gradiensnek nem kell száz lépésen át „elhalnia” (12.3).
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – hol van a munka?</span>
+    Egy $d = 768$-as blokkban egy $n$ tokenes szövegre: vetítések és FFN kb. $12\,n d^2$, a figyelem pontszámai és keverése kb. $2\,n^2 d$ szorzás. $n = 512$-nél: 3,6 milliárd vs. 0,4 milliárd. A figyelem csak $n > 6d$, azaz kb. 4600 token fölött viszi el a nagyobb részt.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – az első mérés</span>
+    Az eredeti Transformer 8 GPU-n 12 óra (alapmodell), illetve 3,5 nap (nagy modell) alatt tanult, és angol–német fordításban 28,4, angol–franciában 41,8 BLEU-val megelőzte a korábbi legjobb, rekurrens és konvolúciós rendszereket – azok tanítási költségének töredékéből.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>„A hossz mindegy” – nem.</b> A lépések száma nem nő a hosszal, a műveletek és a memória viszont négyzetesen (12.5). A <em>Deep Learning – A Visual Approach</em> egy helyen azt írja, öt vagy ötszáz szó ugyanannyi ideig tart – ez csak elegendő hardverrel, a párhuzamos lépésekre igaz.</li>
+    <li><b>A generálás nem párhuzamos.</b> A tanítás igen (maszkkal, 12.6), de a válasz tokenjei egymás után születnek.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – párhuzamosítás</summary>
+  <ol>
+    <li>Hány egymás utáni lépés kell egy 4 rétegű RNN-nek és egy 4 rétegű Transformernek egy 200 tokenes szöveg feldolgozásához (tanításkor)?
+      <details><summary>Megoldás</summary>RNN: rétegenként 200, és a következő réteg $t$-edik lépése csak az előző réteg $t$-edik lépése után jöhet – a legrövidebb is $200 + 3 = 203$ egymásra váró lépés. Transformer: 4 (rétegenként egy, minden token egyszerre).</details></li>
+    <li>Hány lépésben jut el az 1. token információja az 50.-ig egy RNN-ben, és egy egyrétegű önfigyelemben?
+      <details><summary>Megoldás</summary>RNN: 49 lépés; önfigyelem: 1.</details></li>
+    <li>$d = 1024$. Kb. hány token fölött nagyobb a figyelem $2n^2 d$ költsége a többi rész $12 n d^2$-énél?
+      <details><summary>Megoldás</summary>$2n^2 d > 12 n d^2 \iff n > 6d = 6144$.</details></li>
+    <li>Miért nem gyorsítja a GPU ugyanannyira az RNN tanítását?
+      <details><summary>Megoldás</summary>Mert minden lépés az előző eredményére vár: a GPU párhuzamos egységei egy-egy kis szorzásnál kihasználatlanok.</details></li>
+    <li>(nehezebb) Egy alkalmazásban nagyon hosszú (100&nbsp;000 tokenes) bemenet jön, és a válasznak csak egy szám kell. Miért lehet itt egy rekurrens jellegű modell vonzó?
+      <details><summary>Megoldás</summary>Mert a memóriája állandó (egy állapotvektor), a költsége lineáris a hosszal; a teljes figyelem $10^{10}$ pontszámot számolna fejenként, rétegenként. Ezért kutatják ma is a rekurrens jellegű, lineáris költségű modelleket (3. lépés).</details></li>
+  </ol>
+</details>
+
+<h3 id="s127-b">2. lépés: önfelügyelt előtanítás – az internet mint tanítóadat</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – címke ingyen</span>
+  Az IMDB-adatkészletben 50&nbsp;000 kézzel címkézett filmkritika van. Ezzel szemben egyetlen mondat, „a film jó volt”, ember nélkül is ad 3 tanítópéldát a következő token jóslására (12.6) – és az interneten több ezer milliárd token szöveg van. A GPT-3 300 milliárd tokenen tanult: ezt (egy tokent kb. 0,75 szónak véve) egy ember napi 8 órás, percenként 300 szavas olvasással kb. 4300 év alatt olvasná végig.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – előtanítás és alkalmazás</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Előtanítás</b> (<em>pre-training</em>): önfelügyelt feladat (következő token, maszkolt token) óriási címkézetlen szövegen. A modell közben „megtanul nyelvet”: nyelvtant, szójelentést, sok tényt.</li>
+    <li><b>Alkalmazás</b> egy konkrét feladatra – ugyanaz a három út, mint a képeknél (<a href="../11-konvolucios-halok/#s115">11.5</a>):
+      <ul>
+        <li><b>jellemzőkinyerés:</b> a modell (pl. a <code>[CLS]</code>) kimeneti vektorára egy egyszerű osztályozó;</li>
+        <li><b>finomhangolás:</b> az egész modell továbbtanítása a feladat adatain, kis tanulási rátával;</li>
+        <li><b>promptolás:</b> a dekódolónak a feladatot szövegként adjuk meg, néhány példával – súlymódosítás nélkül (18. fejezet).</li>
+      </ul></li>
+  </ol>
+  <b>Miért a Transformer?</b> Mert a párhuzamosság miatt <b>ennyi</b> szövegen egyáltalán tanítható – egy RNN-nel ugyanez évekig tartana.
+</div>
+<div class="box example">
+  <span class="box-title">Példa – ugyanaz a feladat, hat módszer (IMDB, A. Thakur könyve alapján)</span>
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.86rem;max-width:620px">
+    <tr><th>módszer</th><th>pontosság</th></tr>
+    <tr><td>szózsák + naiv Bayes</td><td>84,5%</td></tr>
+    <tr><td>előtanított szóvektorok átlaga (fastText) + logisztikus regresszió</td><td>86,1%</td></tr>
+    <tr><td>szózsák + logisztikus regresszió</td><td>89,3%</td></tr>
+    <tr><td>kétirányú LSTM, előtanított szóvektorokkal</td><td>89,5%</td></tr>
+    <tr><td>TF-IDF + logisztikus regresszió</td><td>89,7%</td></tr>
+    <tr><td>finomhangolt BERT-base</td><td><b>93%</b></td></tr>
+  </table></div>
+  <small>Az első öt 5-szörös keresztvalidáció átlaga; a BERT-et a könyv egyetlen 90/10-es felosztáson mérte, hosszabb (512 tokenes) bemenettel – a protokoll nem teljesen azonos.</small>
+  A klasszikus módszerek szorosan együtt vannak; az LSTM sem jobb a TF-IDF-nél. Az <b>előtanított</b> Transformer viszont jól láthatóan előre lép.
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabály</span>
+  „Ne azért válassz BERT-et, mert menő” (Thakur). A finomhangolt Transformer itt 3–4 százalékponttal jobb – de lassabb, drágább, és GPU kell hozzá. Először mérd meg az olcsó alapmodellt (TF-IDF + logisztikus regresszió), és csak akkor lépj tovább, ha a különbség megéri.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az előtanító szöveg a modell „neveltetése”.</b> Ami benne van – torzítás, téves állítás, elavult adat –, az a modellbe is bekerül (vö. a beágyazások torzításával, 12.2).</li>
+    <li><b>Szennyezett teszt.</b> Ha egy teszt kérdései fent vannak a weben, az előtanított modell „látta” őket – a jó eredmény ilyenkor nem általánosítás (<a href="../04-adatok-es-jellemzok/#s47">4.7</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – előtanítás</summary>
+  <ol>
+    <li>Hány következő-token tanítópéldát ad egy 10 tokenes mondat?
+      <details><summary>Megoldás</summary>9 (minden helyen a következő token; a szöveg végét jelző tokennel 10).</details></li>
+    <li>Mi a különbség a jellemzőkinyerés és a finomhangolás között?
+      <details><summary>Megoldás</summary>Jellemzőkinyerésnél az előtanított modell súlyai nem változnak, csak a ráépített kis osztályozót tanítjuk. Finomhangolásnál az egész modellt továbbtanítjuk.</details></li>
+    <li>A táblázat alapján mennyivel jobb a finomhangolt BERT a TF-IDF + logisztikus regressziónál? Miért kell óvatosan kezelni ezt a különbséget?
+      <details><summary>Megoldás</summary>Kb. 3,3 százalékponttal. Óvatosan, mert a két mérés protokollja eltér (egy felosztás vs. 5-szörös keresztvalidáció, más bemeneti hossz).</details></li>
+    <li>Miért nem kell ember a GPT előtanításához?
+      <details><summary>Megoldás</summary>Mert a címke (a következő token) magából a szövegből jön – önfelügyelt tanulás.</details></li>
+    <li>(nehezebb) Egy cégnek 2000 címkézett ügyfélpanasza van, és osztályozni kell őket. Milyen sorrendben próbálnád ki a módszereket?
+      <details><summary>Megoldás</summary>1. TF-IDF + logisztikus regresszió (alapvonal, percek alatt). 2. Egy előtanított kódoló (pl. magyar BERT) vektorai + logisztikus regresszió (jellemzőkinyerés). 3. Ha még kell: finomhangolás, keresztvalidációval. Kevés adatnál az előtanított modell sokat ad, de csak a mért különbség döntsön.</details></li>
+  </ol>
+</details>
+
+<h3 id="s127-c">3. lépés: skálázás – és a korlátok</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – mennyit hoz a nagyobb modell?</span>
+  J. Kaplan és társai (2020) azt mérték, hogy a nyelvi modell vesztesége a paraméterszám ($N$) <b>hatványfüggvénye</b>: $L \propto N^{-0{,}076}$ (ha adat és számítás bőven van). Kétszer nagyobb modell: a veszteség $2^{-0{,}076} \approx 0{,}949$-szerese – kb. 5%-kal kisebb. Tízszer nagyobb: $10^{-0{,}076} \approx 0{,}839$-szerese. Kicsi, de <b>kiszámítható</b> javulás – sok nagyságrenden át.
+</div>
+<div class="box def">
+  <span class="box-title">Skálázási törvények (tapasztalati szabályok)</span>
+  <ul style="margin:.2rem 0">
+    <li>A veszteség a modellméret, az adatmennyiség és a számítás hatványfüggvényeként csökken, amíg egyik sem szűk keresztmetszet.</li>
+    <li>A tanítás számításigénye kb. $C \approx 6\,N D$ lebegőpontos művelet ($N$ paraméter, $D$ tanítótoken).</li>
+    <li><b>Chinchilla-szabály</b> (J. Hoffmann és társai, 2022): adott számítási kerethez a legjobb, ha kb. <b>20 tanítótoken jut egy paraméterre</b>. A 70 milliárd paraméteres, 1,4 billió tokenen tanított Chinchilla legyőzte a négyszer nagyobb (280 milliárdos) Gophert.</li>
+  </ul>
+  <b>Miért fontos?</b> Mert előre megmondható, mennyit hoz egy tízszer drágább tanítás – ez tette befektethetővé a nagy modelleket.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a GPT-3 számlája</span>
+    $N = 175 \cdot 10^9$, $D = 300 \cdot 10^9$: $C \approx 6 \cdot 175 \cdot 10^9 \cdot 300 \cdot 10^9 \approx 3{,}15 \cdot 10^{23}$ művelet. Egy paraméterre csak $300/175 \approx 1{,}7$ token jutott – a Chinchilla-szabály szerint „alultanított” volt.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – szándékos „túltanítás” (📅 2024)</span>
+    A Llama 3 8 milliárd paraméteres változata kb. 15 billió tokenen tanult: kb. 1900 token paraméterenként. A tanítás drágább, mint „optimális” lenne, de a kis modell <b>használata</b> olcsó – és a használat költsége milliárdnyi kérdésnél a nagyobb tétel.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">A korlátok és ami jön (📅 Állapot: 2026)</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A négyzetes figyelem</b> a nagyon hosszú szövegeknél drága. Kerülőutak: csúszóablakos és ritka figyelem, a FlashAttention (12.5), valamint a rekurrens jellegű, lineáris költségű <b>állapottér-modellek</b> (pl. Mamba, A. Gu – T. Dao, 2023) és a figyelmet ilyen rétegekkel keverő <b>hibrid</b> modellek.</li>
+    <li><b>Gyenge induktív torzítás – sok adat.</b> A Transformer szinte semmit nem feltételez az adatról (vö. a konvolúció lokalitásával, <a href="../11-konvolucios-halok/#s117-b">11.7</a>), ezért sok adat kell neki. Kevés adatnál a klasszikus módszerek erősek maradnak.</li>
+    <li><b>Kitekintés – a gráfok felé.</b> Az önfigyelem úgy is felfogható, hogy minden token „üzenetet küld” minden másiknak, egy <b>teljes gráfon</b>. Ha nem minden pár kapcsolódik, hanem csak egy adott hálózat (molekula, közösségi háló) szomszédai, a gráf neurális hálókhoz jutunk – ez a 13. fejezet.</li>
+  </ul>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Kétszer nagyobb modell nem felezi a hibát.</b> S. Raschka könyve azt írja, hogy a modellméret duplázása „felezheti” a veszteséget – a mért hatványtörvény szerint ez kb. 5%.</li>
+    <li><b>A skálázási törvény nem természeti törvény.</b> Tapasztalati illesztés egy adott tartományban; adattípusonként, architektúránként más, és nem mondja meg, mikor jelenik meg egy-egy képesség.</li>
+    <li><b>„A bonyolultabb mindig jobb” – nem.</b> Kis adatnál, szűk feladatnál a TF-IDF + logisztikus regresszió gyorsabb, olcsóbb, átláthatóbb, és sokszor alig rosszabb (2. lépés).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – skálázás</summary>
+  <ol>
+    <li>$L \propto N^{-0{,}076}$ mellett hányszorosára változik a veszteség, ha a modellt négyszer nagyobbra cseréljük?
+      <details><summary>Megoldás</summary>$4^{-0{,}076} = 2^{-0{,}152} \approx 0{,}900$ – kb. 10%-kal kisebb.</details></li>
+    <li>A Chinchilla-szabály szerint hány tanítótoken illik egy 7 milliárd paraméteres modellhez?
+      <details><summary>Megoldás</summary>$20 \cdot 7 \cdot 10^9 = 140$ milliárd token.</details></li>
+    <li>Mennyi a Chinchilla tanításának számításigénye a $6ND$ szabállyal ($N = 70 \cdot 10^9$, $D = 1{,}4 \cdot 10^{12}$)?
+      <details><summary>Megoldás</summary>$6 \cdot 70 \cdot 10^9 \cdot 1{,}4 \cdot 10^{12} \approx 5{,}9 \cdot 10^{23}$ – kb. kétszerese a GPT-3-énak.</details></li>
+    <li>Miért kell a Transformernek több adat, mint egy CNN-nek képeken?
+      <details><summary>Megoldás</summary>Mert kevesebbet feltételez előre (nincs beépített lokalitás és eltolástűrés); amit a konvolúció „ingyen” tud, azt neki az adatból kell megtanulnia.</details></li>
+    <li>(nehezebb) Egy cég két lehetőség közül választ ugyanakkora tanítási kerettel: 70 milliárd paraméter 1,4 billió tokenen, vagy 8 milliárd paraméter kb. 12 billió tokenen. Mikor jobb a második?
+      <details><summary>Megoldás</summary>A $6ND$ szerint a kettő számításigénye közel azonos ($5{,}9 \cdot 10^{23}$ és $5{,}8 \cdot 10^{23}$). Az első a tanítás szempontjából „optimálisabb” (kisebb veszteség), de minden használat kb. kilencszer drágább. Ha a modellt nagyon sokan, sokszor használják (vagy telefonon kell futnia), a kisebb, tovább tanított modell összesítve olcsóbb – a Llama-családnál ezt választották.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai12-127"></div>
+</section>

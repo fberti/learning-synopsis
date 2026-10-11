@@ -1,0 +1,2440 @@
+=== [PDF p.226] ===
+                         Approaching (Almost) Any Machine Learning Problem
+
+
+
+
+Approaching text classification/regression
+
+Text problems are my favourite. In general, these problems are also known as
+Natural Language Processing (NLP) problems. NLP problems are also like
+images in the sense that, it’s quite different. You need to create pipelines you have
+never created before for tabular problems. You need to understand the business case
+to build a good model. By the way, that is true for anything in machine learning.
+Building models will take you to a certain level, but to improve and contribute to a
+business you are building the model for, you must understand how it impacts the
+business. Let’s not get too philosophical here.
+
+There are many different types of NLP problems, and the most common type is the
+classification of strings. Many times, it is seen that people are doing well with
+tabular data or with images, but when it comes to text, they don’t even have a clue
+where to start from. Text data is no different than other types of datasets. For
+computers, everything is numbers.
+
+Let’s say we start with a fundamental task of sentiment classification. We will try
+to classify sentiment from movie reviews. So, you have a text, and there is a
+sentiment associated with it. How will you approach this kind of problem? Apply a
+deep neural network right, or maybe muppets can come and save you? No,
+absolutely wrong. You start with the basics. Let’s see what this data looks like first.
+
+We start with IMDB movie review dataset15 that consists of 25000 reviews for
+positive sentiment and 25000 reviews for negative sentiment.
+
+The concepts that I will discuss here can be applied to almost any text classification
+dataset.
+
+This dataset is quite easy to understand. One review maps to one target variable.
+Note that I wrote review instead of sentence. A review is a bunch of sentences. So,
+until now you must have seen classifying only a single sentence, but in this problem,
+we will be classifying multiple sentences. In simple words, it means that not only
+
+15
+   Maas, Andrew L, Daly, Raymond E, Pham, Peter T, Huang, Dan, Ng, Andrew Y, and Potts,
+Christopher. Learning word vectors for sentiment analysis. In Proceedings of the 49th Annual Meeting
+of the Association for Computational Linguistics: Human Language Technologies-Volume 1, pp.
+142–150. Association for Computational Linguistics, 2011.
+
+
+                                                225
+=== [PDF p.227] ===
+                      Approaching (Almost) Any Machine Learning Problem
+
+
+
+one sentence contributes to the sentiment, but the sentiment score is a combination
+of score from multiple sentences. A snapshot of the data is presented in figure 1.
+
+
+
+
+                     Figure 1. Snapshot of IMDB movie review dataset.
+
+How would you start with such a problem?
+
+A simple way would be just to create two handmade lists of words. One list will
+contain all the positive words you can imagine, for example, good, awesome, nice,
+etc. and another list will include all the negative words, such as bad, evil, etc. Let’s
+leave examples of bad words else I’ll have to make this book available only for 18+.
+Once you have these lists, you do not even need a model to make a prediction. These
+lists are also known as sentiment lexicons. A bunch of them for different languages
+are available on the internet.
+
+You can have a simple counter that counts the number of positive and negative
+words in the sentence. If the number of positive words is higher, it is a positive
+sentiment, and if the number of negative words is higher, it is a sentence with a
+negative sentiment. If none of them are present in the sentence, you can say that the
+sentence has a neutral sentiment. This is one of the oldest ways, and some people
+still use it. It does not require much code either.
+
+═════════════════════════════════════════════════════════════════════════
+def find_sentiment(sentence, pos, neg):
+    """
+    This function returns sentiment of sentence
+    :param sentence: sentence, a string
+    :param pos: set of positive words
+    :param neg: set of negative words
+    :return: returns positive, negative or neutral sentiment
+    """
+
+    # split sentence by a space
+
+
+                                            226
+=== [PDF p.228] ===
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+     # "this is a sentence!" becomes:
+     # ["this", "is" "a", "sentence!"]
+     # note that im splitting on all whitespaces
+     # if you want to split by space use .split(" ")
+     sentence = sentence.split()
+
+     # make sentence into a set
+     sentence = set(sentence)
+
+     # check number of common words with positive
+     num_common_pos = len(sentence.intersection(pos))
+
+     # check number of common words with negative
+     num_common_neg = len(sentence.intersection(neg))
+
+    # make conditions and return
+    # see how return used eliminates if else
+    if num_common_pos > num_common_neg:
+        return "positive"
+    if num_common_pos < num_common_neg:
+        return "negative"
+    return "neutral"
+═════════════════════════════════════════════════════════════════════════
+
+However, this kind of approach does not take a lot into consideration. And as you
+can see that our split() is also not perfect. If you use split(), a sentence like:
+
+“hi, how are you?”
+
+gets split into
+
+[“hi,”, “how”, “are”, “you?”]
+
+This is not ideal, because you see the comma and question mark, they are not split.
+It is therefore not recommended to use this method if you don’t have a pre-
+processing that handles these special characters before the split. Splitting a string
+into a list of words is known as tokenization. One of the most popular tokenization
+comes from NLTK (Natural Language Tool Kit).
+
+═════════════════════════════════════════════════════════════════════════
+In [X]: from nltk.tokenize import word_tokenize
+
+In [X]: sentence = "hi, how are you?"
+
+
+
+                                           227
+=== [PDF p.229] ===
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+In [X]: sentence.split()
+Out[X]: ['hi,', 'how', 'are', 'you?']
+
+In [X]: word_tokenize(sentence)
+Out[X]: ['hi', ',', 'how', 'are', 'you', '?']
+═════════════════════════════════════════════════════════════════════════
+
+As you can see, using NLTK’s word tokenize, the same sentence is split in a much
+better manner. Comparing using a list of words will also work much better now!
+This is what we will apply to our first model to detect sentiment.
+
+One of the basic models that you should always try with a classification problem in
+NLP is bag of words. In bag of words, we create a huge sparse matrix that stores
+counts of all the words in our corpus (corpus = all the documents = all the
+sentences). For this, we will use CountVectorizer from scikit-learn. Let’s see how
+it works.
+
+═════════════════════════════════════════════════════════════════════════
+from sklearn.feature_extraction.text import CountVectorizer
+
+# create a corpus of sentences
+corpus = [
+    "hello, how are you?",
+    "im getting bored at home. And you? What do you think?",
+    "did you know about counts",
+    "let's see if this works!",
+    "YES!!!!"
+]
+
+# initialize CountVectorizer
+ctv = CountVectorizer()
+
+# fit the vectorizer on corpus
+ctv.fit(corpus)
+
+corpus_transformed = ctv.transform(corpus)
+═════════════════════════════════════════════════════════════════════════
+
+If we print corpus_transformed, we get something like the following:
+
+═════════════════════════════════════════════════════════════════════════
+  (0, 2)       1
+  (0, 9)       1
+  (0, 11)      1
+  (0, 22)      1
+
+                                           228
+=== [PDF p.230] ===
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+  (1, 1)       1
+  (1, 3)       1
+  (1, 4)       1
+  (1, 7)       1
+  (1, 8)       1
+  (1, 10)      1
+  (1, 13)      1
+  (1, 17)      1
+  (1, 19)      1
+  (1, 22)      2
+  (2, 0)       1
+  (2, 5)       1
+  (2, 6)       1
+  (2, 14)      1
+  (2, 22)      1
+  (3, 12)      1
+  (3, 15)      1
+  (3, 16)      1
+  (3, 18)      1
+  (3, 20)      1
+  (4, 21)      1
+═════════════════════════════════════════════════════════════════════════
+
+We have already seen this representation in previous chapters. It is the sparse
+representation. So, our corpus is now a sparse matrix, where, for first sample, we
+have four elements, for sample 2 we have ten elements, and so on, for sample 3 we
+have five elements and so on. We also see that these elements have a count
+associated with them. Some are seen twice, some are seen only once. For example,
+in sample 2 (row 1), we see that column 22 has a value of two. Why is that? And
+what is column 22?
+
+The way CountVectorizer works is it first tokenizes the sentence and then assigns a
+value to each token. So, each token is represented by a unique index. These unique
+indices are the columns that we see. The CountVectorizer stores this information.
+
+═════════════════════════════════════════════════════════════════════════
+print(ctv.vocabulary_)
+{'hello': 9, 'how': 11, 'are': 2, 'you': 22, 'im': 13, 'getting': 8,
+'bored': 4, 'at': 3, 'home': 10, 'and': 1, 'what': 19, 'do': 7, 'think':
+17, 'did': 6, 'know': 14, 'about': 0, 'counts': 5, 'let': 15, 'see': 16,
+'if': 12, 'this': 18, 'works': 20, 'yes': 21}
+═════════════════════════════════════════════════════════════════════════
+
+
+
+
+                                           229
+=== [PDF p.231] ===
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+We see that index 22 belongs to “you” and in the second sentence, we have used
+“you” twice. Thus, the count is 2. I hope it’s clear now what is bag of words. But
+we are missing some special characters. Sometimes those special characters can be
+useful too. For example, “?” denotes a question in most sentences. Let’s integrate
+word_tokenize from scikit-learn in CountVectorizer and see what happens.
+
+═════════════════════════════════════════════════════════════════════════
+from sklearn.feature_extraction.text import CountVectorizer
+from nltk.tokenize import word_tokenize
+
+
+# create a corpus of sentences
+corpus = [
+    "hello, how are you?",
+    "im getting bored at home. And you? What do you think?",
+    "did you know about counts",
+    "let's see if this works!",
+    "YES!!!!"
+]
+
+# initialize CountVectorizer with word_tokenize from nltk
+# as the tokenizer
+ctv = CountVectorizer(tokenizer=word_tokenize, token_pattern=None)
+
+# fit the vectorizer on corpus
+ctv.fit(corpus)
+
+corpus_transformed = ctv.transform(corpus)
+print(ctv.vocabulary_)
+═════════════════════════════════════════════════════════════════════════
+
+This changes our vocabulary to:
+
+═════════════════════════════════════════════════════════════════════════
+{'hello': 14, ',': 2, 'how': 16, 'are': 7, 'you': 27, '?': 4, 'im': 18,
+'getting': 13, 'bored': 9, 'at': 8, 'home': 15, '.': 3, 'and': 6, 'what':
+24, 'do': 12, 'think': 22, 'did': 11, 'know': 19, 'about': 5, 'counts':
+10, 'let': 20, "'s": 1, 'see': 21, 'if': 17, 'this': 23, 'works': 25,
+'!': 0, 'yes': 26}
+═════════════════════════════════════════════════════════════════════════
+
+Now, we have more words in the vocabulary. Thus, we can now create a sparse
+matrix by using all the sentences in IMDB dataset and can build a model. The ratio
+to positive and negative samples in this dataset is 1:1, and thus, we can use accuracy
+as the metric. We will use StratifiedKFold and create a single script to train five
+
+                                           230
+=== [PDF p.232] ===
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+folds. Which model to use you ask? Which is the fastest model for high dimensional
+sparse data? Logistic regression. We will use logistic regression for this dataset to
+start with and to create our first actual benchmark.
+
+Let’s see how this is done.
+
+═════════════════════════════════════════════════════════════════════════
+# import what we need
+import pandas as pd
+
+from nltk.tokenize import word_tokenize
+from sklearn import linear_model
+from sklearn import metrics
+from sklearn import model_selection
+from sklearn.feature_extraction.text import CountVectorizer
+
+
+if __name__ == "__main__":
+    # read the training data
+    df = pd.read_csv("../input/imdb.csv")
+
+    # map positive to 1 and negative to 0
+    df.sentiment = df.sentiment.apply(
+        lambda x: 1 if x == "positive" else 0
+    )
+
+    # we create a new column called kfold and fill it with -1
+    df["kfold"] = -1
+
+    # the next step is to randomize the rows of the data
+    df = df.sample(frac=1).reset_index(drop=True)
+
+    # fetch labels
+    y = df.sentiment.values
+
+    # initiate the kfold class from model_selection module
+    kf = model_selection.StratifiedKFold(n_splits=5)
+
+    # fill the new kfold column
+    for f, (t_, v_) in enumerate(kf.split(X=df, y=y)):
+        df.loc[v_, 'kfold'] = f
+
+    # we go over the folds created
+    for fold_ in range(5):
+        # temporary dataframes for train and test
+        train_df = df[df.kfold != fold_].reset_index(drop=True)
+
+
+                                           231
+=== [PDF p.233] ===
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+         test_df = df[df.kfold == fold_].reset_index(drop=True)
+
+         # initialize CountVectorizer with NLTK's word_tokenize
+         # function as tokenizer
+         count_vec = CountVectorizer(
+             tokenizer=word_tokenize,
+             token_pattern=None
+         )
+
+         # fit count_vec on training data reviews
+         count_vec.fit(train_df.review)
+
+         # transform training and validation data reviews
+         xtrain = count_vec.transform(train_df.review)
+         xtest = count_vec.transform(test_df.review)
+
+         # initialize logistic regression model
+         model = linear_model.LogisticRegression()
+
+         # fit the model on training data reviews and sentiment
+         model.fit(xtrain, train_df.sentiment)
+
+         # make predictions on test data
+         # threshold for predictions is 0.5
+         preds = model.predict(xtest)
+
+         # calculate accuracy
+         accuracy = metrics.accuracy_score(test_df.sentiment, preds)
+
+        print(f"Fold: {fold_}")
+        print(f"Accuracy = {accuracy}")
+        print("")
+═════════════════════════════════════════════════════════════════════════
+
+This piece of code takes time to run but should give you the following output:
+
+═════════════════════════════════════════════════════════════════════════
+❯ python ctv_logres.py
+Fold: 0
+Accuracy = 0.8903
+
+Fold: 1
+Accuracy = 0.897
+
+Fold: 2
+Accuracy = 0.891
+
+
+                                           232
+=== [PDF p.234] ===
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+Fold: 3
+Accuracy = 0.8914
+
+Fold: 4
+Accuracy = 0.8931
+═════════════════════════════════════════════════════════════════════════
+
+Wow, we are already at 89% accuracy, and all we did was use bag of words with
+logistic regression! This is super amazing! However, this model took a lot of time
+to train, let’s see if we can improve the time by using naïve bayes classifier. Naïve
+bayes classifier is quite popular in NLP tasks as the sparse matrices are huge and
+naïve bayes is a simple model. To use this model, we need to change one import
+and the line with the model. Let’s see how this model performs. We will use
+MultinomialNB from scikit-learn.
+
+═════════════════════════════════════════════════════════════════════════
+# import what we need
+import pandas as pd
+
+from nltk.tokenize import word_tokenize
+from sklearn import naive_bayes
+from sklearn import metrics
+from sklearn import model_selection
+from sklearn.feature_extraction.text import CountVectorizer
+.
+.
+.
+.
+        # initialize naive bayes model
+        model = naive_bayes.MultinomialNB()
+
+         # fit the model on training data reviews and sentiment
+         model.fit(xtrain, train_df.sentiment)
+.
+.
+.
+═════════════════════════════════════════════════════════════════════════
+
+Results are as follows:
+
+═════════════════════════════════════════════════════════════════════════
+❯ python ctv_nb.py
+Fold: 0
+Accuracy = 0.8444
+
+
+
+                                           233
+=== [PDF p.235] ===
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+Fold: 1
+Accuracy = 0.8499
+
+Fold: 2
+Accuracy = 0.8422
+
+Fold: 3
+Accuracy = 0.8443
+
+Fold: 4
+Accuracy = 0.8455
+═════════════════════════════════════════════════════════════════════════
+
+We see that this score is low. But the naïve bayes model is superfast.
+
+Another method in NLP that most of the people these days tend to ignore or don’t
+care to know about is called TF-IDF. TF is term frequencies, and IDF is inverse
+document frequency. It might seem difficult from these terms, but things will
+become apparent with the formulae for TF and IDF.
+
+                     Number of times a term t appears in a document
+TF(t) =          ──────────────────────────────────
+                       Total number of terms in the document
+
+
+                          Total number of documents
+IDF(t) =    LOG( ────────────────────────────────── )
+                      Number of documents with term t in it
+
+
+And TF-IDF for a term t is defined as:
+
+                            TF-IDF(t) = TF(t) * IDF(t)
+
+Similar to CountVectorizer in scikit-learn, we have TfidfVectorizer. Let’s try using
+it the same way we used CountVectorizer.
+
+═════════════════════════════════════════════════════════════════════════
+from sklearn.feature_extraction.text import TfidfVectorizer
+from nltk.tokenize import word_tokenize
+
+# create a corpus of sentences
+corpus = [
+
+                                           234
+=== [PDF p.236] ===
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+    "hello, how are you?",
+    "im getting bored at home. And you? What do you think?",
+    "did you know about counts",
+    "let's see if this works!",
+    "YES!!!!"
+]
+
+# initialize TfidfVectorizer with word_tokenize from nltk
+# as the tokenizer
+tfv = TfidfVectorizer(tokenizer=word_tokenize, token_pattern=None)
+
+# fit the vectorizer on corpus
+tfv.fit(corpus)
+
+corpus_transformed = tfv.transform(corpus)
+print(corpus_transformed)
+═════════════════════════════════════════════════════════════════════════
+
+This gives the following output:
+
+═════════════════════════════════════════════════════════════════════════
+  (0, 27)      0.2965698850220162
+  (0, 16)      0.4428321995085722
+  (0, 14)      0.4428321995085722
+  (0, 7)       0.4428321995085722
+  (0, 4)       0.35727423026525224
+  (0, 2)       0.4428321995085722
+  (1, 27)      0.35299699146792735
+  (1, 24)      0.2635440111190765
+  (1, 22)      0.2635440111190765
+  (1, 18)      0.2635440111190765
+  (1, 15)      0.2635440111190765
+  (1, 13)      0.2635440111190765
+  (1, 12)      0.2635440111190765
+  (1, 9)       0.2635440111190765
+  (1, 8)       0.2635440111190765
+  (1, 6)       0.2635440111190765
+  (1, 4)       0.42525129752567803
+  (1, 3)       0.2635440111190765
+  (2, 27)      0.31752680284846835
+  (2, 19)      0.4741246485558491
+  (2, 11)      0.4741246485558491
+  (2, 10)      0.4741246485558491
+  (2, 5)       0.4741246485558491
+  (3, 25)      0.38775666010579296
+  (3, 23)      0.38775666010579296
+  (3, 21)      0.38775666010579296
+
+                                           235
+=== [PDF p.237] ===
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+  (3, 20)      0.38775666010579296
+  (3, 17)      0.38775666010579296
+  (3, 1)       0.38775666010579296
+  (3, 0)       0.3128396318588854
+  (4, 26)      0.2959842226518677
+  (4, 0)       0.9551928286692534
+═════════════════════════════════════════════════════════════════════════
+
+We see that instead of integer values, this time we get floats. Replacing
+CountVectorizer with TfidfVectorizer is also a piece of cake. Scikit-learn also offers
+TfidfTransformer. If you have count values, you can use TfidfTransformer and get
+the same behaviour as TfidfVectorizer.
+
+═════════════════════════════════════════════════════════════════════════
+# import what we need
+import pandas as pd
+
+from nltk.tokenize import word_tokenize
+from sklearn import linear_model
+from sklearn import metrics
+from sklearn import model_selection
+from sklearn.feature_extraction.text import TfidfVectorizer
+.
+.
+.
+    # we go over the folds created
+    for fold_ in range(5):
+        # temporary dataframes for train and test
+        train_df = df[df.kfold != fold_].reset_index(drop=True)
+        test_df = df[df.kfold == fold_].reset_index(drop=True)
+
+         # initialize TfidfVectorizer with NLTK's word_tokenize
+         # function as tokenizer
+         tfidf_vec = TfidfVectorizer(
+             tokenizer=word_tokenize,
+             token_pattern=None
+         )
+
+         # fit tfidf_vec on training data reviews
+         tfidf_vec.fit(train_df.review)
+
+         # transform training and validation data reviews
+         xtrain = tfidf_vec.transform(train_df.review)
+         xtest = tfidf_vec.transform(test_df.review)
+
+         # initialize logistic regression model
+
+
+                                           236
+=== [PDF p.238] ===
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+         model = linear_model.LogisticRegression()
+
+         # fit the model on training data reviews and sentiment
+         model.fit(xtrain, train_df.sentiment)
+
+         # make predictions on test data
+         # threshold for predictions is 0.5
+         preds = model.predict(xtest)
+
+         # calculate accuracy
+         accuracy = metrics.accuracy_score(test_df.sentiment, preds)
+
+        print(f"Fold: {fold_}")
+        print(f"Accuracy = {accuracy}")
+        print("")
+═════════════════════════════════════════════════════════════════════════
+
+It would be interesting to see how TF-IDF performs with our old logistic regression
+model on the sentiment dataset.
+
+═════════════════════════════════════════════════════════════════════════
+❯ python tfv_logres.py
+Fold: 0
+Accuracy = 0.8976
+
+Fold: 1
+Accuracy = 0.8998
+
+Fold: 2
+Accuracy = 0.8948
+
+Fold: 3
+Accuracy = 0.8912
+
+Fold: 4
+Accuracy = 0.8995
+═════════════════════════════════════════════════════════════════════════
+
+We see that these scores are a bit higher than CountVectorizer, and thus, it becomes
+the new benchmark that we would want to beat.
+
+Another interesting concept in NLP is n-grams. N-grams are combinations of
+words in order. N-grams are easy to create. You just need to take care of the order.
+To make things even more comfortable, we can use n-gram implementation from
+NLTK.
+
+                                           237
+=== [PDF p.239] ===
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+═════════════════════════════════════════════════════════════════════════
+from nltk import ngrams
+from nltk.tokenize import word_tokenize
+
+# let's see 3 grams
+N = 3
+# input sentence
+sentence = "hi, how are you?"
+# tokenized sentence
+tokenized_sentence = word_tokenize(sentence)
+# generate n_grams
+n_grams = list(ngrams(tokenized_sentence, N))
+print(n_grams)
+═════════════════════════════════════════════════════════════════════════
+
+Which gives:
+
+═════════════════════════════════════════════════════════════════════════
+[('hi', ',', 'how'),
+ (',', 'how', 'are'),
+ ('how', 'are', 'you'),
+ ('are', 'you', '?')]
+═════════════════════════════════════════════════════════════════════════
+
+Similarly, we can also create 2-grams, or 4-grams, etc. Now, these n-grams become
+a part of our vocab, and when we calculate counts or tf-idf, we consider one n-gram
+as one entirely new token. So, in a way, we are incorporating context to some extent.
+Both CountVectorizer and TfidfVectorizer implementations of scikit-learn offers n-
+grams by ngram_range parameter, which has a minimum and maximum limit. By
+default, this is (1, 1). When we change it to (1, 3), we are looking at unigrams,
+bigrams and trigrams. The code change is minimal. Since we had the best result till
+now with tf-idf, let’s see if including n-grams up to trigrams improves the model.
+
+The only change required is in the initialization of TfidfVectorizer.
+═════════════════════════════════════════════════════════════════════════
+    tfidf_vec = TfidfVectorizer(
+            tokenizer=word_tokenize,
+            token_pattern=None,
+            ngram_range=(1, 3)
+        )
+═════════════════════════════════════════════════════════════════════════
+
+Let’s see if we get any kind of improvements.
+
+                                           238
+=== [PDF p.240] ===
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+═════════════════════════════════════════════════════════════════════════
+❯ python tfv_logres_trigram.py
+Fold: 0
+Accuracy = 0.8931
+
+Fold: 1
+Accuracy = 0.8941
+
+Fold: 2
+Accuracy = 0.897
+
+Fold: 3
+Accuracy = 0.8922
+
+Fold: 4
+Accuracy = 0.8847
+═════════════════════════════════════════════════════════════════════════
+
+This looks okay, but we do not see any improvements. Maybe we can get
+improvements by using only up to bigrams. I’m not showing that part here.
+Probably you can try to do it on your own.
+
+There are a lot more things in the basics of NLP. One term that you must be aware
+of is stemming. Another is lemmatization. Stemming and lemmatization reduce a
+word to its smallest form. In the case of stemming, the processed word is called the
+stemmed word, and in the case of lemmatization, it is known as the lemma. It must
+be noted that lemmatization is more aggressive than stemming and stemming is
+more popular and widely used. Both stemming and lemmatization come from
+linguistics. And you need to have an in-depth knowledge of a given language if you
+plan to make a stemmer or lemmatizer for that language. Going into too much detail
+of these would mean adding one more chapter in this book. Both stemming and
+lemmatization can be done easily by using the NLTK package. Let’s take a look at
+some examples for both of them. There are many different types of stemmers and
+lemmatizers. I will show an example using the most common Snowball Stemmer
+and WordNet Lemmatizer.
+
+═════════════════════════════════════════════════════════════════════════
+from nltk.stem import WordNetLemmatizer
+from nltk.stem.snowball import SnowballStemmer
+
+# initialize lemmatizer
+lemmatizer = WordNetLemmatizer()
+
+
+
+                                           239
+=== [PDF p.241] ===
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+# initialize stemmer
+stemmer = SnowballStemmer("english")
+
+words = ["fishing", "fishes", "fished"]
+
+for word in words:
+    print(f"word={word}")
+    print(f"stemmed_word={stemmer.stem(word)}")
+    print(f"lemma={lemmatizer.lemmatize(word)}")
+    print("")
+═════════════════════════════════════════════════════════════════════════
+
+This will print:
+
+═════════════════════════════════════════════════════════════════════════
+word=fishing
+stemmed_word=fish
+lemma=fishing
+
+word=fishes
+stemmed_word=fish
+lemma=fish
+
+word=fished
+stemmed_word=fish
+lemma=fished
+═════════════════════════════════════════════════════════════════════════
+
+As you can see, stemming and lemmatization are very different from each other.
+When we do stemming, we are given the smallest form of a word which may or
+may not be a word in the dictionary for the language the word belongs to. However,
+in the case of lemmatization, this will be a word. You can now try on your own to
+add stemming and lemmatizations and see if it improves your result.
+
+One more topic that you should be aware of is topic extraction. Topic extraction
+can be done using non-negative matrix factorization (NMF) or latent semantic
+analysis (LSA), which is also popularly known as singular value decomposition or
+SVD. These are decomposition techniques that reduce the data to a given number
+of components. You can fit any of these on sparse matrix obtained from
+CountVectorizer or TfidfVectorizer.
+
+Let’s apply it on TfidfVetorizer that we have used before.
+
+
+
+                                           240
+=== [PDF p.242] ===
+                  Approaching (Almost) Any Machine Learning Problem
+
+
+
+═════════════════════════════════════════════════════════════════════════
+import pandas as pd
+from nltk.tokenize import word_tokenize
+from sklearn import decomposition
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# create a corpus of sentences
+# we read only 10k samples from training data
+# for this example
+corpus = pd.read_csv("../input/imdb.csv", nrows=10000)
+corpus = corpus.review.values
+
+# initialize TfidfVectorizer with word_tokenize from nltk
+# as the tokenizer
+tfv = TfidfVectorizer(tokenizer=word_tokenize, token_pattern=None)
+
+# fit the vectorizer on corpus
+tfv.fit(corpus)
+
+# transform the corpus using tfidf
+corpus_transformed = tfv.transform(corpus)
+
+# initialize SVD with 10 components
+svd = decomposition.TruncatedSVD(n_components=10)
+
+# fit SVD
+corpus_svd = svd.fit(corpus_transformed)
+
+# choose first sample and create a dictionary
+# of feature names and their scores from svd
+# you can change the sample_index variable to
+# get dictionary for any other sample
+sample_index = 0
+feature_scores = dict(
+    zip(
+        tfv.get_feature_names(),
+        corpus_svd.components_[sample_index]
+    )
+)
+
+# once we have the dictionary, we can now
+# sort it in decreasing order and get the
+# top N topics
+N = 5
+print(sorted(feature_scores, key=feature_scores.get, reverse=True)[:N])
+═════════════════════════════════════════════════════════════════════════
+
+
+
+                                        241
+=== [PDF p.243] ===
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+You can run it for multiple samples by using a loop.
+
+═════════════════════════════════════════════════════════════════════════
+N = 5
+
+for sample_index in range(5):
+    feature_scores = dict(
+        zip(
+            tfv.get_feature_names(),
+            corpus_svd.components_[sample_index]
+        )
+    )
+    print(
+        sorted(
+            feature_scores,
+            key=feature_scores.get,
+            reverse=True
+        )[:N]
+    )
+═════════════════════════════════════════════════════════════════════════
+
+This gives the following output.
+
+═════════════════════════════════════════════════════════════════════════
+['the', ',', '.', 'a', 'and']
+['br', '<', '>', '/', '-']
+['i', 'movie', '!', 'it', 'was']
+[',', '!', "''", '``', 'you']
+['!', 'the', '...', "''", '``']
+═════════════════════════════════════════════════════════════════════════
+
+You can see that it doesn’t make any sense at all. It happens. What can one do?
+Let’s try cleaning and see if it makes any sense.
+
+To clean any text data, especially when it’s in pandas dataframe, you can make a
+function.
+
+═════════════════════════════════════════════════════════════════════════
+import re
+import string
+
+def clean_text(s):
+    """
+    This function cleans the text a bit
+    :param s: string
+
+
+                                           242
+=== [PDF p.244] ===
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+    :return: cleaned string
+    """
+    # split by all whitespaces
+    s = s.split()
+
+    # join tokens by single space
+    # why we do this?
+    # this will remove all kinds of weird space
+    # "hi.   how are you" becomes
+    # "hi. how are you"
+    s = " ".join(s)
+
+    # remove all punctuations using regex and string module
+    s = re.sub(f'[{re.escape(string.punctuation)}]', '', s)
+
+    # you can add more cleaning here if you want
+    # and then return the cleaned string
+    return s
+═════════════════════════════════════════════════════════════════════════
+
+This function will convert a string like “hi, how are you????” to “hi how are you”.
+Let’s apply this function to the old SVD code and see if it brings any value to the
+extracted topics. With pandas, you can use the apply function to “apply” the clean-
+up code to any given column.
+
+═════════════════════════════════════════════════════════════════════════
+import pandas as pd
+.
+corpus = pd.read_csv("../input/imdb.csv", nrows=10000)
+corpus.loc[:, "review"] = corpus.review.apply(clean_text)
+.
+.
+═════════════════════════════════════════════════════════════════════════
+
+Note that we have added only one line of code to our main SVD script and that’s
+the beauty of using a function and apply from pandas. The topics generated this
+time look like the following.
+
+═════════════════════════════════════════════════════════════════════════
+['the', 'a', 'and', 'of', 'to']
+['i', 'movie', 'it', 'was', 'this']
+['the', 'was', 'i', 'were', 'of']
+['her', 'was', 'she', 'i', 'he']
+['br', 'to', 'they', 'he', 'show']
+═════════════════════════════════════════════════════════════════════════
+
+
+                                           243
+=== [PDF p.245] ===
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+Phew! At least this is better than what we had earlier. But you know what? You can
+make it even better by removing stopwords in your cleaning function. What are
+stopwords? These are high-frequency words that exist in every language. For
+example, in the English language, these words are “a”, “an”, “the”, “for”, etc.
+Removing stopwords is not always a wise choice and depends a lot on the business
+problem. A sentence like “I need a new dog” after removing stopwords will become
+“need new dog”, so we don’t know who needs a new dog.
+
+We lose a lot of context information if we remove stopwords all the time. You can
+find stopwords for many languages in NLTK, and if it’s not there, you can find it
+by a quick search on your favourite search engine.
+
+Let’s move to an approach most of us like to use these days: deep learning. But first,
+we must know what word embeddings are. You have seen that till now we
+converted the tokens into numbers. So, if there are N unique tokens in a given
+corpus, they can be represented by integers ranging from 0 to N-1. Now we will
+represent these integer tokens with vectors. This representation of words into
+vectors is known as word embeddings or word vectors. Google’s Word2Vec is one
+of the oldest approaches to convert words into vectors. We also have FastText from
+Facebook and GloVe (Global Vectors for Word Representation) from Stanford.
+These approaches are quite different from each other.
+
+The basic idea is to build a shallow network that learns the embeddings for words
+by reconstruction of an input sentence. So, you can train a network to predict a
+missing word by using all the words around and during this process, the network
+will learn and update embeddings for all the words involved. This approach is also
+known as Continuous Bag of Words or CBoW model. You can also try to take
+one word and predict the context words instead. This is called skip-gram model.
+Word2Vec can learn embedding using these two methods.
+
+FastText learns embeddings for character n-grams instead. Just like word n-grams,
+if we use characters, it is known as character n-grams, and finally, GloVe learns
+these embeddings by using co-occurrence matrices. So, we can say that all these
+different types of embeddings are in the end returning a dictionary where the key is
+a word in the corpus (for example English Wikipedia) and value is a vector of size
+N (usually 300).
+
+
+
+
+                                           244
+=== [PDF p.246] ===
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+
+                 Figure 1: Visualizing word embeddings in two-dimensions.
+
+Figure 1 shows a visualization of word embeddings in two-dimensions. Suppose,
+we have done it somehow and represented the words in two dimensions. Figure 1
+shows that if you subtract the vector for Germany from the vector of Berlin (capital
+of Germany) and add the vector of France to it, you will get a vector close to the
+vector for Paris (capital of France). This shows that embeddings also work with
+analogies. This is not always true, but examples like these are useful for
+understanding the usefulness of word embeddings. A sentence like “hi, how are you
+” can be represented by a bunch of vectors as follows.
+
+hi      ─>       [vector (v1) of size 300]
+,       ─>       [vector (v2) of size 300]
+how     ─>       [vector (v3) of size 300]
+are     ─>       [vector (v4) of size 300]
+you     ─>       [vector (v5) of size 300]
+?       ─>       [vector (v6) of size 300]
+
+There are multiple ways to use this information. One of the simplest ways would
+be to use the embeddings as they are. As you can see in the example above, we have
+a 1x300 embedding vector for each word. Using this information, we can calculate
+the embedding for the whole sentence. There are multiple ways to do it. One such
+
+                                           245
+=== [PDF p.247] ===
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+method is shown as follows. In this function, we take all the individual word vectors
+in a given sentence and create a normalized word vector from all word vectors of
+the tokens. This provides us with a sentence vector.
+
+═════════════════════════════════════════════════════════════════════════
+import numpy as np
+
+def sentence_to_vec(s, embedding_dict, stop_words, tokenizer):
+    """
+    Given a sentence and other information,
+    this function returns embedding for the whole sentence
+    :param s: sentence, string
+    :param embedding_dict: dictionary word:vector
+    :param stop_words: list of stop words, if any
+    :param tokenizer: a tokenization function
+    """
+    # convert sentence to string and lowercase it
+    words = str(s).lower()
+
+    # tokenize the sentence
+    words = tokenizer(words)
+
+    # remove stop word tokens
+    words = [w for w in words if not w in stop_words]
+
+    # keep only alpha-numeric tokens
+    words = [w for w in words if w.isalpha()]
+
+    # initialize empty list to store embeddings
+    M = []
+    for w in words:
+        # for evert word, fetch the embedding from
+        # the dictionary and append to list of
+        # embeddings
+        if w in embedding_dict:
+            M.append(embedding_dict[w])
+
+    # if we dont have any vectors, return zeros
+    if len(M) == 0:
+        return np.zeros(300)
+
+    # convert list of embeddings to array
+    M = np.array(M)
+
+    # calculate sum over axis=0
+    v = M.sum(axis=0)
+
+
+                                           246
+=== [PDF p.248] ===
+                    Approaching (Almost) Any Machine Learning Problem
+
+
+
+    # return normalized vector
+    return v / np.sqrt((v ** 2).sum())
+═════════════════════════════════════════════════════════════════════════
+
+We can use this method to convert all our examples to one vector. Can we use
+fastText vectors to improve the previous results? We have 300 features for every
+review.
+
+═════════════════════════════════════════════════════════════════════════
+# fasttext.py
+
+import io
+import numpy as np
+import pandas as pd
+
+from nltk.tokenize import word_tokenize
+from sklearn import linear_model
+from sklearn import metrics
+from sklearn import model_selection
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+def load_vectors(fname):
+    # taken from: https://fasttext.cc/docs/en/english-vectors.html
+    fin = io.open(
+              fname,
+              'r',
+              encoding='utf-8',
+              newline='\n',
+              errors='ignore'
+    )
+    n, d = map(int, fin.readline().split())
+    data = {}
+    for line in fin:
+        tokens = line.rstrip().split(' ')
+        data[tokens[0]] = list(map(float, tokens[1:]))
+    return data
+
+
+def sentence_to_vec(s, embedding_dict, stop_words, tokenizer):
+.
+.
+.
+if __name__ == "__main__":
+    # read the training data
+    df = pd.read_csv("../input/imdb.csv")
+
+
+
+                                          247
+=== [PDF p.249] ===
+              Approaching (Almost) Any Machine Learning Problem
+
+
+
+# map positive to 1 and negative to 0
+df.sentiment = df.sentiment.apply(
+    lambda x: 1 if x == "positive" else 0
+)
+
+# the next step is to randomize the rows of the data
+df = df.sample(frac=1).reset_index(drop=True)
+
+# load embeddings into memory
+print("Loading embeddings")
+embeddings = load_vectors("../input/crawl-300d-2M.vec")
+
+# create sentence embeddings
+print("Creating sentence vectors")
+vectors = []
+for review in df.review.values:
+    vectors.append(
+        sentence_to_vec(
+            s = review,
+            embedding_dict = embeddings,
+            stop_words = [],
+            tokenizer = word_tokenize
+        )
+    )
+
+vectors = np.array(vectors)
+
+# fetch labels
+y = df.sentiment.values
+
+# initiate the kfold class from model_selection module
+kf = model_selection.StratifiedKFold(n_splits=5)
+
+# fill the new kfold column
+for fold_, (t_, v_) in enumerate(kf.split(X=vectors, y=y)):
+    print(f"Training fold: {fold_}")
+    # temporary dataframes for train and test
+    xtrain = vectors[t_, :]
+    ytrain = y[t_]
+
+   xtest = vectors[v_, :]
+   ytest = y[v_]
+
+   # initialize logistic regression model
+   model = linear_model.LogisticRegression()
+
+   # fit the model on training data reviews and sentiment
+
+
+                                    248
+=== [PDF p.250] ===
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+         model.fit(xtrain, ytrain)
+
+         # make predictions on test data
+         # threshold for predictions is 0.5
+         preds = model.predict(xtest)
+
+        # calculate accuracy
+        accuracy = metrics.accuracy_score(ytest, preds)
+        print(f"Accuracy = {accuracy}")
+        print("")
+═════════════════════════════════════════════════════════════════════════
+
+This gives the following results.
+
+═════════════════════════════════════════════════════════════════════════
+❯ python fasttext.py
+Loading embeddings
+Creating sentence vectors
+Training fold: 0
+Accuracy = 0.8619
+
+Training fold: 1
+Accuracy = 0.8661
+
+Training fold: 2
+Accuracy = 0.8544
+
+Training fold: 3
+Accuracy = 0.8624
+
+Training fold: 4
+Accuracy = 0.8595
+═════════════════════════════════════════════════════════════════════════
+
+Wow! That’s quite unexpected. We get excellent results, and all we did was to use
+the FastText embeddings. Try changing the embeddings to GloVe and see what
+happens. I’m leaving it as an exercise for you.
+
+When we talk about text data, we must keep one thing in our mind. Text data is very
+similar to the time series data. Any sample in our reviews is a sequence of tokens
+at different timestamps which are in increasing order, and each token can be
+represented as a vector/embedding, as shown in figure 2.
+
+
+
+
+                                           249
+=== [PDF p.251] ===
+                       Approaching (Almost) Any Machine Learning Problem
+
+
+
+
+          Figure 2: Representing tokens as embeddings and treating it as a time series
+
+This means that we can use models that are widely used for time series data such as
+Long Short Term Memory (LSTM) or Gated Recurrent Units (GRU) or even
+Convolutional Neural Networks (CNNs). Let’s see how to train a simple bi-
+directional LSTM model on this dataset.
+
+First of all, we will create a project. Feel free to name it whatever you want. And
+then our first step will be splitting the data for cross-validation.
+
+═════════════════════════════════════════════════════════════════════════
+# create_folds.py
+# import pandas and model_selection module of scikit-learn
+import pandas as pd
+from sklearn import model_selection
+
+if __name__ == "__main__":
+    # Read training data
+    df = pd.read_csv("../input/imdb.csv")
+
+    # map positive to 1 and negative to 0
+    df.sentiment = df.sentiment.apply(
+        lambda x: 1 if x == "positive" else 0
+    )
+
+    # we create a new column called kfold and fill it with -1
+    df["kfold"] = -1
+
+
+                                              250
+=== [PDF p.252] ===
+                    Approaching (Almost) Any Machine Learning Problem
+
+
+
+    # the next step is to randomize the rows of the data
+    df = df.sample(frac=1).reset_index(drop=True)
+
+    # fetch labels
+    y = df.sentiment.values
+
+    # initiate the kfold class from model_selection module
+    kf = model_selection.StratifiedKFold(n_splits=5)
+
+    # fill the new kfold column
+    for f, (t_, v_) in enumerate(kf.split(X=df, y=y)):
+        df.loc[v_, 'kfold'] = f
+
+    # save the new csv with kfold column
+    df.to_csv("../input/imdb_folds.csv", index=False)
+═════════════════════════════════════════════════════════════════════════
+
+Once we have the dataset divided into folds, we create a simple dataset class in
+dataset.py. Dataset class returns one sample of the training or validation data.
+
+═════════════════════════════════════════════════════════════════════════
+# dataset.py
+import torch
+
+
+class IMDBDataset:
+    def __init__(self, reviews, targets):
+        """
+        :param reviews: this is a numpy array
+        :param targets: a vector, numpy array
+        """
+        self.reviews = reviews
+        self.target = targets
+
+    def __len__(self):
+        # returns length of the dataset
+        return len(self.reviews)
+
+    def __getitem__(self, item):
+        # for any given item, which is an int,
+        # return review and targets as torch tensor
+        # item is the index of the item in concern
+        review = self.reviews[item, :]
+        target = self.target[item]
+
+
+        return {
+
+                                          251
+=== [PDF p.253] ===
+                    Approaching (Almost) Any Machine Learning Problem
+
+
+
+             "review": torch.tensor(review, dtype=torch.long),
+             "target": torch.tensor(target, dtype=torch.float)
+        }
+═════════════════════════════════════════════════════════════════════════
+
+Once the dataset class is done, we can create lstm.py which consists of our LSTM
+model.
+
+═════════════════════════════════════════════════════════════════════════
+# lstm.py
+
+import torch
+import torch.nn as nn
+
+
+class LSTM(nn.Module):
+    def __init__(self, embedding_matrix):
+        """
+        :param embedding_matrix: numpy array with vectors for all words
+        """
+        super(LSTM, self).__init__()
+        # number of words = number of rows in embedding matrix
+        num_words = embedding_matrix.shape[0]
+
+        # dimension of embedding is num of columns in the matrix
+        embed_dim = embedding_matrix.shape[1]
+
+        # we define an input embedding layer
+        self.embedding = nn.Embedding(
+            num_embeddings=num_words,
+            embedding_dim=embed_dim
+        )
+
+        # embedding matrix is used as weights of
+        # the embedding layer
+        self.embedding.weight = nn.Parameter(
+            torch.tensor(
+                embedding_matrix,
+                dtype=torch.float32
+            )
+        )
+
+        # we dont want to train the pretrained embeddings
+        self.embedding.weight.requires_grad = False
+
+        # a simple bidirectional LSTM with
+        # hidden size of 128
+
+                                          252
+=== [PDF p.254] ===
+                    Approaching (Almost) Any Machine Learning Problem
+
+
+
+        self.lstm = nn.LSTM(
+            embed_dim,
+            128,
+            bidirectional=True,
+            batch_first=True,
+        )
+
+        # output layer which is a linear layer
+        # we have only one output
+        # input (512) = 128 + 128 for mean and same for max pooling
+        self.out = nn.Linear(512, 1)
+
+    def forward(self, x):
+        # pass data through embedding layer
+        # the input is just the tokens
+        x = self.embedding(x)
+
+        # move embedding output to lstm
+        x, _ = self.lstm(x)
+
+        # apply mean and max pooling on lstm output
+        avg_pool = torch.mean(x, 1)
+        max_pool, _ = torch.max(x, 1)
+
+        # concatenate mean and max pooling
+        # this is why size is 512
+        # 128 for each direction = 256
+        # avg_pool = 256 and max_pool = 256
+        out = torch.cat((avg_pool, max_pool), 1)
+
+        # pass through the output layer and return the output
+        out = self.out(out)
+
+        # return linear output
+        return out
+═════════════════════════════════════════════════════════════════════════
+
+Now, we create engine.py which consists of our training and evaluation functions.
+
+═════════════════════════════════════════════════════════════════════════
+# engine.py
+import torch
+import torch.nn as nn
+
+
+def train(data_loader, model, optimizer, device):
+    """
+
+                                          253
+=== [PDF p.255] ===
+                  Approaching (Almost) Any Machine Learning Problem
+
+
+
+   This is the main training function that trains model
+   for one epoch
+   :param data_loader: this is the torch dataloader
+   :param model: model (lstm model)
+   :param optimizer: torch optimizer, e.g. adam, sgd, etc.
+   :param device: this can be "cuda" or "cpu"
+   """
+   # set model to training mode
+   model.train()
+
+   # go through batches of data in data loader
+   for data in data_loader:
+       # fetch review and target from the dict
+       reviews = data["review"]
+       targets = data["target"]
+
+       # move the data to device that we want to use
+       reviews = reviews.to(device, dtype=torch.long)
+       targets = targets.to(device, dtype=torch.float)
+
+       # clear the gradients
+       optimizer.zero_grad()
+
+       # make predictions from the model
+       predictions = model(reviews)
+
+       # calculate the loss
+       loss = nn.BCEWithLogitsLoss()(
+           predictions,
+           targets.view(-1, 1)
+       )
+
+       # compute gradient of loss w.r.t.
+       # all parameters of the model that are trainable
+       loss.backward()
+
+       # single optimization step
+       optimizer.step()
+
+
+def evaluate(data_loader, model, device):
+    # initialize empty lists to store predictions
+    # and targets
+    final_predictions = []
+    final_targets = []
+
+   # put the model in eval mode
+
+
+                                        254
+=== [PDF p.256] ===
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+    model.eval()
+
+    # disable gradient calculation
+    with torch.no_grad():
+        for data in data_loader:
+            reviews = data["review"]
+            targets = data["target"]
+            reviews = reviews.to(device, dtype=torch.long)
+            targets = targets.to(device, dtype=torch.float)
+
+             # make predictions
+             predictions = model(reviews)
+
+             # move predictions and targets to list
+             # we need to move predictions and targets to cpu too
+             predictions = predictions.cpu().numpy().tolist()
+             targets = data["target"].cpu().numpy().tolist()
+             final_predictions.extend(predictions)
+             final_targets.extend(targets)
+
+    # return final predictions and targets
+    return final_predictions, final_targets
+═════════════════════════════════════════════════════════════════════════
+
+These functions will help us in train.py which is used for training multiple folds.
+
+═════════════════════════════════════════════════════════════════════════
+# train.py
+import io
+import torch
+
+import numpy as np
+import pandas as pd
+
+# yes, we use tensorflow
+# but not for training the model!
+import tensorflow as tf
+
+from sklearn import metrics
+
+import config
+import dataset
+import engine
+import lstm
+
+def load_vectors(fname):
+    # taken from: https://fasttext.cc/docs/en/english-vectors.html
+
+                                           255
+=== [PDF p.257] ===
+                  Approaching (Almost) Any Machine Learning Problem
+
+
+
+   fin = io.open(
+       fname,
+       'r',
+       encoding='utf-8',
+       newline='\n',
+       errors='ignore'
+   )
+   n, d = map(int, fin.readline().split())
+   data = {}
+   for line in fin:
+       tokens = line.rstrip().split(' ')
+       data[tokens[0]] = list(map(float, tokens[1:]))
+   return data
+
+
+def create_embedding_matrix(word_index, embedding_dict):
+    """
+    This function creates the embedding matrix.
+    :param word_index: a dictionary with word:index_value
+    :param embedding_dict: a dictionary with word:embedding_vector
+    :return: a numpy array with embedding vectors for all known words
+    """
+    # initialize matrix with zeros
+    embedding_matrix = np.zeros((len(word_index) + 1, 300))
+    # loop over all the words
+    for word, i in word_index.items():
+        # if word is found in pre-trained embeddings,
+        # update the matrix. if the word is not found,
+        # the vector is zeros!
+        if word in embedding_dict:
+            embedding_matrix[i] = embedding_dict[word]
+    # return embedding matrix
+    return embedding_matrix
+
+
+def run(df, fold):
+    """
+    Run training and validation for a given fold
+    and dataset
+    :param df: pandas dataframe with kfold column
+    :param fold: current fold, int
+    """
+
+   # fetch training dataframe
+   train_df = df[df.kfold != fold].reset_index(drop=True)
+
+   # fetch validation dataframe
+
+
+                                        256
+=== [PDF p.258] ===
+              Approaching (Almost) Any Machine Learning Problem
+
+
+
+valid_df = df[df.kfold == fold].reset_index(drop=True)
+
+print("Fitting tokenizer")
+# we use tf.keras for tokenization
+# you can use your own tokenizer and then you can
+# get rid of tensorflow
+tokenizer = tf.keras.preprocessing.text.Tokenizer()
+tokenizer.fit_on_texts(df.review.values.tolist())
+
+# convert training data to sequences
+# for example : "bad movie" gets converted to
+# [24, 27] where 24 is the index for bad and 27 is the
+# index for movie
+xtrain = tokenizer.texts_to_sequences(train_df.review.values)
+
+# similarly convert validation data to
+# sequences
+xtest = tokenizer.texts_to_sequences(valid_df.review.values)
+
+# zero pad the training sequences given the maximum length
+# this padding is done on left hand side
+# if sequence is > MAX_LEN, it is truncated on left hand side too
+xtrain = tf.keras.preprocessing.sequence.pad_sequences(
+    xtrain, maxlen=config.MAX_LEN
+)
+
+# zero pad the validation sequences
+xtest = tf.keras.preprocessing.sequence.pad_sequences(
+    xtest, maxlen=config.MAX_LEN
+)
+
+# initialize dataset class for training
+train_dataset = dataset.IMDBDataset(
+    reviews=xtrain,
+    targets=train_df.sentiment.values
+)
+
+# create torch dataloader for training
+# torch dataloader loads the data using dataset
+# class in batches specified by batch size
+train_data_loader = torch.utils.data.DataLoader(
+    train_dataset,
+    batch_size=config.TRAIN_BATCH_SIZE,
+    num_workers=2
+)
+
+# initialize dataset class for validation
+
+
+                                    257
+=== [PDF p.259] ===
+              Approaching (Almost) Any Machine Learning Problem
+
+
+
+valid_dataset = dataset.IMDBDataset(
+    reviews=xtest,
+    targets=valid_df.sentiment.values
+)
+
+# create torch dataloader for validation
+valid_data_loader = torch.utils.data.DataLoader(
+    valid_dataset,
+    batch_size=config.VALID_BATCH_SIZE,
+    num_workers=1
+)
+
+print("Loading embeddings")
+# load embeddings as shown previously
+embedding_dict = load_vectors("../input/crawl-300d-2M.vec")
+embedding_matrix = create_embedding_matrix(
+    tokenizer.word_index, embedding_dict
+)
+
+# create torch device, since we use gpu, we are using cuda
+device = torch.device("cuda")
+
+# fetch our LSTM model
+model = lstm.LSTM(embedding_matrix)
+
+# send model to device
+model.to(device)
+
+# initialize Adam optimizer
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+
+print("Training Model")
+# set best accuracy to zero
+best_accuracy = 0
+# set early stopping counter to zero
+early_stopping_counter = 0
+# train and validate for all epochs
+for epoch in range(config.EPOCHS):
+    # train one epoch
+    engine.train(train_data_loader, model, optimizer, device)
+    # validate
+    outputs, targets = engine.evaluate(
+                           valid_data_loader, model, device
+    )
+
+   # use threshold of 0.5
+   # please note we are using linear layer and no sigmoid
+
+
+                                    258
+=== [PDF p.260] ===
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+         # you should do this 0.5 threshold after sigmoid
+         outputs = np.array(outputs) >= 0.5
+
+         # calculate accuracy
+         accuracy = metrics.accuracy_score(targets, outputs)
+         print(
+           f"FOLD:{fold}, Epoch: {epoch}, Accuracy Score = {accuracy}"
+         )
+
+         # simple early stopping
+         if accuracy > best_accuracy:
+             best_accuracy = accuracy
+         else:
+             early_stopping_counter += 1
+
+         if early_stopping_counter > 2:
+             break
+
+
+if __name__ == "__main__":
+
+    # load data
+    df = pd.read_csv("../input/imdb_folds.csv")
+
+    # train for all folds
+    run(df, fold=0)
+    run(df, fold=1)
+    run(df, fold=2)
+    run(df, fold=3)
+    run(df, fold=4)
+═════════════════════════════════════════════════════════════════════════
+
+And finally, we have config.py.
+
+═════════════════════════════════════════════════════════════════════════
+# config.py
+# we define all the configuration here
+MAX_LEN = 128
+TRAIN_BATCH_SIZE = 16
+VALID_BATCH_SIZE = 8
+EPOCHS = 10
+═════════════════════════════════════════════════════════════════════════
+
+Let’s see what this gives us.
+
+
+
+                                           259
+=== [PDF p.261] ===
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+═════════════════════════════════════════════════════════════════════════
+❯ python train.py
+
+FOLD:0, Epoch: 3, Accuracy Score = 0.9015
+FOLD:1, Epoch: 4, Accuracy Score = 0.9007
+FOLD:2, Epoch: 3, Accuracy Score = 0.8924
+FOLD:3, Epoch: 2, Accuracy Score = 0.9
+FOLD:4, Epoch: 1, Accuracy Score = 0.878
+═════════════════════════════════════════════════════════════════════════
+
+This is by far the best score we have obtained. Please note that I have only shown
+the epochs with best accuracies in each fold.
+
+You must have noticed that we used pre-trained embeddings and a simple bi-
+directional LSTM. If you want to change the model, you can just change model in
+lstm.py and keep everything as it is. This kind of code requires minimal changes
+for experiments and is easily understandable. For example, you can learn the
+embeddings on your own instead of using pretrained embeddings, you can use some
+other pretrained embeddings, you can combine multiple pretrained embeddings,
+you can use GRU, you can use spatial dropout after embedded, you can add a GRU
+layer after LSTM, you can add two LSTM layers, you can have LSTM-GRU-LSTM
+config, you can replace LSTM with a convolutional layer, etc. without making
+many changes to the code. Most of what I mention requires changes only to model
+class.
+
+When you use pretrained embeddings, try to see for how many words you are not
+able to find embeddings and why. The more words for which you have pre-trained
+embeddings, the better are the results. I present to you the following un-commented
+(!) function that you can use to create embedding matrix for any kind of pre-trained
+embedding which is in the same format as glove or fastText (some changes might
+be needed).
+
+═════════════════════════════════════════════════════════════════════════
+def load_embeddings(word_index, embedding_file, vector_length=300):
+    """
+    A general function to create embedding matrix
+    :param word_index: word:index dictionary
+    :param embedding_file: path to embeddings file
+    :param vector_length: length of vector
+    """
+    max_features = len(word_index) + 1
+    words_to_find = list(word_index.keys())
+    more_words_to_find = []
+
+                                           260
+=== [PDF p.262] ===
+                      Approaching (Almost) Any Machine Learning Problem
+
+
+
+    for wtf in words_to_find:
+        more_words_to_find.append(wtf)
+        more_words_to_find.append(str(wtf).capitalize())
+    more_words_to_find = set(more_words_to_find)
+
+    def get_coefs(word, *arr):
+        return word, np.asarray(arr, dtype='float32')
+
+    embeddings_index = dict(
+        get_coefs(*o.strip().split(" "))
+        for o in open(embedding_file)
+        if o.split(" ")[0]
+        in more_words_to_find
+        and len(o) > 100
+    )
+
+    embedding_matrix = np.zeros((max_features, vector_length))
+    for word, i in word_index.items():
+        if i >= max_features:
+            continue
+        embedding_vector = embeddings_index.get(word)
+        if embedding_vector is None:
+            embedding_vector = embeddings_index.get(
+                str(word).capitalize()
+            )
+        if embedding_vector is None:
+            embedding_vector = embeddings_index.get(
+                str(word).upper()
+            )
+        if (embedding_vector is not None
+            and len(embedding_vector) == vector_length):
+            embedding_matrix[i] = embedding_vector
+    return embedding_matrix
+═════════════════════════════════════════════════════════════════════════
+
+Read and run the function above and see what’s happening. The function can also
+be modified to use stemmed words or lemmatized words. In the end, you want to
+have the least number of unknown words in your training corpus. One more trick is
+to learn the embedding layer, i.e., make it trainable and then train the network.
+
+So far, we have built a lot of models for a classification problem. However, it is the
+era of muppets, and more and more people are moving towards transformer-based
+models. Transformer based networks are able to handle dependencies which are
+long term in nature. LSTM looks at the next word only when it has seen the previous
+word. This is not the case with transformers. It can look at all the words in the whole
+
+                                            261
+=== [PDF p.263] ===
+                      Approaching (Almost) Any Machine Learning Problem
+
+
+
+sentence simultaneously. Due to this, one more advantage is that it can easily be
+parallelized and uses GPUs more efficiently.
+
+Transformers is a very broad topic, and there are too many models: BERT,
+RoBERTa, XLNet, XLM-RoBERTa, T5, etc. I will show you a general approach
+that you can use for all these models (except T5) for the classification problem that
+we have been discussing. Please note that these transformers are hungry in terms of
+computational power needed to train them. Thus, if you do not have a high-end
+system, it might take much longer to train a model compared to LSTM or TF-IDF
+based models.
+
+The first thing we do is to create a config file.
+
+═════════════════════════════════════════════════════════════════════════
+# config.py
+import transformers
+
+# this is the maximum number of tokens in the sentence
+MAX_LEN = 512
+
+# batch sizes is small because model is huge!
+TRAIN_BATCH_SIZE = 8
+VALID_BATCH_SIZE = 4
+
+# let's train for a maximum of 10 epochs
+EPOCHS = 10
+
+# define path to BERT model files
+BERT_PATH = "../input/bert_base_uncased/"
+
+# this is where you want to save the model
+MODEL_PATH = "model.bin"
+
+# training file
+TRAINING_FILE = "../input/imdb.csv"
+
+# define the tokenizer
+# we use tokenizer and model
+# from huggingface's transformers
+TOKENIZER = transformers.BertTokenizer.from_pretrained(
+    BERT_PATH,
+    do_lower_case=True
+)
+═════════════════════════════════════════════════════════════════════════
+
+
+
+                                            262
+=== [PDF p.264] ===
+                      Approaching (Almost) Any Machine Learning Problem
+
+
+
+The config file here is the only place where we define tokenizer and other
+parameters we would like to change frequently—this way we can do many
+experiments without requiring a lot of changes.
+
+Next step is to build a dataset class.
+
+═════════════════════════════════════════════════════════════════════════
+# dataset.py
+import config
+import torch
+
+
+class BERTDataset:
+    def __init__(self, review, target):
+        """
+        :param review: list or numpy array of strings
+        :param targets: list or numpy array which is binary
+        """
+        self.review = review
+        self.target = target
+        # we fetch max len and tokenizer from config.py
+        self.tokenizer = config.TOKENIZER
+        self.max_len = config.MAX_LEN
+
+    def __len__(self):
+        # this returns the length of dataset
+        return len(self.review)
+
+    def __getitem__(self, item):
+        # for a given item index, return a dictionary
+        # of inputs
+        review = str(self.review[item])
+        review = " ".join(review.split())
+
+         # encode_plus comes from hugginface's transformers
+         # and exists for all tokenizers they offer
+         # it can be used to convert a given string
+         # to ids, mask and token type ids which are
+         # needed for models like BERT
+         # here, review is a string
+         inputs = self.tokenizer.encode_plus(
+             review,
+             None,
+             add_special_tokens=True,
+             max_length=self.max_len,
+             pad_to_max_length=True,
+
+
+                                            263
+=== [PDF p.265] ===
+                     Approaching (Almost) Any Machine Learning Problem
+
+
+
+        )
+        # ids are ids of tokens generated
+        # after tokenizing reviews
+        ids = inputs["input_ids"]
+        # mask is 1 where we have input
+        # and 0 where we have padding
+        mask = inputs["attention_mask"]
+        # token type ids behave the same way as
+        # mask in this specific case
+        # in case of two sentences, this is 0
+        # for first sentence and 1 for second sentence
+        token_type_ids = inputs["token_type_ids"]
+
+        # now we return everything
+        # note that ids, mask and token_type_ids
+        # are all long datatypes and targets is float
+        return {
+            "ids": torch.tensor(
+                ids, dtype=torch.long
+            ),
+            "mask": torch.tensor(
+                mask, dtype=torch.long
+            ),
+            "token_type_ids": torch.tensor(
+                token_type_ids, dtype=torch.long
+            ),
+            "targets": torch.tensor(
+                self.target[item], dtype=torch.float
+            )
+        }
+═════════════════════════════════════════════════════════════════════════
+
+And now we come to the heart of the project, i.e. the model.
+
+═════════════════════════════════════════════════════════════════════════
+# model.py
+import config
+import transformers
+import torch.nn as nn
+
+
+class BERTBaseUncased(nn.Module):
+    def __init__(self):
+        super(BERTBaseUncased, self).__init__()
+        # we fetch the model from the BERT_PATH defined in
+        # config.py
+        self.bert = transformers.BertModel.from_pretrained(
+
+                                           264
+=== [PDF p.266] ===
+                    Approaching (Almost) Any Machine Learning Problem
+
+
+
+            config.BERT_PATH
+        )
+        # add a dropout for regularization
+        self.bert_drop = nn.Dropout(0.3)
+        # a simple linear layer for output
+        # yes, there is only one output
+        self.out = nn.Linear(768, 1)
+
+    def forward(self, ids, mask, token_type_ids):
+        # BERT in its default settings returns two outputs
+        # last hidden state and output of bert pooler layer
+        # we use the output of the pooler which is of the size
+        # (batch_size, hidden_size)
+        # hidden size can be 768 or 1024 depending on
+        # if we are using bert base or large respectively
+        # in our case, it is 768
+        # note that this model is pretty simple
+        # you might want to use last hidden state
+        # or several hidden states
+        _, o2 = self.bert(
+            ids,
+            attention_mask=mask,
+            token_type_ids=token_type_ids
+        )
+        # pass through dropout layer
+        bo = self.bert_drop(o2)
+        # pass through linear layer
+        output = self.out(bo)
+        # return output
+        return output
+═════════════════════════════════════════════════════════════════════════
+
+This model returns a single output. We can use binary cross-entropy loss with
+logits which first applies sigmoid and then calculates the loss. This is done in
+engine.py.
+
+═════════════════════════════════════════════════════════════════════════
+# engine.py
+
+import torch
+import torch.nn as nn
+
+
+def loss_fn(outputs, targets):
+    """
+    This function returns the loss.
+
+
+                                          265
+=== [PDF p.267] ===
+                  Approaching (Almost) Any Machine Learning Problem
+
+
+
+   :param outputs: output from the model (real numbers)
+   :param targets: input targets (binary)
+   """
+   return nn.BCEWithLogitsLoss()(outputs, targets.view(-1, 1))
+
+
+def train_fn(data_loader, model, optimizer, device, scheduler):
+    """
+    This is the training function which trains for one epoch
+    :param data_loader: it is the torch dataloader object
+    :param model: torch model, bert in our case
+    :param optimizer: adam, sgd, etc
+    :param device: can be cpu or cuda
+    :param scheduler: learning rate scheduler
+    """
+    # put the model in training mode
+    model.train()
+
+   # loop over all batches
+   for d in data_loader:
+       # extract ids, token type ids and mask
+       # from current batch
+       # also extract targets
+       ids = d["ids"]
+       token_type_ids = d["token_type_ids"]
+       mask = d["mask"]
+       targets = d["targets"]
+
+       # move everything to specified device
+       ids = ids.to(device, dtype=torch.long)
+       token_type_ids = token_type_ids.to(device, dtype=torch.long)
+       mask = mask.to(device, dtype=torch.long)
+       targets = targets.to(device, dtype=torch.float)
+
+       # zero-grad the optimizer
+       optimizer.zero_grad()
+       # pass through the model
+       outputs = model(
+           ids=ids,
+           mask=mask,
+           token_type_ids=token_type_ids
+       )
+       # calculate loss
+       loss = loss_fn(outputs, targets)
+       # backward step the loss
+       loss.backward()
+       # step optimizer
+
+
+                                        266
+=== [PDF p.268] ===
+                  Approaching (Almost) Any Machine Learning Problem
+
+
+
+       optimizer.step()
+       # step scheduler
+       scheduler.step()
+
+
+def eval_fn(data_loader, model, device):
+    """
+    this is the validation function that generates
+    predictions on validation data
+    :param data_loader: it is the torch dataloader object
+    :param model: torch model, bert in our case
+    :param device: can be cpu or cuda
+    :return: output and targets
+    """
+    # put model in eval mode
+    model.eval()
+    # initialize empty lists for
+    # targets and outputs
+    fin_targets = []
+    fin_outputs = []
+    # use the no_grad scope
+    # its very important else you might
+    # run out of gpu memory
+    with torch.no_grad():
+        # this part is same as training function
+        # except for the fact that there is no
+        # zero_grad of optimizer and there is no loss
+        # calculation or scheduler steps.
+        for d in data_loader:
+            ids = d["ids"]
+            token_type_ids = d["token_type_ids"]
+            mask = d["mask"]
+            targets = d["targets"]
+
+           ids = ids.to(device, dtype=torch.long)
+           token_type_ids = token_type_ids.to(device, dtype=torch.long)
+           mask = mask.to(device, dtype=torch.long)
+           targets = targets.to(device, dtype=torch.float)
+
+           outputs = model(
+               ids=ids,
+               mask=mask,
+               token_type_ids=token_type_ids
+           )
+           # convert targets to cpu and extend the final list
+           targets = targets.cpu().detach()
+           fin_targets.extend(targets.numpy().tolist())
+
+
+                                        267
+=== [PDF p.269] ===
+                      Approaching (Almost) Any Machine Learning Problem
+
+
+
+
+            # convert outputs to cpu and extend the final list
+            outputs = torch.sigmoid(outputs).cpu().detach()
+            fin_outputs.extend(outputs.numpy().tolist())
+    return fin_outputs, fin_targets
+═════════════════════════════════════════════════════════════════════════
+
+And finally, we are ready to train. Let’s look at the training script!
+
+═════════════════════════════════════════════════════════════════════════
+# train.py
+import config
+import dataset
+import engine
+import torch
+import pandas as pd
+import torch.nn as nn
+import numpy as np
+
+from model import BERTBaseUncased
+from sklearn import model_selection
+from sklearn import metrics
+from transformers import AdamW
+from transformers import get_linear_schedule_with_warmup
+
+
+def train():
+    # this function trains the model
+
+    # read the training file and fill NaN values with "none"
+    # you can also choose to drop NaN values in this
+    # specific dataset
+    dfx = pd.read_csv(config.TRAINING_FILE).fillna("none")
+
+    # sentiment = 1 if its positive
+    # else sentiment = 0
+    dfx.sentiment = dfx.sentiment.apply(
+        lambda x: 1 if x == "positive" else 0
+    )
+
+    # we split the data into single training
+    # and validation fold
+    df_train, df_valid = model_selection.train_test_split(
+        dfx,
+        test_size=0.1,
+        random_state=42,
+        stratify=dfx.sentiment.values
+
+                                            268
+=== [PDF p.270] ===
+              Approaching (Almost) Any Machine Learning Problem
+
+
+
+)
+
+# reset index
+df_train = df_train.reset_index(drop=True)
+df_valid = df_valid.reset_index(drop=True)
+
+# initialize BERTDataset from dataset.py
+# for training dataset
+train_dataset = dataset.BERTDataset(
+    review=df_train.review.values,
+    target=df_train.sentiment.values
+)
+
+# create training dataloader
+train_data_loader = torch.utils.data.DataLoader(
+    train_dataset,
+    batch_size=config.TRAIN_BATCH_SIZE,
+    num_workers=4
+)
+
+# initialize BERTDataset from dataset.py
+# for validation dataset
+valid_dataset = dataset.BERTDataset(
+    review=df_valid.review.values,
+    target=df_valid.sentiment.values
+)
+
+# create validation data loader
+valid_data_loader = torch.utils.data.DataLoader(
+    valid_dataset,
+    batch_size=config.VALID_BATCH_SIZE,
+    num_workers=1
+)
+
+# initialize the cuda device
+# use cpu if you dont have GPU
+device = torch.device("cuda")
+# load model and send it to the device
+model = BERTBaseUncased()
+model.to(device)
+
+# create parameters we want to optimize
+# we generally dont use any decay for bias
+# and weight layers
+param_optimizer = list(model.named_parameters())
+no_decay = ["bias", "LayerNorm.bias", "LayerNorm.weight"]
+optimizer_parameters = [
+
+
+                                    269
+=== [PDF p.271] ===
+               Approaching (Almost) Any Machine Learning Problem
+
+
+
+    {
+         "params": [
+             p for n, p in param_optimizer if
+             not any(nd in n for nd in no_decay)
+         ],
+         "weight_decay": 0.001,
+    },
+    {
+         "params": [
+             p for n, p in param_optimizer if
+             any(nd in n for nd in no_decay)
+         ],
+         "weight_decay": 0.0,
+    },
+]
+
+# calculate the number of training steps
+# this is used by scheduler
+num_train_steps = int(
+    len(df_train) / config.TRAIN_BATCH_SIZE * config.EPOCHS
+)
+
+# AdamW optimizer
+# AdamW is the most widely used optimizer
+# for transformer based networks
+optimizer = AdamW(optimizer_parameters, lr=3e-5)
+
+# fetch a scheduler
+# you can also try using reduce lr on plateau
+scheduler = get_linear_schedule_with_warmup(
+    optimizer,
+    num_warmup_steps=0,
+    num_training_steps=num_train_steps
+)
+
+# if you have multiple GPUs
+# model model to DataParallel
+# to use multiple GPUs
+model = nn.DataParallel(model)
+
+# start training the epochs
+best_accuracy = 0
+for epoch in range(config.EPOCHS):
+    engine.train_fn(
+        train_data_loader, model, optimizer, device, scheduler
+    )
+    outputs, targets = engine.eval_fn(
+
+
+                                     270
+=== [PDF p.272] ===
+                      Approaching (Almost) Any Machine Learning Problem
+
+
+
+             valid_data_loader, model, device
+         )
+         outputs = np.array(outputs) >= 0.5
+         accuracy = metrics.accuracy_score(targets, outputs)
+         print(f"Accuracy Score = {accuracy}")
+         if accuracy > best_accuracy:
+             torch.save(model.state_dict(), config.MODEL_PATH)
+             best_accuracy = accuracy
+
+
+if __name__ == "__main__":
+    train()
+═════════════════════════════════════════════════════════════════════════
+
+It might look like a lot at first, but it isn’t once you understand the individual
+components. You can easily change it to any other transformer model you want to
+use just by changing a few lines of code.
+
+This model gives an accuracy of 93%! Whoa! That’s much better than any other
+model. But is it worth it?
+
+We were able to achieve 90% using LSTMs, and they are much simpler, easier to
+train and faster when it comes to inference. We could improve that model probably
+by a percent by using different data processing or by tuning the parameters such as
+layers, nodes, dropout, learning rate, changing the optimizer, etc. Then we will have
+~2% benefit from BERT. BERT, on the other hand, took much longer to train, has
+a lot of parameters and is also slow when it comes to inference. In the end, you
+should look at your business and choose wisely. Don’t choose BERT only because
+it’s “cool”.
+
+It must be noted that the only task we discussed here is classification but changing
+it to regression, multi-label or multi-class will require only a couple of lines of code
+changes. For example, the same problem in multi-class classification setting will
+have multiple outputs and Cross-Entropy loss. Everything else should remain the
+same. Natural language processing is huge, and we discussed only a small fraction
+of it. Apparently, this is a huge fraction as most of the industrial models are
+classification or regression models. If I start writing in detail about everything I
+might end up writing a few hundred pages, and that’s why I have decided to include
+everything in a separate book: Approaching (Almost) Any NLP Problem!
+
+
+
+
+                                            271

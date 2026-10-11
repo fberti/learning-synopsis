@@ -1,0 +1,996 @@
+=== [PDF p.375] ===
+                                             IN THIS CHAPTER
+
+                                             »» Considering Natural Language
+                                                Processing (NLP)
+
+                                             »» Defining how machines can
+                                                understand text
+
+                                             »» Performing document classification
+                                                by topic modeling
+
+                                             »» Performing a classification on movie
+                                                reviews using deep learning
+
+
+
+
+Chapter    18
+Scoring Opinions
+and Sentiments
+
+      M
+               any people have the idea that somehow computers can understand text.
+               The fact is that computers don’t even have a way in which to represent
+               text — it’s all numbers to the computer. This chapter helps you under-
+      stand the three phases of working with text to score opinions and sentiments:
+
+      1.   Using Natural Language Processing (NLP) to parse the text
+
+      2.   Performing the actual task of understanding the text
+
+      3.   Performing topic modeling and classification tasks to interact with the text
+           meaningfully
+
+      You don’t have to type the source code for this chapter manually. In fact, using the
+      downloadable source is a lot easier. You can find the source for this chapter in the
+      ML4D2E folder of the downloadable source for Python code and the ML4D2ER folder
+      of the downloadable source for the R code. The example files for this chapter will
+      begin with ML4D2E; 18; (for Python) or ML4D2E_R; 18; (for R). See the Introduc-
+      tion for details on how to find these source files.
+
+
+
+
+                                 CHAPTER 18 Scoring Opinions and Sentiments               361
+=== [PDF p.376] ===
+Introducing Natural Language Processing
+              As human beings, understanding language is one our first achievements, and
+              associating words to their meaning seems natural. It’s also automatic to handle
+              discourses that are ambiguous, unclear, or simply have a strong reference to the
+              context of where we live or work (such as dialect, jargon, or terms family or asso-
+              ciates understand). In addition, humans can catch subtle references to feelings
+              and sentiments in text, enabling people to understand polite speech that hides
+              negative feelings and irony. Computers don’t have this ability but can rely on NLP,
+              a field of computer science concerned with language understanding and language
+              generation between a machine and a human being. Since Alan Turing first devised
+              the Turing Test in 1950, which aims at spotting an artificial intelligence based on
+              how it communicates with humans (https://plato.stanford.edu/entries/
+              turing-test/), NLP experts have developed a series of techniques that define the
+              state of the art in computer-human interaction by text.
+
+              A computer powered with NLP can successfully spot spam in your email, tag the
+              part of a conversation that contains a verb or a noun, and spot an entity like the
+              name of a person or a company (a task called named entity recognition, or NER, see
+              https://medium.com/mysuperai/what-is-named-entity-recognition-ner-
+              and-how-can-i-use-it-2b68cf6f545d). All these achievements have found
+              application in tasks such as spam filtering, predicting the stock market using
+              news articles, and de-duplicating redundant information in data storage.
+
+              Things get more difficult for NLP when translating a text from another language
+              and understanding who the subject is in an ambiguous phrase. For example, con-
+              sider the sentence, “John told Luca he shouldn’t do that again.” In this case, you
+              can’t really tell whether “he” refers to John or Luca. Disambiguating words with
+              many meanings, such as considering whether the word mouse in a phrase refers to
+              an animal or a computer device, can prove difficult. Obviously, the difficulty in all
+              these problems arises because of the context.
+
+              As humans, we can easily resolve ambiguity by examining the text for hints about
+              elements like place and time that express the details of the conversation (such as
+              understanding what happened between John and Luca, or whether the conversa-
+              tion is about a computer when mentioning the mouse). Relying on additional
+              information for understanding is part of the human experience. This sort of anal-
+              ysis is somewhat difficult for computers. Moreover, if the task requires critical
+              contextual knowledge or demands that the listener resort to common sense and
+              general expertise, the task becomes daunting. Simply put, NLP still has a lot of
+              ground to cover to discover how to extract meaningful summaries from text effec-
+              tively or how to complete missing information from text.
+
+
+
+
+362   PART 5 Applying Learning to Real Problems
+=== [PDF p.377] ===
+Revising the State of the Art in NLP
+        Natural Language Processing (NLP) consists of a series of procedures that improve
+        the processing of words and phrases for statistical analysis, machine learning
+        algorithms, and deep learning. NLP owes its roots to the computational linguistics
+        that power AI rule-based systems, such as expert systems, which make decisions
+        based on a computer translation of human knowledge, experience, and way of
+        thinking.
+
+        NLP digests textual information, which is unstructured, into more structured data
+        so that expert systems can easily manipulate and evaluate it. Until a few years ago,
+        statistical algorithms did most of the work in NLP, together with simple compu-
+        tational procedures such as the TF-IDF (explained later in detail in this chapter)
+        or the hashing trick (a system of allocating words into matrices by means of a
+        hash function).
+
+        Recently, deep learning has taken the upper hand and expert systems combined
+        with statistical algorithms are limited to specific applications in which
+        ­interpretability and control of decision processes are paramount. Recurrent Neu-
+         ral Networks (RNNs) (mentioned in Chapter 14) revolutionized NLP, rendering
+         previous key approaches, such as the bag of words (BoW) (another NLP technique
+         explained later in this chapter), obsolete. Deep learning layers powered by Long
+         Short-Term Memories (LSTMs) and Gated Recurrent Units (GRUs) (see https://
+        towardsdatascience.com/illustrated-guide-to-lstms-and-gru-s-a-step-
+        by-step-explanation-44e9eb85bf21 for a comparison of LSTM and GRU) can
+        now process words in their exact order.
+
+        Even newer approaches based on neural networks have appeared. Word embeddings
+        such as Google’s Word2Vec or Facebook’s fastText can immediately translate
+        words into a meaningful vector of values (because they contain the semantic
+        information of millions of texts) to feed to machine learning algorithms and help
+        practitioners obtain astonishing results in many NLP activities.
+
+        Today you find complex public networks, such as Google’s BERT (https://
+        github.com/google-research/bert) or GPT-3 (https://github.com/openai/
+        gpt-3), involving billions of parameters that can provide a particularly rich trans-
+        lation of entire phrases into numeric vectors suitable for deep learning. Applica-
+        tions powered by such networks are even capable of generating meaningful
+        narrations on the fly (such as in Dungeon AI, an AI textual adventure system; see
+        https://play.aidungeon.io/) or power the most advanced personal assistants,
+        such as those provided by Google or Amazon.
+
+
+
+
+                                 CHAPTER 18 Scoring Opinions and Sentiments            363
+=== [PDF p.378] ===
+              In spite of all these incredible advances, the classic NLP processing and technol-
+              ogy is still relevant because it’s easily and successfully applicable to many machine
+              learning problems. The remainder of the chapter helps you understand how a
+              computer can read words and learn how tokenization, bag of words, TF-IDF, and
+              n-grams work.
+
+
+
+
+Understanding How Machines Read
+              Before a computer can do anything with text, it must be able to read the text in
+              some manner. Chapter 11 shows how you can prepare data to deal with categorical
+              features, such as a feature representing a color (for instance, representing whether
+              an example relates to the colors red, green, or blue). Categorical data is a type of
+              short text that you represent using binary features, that is, features coded using
+              one or zero values according to whether a certain value is present in the categori-
+              cal feature. Not surprisingly, you can represent complex text using the same logic.
+
+              Text data is usually represented as strings, but strings are also typical of categori-
+              cal data and of structured data such as addresses or directory entries. What makes
+              textual data different is the richness of meaning and information presented in an
+              unstructured way.
+
+              Chapter 13 presents a technique named one-hot encoding that shows how you can
+              transform a categorical color feature, having values such as red, green, and blue,
+              into three binary features, each one representing one of the three colors. In a sim-
+              ilar way, you can transform a phrase like “The quick brown fox jumps over the
+              lazy dog” using nine binary features, one for each word that appears in the text
+              (“The” is considered distinct from “the” because of its initial capital letter). This
+              is the BoW form of representation. In its simplest form, BoW shows whether a
+              certain word is present in the text by flagging a specific feature in the dataset. The
+              following sections show an example using Python and its Scikit-learn package.
+
+
+
+              Defining the input data
+              The input data is three phrases, text_1, text_2, and text_3, placed in a list, cor-
+              pus. A corpus is a set of homogenous documents put together for NLP analysis:
+
+                text_1 = 'The quick brown fox jumps over the lazy dog.'
+                text_2 = 'My dog is quick and can jump over fences.'
+                text_3 = 'Your dog is so lazy that it sleeps all the day.'
+                corpus = [text_1, text_2, text_3]
+
+
+
+
+364   PART 5 Applying Learning to Real Problems
+=== [PDF p.379] ===
+When you need to analyze text using a computer, you load the documents from
+disk or scrape them from the web and place each of them into a string feature. If
+you have multiple documents, you store them all in a list, the corpus. When you
+have a single document, you can split it using chapters, paragraphs, or simply the
+end of each line. After splitting the document, place all its parts into a list and
+apply analysis as if the list were a corpus of documents.
+
+Now that you have a corpus, you use a class from the feature_extraction mod-
+ule in Scikit-learn, CountVectorizer, which easily transforms texts into BoW like
+this:
+
+  from sklearn.feature_extraction import text
+  vectorizer = text.CountVectorizer(binary=True)
+  vectorizer.fit(corpus)
+  vectorized_text = vectorizer.transform(corpus)
+  print(vectorized_text.todense())
+
+  [[0 0 1 0 0 1 0 1 0 0 0 1 1 0 1 1 0 0 0 1 0]
+   [0 1 0 1 0 1 1 0 1 0 1 0 0 1 1 1 0 0 0 0 0]
+   [1 0 0 0 1 1 0 0 1 1 0 0 1 0 0 0 1 1 1 1 1]]
+
+The CountVectorizer class learns the corpus content using the fit method and
+then turns it (using the transform method) into a list of lists. As discussed in
+Chapter 7, a list of lists is nothing more than a matrix in disguise, so what the
+class returns is actually a matrix made of three rows (the three documents, in the
+same order as the corpus) and 21 columns representing the content.
+
+The BoW representation turns words into the column features of a document
+matrix, and these features have a nonzero value when present in the processed
+text. For instance, consider the word dog. The following code shows its represen-
+tation in the BoW:
+
+  print(vectorizer.vocabulary_)
+
+  {'the': 19, 'quick': 15, 'brown': 2, 'fox': 7,
+  'jumps': 11,'over': 14, 'lazy': 12, 'dog': 5, 'my': 13,
+  'is': 8, 'and': 1, 'can': 3, 'jump': 10, 'fences': 6,
+  'your': 20, 'so': 17, 'that': 18, 'it': 9, 'sleeps': 16,
+  'all': 0, 'day': 4}
+
+It uses the CountVectorizer() function to print the vocabulary learned from text
+reports, where it associates dog with the number five, which means that dog is the
+fifth element in the BoW representations. In fact, in the obtained BoW, the fifth
+element of each document list always has a value of 1 because dog is the only word
+present in all the tree documents.
+
+
+                         CHAPTER 18 Scoring Opinions and Sentiments           365
+=== [PDF p.380] ===
+              Storing documents in a document matrix form can be memory intensive because
+              you must represent each document as a vector of the same length as the dictionary
+              that created it. The dictionary in this example is quite limited, but when you use a
+              larger corpus, you discover that a dictionary of the English language contains well
+              over a million terms. The solution is to use sparse matrices. A sparse matrix is a way
+              to store a matrix in your computer’s memory without having zero values occupying
+              memory space. You can read more about sparse matrices in Python here: https://
+              cmdlinetips.com/2018/03/sparse-matrices-in-python-with-scipy/.
+
+
+
+              Processing and enhancing text
+              Marking whether a word is present or not in a text is indeed a good start, but
+              sometimes it’s not enough. The BoW model has its own limits. As if you were
+              putting stuff randomly into a bag, in a BoW, words lose their order relationship
+              with each other. For instance, in the phrase My dog is quick and can jump over fences,
+              you know that quick refers to dog because it is glued to it by the form is of the verb
+              to be. In a BoW, however, everything is mixed and some internal references are
+              lost. Further processing can help prevent such a situation. The following sections
+              discuss how to process and enhance text.
+
+
+              Considering basic processing tasks
+              Instead of marking the presence or absence of an element of the phrase (techni-
+              cally called a token), you can instead count how many times it occurs, as shown in
+              the following code:
+
+                text_4 = 'A black dog just passed by but my dog is brown.'
+                corpus.append(text_4)
+                vectorizer = text.CountVectorizer()
+                vectorized.fit(corpus)
+                vectorized_text = vectorizer.transform(corpus)
+                print(vectorized_text.todense()[-1])
+
+                [[0 0 1 1 1 1 0 0 2 0 0 1 0 0 0 1 0 1 0 1 0 0 0 0 0 0]]
+
+              This code modifies the previous example by adding a new phrase with the word
+              dog repeated two times. The code appends the new phrase to the corpus and
+              retrains the vectorizer, but it omits the binary=True setting this time. The
+              resulting vector for the last inserted document clearly shows a 2 value in the ninth
+              position, thus the vectorizer counts the word dog twice. Note that dog is now
+              word number 8, instead of number 5, because the BoW has changed.
+
+              Counting tokens helps make important words stand out. Yet, it’s easy to repeat
+              phrase elements, such as articles, that aren’t important to the meaning of the
+              expression. In the next section, you discover how to exclude less important
+
+366   PART 5 Applying Learning to Real Problems
+=== [PDF p.381] ===
+elements, but for the time being, the example underweights them using the Term
+Frequency-Inverse Document Frequency (TF-IDF) transformation.
+
+The TF-IDF transformation is a technique that, after counting how many times a
+token appears in a phrase, divides the value by the number of documents in which
+the token appears. Using this technique, the vectorizer deems a word less
+important, even if it appears many times in a text, when it also finds that word in
+other texts. In the example corpus, the word dog appears in every text. In a clas-
+sification problem, you can’t use the word to distinguish between texts because it
+appears everywhere in the corpus. The word fox appears in only one phrase, mak-
+ing it an important classification term.
+
+You commonly apply a number of transformations when applying TF-IDF, with
+the most important transformation normalizing the text length. Clearly, a longer
+text has more chances to have more words that are distinctive when compared to
+a shorter text. For example, when the word fox appears in a short text, it can be
+relevant to the meaning of that expression because fox stands out among few
+other words. However, when the word fox appears once in a long text, its presence
+might not matter much because it’s a single word among many others. For this
+reason, the transformation divides the count of each token by the total number of
+tokens for each phrase. Treating a phrase like this turns token counting into a
+token percentage, so TF-IDF no longer considers how many times the word fox
+appears, but instead considers the percentage of times the word fox appears
+among all the tokens. The following example demonstrates how to complete the
+previous example using a combination of normalization and TF-IDF.
+
+  TfidF = text.TfidfTransformer(norm='l1')
+  tfidf_mtx = TfidF.fit_transform(vectorized_text)
+
+  phrase = 3 # choose a number from 0 to 3
+
+  total = 0
+  for word in vectorizer.vocabulary_:
+      pos = vectorizer.vocabulary_[word]
+      value = list(tfidf_mtx.toarray()[phrase])[pos]
+      if value !=0:
+          print ("%10s: %0.3f" % (word, value))
+          total += value
+  print('\nSummed values of a phrase: %0.1f' % total)
+
+        brown: 0.095
+          dog: 0.126
+           my: 0.095
+           is: 0.077
+
+
+
+
+                         CHAPTER 18 Scoring Opinions and Sentiments           367
+=== [PDF p.382] ===
+                      black: 0.121
+                       just: 0.121
+                     passed: 0.121
+                         by: 0.121
+                        but: 0.121
+
+                Summed values of a phrase: 1.0
+
+              Using this new TF-IDF model rescales the values of important words and makes
+              them comparable between each text in the corpus. To recover part of the ordering
+              of the text before the BoW transformation, adding n-grams is also useful. An
+              n-gram is a continuous sequence of tokens in the text that you use as a single
+              token in the BoW representation. For instance, in the phrase The quick brown fox
+              jumps over the lazy dog, a bigram — that is, a sequence of two tokens — transforms
+              brown fox and lazy dog into single tokens. A trigram may create a single token from
+              quick brown fox. An n-gram is a powerful tool, but it has a drawback because it
+              doesn’t know which combinations are important to the meaning of a phrase.
+              N-grams create all the contiguous sequences of size N. The TF-IDF model can
+              underweight the less useful n-grams, but only projects like Google’s NGram
+              viewer (you learn more about this viewer later in the chapter) can tell you which
+              n-grams are useful in NLP with any certainty. The following example uses Count-
+              Vectorizer to model n-grams in the range of (2, 2), that is, bigrams.
+
+                bigrams = text.CountVectorizer(ngram_range=(2, 2))
+                print(bigrams.fit(corpus).vocabulary_)
+
+                {'the quick': 30, 'quick brown': 24, 'brown fox': 3,
+                'fox jumps': 9, 'jumps over': 15, 'over the': 21,
+                'the lazy': 29, 'lazy dog': 17, 'my dog': 19, 'dog is': 7,
+                'is quick': 11, 'quick and': 23, 'and can': 1,
+                'can jump': 6, 'jump over': 14, 'over fences': 20,
+                'your dog': 31, 'is so': 12, 'so lazy': 26,
+                'lazy that': 18, 'that it': 27, 'it sleeps': 13,
+                'sleeps all': 25, 'all the': 0, 'the day': 28,
+                'black dog': 2, 'dog just': 8, 'just passed': 16,
+                'passed by': 22, 'by but': 5, 'but my': 4, 'is brown': 10}
+
+              Setting different ranges lets you use both unigrams (single tokens) and n-grams
+              in your NLP analysis. For instance the setting ngram_range=(1,3) creates all
+              tokens, all bigrams, and all trigrams. You usually never need more than trigrams
+              in an NLP analysis. Increasing the number of n-grams is slightly beneficial after
+              trigrams and sometimes even just after bigrams, depending on the corpus size
+              and the NLP problem.
+
+
+
+
+368   PART 5 Applying Learning to Real Problems
+=== [PDF p.383] ===
+Stemming and removing stop words
+Stemming is the process of reducing words to their stem (or root) word. This task
+isn’t the same as understanding that some words come from Latin or other roots,
+but instead makes similar words equal to each other for the purpose of compari-
+son or sharing. For example, the words cats, catty, and catlike all have the stem cat.
+The act of stemming helps you analyze sentences when tokenizing them because
+words having the same stem should have the same meaning (represented by a
+single feature).
+
+Creating stem words by removing suffixes to make tokenizing sentences easier
+isn’t the only way to make the document matrix simpler. Languages include many
+glue words that don’t mean much to a computer but have significant meaning to
+humans, such as a, as, the, that, and so on in English. They make the text flow and
+concatenate in a meaningful way. Yet, the BoW approach doesn’t care much about
+how you arrange words in a text. Thus, removing such words is legitimate. These
+short, less useful words are called stop words.
+
+The act of stemming and removing stop words simplifies the text and reduces the
+number of textual elements so that only the essential elements remain. In addi-
+tion, you keep just the terms that are nearest to the true sense of the phrase. By
+reducing the number of tokens, a computational algorithm can work faster and
+process the text more effectively when the corpus is large.
+
+This example requires the use of the Natural Language Toolkit (NLTK), which
+Anaconda doesn’t normally install by default. (You can check for an NLTK instal-
+lation by opening an Anaconda prompt, typing conda list nltk, and pressing Enter.
+If the output doesn’t show that you have version 3.5 or above installed, then you
+must install it.) To use this example, you must download and install the NLTK
+using the instructions found at http://www.nltk.org/install.html for your
+platform. Make certain that you install the NLTK for whatever version of Python
+you’re using for this book when you have multiple versions of Python installed on
+your system. After you install the NLTK, you must also install the packages asso-
+ciated with it. The instructions at http://www.nltk.org/data.html tell you how
+to perform this task. (Install all the packages to ensure that you have
+everything.)
+
+The following example demonstrates how to perform stemming and remove stop
+words from a sentence. It begins by training an algorithm to perform the required
+analysis using a test sentence. Afterward, the example checks a second sentence
+for words that appear in the first.
+
+  from sklearn.feature_extraction import text
+
+  import nltk
+  from nltk import word_tokenize
+
+
+                          CHAPTER 18 Scoring Opinions and Sentiments            369
+=== [PDF p.384] ===
+                 from nltk.stem.porter import PorterStemmer
+                 from nltk.corpus import stopwords
+                 nltk.download('punkt')
+                 nltk.download('stopwords')
+
+                 stemmer = PorterStemmer()
+                 stop_words = stopwords.words('english')
+
+                 def stem_tokens(tokens, stemmer):
+                     stemmed = []
+                     for item in tokens:
+                         stemmed.append(stemmer.stem(item))
+                     return stemmed
+
+                 def tokenize(text):
+                     # Tokenizing
+                     tokens = word_tokenize(text)
+                     # Removing stopwords
+                     tokens = [token for token in tokens if token not in
+                   stop_words]
+                     # Stemming
+                     stems = stem_tokens(tokens, stemmer)
+                     return stems
+
+                 vocab = ['Sam loves swimming so he swims all the time']
+                 vect = text.CountVectorizer(tokenizer=tokenize)
+                 vec = vect.fit(vocab)
+
+                 sentence1 = vec.transform(['George loves swimming too!'])
+
+                 print(vec.get_feature_names())
+                 print(sentence1.toarray())
+
+               At the outset, the example creates a vocabulary using a test sentence and places it
+               in the feature vocab. It then creates a CountVectorizer, vect, to hold a list of
+               stemmed words, but it excludes the stop words. The tokenizer parameter defines
+               the function used to stem the words. The stop_words parameter refers to a pickle
+               file that contains stop words for a specific language, which is English in this case.
+               There are also files for other languages, such as French and German. (You can see
+               other parameters for the CountVectorizer() at https://scikit-learn.org/
+               stable/modules/generated/sklearn.feature_extraction.text.CountVector
+               izer.html.) The vocabulary is fitted into another CountVectorizer, vec, which
+               is used to perform the actual transformation on a test sentence using the
+               transform() function. Here’s the output from this example (you can safely ignore
+               the warning message stating: UserWarning: The parameter 'token_pattern'
+               will not be used since 'tokenizer' is not None').
+
+370   PART 5 Applying Learning to Real Problems
+=== [PDF p.385] ===
+  ['love', 'sam', 'swim', 'time']
+  [[1 0 1 0]]
+
+The first output shows the stemmed words. Notice that the list contains only
+swim, not swimming or swims. All the stop words are missing as well. For example,
+you don’t see the words so, he, all, or the.
+
+The second output shows how many times each stemmed word appears in the test
+sentence. In this case, a love variant appears once and a swim variant appears once
+as well. The words sam and time don’t appear in the second sentence, so those
+values are set to 0.
+
+
+
+Scraping textual datasets from the web
+Given NLP’s capabilities, building complete language models is just a matter of
+gathering large text collections. Digging through large amounts of text enables
+machine learning algorithms using NLP to discover connections between words
+and derive useful concepts relative to specific contexts. For instance, when dis-
+cussing a mouse in the form of a device or an animal, a machine learning algo-
+rithm powered by NLP text processing can derive the precise topic from other
+hints in the phrase. Humans decipher these hints by having lived, seen, or read
+about the topic of the conversation.
+
+Computers also have the opportunity to see and read a lot. The web offers access
+to millions of documents, most of them freely accessible without restrictions. Web
+scraping allows machine learning algorithms to automatically feed their NLP pro-
+cesses and learn new capabilities in recognizing and classifying text. Developers
+have already done much to create NLP systems capable of understanding textual
+information better by leveraging the richness of the web.
+
+For instance, by using free text acquired from the web and other open text sources,
+such as dictionaries, scientists at Microsoft Research have developed various ver-
+sions of MindNet, a semantic network, which is a network of words connected by
+meaning. MindNet can find related words through synonyms, parts, causes, loca-
+tions, and sources. For instance, when you ask for the word car, MindNet provides
+answers such as vehicle (a synonym) and then connects vehicle to wheel because it
+is a specific part of a car, thus providing knowledge directly derived from text
+without anyone’s having specifically instructed MindNet about cars or how they’re
+made. You can read more about MindNet at https://research.microsoft.com/
+en-us/projects/mindnet/default.aspx.
+
+Google developed something similar based on its Google Books project, helping
+build better language models for all Google’s applications. A public API based on
+Google’s work is the Ngram Viewer, which can explore how frequently certain
+
+
+
+                          CHAPTER 18 Scoring Opinions and Sentiments          371
+=== [PDF p.386] ===
+               combinations of tokens up to five-grams have appeared over time: https://
+               books.google.com/ngrams.
+
+               Being able to retrieve information from the web allows even greater achieve-
+               ments. For example, you could build a dictionary of positive or negative words
+               based on associated emoticons or emoji (ideograms and smileys used in email and
+               Internet web pages).
+
+               Web scraping is a complex subject that could require an entire book to explain.
+               This chapter provides you with an example of web scraping and an overview of
+               what to expect. You need to install the Beautiful Soup package when using Python
+               to perform web scraping (https://www.crummy.com/software/BeautifulSoup/).
+               This package should already be part of your Anaconda installation, but if not, you
+               can easily install it on your system by opening a command shell and issuing the
+               command:
+
+                 pip install beautifulsoup4
+
+               Beautiful Soup is a package created by Leonard Richardson and is an excellent tool
+               for scraping data from HTML or XML files retrieved from the web, even if they are
+               malformed or written in a nonstandard way. The package name refers to the fact
+               that HTML documents are made of tags, and when they are a mess, many devel-
+               opers idiomatically call the document a tag soup. Thanks to Beautiful Soup, you
+               can easily navigate in a page to locate the objects that matter and extract them as
+               text, tables, or links.
+
+               This example demonstrates how to download a table from a Wikipedia page con-
+               taining all the major U.S. cities. Wikipedia (https://www.wikipedia.org/) is a
+               free-access and free-content Internet encyclopedia, enjoyed by millions of users
+               every day, all around the world. Because its knowledge is free, open, and, most
+               important, well structured, it’s a precious resource for learning from the web.
+
+               Most publishers and many college instructors view Wikipedia as being a dubious
+               source of information. Anyone can edit the entries it contains, and sometimes
+               people do so in ways that slant the information politically or socially, or simply
+               reflect a lack of knowledge (see http://www.foxbusiness.com/features/2015/
+               09/02/just-how-accurate-is-wikipedia.html and https://www.research
+               gate.net/publication/249362832_Comparison_of_Wikipedia_and_other_
+               encyclopedias_for_accuracy_breadth_and_depth_in_historical_articles).
+               This means that the information you receive may not reflect reality. However,
+               many studies show that the community effort behind creating Wikipedia (see
+               https://www.livescience.com/32950-how-accurate-is-wikipedia.html,
+               https://www.cnet.com/news/study-wikipedia-as-accurate-as-britannica/,
+               and https://www.zmescience.com/science/study-wikipedia-25092014/) does
+               tend to mitigate this issue partially. Even so, you need to exercise some level of
+
+
+372   PART 5 Applying Learning to Real Problems
+=== [PDF p.387] ===
+care in taking Wikipedia entries at face value, just as you would any Internet con-
+tent. Just because someone tells you something is so doesn’t make it true (no mat-
+ter what form that information source might take). You need to cross-reference
+the information and verify the facts before accepting any Internet information
+source as factual, even Wikipedia.
+
+Wikipedia has its own rules and terms of service, which you may read at https://
+meta.wikimedia.org/wiki/Bot_policy#Unacceptable_usage. The terms of
+service forbid the use of bots for automated tasks, such as modifying the website
+(corrections and automatic posting), and bulk downloads (downloading massive
+amounts of data). Yet, Wikipedia is a great source for NLP analysis because you
+can download all its English articles at https://dumps.wikimedia.org/enwiki/.
+Other languages also are available for download. Just consult https://dumps.
+wikimedia.org/ for further information.
+
+  from bs4 import BeautifulSoup
+  import pandas as pd
+  import urllib.request as urllib2
+
+  wiki = "https://en.wikipedia.org/wiki/”
+  wiki += "List_of_United_States_cities_by_population"
+  header = {'User-Agent': 'Mozilla/5.0'}
+  query = urllib2.Request(wiki, headers=header)
+  page = urllib2.urlopen(query)
+  soup = BeautifulSoup(page, "lxml")
+
+After you upload the Beautiful Soup package, the code defines a header (stating
+that you are a human user using a browser) and a target page. The target page is
+a document containing a list of major U.S. cities: https://en.wikipedia.org/
+wiki/List_of_United_States_cities_by_population. The list also contains
+information about population and surface of the city.
+
+  table = soup.find("table", { "class" : "wikitable
+            sortable" })
+  final_table = list()
+
+  def extract_txt(cell):
+      """Extracting only text"""
+      cells = [c.strip() for c in cell.findAll(text=True)
+    if '[' not in c]
+      return ' '.join(cells).strip()
+
+  def filter_sq(txt):
+      """Extracting squared meter values"""
+      return txt.split('sq')[0].strip()
+
+
+                         CHAPTER 18 Scoring Opinions and Sentiments           373
+=== [PDF p.388] ===
+                 cols = [extract_txt(cell) for cell in table.findAll("th")]
+                 columns = [cols[1], cols[2], cols[3], cols[4], cols[6]]
+
+                 for row in table.findAll('tr'):
+                     cells = row.findAll("td")
+                     if len(cells)>0:
+                         final_table.append([extract_txt(cells[1]),
+                                             extract_txt(cells[2]),
+                                             extract_txt(cells[3]),
+                                             extract_txt(cells[4]),
+                                  filter_sq(extract_txt(cells[6]))
+                                            ])
+                 df = pd.DataFrame(final_table, columns=columns)
+
+               After downloading the page into the variable named soup, using the find() and
+               findAll() methods, you can look for a table (the <tr> and <td> tags). The cells
+               variable contains a number of cell entries, each of which can contain text. The
+               code looks inside each cell for textual information (v1 through v5) that it stores in
+               a list (final_table). It then turns the list into a pandas DataFrame for further
+               processing later.
+
+                 print(df.head(5))
+
+               Finally, you can use the DataFrame, df, to turn strings into numbers. Simply
+               printing df outputs the resulting table shown here (your precise output could vary
+               from that shown).
+
+                          City        State 2019 est 2010 Census 2016 area
+                 0    New York     New York 8,336,817 8,175,133    301.5
+                 1 Los Angeles     Californ 3,979,576 3,792,621    468.7
+                 2     Chicago     Illinois 2,693,976 2,695,598    227.3
+                 3     Houston        Texas 2,320,268 2,100,263    637.5
+                 4     Phoenix      Arizona 1,680,992 1,445,632    517.6
+
+
+
+               Handling problems with raw text
+               Even though raw text wouldn’t seem to present a problem in parsing because it
+               doesn’t contain any special formatting, you do have to consider how the text is
+               stored and whether it contains special words within it. The multiple forms of
+               encoding existing on web pages can present interpretation problems that you
+               need to consider as you work through the text.
+
+
+
+
+374   PART 5 Applying Learning to Real Problems
+=== [PDF p.389] ===
+       For example, the way the text is encoded can differ because of different operating
+       systems, languages, and geographical areas. Be prepared to find a host of different
+       encodings as you recover data from the web. Human language is complex, and the
+       original ASCII encoding of unaccented English letters can’t represent every alpha-
+       bet. That’s why so many encodings appeared with special characters. For example,
+       a character can use either seven or eight bits for encoding purposes. The use of
+       special characters can differ as well. In short, the interpretation of bits used to
+       create characters differs from encoding to encoding. You can see a host of encod-
+       ings at http://www.i18nguy.com/unicode/codepages.html.
+
+       When working with Python, you must rely on Universal Transformation Format
+       8-bit (UTF-8) as the encoding used to read and write files because the environ-
+       ment is always set for UTF-8. However, sometimes you need to work with encod-
+       ings other than the default encoding set within the Python environment (and the
+       list of possible encodings is really long: https://docs.python.org/3/library/
+       codecs.html#standard-encodings).
+
+       If you already know what encoding you are working with, the best strategy is to
+       point it out explicitly when reading your file and then converting your data to
+       UTF-8. For instance, the pandas read_csv() function has an encoding parameter
+       that lets you specify the encoding of your textual data. In addition, the method
+       to_csv() attached to DataFrames has the same parameter that defaults to con-
+       verting all the text to UTF-8.
+
+
+
+
+Using Scoring and Classification
+       The previous NLP discussions in this chapter show how a machine learning algo-
+       rithm can read text (after scraping it from the web) using the BoW representation
+       and how NLP can enhance its understanding of text using text length normaliza-
+       tion, TF-IDF model, and n-grams. The following sections demonstrate how to put
+       text processing into use by learning to solve two common problems in textual
+       analysis: classification and sentiment analysis.
+
+
+
+       Performing classification tasks
+       When you classify texts, you assign a document to a class because of the topics it
+       discusses. You can discover the topics in a document in different ways. The sim-
+       plest approach is discovering whether a group of people talks or writes about a
+       topic. People tend to use words from a limited vocabulary because they refer or
+       relate to the same topic. When you share some meaning or are part of the same
+       group, you tend to use the same language. Consequently, if you have a collection
+
+
+
+
+                                CHAPTER 18 Scoring Opinions and Sentiments           375
+=== [PDF p.390] ===
+              of texts and don’t know what topics the text references, you can reverse the previ-
+              ous reasoning — you can simply look for groups of words that tend to associate,
+              so their newly formed group by dimensionality reduction may hint at the topics
+              you’d like to know about. This is a typical unsupervised learning task.
+
+              This learning task is a perfect application for the Singular Value Decomposition
+              (SVD) family of algorithms discussed in Chapter 11, because by reducing the num-
+              ber of columns, the features (which, in a document, are the words) will gather in
+              dimensions, and you can discover the topics by checking high-scoring words. SVD
+              and Principal Components Analysis (PCA) provide features to relate both posi-
+              tively and negatively to the newly created dimensions. So a resulting topic may be
+              expressed by the presence of a word (high positive value) or by the absence of it
+              (high negative value), making interpretation both tricky and counterintuitive for
+              humans. The Scikit-learn package includes the Non-Negative Matrix Factoriza-
+              tion (NMF) decomposition class (encountered in Chapter 17), which allows an
+              original feature to relate only positively with the resulting dimensions.
+
+              This example starts by loading a dataset collecting all of Shakespeare’s plays. It
+              contains 217 rows, each one storing the text of an act of a play in the lines column.
+              The experiment tries to find a way to score acts and plays across topics derived in
+              an unsupervised fashion using NMF.
+
+                import pandas as pd
+
+                filename = 'https://github.com/lmassaron/datasets/releases/'
+                filename += 'download/1.0/shakespeare_lines_in_plays.feather'
+                shakespeare = pd.read_feather(filename)
+
+              The TfidVectorizer class is imported and set up to remove stop words (common
+              words such as the or and) and keep only distinctive words, producing a matrix
+              whose columns point to distinct words.
+
+                from sklearn.feature_extraction.text import TfidfVectorizer
+                vectorizer = TfidfVectorizer(max_df=1.0, min_df=3,
+                                             stop_words='english')
+                tfidf = vectorizer.fit_transform(shakespeare.lines)
+
+              As noted earlier in the chapter, TF-IDF is a simple calculation based on the fre-
+              quency of a word in the document. It’s weighted by the rarity of the word between
+              all the documents available. Weighting words is an effective way to rule out words
+              that can’t help to classify or identify the document when processing text. For
+              example, you can eliminate common parts of speech or other common words. As
+              a following step, the code defines the number of topics to extract, instantiates the
+              NMF algorithm, and fits it to the text of Shakespeare’s acts.
+
+
+
+
+376   PART 5 Applying Learning to Real Problems
+=== [PDF p.391] ===
+  n_topics = 10
+  from sklearn.decomposition import NMF
+  nmf = NMF(n_components=n_topics, max_iter=999,
+            random_state=101)
+  nmf.fit(tfidf)
+
+As with other algorithms from the sklearn.decomposition module, the n_com-
+ponents parameter indicates the number of desired components. If you’d like to
+look for more topics, you use a higher number. As the required number of topics
+increases, the reconstruction_err_ method reports lower error rates. Unless you
+spot a discontinuity in the ever decreasing slope of the reconstruction error, it’s
+completely up to you to decide when to stop given the trade-off between more
+time spent on computations and more topics.
+
+In many unsupervised approaches, such as cluster analysis or topic modeling,
+there is no hard rule telling you how many clusters or topics to pick. You have to
+decide based on the usable results for your purpose or by relying on your expertise
+about the problem. The last part of the script outputs the top words associated to
+the resulting topics. By reading the printed words, you can determine the meaning
+of the extracted topics.
+
+  def print_topic_words(features, topics, top=5):
+      for idx, topic in enumerate(topics):
+          words = " ".join([features[i]
+                for i in topic.argsort()[:(-top-1):-1]])
+          print(f"Topic #{idx:2.0f}: {words}")
+
+  print_topic_words(vectorizer.get_feature_names(),
+                    nmf.components_)
+
+
+  Topic # 0: thou thy thee love ll
+  Topic # 1: enter exeunt exit scene ii
+  Topic # 2: king thy lord warwick henry
+  Topic # 3: caesar antony brutus cassius shall
+  Topic # 4: antipholus dromio chain sir syracuse
+  Topic # 5: page ford sir master mistress
+  Topic # 6: rome marcius titus lavinia andronicus
+  Topic # 7: lord good shall sir know
+  Topic # 8: cassio iago desdemona othello moor
+  Topic # 9: hector troilus achilles ajax troy
+
+You can also explore the resulting model by looking into the attribute compo-
+nents_ from the trained NMF model. It consists of a NumPy ndarray holding
+
+
+
+                         CHAPTER 18 Scoring Opinions and Sentiments           377
+=== [PDF p.392] ===
+               positive values for words connected to the topic. Or, by using the argmax method,
+               you can get the score of the examples and figure out which examples are most
+               associated with each topic. The following code snippet figures out what act gets
+               the top score on a selected NMF topic:
+
+                 import numpy as np
+                 index = shakespeare.play + ' act:' + shakespeare.act
+
+                 def find_top_match(model, data, index, topic_no):
+                     topic_scores = model.transform(data)[:, topic_no]
+                     best_score = np.argmax(topic_scores)
+                     print(index[best_score])
+
+                 find_top_match(nmf, tfidf, index, topic_no=8)
+
+                 Othello act:5
+
+
+
+               Analyzing reviews from e-commerce
+               Sentiment is difficult to catch because humans use the same words to express
+               even opposite sentiments. The expression you convey is a matter of how you con-
+               struct your thoughts in a phrase, not simply the words used. Even though diction-
+               aries of positive and negative words do exist and are helpful, they aren’t decisive
+               because word context matters. Usually you look up the words in a phrase, find
+               their values in the dictionary, and sum them to get a sentiment score. You can use
+               these dictionaries as a way to quickly score your texts, but in the end, you have to
+               rely more on machine learning if you want to achieve good results.
+
+               It’s a good idea to see how positive and negative word dictionaries work. The
+               AFINN-111 dictionary contains 2,477 positive and negative words and phrases
+               (http://www2.imm.dtu.dk/pubdb/views/publication_details.php?id=6010).
+               Another good choice is the larger opinion lexicon (a kind of wordbook used for senti-
+               ment analysis based on opinion words, see http://sentiment.christopherpotts.
+               net/lexicons.html for details) by Hu and Liu that appears at https://www.
+               cs.uic.edu/~liub/FBS/sentiment-analysis.html#lexicon. Both dictionaries
+               contain English words.
+
+               Using machine learning and labeled examples that associate phrases to senti-
+               ments can create more effective predictions. In this example, you create a deep
+               learning model based on a dataset released by Stanford University, the Large
+               Movie Review Dataset. You must use the TF_env environment to run this example
+               as described in the “Getting your copy of TensorFlow and Keras” section of
+               Chapter 14.
+
+
+
+
+378   PART 5 Applying Learning to Real Problems
+=== [PDF p.393] ===
+The dataset (http://ai.stanford.edu/~amaas/data/sentiment/) was pre-
+sented in the 2011 paper “Learning Word Vectors for Sentiment Analysis” by
+Andrew Maas and other authors (http://ai.stanford.edu/~amaas/papers/
+wvSent_acl2011.pdf). It collects 50,000 movie reviews from the Internet Movie
+Database (IMDb), an online database of information related to movies, TV pro-
+grams, and video games. The dataset contains an even number of positive and
+negative reviews. Half the reviews are for training and the other half for testing
+purposes. You can directly download the dataset into memory by reading it from a
+GitHub repository containing the data in the feather format:
+
+  import pandas as pd
+
+  filename = 'https://github.com/lmassaron/datasets/'
+  filename += 'releases/download/1.0/imdb_50k.feather'
+  reviews = pd.read_feather(filename)
+
+Randomly exploring the textual data is quite interesting. You can use this com-
+mand to pick a different review each time:
+
+  print(reviews.review.sample(1).values[0])
+
+You’ll find phrases such as “Wasted two hours” or “It was so cool.” Some are
+clearly ambiguous for a computer, such as “Waste your money on this game.”
+Even though waste has a negative meaning, the imperative makes the phrase
+sound positive. A machine learning algorithm can learn to decipher ambiguous
+phrases like these only after seeing many variants. The next step is to build the
+model by splitting the data into training, validation, and test sets. The code uses
+the sample() method available in pandas DataFrames; it samples uniformly and
+allows replication by setting a random_state value:
+
+  train = reviews.sample(30000, random_state=42)
+  sampled_idx = train.index
+  valid = (reviews[~reviews.index.isin(train.index)]
+           .sample(10000, random_state=42))
+  sampled_idx.append(valid.index)
+  test = reviews[~reviews.index.isin(sampled_idx)]
+
+After splitting the data, the code transforms the text using most of the NLP tech-
+niques described in this chapter and incorporated them into the Tokenizer()
+function using tf.keras (for more details, see: https://www.tensorflow.org/
+api_docs/python/tf/keras/preprocessing/text/Tokenizer). After training
+the tokenizer using the training set (so that it can learn the dictionary of available
+words) by using the fit_on_texts() method, the code passes the result to a
+function that first converts the text into numeric sequences. Then it cuts the
+
+
+
+
+                          CHAPTER 18 Scoring Opinions and Sentiments             379
+=== [PDF p.394] ===
+              sequences that are too long and fills the sequences that are too short with filling
+              values. Thus, in the end, all the sequences will have the same number of elements.
+              This process is called padding. The code applies the function to the training,
+              ­validation, and test sets.
+
+                import tensorflow.keras as keras
+
+                tokenizer = keras.preprocessing.text.Tokenizer()
+                tokenizer.fit_on_texts(train.review)
+
+                def tokenize_and_pad(df, tokenizer, maxlen):
+                    sequences = tokenizer.texts_to_sequences(df.review)
+                    pad = keras.preprocessing.sequence.pad_sequences
+                    padded_seqs = pad(sequences, maxlen)
+                    return padded_seqs, df.sentiment.values
+
+                X, y = tokenize_and_pad(train, tokenizer, maxlen=256)
+                Xv, yv = tokenize_and_pad(valid, tokenizer, maxlen=256)
+                Xt, yt = tokenize_and_pad(test, tokenizer, maxlen=256)
+
+              After converting the text into sequences of numeric codes of the same length for
+              both the training, validation, and test sets, the code sets a suitable deep learning
+              architecture. This example uses an embedding layer that combines the text into a
+              few numeric features before feeding them to a classification neuron with a sig-
+              moid activation:
+
+                model = keras.models.Sequential()
+                voc = len(tokenizer.index_word) + 1
+                feats = 8
+                seq_len = 256
+                model.add(keras.layers.Embedding(voc, feats,
+                                          input_length=seq_len))
+                model.add(keras.layers.Flatten())
+                model.add(keras.layers.Dropout(0.2))
+                model.add(keras.layers.Dense(1, activation='sigmoid'))
+                model.compile(optimizer='adam',
+                              loss='binary_crossentropy',
+                              metrics=['acc'])
+                model.summary()
+
+              By training the model for a couple of epochs and validating it using the validation
+              set, you can obtain a predictive accuracy of about 0.90:
+
+                history = model.fit(X, y, epochs=2, batch_size=16,
+                                    validation_data=(Xv, yv))
+
+
+380   PART 5 Applying Learning to Real Problems
+=== [PDF p.395] ===
+As a final step, the code tests the deep learning model on the test set using the
+accuracy_score() function offered by Scikit-learn. Because the model outputs a
+probability for the positive class, the code uses a 0.50 threshold to assign a pre-
+diction to the positive class or the negative one:
+
+  from sklearn.metrics import accuracy_score
+  predictions = (model.predict(Xt)>=0.5).astype(int)
+  test_accuracy = accuracy_score(yt, predictions)
+  print(f"Accuracy on test set: {test_accuracy}")
+
+The evaluation of the test set confirms that the accuracy is about 0.90, as indi-
+cated by the validation set during the training.
+
+
+
+
+                         CHAPTER 18 Scoring Opinions and Sentiments           381
+=== [PDF p.396] ===

@@ -1,0 +1,1586 @@
+                         20
+AT T E N T I O N A N D T R A N S F O R M E R S
+
+
+
+
+            In Chapter 19 we looked at how to use RNNs
+            to handle sequential data. Though power-
+           ful, RNNs have a few drawbacks. Because all
+       of the information about an input is represented
+in a single piece of state memory, or context vector, the
+networks inside each recurrent cell need to work hard
+to compress everything that’s needed into the available space. And no mat-
+ter how large we make the state memory, we can always get an input that
+exceeds what the memory can hold, so something necessarily gets lost.
+     Another problem is that an RNN must be trained and used one word at
+a time. This can be a slow way to work, particularly with large databases.
+     An alternative approach is based on a small network called an attention
+network, which doesn’t have a state memory and can be trained and used in
+parallel. Attention networks can be combined into larger structures called
+transformers, which are capable of serving as language models that can per-
+form tasks like translation. The building blocks of transformers can be used
+in other architectures that provide even more powerful language m   ­ odels,
+including generators.
+                        In this chapter, we start with a more powerful way to represent words
+                    rather than as single numbers, and then build our way up to attention and
+                    modern architectures that use transformer blocks to perform many NLP tasks.
+
+
+      Embedding
+                    In Chapter 19 we promised to improve our word descriptions beyond a single
+                    number. The value of this change is that it allows us to manipulate the repre-
+                    sentations of words in meaningful ways. For example, we can find a word that
+                    is like another word, or we can blend two words to find one that’s in between
+                    them. This concept is key to developing attention, and then transformers.
+                          The technique is called word embedding (or token embedding when we use
+                    it on the more general idea of a token). It’s a bit abstract, so let’s see the
+                    ideas first with a concrete example.
+                          Suppose that you work as an animal wrangler on a movie with a tempes-
+                    tuous director. Today you’re filming a sequence where the human heroes
+                    are chased by some animals. The director asks you for a list of animals you
+                    can provide in sufficient numbers to produce a scary chase. You call your
+                    office, they prepare the list, and they even arrange those animals into a
+                    chart, where the horizontal axis represents each adult animal’s average top
+                    speed and the vertical axis represents its average weight, as in Figure 20-1.
+
+                                                                Bush
+                                                              elephant
+                                               Polar
+                                               bear                             Grizzly
+                    Sleeping                             Brown                   bear
+                      bear                                bear
+                                                                                                 Horse
+
+                                                                         Giraffe
+                       Giant
+                       sloth
+
+                                        Pig                              Deer                   African
+                                                                                                wild dog
+
+
+                                                       Roadrunner
+                                                                                              Gray fox
+
+                                                                      Housecat
+                                       Squirrel         Black
+                        Snail                          mamba
+
+
+                    Figure 20-1: A collection of animals, organized roughly by land speed horizontally and
+                    adult weight vertically, though those axis labels aren’t shown (data from Reisner 2020)
+
+
+566    Chapter 20
+                               But due to a printer error, the chart your office sent you is missing the
+                          labels on the axes, so you have the chart with the animals laid out in 2D,
+                          but you don’t know what the axes mean.
+                               The director doesn’t even look at the chart. “Horses,” she says, “I want
+                          horses. They’re exactly what I want and will be perfect and nothing else will
+                          do.” So you bring in the horses, and they rehearse the scene.
+                               Unfortunately, the director is unhappy. “No, no, no!” she says. “The
+                          horses are too twitchy and quick. They’re like foxes. Give me horses that are
+                          less fox-like.”
+                               How on Earth can you satisfy this request? What does it even mean?
+                          Happily, you can do just as she asks with the chart, just by combining arrows.
+                               You only need to do two things with arrows: add them and subtract
+                          them. To add arrow B to arrow A, place the tail of B onto the head of A.
+                          The new arrow A + B starts at the tail of A, and ends at the head of B, as in
+                          the middle of Figure 20-2.
+
+
+                                                                        B                                   –B
+
+                                                                                                                                   A
+                             A                                                      A+B
+                                                        B                                                                   A–B
+                                                                    A
+
+
+
+                          Figure 20-2: Arrow arithmetic. Left: Two arrows. Middle: The sum A + B. Right: The differ-
+                          ence A – B.
+
+                              To subtract B from A, just flip B around by 180 degrees to make –B, and
+                          add together A and –B. The result, A – B, starts at the tail of A and ends at
+                          the head of –B, as in the right of Figure 20-2.
+                              Now you can satisfy the director’s desire to remove the fox qualities
+                          from the horses. Start by drawing an arrow from the bottom left of the
+                          chart to the horse, and another to the fox, as in the left of Figure 20-3.
+                               Bush                                                                      Bush
+                             elephant                                                                  elephant
+                 Polar                                                                     Polar
+                 bear                         Grizzly                                                                   Grizzly
+Sleeping                  Brown                                         Sleeping           bear     Brown
+                                               bear                                                                      bear
+  bear                     bear                                           bear                       bear
+                                                          Horse                                                                     Horse
+
+                                        Giraffe                                                                   Giraffe
+  Giant                                                                     Giant
+  sloth                                                                     sloth
+
+           Pig                         Deer              African                     Pig                         Deer              African
+                                                         wild dog                                                                  wild dog
+
+
+                         Roadrunner                                                                Roadrunner
+                                                        Gray fox                                                                  Gray fox
+
+                                      Housecat                                                                  Housecat
+           Squirrel       Black                                                     Squirrel        Black
+   Snail                 mamba                                              Snail                  mamba
+
+
+
+Figure 20-3: Left: Arrows from the bottom left to the horse and fox. Right: Subtracting fox from horse gives us
+a giant sloth.
+
+                                                                                                      Attention and Transformers        567
+                                   Now subtract foxes from horses, as requested, by subtracting the fox
+                              arrow from the horse arrow. Following the rules of Figure 20-2, that means
+                              flipping the fox arrow around and placing its tail at the head of the horse
+                              arrow. We get the right side of Figure 20-3.
+                                   A giant sloth. Well, okay, it’s what the director wanted. We can even
+                              write this like a little bit of arithmetic: horse – fox = giant sloth (at least,
+                              according to our diagram).
+                                   The director throws her latte on the ground. “No no no! Sure, sloths
+                              would look great, but they hardly move! Make them fast! Give me sloths
+                              that are like roadrunners!”
+                                   Now we know just how to satisfy this ridiculous demand: find the arrow
+                              from the bottom left to the roadrunner, as shown in the left of Figure 20-4,
+                              and add that to the head of the arrow pointing to the sloth, giving us a
+                              brown bear. That is, horse – fox + roadrunner = brown bear, as in the right
+                              of Figure 20-4.
+                                   Bush                                                                Bush
+                                 elephant                                                            elephant
+                     Polar                                                               Polar
+                     bear                         Grizzly                                                             Grizzly
+Sleeping                                                                Sleeping         bear
+                                Brown              bear                                                                bear
+  bear                                                                    bear                      Brown
+                                 bear                                                                bear
+                                                              Horse                                                               Horse
+
+                                            Giraffe                                                             Giraffe
+  Giant                                                                   Giant
+  sloth                                                                   sloth
+
+               Pig                         Deer              African               Pig                         Deer              African
+                                                             wild dog                                                            wild dog
+
+
+                             Roadrunner                                                          Roadrunner
+                                                            Gray fox                                                            Gray fox
+
+                                          Housecat                                                            Housecat
+              Squirrel        Black                                                Squirrel       Black
+   Snail                     mamba                                         Snail                 mamba
+
+
+
+
+Figure 20-4: Left: We can draw an arrow to the roadrunner. Right: Giant sloth + roadrunner = brown bear.
+
+                                   You offer the director a group of brown bears (called a sleuth of bears).
+                              The director rolls her eyes dramatically. “Finally. Something that’s fast like
+                              horses, but not twitchy like foxes, and quick like roadrunners. It’s only what
+                              I asked for in the first place.” They shoot the chase scene with bears, and
+                              the movie later comes out to great acclaim.
+                                   There are two key elements to this story. The first is that the animals in
+                              our chart were laid out in a useful way, even though we didn’t know what
+                              that way was, or what the axes represented about the data.
+                                   The second key point is that we didn’t need the axis labels after all.
+                              We were able to navigate the chart just by adding and subtracting arrows
+                              pointing to elements on the chart itself. That is, we didn’t try to find a
+                              “slower horse.” Rather, we worked strictly with the animals themselves,
+                              and their various attributes came along implicitly. Removing the speedi-
+                              ness of a fox from a big animal like a horse gave us a big, slow animal.
+                                   What does this have to do with processing language?
+
+
+
+
+568        Chapter 20
+Embedding Words
+To apply what we’ve just seen to words, we’ll replace the animals with words.
+And instead of using only two axes, we’ll place our words in a space of hun-
+dreds of dimensions.
+      We do this with an algorithm that works out what each axis in this
+space should mean as it places every word at the appropriate point. Instead
+of assigning each word a single number, the algorithm assigns the word a
+whole list of numbers, representing its coordinates in a huge space.
+      This algorithm is called an embedder, and we say that this process is
+one of embedding the words in the embedding space, thereby creating word
+embeddings.
+      The embedder works out for itself how to construct the space and find
+the coordinates of each word so that it’s near similar words. For example,
+if it sees a lot of sentences that begin with I just drank some, then whatever
+noun comes next is interpreted as some kind of drink, and it is placed near
+other kinds of drinks. If it sees I just ate a red, then whatever comes next is
+interpreted as something that’s red and edible, and it is placed near other
+things that are red and near other things that are edible. The same thing is
+true of dozens or even hundreds of other relationships, both obvious and
+subtle. Because the space has so many dimensions and the axes can have
+arbitrarily complex meanings, words can belong simultaneously to many
+clusters based on seemingly unrelated characteristics.
+      This idea is both abstract and powerful, so let’s illustrate it with some
+actual examples. We tried a few “word arithmetic” expressions using a pre-
+trained embedding of 684,754 words saved in a space of 300 dimensions
+(spaCy authors 2020). Our first test was a famous one: king – man + woman
+(El Boukkouri 2018). The system returned queen as the most likely result,
+which makes sense: we can imagine that the embedder worked out some
+sense of nobility on one axis and gender on another. Other tests were close
+but not perfect. For example, lemon – yellow + green came back with ginger
+as the best match, but the expected lime wasn’t far back as the fifth-closest
+word. Similarly, trumpet – valves + slide returned saxophone as the most likely
+result, but the expected trombone was the first runner-up.
+      The beauty of training an embedder in a space with hundreds (or even
+thousands) of dimensions is that it can use the space much more efficiently
+than any person probably would, enabling it to simultaneously represent an
+enormous number of relationships.
+      The word arithmetic we just saw is a fun demonstration of embedding
+spaces, but it also enables us to meaningfully perform operations on words
+like comparing them, scaling them, and adding them, all of which are
+important to the algorithms in this chapter.
+      Once we have word embeddings, it’s easy to incorporate them into
+almost any network. Instead of assigning a single integer to each word, we
+assign the word embedding, which is a list of numbers. So instead of pro-
+cessing zero-dimensional tensors (single numbers), the system processes
+one-dimensional tensors (lists of numbers).
+
+
+
+                                                        Attention and Transformers   569
+                        This neatly addresses the problem we saw in Chapter 19 where predic-
+                   tions that were close to the target but not exactly right gave us nonsense.
+                   Now we can tolerate a bit of imprecision, because similar words are embed-
+                   ded near one another. For example, we might give our language model the
+                   phrase The dragon approached and let out a mighty, expecting the next word to
+                   be roar. The algorithm might predict a tensor that’s near roar but not exactly
+                   on it, giving us bellow or blast instead. We probably wouldn’t get back some-
+                   thing unrelated, like daffodil.
+                        Figure 20-5 shows six sets of four related words that we gave to a stan-
+                   dard word embedder. The more the embeddings of any two words are
+                   like one another, the higher that pair of words scored, so the darker their
+                   intersection appears. The graph is symmetric around the diagonal from the
+                   upper left to the lower right, since the order in which we compare the words
+                   doesn’t matter.
+
+
+
+
+                   Figure 20-5: Comparing pairs of words by comparing the similarity of their embeddings
+
+                       We can see from Figure 20-5 that each word matches itself most
+                   strongly and also matches related words more strongly than unrelated
+                   words. Because we placed related words side by side, the graph shows
+                   their similarities as small blocks. There are a few curiosities, however. For
+                   example, why does fish match better than average with chocolate and coffee,
+                   and why does blue score well with caramel? These might be artifacts from the
+                   particular training data used for this embedder.
+
+570   Chapter 20
+     The coffee drinks and the flavors score well with one another, perhaps
+because people order coffee drinks with those flavored syrups. There’s also
+a hint of a relationship between the colors and the flavors.
+     Many pretrained word embedders are widely available for free, and easily
+downloaded into almost any library. We can simply import them and imme-
+diately get the vector for any word. The GLoVe (Mikolov et al. 2013a; Mikolov
+et al. 2013b) and word2vec (Pennington, Socher, and Manning 2014) embed-
+dings have been used in many projects. The more recent fastText (Facebook
+Open Source 2020) project offers embeddings in 157 languages.
+     We can also embed entire sentences, so that we can compare them as a
+whole, rather than word by word (Cer et al. 2018). Figure 20-6 shows com-
+parisons between embeddings for a dozen sentences (TensorFlow 2018). In
+this book, we focus on word embeddings rather than sentences.
+
+
+
+
+Figure 20-6: Comparing sentence embeddings. The larger the score, the more the sen-
+tences are considered like one another.
+
+
+ELMo
+Word embeddings are a huge advance over assigning single integers to
+words. But even though word embeddings are powerful, the approach we
+described earlier to create them has a problem: nuance.
+    As we saw in Chapter 19, many languages have words with different mean-
+ings but are written and pronounced the same way. If we want to make sense
+of words, we need to distinguish these meanings. One way to do that is to
+give every meaning of a word its own embedding. So cupcake, which has one
+
+                                                             Attention and Transformers   571
+                    meaning, has one embedding. But train has two embeddings, one for when it’s
+                    a noun (as in, “I rode on a train”), and one for when it’s a verb (as in, “I like to
+                    train dogs”). These two meanings of train really are entirely different ideas that
+                    just happen to use the same sequence of letters.
+                         Such words present two challenges. First, we have to create unique
+                    embeddings for each meaning. Second, we have to select the correct embed-
+                    ding when such words are used as input. Solving these challenges requires
+                    that we take into account the context of every word. The first algorithm to
+                    do this in a big way was called Embedding from Language Models, but it’s better
+                    known by its friendly acronym ELMo (Peters et al. 2018), which is the name
+                    of a Muppet on the children’s television show Sesame Street. We say that ELMo
+                    produces contextualized word embeddings.
+                         ELMo’s architecture is similar to that of a pair of bi-RNNs, which we
+                    saw in Figure 19-20, but the pieces are organized differently. In a standard
+                    bi-RNN, we couple two RNNs running in opposite directions.
+                         ELMo changes this around. Although it uses two RNN networks that run
+                    forward and two that run backward, they are grouped by direction. Each of
+                    these groups is a two-layer-deep RNN, like the one we saw in Figure 19-21.
+                    ELMo’s architecture is shown in Figure 20-7. It’s traditional to draw ELMo
+                    diagrams with a red color scheme, since Elmo on Sesame Street is a bright red
+                    character.
+
+                            E(it)        E(was)                          E(times)
+
+
+      ELMo
+
+
+
+
+       F2                                                                                           B2
+
+       F1                                                                                           B1
+
+
+
+
+                                    it      was                         times
+
+Figure 20-7: The structure of ELMo in unrolled form. The input text is at the bottom. The embedding of each
+input element is at the top.
+
+                        This architecture means each input word is turned into two new
+                    tensors, one from the forward networks (labeled F1 and F2), that take
+                    into account the preceding words, and one from the backward networks
+                    (labeled B1 and B2) that consider the following words. By concatenating
+
+572    Chapter 20
+these results together, we get contextualized word embeddings informed by
+all the other words in the sentence.
+     Trained versions of ELMo are widely available for free downloads in a
+variety of sizes (Gluon 2020). Once we have a pretrained ELMo, it’s easy to
+use in any language model. We give our entire sentence to ELMo, and we
+get back a contextualized word embedding for each word, given its context.
+     Figure 20-8 shows four sentences that use the homonym train as a
+verb, and four that use train as a noun. We gave these to a standard ELMo
+model trained on a database of 1 billion words that places each word into
+a space of 1,024 dimensions (TensorFlow 2020a). We extracted ELMo’s
+embedding of the word train in each sentence, and compared its embed-
+ding to that of the word train in all the other sentences. Although the word
+is written in the identical way in each sentence, ELMo is able to identify the
+correct embedding based on the word’s context.
+
+
+
+
+Figure 20-8: Comparing ELMo’s embeddings of train resulting from its use in different sen-
+tences. Darker colors mean more similar embeddings.
+
+    We usually place embedding algorithms like ELMo on their own
+layer in a deep learning system. This is often the very first layer in a lan-
+guage processing network. Our icon for an embedding algorithm, shown
+in Figure 20-9, is meant to suggest taking the space of words and placing it
+inside the larger embedding space.
+
+                                                                Attention and Transformers   573
+                    Figure 20-9: Our icon for an embedding layer
+
+                        ELMo and other algorithms like it, such as the Universal Language Model
+                    Fine-Tuning, or ULMFiT (Howard and Ruder 2018), are typically trained on
+                    general-purpose databases, such as books and documents from the web.
+                    When we need them for some specific downstream task, such as medical or
+                    legal applications, we usually fine-tune them with additional examples from
+                    those domains. The result is a set of embeddings that include the special-
+                    ized language of those fields, clustered by their special meanings in that
+                    jargon.
+                        We’ll use embeddings in the systems we will build later in this chapter.
+                    Those networks will rely on the mechanism of attention, so let’s look at
+                    that now.
+
+
+      Attention
+                    In Chapter 19 we saw how to improve translation by taking into account all
+                    of the words in a sentence. But when we’re translating a particular word,
+                    not every word in the sentence is equally important, or even relevant.
+                         For example, suppose we’re translating the sentence I saw a big dog
+                    eat his dinner. When we’re translating dog, we probably don’t care about the
+                    word saw, but to translate the pronoun his correctly may require us to con-
+                    nect that to the two words big dog.
+                         If we can work out, for each word in the input, which other words can
+                    influence our translation, then we can focus just on those words and ignore
+                    the others. This would be a big savings in both memory and computation
+                    time. And if we can work this out in a way that doesn’t depend on process-
+                    ing the words serially, we can even do it in parallel.
+                         The algorithm that does this job is called attention, or self-attention
+                    (Bahdanau, Cho, and Bengio 2016; Sutskever, Vinyals, and Le 2014; Cho
+                    et al. 2014). Attention lets us focus our resources on only the parts of the
+                    input that matter.
+                         Modern versions of attention are often based on a technique called
+                    query, key, value, or simply QKV. These terms come from the field of data-
+                    bases and can seem somewhat obscure in this context. So we’ll describe
+                    the concepts using a different set of terms and then connect them back to
+                    query, key, and value at the end.
+
+                    A Motivating Analogy
+                    Let’s begin with an analogy. Suppose that you need to buy some paint, but
+                    all you’ve been told is that the color should be “light yellow with a bit of
+                    dark orange.”
+                         At the only paint store in town, the only clerk on duty is new to the
+                    paint department and isn’t personally familiar with the colors. You both
+
+574    Chapter 20
+                  presume you’ll need to mix together a few of their standard paints to get
+                  the color you want, but you don’t know which paints to choose or how much
+                  of each to use.
+                      The clerk suggests that you compare your desired color description with
+                  the color names on each can of paint they carry. Some names will prob-
+                  ably match better than others. The clerk puts a funnel on top of an empty
+                  can and suggests that you pour in some of each can of paint on the shelves,
+                  guided by how well that can’s name matches your description. That is, you’ll
+                  compare your desired description “light yellow with a bit of dark orange”
+                  with what’s printed on the label of each can, and the better the match, the
+                  more of that paint you’ll pour into the funnel.
+                      Figure 20-10 shows the idea visually for six cans of paint. It shows their
+                  names and the quality of each name’s match with your desired color’s
+                  description. We got good matches on “Sunny Yellow” and “Orange Crush,”
+                  though a little bit of “Lunch with Teal” snuck in thanks to the match with
+                  the word “with.”
+
+                      Sunny       Purple     Green       Orange    Lunch with    Mellow
+                      Yellow     Lollipop    Monster     Crush        Teal        Blue
+ “light yellow
+  with a bit of
+ dark orange”
+                       45%         0%          0%         45%         10%         0%
+
+Figure 20-10: Given a color description (left), we combine some of each can based on how well its name
+matches the description (middle), to get a final result (right).
+
+                      There are three things to focus on in this story. First, there’s
+                  your request: “light yellow with a bit of dark orange.” Second, there’s
+                  the description on each can of paint, like “Sunny Yellow” or “Mellow Blue.”
+                  Third, there’s the content of the paint that’s actually inside each can. In the
+                  story, you compared your request with each can’s description to find out
+                  how well they match. The better the match, the more of that can’s content
+                  you used in the final mixture.
+                      That’s attention in a nutshell. Given a request, compare it to the
+                  description of each possible item and include some of the content of each
+                  item based on how well its description matches the request.
+                      The authors of the first paper on attention compared this process to a
+                  common type of transaction used with a database. In database language,
+                  we look something up by sending a query to a database. In such a process,
+                  every object in the database has a descriptive key, which can be different
+                  than the actual value of the object. Note that here the word value refers to
+                  the contents of the object, whether it’s a single number or something more
+                  complicated, such as a string or tensor.
+                      The database system compares the query (or request) with each key
+                  (or description) and uses that score to determine how much of the object’s
+                  value (or content) to include in the final result. So our terms of request,
+                  description, and content correspond to query, key, and value, or, more com-
+                  monly, QKV.
+
+                                                                                Attention and Transformers   575
+                   Self-Attention
+                   Figure 20-11 shows the fundamental operation of attention in abstracted
+                   form. Here we have five words of input. Each of the three colored boxes
+                   represents a small neural network that takes the numerical representation
+                   of a word and transforms it into something new (often, these networks are
+                   each just a single fully connected layer). In this example, the word dog is the
+                   one we want to translate. So a neural network (in red) transforms the ten-
+                   sor for dog and turns it into a new tensor representing the query, Q. As the
+                   figure shows, two more small neural networks translate the tensor for dinner
+                   into new tensors, corresponding to its key, K (from the blue network) and
+                   its value, V (from the green network).
+
+
+
+
+                                                    S
+                              Q                                 K      V
+
+
+
+                   The         dog          ate         his       dinner
+                   Figure 20-11: The core step of attention using dog for the query to determine
+                   the relevance of the word dinner. Each box represents a small neural network
+                   that transforms its input into a query, key, or value.
+
+                        In practice, we compare the query for dog against the key of every word
+                   in the sentence, including dog itself. For this illustration, we limit our focus
+                   to the comparison with the word dinner.
+                        We compare the query and the key to determine how alike they are. We
+                   do this with a little scoring function that we’re indicating with the letter S in
+                   a circle. Without getting into the math, this function compares two tensors
+                   and produces a single number. The more that the two tensors are like one
+                   another, the larger that number. The scoring function is usually designed
+                   to produce a number between 0 and 1, with larger values indicating a better
+                   match.
+                        We use the output from the scoring function to scale the tensor rep-
+                   resenting the value for dinner. The more the query and the key match, the
+                   larger the output of the scaling step, and the more the value of dinner will
+                   make it into the output.
+                        Let’s see what it looks like when we apply this fundamental step to all
+                   the words in the input simultaneously. We’ll continue to look at translat-
+                   ing the word dog. The overall result is the sum of the individual scaled val-
+                   ues of all the input words. Figure 20-12 shows how this looks.
+
+
+576   Chapter 20
+   S            S            S            S            S
+
+
+
+
+ The          dog          ate          his       dinner
+Figure 20-12: Using attention to simultaneously determine the contribution
+of all five words in the sentence to the word dog. The QKV spatial and
+color coding matches Figure 20-11. All data flows upward in the figure.
+
+     There are a few things to note in Figure 20-12. First, only three neural
+networks are involved—one each to compute the query, key, and value ten-
+sors. We use the same “input to query” network (in red in the figure) to
+turn each input into its query, the same “input to key” network (in blue in
+the figure) to turn each input into its key, and the same “input to value”
+network (in green in the figure) to turn each input into its value. We only
+need to apply these transformations once to each word.
+     Second, there’s a dashed line after the scores and before the scaling of
+the values. This represents a softmax step applied to the scores, followed by
+a division. These two operations keep the numbers coming out of the scores
+from getting too big or small. The softmax also exaggerates the influence
+of close matches.
+     Third, we sum up all the scaled values to get a new tensor for dog,
+including that from the value of dog itself. We often find that each word
+scores most highly with itself. This isn’t a bad thing, as in this case, the
+most important word for translating dog is indeed dog itself. But there are
+times when other words will matter more. Some examples include when
+word order changes, when a word has no direct translation and must rely
+on other words, or when we’re trying to resolve a pronoun.
+     The fourth important point is that we apply the processing of Fig­ure 20-12
+to all the words in the input sentence simultaneously. That is, each word is
+considered the query, and the whole process executes independently for that
+word, as shown in Figure 20-13.
+
+
+
+
+                                                                Attention and Transformers   577
+  S           S        S         S         S                   S           S    S     S       S
+
+
+
+
+The         dog      ate       his     dinner                The       dog     ate   his   dinner
+
+
+
+
+  S           S        S         S         S                   S           S    S     S       S
+
+
+
+
+The         dog      ate       his     dinner                The       dog     ate   his   dinner
+
+Figure 20-13: Applying attention to the other four words in our sentence
+
+                         Our fifth and last point is just an explicit recap of something we’ve been
+                    noting all along: all of this processing in Figure 20-12 and Figure 20-13
+                    together can be done in parallel in just four steps, regardless of the length
+                    of the sentence. Step 1 transforms the inputs into query, key, and value ten-
+                    sors. Step 2 scores all the queries and keys against one another. Step 3 uses
+                    the scores to scale the values, and step 4 adds up the scaled values to pro-
+                    duce a new output for each input.
+                         None of these steps depend on how long the input is, so we can process
+                    long sentences in the same amount of time required by short ones, as long
+                    as we have the memory and computing power needed.
+                         We call the process of Figure 20-12 and Figure 20-13 self-attention,
+                    because the attention mechanism is using the same set of inputs for com-
+                    puting everything: the queries, keys, and values. That is, we’re finding how
+                    much the input should be paying attention to itself.
+                         When we place self-attention in a deep network, we put it onto its
+                    own self-attention layer, often simply called an attention layer. The input is a
+                    list of words in numerical form, and the output is the same.
+
+
+578    Chapter 20
+     The engines that power attention are the scoring function and the neu-
+ral networks that transform the inputs into queries, keys, and values. Let’s
+consider them briefly.
+     The scoring function compares a query to a key, returning a value
+from 0 to 1, where the more the two values are similar, the higher their
+score. So somehow, the inputs that we think of as being similar need to
+have similar values going into the scoring function. Now we can see the
+practical value of embeddings. Recall our discussion of A Tale of Two Cities,
+in Chapter 19 where we assigned each word a number given by its order
+in the text. That gave the words keep and flint numbers 1,003 and 1,004
+respectively. If we just compared these numbers, they would get a high
+similarity score. For most sentences, this is not what we want. If we’re using
+the query value for the verb keep, we usually want it to be similar to the
+keys for synonyms like retain, hold, and reserve, and not at all like the keys
+for unrelated words like flint, preposterous, or dinosaur. Embeddings are the
+means by which similar words (or words used in similar ways) are given
+similar representations.
+     Doing any necessary fine-tuning to the embeddings is the job of the
+neural networks, which transform the input words into representations
+where they can be meaningfully compared in the context of the sentence
+they’re used in. The only reason we have any chance of that is that the
+words are already embedded in a space where similar words are near one
+another.
+     Similarly, it’s the job of the network that turns inputs into values to
+represent those values in a way that allow them to be usefully scaled and
+combined. Mixing two embedded words gives us a word that’s somewhere
+between them.
+
+Q/KV Attention
+In the self-attention network of Figure 20-12, the queries, keys, and values
+are all derived from the same inputs, which led to the name self-attention.
+    A popular variation uses one source for the queries and another for
+the keys and values. This more closely matches our paint store analogy,
+where we came in with the query, and the store had the keys and values.
+We call this variation a Q/KV network, where the slash indicates that the
+queries come from one source, and the keys and values from another. This
+version is sometimes used when we add attention to a network like seq2seq,
+where the queries come from the encoder, and the keys and values from the
+decoder, so it’s sometimes also called an encoder-decoder attention layer. The
+structure is shown in Figure 20-14.
+
+
+
+
+                                                       Attention and Transformers   579
+                   Q
+
+
+
+
+                              S          S           S           S           S
+
+
+
+
+                           The         dog         ate         his      dinner
+                   Figure 20-14: A Q/KV layer is like self-attention as shown in Figure 20-12,
+                   except that the queries don’t come from the inputs.
+
+
+                   Multi-Head Attention
+                   The idea of attention is to identify words that are alike and create a useful
+                   mix of them. But words can be considered alike based on many different
+                   metrics. We might consider nouns to be alike, or colors, or spatial ideas like
+                   up and down, or temporal ideas like yesterday and tomorrow. Which of these
+                   is the best choice?
+                        Of course, there is no one best answer. In fact, we often want to com-
+                   pare words using multiple criteria at once. For instance, when writing song
+                   lyrics, we may want to assign high scores to pairs of words that have similar
+                   meanings, similar sounds in their last syllable, the same number of syllables,
+                   and the same stress pattern in the syllables. When writing about sports, we
+                   might instead want to say that players on the same teams and with the same
+                   roles are like one another.
+                        We can score words along multiple criteria by simply running multiple
+                   independent attention networks simultaneously. Each network is called a
+                   head. By initializing each head independently, we hope that during train-
+                   ing, each head will learn to compare the inputs according to criteria that
+                   are simultaneously useful and different from those used by the other layers.
+                   If we want, we can add additional processing to explicitly encourage dif-
+                   ferent heads to attend to different aspects of the inputs. The idea is called
+                   multi-head attention, and we can apply it to both self-attention networks like
+                   Figure 20-12 and Q/KV networks like Figure 20-14.
+                        Each head is a distinct attention network. The more heads we have, the
+                   more different aspects of the input they can focus on.
+                        A diagram for a multi-head attention layer is shown in Figure 20-15. As
+                   the figure shows, we usually combine the outputs of the heads into a list and
+
+
+
+
+580   Chapter 20
+       run that through a single fully connected layer. This allows the entire multi-
+       head network’s output to have the same shape as its input. This approach
+       makes it easy to place multiple multi-head networks one after another.
+
+
+
+
+       Input                                          Output
+
+
+
+       Figure 20-15: A multi-head attention layer. A box with a
+       diamond inside is our icon for an attention layer.
+
+           Attention is a general concept that we can apply in different forms to
+       any kind of deep network. For example, in a CNN we can scale a filter’s
+       outputs to emphasize the values produced in response to the most relevant
+       locations in the input (Liu et al. 2018; H. Zhang et al. 2019).
+
+       Layer Icons
+       Figure 20-16 shows our icons for the different types of attention layers.
+       Multi-head attention is drawn as a little 3D box, suggesting a stack of
+       attention networks. For Q/KV attention, we place a short line inside the
+       diamond to identify the Q inputs and bring in the K and V inputs on an
+       adjacent side.
+                                                                          K,V
+                                                     K,V
+
+
+                                              Q                   Q
+
+            (a)                (b)                    (c)                  (d)
+
+       Figure 20-16: Attention layer icons. (a) Self-attention. (b) Multi-head self-attention.
+       (c) Q/KV attention. (d) Multi-head Q/KV attention.
+
+
+
+Transformers
+       Now that we have embedding and attention, we’re ready to make good on
+       our earlier promise to improve on RNNs.
+           Our goal is to build a translator based not on RNNs, but on attention
+       networks. The key idea is that the attention layers will learn how to transform
+       our inputs into their translations, based on the relationships between words.
+
+                                                                           Attention and Transformers   581
+                       This approach first appeared in a paper with the great title, “Attention
+                   Is All You Need” (Vaswani et al. 2017). The authors called their attention-
+                   based model a transformer (an unfortunately ambiguous name, but it’s now
+                   firmly stuck in the language of the field). The transformer model works so
+                   well that we now have a new class of language models that not only can be
+                   trained in parallel, but also can outperform RNNs in a wide variety of tasks.
+                       Transformers use three more ideas we haven’t discussed yet. Let’s cover
+                   them now, so when we get to the actual transformer architecture, it will be
+                   smooth sailing.
+
+                   Skip Connections
+                   The first new idea we cover is called a residual connection or skip connec-
+                   tion (He et al. 2015). The inspiration is to reduce the amount of work that’s
+                   required of a deep network layer.
+                        Let’s start with an analogy. Suppose you’re painting a real, physical
+                   portrait using acrylic paints on canvas. After weeks of sittings, the portrait
+                   is done, and you send it to your subject for their approval. They say that they
+                   like it, but they regret having worn a particular ring on one finger, and wish
+                   they’d worn a different one that they like more. Can you change that?
+                        One way to proceed would be to invite your subject back to the studio
+                   and paint a whole new portrait from scratch on a blank canvas, only this
+                   time with the new ring on their finger. That would require a lot of time and
+                   effort. If they’d allow it, a more expeditious approach would be to take the
+                   portrait you have, and unobtrusively paint the new ring over the old one.
+                        Now consider a layer in a deep network. A tensor comes in, and the
+                   layer does some processing to change that tensor. If the layer only needs to
+                   change the input by small amounts, or only in some places, then it would be
+                   wasteful to expend resources processing the parts of the tensor that don’t
+                   need to change. Just as with the painting, it would be much more efficient
+                   for the layer to compute only the changes it wants to make. Then it can
+                   combine those changes with the original input to produce its output.
+                        This idea works beautifully in deep learning networks. It lets us make
+                   layers that are smaller and faster, and it even improves the flow of gradients
+                   in backpropagation, which lets us efficiently train networks of dozens or
+                   even hundreds of layers.
+                        The mechanism is shown on the left side of Figure 20-17. We feed an
+                   input tensor to some layer as usual, let it compute the changes, and then we
+                   add the layer’s output to its input tensor.
+
+
+
+
+                   Figure 20-17: Left: A skip connection, shown in red. Right: We can place a skip connec-
+                   tion around multiple layers.
+
+
+
+
+582   Chapter 20
+    The extra line in the drawing that carries the input to the addition
+node is called a skip connection, or a residual connection because of its math-
+ematical interpretation.
+    We can place a skip connection around multiple layers in sequence, if
+we like, as on the right of Figure 20-17.
+    The skip connection works because each layer is trying to reduce its
+own contribution to the final error, while participating in the network
+made up of all the other layers. The skip connection is part of the network,
+so the layer learns it doesn’t need to process the parts of the tensor that
+don’t change. This makes the layer’s job simpler, enabling it to be smaller
+and faster.
+    We’ll see later that transformers use skip connections not just for effi-
+ciency and speed, but also because they allow the transformer to cleverly
+keep track of the location of each element in its input.
+
+Norm-Add
+The second idea on our road to transformers is really more of a conceptual
+and notational shorthand. In transformers, we usually apply a regulariza-
+tion step called layer normalization, or layer norm, to the outputs of a layer, as
+shown on the left in Figure 20-18 (Vaswani et al. 2017). Layer norm belongs
+to the class of regularization techniques that we saw in Chapter 15, such
+as dropout and batchnorm, which help control overfitting by keeping the
+values flowing through the network from getting too big or too small. The
+layer norm step learns to adjust the values coming out of a layer so that they
+approximate the shape of a Gaussian bump with a mean of 0 and standard
+deviation of 1.
+
+
+
+
+Figure 20-18: Left: A layer normalization followed by the addition step of a skip connec-
+tion. Right: A combined icon for norm-add. This is just a visual and conceptual shorthand
+for the network on the left.
+
+     Performing layer norms is important in getting a transformer to
+work well, but there’s some flexibility about exactly where this step can be
+located. A popular approach places the layer norm just before the addition
+step of a skip connection, as in the left side of Figure 20-18. Since these
+two operations always come in pairs, it’s convenient to combine them into
+a single operation that we call norm-add. Our icon for norm-add is a combi-
+nation of the layer norm and summation icons, and is shown on the right
+in Figure 20-18. This is just a visual shorthand for the two separate steps of
+layer norm followed by skip connection addition.
+     People have experimented with other locations for the layer norm oper-
+ation, such as before the layer (Vaswani et al. 2017), or after the addition
+node (TensorFlow 2020b). These approaches differ in their details, but in
+
+
+
+                                                                Attention and Transformers   583
+                   practice, it seems that all of these choices are comparable. We’ll stick with
+                   the version in Figure 20-18 here.
+
+                   Positional Encoding
+                   The third idea to cover before we get to transformers was designed to solve
+                   a problem that comes up as soon as we take RNNs out of our system: we lose
+                   track of where each word is located in the input sentence. This important
+                   information is inherent in the RNN structure, because the words come in
+                   one at a time, allowing the hidden state inside a recurrent cell to remember
+                   the order in which the words arrived.
+                       But as we’ve seen, attention mixes together the representations of multiple
+                   words. How can later stages know where each word belongs in the sentence?
+                       The answer is to insert each word’s position, or index, into the repre-
+                   sentation for the word itself. That way, as the word’s representations get
+                   processed, the position information naturally comes along for the ride.
+                   The generic name for this process is positional encoding.
+                       A simple approach to positional encoding is to append a few bits to the
+                   end of each word to hold its location, as shown on the left of Figure 20-19.
+                   But at some point, we might get a sentence that requires more bits than
+                   we’ve made available, and then we’d be in trouble because we wouldn’t
+                   be able to assign each word a unique number for its location. And if we
+                   make the storage too big, it’s just wasted and slows everything down. This
+                   approach is also awkward to implement, since we then need to introduce
+                   some special mechanism for handling those bits (Thiruvengadam 2018).
+
+                                                               1     F
+
+                   Nara                  1             Nara
+
+
+                                                               2     F
+
+                     ate                 2               ate
+
+
+                                                               3     F
+
+                      an                 3               an
+
+
+                                                               4     F
+
+                   apple                 4            apple
+
+                   Figure 20-19: Tracking the location of each word in a sentence. Left: Appending an index
+                   to each word. Middle: Using a function F to turn each index into a vector, then adding
+                   it to the word’s representation. Right: Our icon for a positional embedding layer.
+
+                       A better answer is to use a mathematical function that creates a unique
+                   vector for each position in a sequence. Suppose that our word embeddings
+                   are 128 elements long. Then we give this function the index of each word
+
+584   Chapter 20
+                  (which can be as large as it needs to be), and the function gives us back
+                  a new 128-element vector that somehow describes that location. Basically
+                  it turns the index into a unique list of values. Our expectation is that the
+                  network will learn to associate each of these lists with the word’s position in
+                  the input.
+                       Rather than appending this vector to the word’s representation, we add
+                  the two vectors together, as in the middle of Figure 20-19. Here we literally
+                  add the number in each element in the encoding to the corresponding num-
+                  ber in the word’s embedding. The appeal of this approach is that we don’t
+                  need any extra bits or special processing. This form of positional encoding is
+                  called positional embedding, because of its similarity to the word embedding we
+                  saw earlier in algorithms like ELMo. The right side of the figure shows our
+                  icon for this process, which is drawn with a little sine wave because a popu-
+                  lar choice for the embedding function is based on sine waves (derived from
+                  Vaswani et al. 2017).
+                       It may seem a bit weird to add position information to each word,
+                  rather than append it, as it changes the word’s representation. It also seems
+                  that the position information is liable to get lost as the attention network
+                  processes the values.
+                       It turns out that the specific function that is frequently used to compute
+                  the positional embedding vector usually affects only a few bits at one end
+                  of the word’s vector (Vaswani et al. 2017; Kazemnejad 2019). Furthermore,
+                  it appears that transformers learn how to distinguish each word’s represen-
+                  tation and position information during processing so they’re interpreted
+                  separately (TensorFlow 2019a).
+                       But why doesn’t the position embedding get lost altogether during
+                  processing? After all, attention changes its inputs using neural networks
+                  by turning them into QKV values and then mixing those values. Surely the
+                  positional information would be hopelessly scrambled and lost.
+                       The clever solution to this problem is built into the architecture of
+                  the transformer itself. As we’ll see, the transformer network wraps up
+                  each operation (except the very last) in a skip connection. The embed-
+                  ding information never gets lost, because it gets added back in after every
+                  stage of processing. Figure 20-20 illustrates how positional embedding and
+                  norm-add skip connections are structurally similar. In short, each layer can
+                  change its input vector in any way it wants, and then the positional embed-
+                  ding gets added back in so that it’s available to the next layer.
+
+                         Position
+plum                    embedding                      plum with
+                                                      embedding
+           Create
+         embedding
+Figure 20-20: Left: Creating a position embedding and adding it to a word. Right: A norm-add operation
+implicitly adds a word’s embedding information back in after processing.
+
+
+
+
+                                                                                 Attention and Transformers   585
+                   Assembling a Transformer
+                   We now have all the pieces in place to build a transformer. We’ll continue
+                   to use word-level translation as our running example.
+                        It’s important to note that the name transformer refers to a wide
+                   variety of networks inspired by the architecture in the original transformer
+                   paper (Vaswani et al. 2017). In this discussion, we’ll stick to a generic
+                   version.
+                        Our block diagram of a transformer is shown in Figure 20-21. The
+                   blocks marked E and D are repeated sequences of layers, or blocks, built
+                   around attention layers. We’ll look at both types of block in detail in a
+                   moment. The big picture is that an encoder stage (built from encoder
+                   blocks, marked with an E) accepts a sentence, and a decoder (build from
+                   decoder blocks, marked with a D) accepts information from the encoder
+                   and produces new output (the structure of this diagram is reminiscent
+                   in some ways of an unrolled seq2seq diagram, but there are no recurrent
+                   cells here).
+
+                                  E       E      E         E
+
+
+
+
+                                  D       D      D         D
+
+
+                   Figure 20-21: A block diagram of a transformer. An input is encoded and then decoded.
+                   The decoder’s output is fed back to its input autoregressively. The dashed lines stand for
+                   repeated elements.
+
+                        Both the encoder and decoder begin with word embedding followed
+                   by positional embedding. The decoder has the usual fully connected
+                   layer and softmax at the end for predicting the next word. The decoder
+                   is autoregressive, so it appends each output word to the list of its o
+                                                                                        ­ utputs
+                   (shown by the box at the bottom of the figure), and that list becomes
+                   the decoder’s input for generating the next word. The decoder contains
+                   multi-head Q/KV attention networks, as in Figure 20-14, which receive
+                   their keys and values from the outputs of the encoder blocks, shown in
+                   the middle of Figure 20-21, where the encoder outputs are delivered
+                   to the decoder blocks. This illustrates why Q/KV attention is also called
+                   encoder-decoder attention.
+                        Let’s look more closely at the blocks in Figure 20-21 starting with the
+                   encoder block, shown in Figure 20-22.
+
+
+
+
+586   Chapter 20
+                      8                   2048 × (1×1)       512 × (1×1)
+                                             ReLU
+
+
+Figure 20-22: The transformer’s encoder block. The first layer is self-attention.
+
+     The encoder block begins with a layer of multi-head self-attention,
+shown here with eight heads. Because this layer applies self-attention, the
+queries, keys, and values are all derived from the single set of inputs that
+arrive at the block. This multi-head attention is surrounded by a norm-add
+skip connection to help keep the numbers looking like a Gaussian and to
+retain the positional embeddings.
+     This is followed by two layers that are usually referred to collectively as
+a pointwise feed-forward layer (another unfortunately vague name). Though
+the original transformers paper described these as a pair of modified fully
+connected layers (Vaswani et al. 2017), we can more conveniently think of
+them as two layers of 1×1 convolution (Chromiak 2017; Singhal 2020; A.
+Zhang et al. 2020). They learn how to adjust the output of the multi-head
+attention layer to remove redundancy and focus on just the information
+that will be of the most value to whatever processing comes next. The first
+convolution uses a ReLU activation function, while the second has no acti-
+vation function. As usual, these two steps are wrapped in a norm-add skip
+connection.
+     Now let’s look at the decoder block, shown in Figure 20-23.
+                                  K, V from
+                                  encoder
+
+
+
+
+                  8                   8               2048 × (1×1)    512 × (1×1)
+                                                         ReLU
+
+
+
+
+Figure 20-23: The transformer’s decoder block. Note that the first attention layer is self-
+attention, whereas the second is Q/KV attention. The triangle on the left of the self-atten-
+tion layer indicates that the layer uses masking.
+
+     At a high level, it looks a lot like the encoder block, with an extra step
+of attention. Let’s walk through the layers.
+
+
+
+                                                                     Attention and Transformers   587
+                        We begin with a multi-head self-attention layer, just like the encoder
+                   block. The input to the layer is the words output so far by the transformer.
+                   If we’re just beginning, this sentence contains only the [START] token. Like
+                   any self-attention layer, the purpose here is to look at all of the input words
+                   and work out which ones are most strongly related to which others. As
+                   usual, this is wrapped in a skip connection with a norm-add node at the
+                   end. During training, we add an extra detail called masking to this self-
+                   attention step (indicated with a small triangle in Figure 20-23), which we’ll
+                   come back to shortly.
+                        The self-attention layer is followed by a multi-head Q/KV attention
+                   layer. The query, or Q, vectors come from the output of the previous self-
+                   attention layer. The keys and values come from the concatenated outputs of
+                   all the encoder blocks. This layer also is wrapped in a skip connection with
+                   a norm-add node at the end. This stage uses the outputs of the previous
+                   attention network to choose among the keys coming from the encoder and
+                   then mix the values corresponding to those keys. Finally, we have a pair of
+                   1×1 convolutions, following the same pattern as in the encoder block.
+                        We can now put the pieces together. Figure 20-24 shows the structure of
+                   a transformer model.
+
+
+
+
+Figure 20-24: A complete transformer. The icons showing two stacked boxes represent two consecutive 1×1
+convolutions. The dashed lines stand for repeated elements that are not drawn.
+
+                        We promised to return to a detail regarding the first attention layer in
+                   each decoder block. As we mentioned, one of the great values of the atten-
+                   tion mechanism at the heart of the transformer is that it allows for a lot of
+                   parallelism. Whether an attention block is given five words or five hundred,
+                   it runs in the same amount of time.
+                        Suppose we’re training the system to predict the next word in a sen-
+                   tence. We can provide it with the entire sentence and ask it to predict the
+                   first word, the second word, the third word, and so on, all in parallel.
+                        But there’s a problem here. Suppose the sentence is My dog loves taking
+                   long walks. We could give the system My dog loves taking long, and ask it to
+                   predict the sixth word, walks. But because we’re training in parallel, we want
+                   it to use this same input to predict each of the previous words, at the same
+                   time. That is, we also want it to predict the fifth word, long, from the input
+                   My dog loves taking long.
+
+
+588   Chapter 20
+      That’s too easy: the word long is right there! The system would find that
+all it has to do is return the fifth word, which is definitely not the same as
+learning how to predict it. We want to give the system My dog loves taking
+long as input, but for predicting the fifth word, it should only see My dog
+loves taking. We want to hide, or mask, the word long when we’re trying to
+predict it. Similarly, to predict the fourth word, it should only see My dog
+loves, to predict the third word it should only see My dog, and so on.
+      In short, our transformer will run five parallel computations, each pre-
+dicting a different word, but each computation should only be given the
+words that came before the one it’s supposed to predict.
+      The mechanism to pull this off is called masking. We add an extra step
+to the first self-attention layer in the decoder block that masks, or hides, the
+words that each prediction step isn’t supposed to see. Thus the computation
+predicting the first word sees no input words, the computation predicting
+the second word only sees My, the one predicting the third word only sees
+My dog, and so on. Because of this extra step, the first attention layer in
+the decoder block is sometimes called a masked multi-head self-attention layer,
+which is a mouthful, so we often just refer to it as a masked attention layer.
+
+Transformers in Action
+ Let’s see a transformer in action performing a translation. We trained a
+ transformer following roughly the architecture of Figure 20-24 to trans-
+ late from Portuguese to English (TensorFlow 2019b). We used a dataset
+ of 50,000 training examples, which is small by today’s standards but good
+ enough to demonstrate the ideas while also of a practical size to train from
+ on a home computer (Kelly 2020).
+      We gave our trained transformer the Portuguese question, você se sente
+ da mesma maneira que eu? which Google Translate renders into English as
+ do you feel the same that way I do? Our system produced the translation, do
+ you see , do you get the same way i do ? This isn’t perfect, but given the small
+training database, it does a great job of capturing the spirit of the question.
+As always, more training data and training time would surely improve the
+results.
+      Heatmaps showing the attention paid to each input word by each out-
+put word, for each of the eight heads in the final Q/KV attention layer of
+the decoder, are shown in Figure 20-25. The brighter the cell, the more
+attention was paid. Note that some input words were broken up into mul-
+tiple tokens by a preprocessor.
+      Transformers trained on larger datasets than this example, and for
+­longer periods, can produce results that are as good or better than RNNs,
+ and they can be trained in parallel. They don’t need recurrent cells with
+ finite internal states that can run out of memory, nor do they need mul-
+ tiple neural networks to learn how to control those states. These are big
+ advantages and explain why transformers have replaced RNNs in many
+ applications.
+
+
+
+
+                                                          Attention and Transformers   589
+Figure 20-25: Heatmaps for each of the eight heads in the final Q/KV attention layer of the decoder during a
+translation of “Você se sente da mesma maneira que eu?” from Portuguese to English
+
+                        One downside of transformers is that the memory required by the
+                    attention layers grows dramatically with the size of the input. There are
+                    ways to adjust the attention mechanism, and the transformer in general, to
+                    reduce these costs in different situations (Tay et al. 2020).
+
+
+      BERT and GPT-2
+                    The full transformer model of Figure 20-24 consists of an encoder, which is
+                    designed to analyze the input text and create a series of context vectors that
+                    describe it, and a decoder, which uses that information to autoregressively
+                    generate a translation of the input.
+                        The blocks making up the encoder and decoder are not specific to
+                    translation. Each is just one or more attention layers, followed by a pair of
+                    1×1 convolutions. These blocks can be used as general-purpose processors
+                    for working out the relationship between elements of a sequence, and lan-
+                    guage in particular. Let’s look at two recent architectures that have used
+                    transformer blocks in ways that go way beyond translation.
+
+                    BERT
+                    Let’s use transformer blocks to create a general-purpose language model. It
+                    can be used for any of the tasks we listed at the start of Chapter 19.
+                         The system is called Bidirectional Encoder Representations from Transformers,
+                    but it’s more commonly known by its acronym, BERT (Devlin et al. 2019)
+                    (another Muppet from Sesame Street, and a nodding reference to the ELMo
+                    system we saw earlier). The structure of BERT begins with a word embedder
+                    and a position embedder, followed by multiple transformer encoder blocks.
+
+
+590    Chapter 20
+The basic architecture is shown in in Figure 20-26 (in practice, other details
+help with training and performance, such as dropout layers). In this dia-
+gram, we’re showing the many inputs and outputs so that it’s clear that BERT
+is processing an entire sentence. For consistency and clarity, we’re only using
+a single line inside the blocks, but the parallel operations are still being car-
+ried out. It’s traditional to draw BERT diagrams with a yellow color scheme,
+since Bert on Sesame Street is a yellow character.
+
+
+In                                                                                           Out
+
+                                     BERT
+Figure 20-26: The basic structure of BERT. The dashed lines stand for more encoder blocks
+that are not drawn.
+
+      The original “large” version of BERT deserved its name, with 340 mil-
+lion weights, or parameters. The system was trained on Wikipedia and over
+10,000 books (Zhu et al. 2015). Currently, 24 trained versions of the origi-
+nal BERT system are available freely online (Devlin et al. 2020), as well as
+a growing number of variations and improvements on the basic approach
+(Rajasekharan 2019).
+      BERT was trained on two tasks. The first is called next sentence predic-
+tion, or NSP. In this technique, we give BERT two sentences at once (with
+a special token to separate them), and we ask it to determine if the second
+sentence reasonably follows the first. The second task presents the system
+with sentences where some of the words have been removed, and we ask it
+to fill in the blanks (language educators call this the cloze task; Taylor 1953).
+It’s the linguistic analog of the visual process called closure, describing the
+human tendency to fill in the blanks in images. Closure is illustrated in
+Figure 20-27.
+
+
+
+
+Figure 20-27: Demonstrating the principle of closure. Incomplete shapes like these are
+usually filled in by the human visual system to create objects.
+
+    BERT is able to do well on these tasks because, compared to the RNN-
+based methods we saw before, BERT’s attention layers extract much more
+information from their inputs. Our first RNN models were unidirectional,
+reading inputs left to right. Then they became bidirectional, culminating in
+ELMo, which can be said to be shallowly bidirectional, where shallow refers to
+
+                                                                Attention and Transformers    591
+                    the architecture’s use of only two layers in each direction. Thanks to atten-
+                    tion, BERT is able to determine the influence of every word on every other
+                    word, and by repeating the encoder block, it can do this many times in a
+                    row. BERT is sometimes called deeply bidirectional, but it might be more useful
+                    to think of it as deeply dense, since it considers every word simultaneously. The
+                    notion of direction really doesn’t apply when we’re using attention.
+                         Let’s take BERT out for a spin. We’ll start with a pretrained model of
+                    12 encoder blocks (McCormick and Ryan 2020). We’ll fine-tune it to deter-
+                    mine if an input sentence is grammatical or not (Warstadt, Singh, and
+                    Bowman 2018; Warstadt, Singh, and Bowman 2019). This is basically a clas-
+                    sification problem, producing a yes/no answer. Therefore, our downstream
+                    model should be a classifier of some kind. Let’s use a simple classifier con-
+                    sisting of a single fully connected layer. Our combined pair of models is
+                    shown in Figure 20-28.
+
+
+
+In                                                                                                     Out
+
+
+                                      BERT                                         Classifier
+Figure 20-28: BERT with a small downstream classifier at the end. The dashed lines stand for the 10 addi-
+tional, identical encoder blocks that are present, but not drawn.
+
+                       After four epochs of training, here are six results from the testing data.
+                    The first three are grammatical, and the second three are not. BERT pro-
+                    duced the correct answer on all six.
+
+                    •   Chris walks, Pat eats broccoli, and Sandy plays squash.
+                    •   There was some particular dog who saved every family.
+                    •   Susan frightens her.
+                    •   The person confessed responsible.
+                    •   The cat slept soundly and furry.
+                    •   The soundly and furry cat slept.
+
+                         On the test set of about 1,000 sentences, this little version of BERT
+                    got about 82 percent of the examples correct. Some BERT variants have
+                    achieved more than 88 percent right on this task (Wang et al. 2019; Wang et
+                    al. 2020).
+                         Let’s try BERT out on another task, called sentiment analysis. We’ll clas-
+                    sify short movie reviews as being either positive or negative in tone. The
+                    data comes from a database of almost 7,000 movie reviews called SST2,
+                    where each review has been labeled as positive or negative (Socher et al.
+                    2013a; Socher et al. 2013b).
+
+
+
+
+592    Chapter 20
+     For this run, we used a pretrained BERT model called DistillBERT
+(Sanh et al. 2020; Alammar 2019) (the term distilling is often used when we
+carefully trim a trained neural network to make it smaller and faster with-
+out losing much performance). We’re again doing a classification task, so
+we can reuse the model of Figure 20-28.
+     Here are six examples verbatim from the test data (there’s no indica-
+tion of what movies they each refer to). DistillBERT properly classified the
+first three reviews as positive and the second three as negative (the reviews
+are all lowercase, and commas are treated as their own tokens).
+
+•   a beautiful , entertaining two hours
+•   this is a shrewd and effective film from a director who understands how to cre-
+    ate and sustain a mood
+•   a thoroughly engaging , surprisingly touching british comedy
+•   the movie slides downhill as soon as macho action conventions assert
+    themselves
+•   a zombie movie in every sense of the word mindless , lifeless , meandering ,
+    loud , painful , obnoxious
+•   it is that rare combination of bad writing , bad direction and bad acting the
+    trifecta of badness
+
+      Of the 1,730 reviews in the test set, DistillBERT correctly predicted the
+sentiment of about 82 percent of them.
+      To recap, models based on the BERT architecture are united by their
+use of a sequence of encoder blocks. They create an embedding of a sen-
+tence that captures enough information that downstream applications can
+perform a wide range of operations upon it. With an appropriate down-
+stream model, BERT can be used to perform many of the NLP tasks we
+mentioned at the start of Chapter 19.
+      If we’re willing to get clever, we can make BERT generate language, but
+it’s not easy (Mishra 2020; Mansimov et al. 2020). A better solution is to use
+decoder blocks, as we’ll see next.
+
+GPT-2
+We’ve seen how transformers use a series of decoder blocks to generate
+words for a translation. We can also use a sequence of decoder blocks to
+generate new text.
+     Since we don’t have an encoder stage to receive KV values from, as in the
+full transformer of Figure 20-24, let’s remove the Q/KV multi-head attention
+layer from each decoder block, leaving us with just masked self-attention and
+a pair of 1×1 convolutions. The first system to do this in a big way was called
+the Generative Pre-Training model 2, or simply GPT-2 (Radford et al. 2019). Its
+architecture is shown in Figure 20-29.
+
+
+
+
+                                                            Attention and Transformers   593
+                                                         GPT-2
+                   Figure 20-29: A block diagram of GPT-2, made out of transformer decoder blocks without
+                   the Q/KV layer. The dashed lines stand for more repeated, identical decoder blocks.
+                   Note that because these are versions of decoder blocks, the first multi-head attention layer
+                   in each block is a masked attention layer.
+
+                        Like BERT, we start with token embedding followed by positional embed-
+                   ding for each input word. The self-attention layer in each decoder block uses
+                   masking as before so that as we compute attention for any given word, we can
+                   only use information from that word and those that precede it.
+                        The original GPT-2 model was released in several different sizes, the larg-
+                   est of which processed 512 tokens at a time through 48 decoder blocks with
+                   12 heads in each, for a total of 1,542 million parameters. That’s 1.5 ­billion
+                   parameters. GPT-2 was trained on a dataset called WebText, which contained
+                   about eight million documents for a total of about 40GB of text (Radford et
+                   al. 2019).
+                        We typically use GPT-2 by starting with the pretrained model, and then
+                   we fine-tune it by providing an additional dataset to learn from, adjusting
+                   all of the weights in the process (Alammar 2018).
+                        We started each of our text generators in Chapter 19 with a seed, but
+                   that’s only one way to get them started. A simpler approach starts the sys-
+                   tem with general guidance and a prompt. This is called a zero-shot scenario,
+                   since the system has been given zero “shots,” or examples, for it to use as a
+                   model for new text.
+                        For instance, suppose we built a system to advise us on what to wear
+                   each day. A zero-shot scenario might start with the instruction, Describe
+                   today’s outfit, followed by the prompt, Today I should wear: The generator
+                   takes it from there. It has no examples or context to work from, so it might
+                   suggest a suit of armor, a spacesuit, or a bear skin.
+                        Alternatively, we can provide one or more examples, or shots. In a one-
+                   shot scenario, we might give the instruction Describe today’s outfit, followed
+                   by the example, Yesterday I wore a blue shirt and black pants, and conclude
+                   with the prompt, Today I should wear: The thinking is that the text that’s pro-
+                   vided before the prompt can help guide the system into the kind of output
+                   we want. In this case, the bear skin would be less likely.
+                        If we give the system two or three shots, but not many more, we usually
+                   call it a few-shot scenario (these terms don’t have sharp cutoffs). People usu-
+                   ally prefer generators that require as few shots as possible in order to pro-
+                   vide the output we want.
+
+
+
+594   Chapter 20
+     Let’s see GPT-2 in action, using a medium-sized, pretrained GPT-2
+model (von Platen 2020). We won’t do any fine tuning, so the system will
+generate text based only on its core training data. Let’s take a zero-shot
+approach, and give it no information except the starting prompt, I woke up
+this morning to the roar of a hippopotamus. Here’s a typical output, verbatim:
+
+    I woke up this morning to the roar of a hippopotamus. I was in the middle
+    of a long walk, and I saw a huge hippopotamus. I was so excited. I was so
+    excited. I was so excited. I was so excited.
+
+     At this point the system kept repeating I was so excited endlessly. That’s
+not the generator’s fault, it’s ours. The system is producing grammatical
+output, which is what we trained it to do. The problem with the output is
+that, despite its emphasis on excitement, it’s boring. The end of one sen-
+tence happened to lead back to the start of that same sentence, and we got
+locked in a loop. The system as it is now has no idea that such output is bor-
+ing or undesirable.
+     To make output more interesting, we can chip away at the problem,
+removing characteristics of the output we see as undesirable. Let’s look at
+just two such changes (Vijayakumar et al. 2018; Shao et al. 2017).
+     First, let’s do away with that repetition. We can penalize the system if
+it generates the same group of words repeatedly. This is called an n-gram
+penalty because a sequence of n words is called an n-gram (Paulus, Xiong,
+and Socher 2017; Klein et al. 2017). Let’s take it easy on the system and only
+punish repeated pairs of words, or 2-grams.
+     Second, rather than always picking the word with the highest prob-
+ability, let’s pick several of them and see where they lead. That is, for each
+word, we will generate more words following on from that. When we’ve
+followed several paths for a while, we will score each of them to determine
+which one has the highest probability of being generated. We use the first
+word of that branch as our predicted word, and throw away the rest of that
+branch and all of the other branches. Then we repeat the process for the
+next word, and the next, and so on. This is called a beam search (Russell and
+Norvig 2009). This should give us longer sequences that hang together.
+And instead of always choosing the very highest probability word, we’ll pick
+among several of the most probable words, according to their probabilities,
+which will help make the output less predictable. This is called increasing
+the temperature of the word selection process (a temperature of zero corre-
+sponds to always picking the most probable choice).
+     With those two changes in place, let’s try generating text again using
+the same starting sentence. Here is one verbatim result:
+    I woke up this morning to the roar of a hippopotamus. “Oh, my God,” I
+    said. “I’m so sorry. I didn’t mean to hurt you. It’s just that I don’t know how
+    to deal with it. You know what I mean? I’m not going to let you hurt me,
+    okay? You’re my friend, and I love you so much. And I want you to know
+    that you’re not alone in this. We’ve been together for a long time now, so
+    it’s not like there’s anything we can do about it, but I can’t help but feel
+    sorry for you, because I know you’ll never be alone with me again.
+
+
+                                                               Attention and Transformers   595
+                        Wow. That’s remarkable. We could keep improving the output by using
+                   more processing techniques (Welleck et al. 2020), but this is already pretty
+                   great, particularly considering that we’re using a stripped-down GPT-2
+                   model.
+                        For comparison, let’s revisit the same Sherlock Holmes stories from
+                   Chapter 19. We started with a small, pre-trained GPT-2, fine-tuned it on
+                   these stories (Woolf 2019), and then gave it the prompt, I asked Holmes to
+                   explain.
+                        We used a slightly warm temperature, so each time we ran the algo-
+                   rithm, we got a different result. Here’s just one, which we arbitrarily cut
+                   off after a few paragraphs.
+                       I asked Holmes to explain.
+                       “It is very simple really,” he replied. “The short answer is, of course, that
+                        the law does not apply to these matters, and that the case should be left
+                        entirely in the discretion of the Crown Prosecution and the police. But the
+                        long answer is that the case clearly does not rest with us, and that it is
+                        very much in the power of the police to prevent it.
+                       “You remember, Watson, that it was upon this very day that the young
+                        man, Mr. Latimer, picked up that long revolver which he used to brand
+                        me. The revolver which he used to brand me, is probably the best known
+                        weapon in the world. You remember, Watson, that I said at the time that
+                        it was better not to know than to hate the fear of it. Now, we have heard,
+                        and we must not let ourselves be drawn into a dilemma. The matter has
+                        been sufficiently complicated, and it is not necessary that the facts should
+                        be remarked upon in this fashion. The man who does not know is not him-
+                        self a danger to himself. Let us take the man who does.
+
+                        These results are grammatical and even refer to themselves. Compare
+                   this output to what we got from character-based autoregression with RNNs.
+                        GPT-2 can do lots of other tasks well, such as running a version of the
+                   cloze test, predicting the next word of a phrase where essential information
+                   appears at least 50 tokens before, answering questions about text, summa-
+                   rizing documents, and translating from one language to another.
+
+                   Generators Discussion
+                   GPT-2 shows that if we process 512 tokens at a time through 48 decoder lay-
+                   ers with 12 attention heads in each, for a total of 1.5 billion parameters, we
+                   can produce some pretty good text. What if we scaled everything up? That
+                   is, we won’t modify the basic architecture at all, but just use a lot more of
+                   everything.
+                        This was the plan of the successor to GPT-2, which was called (surprise)
+                   GPT-3. The block diagram for GPT-3 looks generally like that of GPT-2 in
+                   Figure 20-29 (aside from some efficiency improvements). There’s just more of
+                   everything. A lot more. GPT-3 processes 2,048 tokens at a time, on 96 decoder
+                   layers, with 96 attention heads in each layer, for a total of 175 billion param-
+                   eters (Brown et al. 2020). 175 billion. Training this behemoth required an esti-
+                   mated 355 GPU years at an estimated cost of US$4.6 million (Alammar 2018).
+
+596   Chapter 20
+     GPT-3 was trained using a database called the Common Crawl dataset
+(Common Crawl 2020). It started with about a trillion words from books
+and the web. After removing duplications and cleaning the database, the
+database still had about 420 billion words (Raffel et al. 2020).
+     GPT-3 is capable of creating lots of different kinds of data. It was made
+available to the public for a period as a kind of beta test, but it’s now a com-
+mercial product (Scott 2020). During the beta test, people used GPT-3 for
+many applications, such as writing code for web layouts, writing actual com-
+puter programs, taking imaginary employment interviews, rewriting legal
+text in plain language, writing new text that looks like legal language, and,
+of course, writing in creative genres like fiction and poetry (Huston 2020).
+     All this power is a mixed bag. Fine-tuning such a system requires enor-
+mous resources, and it becomes harder and harder to fine tune, as that
+requires finding task-specific data that wasn’t in the original data.
+     If bigger is better, would even bigger still be even better still? The
+researchers behind GPT-3 have estimated that we can extract everything
+we need to know about any text (at least from the point of view of NLP-
+type tasks) with a model that uses 1 trillion parameters trained on 1 tril-
+lion tokens (Kaplan et al. 2020). These numbers are rough predictions and
+could be far off, but it’s interesting to think that there could be a point at
+which a stack of decoder blocks (and some support mechanisms) could
+extract almost all the information we need from a piece of text. We’ll prob-
+ably know the answer soon, as other huge firms with enormous resources
+are sure to produce their own gargantuan NLP systems trained on their
+own colossal databases. Training these vast systems is a game only the big
+and rich can play.
+     On a light-hearted note, we can play an interactive text-based fantasy
+game online, driven by a GPT-3 implementation (Walton 2020). The system
+was trained on a variety of genres, ranging from fantasy and cyberpunk to
+spy stories. Perhaps the most fun way to play with this system is to treat the
+AI as an improv partner, agreeing with and expanding on whatever the sys-
+tem throws at us. Let the AI set the flow and go with it.
+     Generated text can often hold up well in short doses, but how well does
+it do when we look closer? A recent study asked many language generators,
+including GPT-3, to perform 57 tasks, based on topics from humanities
+like law and history, to social sciences like economics and psychology, and
+STEM subjects like physics and mathematics (Hendrycks et al. 2020). Most
+output never came near human performance. The systems fared especially
+poorly on important social issues like morality and law.
+     This shouldn’t be a surprise. These systems are simply producing words
+based on their probabilities of belonging together. In a real and fundamen-
+tal sense, they have no idea what they’re talking about.
+     For all their power, text generators like those we’ve seen here have no
+common sense. Worse, they blindly reiterate the stereotypes and prejudices
+inherited wholesale from the gender, racial, social, political, age, and other
+biases in their training data. Text generators have no idea of accuracy, fair-
+ness, kindness, or honesty. They don’t know when they’re stating facts or
+
+
+                                                         Attention and Transformers   597
+                   making things up. They just generate words that follow the statistics of the
+                   training data, and perpetuate every prejudice and limitation to be found
+                   there.
+
+                   Data Poisoning
+                    We saw in Chapter 17 that adversarial attacks can trick convolutional neural
+                    networks into generating incorrect results. Natural language processing
+                    algorithms are also susceptible to intentional attacks, called data poisoning.
+                         The idea behind data poisoning is to manipulate the training data for
+                    an NLP system in such a way that the system produces a desired type of
+                    inaccurate result, perhaps consistently, or perhaps only in the presence of a
+                    triggering word or phrase. For example, one can insert sentences or phrases
+                    into the training data that suggest that strawberries are made of cement. If
+                    these new entries are not discovered, then if the system is later used to gen-
+                    erate stocking orders for a supermarket or a building contractor, they may
+                    find that their inventories end up being consistently and mysteriously wrong.
+                         This is particularly concerning because, as we’ve seen, NLP systems
+                    are typically trained on massive databases of millions or billions of words,
+                    so nobody is carefully reviewing the database for misleading phrases. Even
+                    if one or more people carefully read the entire training set, the poisoning
+                    texts can be designed so that they never explicitly refer to their targets,
+                    making them essentially indetectable and their effects unpredictable.
+                         Returning to our previous example, such phrases can convince a system
+                    that strawberries are made of cement, while never referring to fruit or build-
+                    ing materials at all. This is called concealed data poisoning, and it can be fiend-
+                    ishly hard to detect and prevent (Wallace et al. 2020).
+                         Another kind of attack is based on changing the training data in a
+                    seemingly benign way. Suppose we’re working with a system that classi-
+                    fies news headlines into different categories. Any given headline can be
+                    subtly rewritten so that the obvious meaning is not changed, but the story
+                    is incorrectly classified. For instance, the original headline, Turkey is put on
+                    track for EU membership, would be correctly classified under “World.” But if
+                    an editor rephrases this into the active voice— EU puts Turkey on track for full
+                   ­membership —this would now be misclassified as “Business” (Xu, Ramirez,
+                    and Veeramachaneni 2020).
+                         Data poisoning is particularly nefarious for several reasons. First, it can
+                    be done by people who have no connection to the organizations building or
+                    training the NLP models. Since significant amounts of training data are usu-
+                    ally drawn from public sources, such as the web, a poisoner only needs to pub-
+                    lish the manipulative phrases in a public blog or other location where they’re
+                    likely to be scooped up and used. Second, data poisoning can be done well
+                    ahead of any specific system’s use, or indeed, even before it’s conceived of.
+                         There’s no knowing how much training data has already been poisoned
+                    and is simply awaiting activation, like the sleeper agents in The Manchurian
+                    Candidate (Frankenheimer 1962). Finally, unlike adversarial attacks on
+                    CNNs, poisoned data compromises the NLP system from within, making its
+                    influence an inherent part of the trained model.
+
+
+598   Chapter 20
+           When a compromised system is used to make important decisions, such
+      as evaluating school admission essays, interpreting medical notes, monitor-
+      ing social media for fraud and manipulation, or searching legal records,
+      then data poisoning can produce errors that change the course of people’s
+      lives. Before any NLP system is used in such sensitive applications, in addi-
+      tion to examining it for signs of bias and historical prejudice, we must also
+      analyze it for data poisoning, and certify it as safe only if it is demonstrably
+      not biased or poisoned. Unfortunately, no methods for robust detection or
+      certification of any of these problems currently exist.
+
+
+Summary
+      We started this chapter with word embedding, which assigns each word a
+      vector in a high-dimensional space representing its use. We saw how ELMo
+      lets us capture multiple meanings based on content.
+           We discussed the mechanism of attention, which lets us simultaneously
+      find words in the input that seem related, and build combinations of ver-
+      sions of the vectors describing those words.
+           Then we looked at transformers, which do away with recurrent cells
+      entirely and replace them with multiple attention networks. This change
+      allows us to train in parallel, which is of huge practical value.
+           Finally, we saw how to use multiple transformer encoder blocks to build
+      BERT, a system for high-quality encoding, and how to use multiple decoder
+      blocks to build GPT-2, a high-quality text generator.
+           In the next chapter we’ll turn our attention to reinforcement learning,
+      which offers a way to train neural networks by evaluating their guesses,
+      rather than expecting them to predict a single correct answer.
+
+
+
+
+                                                               Attention and Transformers   599
+

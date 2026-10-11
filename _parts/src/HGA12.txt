@@ -1,0 +1,2029 @@
+######## HGA PDF pages 39-62 ########
+Chapter 1
+
+LLM Architecture and Optimization
+Methods
+
+This section covers the foundational architecture of large language models and the key optimization
+techniques that make training and inference efficient. Topics are ordered as a curriculum: we begin
+with the transformer itself, then cover how to train it efficiently, how to adapt it cheaply, how to
+compress it, how to scale it, and how to accelerate its inference.
+
+
+1.1       How LLMs Work: An Intuitive Overview
+Before diving into architectural details, let us build intuition for how a large language model transforms
+text into text. The entire process follows a simple pipeline: text → tokens → representations →
+tokens → text.
+   Raw                          Token        Embedding         Transformer            Vocab                Output
+               Tokenizer                                       Layers (×L)                     Decode
+   Text                          IDs           Layer                                  Logits                Text
+
+
+                                        autoregressive loop (append token to input)
+
+Figure 1.1: The LLM pipeline: text is tokenized into subword units, converted to integer IDs, embedded as
+dense vectors, processed through transformer layers, projected to vocabulary logits, and decoded back to text.
+The dashed loop shows autoregressive generation—each output token is appended to the input for the next
+forward pass.
+
+ The Four Key Stages
+    1. Tokenization: Raw text is split into subword pieces (not characters, not full words) using a
+       learned vocabulary. “unhappiness” might become [“un”, “happiness”] or [“unhapp”, “iness”].
+
+    2. Embedding: Each token ID indexes into a learned embedding table, producing a dense
+       vector in Rd (typically d = 4096). These vectors capture semantic meaning—similar words
+       get similar vectors.
+
+    3. Contextual Processing: The transformer stack processes all embeddings in parallel, using
+       self-attention to let each position “read” from all other positions. After L layers, each
+       position’s hidden state encodes rich contextual information.
+
+    4. Prediction: The final hidden state is projected to a probability distribution over the full
+       vocabulary, and a decoding strategy selects the next token.
+
+
+1.2       Tokenization
+Tokenization is the critical first step that converts raw text into the discrete symbols a language
+model operates on. The choice of tokenizer directly affects model quality, multilingual capability,
+and computational efficiency.
+
+                                                       39
+          H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+ Why Subwords?
+ Character-level models need very long sequences (expensive attention). Word-level models cannot
+ handle rare or novel words. Subword tokenization strikes the ideal balance: common words are
+ single tokens (“the” → [the]), rare words decompose into known pieces (“cryptocurrency” →
+ [“crypt”, “ocur”, “rency”]), and the vocabulary stays manageable (32K–128K tokens).
+
+1.2.1    Why Not Characters or Words?
+                       Table 1.1: Trade-offs of different tokenization granularities.
+
+Granularity     Vocab Size       Seq Length       Issues
+Character       ∼256             Very long        Attention cost O(n2 ); hard to learn long-range semantics
+Word            ∼500K+           Short            Cannot handle rare/novel words; huge embedding table
+Subword         32K–128K         Moderate         Best trade-off: short sequences, open vocabulary
+
+
+1.2.2    Byte-Pair Encoding (BPE)
+BPE [320] is the dominant tokenization algorithm used by GPT, Llama, Mistral, and most modern
+LLMs.
+ BPE Algorithm
+    1. Start with a vocabulary of individual characters (bytes)
+
+    2. Count all adjacent symbol pairs in the training corpus
+
+    3. Merge the most frequent pair into a new symbol
+
+    4. Repeat steps 2–3 for k iterations (until desired vocabulary size)
+
+
+
+
+Figure 1.2: BPE tokenization example: starting from characters, the algorithm iteratively merges the most
+frequent adjacent pairs until the word becomes a single token or the vocabulary budget is exhausted.
+
+
+
+
+                                                    40
+          H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+1.2.3    Other Tokenization Methods
+                      Table 1.2: Comparison of subword tokenization algorithms.
+
+        Method           Used By                       Key Idea
+        BPE              GPT-4 [274], Llama-           Bottom-up merging of frequent pairs; de-
+                         3 [118], Mistral [165]        terministic
+        WordPiece        BERT [76],         Distil-    Similar to BPE but maximizes likelihood
+                         BERT [312]                    of training data
+        Unigram LM       SentencePiece (T5 [303],      Top-down: start with large vocab, prune
+                         XLNet [406])                  by likelihood impact
+        Byte-level BPE   GPT-2 [301]+                  BPE on raw bytes (no unknown tokens
+                                                       possible); 256 base vocab
+
+
+1.2.4    Tokenization Best Practices
+  1. Vocabulary size matters: 32K is minimal; 128K enables better multilingual coverage and
+     code handling. Llama-3 uses 128K tokens.
+
+  2. Special tokens: Always include <bos>, <eos>, <pad>, <unk>. For instruction-tuned models,
+     add role markers (<|user|>, <|assistant|>).
+
+  3. Fertility: Measure tokens-per-word across languages. High fertility (many tokens per word)
+     indicates poor coverage for that language.
+
+  4. Never tokenize across boundaries: Spaces, punctuation, and digits should be handled
+     consistently. Most modern tokenizers prepend a space marker (“the”) to distinguish word-initial
+     vs. continuation tokens.
+
+  5. Numbers: Consider digit-level tokenization for arithmetic tasks. “2024” as [“2”,“0”,“2”,“4”]
+     enables digit-by-digit reasoning.
+
+  6. Code: Ensure whitespace (indentation) is tokenized efficiently. Llama-3 tokenizes runs of
+     spaces as single tokens.
+
+1.2.5    Tokenization in Practice: HuggingFace Example
+The transformers library provides a unified interface for all tokenizers. The following demonstrates
+encoding and decoding with a modern LLM tokenizer:
+ from transformers import AutoTokenizer
+
+ # Load Llama -3 tokenizer (128 K vocabulary , byte - level BPE )
+ tokenizer = AutoTokenizer . from_pretrained ( " meta - llama / Meta - Llama -3 -8 B " )
+
+ text = " Reinforcement learning optimizes long - term rewards . "
+
+ # Encode : text -> token IDs
+ token_ids = tokenizer . encode ( text )
+ print ( token_ids )
+ # [128000 , 29934 , 262 , 11008 , 4815 , 6900 , 1317 , 9860 , 21845 , 13]
+
+ # Decode individual tokens to see subword splits
+ tokens = tokenizer . c onver t_id s_to _toke ns ( token_ids )
+ print ( tokens )
+ # [ ’ <| begin_of_text | > ’ , ’ Re ’, ’ inforce ’, ’ ment ’, ’ learning ’,
+ # ’ optimizes ’, ’ long ’, ’- term ’, ’ rewards ’, ’. ’]
+
+ # Decode back to text ( round - trip )
+ reconstructed = tokenizer . decode ( token_ids , skip_special_tokens = True )
+
+
+                                                  41
+         H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+ assert reconstructed == text        # Perfect reconstruction
+
+ # Tokenize with attention mask ( for batched inputs with padding )
+ batch = tokenizer (
+     [ " Short text . " , " A much longer input sentence for comparison . " ] ,
+     padding = True , return_tensors = " pt "
+ )
+ print ( batch . keys () ) # dict_keys ([ ’ input_ids ’, ’ attention_mask ’])
+
+               Listing 1.1: Tokenization encode/decode with HuggingFace Transformers.
+
+
+
+1.2.6   Special Tokens and Structured Prompts
+Special tokens are reserved vocabulary entries that carry structural meaning rather than linguistic
+content. They are critical for controlling model behavior.
+                       Table 1.3: Common special tokens across LLM families.
+
+   Token                            Alias     Purpose
+   <bos> / <|begin_of_text|>        BOS       Marks start of sequence
+   <eos> / <|end_of_text|>          EOS       Marks end of sequence; stops generation
+   <|user|>                         —         Marks start of user turn in chat
+   <|assistant|>                    —         Marks start of assistant turn in chat
+   <pad>                            PAD       Fills batch to uniform length; masked in attention
+   <unk>                            UNK       Out-of-vocabulary placeholder (rare with BPE)
+   [SEP]                            SEP       Separates segments (BERT-style)
+   [CLS]                            CLS       Classification token (BERT)
+   [MASK]                           MASK      Masked token for MLM pretraining
+
+
+Role Markers for Instruction-Tuned Models. Modern chat models use special tokens to
+delineate conversational structure. These are not trained to carry semantic meaning—they are
+structural delimiters that the model learns to parse:
+ # Llama -3 chat template
+ messages = [
+     { " role " : " system " , " content " : " You are a helpful assistant . " } ,
+     { " role " : " user " , " content " : " Explain PPO in one sentence . " } ,
+ ]
+
+ # a p pl y _ c hat_template handles all special token insertion
+ prompt = tokenizer . apply_chat_template ( messages , tokenize = False )
+ print ( prompt )
+ # <| begin_of_text | > <| start_header_id | > system <| end_header_id | >
+ #
+ # You are a helpful assistant . <| eot_id | > <| start_header_id | > user <| end_header_id | >
+ #
+ # Explain PPO in one sentence . <| eot_id | > <| start_header_id | > assistant <|
+      end_header_id | >
+ #
+ #
+
+                   Listing 1.2: Chat template with special tokens (Llama-3 format).
+
+ Special Token Best Practices
+    • Never split special tokens: They must be atomic—ensure your tokenizer treats them as
+      single units, not character sequences.
+
+    • Mask loss on special tokens: During SFT, do not compute loss on structural tokens (role
+      markers, separators). The model should not “learn” to predict formatting.
+
+
+                                                 42
+         H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+    • Use templates for structure: Encode task semantics via special tokens rather than
+      natural language instructions. E.g., 〈|tool_call|〉 is more reliable than “Now I will call a
+      tool:”.
+
+    • Tool/function calling: Define dedicated tokens like 〈|function|〉, 〈|result|〉 to create
+      unambiguous boundaries between reasoning and action.
+
+    • Consistent handling in RL: During PPO/GRPO, ensure the reference model and pol-
+      icy model use identical tokenization and special token handling—mismatches corrupt KL
+      computation.
+
+    • EOS handling: During generation, ensure EOS is included in the action space. If the
+      model cannot emit EOS, responses grow unbounded (common RL failure mode).
+
+
+1.3     The Transformer Architecture
+The Transformer [357] is the foundation of all modern LLMs. Understanding its components is
+essential for grasping every optimization and training method in this guide.
+
+1.3.1   High-Level Structure
+A decoder-only transformer processes tokens sequentially through embedding, repeated atten-
+tion+FFN blocks, and a final projection to vocabulary logits. Figure 1.3 shows the complete
+architecture.
+
+1.3.2   The Original Encoder-Decoder Transformer
+The Transformer was originally introduced [357] as an encoder-decoder architecture for sequence-
+to-sequence tasks (machine translation, summarization). While modern LLMs predominantly use
+decoder-only variants (GPT-style), understanding the full architecture is essential because cross-
+attention and masked self-attention — both originating here — remain fundamental building blocks.
+
+Encoder. The encoder processes the entire input sequence bidirectionally — each token attends
+to all other tokens (no causal mask). This produces a rich contextual representation Henc ∈ Rn×d
+where each position encodes information about the full input:
+
+  • Input: Token embeddings + sinusoidal positional encodings
+
+  • Each layer: Multi-Head Self-Attention → Add & Norm → FFN → Add & Norm
+
+  • No causal mask: Position i attends to all positions 1, . . . , n
+
+  • Output: Contextual representations of the full input sequence
+
+Decoder — Masked Multi-Head Self-Attention. The decoder generates output tokens one at
+a time (autoregressively). To prevent the model from “seeing the future,” the self-attention in the
+decoder uses a causal mask:
+                                                                       !
+                                                        QK T
+                         MaskedAttn(Q, K, V ) = softmax √    +M V                             (1.1)
+                                                          dk
+  where the mask M is:
+                                 (
+                                     0    if i ≥ j (can attend)
+                         Mij =
+                                     −∞   if i < j (future token — blocked)
+
+
+
+                                                  43
+          H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+
+
+Figure 1.3: Decoder-only Transformer block (GPT-style, Pre-Norm variant). Each sub-layer (attention,
+FFN) is preceded by LayerNorm and followed by a residual addition: x + SubLayer(LN(x)). This Pre-Norm
+ordering (used by Llama, GPT-3, Mistral) stabilizes training without warmup, unlike the original Post-Norm
+(which applies LayerNorm after the addition). L identical blocks are stacked, followed by a final LayerNorm
+and linear projection to vocabulary logits.
+
+ Why Masking Matters
+ During training, the decoder processes the entire target sequence in parallel (teacher forcing), but
+ each position must only attend to previous positions to maintain the autoregressive property. The
+ mask ensures that generating token t uses only information from tokens 1, . . . , t−1. At inference,
+ tokens are generated one-by-one so the mask is implicit — but during training it enables parallel
+ computation while preserving causality.
+
+
+Decoder — Cross-Attention. After masked self-attention, each decoder layer applies cross-
+attention where the decoder attends to the encoder’s output representations. This is the mechanism
+by which the decoder “reads” the input:
+                                                                            !
+                                                                       T
+                                                                Qdec Kenc
+                       CrossAttn(Qdec , Kenc , Venc ) = softmax   √             Venc                 (1.2)
+                                                                    dk
+
+   • Queries come from the decoder’s previous sublayer (the masked self-attention output)
+
+   • Keys and Values come from the encoder’s final output Henc
+
+   • No mask is applied — every decoder position can attend to every encoder position
+
+   • This allows the decoder to dynamically focus on different parts of the input at each generation
+     step (e.g., attending to “cat” when translating to “gato” in English→Spanish)
+
+                                                    44
+          H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+
+
+Figure 1.4: The original Transformer architecture (Vaswani et al., 2017). The encoder (left) processes
+the full input with bidirectional self-attention. The decoder (right) generates tokens autoregressively using
+masked self-attention and cross-attention to encoder representations. Dashed boxes indicate the repeated
+layer block (×N ); gray lines show residual connections bypassing each sub-layer. Note: the original work uses
+Post-Norm (LayerNorm applied after the residual addition: LN(x + SubLayer(x))), unlike modern LLMs
+which use Pre-Norm.
+
+Full Decoder Layer.        Each decoder layer contains three sublayers (vs. two in the encoder):
+
+   1. Masked Multi-Head Self-Attention + Residual + LayerNorm
+
+   2. Multi-Head Cross-Attention (to encoder output) + Residual + LayerNorm
+
+   3. Feed-Forward Network + Residual + LayerNorm
+
+
+From Encoder-Decoder to Decoder-Only. Modern LLMs (GPT, Llama, Qwen) use only the
+decoder, removing both the encoder and cross-attention layers entirely. The key insight: for generative
+language modeling, a single causal (masked) self-attention stack is sufficient — the model learns to
+encode context and generate continuations in a single pass. This simplifies architecture, training,
+and inference while scaling more effectively. Encoder-decoder models (T5, BART) remain relevant
+for tasks with distinct input/output structure (translation, summarization), and cross-attention
+reappears in multimodal models where vision encoders provide keys/values to language decoders.
+
+                                                     45
+          H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+1.3.3    Decoder-Only vs Encoder-Decoder
+Modern LLMs almost exclusively use decoder-only architectures, but understanding the trade-offs
+with encoder-decoder designs clarifies why.
+  Architecture         Examples                           Use Case
+  Decoder-only         GPT-4 [274], Llama [118], Mis-     Autoregressive generation; dominant for
+                       tral [165], Qwen [350]             chat/reasoning
+  Encoder-decoder      T5 [303], BART [207], Flan-        Seq2seq (translation, summarization);
+                       T5 [59]                            less common now
+  Encoder-only         BERT [76], RoBERTa [233]           Classification/embeddings; not for gen-
+                                                          eration
+ Why Decoder-Only Won
+ Decoder-only models are simpler (one model, one loss), scale better (all parameters contribute
+ to generation), and support unified training (pretraining = next-token prediction = fine-tuning
+ objective). Encoder-decoder models waste capacity on the encoder for pure generation tasks.
+
+
+1.3.4    Embeddings: From Discrete Tokens to Continuous Space
+Before any attention or computation happens, the transformer must convert discrete token IDs into
+continuous vectors that neural networks can process. This is the role of the embedding layer.
+
+What is an Embedding? An embedding is a learned dense vector representation of a discrete
+symbol. Instead of representing the word “king” as a one-hot vector of size |V| = 128,000 (mostly
+zeros), we represent it as a compact vector in Rd (e.g., d = 4096) that captures its meaning.
+   The key insight: similar concepts get nearby vectors. In a well-trained embedding space:
+
+   • “king” and “queen” are close (both royalty)
+
+   • “king” and “bicycle” are far apart (unrelated)
+                                                ⃗ − man
+   • Vector arithmetic captures relationships: king  ⃗ + woman
+                                                           ⃗   ≈ queen
+                                                                   ⃗
+
+
+The Embedding Table. In practice, the embedding layer is simply a matrix E ∈ R|V|×d where
+row i stores the embedding vector for token i:
+
+                                        embed(xt ) = E[xt ] ∈ Rd                                     (1.3)
+   For a sequence of token IDs [x1 , x2 , . . . , xn ], embedding is a simple table lookup (indexing opera-
+tion):
+                             H0 = [E[x1 ]; E[x2 ]; . . . ; E[xn ]] ∈ Rn×d
+
+ Embedding Table in Transformers
+    • Size: |V| × d. For Llama-3: 128,256 × 4,096 = 525M parameters (6.5% of 8B model).
+
+    • Initialization: Random (Xavier/normal), then learned via backpropagation.
+
+    • Weight tying: Many models share the embedding matrix with the output projection head:
+      Whead = ET . This saves parameters and creates a symmetric encode-decode structure.
+
+    • Input: Token ID (integer) → Output: Dense vector in Rd .
+
+    • Gradient flow: During training, only the rows corresponding to tokens in the current batch
+      receive gradient updates (sparse update).
+
+
+                                                    46
+          H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+
+
+Figure 1.5: Embedding space visualization (2D projection): semantically similar words cluster together.
+The embedding table learns these positions during pretraining, capturing meaning purely from co-occurrence
+patterns in text.
+
+ Why Embeddings Work
+ The embedding table is learned end-to-end with the rest of the model. Because the model is
+ trained to predict the next token, it must learn representations where tokens that appear in similar
+ contexts get similar vectors. This is the distributional hypothesis: “you shall know a word by
+ the company it keeps” [91]. The embedding layer compresses this statistical structure into dense
+ geometry.
+
+The Anisotropy Problem. A critical issue arises when using pretrained embeddings (e.g., from
+BERT or GPT-2) for downstream tasks like retrieval (RAG) or bootstrapping recommender systems:
+the learned representations are highly anisotropic—they occupy a narrow cone in the embedding
+space rather than being uniformly distributed across all directions [86].
+   Why this matters for applications:
+
+   • RAG / Retrieval: If all embeddings have cosine similarity > 0.7 regardless of content,
+     retrieval rankings become nearly random—the system cannot distinguish relevant from irrelevant
+     passages.
+   • Recommender systems: Using pretrained LLM embeddings to represent items/users only
+     works if the geometry preserves meaningful similarity structure.
+   • Clustering: Anisotropic embeddings collapse clusters, making it impossible to discover natural
+     groupings.
+
+Resolution: Whitening. A simple and effective fix is whitening [340]—a linear transformation
+that makes the embedding distribution isotropic (zero mean, identity covariance):
+
+                                         h̃ = D−1/2 UT (h − µ)                                      (1.4)
+  where µ is the mean embedding, and UDUT is the eigendecomposition of the covariance matrix
+Σ = N1 i (hi − µ)(hi − µ)T .
+      P
+
+
+                                                   47
+          H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+
+
+Figure 1.6: Isotropy vs. anisotropy in embedding spaces. Left: isotropic embeddings spread uniformly,
+making cosine similarity a reliable measure of semantic relatedness. Right: anisotropic embeddings (as found
+in BERT) cluster in a narrow cone, causing all pairs to have high cosine similarity regardless of semantic
+content. Whitening transforms the space to restore isotropy.
+
+ Whitening in Practice
+    • What it does: Rotates and scales the embedding space so all directions have equal variance
+      (unit covariance).
+
+    • Effect: Cosine similarity becomes meaningful—semantically similar pairs score high, dissim-
+      ilar pairs score low.
+
+    • Bonus: Can simultaneously reduce dimensionality by keeping only the top-k eigenvectors
+      (similar to PCA), making retrieval faster.
+
+    • Cost: Requires computing the covariance matrix over a representative corpus (one-time,
+      O(N · d2 )). The transform itself is a simple matrix multiply at inference.
+
+    • Alternative approaches: Contrastive fine-tuning (SimCSE), flow-based normalization, or
+      training with isotropy-promoting regularizers.
+
+1.3.5    Self-Attention Mechanism
+Self-attention is the core operation that allows each token to attend to every other token in the
+sequence, computing a weighted combination based on relevance.
+ Scaled Dot-Product Attention
+ Given input sequence X ∈ Rn×d , we compute:
+
+                  Q = XWQ ,      K = XWK ,       V = XWV       (WQ , WK , WV ∈ Rd×dk )
+
+                                                                          !
+                                                          QK T
+                            Attention(Q, K, V ) = softmax √    +M V
+                                                            dk
+ where M is the causal mask (for autoregressive models): Mij = 0 if i ≥ j, else −∞.
+ Intuition: Each token “attends” to all previous tokens, computing a weighted average of their
+ values based on query-key similarity.
+
+Computational Complexity. The naive attention computation has quadratic cost in sequence
+length:
+
+   • Time: O(n2 · d) — computing QK T requires n2 dot products, each of dimension dk .
+
+                                                    48
+         H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+  • Memory: O(n2 ) — the full attention matrix must be materialized to apply softmax.
+
+   For a 128K-token context with d = 4096, the attention matrix alone is 128K × 128K = 16.4 billion
+entries (64 GB in FP32). This quadratic scaling is the fundamental bottleneck for long-context
+LLMs.
+     Table 1.4: Attention cost scaling: why naive implementation is prohibitive for long sequences.
+
+  Seq Length      Attention Ops       Matrix Size      Practical Impact
+  2K              4M                  16 MB            Fast; fits in SRAM
+  8K              64M                 256 MB           Manageable with FlashAttention
+  32K             1B                  4 GB             Requires memory-efficient kernels
+  128K            16B                 64 GB            Exceeds single GPU HBM
+  1M              1T                  4 TB             Impossible without sub-quadratic methods
+
+
+Approaches to Taming Attention Cost.              Several families of solutions address this quadratic
+bottleneck:
+
+  1. Exact attention with IO-awareness (FlashAttention [65]): Does not reduce computa-
+     tional complexity but eliminates the need to materialize the n × n matrix in HBM by computing
+     attention in tiles that fit in SRAM. Crucially, FlashAttention is orthogonal to the sparse
+     patterns below—it is an execution engine, not an attention pattern. Production systems
+     routinely combine FlashAttention with sliding windows or block-sparse masks, getting both IO
+     efficiency and reduced FLOPs. We cover the algorithm in detail in Section 1.6.
+
+  2. Sliding window / local attention: Each token only attends to the w nearest tokens (e.g.,
+     w = 4096). Cost becomes O(n · w)—linear in n. Used by Mistral [165] (window = 4096) and
+     Longformer [23]. Trades global context for efficiency; works well because most attention is local
+     in practice. In modern stacks, the sliding-window mask is executed inside a FlashAttention
+     kernel.
+
+  3. Sparse attention patterns: Combine local windows with periodic global tokens (e.g., every
+     512th token attends to all). BigBird [416] and LongT5 [125] use this. Preserves some long-range
+                         √
+     connectivity at O(n n) cost. Again, FlashAttention serves as the underlying kernel for the
+     non-zero attention blocks.
+
+  4. Linear attention / state-space models: Replace softmax(QK T )V with ϕ(Q)(ϕ(K)T V )
+     using associativity, or reformulate as a recurrence (Mamba [122], RWKV [288]). Theoretically
+     O(n · d2 ) total. Unlike approaches 2–3 above, these are architectural replacements that alter
+     model expressiveness—softmax-free attention is fundamentally less expressive, and empirically
+     these models still lag behind transformers on tasks requiring precise long-range retrieval or
+     complex reasoning.
+
+  5. KV cache compression: At inference, compress or evict old KV pairs to bound mem-
+     ory. Techniques include: H2 O [429] (heavy-hitter oracle—keep only high-attention keys),
+     StreamingLLM [394] (keep initial “attention sink” tokens + recent window), and quantized KV
+     caches [237].
+
+ FlashAttention + Sparse Patterns = Best of Both Worlds
+ A common misconception is that FlashAttention is an alternative to sparse attention. It is not—it
+ is an IO optimization for the attention kernel that composes freely with any attention mask.
+ Modern production systems (e.g., Mistral, DeepSeek) use FlashAttention as the execution engine
+ underneath a sliding-window or block-sparse mask. This gives you both reduced FLOPs (from
+ sparsity) and optimal memory access patterns (from tiling). RingAttention [221] extends this
+ further to multi-device settings, distributing the tiled computation across GPUs along the sequence
+
+
+                                                  49
+         H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+ dimension.
+ Linear attention and state-space models (Mamba, RWKV) are a genuinely different architectural
+ choice—they sacrifice the full pairwise interaction for O(n) compute. While theoretically elegant,
+ they have not matched transformer quality on knowledge-intensive or long-range reasoning tasks,
+ and frontier labs continue to use exact attention (with FlashAttention + sparsity) as the backbone.
+
+
+1.3.6   Multi-Head Attention
+Rather than computing a single attention function, multi-head attention runs several attention
+operations in parallel, each learning to focus on different aspects of the input (syntax, semantics,
+position, etc.).
+ Multi-Head Attention
+ Instead of one attention function with d-dimensional keys/values, use H parallel heads with
+ dimension dk = d/H:
+
+                          MultiHead(X) = Concat(head1 , . . . , headH )WO
+
+ Each head can learn different attention patterns (e.g., one head for syntax, another for semantics,
+ another for positional proximity).
+ Grouped Query Attention (GQA): Llama-3 [118] uses fewer K,V heads than Q heads (e.g., 8
+ KV heads shared across 32 Q heads). This reduces KV cache size by 4× with minimal quality loss.
+
+
+Multi-head Latent Attention (MLA). DeepSeek-V2 [69] introduced a more aggressive com-
+pression: instead of sharing KV heads (as in GQA), MLA compresses all key-value information into
+a single low-rank latent vector per token:
+
+                           ct = WDKV ht ,   Kt = WU K ct ,   Vt = WU V ct
+
+where ct ∈ Rdc with dc ≪ nh · dh . The KV cache stores only ct —smaller than even GQA—
+while decompression matrices WU K , WU V reconstruct full keys and values on-the-fly. Because the
+compression is learned end-to-end, quality matches or exceeds GQA. MLA enables DeepSeek’s
+subsequent Sparse Attention for sub-quadratic long-context scaling and is now the basis of the
+DeepSeek-V3/V4 architecture family.
+
+
+1.3.7   Positional Encodings
+Transformers are permutation-equivariant by construction — without positional information, the
+model cannot distinguish “the cat sat on the mat” from “mat the on sat cat the”. Positional encodings
+inject sequence-order signal so that attention can reason about token distance and direction.
+                       Table 1.5: Positional encoding methods in modern LLMs.
+
+    Method              Used By                          Key Idea
+    Sinusoidal          Original Transformer          Fixed sin / cos at different frequencies.
+                                                      Not learned.
+    Learned Absolute    GPT-2 [301], BERT [76]        Learned embedding per position. Lim-
+                                                      ited to training length.
+    RoPE (Rotary)       Llama [118], Qwen [350], Mis- Rotate Q,K vectors by position-
+                        tral [165]                    dependent angle. Extrapolates via
+                                                      NTK-aware scaling.
+    ALiBi               BLOOM [383], MPT [260]        No position embedding; add linear bias
+                                                      −m|i − j| to attention scores. Simple,
+                                                      extrapolates well.
+
+
+                                                 50
+          H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+Sinusoidal (Fixed) Positional Encoding. Introduced in the original Transformer [357], this
+method uses fixed sinusoidal functions at geometrically-spaced frequencies:
+                                          pos                                          pos 
+                 PE(pos, 2i) = sin                ,        PE(pos, 2i+1) = cos
+                                        100002i/d                                      100002i/d
+where pos is the token position, i is the dimension index, and d is the model dimension.
+  Motivation: Each frequency encodes position at a different scale (analogous to binary counting).
+The authors hypothesised that the model could learn to attend to relative positions because PE(pos+k)
+can be expressed as a linear function of PE(pos).
+  Pros: Zero learned parameters; deterministic; theoretically supports arbitrary lengths.
+
+  Cons: In practice, does not extrapolate well beyond training lengths; the model must learn to
+decode relative position from absolute signals indirectly; largely superseded.
+
+Learned Absolute Positional Embedding. Used by GPT-2 [301] and BERT [76]: a learnable
+embedding matrix Epos ∈ RLmax ×d is added to token embeddings:
+                                (pos)
+                               h0        = TokenEmbed(xpos ) + Epos [pos]
+
+   Motivation: Let the model learn whatever positional representation is optimal for the task,
+rather than imposing a fixed structure.
+   Pros: Maximum flexibility; simple implementation; often outperforms sinusoidal for short se-
+quences.
+
+   Cons: Hard-coded maximum length Lmax ; no generalisation beyond it; embeddings near the end
+of Lmax are under-trained; adds Lmax × d parameters.
+
+Rotary Position Embedding (RoPE).                 RoPE [341] encodes position by rotating query and key
+vectors in 2D subspaces:
+                                       (1)                              (2) 
+                                xm                        −xm
+                                                                                                
+                                           cos mθ1                        sin mθ1
+                               (2)                    (1)  
+                               xm   cos mθ1   xm   sin mθ1 
+                                                      
+                                                                                     
+               RoPE(xm , m) =  ...  ⊙       ..            ..              ..
+                                                                              
+                                                      +             ⊙
+                                     
+                                             .           .        
+                                                                              .     
+                                                                                     
+                               (d−1)                       (d)
+                                                                     
+                                          cos mθ                         sin mθ
+                                                                                     
+                              xm                       −xm 
+                                                                   
+                                                 d/2                          d/2 
+
+                                x
+                                  (d)     cos mθd/2       x
+                                                           (d−1)         sin mθd/2
+                                        m                              m
+
+where θi = 10000−2i/d and m is the position index. The key property is that the dot product between
+rotated queries and keys depends only on relative position:
+
+                          ⟨RoPE(qm , m), RoPE(kn , n)⟩ = f (qm , kn , m − n)
+
+   Motivation: Achieve relative position encoding without explicit bias terms, while maintaining
+compatibility with linear attention and KV-caching.
+   Pros: Naturally relative; no extra parameters; compatible with efficient inference; can be extended
+to longer contexts via NTK-aware scaling [289] or YaRN (adjusting θ base or interpolating frequencies).
+
+   Cons: Slightly more compute per attention operation (rotation + interleaving); extrapolation
+requires explicit scaling strategies; rotation in 2D subspaces imposes structure that may not be
+optimal for all tasks.
+ RoPE Length Extension
+ To extend a RoPE model trained at L to context length L′ > L:
+
+    • Position interpolation: Scale positions by L/L′ so all positions fit in [0, L]. Simple but
+
+
+                                                      51
+          H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+       compresses resolution.
+
+    • NTK-aware scaling: Increase the θ base (e.g. 10000 → 10000 · (L′ /L)d/(d−2) ), effectively
+      stretching high-frequency components while preserving low-frequency ones.
+
+    • YaRN [289]: Combines NTK scaling with an attention temperature correction t = 0.1 ln(s)+1
+      to compensate for increased entropy at longer distances.
+
+ALiBi (Attention with Linear Biases). ALiBi [292] takes a radically different approach: no
+positional embedding at all. Instead, a static linear penalty is subtracted from attention scores:
+                                                                                    !
+                                                   QK T             
+                     Attention(Q, K, V ) = softmax √    − m · |i − j| i,j V
+                                                     dk
+
+where m is a head-specific slope (set geometrically: mh = 2−8h/H for head h of H total). The bias
+−m|i − j| creates a soft local attention window whose width varies by head.
+   Motivation: Position should bias attention toward nearby tokens (recency prior) without
+interfering with the embedding space. By operating purely in attention-score space, ALiBi avoids
+polluting token representations with positional signal.
+   Pros: Excellent length extrapolation (trained at 1k, works at 8k+); zero parameters; trivial to
+implement; head-specific slopes give multi-scale locality.
+
+   Cons: Less expressive for tasks requiring precise long-range positional reasoning (e.g. “what was
+the 5th word?”); the linear decay is a strong inductive bias that may not suit all domains; largely
+overtaken by RoPE in recent models due to RoPE’s better short-context performance.
+                    Table 1.6: Positional encoding comparison: practical trade-offs.
+
+                         Sinusoidal         Learned Abs.                 RoPE            ALiBi
+ Extra parameters        None               Lmax × d                     None           None
+ Position type           Absolute           Absolute                     Relative       Relative     (im-
+                                                                                        plicit)
+ Length extrapolation    Poor               None                         Good (w/ scal- Excellent
+                                                                         ing)
+ Compute overhead        Negligible         Negligible                   Small          Negligible
+ Dominant era            2017–19            2018–20                      2022–present   2022–23
+
+
+Scaling to Extremely Long Contexts (100K–1M+ Tokens). Modern frontier models
+(Claude [11] with 200K–1M context, Gemini 1.5 [108] at 1M+, GPT-4 [274] at 128K) require
+positional encodings that remain faithful far beyond training lengths. The dominant solutions today:
+
+   1. RoPE with frequency scaling: The standard approach for extending RoPE beyond training
+      length. Rather than retraining, the base frequency θ is rescaled:
+                                                                      2i/d
+                                                            Ltarget
+                                                        
+                                           θi′ = θi ·
+                                                            Ltrain
+     Variants include:
+
+        • Linear scaling (Position Interpolation) [48]: Simply divide position indices by a factor s.
+          Cheap but degrades quality at high extension ratios.
+        • NTK-aware scaling [289]: Scale the base frequency θ = 10000 → 10000 · sd/(d−2) .
+          Preserves high-frequency (local) information while extending low-frequency (global) range.
+        • YaRN [289] (Yet another RoPE extensioN): Combines NTK scaling with an attention
+          temperature correction and fine-tuning on a small long-context corpus. Used by Llama-3
+          to extend from 8K training to 128K deployment.
+
+                                                   52
+           H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+        • Dynamic NTK [289]: Adjusts the scaling factor on-the-fly based on actual sequence
+          length at inference. No fixed extension ratio needed—the model adapts as context grows.
+
+  2. Continued pretraining on long data: Even with RoPE scaling, models benefit from a
+     short continued pretraining phase (1–5B tokens) on long documents. This teaches the model
+     to actually use distant context, not just tolerate it positionally. Llama-3.1 used a progressive
+     schedule: 8K → 64K → 128K.
+
+  3. Ring Attention / Blockwise Parallel [221]: For sequences exceeding single-GPU memory
+     (1M+ tokens), Ring Attention distributes the sequence across GPUs in a ring topology. Each
+     GPU holds a block and passes KV blocks around the ring, computing local attention tiles. This
+     enables linear memory scaling with GPU count while preserving exact attention.
+
+  4. Hybrid architectures: Some systems combine a local sliding window (e.g., 4K) for most
+     layers with full attention at select layers (e.g., every 4th layer). This provides O(n · w) cost for
+     most computation while maintaining global information flow.
+
+ Long Context ̸= Long Context Usage
+ A model with 1M context length does not necessarily use all 1M tokens effectively. The “lost in
+ the middle” phenomenon [226] shows that models tend to focus on the beginning and end of long
+ contexts, underutilizing information in the middle. Effective long-context utilization requires both
+ positional encoding support and training on tasks that reward long-range retrieval.
+
+1.3.8   Feed-Forward Network (MLP)
+Each transformer block contains an MLP applied independently to each position:
+
+                                        FFN(x) = W2 · σ(W1 x + b1 ) + b2
+
+where W1 ∈ Rd×4d , W2 ∈ R4d×d . Modern LLMs use:
+
+  • SwiGLU activation: FFN(x) = W2 (Swish(W1 x)⊙W3 x) — used by Llama [118], Mistral [165].
+    Requires 3 weight matrices but gives better performance.
+
+  • Hidden dimension is typically 8/3 × d (rounded to multiples of 256 for Tensor Core efficiency).
+
+ FFN as Memory
+ Recent work [110] suggests the FFN layers act as a key-value memory: W1 rows are keys (patterns
+ to match), W2 columns are values (information to output). The FFN “retrieves” stored knowledge
+ based on the current hidden state.
+
+1.3.9   Layer Normalization
+Layer normalization stabilizes training by normalizing activations across the feature dimension. Its
+placement relative to the attention/FFN sublayers significantly affects training dynamics.
+
+How LayerNorm Works. Given a hidden state vector x ∈ Rd (a single token’s representation),
+LayerNorm [15] computes:
+                                                           x−µ
+                                       LayerNorm(x) = γ ⊙ √        +β                               (1.5)
+                                                            σ2 + ϵ
+  where:
+             Pd
+  • µ = d1     i=1 xi (mean across the d feature dimensions)
+               Pd
+  • σ 2 = d1      i=1 (xi − µ)
+                                 2 (variance across features)
+
+
+                                                        53
+          H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+   • γ, β ∈ Rd are learned scale and shift parameters (per-dimension)
+
+   • ϵ ≈ 10−5 prevents division by zero
+
+   Key distinction from BatchNorm: LayerNorm normalizes across the feature dimension of a
+single example, not across the batch. This makes it independent of batch size and works identically
+at training and inference.
+
+RMSNorm — The Modern Simplification. RMSNorm [421] drops the mean-centering step,
+normalizing only by the root-mean-square:
+                                                                    v
+                                                                    u d
+                                             x                      u1 X
+                       RMSNorm(x) = γ ⊙           ,        RMS(x) = t    x2    i                 (1.6)
+                                           RMS(x)                      d i=1
+
+  No β (shift) parameter and no mean subtraction — just scale. This saves one reduction operation
+per token and is ∼5–10% faster on GPUs while achieving equivalent model quality. All modern
+LLMs (Llama, Mistral, Qwen) use RMSNorm.
+ Pre-LN vs Post-LN
+   • Post-LN (original Transformer): h + LayerNorm(Attn(h)). Requires careful warmup;
+     training can be unstable.
+
+    • Pre-LN (GPT-2+, all modern LLMs): h+Attn(LayerNorm(h)). Stabilizes training; enables
+      higher learning rates.
+
+    • RMSNorm (Llama [118], Mistral [165]): Simplified LayerNorm without mean-centering:
+      RMSNorm(x) = x/RMS(x) · γ. Slightly faster, same quality.
+
+ Why Normalization Matters for Deep Networks
+ Without normalization, activations tend to grow or shrink exponentially through layers (explod-
+ ing/vanishing activations). A 128-layer transformer without LayerNorm would see magnitudes
+ vary by 1030 × between the first and last layer. Normalization constrains each layer’s output to
+ a predictable range, enabling stable gradient flow and allowing the optimizer to use consistent
+ learning rates throughout the network.
+
+1.3.10    Model Size Reference
+The following table summarizes key architectural parameters for widely-used open-weight models
+(latest versions as of 2025), providing a quick reference for understanding scale and design choices.
+       Table 1.7: Architecture parameters for popular open-weight LLMs (2024–2025 generation).
+
+Model                   Params       Layers        d            Heads          KV          Context
+                                                                               Heads
+Llama-3.1 8B [118]      8B           32            4096         32             8           128K
+Llama-3.1 405B [118]    405B         126           16384        128            8           128K
+Llama-4 Maverick [4]    400B (17B    48            5120         40             8           1M
+                        active)
+Mistral Large 2 [5]     123B         88            12288        96             8           128K
+Qwen-2.5 72B [350]      72B          80            8192         64             8           128K
+DeepSeek-V3 [70]        671B (37B    61            7168         128            MLA         128K
+                        active)
+   Note: Models marked with “active” parameters use Mixture-of-Experts (MoE) architecture—
+total parameters indicate model capacity, while active parameters reflect per-token compute cost.
+DeepSeek-V3 uses Multi-head Latent Attention (MLA) instead of standard GQA, compressing KV
+into a low-rank latent space.
+
+                                                 54
+          H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+1.3.11    Attention Pathologies
+While the attention mechanism is powerful, it exhibits systematic failure modes that practitioners
+must understand—especially when scaling to long contexts or interpreting model behaviour.
+
+Attention Sink
+
+The phenomenon. Xiao et al. [393] discovered that transformer models allocate disproportionately
+high attention scores to the first token in the sequence—regardless of its semantic content. Even
+when the first token is a meaningless 〈BOS〉 marker, attention heads across all layers consistently
+attend to it, sometimes with 20–50% of total attention mass.
+
+                                                                                             P
+Why it happens. Softmax attention must produce a valid probability distribution ( j αj = 1).
+When no key is particularly relevant to a query, the model needs a “dump” location for unused
+attention mass. During training, the first token becomes this default sink because it is always present
+and positionally predictable. It functions as a no-op attention target—the model has learned to route
+irrelevant attention there rather than distributing it unpredictably.
+                                  √
+                      exp(q ⊤ k0 / d)  1
+             αsink = P             √ ≫          (even when k0 is semantically irrelevant)
+                              ⊤        n
+                      j exp(q kj / d)
+
+
+Consequences.
+
+   • Streaming inference failure: When using sliding-window KV caches, evicting the first token
+     causes perplexity to spike catastrophically—the model loses its attention sink.
+
+   • Misleading interpretability: Naive attention visualizations suggest the first token is “impor-
+     tant” when it is merely a mathematical artefact.
+
+   • Context window waste: The sink token occupies a KV cache slot without carrying useful
+     information.
+
+Solutions.
+
+   • StreamingLLM [393]: Always keep the first k tokens (“attention sinks”) in the KV cache
+     alongside the recent sliding window. Enables infinite-length generation with bounded memory.
+
+   • Sink tokens by design: Some models (e.g., Mistral) prepend dedicated sink tokens during
+     training that are explicitly meant to absorb residual attention.
+
+   • Softmax alternatives: Replace softmax with ReLU attention or sigmoid gating, where zero
+     attention is representable without requiring a dump target.
+
+Attention Dilution
+
+The phenomenon. As sequence length n grows, each query must distribute its attention budget
+across more keys. The average attention weight per token decreases as O(1/n), making it progressively
+harder for the model to concentrate on the few truly relevant positions—a problem known as attention
+dilution or attention diffusion [226].
+
+The “Lost in the Middle” effect. Liu et al. [226] showed that LLMs exhibit a U-shaped retrieval
+curve: information placed at the beginning or end of long contexts is retrieved reliably, but information
+in the middle is often ignored. This is a direct consequence of attention dilution compounded with
+positional biases from RoPE/ALiBi:
+
+                                                   55
+          H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+Why it happens.
+
+  • Softmax saturation: With many keys, the softmax temperature effectively decreases, making
+    the distribution more uniform (entropic).
+
+  • Positional decay: RoPE’s relative positional encoding introduces a natural decay with
+    distance, suppressing attention to middle positions that are far from both start and end.
+
+  • Training distribution: Models trained on shorter sequences develop attention patterns biased
+    toward recent context.
+
+Mitigation strategies.
+
+  • Explicit retrieval: Place relevant context at the beginning or end of the prompt; use RAG to
+    avoid relying on middle positions.
+
+  • Long-context training: Train on long documents with varied placement of key informa-
+    tion [100].
+
+  • Hierarchical attention: Architectures like Mamba [123] or RWKV that avoid the O(n2 )
+    attention bottleneck entirely.
+
+  • Landmark tokens: Insert retrievable markers in the context that act as “signposts” for
+    attention.
+
+  • Temperature scaling: Some implementations scale the attention logits by log n to counteract
+    dilution in long sequences.
+
+Other Attention Phenomena
+                Table 1.8: Additional attention patterns observed in large transformers.
+
+Pattern                               Description                        Implication
+Attention heads specialization        Different heads learn dis-         Not all heads are equally important;
+                                      tinct roles: syntax heads,         many can be pruned
+                                      co-reference heads, positional
+                                      heads [361]
+Induction heads                       Heads      that     implement      Critical for in-context learning; emerge
+                                      [A][B]...[A] → [B] copy-           in 2-layer+ models
+                                      ing [273]
+Attention collapse                    In deep networks, attention        Hurts expressivity; addressed by atten-
+                                      distributions can converge (all    tion diversity losses
+                                      heads attend same positions)
+Retrieval heads                       Specific heads specialize in re-   Explains why pruning certain heads
+                                      trieving factual information       causes hallucination spikes
+                                      from context [387]
+
+
+1.3.12    Visualizing Attention for Explainability
+Attention weights provide a window into model reasoning—but must be interpreted carefully.
+
+Attention Visualization Methods
+                                                                                                  √
+Raw attention maps. The simplest approach: plot the n×n attention matrix A = softmax(QK ⊤ / d)
+as a heatmap for each head and layer. Tools like BertViz [359] render interactive multi-head visual-
+izations.
+
+                                                  56
+          H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+Attention rollout. Raw attention at a single layer is misleading because information flows through
+residual connections across all layers. Abnar and Zuidema [2] propose attention rollout: multiply
+attention matrices across layers to approximate the total information flow from input to output:
+
+                                   R(l) = A(l) · R(l−1) ,   R(0) = I
+
+where A(l) is the (averaged across heads) attention matrix at layer l, adjusted to include the residual
+                          (l)
+connection: A(l) = 0.5 · Araw + 0.5 · I.
+
+Gradient-weighted attention. Combine attention weights with gradient information to identify
+which attended tokens actually influence the output [20]:
+
+                                                             ∂y
+                                      Relevance(i) = αi ·
+                                                             ∂hi
+
+This addresses the criticism that high attention ̸= high influence (a token can receive high attention
+but be processed through a near-zero-weight path).
+ Attention Is Not Explanation
+ Jain and Wallace [160] showed that attention weights often do not correlate with gradient-based
+ feature importance and that adversarial attention distributions can produce identical outputs.
+ Use attention visualization as a hypothesis generator, not as a faithful explanation. For causal
+ attribution, prefer gradient-based methods, probing, or mechanistic interpretability.
+
+
+Mechanistic Interpretability with Sparse Autoencoders (SAEs)
+
+The interpretability problem. Individual neurons in transformer MLPs and residual streams are
+typically polysemantic—a single neuron activates for multiple unrelated concepts (e.g., “the colour
+blue AND academic citations AND the word ‘the’”). This makes direct neuron-level interpretation
+unreliable.
+
+Sparse Autoencoders. Cunningham et al. [63] and Bricken et al. [30] demonstrated that training
+a sparse autoencoder (SAE) on model activations can decompose polysemantic representations into
+monosemantic features—interpretable directions that each correspond to a single concept:
+
+                               h = Wdec · ReLU(Wenc · x + benc ) + bdec
+
+  where Wenc ∈ Rm×d with m ≫ d (overcomplete basis), and the ReLU + sparsity penalty ensures
+only a few features activate per input.
+
+Key findings from SAE interpretability:
+
+  • Features are monosemantic: each encodes a single human-interpretable concept (“code in
+    Python,” “mentions of the Golden Gate Bridge,” “first-person narrative”) [30].
+
+  • Features are steerable: clamping a feature’s activation high/low directly controls model behaviour
+    (e.g., forcing the “Golden Gate Bridge” feature on makes the model mention it in every
+    response) [353].
+
+  • Features compose: complex behaviours emerge from combinations of simple features.
+
+  • SAEs scale: Templeton et al. [353] trained SAEs with up to 34M features on Claude 3 Sonnet,
+    finding interpretable features for safety-relevant concepts (deception, sycophancy, dangerous
+    requests).
+
+
+                                                   57
+         H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+ SAE Training Recipe
+    1. Collect activations from a specific model layer across a large corpus.
+
+    2. Train a sparse autoencoder with L1 penalty on the hidden layer: L = ∥x − x̂∥22 + λ∥z∥1 .
+
+    3. The learned encoder directions (Wenc rows) are candidate features.
+
+    4. Validate: for each feature, find max-activating examples and check semantic coherence.
+
+    5. Optionally: measure feature absorption and dead features to assess SAE quality.
+
+Natural Language Autoencoders (Anthropic, 2026)
+While SAEs decompose activations into interpretable vectors, their features still require human
+inspection of max-activating examples to understand. Anthropic’s Natural Language Autoencoders
+(NLAEs) [12] take a fundamentally different approach: they replace the sparse bottleneck with
+natural language descriptions, making interpretability automatic.
+
+How NLAEs work.
+  1. Encoder: A language model reads the hidden activations (or the input text) and produces a
+     natural language description of the active concepts: e.g., “The text discusses French cuisine
+     and uses formal academic tone.”
+  2. Decoder: A second language model reads the natural language description and reconstructs
+     the original activations (or predicts the next token).
+  3. Training: Both encoder and decoder are trained end-to-end to minimize reconstruction loss,
+     with the bottleneck being a variable-length natural language string rather than a sparse vector.
+
+Advantages over SAEs.
+  • Self-interpreting: Features are literally natural language—no manual labelling needed.
+  • Compositional: Can express complex, relational concepts (“a sarcastic response to a factual
+    claim”) that SAE features cannot represent as single directions.
+  • Hierarchical: Descriptions can capture both fine-grained (word-level) and coarse (document-
+    level) properties in the same representation.
+  • Auditable: The bottleneck description is human-readable, enabling direct inspection of what
+    information the model “thinks” is present.
+
+Limitations. NLAEs introduce a language-model-in-the-loop, making them computationally ex-
+pensive and potentially subject to the same faithfulness concerns as any model-generated explanation.
+They also cannot easily represent sub-symbolic features (geometric patterns, exact numerical values)
+that SAEs handle naturally as activation magnitudes.
+ The Interpretability Stack
+ Think of interpretability tools as a hierarchy:
+    1. Attention maps: “What is the model looking at?” (cheapest, least faithful)
+    2. Probing classifiers: “What information is encoded at this layer?”
+    3. Sparse Autoencoders: “What monosemantic features are active?” (scalable, requires
+       human labelling)
+    4. Natural Language Autoencoders: “What does the model think is happening?” (self-
+       interpreting, expensive)
+
+
+                                                   58
+          H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+    5. Causal tracing / patching: “Which components actually cause this output?” (most
+       faithful, most expensive)
+
+ Each level trades off between cost, scalability, and faithfulness of explanation.
+
+
+1.4     Prediction Heads: What Transformers Output
+The transformer body produces contextual hidden states ht ∈ Rd for each position. What we do
+with these hidden states—the prediction head—defines the task. The same transformer backbone
+can serve radically different purposes simply by swapping the head.
+
+
+
+
+Figure 1.7: The same transformer backbone supports different tasks by swapping the prediction head. All
+three heads used in this paper share identical architecture below the final projection layer.
+
+
+1.4.1   Language Modeling Head (Pretraining)
+The standard LM head projects the final hidden state to vocabulary logits and trains with cross-
+entropy loss over the next token:
+
+                               P (xt+1 |x≤t ) = softmax(Whead · ht + b)                           (1.7)
+  where Whead ∈ R|V|×d (often tied with the embedding matrix: Whead = ET ).
+ LM Head Properties
+    • Training objective: Causal language modeling (predict next token for every position)
+                          PT
+    • Loss: LLM = − T1      t=1 log P (xt |x<t )
+
+    • Label: Every token is both input (shifted right) and target (shifted left)
+
+    • Used during: Pretraining on large corpora (trillions of tokens)
+
+    • Key insight: The model learns general language understanding as a byproduct of next-token
+      prediction
+
+1.4.2   Conditional Generation Head (SFT / Instruction Following)
+For supervised fine-tuning (SFT), the architecture is identical to the LM head—the same linear
+projection to vocabulary logits. The difference is purely in what we compute loss on:
+
+                                                   |y|
+                                             1 X
+                                LSFT = −            log P (yt |xprompt , y<t )                    (1.8)
+                                            |y| t=1
+
+ Conditional Head – Key Differences from LM Head
+    • Loss masking: Only compute loss on the response tokens, not the prompt/instruction. The
+      prompt provides context but no gradient signal.
+
+
+                                                         59
+          H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+   • Conditioning: The model learns to generate responses conditioned on specific instruction
+     formats (system prompts, user queries, tool calls).
+
+   • Format tokens: Special tokens (<|user|>, <|assistant|>) guide the model to produce
+     structured outputs.
+
+   • Used during: SFT on curated instruction-response pairs; also during RL policy generation
+     (the policy head that produces actions/responses).
+
+ Same Head – Different Training Signal
+ The LM head and SFT head are architecturally identical (same Whead ). The only difference is
+ that during SFT, we mask the loss on prompt tokens. This subtle change transforms a general text
+ predictor into a instruction-following assistant. The head learns to “activate” different generation
+ modes based on the conditioning context.
+
+1.4.3   Value Head (Regression for RL)
+In reinforcement learning (PPO, GRPO), we need to estimate how good a state is—this requires a
+scalar output, not vocabulary logits. The value head replaces the LM projection with a simple
+regression layer:
+
+                                                T
+                                     V (st ) = wvalue · ht + b ∈ R                                 (1.9)
+  where wvalue  ∈ Rd and b ∈ R.
+ Value Head Properties
+   • Output: Single scalar (expected cumulative reward from this state)
+
+   • Loss: MSE between predicted and actual returns: LV = T1            t (V (st ) − Rt )
+                                                                                            2
+                                                                      P
+
+
+   • Architecture: Linear layer Rd → R1 (sometimes with a small MLP: d → 256 → 1)
+
+   • Backbone sharing: Often shares the transformer body with the policy (with a separate
+     value head), or uses a completely separate critic network
+
+   • Used during: PPO advantage estimation (GAE), reward model scoring
+
+1.4.4   Head Selection Summary
+          Table 1.9: Prediction heads used throughout this paper and their training contexts.
+
+   Head                Output             Loss                Stage                  Purpose
+   LM Head             R|V|              Cross-entropy        Pretraining            Learn language
+                                         (all tokens)                                from raw text
+   Conditional Head    R|V|              Cross-entropy        SFT                    Learn to follow
+                                         (response only)                             instructions
+   Value Head          R1                MSE                  RL (PPO)               Estimate state
+                                                                                     value for advan-
+                                                                                     tage
+   Reward Head         R1                 Pairwise ranking    RM training            Score response
+                                                                                     quality
+
+ Head Initialization Matters
+ When adding a value head to a pretrained LM, initialize it near zero (small random weights).
+ If initialized with large values, the initial value estimates will be wildly wrong, causing huge
+ advantages
+          √ and unstable PPO updates. Common practice: initialize the final linear layer with
+ N (0, 1/ d) or simply zeros.
+
+
+                                                  60
+           H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+1.4.5     HuggingFace Implementation
+
+ from transformers import (
+     AutoModelForCausalLM ,                            # LM head ( pretraining + SFT )
+     Auto ModelForSequenceClassification , # Reward head
+     AutoTokenizer ,
+ )
+ from trl import A u t o M o d e l F o r C a u s a l L M W i t h V a l u e H e a d # Value head ( PPO )
+ import torch
+
+ model_name = " meta - llama / Llama -3.1 -8 B - Instruct "
+ tokenizer = AutoTokenizer . from_pretrained ( model_name )
+
+ # === 1. LM Head ( Pretraining / SFT ) ===
+ # The default CausalLM model -- projects hidden states to vocab logits
+ lm_model = AutoModelForCausalLM . from_pretrained (
+     model_name ,
+     torch_dtype = torch . bfloat16 ,
+     device_map = " auto " ,
+ )
+ # lm_model . lm_head : Linear ( hidden_size -> vocab_size )
+ # Output : logits of shape ( batch , seq_len , vocab_size )
+
+ inputs = tokenizer ( " The capital of France is " , return_tensors = " pt " )
+ outputs = lm_model (** inputs )
+ nex t_toke n_logits = outputs . logits [: , -1 , :] # ( batch , vocab_size )
+ probs = torch . softmax ( next_token_logits , dim = -1)
+
+ # === 2. Conditional Head ( SFT ) ===
+ # Architecturally identical to LM head -- difference is in loss masking
+ # During SFT , we only compute loss on response tokens :
+ messages = [
+     { " role " : " user " , " content " : " What is 2+2? " } ,
+     { " role " : " assistant " , " content " : " 4 " } ,
+ ]
+ formatted = tokenizer . apply_chat_template ( messages , return_tensors = " pt " )
+ labels = formatted . clone ()
+ # Mask prompt tokens ( set to -100 so cross - entropy ignores them )
+ prompt_len = len ( tokenizer . apply_chat_template ( messages [:1]) )
+ labels [: , : prompt_len ] = -100
+ loss = lm_model ( input_ids = formatted , labels = labels ) . loss
+
+ # === 3. Value Head ( PPO Critic ) ===
+ # Adds a Linear ( hidden_size -> 1) on top of the LM backbone
+ value_model = A u t o M o d e l F o r C a u s a l L M W i t h V a l u e H e a d . from_pretrained (
+     model_name ,
+     torch_dtype = torch . bfloat16 ,
+     device_map = " auto " ,
+ )
+ # value_model . v_head : Linear ( hidden_size -> 1)
+ # Returns both LM logits AND per - token value estimates
+
+ inputs = tokenizer ( " Explain quantum computing " , return_tensors = " pt " )
+ lm_logits , loss , values = value_model (
+     ** inputs , return_dict = False
+ )
+ # values shape : ( batch , seq_len , 1) -- scalar estimate per token
+
+ # === 4. Reward Head ( Reward Model ) ===
+ # Classification head : Linear ( hidden_size -> 1) on last token
+ reward_model = A u t o M o d e l F o r S e q u e n c e C l a s s i f i c a t i o n . from_pretrained (
+     model_name ,
+     num_labels =1 ,                            # single scalar output
+     torch_dtype = torch . bfloat16 ,
+     device_map = " auto " ,
+ )
+
+
+                                                              61
+        H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+# Scores entire sequence by pooling the last token ’s hidden state
+inputs = tokenizer ( " Good response here " , return_tensors = " pt " )
+reward_score = reward_model (** inputs ) . logits # shape : ( batch , 1)
+
+            Listing 1.3: Loading and using different prediction heads with HuggingFace.
+
+Weight Tying: LM Head = Embedding Matrix Transposed
+Most modern LLMs tie the LM head weights with the input embedding matrix: lm_head.weight =
+model.embed_tokens.weight. This means the LM head is not a separately learned layer—it reuses
+the embedding table. Benefits: fewer parameters (|V| × d saved), better generalization, and the
+geometric structure of the embedding space directly determines token probabilities. You can verify
+this in HuggingFace: model.lm_head.weight is model.model.embed_tokens.weight returns
+True for most models.
+
+
+
+
+                                                62
+######## HGA PDF pages 73-76 ########
+           H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+         # Adam second moment stats ( proxy for adaptive LR )
+         v_norms = []
+         for group in optimizer . param_groups :
+             for p in group [ ’ params ’ ]:
+                 state = optimizer . state [ p ]
+                 if ’ exp_avg_sq ’ in state :
+                      v_norms . append ( state [ ’ exp_avg_sq ’ ]. mean () . item () )
+
+         print ( f " Step { step }: grad_norm ={ total_norm :.3 f } , "
+                 f " mean_v ={ sum ( v_norms ) / len ( v_norms ) :.6 f } " )
+
+  #   Red flags :
+  #   grad_norm >> 1.0 repeatedly -> reduce LR or increase warmup
+  #   grad_norm == 0.0 -> gradient vanishing or wrong loss
+  #   loss_scale decreasing -> FP16 overflow , switch to BF16
+  #   v very small -> Adam not warmed up yet , extend warmup
+
+
+ The Learning Rate is the Most Important Hyperparameter
+ In practice, getting the learning rate right matters more than any other hyperparameter. A rule
+ of thumb for LLM fine-tuning:
+
+      • Start with the values in the table above
+
+      • If loss diverges (increases after initial decrease): LR is too high
+
+      • If loss decreases very slowly and plateaus early: LR is too low
+
+      • If loss is unstable (oscillates): LR is too high or warmup is too short
+
+ The second most important hyperparameter is batch size (affects gradient noise and effective LR
+ via the linear scaling rule). Everything else is secondary.
+
+
+1.6      Flash Attention – Algorithm and Hardware Awareness
+Flash Attention [64, 65] is one of the most impactful algorithmic innovations in deep learning since
+the transformer itself. It does not change the mathematical result of attention – it computes exactly
+the same output – but it restructures the memory access pattern so that the GPU’s limited fast
+SRAM does all the heavy lifting, cutting HBM footprint from O(n2 ) to O(n) and delivering 2–4×
+end-to-end wall-clock gains on typical workloads.
+
+1.6.1     The Standard Attention Memory Problem
+Standard scaled dot-product attention is:
+                                                                           !
+                                                               QK T
+                                 Attention(Q, K, V ) = softmax √               V
+                                                                 dk
+
+ Standard Attention Memory Complexity
+ For sequence length n and head dimension d:
+      • Q, K, V ∈ Rn×d : O(nd) memory
+      • S = QK T ∈ Rn×n : O(n2 ) memory – the bottleneck
+      • P = softmax(S) ∈ Rn×n : another O(n2 )
+      • O = P V ∈ Rn×d : O(nd)
+ At n = 8192, d = 128, BF16: the attention matrix alone is 81922 × 2 ≈ 134 MB per head. With 32
+ heads, that is 4.3 GB just for one layer’s attention scores.
+
+
+                                                       73
+          H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+ Why O(n2 ) is Catastrophic
+ The attention matrix must be written to HBM (it does not fit in SRAM for long sequences), then
+ read back for the softmax, then read again for the P V product. Each of these HBM round-trips
+ is slow. For n = 32768 (32K context), the attention matrix is 327682 × 2 ≈ 2 GB per head –
+ completely infeasible to store.
+
+
+1.6.2   The Flash Attention Key Insight – Tiling and Online Softmax
+The core insight is: we never need the full n × n matrix in memory at once. We can compute
+the output O block-by-block if we use the online softmax trick.
+
+
+Online Softmax.         Recall that softmax requires a global maximum for numerical stability:
+
+                                                exi −m
+                                softmax(xi ) = P xj −m ,       m = max xj
+                                                je                  j
+
+
+The trick: we can update the running maximum and normalization factor as we process new blocks,
+without ever materializing the full row.
+ Online Softmax Update Rule
+ Given a running state (mold , ℓold , Oold ) and a new block of scores snew :
+
+    1. mnew = max(mold , max(snew ))
+
+    2. ℓnew = emold −mnew · ℓold +       _jes_new,j−m_new
+                                     P
+
+                                                                               
+                1
+    3. Onew = ℓnew em_old−m_new · ℓ_old · O_old + es_new−m_new · V _new
+
+ This is mathematically equivalent to computing softmax over all blocks at once.
+
+
+1.6.3   The Flash Attention Algorithm
+
+ Flash Attention Forward Pass – Block Tiling
+ Setup: SRAM size M . Block sizes Br = ⌈M/(4d)⌉, Bc = min(⌈M/(4d)⌉, d).
+
+    1. Divide Q into Tr = ⌈n/Br ⌉ blocks Q1 , . . . , QTr
+
+    2. Divide K, V into Tc = ⌈n/Bc ⌉ blocks K1 , . . . , KTc
+
+    3. Initialize output O ∈ Rn×d , running max m ∈ Rn , running sum ℓ ∈ Rn (all in HBM)
+
+    4. Outer loop over j = 1, . . . , Tc :
+
+        (a) Load Kj , Vj from HBM to SRAM
+        (b) Inner loop over i = 1, . . . , Tr :
+               i. Load Qi , Oi , mi , ℓi from HBM to SRAM
+                                             √
+              ii. Compute Sij = Qi KjT / d (stays in SRAM)
+             iii. Apply online softmax update to get new mi , ℓi , Oi
+             iv. Write Oi , mi , ℓi back to HBM
+
+    5. Return O
+
+ Key: Sij (the attention tile) is computed and discarded in SRAM. It is never written to HBM.
+
+
+                                                    74
+         H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+ Flash Attention Complexity
+
+                      Standard Attention                Flash Attention
+ Memory (HBM)         O(n2 )                            O(n)
+ HBM reads/writes     O(n2 d)                           O(n2 d/M )
+ FLOPs                O(n2 d)                           O(n2 d) (same)
+ Speedup              1×                                2–4×
+ In the forward pass, the total FLOPs remain O(n2 d) – identical to standard attention. Flash
+ Attention gains speed entirely by slashing slow HBM traffic, not by reducing arithmetic. (The
+ backward pass actually performs more FLOPs due to recomputation, but the wall-clock time is
+ still lower because the saved memory bandwidth dominates.)
+
+
+1.6.4   Flash Attention 2 – Better Parallelism
+Flash Attention 2 [64] made three key improvements:
+
+  1. Reduced non-matmul FLOPs: The original FA had unnecessary rescaling operations in
+     the inner loop. FA2 restructures the loop to minimize these. On A100, Tensor Core matrix
+     multiplications outpace scalar operations by roughly 16×, so even a small fraction of non-matmul
+     work in the inner loop becomes the latency bottleneck.
+
+  2. Better parallelism across sequence dimension: FA1 parallelized over batch and heads
+     only. FA2 also parallelizes over the query sequence dimension, enabling better GPU utilization
+     for long sequences with small batch sizes.
+
+  3. Causal masking optimization: For autoregressive (causal) attention, roughly half the blocks
+     are fully masked. FA2 skips these blocks entirely, giving ∼2× speedup for causal attention
+     vs. bidirectional.
+
+1.6.5   Flash Attention 3 – Hopper Architecture
+Flash Attention 3 [322] is designed specifically for H100 and exploits three Hopper-specific features:
+
+  • TMA (Tensor Memory Accelerator): H100 has a dedicated hardware unit for asynchronous
+    bulk data movement between HBM and SRAM. FA3 uses TMA to overlap data loading with
+    computation, hiding memory latency.
+
+  • Warp-specialization: FA3 assigns different warps to different roles (producer warps load
+    data via TMA; consumer warps compute MMA). This is a software pipelining technique that
+    keeps both the memory system and Tensor Cores busy simultaneously.
+
+  • FP8 support: H100 supports FP8 (E4M3/E5M2) Tensor Core operations at 2× the throughput
+    of BF16. FA3 supports FP8 attention with per-block quantization to maintain accuracy.
+
+  FA3 achieves up to 75% of H100 theoretical peak for FP16 attention, compared to ∼35% for
+FA2.
+
+1.6.6   Flash Attention 4 – Blackwell Architecture
+Flash Attention 4 [415] targets NVIDIA’s Blackwell GPUs (B200/GB200), which double Tensor
+Core throughput to 2.25 PFLOP/s (BF16) while non-matmul units (exponential, shared memory
+bandwidth) scale at a slower rate. This asymmetric hardware scaling means that the bottleneck
+shifts: on Blackwell, attention is limited not by matmul but by the softmax exponentials and shared
+memory traffic surrounding them.
+   FA4 addresses this with four key techniques:
+
+                                                 75
+           H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+  • Fully asynchronous MMA pipelines: Blackwell’s MMA instructions are fully asynchronous
+    (unlike Hopper’s wgmma which still blocked on completion). FA4 redesigns the pipeline to
+    overlap MMA, TMA loads, and softmax rescaling across larger tile sizes, keeping all hardware
+    units saturated.
+  • Software-emulated exponential: Instead of calling the hardware ex2 unit (which is the
+    throughput bottleneck), FA4 emulates ex using polynomial approximations executed on the
+    much faster Tensor Cores themselves. This trades extra matmul instructions for exponential-unit
+    stalls.
+  • Conditional softmax rescaling: Standard FlashAttention rescales the running max every
+    tile. FA4 skips the rescaling when the new tile’s max does not exceed the running max (common
+    in practice), saving both register shuffles and synchronization barriers.
+  • Tensor Memory + 2-CTA MMA mode (backward pass): The backward pass uses
+    Blackwell’s Tensor Memory (a per-SM scratchpad larger than shared memory) and a 2-CTA
+    cooperative mode that fuses dQ accumulation across two thread-block clusters, halving shared
+    memory round-trips.
+ FA4 Implementation: CuTe-DSL
+ FA4 is the first FlashAttention version written in CuTe-DSL, a Python-embedded domain-specific
+ language for GPU kernels (part of CUTLASS 4.x). CuTe-DSL compiles 20–30× faster than C++
+ CUTLASS templates while retaining full control over register allocation and pipeline scheduling.
+ This dramatically lowers the iteration time for kernel development.
+
+Results.    On B200 with BF16 head-dim 128 (causal, seq-len 8K):
+  • 1613 TFLOP/s – 71% of Blackwell peak utilization
+  • 1.3× faster than cuDNN 9.13 (NVIDIA’s proprietary fused kernel)
+  • 2.7× faster than Triton on the same hardware
+ Hardware–Software Co-evolution
+ The FlashAttention series illustrates a key principle: each GPU generation shifts the bottleneck,
+ demanding new algorithmic ideas rather than just re-compilation. A80 → memory bandwidth
+ limited (FA1/FA2: tiling + recomputation). H100 → data movement limited (FA3: TMA + warp-
+ specialization). B200 → non-matmul compute limited (FA4: software-emulated exp + conditional
+ rescaling). Understanding where the hardware bottleneck lies is the prerequisite for writing efficient
+ kernels.
+
+1.7     Pretraining: Best Practices
+Pretraining is the most expensive phase of LLM development—consuming millions of GPU-hours
+and requiring careful orchestration of data, compute, and hyperparameters. This section distills key
+lessons from Llama-3 [118], Chinchilla [140], and GPT-4 [274].
+
+1.7.1   Training Objective
+All modern decoder-only LLMs use causal language modeling (CLM):
+                                                 T
+                                              1X
+                                   LCLM = −         log Pθ (xt | x<t )
+                                              T t=1
+This simple objective—with enough data and scale—produces emergent capabilities (in-context
+learning, reasoning, instruction following) without explicit supervision [32].
+
+1.7.2   Data Pipeline
+
+
+                                                  76
+######## HGA PDF pages 85-87 ########
+          H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+1.10     Mixture of Experts (MoE)
+Mixture of Experts models [166, 325] scale model capacity without proportionally scaling compute
+cost by activating only a subset of parameters for each token.
+
+
+1.10.1    Architecture
+ MoE Layer
+ In a MoE transformer, the FFN layer in each block is replaced by N parallel “expert” FFNs plus
+ a router that selects which experts to use:
+                                N
+                                X
+                     MoE(x) =         gi (x) · Ei (x),    g(x) = TopK(softmax(Wr x))
+                                i=1
+
+    • Ei are expert networks (standard FFN layers)
+
+    • gi (x) are gating weights from the router (only top-K are non-zero)
+
+    • Typically K = 2 out of N = 8–64 experts are active per token
+
+    • Total params scale with N ; active params scale with K/N of FFN size
+
+
+
+
+Figure 1.11: MoE layer with 8 experts and Top-2 routing. Only the two highest-gated experts are computed
+per token; the rest are skipped entirely.
+
+
+
+1.10.2    Load Balancing
+
+ The Load Balancing Problem
+ Without constraints, the router may send most tokens to the same 1–2 experts (“expert collapse”).
+ This wastes capacity and creates compute imbalance across GPUs (each expert typically lives on
+ a different GPU).
+ Solution: Add an auxiliary load-balancing loss:
+                                                              N
+                                                              X
+                                           Lbal = α · N             fi · pi
+                                                              i=1
+
+ where fi = fraction of tokens routed to expert i, pi = mean router probability for expert i. This
+ encourages uniform expert utilization.
+
+
+                                                         85
+         H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+1.10.3    Noisy Top-K Gating: Making Discrete Routing Trainable
+The core challenge in MoE is that top-k selection is not differentiable — you can’t backpropagate
+through a hard “pick the top 2” operation. The field has developed two key tricks to solve this:
+ The Routing Differentiability Problem
+ The router computes logits h(x) = Wr · x for each expert, then selects the top-k. But:
+
+    • The selected experts get gradients through their gate weights (softmax over selected)
+
+    • The selection decision itself (which k to pick) has zero gradient
+
+    • Without a trick, the router can get stuck: an expert never selected → never gets a gradient
+      signal → never gets selected
+
+Approach 1: Noisy Top-K Gating [325]. Add learnable Gaussian noise to the router logits
+before the top-k selection:
+
+
+                     h(x) = Wg · x                                                     (clean logits)
+                    H(x) = h(x) + ϵ · Softplus(Wnoise · x),        ϵ ∼ N (0, 1)        (noisy logits)
+                              (
+                              vi if vi is in the top k
+              TopK(v, k)i =                                                                   (1.11)
+                              −∞ otherwise
+                                                         
+                     g(x) = softmax TopK(H(x), k)                                     (sparse gates)
+
+  • Wnoise is a learned noise magnitude — the model learns how much exploration each expert
+    needs
+  • During training, noise occasionally promotes “underdog” experts into the top-k, giving them
+    gradient signal
+  • At inference, noise is removed: use clean logits h(x) for deterministic routing
+  • The Softplus ensures noise scale is always positive
+
+Approach 2: Gumbel-Softmax Trick (for differentiable discrete sampling). An alternative
+from the variational inference literature [161]. The Gumbel-Max trick provides exact sampling
+from a categorical distribution:
+
+                          z = arg max [log πi + Gi ] ,       Gi ∼ Gumbel(0, 1)                (1.12)
+                                     i
+   where Gumbel noise is generated as Gi = − log(− log(Ui )), Ui ∼ Uniform(0, 1).
+   For top-k routing: taking the top-k of (log πi + Gi ) gives k samples without replacement from
+the categorical distribution defined by π.
+   Since arg max is non-differentiable, the Gumbel-Softmax relaxation replaces it with a temperature-
+controlled softmax:
+
+                                          exp ((log πi + Gi )/τ )
+                                   ĝi = P                                                    (1.13)
+                                          j exp ((log πj + Gj )/τ )
+
+  • τ → 0: approaches a hard one-hot (exact but non-differentiable)
+  • τ → ∞: approaches uniform (differentiable but uninformative)
+  • In practice, anneal τ from 1.0 down to 0.1–0.5 during training
+  • Straight-through estimator: use hard top-k in the forward pass, but Gumbel-Softmax
+    gradients in the backward pass — best of both worlds
+
+
+                                                  86
+          H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+ Which Approach Is Used in Practice?
+    • Sparsely-Gated MoE [325], Mixtral [166], DeepSeek-V2 [69]: Use Noisy Top-K with
+      Gaussian noise. Simple, effective, well-proven at scale.
+
+    • Switch Transformer [89]: Simplified to Top-1 with no noise (relies on load-balancing loss
+      alone).
+
+    • Research / smaller-scale MoE: Some use Gumbel-Softmax for fully differentiable routing,
+      especially when learning the routing itself is the research objective.
+
+    • Key insight: Both approaches solve the same problem (making discrete selection trainable)
+      via noise injection. Gaussian noise is simpler; Gumbel noise has stronger theoretical
+      guarantees for categorical sampling.
+
+
+
+Auxiliary-Loss-Free Load Balancing. The standard approach adds a balance penalty to the
+training loss, but DeepSeek [372] demonstrated that this fights the routing signal: the loss pushes
+toward uniform utilization while the router tries to specialize. Their solution moves balancing entirely
+out of the gradient into a per-expert routing bias updated based on observed utilization—achieving
+both better quality and more expert specialization. A subsequent insight from Qwen revealed that the
+aggregation scope matters more than the mechanism: computing balance statistics per micro-batch
+(the common default) silently destroys specialization because micro-batches are too homogeneous.
+Aggregating over the full global batch—as MAI-Thinking-1 confirms—restores the diversity signal
+that experts need to differentiate.
+
+
+
+1.10.4    Notable MoE Models
+
+Model                      Total Params      Active Params       Experts             Innovation
+Switch Transformer [89]    1.6T              100B                128, Top-1          First large-scale
+                                                                                     MoE; simplified
+                                                                                     routing
+Mixtral 8x7B [166]         47B               13B                 8, Top-2            Open-weight;
+                                                                                     matches Llama-2
+                                                                                     70B quality
+DeepSeek-V2 [69]           236B              21B                 160, Top-6          DeepSeekMoE
+                                                                                     with shared +
+                                                                                     routed experts
+Qwen-MoE [350]             14.3B             2.7B                60, Top-4           Fine-grained
+                                                                                     experts       for
+                                                                                     efficiency
+DBRX [67]                  132B              36B                 16, Top-4           Fine-grained
+                                                                                     with 4 experts
+                                                                                     per block
+
+
+
+
+1.11      Diversity in LLM Training
+
+Diversity — in training data, model outputs, and optimization trajectories — is critical for preventing
+mode collapse and ensuring robust, general-purpose LLMs. This section covers the key diversity
+mechanisms applicable to all LLM training phases.
+
+                                                    87
+######## HGA PDF pages 114-116 ########
+         H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+ That means for every byte loaded from HBM you can do 312 × 1012 /(2 × 1012 ) ≈ 156 floating-point
+ operations before the next byte arrives. If your kernel does fewer than 156 FLOPs per byte, it is
+ memory-bound – the compute units are idle waiting for data.
+
+Registers. Each CUDA thread has access to a private register file. Registers are the fastest storage
+on the chip – reads and writes happen in a single clock cycle with no arbitration. The A100 has
+65,536 32-bit registers per SM. Spilling registers to local memory (L1/L2) is a major performance
+hazard.
+
+SRAM – Shared Memory / L1. Each SM has a combined L1/shared memory pool of 192 KB
+on A100 (256 KB on H100), with up to 164 KB configurable as shared memory on A100. Shared
+memory is explicitly managed by the programmer (or by the compiler in newer CUDA versions).
+Flash Attention, for example, is entirely built around the insight that the attention tile computation
+fits in SRAM.
+
+L2 Cache. The 40 MB L2 on A100 is shared across all 108 SMs. It acts as a staging area between
+SRAM and HBM. For workloads with good spatial locality (e.g., weight matrices accessed repeatedly
+across a batch), L2 hit rates can dramatically reduce effective HBM traffic.
+
+HBM – High Bandwidth Memory. HBM is stacked DRAM mounted directly on the GPU
+package, connected via a wide interposer. The A100 SXM has 80 GB of HBM2e at 2 TB/s. The
+H100 SXM5 has 80 GB of HBM3 at 3.35 TB/s. This is the primary working memory for model
+weights, KV caches, activations, and optimizer states.
+
+CPU DRAM via PCIe. Data transfer between GPU HBM and CPU DRAM traverses the
+PCIe bus. PCIe Gen4 ×16 provides ∼32 GB/s per direction (64 GB/s bidirectional); Gen5 doubles
+this. This is a ∼60× bandwidth reduction compared to HBM (per-direction). CPU offloading
+(ZeRO-Infinity, DeepSpeed) exploits this link but must be used carefully to avoid becoming the
+bottleneck.
+
+NVMe. NVMe SSDs (e.g., Samsung 990 Pro) reach ∼7 GB/s sequential read. ZeRO-Infinity can
+offload optimizer states to NVMe, but this is only viable when the compute-to-IO ratio is very high
+(large batch sizes, slow training steps).
+
+2.1.7   Arithmetic Intensity and the Roofline Model
+ Arithmetic Intensity
+                                        FLOPs
+                          I=                               (FLOPs / Byte)
+                               Bytes accessed from HBM
+ A kernel is memory-bound when I < Iridge and compute-bound when I > Iridge , where
+
+                         Peak FLOP/s     312 × 1012
+             Iridge =                  =            = 156 FLOP/Byte (A100 BF16)
+                        Peak Bandwidth    2 × 1012
+
+ Attention Arithmetic Intensity
+ For a single attention head with sequence length n = 4096, head dim d = 128:
+ FLOPs: QK T costs 2n2 d, softmax is O(n2 ), Attn × V costs 2n2 d. Total: ≈ 4n2 d = 4 × 40962 ×
+ 128 ≈ 8.6 GFLOP.
+ Memory traffic (standard, non-Flash implementation):
+
+    • Read Q, K: 2 × n × d × 2 = 2 MB
+
+    • Write attention scores S = QK T : n2 × 2 = 33.5 MB
+
+
+                                                114
+         H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+
+
+Figure 2.2: Roofline model for A100 BF16. Attention is deep in the memory-bound regime; large GEMMs
+(FFN layers) are compute-bound.
+
+    • Read S for softmax: n2 × 2 = 33.5 MB
+
+    • Write softmax output P : n2 × 2 = 33.5 MB
+
+    • Read P and V for final matmul: n2 × 2 + n × d × 2 = 34.5 MB
+
+    • Write output O: n × d × 2 = 1 MB
+
+ Total memory: ≈ 138 MB (dominated by 4 passes over the n2 attention matrix).
+ Arithmetic intensity:
+                               8.6 × 109
+                           I=            ≈ 62 FLOP/Byte
+                              138 × 106
+ This is 62/156 = 40% of the A100 ridge point — firmly memory-bound. The GPU is 60% idle
+ waiting for memory.
+ Flash Attention fix: By never materializing the n × n matrix (tiling Q, K, V in SRAM), Flash
+ Attention reduces HBM traffic to just reading Q, K, V and writing O: 4 × n × d × 2 = 4 MB. Each
+ byte loaded is reused in O(n) computations (every query attends to every key), so:
+
+                                4n2 d  n  4096
+                         I=           = =      = 2048 FLOP/Byte
+                              4·n·d·2  2    2
+ This is 13× above the ridge point (156) — deeply compute-bound. The GPU hits its peak 312
+ TFLOPS, needing only 312T/2048 ≈ 152 GB/s of bandwidth (7.6% of HBM capacity). Memory
+ is no longer the bottleneck.
+
+
+2.1.8   Attention is Memory-Bound; FFN is Compute-Bound
+
+ Two Regimes in a Transformer
+ A transformer block has two main components with very different arithmetic intensities:
+
+    • Attention: Operates on n × d tensors. The QK T product is O(n2 d) FLOPs but requires
+      O(n2 ) memory for the attention scores. At long sequences, memory traffic dominates –
+      attention is memory-bound.
+
+    • FFN (MLP): Two large linear layers with weight matrices of shape [dmodel , 4dmodel ]. These
+      are large GEMMs with high arithmetic intensity – FFN is compute-bound.
+
+ This is why Flash Attention (memory optimization) helps attention but not FFN, while quantization
+ (reducing weight size) helps FFN more than attention.
+
+
+                                               115
+         H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+2.1.9    Tensor Cores
+ What Are Tensor Cores?
+ Tensor Cores are specialized matrix-multiply-accumulate (MMA) units introduced in Volta (2017).
+ Each Tensor Core performs a 4 × 4 × 4 matrix multiply in a single clock cycle:
+
+                                 D =A×B+C           (4 × 4 matrices)
+
+ The A100 has 432 Tensor Cores across 108 SMs (4 per SM, one per sub-partition). At BF16
+ precision, they deliver 312 TFLOP/s – roughly 16× the throughput of FP32 CUDA cores.
+
+  • Supported precisions: FP64, TF32, BF16, FP16, INT8, FP8 (H100+).
+
+  • Accumulation: Always in FP32 internally, even for BF16 inputs. This prevents catastrophic
+    cancellation during the dot product.
+
+  • Requirement: Tensor Cores are most efficient when matrix dimensions are multiples of 8
+    (BF16) or 16 (FP8). Padding to these multiples is often worthwhile.
+
+  • WGMMA (H100): Hopper introduces warpgroup-level MMA instructions that operate on
+    larger tiles (64×256×16) and can be pipelined with TMA (Tensor Memory Accelerator) data
+    movement.
+
+ The Tensor Core Trap
+ Tensor Cores only help if your kernel is compute-bound. If you are running a small batch (batch
+ size 1, inference), the GEMM tiles are tiny, Tensor Core utilization is low, and you are back in the
+ memory-bound regime. This is why inference engines batch requests aggressively.
+
+2.1.10    Communication Architecture – NVLink, InfiniBand, and PCIe
+Distributed LLM training and inference require moving enormous amounts of data between GPUs,
+nodes, and storage. The communication fabric is often the bottleneck for large-scale training.
+
+PCIe – The Host-Device Link.
+ PCIe Generations
+ Generation     x16 BW          (each    Bidirectional           Notes
+                dir.)
+ PCIe Gen3      16 GB/s                  32 GB/s                 Common in older servers
+ PCIe Gen4      32 GB/s                  64 GB/s                 A100 PCIe, most current servers
+ PCIe Gen5      64 GB/s                  128 GB/s                H100 PCIe, emerging
+
+  PCIe is used for:
+
+  • CPU ↔ GPU data transfers (model loading, CPU offloading)
+
+  • Cross-node GPU communication when NVLink is unavailable (rare, very slow)
+
+  • NVMe storage access (via CPU)
+
+ PCIe is Not for GPU-GPU Communication
+ Never route GPU-GPU communication through PCIe if NVLink is available. PCIe bandwidth (32
+ GB/s) is 28× lower than NVLink 4 (900 GB/s). In a multi-GPU server without NVLink (e.g.,
+ consumer GPUs), inter-GPU bandwidth is limited to PCIe, making tensor parallelism extremely
+ slow.
+
+
+
+                                                 116
+######## HGA PDF pages 119-120 ########
+         H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+2.2     vLLM – PagedAttention and High-Throughput Inference
+vLLM [195] introduced PagedAttention, which borrows the paging abstraction that operating systems
+use for RAM and applies it to the GPU’s KV cache. During LLM inference, the KV cache – the
+stored key and value tensors for all previous tokens – is the dominant memory consumer. Managing
+it efficiently is the central challenge of high-throughput inference.
+
+2.2.1   The KV Cache Fragmentation Problem
+ KV Cache Memory Formula
+ For a model with L layers, H heads, head dimension d, and a sequence of n tokens:
+
+                    KV cache size = 2 × L × H × d × n × bytes_per_element
+
+ For Llama-3 70B (BF16): L = 80, H = 8 (GQA), d = 128:
+
+                         = 2 × 80 × 8 × 128 × n × 2 = 327,680 × n bytes
+
+ At n = 4096 tokens: ≈ 1.3 GB per sequence.
+ Internal and External Fragmentation
+ Traditional inference systems pre-allocate a contiguous memory block for each sequence’s KV
+ cache, sized to the maximum possible sequence length. This causes two types of waste:
+ Internal fragmentation: A sequence that generates only 500 tokens still holds a block reserved
+ for 4096 tokens. The unused 3596 token slots are wasted.
+ External fragmentation: After many sequences complete, the free memory consists of many
+ small non-contiguous gaps. A new long sequence cannot be allocated even if total free memory is
+ sufficient, because no single contiguous block is large enough.
+ In practice, GPU memory utilization with naive allocation is often only 20–40%.
+
+2.2.2   PagedAttention – Virtual Memory for KV Caches
+PagedAttention (Kwon et al., 2023) borrows the paging abstraction from operating systems. Instead
+of one contiguous block per sequence, the KV cache is carved into fixed-size pages (blocks), and an
+indirection table—analogous to a CPU page table—translates each sequence’s logical token positions
+into scattered physical GPU memory addresses.
+  PagedAttention Core Concepts
+    • Block size: Typically 16 tokens per block (tunable). Each block stores 16 × 2 × L × H × d
+      elements.
+
+    • Block table: A per-sequence mapping from logical block index to physical block index in
+      the GPU memory pool.
+
+    • Physical block pool: A pre-allocated pool of fixed-size blocks. Allocation is O(1) – just
+      pop from a free list.
+
+    • Attention kernel: Modified to gather KV blocks from non-contiguous physical locations
+      using the block table during attention computation.
+ Block Table Example
+ Suppose block size = 4 tokens, and we have two sequences:
+    • Sequence A (7 tokens): logical blocks [0,1] → physical blocks [3, 7]
+    • Sequence B (5 tokens): logical blocks [0,1] → physical blocks [1, 5]
+ Physical block 3 holds tokens 0–3 of sequence A. Physical block 7 holds tokens 4–6 of sequence A
+
+
+                                               119
+          H. Roitman — The Hitchhiker’s Guide to Agentic AI: From Foundations to Systems
+
+
+ (partially filled). The attention kernel for sequence A reads from physical blocks 3 and 7 in order,
+ using the block table as an indirection layer.
+
+
+2.2.3   Benefits of PagedAttention
+Near-zero waste. Internal fragmentation is bounded by at most one partially-filled block per
+sequence (the last block). With block size 16, worst-case waste is 15 tokens per sequence – negligible.
+External fragmentation is eliminated because blocks are fixed-size and interchangeable.
+
+
+Dynamic allocation. Blocks are allocated on demand as the sequence grows. No need to know
+the final sequence length in advance. This is critical for generation, where output length is unknown.
+
+
+Prefix sharing (copy-on-write). Multiple sequences sharing a common prefix (e.g., a system
+prompt) can share the same physical blocks for that prefix. The block table simply points multiple
+sequences to the same physical blocks. When a sequence needs to write to a shared block (diverging
+from the prefix), a copy-on-write is triggered.
+ Prefix Sharing Savings
+ In a chatbot with a 1000-token system prompt serving 128 concurrent users:
+
+    • Without prefix sharing: 128 × 1000 × 327,680/109 ≈ 42 GB just for system prompt KV cache
+
+    • With prefix sharing: 1 × 1000 × 327,680/109 ≈ 0.33 GB
+
+    • Savings: ∼128× for the shared prefix portion
+
+
+Preemption via swap. When GPU memory is exhausted, vLLM can preempt a sequence by
+swapping its KV blocks to CPU DRAM (or simply discarding them and recomputing later). This is
+only feasible because blocks are self-contained and non-contiguous – swapping a contiguous allocation
+would require copying the entire buffer.
+
+
+2.2.4   Continuous Batching
+Traditional batching (“static batching“) waits until all sequences in a batch finish before starting
+new ones. If one sequence generates 500 tokens and another generates 10, the GPU is idle for 490
+steps on the short sequence. This is extremely wasteful.
+ Continuous Batching
+ Continuous batching (also called iteration-level scheduling) processes one decode step at a time.
+ After each step:
+
+    1. Check which sequences have finished (generated EOS token)
+
+    2. Remove finished sequences from the batch, freeing their KV blocks
+
+    3. Add new waiting sequences to fill the freed slots
+
+    4. Run the next decode step with the updated batch
+
+ The batch composition changes every step — sequences join and leave dynamically. This keeps
+ GPU utilization near 100% and dramatically improves throughput (1.5–3× over static batching).
+ PagedAttention is essential here: adding/removing sequences mid-batch requires dynamic KV
+ block allocation/deallocation, which is only efficient with paged memory.
+
+
+                                                 120
+

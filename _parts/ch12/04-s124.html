@@ -1,0 +1,162 @@
+
+<!-- ===================================================== 12.4 -->
+<section id="s124">
+<h2>12.4 A figyelemmechanizmus ★★</h2>
+<p>A rekurrens háló mindent egyetlen állapotvektorba sűrít. Véleményelemzésnél ez elég lehet. Fordításnál már nem: ott a kimenet minden szavához a bemenet <b>más-más</b> részére van szükség.</p>
+
+<h3 id="s124-a">1. lépés: fordítás és a szűk keresztmetszet</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – szóról szóra nem megy</span>
+  „Holnap moziba megyek a barátaimmal.” → „I'm going to the movies with my friends tomorrow.”<br>
+  5 magyar szóból 9 angol lett, és a „Holnap” az elejéről a mondat végére került („tomorrow”). Ha a gép szóról szóra fordítana, már az első szónál elakadna: angolul nem így kezdjük. Előbb <b>az egész mondatot</b> el kell olvasni, és csak utána kezdeni az írást.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – kódoló–dekódoló (<em>encoder–decoder</em>, seq2seq)</span>
+  Két rekurrens háló (I. Sutskever, O. Vinyals, Q. Le, 2014; K. Cho és társai, 2014):
+  <ul style="margin:.2rem 0">
+    <li>a <b>kódoló</b> végigolvassa a forrásmondatot; az utolsó rejtett állapota a <b>kontextusvektor</b>;</li>
+    <li>a <b>dekódoló</b> ebből indul, és tokenenként írja a célmondatot: minden lépésben a saját előző kimenetét kapja bemenetnek, egészen a „vége” jelig.</li>
+  </ul>
+  Tanításkor a dekódoló a <b>helyes</b> előző szót kapja, nem a saját tippjét (<em>teacher forcing</em>, „tanári vezetés”).
+  <b>A gond:</b> a forrásmondatból a dekódoló <b>csak a kontextusvektort</b> látja – egy rögzített hosszú vektort, bármilyen hosszú a mondat. Ez a <b>szűk keresztmetszet</b>.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – mennyi fér bele?</span>
+    A kísérletünk RNN-je 16 számban tárolja az egész kritikát. A <em>Deep Learning – A Visual Approach</em> fordító-RNN-je 1024 számban – és egy hosszú, egymásba ágyazott mondatnál már értelmetlen fordítást ad. „Bármekkora is az állapot, mindig jöhet hosszabb mondat.”
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a mérés</span>
+    D. Bahdanau, K. Cho és Y. Bengio (2015) angol–francia fordítással mérte: a sima kódoló–dekódoló <b>17,8</b> BLEU-pontot ért el, ugyanaz a háló figyelemmel <b>26,8</b>-at. A sima változat a kb. 20 szónál hosszabb mondatokon gyorsan romlott, a figyelmes nem. (A BLEU 0–100 közötti pontszám: mennyi szó és szókapcsolat egyezik emberi fordításokkal.)
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Nagyobb állapotvektor nem oldja meg.</b> Több memória csak kitolja a határt, és lassabb, nehezebben tanítható hálót ad.</li>
+    <li><b>A „hosszú távú függés” két különböző gond.</b> A 12.3-ban a <b>tanítás</b> nehézsége volt (eltűnő gradiens); itt a <b>tárolásé</b> (minden egy vektorban). Az LSTM az elsőn segít, a másodikon nem.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – kódoló és dekódoló</summary>
+  <ol>
+    <li>A „Holnap moziba megyek a barátaimmal.” fordításában melyik magyar szó került a legmesszebbre a helyétől?
+      <details><summary>Megoldás</summary>A „Holnap”: az első helyről az angol mondat végére („tomorrow”).</details></li>
+    <li>Mit kap a dekódoló a forrásmondatból egy figyelem nélküli kódoló–dekódolóban?
+      <details><summary>Megoldás</summary>Csak a kódoló utolsó rejtett állapotát, a kontextusvektort.</details></li>
+    <li>Mi a „tanári vezetés” (teacher forcing)?
+      <details><summary>Megoldás</summary>Tanításkor a dekódoló a valódi előző szót kapja bemenetnek, nem a saját (esetleg hibás) jóslatát. Így egy hiba nem rontja el a mondat többi részének tanítását.</details></li>
+    <li>A kódoló 16 számos kontextusvektora egy 5 és egy 50 szavas mondatot is tárol. Melyikben jut kevesebb „hely” egy szóra?
+      <details><summary>Megoldás</summary>Az 50 szavasban: ugyanannyi szám tízszer annyi szót kell leírjon.</details></li>
+    <li>(nehezebb) Bahdanau mérésében a figyelem nélküli modell 17,8, a figyelmes 26,8 BLEU-t ért el. Miért nem elég ez a két szám a döntéshez, és mit mutat a mondathossz szerinti bontás?
+      <details><summary>Megoldás</summary>Az átlag elfedi, <b>hol</b> romlik a modell. A hossz szerinti bontás mutatja, hogy a különbség a hosszú mondatoknál nyílik szét – ez bizonyítja, hogy a szűk keresztmetszet a baj, nem valami más (vö. a csoportonkénti értékeléssel, <a href="../06-modellertekeles/#s61-d">6.1</a>).</details></li>
+  </ol>
+</details>
+
+<h3 id="s124-b">2. lépés: a figyelem mint puha keresés</h3>
+<p>Ne egyetlen vektort adjunk át! Adjuk át a kódoló <b>összes</b> állapotát, és a dekódoló minden lépésben maga döntse el, melyikből mennyit vegyen. Hogy ez hogyan megy, egy egyszerűbb példán nézzük meg.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy szótár, amely nem ismeri a pontos egyezést</span>
+  Egy közönséges szótárban (pl. Pythonban <code>dict</code>) a kulcs vagy pontosan egyezik, vagy nem. Most legyen három <b>kulcs–érték</b> pár, a kulcsok vektorok:
+  $\mathbf k_1 = (2;\ 0) \to 10$, $\ \mathbf k_2 = (0;\ 2) \to 20$, $\ \mathbf k_3 = (1;\ 1) \to 30$. A kérdés (lekérdezés): $\mathbf q = (1;\ 0)$.
+  <ol style="margin:.3rem 0">
+    <li><b>Pontszám</b> minden kulcsra, skaláris szorzattal: $\mathbf q\cdot\mathbf k_1 = 2$, $\mathbf q\cdot\mathbf k_2 = 0$, $\mathbf q\cdot\mathbf k_3 = 1$.</li>
+    <li><b>Súlyok</b> softmax-szal (<a href="../02-matematikai-eszkoztar/#s25-d">2.5</a>): $\dfrac{(e^2;\ e^0;\ e^1)}{e^2 + e^0 + e^1} = \dfrac{(7{,}389;\ 1;\ 2{,}718)}{11{,}107} = (0{,}665;\ 0{,}090;\ 0{,}245)$.</li>
+    <li><b>Válasz</b> az értékek súlyozott átlaga: $0{,}665 \cdot 10 + 0{,}090 \cdot 20 + 0{,}245 \cdot 30 \approx 15{,}79$.</li>
+  </ol>
+  A „kemény” keresés a legjobban illő kulcs értékét adná: 10. A puha keresés <b>keveréket</b> ad, amelyben a jobban illő kulcs értéke nagyobb súllyal szerepel.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – figyelem (<em>attention</em>)</span>
+  Adott egy <b>lekérdezés</b> $\mathbf q$ és $m$ darab <b>kulcs–érték</b> pár $(\mathbf k_j, \mathbf v_j)$. A figyelem kimenete
+  $$\text{figyelem}(\mathbf q) = \sum_{j=1}^{m} a_j\,\mathbf v_j,\qquad a_j = \frac{e^{s_j}}{\sum_{l} e^{s_l}},\quad s_j = \text{pontszám}(\mathbf q, \mathbf k_j).$$
+  A pontszám a legegyszerűbb esetben skaláris szorzat. A súlyok pozitívak, és összegük 1.
+  <b>Miért jó?</b> Minden lépés deriválható (nincs „kiválasztás”), így az egészet gradiens módszerrel lehet tanítani: a háló megtanulja, milyen lekérdezést és kulcsokat érdemes előállítani.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – élesebb kérdés</span>
+    $\mathbf q = (3;\ 0)$: a pontszámok $6;\ 0;\ 3$, a súlyok $(0{,}950;\ 0{,}002;\ 0{,}047)$, a válasz $\approx 10{,}97$. Minél nagyobbak a pontszámok közti különbségek, annál inkább „kemény” a keresés.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – semmitmondó kérdés</span>
+    $\mathbf q = (0;\ 0)$: minden pontszám 0, a súlyok $\tfrac13$-ok, a válasz az értékek sima átlaga: $20$. Ha a lekérdezés semmire nem hasonlít jobban, a figyelem átlagol.
+  </div>
+</div>
+<div class="widget" data-widget="soft-lookup"></div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabály – a lekérdezés kérdez, a kulcs címke, az érték tartalom</span>
+  A <em>Deep Learning – A Visual Approach</em> hasonlata: egy festékboltban azt kéred, „világossárga, egy kis sötét naranccsal”. Az eladó minden doboz <b>címkéjét</b> (kulcs) összeveti a kérésed (lekérdezés) szavaival, és annál több <b>festéket</b> (érték) önt a vödrödbe egy dobozból, minél jobban illik a címke: <em>Napsárga</em> 45%, <em>Sötét narancs</em> 45%, az <em>Egy kis kékség</em> 10% – mert a címkéjében szerepel az „egy kis” –, a többi 0%.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A súly a kulcsból jön, a tartalom az értékből.</b> A festékbolt 10%-a mutatja: egy felszínes egyezés a címkében is súlyt hoz, akármi van a dobozban.</li>
+    <li><b>A softmax sosem ad pontosan 0-t.</b> Minden érték „szivárog” egy kicsit a válaszba; csak nagyon nagy pontszámkülönbségnél közelít a kemény kereséshez.</li>
+    <li><b>A súlyok soronként (lekérdezésenként) adnak 1-et</b>, nem kulcsonként: egy kulcsra több lekérdezés is figyelhet erősen, egyre sem kötelező.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – puha keresés</summary>
+  <ol>
+    <li>Ugyanazokkal a kulcsokkal és értékekkel mi a válasz, ha $\mathbf q = (0;\ 1)$?
+      <details><summary>Megoldás</summary>Pontszámok $0;\ 2;\ 1$ → súlyok $(0{,}090;\ 0{,}665;\ 0{,}245)$ → $0{,}90 + 13{,}30 + 7{,}34 \approx 21{,}55$.</details></li>
+    <li>Mi a válasz, ha $\mathbf q = (0{,}5;\ 0{,}5)$?
+      <details><summary>Megoldás</summary>Mindhárom pontszám 1 → a súlyok egyenlők → $20$.</details></li>
+    <li>Két kulcs, pontszámok $1$ és $1 + \ln 3$. Mennyi a két súly?
+      <details><summary>Megoldás</summary>$e^{\ln 3} = 3$, ezért a második háromszor akkora: $0{,}25$ és $0{,}75$.</details></li>
+    <li>Ha minden pontszámhoz hozzáadunk 5-öt, változnak-e a súlyok? És ha mindet megszorozzuk 5-tel?
+      <details><summary>Megoldás</summary>Hozzáadásra nem: a softmax eltolásra érzéketlen. Szorzásra igen: a különbségek nőnek, a súlyok élesebbek (közelebb a kemény kereséshez).</details></li>
+    <li>(nehezebb) Lehet-e a figyelem kimenete nagyobb a legnagyobb értéknél vagy kisebb a legkisebbnél, ha az értékek számok?
+      <details><summary>Megoldás</summary>Nem: a súlyok pozitívak és 1 az összegük, így a kimenet az értékek súlyozott átlaga – mindig a legkisebb és a legnagyobb közé esik. (Vektor értékeknél: a vektorok „burkán” belül marad.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s124-c">3. lépés: figyelem a fordításban</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – minden angol szónál máshová néz</span>
+  Tegyük a puha keresést a dekódolóba! A <b>lekérdezés</b> a dekódoló aktuális állapota („mit írok most?”), a <b>kulcsok és értékek</b> a kódoló állapotai, forrásszavanként egy. Amikor a dekódoló a „black” után a következő szót választja, a „fekete” és a „macska” környékére figyel; a „table” után az „asztalon”-ra. A kontextusvektor így <b>minden lépésben más</b>: a forrásmondat épp szükséges részének keveréke.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – figyelmes kódoló–dekódoló (Bahdanau-figyelem)</span>
+  A kódoló minden forrástokenhez ad egy $\mathbf h_j$ állapotot. A dekódoló $i$-edik lépésében
+  $$a_{ij} = \operatorname{softmax}_j\big(\text{pontszám}(\mathbf s_{i-1}, \mathbf h_j)\big),\qquad \mathbf c_i = \sum_j a_{ij}\,\mathbf h_j,$$
+  ahol $\mathbf s_{i-1}$ a dekódoló előző állapota. A $\mathbf c_i$ kontextusvektor a következő szó előállításához kell. Az $a_{ij}$ súlyokból álló mátrix az <b>illesztési</b> (alignment) mátrix: megmutatja, melyik célszóhoz melyik forrásszó kellett (D. Bahdanau, K. Cho, Y. Bengio, 2015).
+  Mai szóhasználattal ez <b>keresztfigyelem</b> (<em>cross-attention</em>): a lekérdezés az egyik sorozatból (cél), a kulcsok és értékek a másikból (forrás) jönnek.
+</div>
+<div class="widget" data-widget="translation-attention"></div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – szóillesztés</span>
+    „A fekete macska az asztalon alszik.” → „The black cat sleeps on the table.” A fordítómodell 3. rétegének keresztfigyelmében az épp leírt <em>black</em> a „fekete”-re, a <em>cat</em> a „macska”-ra, a <em>table</em> az „asztal”-ra figyel a legjobban. Senki nem tanította meg neki a szópárokat – csak mondatpárokat látott.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy szó dönt</span>
+    „Lehullott a levél a fáról.” → <b>„The letter fell from the tree.”</b> – hibás. „Lehullott egy <b>sárga</b> levél a fáról.” → „A yellow leaf fell from the tree.” – helyes. A „levél” fordításához a modellnek a többi szót is figyelembe kell vennie; itt a „sárga” billentette át a döntést. A fejezet első kérdésére a <a href="#s128-b">12.8</a>-ban térünk vissza.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Ki kérdez, ki válaszol?</b> A keresztfigyelemben a <b>lekérdezés a dekódolóból</b> (a célnyelv felől), a <b>kulcs és az érték a kódolóból</b> (a forrás felől) jön. A <em>Deep Learning – A Visual Approach</em> egy helyen fordítva írja – a saját ábrái szerint is ez a helyes irány.</li>
+    <li><b>A figyelmi súly nem magyarázat.</b> Azt mutatja, honnan kevert a modell, nem azt, miért döntött így. Ugyanazt a fordítást más súlyokkal is meg lehet kapni (S. Jain, B. Wallace, 2019). A widgetben is látszik: sok fej a súlya nagy részét a mondatvég-jelre (<code>&lt;/s&gt;</code>) „parkolja”, mert a softmax miatt valahová tennie kell.</li>
+    <li><b>Egy réteg, egy fej nem a modell.</b> A fordító 6 rétegének 8–8 feje van; a szép illesztés egy-egy rétegben látszik, máshol nem.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – figyelem a fordításban</summary>
+  <ol>
+    <li>Egy illesztési mátrix sora: (0,1; 0,7; 0,1; 0,1) a forrás (A, fekete, macska, alszik) tokenjeire. Melyik forrásszóra figyel ez a lépés? Mennyi a sor összege?
+      <details><summary>Megoldás</summary>A „fekete”-re (0,7); az összeg 1, mint minden softmax-soré.</details></li>
+    <li>A keresztfigyelemben honnan jön a lekérdezés, és honnan a kulcs és az érték?
+      <details><summary>Megoldás</summary>Lekérdezés: a dekódoló (a célmondat épp készülő része). Kulcs és érték: a kódoló állapotai (a forrásmondat tokenjei).</details></li>
+    <li>Hány figyelmi súlyt számol egy lépésben a dekódoló, ha a forrásmondat 12 token? És a teljes, 15 tokenes fordítás alatt?
+      <details><summary>Megoldás</summary>Lépésenként 12-t; összesen $15 \cdot 12 = 180$-at (egy fejre, egy rétegben).</details></li>
+    <li>Miért jobb a figyelmes modell a hosszú mondatokon?
+      <details><summary>Megoldás</summary>Mert nem egy rögzített vektorból kell mindent kiolvasnia: minden lépésben közvetlenül visszanézhet a forrás bármely tokenjére.</details></li>
+    <li>(nehezebb) A „Holnap moziba megyek a barátaimmal.” fordításában a <em>tomorrow</em> a mondat végén áll. Milyen alakú lesz ennek a sornak az illesztési mintája, és mit mutat ez a szórendről?
+      <details><summary>Megoldás</summary>A <em>tomorrow</em>-hoz tartozó lépés a forrás <b>első</b> szavára („Holnap”) figyel – az illesztési mátrixban ez egy, a főátlótól távoli folt. A figyelem szabadon „ugrálhat” a forrásban, ezért a szórend átrendezése nem gond neki, szemben a szóról szóra fordítással.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai12-124"></div>
+</section>

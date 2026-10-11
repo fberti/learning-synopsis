@@ -1,0 +1,256 @@
+
+<!-- ===================================================== Összefoglalás -->
+<section id="s-sum">
+<h2>Összefoglalás</h2>
+<div class="tw" style="overflow-x:auto"><table>
+  <tr><th>Fogalom</th><th>Lényeg</th></tr>
+  <tr><td>Token, szótár</td><td>a szöveg darabjai (szó, részszó, írásjel); $V$ elemű szótár, minden token egy sorszám – a sorszám csak címke</td></tr>
+  <tr><td>Részszó-tokenizálás</td><td>gyakori szó egyben, ritka darabokban (háza|##imb|##an); véges szótár, bármilyen szó leírható</td></tr>
+  <tr><td>Szózsák, szópárok</td><td>tokenek darabszáma, sorrend nélkül; az $n$-gramok a szomszédos sorrendet őrzik meg</td></tr>
+  <tr><td>TF-IDF</td><td>$\text{tf}\cdot\ln(N/\text{df})$: a mindenhol előforduló szó 0, a ritka nagy súlyt kap; változatok (scikit-learn: $+1$, normálás)</td></tr>
+  <tr><td>One-hot</td><td>$V$ hosszú, egyetlen 1-es; minden szópár merőleges; $\mathbf e_t E$ = $E$ $t$-edik sora</td></tr>
+  <tr><td>Beágyazás</td><td>sűrű, $d$ dimenziós vektor tokenenként ($V\cdot d$ paraméter); hasonlóság koszinusszal; irányoknak jelentése van; torzítást is tanul</td></tr>
+  <tr><td>Disztribúciós hipotézis</td><td>hasonló környezet – hasonló jelentés; word2vec (szomszédjóslás), GloVe (együttes előfordulás)</td></tr>
+  <tr><td>Statikus / kontextusfüggő</td><td>szavanként egy vektor (a „levél” összemosva) / a mondattól függő vektor (önfigyelem után)</td></tr>
+  <tr><td>RNN</td><td>$\mathbf h_t = \tanh(\mathbf h_{t-1}W + \mathbf x_t U + \mathbf b)$; súlymegosztás időben; $dh + h^2 + h$ paraméter; soros</td></tr>
+  <tr><td>Eltűnő gradiens időben</td><td>lépésenként $\le |w|$ szorzó: $0{,}5^{10} \approx 0{,}001$; a robbanás ellen gradiensvágás</td></tr>
+  <tr><td>LSTM, GRU</td><td>cellaállapot $\mathbf c_t = \mathbf f_t \odot \mathbf c_{t-1} + \mathbf i_t \odot \mathbf g_t$ – összeadásos „egyenes út”; $4(dh + h^2 + h)$ paraméter</td></tr>
+  <tr><td>Kódoló–dekódoló</td><td>a forrás egyetlen kontextusvektorba sűrítve – szűk keresztmetszet hosszú mondatoknál</td></tr>
+  <tr><td>Figyelem</td><td>puha keresés: pontszám (lekérdezés · kulcs) → softmax → az értékek súlyozott átlaga</td></tr>
+  <tr><td>Keresztfigyelem</td><td>lekérdezés a dekódolóból, kulcs és érték a kódolóból; illesztési mátrix</td></tr>
+  <tr><td>Önfigyelem</td><td>$\operatorname{softmax}(QK^\top/\sqrt{d_k})V$, $Q = XW_Q$ stb.; minden token minden tokenre; $n^2$ pontszám</td></tr>
+  <tr><td>Többfejű figyelem</td><td>$h$ fej, $d_k = d/h$, összefűzés + $W_O$; $4d^2$ súly a fejek számától függetlenül</td></tr>
+  <tr><td>Pozíciókódolás</td><td>pozíció nélkül az önfigyelem „zsák”; szinuszos, tanult vagy forgatásos (RoPE)</td></tr>
+  <tr><td>Transformer-blokk</td><td>figyelem + FFN ($4d$), mindkettő körül maradékkapcsolat és rétegnormalizálás; $12d^2 + 13d$ paraméter</td></tr>
+  <tr><td>Kauzális maszk</td><td>$-\infty$ a főátló fölött: senki nem lát előre; párhuzamos tanítás, tokenenkénti generálás</td></tr>
+  <tr><td>BERT / GPT</td><td>kódoló, maszkolt nyelvi modell (15%), osztályozás, keresés / dekódoló, következő token, generálás</td></tr>
+  <tr><td>Miért nyert?</td><td>párhuzamosítás (1 lépés, rövid út), önfelügyelt előtanítás óriási szövegen, kiszámítható skálázás ($L \propto N^{-0{,}076}$, Chinchilla: 20 token/paraméter)</td></tr>
+</table></div>
+
+<div class="box tip">
+  <span class="box-title">Melyik eszköz mikor? – döntési táblázat</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>Ha a feladatban ez áll…</th><th>…akkor ezt használd</th></tr>
+    <tr><td>szövegosztályozás, kevés adat, gyors alapvonal kell</td><td>TF-IDF (+ szópárok) + logisztikus regresszió</td></tr>
+    <tr><td>a tagadás, a „de”, a szórend dönt</td><td>sorrendet látó modell: RNN/LSTM, vagy Transformer pozíciókódolással</td></tr>
+    <tr><td>két szó / dokumentum hasonlósága</td><td>koszinusz-hasonlóság (beágyazásokon vagy TF-IDF-vektorokon)</td></tr>
+    <tr><td>szóvektor kell címkék nélkül</td><td>előtanított beágyazás (word2vec, GloVe, fastText); többjelentésű szónál kontextusfüggő modell</td></tr>
+    <tr><td>hosszú távú függés, hosszú sorozat</td><td>LSTM vagy figyelem – a sima RNN felejt</td></tr>
+    <tr><td>fordítás, összefoglalás</td><td>kódoló–dekódoló keresztfigyelemmel (vagy egy nagy dekódoló)</td></tr>
+    <tr><td>osztályozás, keresés, mondatbeágyazás jó minőségben</td><td>kódoló (BERT-szerű): jellemzőkinyerés vagy finomhangolás</td></tr>
+    <tr><td>szöveget kell írni, párbeszéd</td><td>dekódoló (GPT-szerű), kauzális maszkkal</td></tr>
+    <tr><td>paraméterszám?</td><td>beágyazás $V d$; RNN $dh + h^2 + h$; LSTM ennek 4-szerese; figyelem $4d^2 + 4d$; blokk $12d^2 + 13d$</td></tr>
+    <tr><td>nagyon hosszú bemenet, kevés memória</td><td>a figyelem $n^2$-es: ablakos/ritka figyelem, FlashAttention, állapottér-modellek</td></tr>
+  </table></div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabályok</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A sorszám címke, nem mennyiség.</b> Mindig beágyazás (vagy one-hot) kell.</li>
+    <li><b>A szót a társaságáról ismered meg.</b> A beágyazás a környezetből tanul – a torzításával együtt.</li>
+    <li><b>A zsák nem lát sorrendet</b> – és pozíciókódolás nélkül a Transformer is zsák.</li>
+    <li><b>A lekérdezés kérdez, a kulcs címke, az érték tartalom.</b> A súlyok soronként 1-et adnak.</li>
+    <li><b>Előbb $\sqrt{d_k}$-val oszt, aztán softmax.</b></li>
+    <li><b>A figyelmi súly nem magyarázat.</b></li>
+    <li><b>Először az olcsó alapvonal</b> (TF-IDF + logisztikus regresszió) – a Transformernek meg kell érnie a különbséget.</li>
+  </ul>
+</div>
+</section>
+
+<!-- ===================================================== Ellenőrző kérdések -->
+<section id="s-check">
+<h2>Ellenőrző kérdések</h2>
+<p>Gondold végig a választ, aztán kattints a kártyára a megfordításhoz!</p>
+<div class="flashcards">
+  <div class="flash"><div class="inner"><div class="face front">Mi a token, és miért nem jó a sorszámát mennyiségként használni?</div>
+    <div class="face back">A szöveg egy darabja (szó, részszó, írásjel), amely egy sorszámot kap. A sorszám csak név: a 4-es és az 5-ös token semmivel sem rokonabb, mint a 4-es és a 8-as.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért jó a részszó-tokenizálás a magyarnak?</div>
+    <div class="face back">Mert a ragozott alakok milliói véges számú tőből és toldalékból rakhatók össze (háza|##imb|##an); nincs ismeretlen szó, és a szótár kb. 32 000 elemű maradhat.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért nem tudja a szózsák + logisztikus regresszió kezelni a „nem”-et?</div>
+    <div class="face back">Mert a „nem” hol pozitívvá, hol negatívvá teszi a mondatot (jó → nem jó, rossz → nem rossz): ez XOR, amit súlyok összeadásával nem lehet leírni.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mennyi a TF-IDF egy olyan szóra, amely minden dokumentumban szerepel?</div>
+    <div class="face back">A tankönyvi képlettel 0, mert $\ln(N/N) = 0$. A scikit-learn változatában 1, mert ott $\ln\frac{1+N}{1+N} + 1 = 1$.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit kapunk, ha egy one-hot vektort megszorzunk az $E$ beágyazási mátrixszal?</div>
+    <div class="face back">$E$ egyik sorát – a token beágyazását. Ezért a beágyazási réteg valójában táblázatból való kikeresés.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit mond a disztribúciós hipotézis?</div>
+    <div class="face back">A hasonló környezetben előforduló szavak jelentése hasonló (Harris, Firth). Erre épül a word2vec és a GloVe.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért „csalás” a king − man + woman ≈ queen?</div>
+    <div class="face back">Mert a vektorhoz maga a <em>king</em> van a legközelebb (0,886); a <em>queen</em> (0,861) csak akkor nyer, ha a bemeneti szavakat kizárjuk a válaszok közül.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a statikus beágyazás korlátja?</div>
+    <div class="face back">Szavanként egy vektor: a többjelentésű szó (levél, bank) jelentései összemosódnak, a gyakoribb felé húzva.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a rekurrens háló rejtett állapota?</div>
+    <div class="face back">Egy rögzített hosszú vektor, a „jegyzet” az eddig olvasottról; minden tokennél ugyanazzal a cellával frissül: $\mathbf h_t = \tanh(\mathbf h_{t-1}W + \mathbf x_t U + \mathbf b)$.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért felejt a sima RNN?</div>
+    <div class="face back">Mert a gradiens lépésenként legfeljebb $|w|$-szeresére változik: sok lépés után exponenciálisan eltűnik (vagy felrobban). A távoli bemenet nem kap tanítójelet.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit csinál az LSTM felejtőkapuja?</div>
+    <div class="face back">Megszorozza a régi cellaállapotot egy 0 és 1 közötti számmal. Ha ez közel 1, az információ és a gradiens sok lépésen át megmarad – mint a maradékkapcsolatnál.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a kódoló–dekódoló szűk keresztmetszete?</div>
+    <div class="face back">A dekódoló a forrásmondatból csak egy rögzített hosszú kontextusvektort lát – hosszú mondatnál nem fér bele minden.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Hogyan számol a figyelem?</div>
+    <div class="face back">A lekérdezés minden kulccsal pontszámot kap (skaláris szorzat), ebből softmax súlyokat csinál, és az értékek súlyozott átlagát adja vissza.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a különbség az önfigyelem és a keresztfigyelem között?</div>
+    <div class="face back">Önfigyelemben a lekérdezés, a kulcs és az érték ugyanabból a sorozatból jön; keresztfigyelemben a lekérdezés a dekódolóból, a kulcs és az érték a kódolóból.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért osztunk $\sqrt{d_k}$-val?</div>
+    <div class="face back">Mert két véletlen $d_k$ dimenziós vektor skaláris szorzatának szórása $\sqrt{d_k}$; nagy pontszámoknál a softmax „bekeményedik”, és a gradiens eltűnik. Az osztás a softmax előtt jön.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért kell pozíciókódolás?</div>
+    <div class="face back">Mert az önfigyelem nem tudja, milyen sorrendben jönnek a tokenek: összekevert bemenetre összekevert kimenetet ad. Pozíció nélkül a kísérlet Transformere a „de”-s mondatokon 49,5%-ot ért el.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miből áll egy Transformer-blokk?</div>
+    <div class="face back">Többfejű önfigyelem és tokenenkénti előrecsatolt háló ($d \to 4d \to d$), mindkettő körül maradékkapcsolat és rétegnormalizálás. Paraméter: $12d^2 + 13d$.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mire való a kauzális maszk?</div>
+    <div class="face back">Hogy a következő token jóslásakor egy token ne figyelhessen a későbbiekre: a főátló fölötti pontszámok $-\infty$-t kapnak, így a súlyuk 0.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">BERT vagy GPT – mi a különbség?</div>
+    <div class="face back">A BERT kódoló: kétirányú, a tokenek 15%-át elrejtve tanul; osztályozásra, keresésre jó. A GPT dekódoló: kauzális maszkkal a következő tokent jósolja; szöveget ír.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért nyert a Transformer?</div>
+    <div class="face back">Párhuzamosan tanítható (nincs lépésről lépésre függés), ezért óriási szövegen önfelügyelten előtanítható, és a mérete kiszámítható javulással növelhető.</div></div></div>
+</div>
+</section>
+
+<!-- ===================================================== Vegyes gyakorló feladatok -->
+<section id="s-ex">
+<h2>Vegyes gyakorló feladatok</h2>
+<p>Itt már nincs megmondva, melyik szakaszhoz tartozik a feladat: neked kell eldönteni, melyik eszköz kell.</p>
+<details class="box practice">
+  <summary>✏️ Vegyes gyakorló feladatok – kattints a kinyitáshoz</summary>
+  <ol>
+    <li>Három dokumentum: „a kutya ugat”, „a macska nyávog”, „a kutya alszik”. Számold ki az első és a harmadik TF-IDF-vektorát ($\ln(N/\text{df})$), és a koszinuszukat!
+      <details><summary>Tipp</summary>Előbb a df: melyik szó hány dokumentumban van? Az „a” súlya 0 lesz.</details>
+      <details><summary>Megoldás</summary>idf: a $0$; kutya $\ln 1{,}5 \approx 0{,}405$; ugat, macska, nyávog, alszik $\ln 3 \approx 1{,}099$. Első: kutya 0,405, ugat 1,099; harmadik: kutya 0,405, alszik 1,099. Közös csak a „kutya”: $\cos = \dfrac{0{,}405^2}{0{,}405^2 + 1{,}099^2} \approx \dfrac{0{,}164}{1{,}372} \approx 0{,}120$.</details></li>
+    <li>Szótár: 10&nbsp;000 token, beágyazás $d = 100$, rá egy RNN $h = 128$-cal. Hány paramétere van a beágyazásnak, az RNN-cellának, és mennyi lenne LSTM-mel?
+      <details><summary>Tipp</summary>Beágyazás: $V \cdot d$. RNN: $dh + h^2 + h$. LSTM: négy ilyen réteg.</details>
+      <details><summary>Megoldás</summary>Beágyazás $1\,000\,000$; RNN $12\,800 + 16\,384 + 128 = 29\,312$; LSTM $4 \cdot 29\,312 = 117\,248$.</details></li>
+    <li>Kétszavas mondat: $\mathbf x_1 = (1;\ 1)$, $\mathbf x_2 = (1;\ -1)$; $W_Q = W_K = W_V$ = egységmátrix, $d = 2$. Mi az első token új vektora önfigyelem után?
+      <details><summary>Tipp</summary>Pontszám, osztás $\sqrt 2$-vel, softmax, súlyozott összeg.</details>
+      <details><summary>Megoldás</summary>Pontszámok: $\mathbf x_1\cdot\mathbf x_1 = 2$, $\mathbf x_1\cdot\mathbf x_2 = 0$; osztva $1{,}414$ és $0$; softmax $(0{,}804;\ 0{,}196)$. Új vektor: $0{,}804\cdot(1;1) + 0{,}196\cdot(1;-1) = (1;\ 0{,}609)$.</details></li>
+    <li>Egy dekódoló 3. tokenjének pontszámai a négy tokenre: $(1;\ 2;\ 0;\ 5)$ (már osztva). Mennyi a négy súly?
+      <details><summary>Tipp</summary>Dekódoló – van maszk. Melyik token jövőbeli?</details>
+      <details><summary>Megoldás</summary>A 4. token jövőbeli, $-\infty$-t kap. $\operatorname{softmax}(1;\ 2;\ 0) = (0{,}245;\ 0{,}665;\ 0{,}090)$, a 4. súly 0. (Maszk nélkül az 5-ös pontszám szinte mindent vinne.)</details></li>
+    <li>Melyik modellt választanád? (a) 1000 címkézett e-mailt kell gyorsan két csoportba osztani; (b) 200&nbsp;000 dokumentumban kell jelentés szerint keresni; (c) termékleírásokat kell generálni; (d) egy mikrovezérlőn folyamatosan érkező szenzorjelet kell figyelni, kevés memóriával.
+      <details><summary>Tipp</summary>Gondolj a döntési táblázatra: költség, adat, feladattípus.</details>
+      <details><summary>Megoldás</summary>(a) TF-IDF + logisztikus regresszió (alapvonal), esetleg egy előtanított kódoló vektorai. (b) Kódoló (BERT-szerű) mondatbeágyazások + koszinusz-hasonlóság. (c) Dekódoló (GPT-szerű). (d) Kis RNN/GRU: állandó memória, lépésenként egy frissítés.</details></li>
+    <li>Egy Transformer: $d = 256$, 4 blokk, $V = 8000$, legfeljebb 512 pozíció (tanult), a kimeneti réteg a szóbeágyazással közös, a végén egy rétegnormalizálás. Hány paramétere van?
+      <details><summary>Tipp</summary>Blokkonként $12d^2 + 13d$; plusz a szó- és pozícióbeágyazás és a záró LN ($2d$).</details>
+      <details><summary>Megoldás</summary>Blokkok: $4 \cdot (12 \cdot 65\,536 + 3328) = 3\,159\,040$; szóbeágyazás $2\,048\,000$; pozíció $131\,072$; LN $512$. Összesen $5\,338\,624$ – kb. 5,3 millió.</details></li>
+    <li>Egy Transformer bemenete 2000-ről 4000 tokenre nő. Hányszorosára nő a figyelem pontszámainak száma, és hányszorosára az előrecsatolt rétegek munkája?
+      <details><summary>Tipp</summary>A pontszám minden tokenpárra kell, az FFN tokenenként.</details>
+      <details><summary>Megoldás</summary>Pontszámok: $(4000/2000)^2 = 4$-szeresére. FFN: 2-szeresére.</details></li>
+    <li>Kézi vektorok (főváros, magyar, osztrák): Budapest $= (1;1;0)$, Magyarország $= (0;1;0)$, Ausztria $= (0;0;1)$, Bécs $= (1;0;1)$. Számold ki: Budapest − Magyarország + Ausztria. Melyik valódi GloVe-példa ez, és mire kell vigyázni?
+      <details><summary>Tipp</summary>Koordinátánként számolj; a valódi vektoroknál gondolj a bemeneti szavakra.</details>
+      <details><summary>Megoldás</summary>$(1;\ 0;\ 1)$ = Bécs. A GloVe-ban a <em>paris − france + hungary</em> → <em>budapest</em> (0,907) ugyanez a minta. Vigyázat: a valódi vektoroknál a bemeneti szavakat ki kell zárni a válaszok közül, és a 2D-s vetület (PCA) torzít – a számolás a teljes dimenzióban történik.</details></li>
+    <li>Egy kritikaosztályozó a „jó volt, de unalmas” és az „unalmas volt, de jó” mondatra pontosan ugyanazt a valószínűséget adja. Mely felépítések lehetnek ilyenek, és melyek nem?
+      <details><summary>Tipp</summary>Melyik modell lát sorrendet?</details>
+      <details><summary>Megoldás</summary>Sorrendvak: szózsák (TF-IDF is), átlagolt beágyazás, pozíciókódolás nélküli Transformer. Nem lehet ilyen (általában): RNN/LSTM, pozíciókódolásos Transformer. (A szópáros modell majdnem ilyen: a két mondat szópárjai közül csak az alany–melléknév párok különböznek, pl. „film jó” helyett „vége jó”.)</details></li>
+  </ol>
+</details>
+</section>
+
+<!-- ===================================================== Fejezetzáró -->
+<section id="s-final">
+<h2>Fejezetzáró teszt</h2>
+<p>Vegyes feladatok az egész fejezetből. Ha legalább 80%-ot elérsz, nyugodtan továbbléphetsz a 13. fejezetre – ott az önfigyelem „teljes gráfja” helyett tetszőleges gráfokon küldenek üzenetet egymásnak a csúcsok.</p>
+<div class="quiz" data-quiz="ai12-final"></div>
+</section>
+
+<!-- ===================================================== Szómagyarázó -->
+<section id="s-gloss">
+<h2>Szómagyarázó</h2>
+<p>A fejezetben előforduló idegen vagy kevésbé ismert szakkifejezések, betűrendben.</p>
+<dl class="glossary">
+  <dt id="g-beagyazas">beágyazás <span class="etym">ang. <em>embedding</em> „beágyazás, beillesztés”</span></dt>
+  <dd><p>Egy token (vagy más objektum) sűrű, tanult vektora, amelyben a hasonló jelentésűek közel vannak egymáshoz. A beágyazási mátrix soraiból kikereséssel kapjuk.</p></dd>
+
+  <dt id="g-bert">BERT <span class="etym">ang. <em>Bidirectional Encoder Representations from Transformers</em> (J. Devlin és társai, 2018)</span></dt>
+  <dd><p>Csak kódolóból álló, kétirányú Transformer, amely a szöveg elrejtett tokenjeinek kitalálásával tanul. Osztályozásra, keresésre, mondatbeágyazásra használják.</p></dd>
+
+  <dt id="g-dekodolo">dekódoló <span class="etym">ang. <em>decoder</em>; lat. <em>de-</em> „le, el” + fr. <em>code</em></span></dt>
+  <dd><p>A sorozatot író rész: tokenenként állítja elő a kimenetet, kauzális maszkkal. A GPT-szerű modellek csak dekódolóból állnak.</p></dd>
+
+  <dt id="g-disztribucios">disztribúciós hipotézis <span class="etym">lat. <em>distributio</em> „elosztás”; gör. <em>hüpothesis</em> „feltevés”</span></dt>
+  <dd><p>A hasonló környezetben előforduló szavak jelentése hasonló (Z. Harris, 1954; J. R. Firth, 1957).</p></dd>
+
+  <dt id="g-eltuno">eltűnő és robbanó gradiens <span class="etym">ang. <em>vanishing / exploding gradient</em></span></dt>
+  <dd><p>A visszaterjesztésben sok szorzó összeszorzódik; ha ezek 1-nél kisebbek, a gradiens exponenciálisan kicsi lesz, ha nagyobbak, exponenciálisan nagy. Rekurrens hálóknál a „mélység” a sorozat hossza.</p></dd>
+
+  <dt id="g-figyelem">figyelem(mechanizmus) <span class="etym">ang. <em>attention</em>; lat. <em>attendere</em> „odafigyel, odafordul”</span></dt>
+  <dd><p>Puha keresés: a lekérdezés minden kulccsal pontszámot kap, a softmax súlyokat ad, a kimenet az értékek súlyozott átlaga.</p></dd>
+
+  <dt id="g-gpt">GPT <span class="etym">ang. <em>Generative Pre-trained Transformer</em> „generatív, előtanított Transformer” (A. Radford és társai, 2018)</span></dt>
+  <dd><p>Csak dekódolóból álló Transformer-család, amely a következő token jóslásával tanul; a mai nagy nyelvi modellek többsége ilyen felépítésű.</p></dd>
+
+  <dt id="g-kauzalis">kauzális maszk <span class="etym">lat. <em>causa</em> „ok”</span></dt>
+  <dd><p>A figyelem pontszámaihoz adott mátrix, amely a későbbi tokeneket $-\infty$-nel letiltja, így egy token csak a korábbiakat látja – az ok megelőzi az okozatot.</p></dd>
+
+  <dt id="g-keresztfigyelem">keresztfigyelem <span class="etym">ang. <em>cross-attention</em></span></dt>
+  <dd><p>Figyelem két sorozat között: a lekérdezés a dekódolóból, a kulcs és az érték a kódolóból jön (fordításnál a célnyelv kérdezi a forrásnyelvet).</p></dd>
+
+  <dt id="g-kodolo">kódoló <span class="etym">ang. <em>encoder</em></span></dt>
+  <dd><p>A bemeneti sorozatot feldolgozó rész, amely minden tokenhez (vagy az egész sorozathoz) vektort ad. Kétirányú: minden token minden tokent lát.</p></dd>
+
+  <dt id="g-kontextusvektor">kontextusvektor <span class="etym">lat. <em>contextus</em> „összefonódás, összefüggés”</span></dt>
+  <dd><p>A forrásmondatból a dekódolónak átadott vektor: figyelem nélkül a kódoló utolsó állapota, figyelemmel a kódolóállapotok lépésenként más súlyozású keveréke.</p></dd>
+
+  <dt id="g-lstm">LSTM <span class="etym">ang. <em>long short-term memory</em> „hosszú rövid távú memória” (S. Hochreiter, J. Schmidhuber, 1997)</span></dt>
+  <dd><p>Rekurrens cella cellaállapottal és három kapuval (felejtő, beíró, kiolvasó); a cellaállapot összeadásos frissítése enyhíti az eltűnő gradienst.</p></dd>
+
+  <dt id="g-ngram">$n$-gram <span class="etym">gör. <em>gramma</em> „betű, írásjel”</span></dt>
+  <dd><p>$n$ egymást követő token együtt (a 2-gram a szópár). A szózsákba felvéve a szomszédos szavak sorrendjét is megőrzi.</p></dd>
+
+  <dt id="g-onehot">one-hot vektor <span class="etym">ang. „egy-forró”: egyetlen elem „ég”</span></dt>
+  <dd><p>$V$ hosszú vektor, egyetlen 1-essel a token helyén. Minden token minden másikra merőleges.</p></dd>
+
+  <dt id="g-onfigyelem">önfigyelem <span class="etym">ang. <em>self-attention</em></span></dt>
+  <dd><p>Figyelem egy sorozaton belül: minden token lekérdezéssel fordul az összes többihez, és kontextusfüggő új vektort kap. $\operatorname{softmax}(QK^\top/\sqrt{d_k})V$.</p></dd>
+
+  <dt id="g-pozicio">pozíciókódolás <span class="etym">lat. <em>positio</em> „elhelyezés”</span></dt>
+  <dd><p>A token helyét leíró vektor, amelyet a beágyazáshoz adunk (szinuszos, tanult), vagy amellyel a lekérdezést és a kulcsot elforgatjuk (RoPE). Nélküle az önfigyelem sorrendvak.</p></dd>
+
+  <dt id="g-rejtett">rejtett állapot <span class="etym">ang. <em>hidden state</em></span></dt>
+  <dd><p>A rekurrens háló „jegyzete”: rögzített hosszú vektor, amely minden lépésben az előző állapotból és az új tokenből frissül.</p></dd>
+
+  <dt id="g-rekurrens">rekurrens háló (RNN) <span class="etym">lat. <em>recurrere</em> „visszafut”</span></dt>
+  <dd><p>Sorozatokat lépésről lépésre feldolgozó háló, amelynek a kimenete visszacsatolódik a következő lépés bemenetébe; minden lépésben ugyanazokkal a súlyokkal.</p></dd>
+
+  <dt id="g-retegnorm">rétegnormalizálás <span class="etym">ang. <em>layer normalization</em> (J. Ba és társai, 2016)</span></dt>
+  <dd><p>Tokenenként a jellemzők átlagát kivonja, szórásával oszt, majd tanult szorzóval és eltolással skáláz. A kötegtől független, ezért ez van a Transformerekben.</p></dd>
+
+  <dt id="g-skalazas">skálázási törvény <span class="etym">ang. <em>scaling law</em></span></dt>
+  <dd><p>Tapasztalati összefüggés: a nyelvi modell vesztesége a paraméterszám, az adatmennyiség és a számítás hatványfüggvényeként csökken (Kaplan és társai, 2020; Hoffmann és társai, 2022).</p></dd>
+
+  <dt id="g-szotar">szótár <span class="etym">ang. <em>vocabulary</em>; lat. <em>vocabulum</em> „szó, megnevezés”</span></dt>
+  <dd><p>A modell által ismert tokenek listája, mérete $V$. Minden token egy sorszámot kap.</p></dd>
+
+  <dt id="g-szozsak">szózsák <span class="etym">ang. <em>bag of words</em></span></dt>
+  <dd><p>A dokumentum tokenjeinek darabszáma, sorrend nélkül – mintha a szavakat egy zsákba szórnánk.</p></dd>
+
+  <dt id="g-tfidf">TF-IDF <span class="etym">ang. <em>term frequency – inverse document frequency</em> „szógyakoriság – fordított dokumentumgyakoriság” (K. Spärck Jones, 1972)</span></dt>
+  <dd><p>A szózsák súlyozott változata: a szó darabszáma szorozva $\ln(N/\text{df})$-fel, így a mindenhol előforduló szavak súlya kicsi, a ritkáké nagy.</p></dd>
+
+  <dt id="g-token">token <span class="etym">ang. „jel, zseton”; óang. <em>tācn</em> „jel”</span></dt>
+  <dd><p>A szöveg egy darabja, amelyet a modell egy egységként kezel: szó, részszó, írásjel vagy betű.</p></dd>
+
+  <dt id="g-transformer">Transformer <span class="etym">ang. <em>transform</em> „átalakít”; lat. <em>transformare</em> (A. Vaswani és társai, 2017)</span></dt>
+  <dd><p>Önfigyelemre és tokenenkénti előrecsatolt hálóra épülő architektúra, maradékkapcsolatokkal és rétegnormalizálással; rekurzió nélkül, párhuzamosan tanítható.</p></dd>
+
+  <dt id="g-word2vec">word2vec <span class="etym">ang. „word to vector”, szóból vektor (T. Mikolov és társai, 2013)</span></dt>
+  <dd><p>Szóvektorokat tanuló eljárás: a szóból a szomszédait (skip-gram) vagy a szomszédaiból a szót (CBOW) jósolja.</p></dd>
+</dl>
+</section>
+
+<nav class="pager">
+  <a href="../11-konvolucios-halok/">← 11. Konvolúciós hálók és gépi látás</a>
+  <span class="next muted">13. Gráf neurális hálók (hamarosan) →</span>
+</nav>
+
+</main>
+</div>
+
+<footer class="site">
+  Források: A. Glassner: <em>Deep Learning – A Visual Approach</em>, 19–20. fejezet · S. Raschka: <em>Machine Learning and AI Beyond the Basics</em>, 1., 8., 14–18. fejezet ·
+  T. Xiao – J. Zhu: <em>Foundations of Large Language Models</em> (2025), 1–2. fejezet · H. Roitman: <em>The Hitchhiker's Guide to Agentic AI</em> (2026), I. rész · V. J. Reddi és társai: <em>Machine Learning Systems</em> (<em>DNN Architectures</em>) ·
+  A. Thakur: <em>Approaching (Almost) Any Machine Learning Problem</em> (<em>Approaching text classification/regression</em>) · H. Brink – J. Richards – M. Fetherolf: <em>Real-World Machine Learning</em>, 7–8. fejezet · J. Mueller – L. Massaron: <em>Machine Learning for Dummies</em>, 18. fejezet ·
+  Kiegészítés: Z. Harris (1954) · J. R. Firth (1957) · K. Spärck Jones (1972) · J. Elman (1990) · S. Hochreiter (1991) · Y. Bengio és társai (1994) · S. Hochreiter – J. Schmidhuber (1997) · F. Gers és társai (2000) · T. Mikolov és társai (2013) · I. Sutskever – O. Vinyals – Q. Le (2014) · K. Cho és társai (2014) · J. Pennington – R. Socher – C. Manning (2014) ·
+  D. Bahdanau – K. Cho – Y. Bengio (2015) · J. Ba és társai (2016) · T. Bolukbasi és társai (2016) · P. Bojanowski és társai (2017, fastText) · A. Vaswani és társai (2017) · J. Devlin és társai (2018) · A. Radford és társai (2018, 2019) · S. Jain – B. Wallace (2019) · Y. Liu és társai (2019, RoBERTa) · T. Brown és társai (2020) · J. Kaplan és társai (2020) · D. M. Nemeskey (2020, huBERT) · J. Tiedemann – S. Thottingal (2020, OPUS-MT) ·
+  J. Su és társai (2021, RoPE) · J. Hoffmann és társai (2022) · T. Dao és társai (2022) · A. Gu – T. Dao (2023) · Meta (2024, Llama 3) ·
+  adatok és modellek: GloVe 6B (Stanford NLP), SZTAKI-HLT/hubert-base-cc, Helsinki-NLP/opus-mt-hu-en; a filmkritika- és a hosszútáv-kísérlet saját, Pythonban (PyTorch, scikit-learn) tanítva.
+</footer>
+</body>
+</html>

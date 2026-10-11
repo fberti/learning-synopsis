@@ -1,0 +1,182 @@
+
+<!-- ===================================================== 12.2 -->
+<section id="s122">
+<h2>12.2 Beágyazások ★★</h2>
+<p>A szózsák a dokumentumot írja le. Most egy szinttel lejjebb megyünk: magát a <b>szót</b> szeretnénk számokkal leírni úgy, hogy a hasonló jelentésű szavak számai is hasonlók legyenek.</p>
+
+<h3 id="s122-a">1. lépés: a one-hot vektor és a korlátja</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – nyolc szó, nyolc irány</span>
+  A 12.1 nyolcszavas szótárában (a, film, jó, volt, nem, zene, unalmas, remek) minden szó egy 8 hosszú vektor, egyetlen 1-essel a saját helyén (<a href="../04-adatok-es-jellemzok/#s43-b">4.3</a>):
+  <div class="tw" style="overflow-x:auto"><table style="font-family:var(--mono);font-size:.85rem;text-align:center;max-width:520px">
+    <tr><td>jó</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+    <tr><td>unalmas</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>0</td></tr>
+    <tr><td>remek</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td></tr>
+  </table></div>
+  Bármely két különböző szó skaláris szorzata 0, a távolságuk $\sqrt 2$. A „jó” pontosan annyira hasonlít a „remek”-re, mint az „unalmas”-ra. A szózsák (12.1) egyébként éppen a dokumentum szavainak one-hot vektorait adja össze.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – one-hot vektor, és mi történik vele egy rétegben</span>
+  A $t$ sorszámú token <b>one-hot vektora</b> $\mathbf e_t$: $V$ hosszú, a $t$-edik eleme 1, a többi 0.
+  Ha egy teljesen összekötött réteg (<a href="../09-neuralis-halozatok/#s93-b">9.3</a>) súlymátrixa $E$ ($V \times d$-s, sorvektoros alakban), akkor
+  $$\mathbf e_t\, E = E_{t,:}\qquad(\text{az } E \text{ mátrix } t\text{-edik sora}).$$
+  <b>Miért?</b> A szorzásban minden sor 0-val szorzódik, kivéve a $t$-ediket. A „one-hot vektor szorozva egy mátrixszal” tehát valójában <b>egy sor kikeresése</b> – ezt fogjuk kihasználni.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – mekkora?</span>
+    Egy 50&nbsp;000 tokenes szótárnál minden token egy 50&nbsp;000 hosszú vektor, 49&nbsp;999 nullával. Egy 20 tokenes mondat így $20 \times 50\,000 = 1\,000\,000$ szám – szinte mind 0.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a sorkiválasztás</span>
+    $V = 3$, $d = 2$, $E = \begin{pmatrix}1 & 2\\ 3 & 4\\ 5 & 6\end{pmatrix}$. A 2-es sorszámú token (0-tól számolva) one-hot vektora $(0, 0, 1)$, és $(0, 0, 1)\,E = (5;\ 6)$ – a harmadik sor.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A one-hot nem „hibás”, hanem tudatlan.</b> Becsületesen azt mondja: semmit nem tudok a szavakról. A baj, hogy a modellnek így minden szót <b>külön</b> kell megtanulnia: ha a „kiváló” csak egyszer szerepel a tanítóadatban, semmit nem örököl a sokszor látott „remek”-től.</li>
+    <li><b>Az egymás melletti sorszám sem jelent rokonságot</b> (<a href="#s121-a">12.1</a>) – a one-hot vektor legalább ezt nem állítja.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – one-hot</summary>
+  <ol>
+    <li>Hány 1-es és hány 0 van egy $V = 30\,000$ hosszú one-hot vektorban?
+      <details><summary>Megoldás</summary>Egy 1-es és 29&nbsp;999 nulla.</details></li>
+    <li>Mennyi a „jó” és a „remek” one-hot vektorának koszinusz-hasonlósága? És a „jó” önmagával?
+      <details><summary>Megoldás</summary>0 (nincs közös 1-es); önmagával 1.</details></li>
+    <li>$E = \begin{pmatrix}1 & 0\\ 0{,}5 & 2\\ -1 & 1\\ 3 & 3\end{pmatrix}$. Mi lesz $(0, 1, 0, 0)\,E$?
+      <details><summary>Megoldás</summary>$E$ 1-es sorszámú (második) sora: $(0{,}5;\ 2)$.</details></li>
+    <li>Mi lesz $(1, 0, 0, 1)\,E$ ugyanezzel a mátrixszal? Mit jelent ez egy kétszavas szózsákra?
+      <details><summary>Megoldás</summary>Az első és az utolsó sor összege: $(4;\ 3)$. Egy szózsákvektor szorozva $E$-vel: a dokumentum szavaihoz tartozó sorok <b>összege</b>.</details></li>
+    <li>(nehezebb) Egy teljesen összekötött réteg one-hot bemenettel, $V = 50\,000$, $d = 300$. Hány szorzást végezne el a gép, ha tényleg szorozna, és hányat, ha csak kikeresné a sort?
+      <details><summary>Megoldás</summary>Szorzással $50\,000 \cdot 300 = 15\,000\,000$ szorzás (szinte mind 0-val). Kikereséssel 0 szorzás, csak 300 szám másolása. Ezért valósítják meg a keretrendszerek külön „beágyazási rétegként” (<code>Embedding</code>).</details></li>
+  </ol>
+</details>
+
+<h3 id="s122-b">2. lépés: sűrű vektorok – a jelentés mint irány</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – négy szó, három kézzel választott jellemző</span>
+  Írjunk le minden szót három számmal: mennyire <b>élőlény</b>, mennyire <b>háziállat</b>, mennyire <b>jármű</b>.
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:520px">
+    <tr><th></th><th>élőlény</th><th>háziállat</th><th>jármű</th><th>koszinusz a macskával</th></tr>
+    <tr><td>macska</td><td>1</td><td>0,9</td><td>0</td><td>1</td></tr>
+    <tr><td>kutya</td><td>1</td><td>0,8</td><td>0</td><td>0,998</td></tr>
+    <tr><td>oroszlán</td><td>1</td><td>0,1</td><td>0</td><td>0,806</td></tr>
+    <tr><td>autó</td><td>0</td><td>0</td><td>1</td><td>0</td></tr>
+  </table></div>
+  Most már van értelme a hasonlóságnak: a kutya közel van a macskához, az oroszlán kicsit messzebb, az autó merőleges rá.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – beágyazás (<em>embedding</em>)</span>
+  A <b>beágyazás</b> minden tokenhez egy rövid, <b>sűrű</b> (szinte csupa nem nulla elemű) $d$ hosszú vektort rendel, általában $d = 50 \ldots 4096$. A vektorokat egy $V \times d$-s <b>beágyazási mátrix</b> ($E$) sorai adják; a $t$ token vektora $E$ $t$-edik sora (1. lépés). Paraméterszám: $V \cdot d$.
+  A hasonlóságot <b>koszinusszal</b> mérjük: $\cos(\mathbf u, \mathbf v) = \dfrac{\mathbf u \cdot \mathbf v}{\lVert\mathbf u\rVert\,\lVert\mathbf v\rVert}$ (<a href="../02-matematikai-eszkoztar/#s23-c">2.3</a>).
+  <b>Miért sűrű?</b> Mert így a szavak <b>megoszthatnak</b> jellemzőket: amit a háló a „remek”-ről tanul, abból a hasonló vektorú „kiváló” is profitál.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – vektoraritmetika kézzel</span>
+    Három jellemző: (királyi, férfi, nő). király $= (1;1;0)$, férfi $= (0;1;0)$, nő $= (0;0;1)$, királynő $= (1;0;1)$.<br>
+    király − férfi + nő $= (1;\ 0;\ 1)$ = királynő. A „férfi → nő” különbség egy <b>irány</b>, amely máshol is ugyanazt jelenti.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – valódi beágyazásokkal</span>
+    A GloVe-vektorok (400&nbsp;000 angol szó, 50 dimenzió, Wikipédián és hírszövegeken tanítva) között:<br>
+    <em>king − man + woman</em> → <em>queen</em> (koszinusz 0,861)<br>
+    <em>paris − france + hungary</em> → <em>budapest</em> (0,907)<br>
+    <em>cat</em>–<em>dog</em>: 0,922; <em>cat</em>–<em>car</em>: 0,364.
+  </div>
+</div>
+<div class="widget" data-widget="embedding-explorer"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A híres analógia csalással „működik”.</b> A <em>king − man + woman</em> vektorhoz valójában a <em>king</em> van a legközelebb (0,886); a <em>queen</em> (0,861) csak akkor nyer, ha a bemeneti szavakat kizárjuk a válaszok közül. És sokszor így sem jön ki: <em>lemon − yellow + green</em> → <em>ginger</em>; a várt <em>lime</em> csak az 5. A <em>Deep Learning – A Visual Approach</em> (Glassner) is erre jutott egy másik vektorkészlettel. Ne a kiválasztott látványos példákból ítéld meg a beágyazásokat!</li>
+    <li><b>A tengelyeknek nincs neve.</b> A tanult beágyazásban nincs „királyi” vagy „nőnemű” oszlop; csak az irányoknak és a távolságoknak van jelentése. A widget 2D-s térképe egy PCA-vetület (<a href="../08-felugyelet-nelkuli-tanulas/#s83">8.3</a>), amely a szórásnak csak kb. 23%-át mutatja – a számolás 50 dimenzióban történik.</li>
+    <li><b>A beágyazás az adatot tükrözi – a torzításait is.</b> Ugyanezekben a vektorokban <em>doctor − man + woman</em> → <em>nurse</em> (0,842), <em>programmer − man + woman</em> → <em>therapist</em>. Ez nem igazság, hanem a szövegek mintázata (Bolukbasi és társai, 2016). Ha egy állásajánló ilyen vektorokra épül, a torzítást továbbviszi.</li>
+    <li><b>A hasonló nem szinonima.</b> <em>good</em>–<em>bad</em>: 0,796, <em>hot</em>–<em>cold</em>: 0,801. Az ellentétek nagyon hasonló környezetben fordulnak elő („a film ___ volt”), ezért a vektoruk is közel kerül (3. lépés).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – sűrű vektorok és koszinusz</summary>
+  <ol>
+    <li>Mennyi a $(1;\ 2)$ és a $(2;\ 4)$ vektor koszinusz-hasonlósága? És a $(1;\ 0)$ és a $(-1;\ 0)$ vektoré?
+      <details><summary>Megoldás</summary>1 (azonos irány, csak a hossz más); $-1$ (ellentétes irány).</details></li>
+    <li>A fenti táblázatból: mennyi a kutya és az oroszlán koszinusza? (kutya $= (1;\ 0{,}8;\ 0)$, oroszlán $= (1;\ 0{,}1;\ 0)$)
+      <details><summary>Megoldás</summary>$\dfrac{1 + 0{,}08}{\sqrt{1{,}64}\,\sqrt{1{,}01}} = \dfrac{1{,}08}{1{,}2806 \cdot 1{,}0050} \approx 0{,}839$.</details></li>
+    <li>A (királyi, férfi, nő) jellemzőkkel: herceg $= (0{,}8;\ 1;\ 0)$. Mi lesz herceg − férfi + nő, és melyik szóra hasonlít?
+      <details><summary>Megoldás</summary>$(0{,}8;\ 0;\ 1)$ – egy „királyi nő”, vagyis a hercegnő helye.</details></li>
+    <li>Hány paramétere van egy $V = 50\,000$, $d = 300$ beágyazási mátrixnak? És a GloVe-készletnek (400&nbsp;000 szó, 50 dimenzió)?
+      <details><summary>Megoldás</summary>$15\,000\,000$; $20\,000\,000$.</details></li>
+    <li>(nehezebb) Miért keressük az analógiák eredményét koszinusszal, és nem euklideszi távolsággal?
+      <details><summary>Megoldás</summary>A vektorok hossza nagyrészt a szó gyakoriságától függ, nem a jelentésétől; az összeg-különbség vektor hossza is tetszőleges. A koszinusz csak az irányt nézi, így a hosszkülönbségek nem zavarnak be (<a href="../02-matematikai-eszkoztar/#s23-c">2.3</a>).</details></li>
+  </ol>
+</details>
+
+<h3 id="s122-c">3. lépés: honnan jönnek a számok? – a szomszédok</h3>
+<p>A kézzel választott jellemzők nem skálázódnak: 50&nbsp;000 szóhoz senki nem ír be 300 számot. A vektorokat a gépnek kell kitalálnia – címkék nélkül, csak szövegből.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – hat mondat, és ki kivel fordul elő</span>
+  „a macska tejet iszik” · „a kutya vizet iszik” · „a macska egeret kerget” · „a kutya labdát kerget” · „az autó benzint fogyaszt” · „a busz benzint fogyaszt”. Számoljuk meg, melyik szó melyik másikkal szerepel egy mondatban (a névelőket kihagyva):
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.85rem;text-align:center;max-width:640px">
+    <tr><th></th><th>tejet</th><th>vizet</th><th>iszik</th><th>egeret</th><th>labdát</th><th>kerget</th><th>benzint</th><th>fogyaszt</th></tr>
+    <tr><td>macska</td><td>1</td><td>0</td><td>1</td><td>1</td><td>0</td><td>1</td><td>0</td><td>0</td></tr>
+    <tr><td>kutya</td><td>0</td><td>1</td><td>1</td><td>0</td><td>1</td><td>1</td><td>0</td><td>0</td></tr>
+    <tr><td>autó</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>1</td></tr>
+    <tr><td>busz</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>1</td></tr>
+  </table></div>
+  A sorok koszinusza: macska–kutya $= \dfrac{2}{2 \cdot 2} = 0{,}5$; autó–busz $= 1$; macska–autó $= 0$. Senki nem mondta meg a gépnek, hogy a macska és a kutya állat – a <b>környezetük</b> elárulta.
+</div>
+<div class="box thm">
+  <span class="box-title">A disztribúciós hipotézis</span>
+  <b>A hasonló környezetben előforduló szavak jelentése hasonló.</b> (Z. Harris, 1954; J. R. Firth, 1957: „<em>You shall know a word by the company it keeps</em>” – „a szót a társaságáról ismered meg”.) Ez nem tétel, hanem tapasztalati elv – de nagy szövegtömegen meglepően jól működik.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – word2vec és társai (Kiegészítés)</span>
+  <ul style="margin:.2rem 0">
+    <li><b>word2vec</b> (T. Mikolov és társai, 2013), <b>skip-gram</b> változat: minden szóból próbáld megjósolni a környezetében (pl. ±2 szónyi ablakban) álló szavakat. A „háló” egyetlen beágyazási mátrix (a bemeneti szó vektora) és egy kimeneti mátrix; a tanítás végén $E$ sorai a szóvektorok. A <b>CBOW</b> változat fordítva: a környezetből jósolja a középső szót.</li>
+    <li><b>GloVe</b> (J. Pennington, R. Socher, C. Manning, 2014): a fenti táblázathoz hasonló, de óriási <b>együttes-előfordulási mátrixot</b> bontja két kisebb mátrix szorzatára – ugyanaz a gondolat, mint a 8.6 mátrixfaktorizációja (<a href="../08-felugyelet-nelkuli-tanulas/#s86-c">8.6</a>), ahol a könyvek kaptak „ízlés-vektort”.</li>
+    <li><b>fastText</b> (2016–17): a szót a betű-$n$-gramjainak vektorösszegeként írja le, így ismeretlen és ragozott szóalakhoz is ad vektort.</li>
+  </ul>
+  A címkét itt <b>maga a szöveg</b> adja (melyik szó áll a közelben) – ez az <b>önfelügyelt tanulás</b> (<a href="../11-konvolucios-halok/#s115-c">11.5</a>), amely a 12.7-ben a nagy nyelvi modellek alapja lesz.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – tanítópárok egy mondatból</span>
+    „a macska tejet iszik”, ablak ±1: (a → macska), (macska → a), (macska → tejet), (tejet → macska), (tejet → iszik), (iszik → tejet) – 6 pár. ±2-es ablakkal 10. Egy milliárd szavas szövegből így milliárdnyi „ingyen” tanítópélda lesz.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy szó, egy vektor: a „bank”</span>
+    A GloVe-ban a <em>bank</em> legközelebbi szomszédai: <em>banks, securities, banking, investment</em>. A folyópart jelentése elveszett: <em>bank</em>–<em>river</em> csak 0,414, <em>bank</em>–<em>money</em> 0,636. Az <em>apple</em> szomszédai: <em>blackberry, iphone, microsoft</em> – a gyümölcs elhalványult. A gyakoribb jelentés „elnyomja” a ritkábbat.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">Statikus és kontextusfüggő beágyazás</span>
+  Az eddigi vektorok <b>statikusak</b>: egy szóhoz egyetlen vektor tartozik, bármilyen mondatban áll. A magyar „levél” vektora így a fa levelének és a postai levélnek valamilyen keveréke lenne. Ami kell: olyan vektor, amely <b>a mondattól függ</b>. Ehhez a modellnek a többi szót is látnia kell – ez lesz a figyelem (<a href="#s125">12.5</a>), a valódi modellben pedig a <a href="#s128-b">12.8</a>-ban nézzük meg.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Hasonló környezet ≠ azonos jelentés.</b> Az ellentétek („jó”–„rossz”) és a többjelentésű szavak („levél”) környezete ugyanúgy keveredik. Véleményelemzésnél a „jó” és a „rossz” közeli vektora kifejezetten zavaró.</li>
+    <li><b>A ritka szavak vektora gyenge</b>: kevés környezetből tanult. Az ismeretlen szónak (ha nincs részszó-felbontás) nincs is vektora.</li>
+    <li><b>A vektorok korhoz kötöttek.</b> A 2014-es GloVe-ban a <em>covid</em> vagy a <em>chatgpt</em> nem létezik, és sok szó jelentése azóta elmozdult.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a szomszédokból tanult vektorok</summary>
+  <ol>
+    <li>A hatmondatos példában mennyi a kutya és a busz koszinusza? Miért?
+      <details><summary>Megoldás</summary>0 – nincs közös környezeti szavuk.</details></li>
+    <li>Adjunk hozzá egy mondatot: „a busz vizet iszik”. Hogyan változik a busz sora és a kutya–busz koszinusz?
+      <details><summary>Megoldás</summary>busz: vizet 1, iszik 1, benzint 1, fogyaszt 1 → $(0,1,1,0,0,0,1,1)$. A kutya $(0,1,1,0,1,1,0,0)$. Skaláris szorzat 2, hosszak 2 és 2: $\cos = 0{,}5$. Egy furcsa mondat is „közelebb húzza” a két szót – a módszer csak a statisztikát látja.</details></li>
+    <li>Hány skip-gram tanítópár keletkezik a „a kutya vizet iszik” mondatból ±1-es ablakkal?
+      <details><summary>Megoldás</summary>A szélső szavaknak 1, a belsőknek 2 szomszédja van: $1 + 2 + 2 + 1 = 6$.</details></li>
+    <li>Miért nevezzük a word2vec tanítását önfelügyeltnek?
+      <details><summary>Megoldás</summary>Mert a „címke” (a szomszéd szó) magából a szövegből jön, nem embernek kell felírnia. Bármennyi szöveg tanítóadat lehet.</details></li>
+    <li>(nehezebb) Egy szóvektorkészletben a „levél” vektora a fa levelét és a postai levelet is „tartalmazza”. Mire számítasz: a „levél” vektora közelebb lesz a „fa” vagy a „posta” vektorához? Mitől függ?
+      <details><summary>Megoldás</summary>Attól, melyik jelentés gyakoribb a tanítószövegben: a vektor a két jelentés környezetének gyakorisággal súlyozott keveréke. Ha a hírszövegekben több a postai levél, oda húz – mint a GloVe <em>bank</em>-je a pénzügyek felé. Egyik jelentést sem írja le jól.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai12-122"></div>
+</section>
