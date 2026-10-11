@@ -1,0 +1,177 @@
+
+<!-- ===================================================== 13.7 -->
+<section id="s137">
+<h2>13.7 Mennyit tud egy GNN? Kifejezőerő és korlátok ★★★</h2>
+<p>Az MLP-ről a 9. fejezetben megtudtuk, hogy elég nagy rejtett réteggel bármit megtanul (univerzális approximáció). A GNN-ekről ez <b>nem</b> igaz: vannak gráfok, amelyeket egyetlen üzenetküldő háló sem tud megkülönböztetni, és vannak gráfok, amelyeken a mélyebb háló rosszabb. Ebben a szakaszban három korlátot nézünk meg – és azt, mit tesz ellenük a gyakorlat.</p>
+
+<h3 id="s137-a">1. lépés: a Weisfeiler–Leman-teszt – amit az üzenetküldés nem lát</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – színezzük újra a futó példát</span>
+  Kezdetben minden csúcs ugyanolyan színű (nincs jellemző). Minden körben mindenki új színt kap aszerint, hogy <b>milyen színű ő maga, és milyen színű szomszédai vannak</b> (a szomszédok színeinek multihalmaza):
+  <ol style="margin:.2rem 0">
+    <li>1. kör: a szomszédok száma dönt. Bence (3 szomszéd) egy szín; Anna, Csilla, Dávid (2) egy másik; Emese (1) egy harmadik.</li>
+    <li>2. kör: Anna szomszédai egy „2-es” és egy „3-as” színű (Csilla, Bence), Csilláé ugyanígy; Dávidé viszont egy „3-as” és egy „1-es” (Bence, Emese). Dávid leválik.</li>
+    <li>3. kör: nincs új szétválás. Végső osztályok: {Anna, Csilla}, {Bence}, {Dávid}, {Emese}.</li>
+  </ol>
+  Anna és Csilla sosem válik szét – és helyesen: a gráfban teljesen felcserélhetők (13.2).
+</div>
+<div class="box def">
+  <span class="box-title">Definíció és tétel – Weisfeiler–Leman-színfinomítás (1-WL)</span>
+  Kezdetben minden csúcs színe a jellemzője (vagy mind egyforma). Minden körben:
+  $$c^{(t+1)}(v) = \operatorname{hash}\Big(c^{(t)}(v),\ \{\!\{\,c^{(t)}(u) : u \in N(v)\,\}\!\}\Big),$$
+  ahol $\{\!\{\cdot\}\!\}$ a multihalmaz, a hash pedig minden különböző párnak új színt ad. Ha két gráfban a végső színek hisztogramja (melyik színből hány) eltér, a két gráf biztosan különböző; ha megegyezik, a teszt <b>nem tud dönteni</b>.
+  <br><b>Tétel</b> (K. Xu és társai; C. Morris és társai, 2019): ha az 1-WL két gráfot nem különböztet meg, akkor <b>egyetlen üzenetküldő GNN sem</b> – akármilyen súlyokkal. A GIN (összeg + MLP) pontosan ennyire erős.
+  <br><b>Miért?</b> Az üzenetküldés ugyanazt teszi, mint a színezés: a csúcs új vektora a régi vektorából és a szomszédok vektorainak multihalmazából jön. Amit a színezés összemos, azt a háló is összemossa.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a hatszög és a két háromszög</span>
+    Mindkét gráfban 6 csúcs, mindegyiknek 2 szomszédja. Az 1. körben mindenki ugyanazt kapja (saját szín + két ugyanolyan szomszéd), és ez így marad örökké. A hisztogramok egyformák: az 1-WL – és minden üzenetküldő GNN – <b>vak</b> a különbségre. Pedig az egyik összefüggő, a másik két darab; az egyikben nincs háromszög, a másikban kettő van.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – dekalin és biciklopentil</span>
+    Két valódi, 10 szénatomos molekula. A dekalin két hattagú gyűrű közös éllel, a biciklopentil két öttagú gyűrű egy kötéssel összekötve. Mindkettőben 11 kötés, 2 atom három, 8 atom két szomszéddal – és az 1-WL nem választja szét őket. Egy kémiai tulajdonság, amely a gyűrűk méretén múlik, egy sima GNN-nek láthatatlan.
+  </div>
+</div>
+<div class="widget" data-widget="wl-test"></div>
+<div class="box tip">
+  <span class="box-title">Erősebb a WL-nél – és mi a helyes név?</span>
+  Ha a kifejezőerő kevés, három út van: <b>(1)</b> magasabb rendű WL ($k$-WL): csúcsok helyett csúcspárokat, -hármasokat színez – erősebb, de $n^k$ költségű; <b>(2)</b> részgráf-számlálás: minden csúcs jellemzőjébe beírjuk, hány háromszögben, hány 5-ös, 6-os gyűrűben van (ez a fenti két ellenpéldát azonnal megoldja); <b>(3)</b> pozíciókódolás (<a href="#s138-b">13.8</a>). 📅 A kutatás 2024 óta inkább azt méri, <em>milyen mintákat</em> (részgráfokat) tud megszámolni egy modell, és figyelmeztet: a kifejezőbb modell kis adaton rosszabbul általánosíthat (C. Morris és társai, ICML 2024).
+  <br><small><b>Névhasználat:</b> a teszt Borisz Weisfeiler és Andrej Leman 1968-as cikkéből származik. A gépi tanulási irodalomban elterjedt a „Weisfeiler–Lehman” írásmód, de a második szerző neve Leman.</small>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Egyforma hisztogram ≠ egyforma gráf.</b> Az 1-WL csak egy irányban biztos: ha eltér, különböznek. Az egyezés nem bizonyít semmit (lásd a hatszöget).</li>
+    <li><b>A tétel a megkülönböztetésről szól, nem a tanulásról.</b> Hogy a GIN <em>elvben</em> annyit tud, mint az 1-WL, nem jelenti, hogy 188 molekulából meg is tanulja. A MUTAG-on a WL-színek darabszámára épített logisztikus regresszió (87,6%) magasabbat ért el, mint a GIN (81,9%) – a ±7–9 pontos szórás mellett ez nem szignifikáns, de a GIN-t semmiképp sem igazolja – lásd <a href="#s1311-b">13.11</a>.</li>
+    <li><b>Jellemzőkkel más a helyzet.</b> Ha a csúcsoknak gazdag, egyedi jellemzőik vannak (pl. 3D-koordináták, 13.9), a korlát sokszor nem harap. A WL-vakság a „szerkezet egyedül” esetben a legerősebb.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – WL-teszt</summary>
+  <ol>
+    <li>Futtasd az 1-WL-t a 4 csúcsú úton (1–2–3–4) és a 4 csúcsú csillagon (középpont 3 levéllel)! Hányadik körben válnak szét?
+      <details><summary>Megoldás</summary>Az 1. körben: az út fokszámai $(1, 2, 2, 1)$, a csillagé $(3, 1, 1, 1)$ – a hisztogramok eltérnek. A két gráf különböző.</details></li>
+    <li>Egy 4 csúcsú kör (négyzet) és egy 4 csúcsú út: szétválnak-e?
+      <details><summary>Megoldás</summary>Igen, az 1. körben: a négyzetben mindenki 2-es fokú, az útban van két 1-es fokú csúcs. (Az élszám is más: 4 vs. 3.)</details></li>
+    <li>Egy 8 csúcsú kör és két 4 csúcsú kör (négyzet). Mit mond az 1-WL?
+      <details><summary>Megoldás</summary>Nem tudja megkülönböztetni őket: mindkettőben minden csúcsnak két, ugyanolyan színű szomszédja van, a színezés az 1. kör után megáll, a hisztogramok egyformák.</details></li>
+    <li>A futó példában hány különböző szín lesz a végén, és miért marad Anna és Csilla azonos színű?
+      <details><summary>Megoldás</summary>4 szín: {A, C}, {B}, {D}, {E}. Anna és Csilla egy szimmetria révén felcserélhető (ugyanazok a szomszédaik: egymás és Bence), ezért semmilyen színezés nem választhatja szét őket – és nem is kell.</details></li>
+    <li>(nehezebb) Javasolj egy csúcsjellemzőt, amellyel egy GNN már megkülönbözteti a hatszöget és a két háromszöget! Miért működik?
+      <details><summary>Megoldás</summary>Például: „hány háromszögben van a csúcs” ($(A^3)_{vv}/2$, 13.1). A hatszögben mindenkinél 0, a két háromszögben mindenkinél 1 – a kezdőszínek már különböznek. Egy másik lehetőség a „visszatérés valószínűsége 3 lépés után” véletlen sétán (13.8). Ezek a jellemzők a gráf globális szerkezetéből jönnek, amit az üzenetküldés magától nem lát.</details></li>
+  </ol>
+</details>
+
+<h3 id="s137-b">2. lépés: túlsimítás – sok réteg után mindenki egyforma</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – ismételt átlagolás a futó példán</span>
+  Önhurkos átlagolás ($\hat D^{-1}\hat A$) a koncertszámokon, $x = (1;\allowbreak\ 0;\allowbreak\ 0;\allowbreak\ 0;\allowbreak\ 5)$-ből indulva. A csúcsértékek szórása:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>rétegek</th><td>0</td><td>1</td><td>2</td><td>5</td><td>10</td><td>20</td><td>30</td></tr>
+    <tr><th>szórás</th><td>1,939</td><td>0,910</td><td>0,704</td><td>0,347</td><td>0,109</td><td>0,011</td><td>0,001</td></tr>
+  </table></div>
+  30 réteg után minden csúcs értéke $\approx 0{,}867$. Ez nem a sima átlag (1,2), hanem a fokszámmal súlyozott: $\dfrac{3\cdot 1 + 4 \cdot 0 + 3 \cdot 0 + 3 \cdot 0 + 2 \cdot 5}{15} = \dfrac{13}{15}$. A csúcsok közti különbség – ami alapján osztályozni akartunk – eltűnt.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – túlsimítás (oversmoothing)</span>
+  Ha egy GNN rétegszáma nő, a csúcsvektorok egyre hasonlóbbak lesznek, és <b>exponenciálisan</b> egyetlen (a gráftól függő) közös vektorhoz tartanak; a csúcsok megkülönböztethetetlenné válnak.
+  <b>Miért?</b> Az átlagolás aluláteresztő szűrő (📐 13.4): minden lépés tompítja a „rücskös” részt, és csak az állandó (vagy $\sqrt{\hat d}$-vel arányos) irány marad meg. Összefüggő gráfon a határérték független a kezdőértéktől – akármit adtunk be, ugyanaz jön ki.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – valódi adat: GCN egyre mélyebben</span>
+    A Cora-n ugyanazt a GCN-t 2, 4, 8, 16, 32 és 64 réteggel tanítottuk (64 rejtett neuron, 3 kezdés átlaga). Pontosság a teszten: 2 réteg 81,8%, 4 réteg 73,2%, 8 réteg 15,9%, 16 réteg 24,7%, 32 réteg 24,1%, 64 réteg 21,6% – 8 rétegtől a leggyakoribb téma (31,9%) szintje alá esik. A csúcsvektorok átlagos koszinusz-távolsága (1 − cos) az utolsó rejtett rétegben 2 rétegnél 0,180, 8 rétegtől 0,001–0,002: a vektorok szinte párhuzamosak, minden cikk „ugyanazt mondja”.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – maradékkapcsolattal</span>
+    Ugyanez <b>maradékkapcsolattal</b> ($H^{(l+1)} = \operatorname{ReLU}(P H^{(l)} W) + H^{(l)}$, mint a ResNetben, <a href="../11-konvolucios-halok/#s114-c">11.4</a>): 2 réteg 81,8%, 4 réteg 81,4%, 8 réteg 78,0%, 16 réteg 77,5%, 32 réteg 78,1% – a vektorok különbözők maradnak (1 − cos: 0,32–0,49). 64 rétegnél azonban ez is összeomlik (31,8%): ott már a tanítás nehézsége is közrejátszik (lásd a 📅 dobozt). Javulást a mélység itt sem hozott – a 2 réteg a legjobb. A futó példán a „kezdőpont-visszacsatolás” ($\mathbf h \leftarrow 0{,}9 \cdot \hat D^{-1}\hat A\mathbf h + 0{,}1 \cdot \mathbf x$) után a szórás 0,439-en megáll – nem tűnik el.
+  </div>
+</div>
+<div class="widget" data-widget="oversmoothing"></div>
+<div class="box tip">
+  <span class="box-title">📅 Állapot: 2026 – tényleg a túlsimítás a baj?</span>
+  A túlsimítás matematikailag bizonyított (GCN-re, GAT-ra, sőt a Transformer figyelmére is: a figyelem sem véd ellene – X. Wu és társai, NeurIPS 2023). Több tanulmány szerint azonban a mély GNN-ek gyakorlati kudarcának legalább ekkora oka, hogy a sok egymásra rakott súlymátrix <b>nehezen tanítható</b> (W. Zhang és társai, KDD 2022; J. Peng és társai, CIKM 2024) – a „túlsimítás elleni” trükkök egy része valójában a tanítást könnyíti. Egy 2023-as összefoglaló (T. K. Rusch, M. Bronstein, S. Mishra) szerint a túlsimítás megszüntetése <b>szükséges, de nem elégséges</b> a jó mély GNN-hez. A gyakorlatban ma is 2–4 réteg a jellemző.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>„Mélyebb = jobb” itt nem igaz.</b> A CNN-eknél (ResNet: 50–150 réteg) megszokott reflex a GNN-eknél félrevisz. Kezdd 2 réteggel, és csak mérés alapján növeld.</li>
+    <li><b>A kevés simítás jó.</b> Az első néhány átlagolás <em>zajt szűr</em> (a szomszédok közös jelét erősíti) – ezért jobb a GCN az MLP-nél a Cora-n. A baj a sokadik lépésnél kezdődik.</li>
+    <li><b>A figyelem nem gyógyír.</b> A GAT súlyai is 1-re összegződnek – ismételve ugyanúgy átlagol.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – túlsimítás</summary>
+  <ol>
+    <li>A 3 csúcsú úton (1–2–3) $x = (3;\allowbreak\ 0;\allowbreak\ 0)$. Egy önhurkos átlagolás után mi lesz az érték?
+      <details><summary>Megoldás</summary>$\hat d = (2;\allowbreak\ 3;\allowbreak\ 2)$: 1. csúcs $(3 + 0)/2 = 1{,}5$; 2. csúcs $(3 + 0 + 0)/3 = 1$; 3. csúcs $(0 + 0)/2 = 0$. Eredmény: $(1{,}5;\allowbreak\ 1;\allowbreak\ 0)$.</details></li>
+    <li>Ugyanitt mi a határérték sok lépés után?
+      <details><summary>Megoldás</summary>A fokszámmal (önhurokkal) súlyozott átlag: $\dfrac{2\cdot 3 + 3 \cdot 0 + 2 \cdot 0}{7} = \dfrac{6}{7} \approx 0{,}857$ minden csúcson.</details></li>
+    <li>Egy teljes gráfban (mindenki mindenkivel) hány önhurkos átlagolás után lesz mindenki egyforma?
+      <details><summary>Megoldás</summary>Egy után: mindenki szomszédsága (önmagával) az egész gráf, tehát mindenki az összes érték átlagát kapja.</details></li>
+    <li>Miért nem tűnik el a különbség a „kezdőpont-visszacsatolással” ($\mathbf h \leftarrow (1-\alpha) M\mathbf h + \alpha\mathbf x$)?
+      <details><summary>Megoldás</summary>Mert minden lépésben visszakeverjük az eredeti, különböző értékeket ($\alpha\mathbf x$). A határérték nem az állandó vektor, hanem egy olyan, amely az $\mathbf x$-hez „ragaszkodik”: a futó példán $\alpha = 0{,}1$-nél $(0{,}671;\allowbreak\ 0{,}662;\allowbreak\ 0{,}571;\allowbreak\ 1{,}037;\allowbreak\ 1{,}757)$, szórás 0,439. (Ez az APPNP nevű módszer ötlete, J. Gasteiger és társai, 2019.)</details></li>
+    <li>(nehezebb) A szórás a futó példán 10 réteg alatt 1,939-ről 0,109-re csökkent. Ha ez exponenciális csökkenés, kb. mennyi a rétegenkénti szorzó? Mi köze a $P$ mátrix sajátértékeihez?
+      <details><summary>Megoldás</summary>$(0{,}109/1{,}939)^{1/10} \approx 0{,}75$. A hosszú távú csökkenést a második legnagyobb abszolút értékű sajátérték szabja meg: az önhurkos átlagoló mátrixnál ez kb. 0,79 (ugyanannyi, mint a 13.4 📐 lenyílójában a $P$-nél, mert a két mátrix hasonló). Az eleje gyorsabb, mert a nagyobb frekvenciás részek (kisebb sajátértékek) hamarabb kihalnak.</details></li>
+  </ol>
+</details>
+
+<h3 id="s137-c">3. lépés: túlnyomás és heterofília – amikor a szomszéd nem segít</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két baj egy fán és egy láncon</span>
+  <b>1. Túlnyomás.</b> Egy fában minden csúcsnak 3 gyereke van. A gyökérhez 5 réteg után $3^5 = 243$ levél információja jut el – ugyanabba a, mondjuk, 16 számból álló vektorba. Ha a feladat egyetlen távoli levélen múlik, annak a jele 243 másikkal keveredve, egy szűk csatornán „préselődik át”.
+  <br><b>2. Heterofília.</b> Egy hat csúcsú láncon a címkék váltakoznak: 0, 1, 0, 1, 0, 1 (pl. vevő–eladó–vevő…). A szomszédok átlaga minden csúcsnál pontosan a <b>másik</b> osztály: $(1;\allowbreak\ 0;\allowbreak\ 1;\allowbreak\ 0;\allowbreak\ 1;\allowbreak\ 0)$. Önhurkos átlaggal $(0{,}5;\allowbreak\ 0{,}333;\allowbreak\ 0{,}667;\allowbreak\ 0{,}333;\allowbreak\ 0{,}667;\allowbreak\ 0{,}5)$ – minden csúcs a 0,5 körül, a jel összemosódott.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – túlnyomás, homofília, heterofília</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Túlnyomás</b> (<em>oversquashing</em>; U. Alon és E. Yahav, 2021): a recepciós mező exponenciálisan nő, a csúcsvektor mérete rögzített – a távoli információ egy <b>szűk keresztmetszeten</b> fér csak át. Különösen ott súlyos, ahol a gráfban „hidak” vannak (két sűrű rész egyetlen élen át kapcsolódik).</li>
+    <li><b>Élhomofília:</b> az azonos címkéjű csúcsokat összekötő élek aránya. Homofil gráf: magas (a szomszédok hasonlók), <b>heterofil</b>: alacsony (a szomszédok különbözők).</li>
+  </ul>
+  <b>Miért fontos?</b> A GCN-féle átlagolás azt feltételezi, hogy a szomszéd hasonló. Homofil gráfon ez zajszűrés; heterofil gráfon jelrontás.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – mennyire homofilek a mi gráfjaink?</span>
+    Karateklub: a 78 élből 67 köt össze azonos oldalra kerülő tagokat – a homofília 0,859. Cora: a hivatkozások 81,0%-a azonos témájú cikkek között fut. Mindkettő erősen homofil – ezért működik rajtuk jól a GCN.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – heterofíliában a külön saját súly segít</span>
+    A váltakozó láncon egy GraphSAGE-szerű réteg ($h' = w_1 h_v + w_2 m_v$) $w_1 = 1$, $w_2 = -1$ súllyal: a 0-s csúcsoknál $0 - 1 = -1$, az 1-eseknél $1 - 0 = 1$ – a különbség <em>nőtt</em>. A GCN közös súlya ($w_1 = w_2$) ezt nem tudja; a GraphSAGE és a GIN igen.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">Ellenszerek – és 📅 mennyire működnek</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Maradékkapcsolat, normalizálás</b> – mélységhez (lásd fent).</li>
+    <li><b>Virtuális csúcs:</b> egy új csúcs, amely mindenkivel össze van kötve – két lépésben bárki eljut bárkihez. Molekulás modellekben bevett; 📅 egy 2025-ös elemzés (J. Southern és társai, ICLR 2025) szerint a haszna a gráf szerkezetétől függ.</li>
+    <li><b>Újrahuzalozás</b> (<em>rewiring</em>): éleket adunk a „szűk” helyekre (pl. görbület alapján; J. Topping és társai, 2022). 📅 Valódi adatokon a javulás törékeny, a hiperparaméterektől függ (F. Tori és társai, 2024); és a túlsimítás és a túlnyomás ellentétes irányba húz: amelyik él az egyiken segít, a másikon ronthat.</li>
+    <li><b>Globális figyelem</b>: mindenki mindenkire figyelhet – ez a gráf-Transformer (<a href="#s138">13.8</a>).</li>
+  </ul>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Ne feltételezd a homofíliát – mérd meg.</b> Egy tranzakciós hálón a csalók gyakran tisztességes számlákkal kapcsolódnak; egy randioldalon a kapcsolatok jellemzően különböző csúcsok között futnak.</li>
+    <li><b>A heterofília nem reménytelen.</b> Ha a szomszéd <em>rendszeresen</em> ellentétes (mint a láncon), az is információ – csak a modellnek külön kell kezelnie a saját és a szomszédos vektort.</li>
+    <li><b>📅 Heterofil benchmarkok hibái.</b> Két népszerű heterofil adatkészletben (Squirrel, Chameleon) duplikált csúcsok voltak, így a 2023 előtti eredmények egy része a teszt „kiszivárgásából” jött (O. Platonov és társai, 2023).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – túlnyomás és heterofília</summary>
+  <ol>
+    <li>Egy fában minden csúcsnak 4 gyereke van. Hány levél információja jut el a gyökérig 3 réteg után?
+      <details><summary>Megoldás</summary>$4^3 = 64$ (az összes csúcs a 3 ugrásnyi környezetben $1 + 4 + 16 + 64 = 85$).</details></li>
+    <li>Számold ki a futó példa élhomofíliáját, ha A, B, C címkéje 0, D, E címkéje 1!
+      <details><summary>Megoldás</summary>Élek: A–B (0–0), A–C (0–0), B–C (0–0), B–D (0–1), D–E (1–1). 4 azonos az 5-ből: 0,8.</details></li>
+    <li>Egy kétrészes (felhasználó–termék) gráfban a „felhasználó-e” címkére mennyi az élhomofília?
+      <details><summary>Megoldás</summary>0: minden él egy felhasználót és egy terméket köt össze. Ez a tökéletes heterofília – a csúcs típusát a szomszédok átlaga pont rosszul mondaná.</details></li>
+    <li>Miért segít a virtuális csúcs a túlnyomás ellen, és mi a kockázata?
+      <details><summary>Megoldás</summary>Bármely két csúcs két lépésben elér egymáshoz rajta keresztül, így a távoli információnak nem kell sok rétegen át „préselődnie”. Kockázat: maga a virtuális csúcs lesz a szűk keresztmetszet (egyetlen vektorba gyűlik minden), és mindenkit ugyanúgy kezel – nem tudja, ki fontos.</details></li>
+    <li>(nehezebb) Egy úthálózaton két város között egyetlen híd van. Miért nehéz egy GNN-nek a híd két oldalán lévő pontok közötti menetidőt megtanulnia, és mit tennél?
+      <details><summary>Megoldás</summary>A két oldal közötti összes információ a hídon mint egyetlen élen „préselődik át” (negatív görbületű, szűk hely) – a túlnyomás tipikus esete, és ráadásul sok ugrásnyi távolság. Lehetőség: hierarchikus gráf (durvább felbontású, hosszú élekkel – ezt teszi a GraphCast is), virtuális csúcs, vagy új élek a híd két oldala között. Mindegyik után mérd meg, nem lett-e rosszabb a túlsimítás miatt.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai13-137"></div>
+</section>

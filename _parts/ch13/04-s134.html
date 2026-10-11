@@ -1,0 +1,183 @@
+
+<!-- ===================================================== 13.4 -->
+<section id="s134">
+<h2>13.4 Gráfkonvolúciós háló (GCN) ★★</h2>
+<p>A 13.3 rétege működik, de két gyakorlati gond van vele: a saját értéket külön súllyal kell kezelni, és az összeg a sok szomszédú csúcsoknál elszáll. T. Kipf és M. Welling 2017-es <b>gráfkonvolúciós hálója</b> (GCN) mindkettőt egy egyszerű trükkel oldja meg – és ez lett a terület leggyakrabban idézett modellje.</p>
+
+<h3 id="s134-a">1. lépés: önhurok – a csúcs a saját szomszédja</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – Emese elfelejti magát</span>
+  Csak a szomszédok összege: $A\mathbf x = (0;\allowbreak\ 1;\allowbreak\ 1;\allowbreak\ 5;\allowbreak\ 0)$. Emese értéke 5-ről 0-ra esett – ő csak Dávidtól hall, a saját koncertjei kimaradtak. Adjunk minden csúcsnak egy <b>önhurkot</b> (egy élt saját magához)! Ekkor a gyűjtésben a saját érték is benne van:
+  $$(A + I)\,\mathbf x = (1;\allowbreak\ 1;\allowbreak\ 1;\allowbreak\ 5;\allowbreak\ 5).$$
+  Emese megtartotta az 5-öt, Dávid átvette.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – önhurkos szomszédsági mátrix</span>
+  $$\hat A = A + I,\qquad \hat D = \operatorname{diag}(\deg(v) + 1).$$
+  Az $\hat A$-val számolt gyűjtés a $N(v) \cup \{v\}$ halmazon fut. Az átlag: $\hat D^{-1}\hat A\mathbf x$.
+  <b>Miért jó?</b> Így nem kell külön $W_1$ a saját értéknek: egyetlen $\hat A H W$ szorzás mindkettőt elvégzi. Ára: a saját érték ugyanolyan súlyt kap, mint bármelyik szomszéd.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – átlag önhurokkal</span>
+    Az önhurkos fokszámok: $(3;\allowbreak\ 4;\allowbreak\ 3;\allowbreak\ 3;\allowbreak\ 2)$. $\hat D^{-1}\hat A\mathbf x = \left(\tfrac13;\allowbreak\ \tfrac14;\allowbreak\ \tfrac13;\allowbreak\ \tfrac53;\allowbreak\ \tfrac52\right) \approx (0{,}333;\allowbreak\ 0{,}25;\allowbreak\ 0{,}333;\allowbreak\ 1{,}667;\allowbreak\ 2{,}5)$. Emese most a saját 5-ösének és Dávid 0-jának átlagát kapja.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a hang elvész a tömegben</span>
+    Az elnök (34) a karateklubban 17 baráttal: önhurokkal 18 tagú átlagban a saját értéke csak $1/18 \approx 5{,}6\%$-ot ér. Emesénél 1/2-et. A sok szomszédú csúcs „saját véleménye” elvész – a GraphSAGE ezért kezeli külön (<a href="#s135-a">13.5</a>).
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az önhurok a fokszámot is növeli.</b> A normalizálásban (következő lépés) $\deg(v) + 1$ szerepel, nem $\deg(v)$. Ha elfelejted, a számok nem egyeznek a könyvtárakéval.</li>
+    <li><b>Önhurok ≠ $A^2$ főátlója.</b> Az $A^2$ főátlójában is a fokszám áll, de az a kétlépéses „oda-vissza” séták száma (<a href="#s131-b">13.1</a>). Az önhurok egy valódi, „nulla lépéses” saját kapcsolat.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – önhurok</summary>
+  <ol>
+    <li>Számold ki $(A + I)\mathbf x$-et a futó példán, ha $\mathbf x = (2;\allowbreak\ 4;\allowbreak\ 0;\allowbreak\ 6;\allowbreak\ 0)$!
+      <details><summary>Megoldás</summary>A: $2 + 4 + 0 = 6$; B: $4 + 2 + 0 + 6 = 12$; C: $0 + 2 + 4 = 6$; D: $6 + 4 + 0 = 10$; E: $0 + 6 = 6$. Eredmény: $(6;\allowbreak\ 12;\allowbreak\ 6;\allowbreak\ 10;\allowbreak\ 6)$.</details></li>
+    <li>Mi az előző eredmény önhurkos átlaggal ($\hat D^{-1}\hat A\mathbf x$)?
+      <details><summary>Megoldás</summary>Osztva $(3;\allowbreak\ 4;\allowbreak\ 3;\allowbreak\ 3;\allowbreak\ 2)$-vel: $(2;\allowbreak\ 3;\allowbreak\ 2;\allowbreak\ 3{,}333;\allowbreak\ 3)$.</details></li>
+    <li>Írd fel a 3 csúcsú út (1–2–3) $\hat A$ mátrixát és $\hat D$-t!
+      <details><summary>Megoldás</summary>$\hat A = \begin{pmatrix}1&1&0\\1&1&1\\0&1&1\end{pmatrix}$, $\hat D = \operatorname{diag}(2;\allowbreak\ 3;\allowbreak\ 2)$.</details></li>
+    <li>Egy csúcsnak 9 szomszédja van. Önhurkos átlagnál mekkora súlyt kap a saját értéke?
+      <details><summary>Megoldás</summary>$1/10 = 0{,}1$.</details></li>
+    <li>(nehezebb) Mutasd meg, hogy $\operatorname{ReLU}(\hat A H W)$ ugyanaz, mint $\operatorname{ReLU}(HW_1 + AHW_2)$ egy speciális esete! Melyik?
+      <details><summary>Megoldás</summary>$\hat A H W = (A + I)HW = HW + AHW$. Ez a $W_1 = W_2 = W$ (és $\mathbf b = 0$) eset. Az önhurok tehát azt jelenti, hogy a saját érték és a szomszédok ugyanazt a súlymátrixot kapják – egyszerűbb, de kevésbé rugalmas.</details></li>
+  </ol>
+</details>
+
+<h3 id="s134-b">2. lépés: normalizálás – ne szálljanak el a nagy csúcsok</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – ismételt összegzés</span>
+  Gyűjtsünk összeggel önhurokkal háromszor egymás után: $\hat A\mathbf x = (1;\allowbreak\ 1;\allowbreak\ 1;\allowbreak\ 5;\allowbreak\ 5)$, $\hat A^2\mathbf x = (3;\allowbreak\ 8;\allowbreak\ 3;\allowbreak\ 11;\allowbreak\ 10)$, $\hat A^3\mathbf x = (14;\allowbreak\ 25;\allowbreak\ 14;\allowbreak\ 29;\allowbreak\ 21)$. Az összeg 6 volt, három lépés után 103. Egy csillaggráfban (egy középpont 100 levéllel, mindenhol 1-es érték) a középpont összege egyetlen lépésben 101 lesz, a leveleké 2. Néhány réteg után a számok nagyságrendjét a <b>fokszám</b> dönti el, nem a tartalom.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – a GCN-réteg (Kipf és Welling, 2017)</span>
+  $$H' = \sigma\!\left(\hat D^{-1/2}\,\hat A\,\hat D^{-1/2}\, H\, W\right),\qquad\text{azaz}\qquad \mathbf h_v' = \sigma\!\Big(\sum_{u \in N(v) \cup \{v\}} \frac{1}{\sqrt{\hat d_u\,\hat d_v}}\ \mathbf h_u W\Big),$$
+  ahol $\hat d_v = \deg(v) + 1$. A $P = \hat D^{-1/2}\hat A\hat D^{-1/2}$ mátrix az élt a két végpont fokszámának mértani közepével osztja.
+  <b>Miért nem egyszerű átlag?</b> Az átlag ($\hat D^{-1}\hat A$) csak a fogadó fokszámával oszt. A szimmetrikus változat a küldőével is: egy sok kapcsolatú csúcs („mindenkit ismer”) üzenete keveset ér – kevésbé jellemző a fogadóra. És $P$ szimmetrikus, aminek a spektrális elméletben (📐 lent) haszna van.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a 3 csúcsú út</span>
+    $\hat d = (2;\allowbreak\ 3;\allowbreak\ 2)$. $P_{11} = \tfrac{1}{2}$, $P_{12} = \tfrac{1}{\sqrt{2 \cdot 3}} = \tfrac{1}{\sqrt 6} \approx 0{,}408$, $P_{22} = \tfrac13$:
+    $$P = \begin{pmatrix}0{,}5 & 0{,}408 & 0\\ 0{,}408 & 0{,}333 & 0{,}408\\ 0 & 0{,}408 & 0{,}5\end{pmatrix}.$$
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a futó példán</span>
+    $P\mathbf x = (0{,}333;\allowbreak\ 0{,}289;\allowbreak\ 0{,}333;\allowbreak\ 2{,}041;\allowbreak\ 2{,}5)$. Dávid: $\tfrac{1}{\sqrt{3\cdot 4}}\cdot 0 + \tfrac13 \cdot 0 + \tfrac{1}{\sqrt{3 \cdot 2}}\cdot 5 \approx 2{,}041$. A sima átlagnál 1,667 volt: Emese (kevés kapcsolat) üzenete többet ér.
+  </div>
+</div>
+<div class="box example">
+  <span class="box-title">Példa – a csillag három normalizálással</span>
+  Középpont 100 levéllel, minden érték 1. <b>Összeg</b> (önhurokkal): középpont 101, levél 2. <b>Átlag:</b> mindenki 1. <b>Szimmetrikus (GCN):</b> egy középpont–levél él súlya $\tfrac{1}{\sqrt{101 \cdot 2}} \approx 0{,}070$; a középpont értéke $100 \cdot 0{,}070 + \tfrac{1}{101} \approx 7{,}05$, a levélé $\tfrac12 + 0{,}070 \approx 0{,}57$. A GCN középutat jár: a középpont nagyobb, de csak kb. $\sqrt{\deg}$ arányban.
+</div>
+<details class="box">
+  <summary>📐 ★★★ A spektrális nézőpont – Laplace-mátrix és „gráf-Fourier”</summary>
+  <p>A <b>Laplace-mátrix</b> $L = D - A$. Egy $\mathbf x$ csúcsértékre
+  $$\mathbf x^\top L\,\mathbf x = \sum_{(u,v) \in E} (x_u - x_v)^2,$$
+  vagyis azt méri, mennyire <b>„rücskös”</b> az érték a gráfon: kicsi, ha a szomszédok hasonló értékűek. A futó példán $\mathbf x = (1;\allowbreak\ 0;\allowbreak\ 0;\allowbreak\ 0;\allowbreak\ 5)$-re: $(1-0)^2 + (1-0)^2 + 0 + 0 + (0-5)^2 = 27$. Egy önhurkos átlagolás után 2,715 – az átlagolás <b>simít</b>.</p>
+  <p>$L$ sajátvektorai (<a href="../02-matematikai-eszkoztar/#s24-b">2.4</a>) a gráf „rezgésmódjai”: a 0 sajátértékhez az állandó vektor tartozik (semmi rücsök), a nagyobb sajátértékekhez egyre gyorsabban váltakozó minták – mint a Fourier-analízisben az egyre nagyobb frekvenciájú szinuszok. A futó példán a sajátértékek $0;\allowbreak\ 0{,}519;\allowbreak\ 2{,}311;\allowbreak\ 3;\allowbreak\ 4{,}170$. Ezért hívják a sajátvektorokat <b>gráf-Fourier-bázisnak</b>.</p>
+  <p>Az első „spektrális” GNN-ek (J. Bruna és társai, 2014; M. Defferrard és társai, 2016) ebben a bázisban szűrtek. A GCN ennek egyszerűsítése: a $P$ mátrix sajátértékei a $(-1;\allowbreak\ 1]$ intervallumban vannak (a futó példán $-0{,}210;\allowbreak\ 0;\allowbreak\ 0{,}167;\allowbreak\ 0{,}793;\allowbreak\ 1$), a $P$-vel szorzás a nagy „frekvenciájú” (rücskös) részeket tompítja, a simát megtartja: <b>aluláteresztő szűrő</b>. Ha sokszor ismételjük, csak az 1-es sajátértékhez tartozó irány marad meg – minden csúcs ugyanazt mondja. Ez a túlsimítás (<a href="#s137-b">13.7</a>).</p>
+</details>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>$P$ sorai nem 1-re összegződnek.</b> Bence sorában $3 \cdot 0{,}289 + 0{,}25 = 1{,}116$, Emeséében $0{,}908$. A GCN nem átlag – „majdnem átlag”.</li>
+    <li><b>A normalizálás a fokszámot is elmossa.</b> Ha a feladathoz a szomszédok <em>száma</em> kell (hány nitrocsoport kapcsolódik egy atomhoz?), az átlag és a GCN nem látja tisztán. Lásd a GIN-t (<a href="#s135-c">13.5</a>).</li>
+    <li><b>A GCN a homofíliára épít.</b> A szomszédok vektorait összemossa a sajáttal – ez akkor jó, ha a szomszédok hasonlók. Ha a kapcsolatok ellentétes csúcsok között futnak (pl. vevő–eladó), rosszul teljesít (<a href="#s137-c">13.7</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – normalizálás</summary>
+  <ol>
+    <li>Egy él két végpontjának fokszáma (önhurok nélkül) 3 és 8. Mennyi a GCN-súlya?
+      <details><summary>Megoldás</summary>$\hat d = 4$ és $9$: $\tfrac{1}{\sqrt{4 \cdot 9}} = \tfrac16 \approx 0{,}167$.</details></li>
+    <li>A 3 csúcsú úton $\mathbf x = (3;\allowbreak\ 0;\allowbreak\ 0)$. Mennyi $P\mathbf x$?
+      <details><summary>Megoldás</summary>$(0{,}5 \cdot 3;\allowbreak\ 0{,}408 \cdot 3;\allowbreak\ 0) = (1{,}5;\allowbreak\ 1{,}225;\allowbreak\ 0)$.</details></li>
+    <li>A futó példán mennyi a $P$ mátrix Dávid–Emese eleme és Emese főátlóbeli eleme?
+      <details><summary>Megoldás</summary>$\hat d_D = 3$, $\hat d_E = 2$: $P_{DE} = \tfrac{1}{\sqrt 6} \approx 0{,}408$; $P_{EE} = \tfrac12$.</details></li>
+    <li>Egy 10 csúcsú teljes gráfban (mindenki mindenkivel) mennyi $P$ minden eleme? Mit csinál $P\mathbf x$?
+      <details><summary>Megoldás</summary>Mindenki fokszáma 9, önhurokkal 10: minden elem $\tfrac{1}{\sqrt{10 \cdot 10}} = 0{,}1$. $P\mathbf x$ minden csúcsnak az összes érték átlagát adja – egyetlen lépésben mindenki egyforma lesz.</details></li>
+    <li>(nehezebb) Igazold, hogy az önhurkos átlag ($\hat D^{-1}\hat A$) után az $\mathbf x = \mathbf 1$ (csupa egyes) vektor nem változik, a GCN-normalizálás után viszont igen! Mi lesz a futó példán $P\mathbf 1$?
+      <details><summary>Megoldás</summary>$\hat D^{-1}\hat A\mathbf 1$: minden sor az egyesek átlaga, tehát 1. $P\mathbf 1$ viszont a $P$ sorösszegeit adja: $(0{,}955;\allowbreak\ 1{,}116;\allowbreak\ 0{,}955;\allowbreak\ 1{,}030;\allowbreak\ 0{,}908)$. Az állandó jel a GCN-ben enyhén torzul – a $P$ 1-es sajátértékhez tartozó sajátvektora nem az állandó vektor, hanem $\sqrt{\hat d_v}$-vel arányos.</details></li>
+  </ol>
+</details>
+
+<h3 id="s134-c">3. lépés: tanítás kevés címkével – a karateklub</h3>
+<p>Most tanítsunk! A GCN-réteg ugyanúgy tanul, mint az MLP: kimenet → keresztentrópia → visszaterjesztés → Adam (<a href="../10-halo-tanitasa/">10. fejezet</a>). Az újdonság: a veszteséget csak a <b>címkézett</b> csúcsokon számoljuk, de a háló közben az összes csúcs vektorát kiszámolja – és a gráfon át a címkék „szétfolynak”.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két címke, 34 tag</span>
+  A karateklub 34 tagja; jellemzőnek semmi mást nem adunk, csak azt, hogy ki kicsoda (egy 34 hosszú one-hot vektort). Címke: az edző (1) „edző oldala”, az elnök (34) „elnök oldala”, a többi 32 ismeretlen. Kétrétegű GCN, 16 rejtett neuron, 200 lépés Adammal, a veszteség csak a két címkézett csúcson.
+  <br><b>Eredmény:</b> a 32 címkézetlen tagból <b>31</b>-et helyesen sorol be (96,9%) – 20 különböző kezdősúllyal mindig ugyanígy. Az egyetlen hiba a <b>9-es tag</b>: Zachary feljegyzése szerint ő az elnök csoportjához tartozott, mégis az edző új klubjába lépett át. A gráf alapján a GCN-nek „igaza van” – a döntést nem a barátságok hozták.
+  <br>Ugyanez MLP-vel (gráf nélkül): <b>50%</b> – pénzfeldobás. Az MLP a one-hot jellemzőkből a 32 ismeretlen tagról semmit nem tudhat.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – félig felügyelt csúcsosztályozás</span>
+  Adott egy gráf, minden csúcs jellemzője ($X$), és a csúcsok egy <b>kis</b> részének címkéje ($V_L$). A kétrétegű GCN:
+  $$Z = P\,\operatorname{ReLU}(P X W_1)\,W_2,\qquad \mathcal L = -\frac{1}{|V_L|}\sum_{v \in V_L} \ln \operatorname{softmax}(\mathbf z_v)_{y_v}.$$
+  A gradiens csak a címkézett csúcsoktól indul, de a $P$-n keresztül <b>minden</b> csúcs vektora befolyásolja, és minden csúcs ugyanazt a $W_1, W_2$-t használja. <b>Miért működik?</b> A címkézetlen csúcsok a címkézettek szomszédságában vannak; a közös súlyok és a gráfon terjedő vektorok miatt a hasonló helyzetű csúcsok hasonló kimenetet kapnak.
+</div>
+<div class="widget" data-widget="gcn-karate"></div>
+<p><small>A böngészős változat (saját JavaScript-tanító, kicsit más kezdősúlyokkal) 100 kezdésből 82-szer ugyanígy csak a 9-es tagot téveszti el, 18-szor a 3-as tagot is – ő határeset, két csoport közé „szakadt”. Hosszabb tanítással (400 lépés) ez szinte mindig eltűnik.</small></p>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – mennyi az alapvonal?</span>
+    A karateklubon a címketerjesztés (<a href="#s132-c">13.2</a>) is 31/32-t ér el, ugyanazzal az egy hibával. A GCN itt tehát nem okosabb a régi módszernél – jellemzők nélkül csak a gráfszerkezet van, és azt mindkettő jól használja. A GCN előnye ott jön ki, ahol a csúcsoknak <b>tartalmuk</b> is van.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – Cora, a klasszikus mérce</span>
+    2708 cikk, 5278 hivatkozás, minden cikkhez egy 1433 szavas szózsák, 7 témakör, és osztályonként csak <b>20</b> címkézett cikk (140 összesen). Az eredeti cikkben a GCN 81,5%-ot ért el; egy MLP a szózsákon, gráf nélkül 55,1%-ot (a GAT-cikk mérése). A saját mérésünk a <a href="#s1311-a">13.11</a>-ben.
+  </div>
+</div>
+<details class="box">
+  <summary>🐍 Python – kétrétegű GCN PyTorch Geometric-kel</summary>
+<pre><code class="language-python">import torch, torch.nn.functional as F
+from torch_geometric.datasets import Planetoid
+from torch_geometric.nn import GCNConv
+
+data = Planetoid("data", "Cora")[0]          # 2708 csúcs, 1433 jellemző, 7 osztály
+class GCN(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.c1, self.c2 = GCNConv(1433, 16), GCNConv(16, 7)   # önhurok + D^-1/2 Â D^-1/2 beépítve
+    def forward(self, x, edge_index):
+        x = F.dropout(F.relu(self.c1(x, edge_index)), 0.5, self.training)
+        return self.c2(x, edge_index)
+
+model = GCN(); opt = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
+for epoch in range(200):
+    model.train(); opt.zero_grad()
+    out = model(data.x, data.edge_index)
+    F.cross_entropy(out[data.train_mask], data.y[data.train_mask]).backward()   # csak 140 címke
+    opt.step()</code></pre>
+</details>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Teljes köteg.</b> A GCN klasszikus tanításában egy lépés az egész gráfon fut (minden csúcs vektora kell a szomszédainak). Nagy gráfon ez nem fér a memóriába – mintavételezés kell (<a href="#s135-a">13.5</a>).</li>
+    <li><b>A one-hot „kicsoda” jellemző transzduktív.</b> A karateklub egy új tagjáról a modell semmit nem tudna – nincs neki one-hot oszlopa. Új csúcsokra csak valódi jellemzőkkel (szöveg, kor, aktivitás) általánosít.</li>
+    <li><b>A kevés címke a validációt is szűkíti.</b> A Cora szabványos felosztásában 500 validációs csúcs van – több, mint a 140 tanító. A valóságban, ha csak 140 címkéd van, validációra sem lesz több (<a href="../06-modellertekeles/#s64-a">6.4</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – tanítás kevés címkével</summary>
+  <ol>
+    <li>Hány paramétere van a karateklub GCN-jének (34 → 16 → 2, torzítással)?
+      <details><summary>Megoldás</summary>$34 \cdot 16 + 16 + 16 \cdot 2 + 2 = 544 + 16 + 32 + 2 = 594$.</details></li>
+    <li>Hány paramétere van a Cora GCN-jének (1433 → 16 → 7, torzítással)?
+      <details><summary>Megoldás</summary>$1433 \cdot 16 + 16 + 16 \cdot 7 + 7 = 22\,928 + 16 + 112 + 7 = 23\,063$.</details></li>
+    <li>A karateklubon miért pontosan 50% az MLP?
+      <details><summary>Megoldás</summary>A one-hot bemenetnél minden címkézetlen tag „saját” bemeneti súlyai sosem kapnak gradienst (a veszteség csak az 1. és a 34. tagon van, azok bemenete pedig csak a saját oszlopukat aktiválja). A 32 ismeretlen tag kimenete így csak a torzításokon és a véletlen kezdősúlyokon múlik (a súlycsökkentés ráadásul a saját súlyaikat 0 felé húzza) – nincs benne információ. A mi 20 futásunkban mindig pontosan 16/32 lett.</details></li>
+    <li>Hány ugrásnyira „lát” a kétrétegű GCN? A karateklubban kik azok, akikhez se az 1-es, se a 34-es címkéje nem jut el?
+      <details><summary>Megoldás</summary>2 ugrásnyira. Az edző 2 ugrásos környezete 26 csúcs, az elnöké 24 (önmagukkal); együtt az egész klub le van fedve (a kétrétegű GCN-nek mindenki „hall” legalább az egyikükről). Ahol egyik sem jut el, ott csak a súlyok általánosítása segítene.</details></li>
+    <li>(nehezebb) A címkézett csúcsok közül melyiket választanád, ha csak 2 címkét kérhetsz, és miért éppen az edzőt és az elnököt választotta a kísérlet?
+      <details><summary>Megoldás</summary>Olyanokat, akiknek a címkéje sok csúcshoz eljut, és akik a két csoport „közepén” állnak: a legnagyobb fokszámú, központi csúcsokat (az edző 16, az elnök 17 kapcsolattal). Egy perifériás tag (pl. egy 1 fokszámú) címkéje csak néhány csúcsot érne el két réteggel. Ez az <b>aktív tanulás</b> kérdése: melyik címkét érdemes megvenni.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai13-134"></div>
+</section>

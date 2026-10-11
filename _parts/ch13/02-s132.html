@@ -1,0 +1,166 @@
+
+<!-- ===================================================== 13.2 -->
+<section id="s132">
+<h2>13.2 Miért nem elég az MLP, a CNN vagy az RNN? ★★</h2>
+<p>Megvan a szomszédsági mátrix – egy számtáblázat. Miért nem adjuk egyszerűen oda egy MLP-nek, ahogy a 9. fejezetben a 8×8-as számjegyképet? Mert a képnek van bal felső sarka, a gráfnak nincs. Ebben a szakaszban kiderül, mit kell tudnia egy gráfos modellnek, és hogyan boldogultak régen nélküle.</p>
+
+<h3 id="s132-a">1. lépés: a számozás csapdája</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – ugyanaz a társaság, más sorrendben</span>
+  Számozzuk most a futó példát fordítva: E = 1, D = 2, B = 3, A = 4, C = 5. A gráf ugyanaz (ugyanazok barátkoznak), a mátrix viszont:
+  $$A' = \begin{pmatrix} 0 & 1 & 0 & 0 & 0\\ 1 & 0 & 1 & 0 & 0\\ 0 & 1 & 0 & 1 & 1\\ 0 & 0 & 1 & 0 & 1\\ 0 & 0 & 1 & 1 & 0 \end{pmatrix}\qquad\text{(eredetileg az első sor } 0\ 1\ 1\ 0\ 0 \text{ volt)}.$$
+  Egy MLP a mátrix 25 elemét kapja bemenetként, és mindegyikhez <b>saját súlya</b> van. Az első bemenet súlya „az 1. és 2. csúcs kapcsolatáé” – de hogy ki az 1. és a 2. csúcs, az a számozó önkényén múlik. Az MLP a két mátrixra általában <b>más</b> választ ad, pedig a gráf ugyanaz.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – átszámozás (permutáció)</span>
+  A csúcsok egy átszámozását egy $P$ <b>permutációmátrix</b> írja le (minden sorában és oszlopában egyetlen 1-es). Átszámozás után
+  $$A' = P A P^\top,\qquad X' = P X,$$
+  ahol $X$ a csúcsjellemzők $n \times d$-s mátrixa (soronként egy csúcs). Egy $n$ csúcsú gráfnak $n!$ számozása van; ezek közül azok adnak ugyanolyan mátrixot, amelyek a gráf egy <b>szimmetriáját</b> írják le.
+  <b>Miért $PAP^\top$?</b> A $P$-vel balról szorzás a sorokat, a $P^\top$-tal jobbról szorzás az oszlopokat keveri meg – ugyanúgy, hiszen a sor és az oszlop is csúcsot jelöl.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – hány mátrix tartozik a futó példához?</span>
+    $5! = 120$ számozás van. Anna és Csilla azonban felcserélhető: mindketten pontosan egymást és Bencét ismerik. A csere ugyanazt a mátrixot adja, ezért <b>60</b> különböző mátrix tartozik ugyanahhoz a gráfhoz. Egy 28 atomos molekulánál a számozások száma $28! \approx 3 \cdot 10^{29}$.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a mutagén molekulák (valódi adat)</span>
+    A MUTAG adatkészlet 188 molekuláján egy MLP-t tanítottunk: bemenet a (28-ig nullákkal kitöltött) szomszédsági mátrix és az atomtípusok. Tízszeres keresztvalidációval (<a href="../06-modellertekeles/#s65-a">6.5</a>), háromszor ismételve: <b>83,7%</b>. A tesztmolekulák atomjait véletlenszerűen átszámozva: <b>69,5%</b> – alig jobb, mint ha mindenre a gyakoribb osztályt mondaná (66,5%).
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">Miért ment egyáltalán 83,7%-ig?</span>
+  Mert az adatkészletben a molekulák atomjai <b>rögzített konvenció</b> szerint vannak számozva – ahogy az adatkészlet készítői felírták őket, hasonló molekuláknál hasonló sorrendben. Az MLP ezt a konvenciót tanulta meg – nem a kémiát. Ez ugyanaz a hiba, mint a <a href="../11-konvolucios-halok/#s111-c">11.1</a> MLP-je, amely csak a középre igazított számjegyet ismerte fel: <b>a modell a megjelenítés egy véletlen tulajdonságára épít</b>. Kevert sorrendű adaton kiderül.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az adatbővítés itt nem segít eleget.</b> A képeknél a kis eltolásokat még fel lehetett sorolni (<a href="../11-konvolucios-halok/#s116-c">11.6</a>), a $3 \cdot 10^{29}$ átszámozást nem. A tulajdonságot a háló <b>felépítésébe</b> kell beépíteni, ahogy a CNN-be az eltolás-tűrést.</li>
+    <li><b>Változó méret.</b> Az MLP bemenete rögzített hosszú. A 10 atomos és a 28 atomos molekulát nullákkal kell kitölteni, egy 29 atomossal pedig nem tud mit kezdeni.</li>
+    <li><b>A CNN és az RNN sem jó.</b> A CNN rácsot vár (rögzített számú, irányokba rendezett szomszéd), az RNN sorrendet. A gráfban egy csúcsnak 1 vagy 17 szomszédja lehet, és nincs „bal” vagy „következő”.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a számozás csapdája</summary>
+  <ol>
+    <li>Hányféleképpen számozható meg a 3 csúcsú út (1–2–3), és hány különböző szomszédsági mátrix jön ki?
+      <details><summary>Megoldás</summary>$3! = 6$ számozás. A két végpont felcserélhető (ugyanazt a mátrixot adja), így $6/2 = 3$ különböző mátrix van: aszerint, hogy a középső csúcs az 1., a 2. vagy a 3. sorszámot kapja.</details></li>
+    <li>Hány különböző mátrix tartozik a 3 csúcsú háromszöghöz (mindenki mindenkivel)?
+      <details><summary>Megoldás</summary>Egy: bármely számozás ugyanazt adja (a főátlón kívül minden elem 1). Itt minden csere szimmetria.</details></li>
+    <li>A fordított számozásnál (E = 1, D = 2, B = 3, A = 4, C = 5) mi lesz a fokszámok sorrendje?
+      <details><summary>Megoldás</summary>$(1;\allowbreak\ 2;\allowbreak\ 3;\allowbreak\ 2;\allowbreak\ 2)$ – ugyanazok a számok (2, 3, 2, 2, 1), csak más sorrendben.</details></li>
+    <li>Egy MLP bemenete a 28×28-as (kitöltött) szomszédsági mátrix és 28 × 7 atomtípus-jelző. Hány bemeneti neuronja van?
+      <details><summary>Megoldás</summary>$28 \cdot 28 + 28 \cdot 7 = 784 + 196 = 980$. Egy 64 neuronos rejtett réteggel már az első réteg $980 \cdot 64 + 64 = 62\,784$ paraméter – 188 molekulához ez nagyon sok.</details></li>
+    <li>(nehezebb) Miért esik majdnem a 66,5%-os „mindig mutagén” szintre az átszámozott tesztmolekulákon az MLP, és miért nem 50%-ra?
+      <details><summary>Megoldás</summary>Mert az átszámozás a szerkezeti információt „összekeveri”, de nem mindent: az atomtípusok darabszáma, az élek száma, a molekula mérete (a kitöltés hossza) megmarad, és ezek is hordoznak jelet. Ráadásul a modell a gyakoribb osztály felé hajlik – az adat 66,5%-a mutagén. Ezért kerül 69,5%-ra: a sorrendhez kötött tudása elveszett, a „zsák” jellegű maradt.</details></li>
+  </ol>
+</details>
+
+<h3 id="s132-b">2. lépés: invariancia és ekvivariancia – mit kérünk a modelltől?</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – három függvény, két számozás</span>
+  Számoljunk ki három dolgot a futó példán az eredeti (A, B, C, D, E) és a fordított (E, D, B, A, C) számozással:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:640px">
+    <tr><th style="text-align:left">függvény</th><th>eredeti</th><th>fordított</th><th>viselkedés</th></tr>
+    <tr><td style="text-align:left">élek száma</td><td>5</td><td>5</td><td>ugyanaz – <b>invariáns</b></td></tr>
+    <tr><td style="text-align:left">a fokszámok vektora</td><td>$(2;\allowbreak\ 3;\allowbreak\ 2;\allowbreak\ 2;\allowbreak\ 1)$</td><td>$(1;\allowbreak\ 2;\allowbreak\ 3;\allowbreak\ 2;\allowbreak\ 2)$</td><td>ugyanúgy átrendeződik – <b>ekvivariáns</b></td></tr>
+    <tr><td style="text-align:left">az 1. csúcs fokszáma</td><td>2</td><td>1</td><td>egyik sem – <b>rossz</b></td></tr>
+  </table></div>
+  A fokszámvektor nem ugyanaz, de <b>csúcsonként</b> ugyanazt mondja: Bence 3, Emese 1 – a válasz a csúccsal együtt „költözik”.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – permutációinvariancia és -ekvivariancia</span>
+  Legyen $f$ egy függvény, amely a gráfot ($A$) és a csúcsjellemzőket ($X$) kapja. Minden $P$ permutációra:
+  <ul style="margin:.2rem 0">
+    <li><b>invariáns</b>, ha $f(PAP^\top, PX) = f(A, X)$ – az eredmény nem függ a számozástól. <b>Gráfszintű</b> kimenetre ez kell (a molekula mutagén vagy nem, akárhogy számozzuk).</li>
+    <li><b>ekvivariáns</b>, ha $f(PAP^\top, PX) = P\,f(A, X)$ – a csúcsonkénti eredmények ugyanúgy átrendeződnek, mint a csúcsok. <b>Csúcsszintű</b> kimenetre ez kell.</li>
+  </ul>
+  <b>Hogyan építsünk ilyet?</b> A kulcs: egy <b>halmazon</b> végzett összeg, átlag vagy maximum nem függ az elemek sorrendjétől. Ha minden csúcs a szomszédai <em>halmazán</em> számol, az eredmény ekvivariáns; ha a végén az összes csúcson összegzünk, invariáns.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – invariáns összegzések</span>
+    A futó példa jellemzői $x = (1;\allowbreak\ 0;\allowbreak\ 0;\allowbreak\ 0;\allowbreak\ 5)$. Összeg 6, átlag 1,2, maximum 5 – bármilyen sorrendben. A „legelső mínusz a legutolsó” viszont $1 - 5 = -4$ az eredeti, és $5 - 0 = 5$ a fordított számozással (ott E az első, C az utolsó): nem invariáns.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – $A\mathbf x$ ekvivariáns</span>
+    $(A\mathbf x)_v$ a $v$ szomszédainak összege: $A\mathbf x = (0;\allowbreak\ 1;\allowbreak\ 1;\allowbreak\ 5;\allowbreak\ 0)$ – Annáé 0 (Bence 0 + Csilla 0), Dávidé 5 (Bence 0 + Emese 5). Átszámozás után $PAP^\top P\mathbf x = PA\mathbf x$, mert $P^\top P = I$: ugyanazok a számok, a csúcsokkal együtt átrendezve.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">Hüvelykujjszabály</span>
+  <b>A csúcsnak ekvivariáns, a gráfnak invariáns válasz kell.</b> A GNN rétegei ekvivariánsak (minden csúcs a szomszédai halmazán számol), és ha a végén egész gráfra kell válasz, egy invariáns összegzés (<b>kiolvasás</b>, <a href="#s136-a">13.6</a>) zárja a hálót. Ugyanez volt a CNN-nél az eltolással: a konvolúció eltolás-ekvivariáns, a globális pooling eltolás-invariáns (<a href="../11-konvolucios-halok/#s113-c">11.3</a>).
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Sorrendfüggő gyűjtés.</b> Ha a szomszédok vektorait a sorszámuk szerinti sorrendben fűzöd egymás mellé, vagy egy RNN-en futtatod végig, a modell már nem invariáns. (A GraphSAGE LSTM-es változata ezért véletlenszerűen keveri a szomszédokat – ez csak „átlagban” sorrendfüggetlen.)</li>
+    <li><b>Az invariancia nem garantálja, hogy jó a modell.</b> A „mindig 0-t mond” függvény is invariáns. A cél: invariáns <em>és</em> elég kifejező – erről szól a <a href="#s137">13.7</a>.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – invariancia és ekvivariancia</summary>
+  <ol>
+    <li>Invariáns, ekvivariáns vagy egyik sem: (a) a háromszögek száma; (b) minden csúcs klaszterezettsége (lásd a következő lépést); (c) a mátrix bal felső $2 \times 2$-es blokkjának összege?
+      <details><summary>Megoldás</summary>(a) invariáns; (b) ekvivariáns (csúcsonkénti érték, a csúccsal együtt költözik); (c) egyik sem – attól függ, ki kapta az 1-es és 2-es sorszámot.</details></li>
+    <li>Számold ki a futó példában $(A\mathbf x)$-et, ha $\mathbf x = (1;\allowbreak\ 1;\allowbreak\ 1;\allowbreak\ 1;\allowbreak\ 1)$! Mit kaptál?
+      <details><summary>Megoldás</summary>$(2;\allowbreak\ 3;\allowbreak\ 2;\allowbreak\ 2;\allowbreak\ 1)$ – a fokszámokat. Csupa egyes jellemzőnél a szomszédok összege a szomszédok száma.</details></li>
+    <li>Invariáns-e a $\max_v x_v - \min_v x_v$ (a jellemzők terjedelme)?
+      <details><summary>Megoldás</summary>Igen: a maximum és a minimum sem függ a sorrendtől. A futó példában $5 - 0 = 5$.</details></li>
+    <li>Legyen $f(A, X) = AX$ és $g(\cdot)$ az összes sor összege. Mit mondhatsz $g(f(A, X))$-ről?
+      <details><summary>Megoldás</summary>Invariáns: $f$ ekvivariáns, a sorok összege pedig nem függ a sorok sorrendjétől. (Ekvivariáns réteg + invariáns kiolvasás = invariáns modell.)</details></li>
+    <li>(nehezebb) Igazold, hogy ha $f$ ekvivariáns, akkor $f$ bármely ismételt alkalmazása ($f \circ f$) is az.
+      <details><summary>Megoldás</summary>Legyen $H = f(A, X)$. Ekkor $f(PAP^\top, PX) = PH$. A második réteg: $f(PAP^\top, PH) = P f(A, H)$ – ugyanaz a szabály, csak $X$ helyett $H$-val. A gráf változatlan marad, így tetszőleges sok ekvivariáns réteg egymásutánja ekvivariáns. Ezért lehet a GNN-t rétegekből építeni.</details></li>
+  </ol>
+</details>
+
+<h3 id="s132-c">3. lépés: régi megoldások – kézi jellemzők és véletlen séták</h3>
+<p>A gráf neurális hálók ötlete 2005–2009 körül született (M. Gori, F. Scarselli és társai), de elterjedésük (2017 körül) előtt is tanultak gépek gráfokon. Két megközelítés volt; ma <b>alapvonalként</b> érdemes ismerni őket – néha meglepően erősek.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – mennyire „klikkesek” a barátok?</span>
+  Bence barátai: Anna, Csilla, Dávid. A három lehetséges pár közül (Anna–Csilla, Anna–Dávid, Csilla–Dávid) csak egy barátkozik: Anna–Csilla. Bence barátainak <b>harmada</b> ismeri egymást. Annánál ugyanez 1 (Bence és Csilla ismerik egymást), Dávidnál 0 (Bence és Emese nem).
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – kézi gráfjellemzők, véletlen séta, csúcsbeágyazás</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Kézi jellemzők</b> csúcsonként: fokszám; <b>klaszterezettség</b> $C(v) = \dfrac{\text{élek } v \text{ szomszédai között}}{\binom{\deg v}{2}}$; háromszögek száma; <b>PageRank</b> (mennyire „fontos” csúcsok mutatnak rá). Gráfonként: méret, sűrűség, gyűrűk száma. Ezekre klasszikus modell (logisztikus regresszió, fa) épül.</li>
+    <li><b>Véletlen séta + word2vec</b> (DeepWalk, 2014; node2vec, 2016): a gráfon sok véletlen sétát teszünk, és minden sétát egy „mondatnak” tekintünk, amelyben a csúcsok a „szavak”. Erre a 12.2 skip-gram módszere (<a href="../12-beagyazasok-figyelem/#s122-c">12.2</a>) <b>csúcsbeágyazást</b> tanul: amelyik csúcsok gyakran fordulnak elő ugyanazon a sétán, azok közel kerülnek.</li>
+    <li><b>Címketerjesztés</b> (<em>label propagation</em>, 2002–2003): a címkézetlen csúcsok ismételten átveszik a szomszédaik címkéinek átlagát – „mondd meg, kik a barátaid…”.</li>
+  </ul>
+  <b>Miért működnek?</b> Mindhárom ugyanarra a megfigyelésre épít: a hálózatban <b>a hasonlók összekapcsolódnak</b> (homofília). Ez az ötlet a GNN-ben is ott lesz.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy véletlen séta mint mondat</span>
+    Annából indulva, minden lépésben egy véletlen szomszédhoz: A → B → D → E → D → B → C. Ebben a „mondatban” Anna, Bence és Csilla gyakran szomszédos, Emese csak Dáviddal. Ezer ilyen sétán a word2vec Annát és Csillát közel teszi egymáshoz – mint a „macska” és a „kutya” szót.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a karateklub két régi módszerrel</span>
+    Csak az edző (1) és az elnök (34) oldalát ismerjük. <b>Legrövidebb út:</b> mindenki ahhoz áll, akihez közelebb van – 26 jó tipp a 32-ből, 6 döntetlen (egyforma messze van mindkettőtől). <b>Címketerjesztés:</b> 31 jó a 32-ből. Ezt az eredményt kell majd a GNN-nek is hoznia (<a href="#s134-c">13.4</a>).
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A DeepWalk-féle beágyazás transzduktív.</b> Csúcsonként egy szabad vektort tanul (mint a word2vec szavanként). Új csúcsra nincs vektor – újra kell tanítani. És a csúcsok saját jellemzőit (egy cikk szövegét, egy atom típusát) nem használja.</li>
+    <li><b>A kézi jellemzők azt látják, amit kitaláltál.</b> Ha a fontos mintázat egy nitrocsoport egy gyűrű mellett, a fokszám-hisztogram nem fogja észrevenni.</li>
+    <li><b>Mindig mérj alapvonalat!</b> Egy valódi molekulás feladaton (<a href="#s1311-b">13.11</a>) a „melyik atomból hány van” jellemző + logisztikus regresszió ugyanolyan jó lesz, mint a GNN-ek. Ha nem méred, nem tudod.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – régi módszerek</summary>
+  <ol>
+    <li>Mennyi Csilla és Emese klaszterezettsége a futó példában?
+      <details><summary>Megoldás</summary>Csilla szomszédai Anna és Bence, akik ismerik egymást: $C = 1/1 = 1$. Emesének egy szomszédja van, nincs pár: $\binom{1}{2} = 0$, a képlet nem értelmezett – megállapodás szerint 0.</details></li>
+    <li>Egy csúcsnak 4 szomszédja van, és köztük 3 él fut. Mennyi a klaszterezettsége?
+      <details><summary>Megoldás</summary>$\binom{4}{2} = 6$ lehetséges pár, ebből 3 él: $C = 3/6 = 0{,}5$.</details></li>
+    <li>Annából indulva mekkora valószínűséggel vagyunk két lépés után újra Annánál, ha minden lépésben egyenletesen választunk szomszédot?
+      <details><summary>Megoldás</summary>Első lépés: B (1/2) vagy C (1/2). B-ből 1/3 eséllyel vissza A-ba, C-ből 1/2 eséllyel. Összesen $\frac12 \cdot \frac13 + \frac12 \cdot \frac12 = \frac16 + \frac14 = \frac{5}{12} \approx 0{,}417$.</details></li>
+    <li>Miért nem tudja a DeepWalk megmondani egy holnap csatlakozó felhasználó beágyazását?
+      <details><summary>Megoldás</summary>Mert csúcsonként egy szabadon tanult vektort tárol (egy táblázat sorát), mint a word2vec a szótár szavainak. Az új csúcsnak nincs sora; a táblázatot az új séták bevonásával újra kell tanítani. A GNN ezzel szemben <b>szabályt</b> tanul: a vektort a jellemzőkből és a szomszédokból számolja.</details></li>
+    <li>(nehezebb) A karateklubban a legrövidebb út módszere 6 tagnál döntetlent ad. Javasolj egy javítást, és indokold, miért a címketerjesztés a jobb!
+      <details><summary>Megoldás</summary>Például: döntetlennél a szomszédok többsége döntsön, vagy számoljuk meg, <em>hány</em> rövid út vezet az egyikhez és a másikhoz. A címketerjesztés ezt automatikusan megteszi: nem csak a legrövidebb utat nézi, hanem az összes sétát súlyozva – ezért 31/32-t talál el. Ugyanez a „több út több bizonyíték” gondolat van az $A^k$ hatványokban (<a href="#s131-b">13.1</a>).</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai13-132"></div>
+</section>

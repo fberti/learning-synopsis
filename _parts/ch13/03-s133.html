@@ -1,0 +1,175 @@
+
+<!-- ===================================================== 13.3 -->
+<section id="s133">
+<h2>13.3 Üzenetküldés ★★</h2>
+<p>Most jön a fejezet központi ötlete. A 13.2 két tanulságát egyesítjük: a modell legyen sorrendfüggetlen (halmazokon számoljon), és használja ki, hogy a hasonlók összekapcsolódnak. A megoldás: <b>minden csúcs összegyűjti a szomszédai vektorát, és ebből frissíti a sajátját</b>. Ez az <b>üzenetküldés</b> (<em>message passing</em>), minden GNN közös váza.</p>
+
+<h3 id="s133-a">1. lépés: egy lépés kézzel – gyűjtés és frissítés</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – mit hallanak a barátaidtól?</span>
+  A futó példában minden csúcsnak egy száma van: hány koncerten volt idén. Anna 1, Emese 5, a többiek 0: $x = (1;\allowbreak\ 0;\allowbreak\ 0;\allowbreak\ 0;\allowbreak\ 5)$. Mindenki megkérdezi a barátait, és háromféleképpen összegezheti, amit hall:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>csúcs</th><th>szomszédai (értékük)</th><th>összeg</th><th>átlag</th><th>maximum</th></tr>
+    <tr><td>A</td><td>B (0), C (0)</td><td>0</td><td>0</td><td>0</td></tr>
+    <tr><td>B</td><td>A (1), C (0), D (0)</td><td>1</td><td>0,333</td><td>1</td></tr>
+    <tr><td>C</td><td>A (1), B (0)</td><td>1</td><td>0,5</td><td>1</td></tr>
+    <tr><td>D</td><td>B (0), E (5)</td><td>5</td><td>2,5</td><td>5</td></tr>
+    <tr><td>E</td><td>D (0)</td><td>0</td><td>0</td><td>0</td></tr>
+  </table></div>
+  Ez a <b>gyűjtés</b> (aggregálás). Aztán mindenki <b>frissíti</b> a saját számát: a régi felét hozzáadja az átlaghoz, $h' = \operatorname{ReLU}(0{,}5\cdot h + 1 \cdot m)$. Átlaggal: $h' = (0{,}5;\allowbreak\ 0{,}333;\allowbreak\ 0{,}5;\allowbreak\ 2{,}5;\allowbreak\ 2{,}5)$. Dávid, aki sosem volt koncerten, most 2,5-öt „tud” – Emesétől hallott.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – üzenetküldő réteg</span>
+  Minden $v$ csúcsra, egyszerre:
+  $$\mathbf m_v = \bigoplus_{u \in N(v)} \psi(\mathbf h_u) \qquad\text{(gyűjtés)},\qquad \mathbf h_v' = \phi(\mathbf h_v,\ \mathbf m_v)\qquad\text{(frissítés)}.$$
+  <ul style="margin:.2rem 0">
+    <li>$\psi$ az <b>üzenet</b>: amit a szomszéd „elküld” (legegyszerűbben $\mathbf h_u W_2$).</li>
+    <li>$\bigoplus$ a <b>gyűjtőfüggvény</b> (aggregátor): összeg, átlag vagy maximum – bármi, ami <b>nem függ a sorrendtől</b>.</li>
+    <li>$\phi$ a <b>frissítés</b>: legegyszerűbben $\operatorname{ReLU}(\mathbf h_v W_1 + \mathbf m_v + \mathbf b)$.</li>
+  </ul>
+  <b>Miért pont így?</b> A gyűjtés halmazon számol, ezért a réteg <b>ekvivariáns</b> (13.2). És a $W_1$, $W_2$, $\mathbf b$ súlyok <b>minden csúcsnál ugyanazok</b> – a gráf méretétől függetlenül ugyanannyi paraméter. Ez a <b>súlymegosztás</b>, ugyanaz, mint a konvolúciós szűrőnél (<a href="../11-konvolucios-halok/#s113-a">11.3</a>). <small>(Az általános keretet J. Gilmer és társai írták le 2017-ben, MPNN – <em>message passing neural network</em> néven.)</small>
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – összeggel más jön ki</span>
+    Ugyanaz a frissítés, de összeggel gyűjtve: $h' = (0{,}5;\allowbreak\ 1;\allowbreak\ 1;\allowbreak\ 5;\allowbreak\ 2{,}5)$. Bencénél most 1 (nem 0,333): az összeg nem osztja el a hírt a barátok számával. Dávidnál 5: összeg mellett a sok szomszédú csúcs értéke nagyobbra nőhet.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a számozás nem számít</span>
+    Számozd át a csúcsokat (E, D, B, A, C), és számold újra! Dávid szomszédai továbbra is Bence és Emese, a gyűjtés ugyanazt adja. Az eredmény: $(2{,}5;\allowbreak\ 2{,}5;\allowbreak\ 0{,}333;\allowbreak\ 0{,}5;\allowbreak\ 0{,}5)$ – ugyanazok a számok, a csúcsokkal együtt átrendezve.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A saját érték nem vész el.</b> Ha csak $h' = m$ lenne, Emese elfelejtené a saját 5-ösét, és Dávidtól hallott 0-t venné át. Ezért van a frissítésben külön a $\mathbf h_v$ tag – vagy ezért kap a csúcs „önhurkot” (<a href="#s134-a">13.4</a>).</li>
+    <li><b>Mindenki egyszerre frissít.</b> A régi értékekből számolunk, nem a már frissítettekből. Ha sorban haladva felülírnád őket, a sorrend megint számítana.</li>
+    <li><b>A gyűjtőfüggvény választás, nem részlet.</b> Az átlag nem látja, hány szomszéd van: két barát 1-1 koncerttel és egy barát 1 koncerttel ugyanazt az átlagot (1) adja. A maximum azt sem látja, hány szomszédnál van meg a legnagyobb érték. Erről szól a <a href="#s135-c">13.5</a>.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – egy üzenetküldési lépés</summary>
+  <ol>
+    <li>A futó példában $x = (1;\allowbreak\ 0;\allowbreak\ 0;\allowbreak\ 0;\allowbreak\ 5)$. Mennyi Bence és Dávid gyűjtött értéke maximummal?
+      <details><summary>Megoldás</summary>Bence: $\max(1;\allowbreak\ 0;\allowbreak\ 0) = 1$. Dávid: $\max(0;\allowbreak\ 5) = 5$.</details></li>
+    <li>Legyen most $x = (2;\allowbreak\ 4;\allowbreak\ 0;\allowbreak\ 6;\allowbreak\ 0)$. Számold ki mind az öt csúcs átlagos gyűjtött értékét!
+      <details><summary>Megoldás</summary>A: $(4 + 0)/2 = 2$; B: $(2 + 0 + 6)/3 \approx 2{,}667$; C: $(2 + 4)/2 = 3$; D: $(4 + 0)/2 = 2$; E: $6/1 = 6$.</details></li>
+    <li>Az előző értékekkel és $h' = \operatorname{ReLU}(0{,}5\,h + m - 2)$ frissítéssel mi lesz az öt új érték?
+      <details><summary>Megoldás</summary>A: $1 + 2 - 2 = 1$; B: $2 + 2{,}667 - 2 = 2{,}667$; C: $0 + 3 - 2 = 1$; D: $3 + 2 - 2 = 3$; E: $0 + 6 - 2 = 4$. Mind pozitív, a ReLU nem vág. Eredmény: $(1;\allowbreak\ 2{,}667;\allowbreak\ 1;\allowbreak\ 3;\allowbreak\ 4)$.</details></li>
+    <li>Egy 1 millió csúcsú gráfon ugyanezt a réteget használjuk ($h' = \operatorname{ReLU}(w_1 h + w_2 m + b)$). Hány paramétere van?
+      <details><summary>Megoldás</summary>Három ($w_1$, $w_2$, $b$) – ugyanannyi, mint az 5 csúcsú gráfon. A súlyok minden csúcsnál közösek.</details></li>
+    <li>(nehezebb) Adj meg két különböző szomszédságot, amelyre az átlag ugyanazt adja, és kettőt, amelyre a maximum! Melyik gyűjtőfüggvény különböztetné meg mindkét párt?
+      <details><summary>Megoldás</summary>Átlag: $\{1\}$ és $\{1, 1\}$ (mindkettő 1). Maximum: $\{1, 0\}$ és $\{1, 1\}$ (mindkettő 1). Az összeg mindkét párt megkülönbözteti: 1 vs. 2, illetve 1 vs. 2. (Általában is az összeg a legérzékenyebb – <a href="#s135-c">13.5</a>.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s133-b">2. lépés: $k$ réteg = $k$ ugrás – a recepciós mező</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – mikor ér Emese híre Annához?</span>
+  Egy lépés után Anna csak Bencétől és Csillától hall – Emese 5-ösét nem látja (Anna gyűjtött értéke 0). Két lépés után Anna Bence első lépésbeli értékét kapja – abban már benne van Dávid eredeti értéke, így Dávidról „második kézből” értesül. Emese 5-öse viszont az első lépés után csak Dávidnál, a második után Bencénél van, Annához csak a harmadikban ér el: Emese három ugrásra van (A–B–D–E).
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – recepciós mező</span>
+  $k$ üzenetküldő réteg után a $v$ csúcs vektora pontosan azoktól a csúcsoktól függhet, amelyek legfeljebb $k$ ugrásra vannak tőle: ez a $v$ <b>$k$ ugrásnyi szomszédsága</b>, a GNN <b>recepciós mezője</b>.
+  <b>Miért?</b> Egy réteg csak szomszédtól szomszédig visz információt; $k$ réteg legfeljebb $k$ élnyi utat jár be. Ugyanez volt a CNN-nél: egy $3 \times 3$-as réteg 1 pixelnyit „lát” oldalra, $k$ réteg $k$ pixelnyit (<a href="../11-konvolucios-halok/#s113-c">11.3</a>).
+  A $v$ csúcs kiszámítását egy <b>számítási fával</b> is lerajzolhatjuk: a gyökér $v$, alatta a szomszédai, alattuk az ő szomszédaik… – $k$ szint mélyen.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – Anna recepciós mezője</span>
+    $k = 1$: {A, B, C}; $k = 2$: {A, B, C, D}; $k = 3$: mind az öt csúcs. Anna számítási fája két rétegnél: a gyökér A, alatta B és C, B alatt A, C, D, C alatt A, B – összesen $1 + 2 + 5 = 8$ csomópont. Ugyanaz a csúcs többször is szerepel (A háromszor).
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a karateklub</span>
+    Az edző (1) 16 szomszédos taggal, az elnök (34) 17-tel barátkozik. Az edző recepciós mezője: 1 réteg után 17 csúcs (önmagával), 2 után 26, 3 után mind a 34. A gráf <b>átmérője</b> (a legtávolabbi pár távolsága) 5, a csúcsok átlagos távolsága 2,41. Néhány réteg itt mindenkit „összeköt”.
+  </div>
+</div>
+<div class="widget" data-widget="message-passing"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A számítási fa robbanásszerűen nő.</b> Az elnök (34) fája 1, 18, 83, 737, 4154 csomópontos 0–4 rétegnél. Egy közösségi hálón, ahol mindenkinek 200 ismerőse van, két réteg $200^2 = 40\,000$ szomszéd-a-szomszédot jelentene – ezért mintavételeznek (<a href="#s135-a">13.5</a>).</li>
+    <li><b>Több réteg ≠ jobb háló.</b> Ha sok réteg után mindenki mindenkit lát, a vektorok egymáshoz hasonulnak (<b>túlsimítás</b>, <a href="#s137-b">13.7</a>). A tipikus GNN 2–4 rétegű – sokkal sekélyebb, mint egy ResNet.</li>
+    <li><b>Ami $k$ ugráson túl van, az nem létezik.</b> Ha a válasz egy 6 ugrásnyira lévő csúcson múlik, egy 3 rétegű GNN biztosan nem tudja megtanulni – akárhány adatot adsz neki.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – recepciós mező</summary>
+  <ol>
+    <li>Hány réteg kell, hogy Emese recepciós mezője a teljes futó példa legyen?
+      <details><summary>Megoldás</summary>Emesétől a legtávolabbi csúcs Anna és Csilla, 3 ugrásra (E–D–B–A). Tehát 3 réteg.</details></li>
+    <li>Egy 8 csúcsú láncban (1–2–…–8) csak az 1. csúcsnak van nem nulla értéke. Hány réteg után lesz a 8. csúcs értéke először nem nulla (összeg-gyűjtéssel)?
+      <details><summary>Megoldás</summary>7 réteg után: az 1. és a 8. csúcs távolsága 7, és rétegenként egy ugrás. (Próbáld ki a widget „Lánc” beállításával!)</details></li>
+    <li>Rajzold fel Bence számítási fáját egy rétegre! Hány csomópontja van?
+      <details><summary>Megoldás</summary>Gyökér B, alatta A, C, D: 4 csomópont. (Két rétegnél: A alatt B, C; C alatt A, B; D alatt B, E – összesen $1 + 3 + 6 = 10$.)</details></li>
+    <li>Egy csúcsnak és minden szomszédjának 10 szomszédja van. Hány csomópont van a számítási fa 3. szintjén (3 rétegnél)?
+      <details><summary>Megoldás</summary>$10^3 = 1000$ (a szintek: 1, 10, 100, 1000; összesen 1111). A fa a visszalépéseket is tartalmazza, ezért nő ilyen gyorsan.</details></li>
+    <li>(nehezebb) Egy úthálózaton az a kérdés, mennyi az utazási idő két, 40 útszakasznyira lévő pont között. Miért nem elég ehhez egy 3 rétegű GNN, és mit tennél?
+      <details><summary>Megoldás</summary>Három réteg után egy csúcs csak a 3 ugrásnyi környezetét látja; a 40 ugrásnyira lévő információ el sem jut hozzá. Lehetőségek: több réteg (de túlsimítás és lassúság), durvább felbontású gráf (a Google Maps az útszakaszokat nagyobb „szuperszegmensekbe” vonja össze), vagy hosszú élek / globális csúcs hozzáadása (<a href="#s137-c">13.7</a>). A GraphCast időjárásmodell például több felbontású hálót használ, hosszú élekkel (<a href="#s1310">13.10</a>).</details></li>
+  </ol>
+</details>
+
+<h3 id="s133-c">3. lépés: mátrixalak – egy réteg két szorzás</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – sportos barátok</span>
+  Most minden csúcsnak két jellemzője van: (sportol; nem sportol) – Anna és Emese sportol $(1;\allowbreak\ 0)$, a többiek nem $(0;\allowbreak\ 1)$. Összeggel gyűjtve minden csúcs megkapja, <b>hány sportos és hány nem sportos barátja van</b>:
+  $$H = \begin{pmatrix}1&0\\0&1\\0&1\\0&1\\1&0\end{pmatrix},\qquad AH = \begin{pmatrix}0&2\\1&2\\1&1\\1&1\\0&1\end{pmatrix}.$$
+  Annának 0 sportos és 2 nem sportos barátja van, Bencének 1 és 2. Ez egyetlen mátrixszorzás: minden csúcs gyűjtése egyszerre.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – az üzenetküldő réteg mátrixalakja</span>
+  Ha $H$ az $n \times d$-s csúcsvektor-mátrix (soronként egy csúcs), akkor:
+  <ul style="margin:.2rem 0">
+    <li>összeg-gyűjtés: $AH$ (a $v$-edik sor a szomszédok vektorainak összege);</li>
+    <li>átlag-gyűjtés: $D^{-1}AH$, ahol $D$ a fokszámok átlós mátrixa;</li>
+    <li>egy teljes réteg: $H' = \sigma\big(H W_1 + A H W_2 + \mathbf b\big)$, ahol $W_1, W_2$ $d \times d'$-s súlymátrixok, $\sigma$ pl. ReLU.</li>
+  </ul>
+  <b>Miért jó ez?</b> A réteg két mátrixszorzás – ugyanaz a művelet, amit a GPU a legjobban tud (<a href="../09-neuralis-halozatok/#s93-b">9.3</a>). A paraméterek ($W_1$, $W_2$, $\mathbf b$) száma $2dd' + d'$, <b>független $n$-től</b>.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – súlyok a gyűjtés után</span>
+    Legyen a pontszám „sportos barátok száma mínusz a nem sportosak fele”: $W = \begin{pmatrix}1\\-0{,}5\end{pmatrix}$. Ekkor $AHW = (-1;\allowbreak\ 0;\allowbreak\ 0{,}5;\allowbreak\ 0{,}5;\allowbreak\ -0{,}5)$, és ReLU után $(0;\allowbreak\ 0;\allowbreak\ 0{,}5;\allowbreak\ 0{,}5;\allowbreak\ 0)$: Csilla és Dávid baráti köre „sportos”.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – átlag mátrixszal</span>
+    A futó példa fokszámai $(2, 3, 2, 2, 1)$, így $D^{-1} = \operatorname{diag}(\tfrac12, \tfrac13, \tfrac12, \tfrac12, 1)$. $D^{-1}A\mathbf x$ az $A\mathbf x = (0;\allowbreak\ 1;\allowbreak\ 1;\allowbreak\ 5;\allowbreak\ 0)$ soronként osztva: $(0;\allowbreak\ 0{,}333;\allowbreak\ 0{,}5;\allowbreak\ 2{,}5;\allowbreak\ 0)$ – a táblázat átlag-oszlopa.
+  </div>
+</div>
+<details class="box">
+  <summary>🐍 Python – egy üzenetküldő réteg PyTorch-ban (sűrű mátrixszal, kis gráfra)</summary>
+<pre><code class="language-python">import torch
+A = torch.tensor([[0,1,1,0,0],[1,0,1,1,0],[1,1,0,0,0],
+                  [0,1,0,0,1],[0,0,0,1,0]], dtype=torch.float)
+H = torch.tensor([[1.,0],[0,1],[0,1],[0,1],[1,0]])     # (sportol; nem sportol)
+W1, W2 = torch.randn(2, 4), torch.randn(2, 4)          # d = 2 → d' = 4
+b = torch.zeros(4)
+H_new = torch.relu(H @ W1 + A @ H @ W2 + b)            # 5 × 4: csúcsonként egy új vektor
+print(A @ H)        # sportos / nem sportos barátok száma</code></pre>
+  Nagy gráfon ritka mátrix kell (<code>torch.sparse</code>) vagy egy gráfkönyvtár (PyTorch Geometric, DGL), amely az éllistán gyűjt.
+</details>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A szorzás sorrendje a költségen múlik.</b> $(AH)W$ és $A(HW)$ ugyanaz (a mátrixszorzás asszociatív), de ha $d'$ sokkal kisebb $d$-nél, olcsóbb előbb $HW$-t számolni, és a kis mátrixot gyűjteni. A Cora 1433 jellemzőjét pl. először 16-ra érdemes vetíteni.</li>
+    <li><b>A sűrű $A$ csak kis gráfra jó.</b> $n^2$ memória – lásd a <a href="#s131-b">13.1</a> tippjét. A ritka szorzás költsége az élek számával arányos.</li>
+    <li><b>$D^{-1}$ izolált csúcsnál.</b> Ha egy csúcsnak nincs szomszédja, a fokszáma 0, az osztás értelmetlen. Ilyenkor a gyűjtés 0 – vagy önhurkot adunk hozzá (<a href="#s134-a">13.4</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – mátrixalak</summary>
+  <ol>
+    <li>A sportos példában mennyi $D^{-1}AH$ Bence sora? Mit jelent?
+      <details><summary>Megoldás</summary>$(1;\allowbreak\ 2)/3 = (0{,}333;\allowbreak\ 0{,}667)$: Bence barátainak harmada sportol.</details></li>
+    <li>$H$ 1000 × 64-es, $W$ 64 × 16-os, a gráfnak 5000 éle van. Hány szorzást igényel nagyjából $A(HW)$ és $(AH)W$, ha $A$-t ritkán tároljuk (élenként egy gyűjtési lépés, oda-vissza)?
+      <details><summary>Megoldás</summary>$HW$: $1000 \cdot 64 \cdot 16 = 1\,024\,000$; gyűjtés 16 dimenzióban: $2 \cdot 5000 \cdot 16 = 160\,000$ – összesen kb. 1,18 millió. $(AH)W$: gyűjtés 64 dimenzióban $2 \cdot 5000 \cdot 64 = 640\,000$, plusz ugyanaz az $1\,024\,000$ – kb. 1,66 millió. Az első sorrend olcsóbb.</details></li>
+    <li>Hány paramétere van egy $H' = \operatorname{ReLU}(HW_1 + AHW_2 + \mathbf b)$ rétegnek, ha $d = 64$ és $d' = 32$?
+      <details><summary>Megoldás</summary>$2 \cdot 64 \cdot 32 + 32 = 4128$.</details></li>
+    <li>Mi az $A\mathbf 1$ vektor (csupa egyes vektor gyűjtése)? És $D^{-1}A\mathbf 1$?
+      <details><summary>Megoldás</summary>$A\mathbf 1$ a fokszámok vektora; $D^{-1}A\mathbf 1 = \mathbf 1$ (minden csúcsnál az egyesek átlaga 1) – izolált csúcs nélkül.</details></li>
+    <li>(nehezebb) Igazold mátrixokkal, hogy a $H' = \sigma(HW_1 + AHW_2)$ réteg ekvivariáns!
+      <details><summary>Megoldás</summary>Átszámozás után $A \to PAP^\top$, $H \to PH$: $\sigma(PHW_1 + PAP^\top PHW_2) = \sigma(P(HW_1 + AHW_2)) = P\,\sigma(HW_1 + AHW_2)$. Felhasználtuk, hogy $P^\top P = I$, és hogy az elemenként ható $\sigma$ felcserélhető a sorok keverésével.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai13-133"></div>
+</section>

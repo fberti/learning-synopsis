@@ -917,6 +917,12 @@ rendszerek kommunikációs gráfja (20.).
 `ai13-131`, `ai13-132`, `ai13-133`, `ai13-134`, `ai13-135`, `ai13-136`, `ai13-137`, `ai13-final`
 (a 13.8–13.10 kérdései a fejezetzáróba kerülnek).
 
+> ✅ **Elkészült** (`13-graf-neuralis-halok/`). Eltérések a tervtől: 11 szakasz (13.11 Alkalmazás: Cora és MUTAG), kvíz minden szakaszhoz (`ai13-131` … `ai13-139`, `ai13-1310`, `ai13-1311`, `ai13-final`); 10 widget (+ `link-predict`, `cora-explorer`, `mutag-lab`); a GCN-tanító saját JS (nem `ml.js`).
+> Futó példa: öt barát A–E (élek A–B, A–C, B–C, B–D, D–E), $x = (1;0;0;0;5)$. Karateklub: kétrétegű GCN 2 címkéből 31/32 (csak a 9-es tag hibás), MLP 50%, címketerjesztés 31/32, legrövidebb út 26 + 6 döntetlen.
+> Cora (10 kezdés): leggyakoribb 31,9%, MLP 58,6%, címketerjesztés 69,9%, GCN 82,2%, GraphSAGE 81,4%, GAT 82,6%; fokszám szerint (egy modell) GCN 76,4 / 81,7 / 88,6%. MUTAG (10-szeres CV × 3): atomzsák + LR 86,0%, WL(1) + LR 87,6%, MLP mátrixon 83,7% → átszámozva 69,5%, GCN + átlag 74,6%, GIN + összeg 81,9%.
+> Cora mélység (GCN, 3 kezdés): 2/4/8/16/32/64 réteg 81,8 / 73,2 / 15,9 / 24,7 / 24,1 / 21,6%; maradékkapcsolattal 81,8 / 81,4 / 78,0 / 77,5 / 78,1 / 31,8%. Kevés címke (témánként 1/2/5/10/20): MLP 29,7 / 33,9 / 44,2 / 51,2 / 58,8%, GCN 44,2 / 52,9 / 71,8 / 77,1 / 80,1%.
+> Consensus-kutatás: `_parts/ch13/research.md` (2026-10-11). Helyes írásmód: Weisfeiler–Leman.
+
 ### Csapdák
 A GNN gráfja ≠ a 10.4 számítási gráfja · a csúcsok sorrendje nem számíthat (aki sorrendfüggő aggregálást ír, hibázik) ·
 több réteg nem jobb (túlsimítás) · átlag-aggregálás nem látja a szomszédok számát · adatszivárgás a kapcsolat-előrejelzésnél ·

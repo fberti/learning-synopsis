@@ -1,0 +1,146 @@
+
+<!-- ===================================================== 13.8 -->
+<section id="s138">
+<h2>13.8 Gráf-Transformerek: a Transformer mint GNN ★★★</h2>
+<p>A 12. fejezet végén azt ígértük: az önfigyelem is üzenetküldés. Most lássuk, pontosan milyen értelemben – és mit nyerünk (és mennyiért), ha a GNN-be globális figyelmet teszünk.</p>
+
+<h3 id="s138-a">1. lépés: az önfigyelem üzenetküldés a teljes gráfon</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – három token, három csúcs</span>
+  A <a href="../12-beagyazasok-figyelem/#s125-a">12.5</a> önfigyelmében a „levél” token mindhárom tokenre (önmagát is beleértve) figyelt: pontszám, softmax, súlyozott összeg. Rajzoljuk le gráfként: három csúcs, <b>mindenki mindenkivel</b> összekötve, plusz önhurkok. Minden csúcs a szomszédaitól (= mindenkitől) gyűjt, a súlyokat figyelem adja. Ez pontosan a GAT (<a href="#s135-b">13.5</a>), csak (1) a gráf <b>teljes</b>, és (2) a pontszám a lekérdezés és a kulcs skaláris szorzata.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – Transformer = GNN a teljes gráfon</span>
+  Az önfigyelem-réteg
+  $$\mathbf h_v' = \sum_{u \in V} \alpha_{vu}\, \mathbf h_u W_V,\qquad \alpha_{vu} = \operatorname{softmax}_u\!\Big(\frac{(\mathbf h_v W_Q)\cdot(\mathbf h_u W_K)}{\sqrt{d_k}}\Big)$$
+  egy üzenetküldő réteg, amelyben $N(v) = V$ (mindenki szomszéd), az üzenet $\mathbf h_u W_V$, a gyűjtés figyelemmel súlyozott összeg. Pozíciókódolás nélkül ezért <b>permutációekvivariáns</b> – ahogy a 12. fejezet „pozíció nélküli Transformere” a szórendet sem látta.
+  <b>Miért fontos ez?</b> Megfordítva is igaz: ha egy gráf-Transformert építünk, a gráf szerkezetét valahogy <em>be kell adni</em> – a teljes gráfon a figyelem magától nem tudja, ki kinek a szomszédja.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – mennyi a „szomszéd”?</span>
+    A Cora-n egy GCN-réteg az 5278 élen (oda-vissza 10&nbsp;556) és a 2708 önhurkon, összesen 13&nbsp;264 páron gyűjt. Teljes figyelem: $2708^2 = 7\,333\,264$ pár – kb. 550-szer több. Ez a 12.5 négyzetes ára gráfokon.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy virtuális csúcs majdnem ugyanaz</span>
+    Ha a GNN-be egy virtuális csúcsot teszünk (13.7), bármely két csúcs két lépésre kerül. Elméleti eredmény (C. Cai és társai, ICML 2023): egy üzenetküldő háló virtuális csúccsal tetszőleges pontossággal közelíthet egy (lineáris) figyelemréteget. A határ a „GNN” és a „Transformer” között nem éles.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A teljes gráf eldobja a szerkezetet</b>, ha nem kódoljuk vissza. Egy molekulánál ez azt jelenti, hogy a modell nem tudja, mely atomok között van kötés.</li>
+    <li><b>Ne keverd össze a gráfokat:</b> a Transformer figyelmi „gráfja” a tokenek között a számításhoz kell, a GNN gráfja maga az adat. Egy gráf-Transformerben mindkettő megvan.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – Transformer mint GNN</summary>
+  <ol>
+    <li>Hány „élen” (önhurkokkal) számol pontszámot egy 512 tokenes bemenet önfigyelme?
+      <details><summary>Megoldás</summary>$512^2 = 262\,144$.</details></li>
+    <li>Egy 10&nbsp;000 csúcsú, 50&nbsp;000 élű gráfon hányszor több pár van a teljes figyelemben, mint egy GCN-ben (önhurokkal, mindkét irányban)?
+      <details><summary>Megoldás</summary>GCN: $2 \cdot 50\,000 + 10\,000 = 110\,000$. Teljes: $10^8$. Kb. 909-szer több.</details></li>
+    <li>Miért ad pozíciókódolás nélküli Transformer ugyanarra a gráfra, más számozással, átrendezett, de egyébként azonos kimenetet?
+      <details><summary>Megoldás</summary>Mert a figyelem az összes csúcson összegez (halmazon számol), és a $W_Q, W_K, W_V$ minden csúcsra ugyanaz: a réteg ekvivariáns (13.2). A számozás csak a sorok sorrendjét változtatja.</details></li>
+    <li>Mi a különbség egy GAT-réteg és egy önfigyelem-réteg között, ha a GAT-ot teljes gráfon futtatjuk?
+      <details><summary>Megoldás</summary>Csak a pontszám alakja: a GAT összeadó formát használ ($\mathbf a^\top[\ldots\|\ldots]$ + LeakyReLU), az önfigyelem skaláris szorzatot $\sqrt{d_k}$-val osztva, külön $W_Q$, $W_K$, $W_V$ mátrixokkal. A szerkezet ugyanaz: pontszám → softmax a szomszédokon → súlyozott összeg.</details></li>
+    <li>(nehezebb) Egy mondat tokenjei egy láncot alkotnak (1–2–3–…). Mi felel meg egy láncon futó 1 rétegű GNN-nek a 11–12. fejezet eszközei közül, és mi a teljes gráfos önfigyelemnek?
+      <details><summary>Megoldás</summary>A láncon a szomszédoktól gyűjtő GNN egy 3 szélességű, <b>szimmetrikus</b> (a bal és a jobb szomszédra azonos súlyú) egydimenziós konvolúció – a 11. fejezet konvolúciója egy dimenzióban, sorrendet nem különböztetve meg. A teljes gráfos önfigyelem a Transformer rétege; a lánc szerkezetét ott a pozíciókódolás adja vissza.</details></li>
+  </ol>
+</details>
+
+<h3 id="s138-b">2. lépés: pozíciókódolás gráfon – hol van egy csúcs?</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – nincs „első” csúcs</span>
+  Egy mondatnál a pozíció egyszerű: 1., 2., 3. token. Gráfnál nincs sorrend (13.2) – mi legyen akkor a „pozíció”? Két ötlet a futó példán:
+  <ul style="margin:.2rem 0">
+    <li><b>Véletlen séta:</b> mekkora eséllyel tér vissza egy séta a kiindulópontjába $k$ lépés után? 3 lépésnél: Anna, Bence, Csilla 1/6 (benne vannak egy háromszögben), Dávid és Emese 0.</li>
+    <li><b>Rezgésmód:</b> a Laplace-mátrix (📐 13.4) második sajátvektora: $(0{,}419;\allowbreak\ 0{,}202;\allowbreak\ 0{,}419;\allowbreak\ -0{,}338;\allowbreak\ -0{,}702)$. Az előjel két részre osztja a gráfot: a háromszög (A, B, C) egyik oldal, a lánc vége (D, E) a másik.</li>
+  </ul>
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – szerkezeti és pozíciókódolás gráfon</span>
+  A csúcs jellemzőjéhez hozzáfűzünk egy vektort, amely a gráfban elfoglalt helyét írja le:
+  <ul style="margin:.2rem 0">
+    <li><b>Véletlenséta-kódolás</b> (RWSE): $\big(p_1(v), p_2(v), \ldots, p_K(v)\big)$, ahol $p_k(v) = (M^k)_{vv}$ a visszatérés valószínűsége, $M = D^{-1}A$. Egyértelmű, nem függ a számozástól.</li>
+    <li><b>Laplace-kódolás</b> (LapPE): $L = D - A$ első néhány (nem triviális) sajátvektorának $v$-edik eleme – a „gráf-Fourier” koordináták.</li>
+  </ul>
+  <b>Miért segít?</b> Ezek a jellemzők a gráf <b>globális</b> szerkezetéből jönnek (gyűrűk, távolságok), amit az üzenetküldés helyben nem lát – ezzel a 13.7 WL-korlátja is átléphető.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a hatszög és a két háromszög újra</span>
+    A visszatérés valószínűsége 3 lépés után: a hatszögben 0 (páratlan hosszú körséta nincs), a két háromszögben $2 \cdot (1/2)^3 = 0{,}25$. A kezdeti jellemzők már eltérnek – a GNN szétválasztja őket. A Laplace-sajátértékek is: hatszög $(0;\allowbreak\ 1;\allowbreak\ 1;\allowbreak\ 3;\allowbreak\ 3;\allowbreak\ 4)$, két háromszög $(0;\allowbreak\ 0;\allowbreak\ 3;\allowbreak\ 3;\allowbreak\ 3;\allowbreak\ 3)$ – a két 0 a két különálló darabot jelzi.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – Anna és Csilla továbbra is egyforma</span>
+    A futó példán a 2 lépéses visszatérés: $(0{,}417;\allowbreak\ 0{,}5;\allowbreak\ 0{,}417;\allowbreak\ 0{,}667;\allowbreak\ 0{,}5)$. Annáé és Csilláé egyforma – helyesen, hiszen szimmetrikusak. Jó pozíciókódolás nem tesz különbséget ott, ahol a gráfban nincs.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A sajátvektor előjele önkényes.</b> Ha $\mathbf u$ sajátvektor, $-\mathbf u$ is az; a numerikus program bármelyiket adhatja. A modell ne tanuljon a konkrét előjelből – tanításkor véletlenszerűen átfordítják, vagy előjelfüggetlen hálót használnak. Egyenlő sajátértékeknél (mint a hatszög két 1-ese) még rosszabb: a sajátvektorok tetszőlegesen elforgathatók.</li>
+    <li><b>A számítás nem ingyenes.</b> A sajátvektorok kiszámítása nagy gráfon drága; a véletlenséta-kódolás olcsóbb (ritka mátrixszorzások).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – pozíciókódolás</summary>
+  <ol>
+    <li>A 3 csúcsú úton (1–2–3) mekkora a visszatérés valószínűsége 2 lépés után az 1. és a 2. csúcsnál?
+      <details><summary>Megoldás</summary>1. csúcs: 1 → 2 (biztos) → 1 (1/2): 0,5. 2. csúcs: 2 → 1 vagy 3 (1/2–1/2), onnan biztosan vissza: 1.</details></li>
+    <li>Egy 4 csúcsú körben (négyzet) mennyi a 3 lépés utáni visszatérés valószínűsége? Miért?
+      <details><summary>Megoldás</summary>0: a négyzet kétszínezhető (páros), páratlan hosszú zárt séta nincs benne.</details></li>
+    <li>Egy háromszögben (3 csúcsú kör) mennyi a 3 lépés utáni visszatérés valószínűsége?
+      <details><summary>Megoldás</summary>Két irányban lehet körbemenni, mindkettő $(1/2)^3$: $0{,}25$.</details></li>
+    <li>Mit jelez a Laplace-mátrix 0 sajátértékeinek száma?
+      <details><summary>Megoldás</summary>Az összefüggő darabok (komponensek) számát: minden darabon külön állandó vektor ad 0-t. A két háromszögnél kettő, a hatszögnél egy.</details></li>
+    <li>(nehezebb) Miért nem jó pozíciókódolásnak egyszerűen a csúcs sorszáma (1, 2, …, n), mint a mondatoknál?
+      <details><summary>Megoldás</summary>Mert a sorszám a számozástól függ: átszámozás után ugyanaz a csúcs más kódot kap, a modell nem lesz ekvivariáns (13.2) – pont az MLP hibája jönne vissza. A mondatban a sorrend az adat része, a gráfban nem. A gráfos kódolásnak csak a szerkezetből szabad jönnie.</details></li>
+  </ol>
+</details>
+
+<h3 id="s138-c">3. lépés: helyi + globális – és mikor éri meg?</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a GPS-recept</span>
+  L. Rampášek és társai (2022) egy „receptet” adtak: minden rétegben <b>két ág fut egymás mellett</b> – egy hagyományos üzenetküldő réteg az éleken (helyi szerkezet) és egy teljes önfigyelem (globális kapcsolat) –, az eredményüket összeadják, utána egy előrecsatolt háló jön, maradékkapcsolatokkal és normalizálással, mint a Transformer-blokkban (<a href="../12-beagyazasok-figyelem/#s126-a">12.6</a>). A bemenethez pozíció- és szerkezeti kódolást (RWSE, LapPE) fűznek.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – gráf-Transformer-réteg (GPS)</span>
+  $$H_{\text{helyi}} = \operatorname{MPNN}(H, A),\qquad H_{\text{globális}} = \operatorname{Önfigyelem}(H),\qquad H' = \operatorname{FFN}\big(H_{\text{helyi}} + H_{\text{globális}}\big)$$
+  (maradékkapcsolatokkal és normalizálással). Költség: a helyi ág $\sim |E|$, a globális $\sim n^2$ – nagy gráfon ritka vagy lineáris figyelem kell.
+  <b>Miért két ág?</b> A helyi ág megtartja a kötések / kapcsolatok pontos szerkezetét, a globális ág egy lépésben összeköti a távoli csúcsokat – a túlnyomás (13.7) ellenszere.
+</div>
+<div class="box tip">
+  <span class="box-title">📅 Állapot: 2026 – gráf-Transformer vagy jól hangolt GNN?</span>
+  <b>A szakirodalom megosztott.</b>
+  <ul style="margin:.2rem 0">
+    <li><b>„A klasszikus GNN erős alapvonal”:</b> a hosszú távú függéseket mérő LRGB-benchmarkon a gráf-Transformerek előnye alapos hiperparaméter-hangolás után eltűnt (J. Tönshoff és társai, TMLR 2024). Kis hangolással (normalizálás, dropout, maradékkapcsolat) a GCN, a GAT és a GraphSAGE 18 csúcsosztályozási adatkészletből 17-en hozta vagy verte a gráf-Transformereket (Y. Luo és társai, NeurIPS 2024), gráfszintű feladatokon pedig 14-ből mindegyiken az első háromban volt, 8-on első (Luo és társai, ICML 2025) – gyorsabban.</li>
+    <li><b>„A globális figyelem kell”:</b> valódi hosszú távú fizikai kölcsönhatásoknál a helyi + globális modellek előnye a legtisztább, és a nagy, sok adaton tanított rendszerek egyre inkább figyelmet használnak egy gráfon: a GenCast és utódja (WeatherNext 2, 2025) időjárásmodellek gráf-Transformert futtatnak egy gömbháló csúcsain, az ECMWF AIFS-e GNN-kódolót és Transformer-feldolgozót kombinál (<a href="#s1310-a">13.10</a>).</li>
+  </ul>
+  <b>Gyakorlati tanulság:</b> előbb egy jól hangolt klasszikus GNN-t mérj; a gráf-Transformer akkor éri meg, ha a feladat bizonyítottan távoli kapcsolatokon múlik, vagy ha nagyon sok adatod van – és vállalod az $n^2$ költséget (vagy a közelítéseit).
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Egy új modell + egy régi, hangolatlan alapvonal ≠ bizonyíték.</b> A gráfos irodalom több „áttörése” utólag a gondosabb alapvonal-hangolás után eltűnt. Ugyanannyi hangolást kapjon minden modell (<a href="../06-modellertekeles/#s68-c">6.8</a>).</li>
+    <li><b>Kis gráf, kis adat → kevésbé kell a globális figyelem.</b> A molekulák (20–50 atom) recepciós mezőjét néhány GNN-réteg is lefedi.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – mikor éri meg?</summary>
+  <ol>
+    <li>Egy 30 atomos molekulán egy 6 rétegű GNN-t használunk. A molekula átmérője 12. Lát-e minden atom minden atomot? Mi segíthet a figyelmen kívül?
+      <details><summary>Megoldás</summary>Nem: 6 réteg 6 ugrásnyit lát, a 12 ugrásnyira lévő párok nem érik el egymást. Segíthet több réteg (túlsimítás-kockázattal), virtuális csúcs, vagy a 3D-távolság alapú élek (13.9). A globális figyelem $30^2 = 900$ párral itt még olcsó.</details></li>
+    <li>Egy 1 millió csúcsú közösségi hálón miért nem használnak teljes önfigyelmet?
+      <details><summary>Megoldás</summary>$10^{12}$ pár – sem a memória, sem az idő nem engedi. Ilyenkor mintavételes GNN (13.5), vagy lineáris/ritka figyelem a szóba jöhető.</details></li>
+    <li>Mit állít Tönshoff és társai (2024) eredménye a gráf-Transformerek és a hagyományos GNN-ek közti különbségről a hosszú távú benchmarkon?
+      <details><summary>Megoldás</summary>Hogy a korábban közölt különbség alapos hiperparaméter-hangolás után eltűnik – a különbség jelentős része a hangolatlan alapvonalakból jött, nem a figyelemből.</details></li>
+    <li>Melyik időjárásmodell üzenetküldő GNN, és melyik gráf-Transformer: GraphCast, GenCast?
+      <details><summary>Megoldás</summary>GraphCast: üzenetküldő GNN (kódoló–feldolgozó–dekódoló, 16 réteg a gömbhálón). GenCast: gráf-Transformer (figyelem a gömbháló csúcsainak környezetében), diffúziós mintavétellel.</details></li>
+    <li>(nehezebb) Egy cég azt mondja, az új gráf-Transformere 3 százalékponttal jobb a GCN-nél egy benchmarkon. Milyen kérdéseket teszel fel, mielőtt elhiszed?
+      <details><summary>Megoldás</summary>Ugyanannyi hangolást kapott-e a GCN (normalizálás, dropout, maradékkapcsolat, rétegszám)? Hány felosztáson és kezdéssel mértek, mekkora a szórás (6.9)? Ugyanaz-e a felosztás, és nincs-e szivárgás (duplikált csúcs, tesztél az üzenetküldésben, 13.6)? Mennyi a futási idő és a memória? Más adatkészleten is igaz-e? A 2024–2025-ös újramérések szerint az ilyen különbségek gyakran eltűnnek.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai13-138"></div>
+</section>

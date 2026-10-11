@@ -1,0 +1,162 @@
+
+<!-- ===================================================== 13.6 -->
+<section id="s136">
+<h2>13.6 Csúcs, él, gráf – a kimenet ★★</h2>
+<p>Az üzenetküldő rétegek után minden csúcsnak van egy vektora, amely a környezetét is „ismeri”. A csúcsszintű feladathoz ez már elég: a vektorra egy osztályozó réteg kerül (13.4). De hogyan kapunk egyetlen választ egy egész molekulára, vagy egy valószínűséget arra, hogy két csúcs között él lesz?</p>
+
+<h3 id="s136-a">1. lépés: kiolvasás – a csúcsokból egy gráfvektor</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – metanol és glioxál</span>
+  Hidrogének nélkül a metanol C–O, a glioxál O–C–C–O. Atomonként one-hot jellemző (C; O). Hogyan lesz a molekulából <b>egy</b> vektor? Összegezzük vagy átlagoljuk az atomok vektorait!
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:560px">
+    <tr><th></th><th>összeg</th><th>átlag</th><th>maximum</th></tr>
+    <tr><td>metanol (C, O)</td><td>$(1;\allowbreak\ 1)$</td><td>$(0{,}5;\allowbreak\ 0{,}5)$</td><td>$(1;\allowbreak\ 1)$</td></tr>
+    <tr><td>glioxál (O, C, C, O)</td><td>$(2;\allowbreak\ 2)$</td><td>$(0{,}5;\allowbreak\ 0{,}5)$</td><td>$(1;\allowbreak\ 1)$</td></tr>
+  </table></div>
+  Az átlag és a maximum szerint a két molekula egyforma – az átlag csak az <em>arányt</em> látja (fele szén, fele oxigén), a méretet nem. Az összeg megkülönbözteti őket.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – kiolvasás (readout, globális pooling)</span>
+  $$\mathbf h_G = \operatorname{READOUT}\big(\{\mathbf h_v : v \in V\}\big) \in \{\textstyle\sum_v \mathbf h_v,\ \tfrac1n\sum_v \mathbf h_v,\ \max_v \mathbf h_v\},\qquad \hat y = \operatorname{MLP}(\mathbf h_G).$$
+  A kiolvasás egy <b>invariáns</b> összegzés (13.2): bárhogy számozzuk az atomokat, ugyanaz. Gyakran <b>minden réteg</b> után kiolvasunk, és a vektorokat összefűzzük – így a modell az atomok „saját”, a közvetlen és a távolabbi környezetét is egyszerre látja.
+  <b>Miért nem elég a kezdeti jellemzők összege?</b> Mert az csak az atomok darabszámát adja, a szerkezetet nem. Az üzenetküldő rétegek „beleírják” a csúcsvektorokba a környezetet – a kiolvasás után ez megmarad.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – etanol és dimetil-éter</span>
+    Mindkettő 2 C és 1 O: az összeg $(2;\allowbreak\ 1)$ – azonos. Egy rétegnyi üzenetküldés után ($\mathbf h_v' = \mathbf h_v + \sum_{u} \mathbf h_u$): etanol (C–C–O) atomjai $(2;0)$, $(2;1)$, $(1;1)$, összegük $(5;\allowbreak\ 2)$; dimetil-éter (C–O–C) atomjai $(1;1)$, $(2;1)$, $(1;1)$, összegük $(4;\allowbreak\ 3)$. A szerkezeti különbség (az O a lánc végén vagy közepén) megjelent.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – amit semmi nem választ szét</span>
+    A benzol (6 szénatomos gyűrű) és „két ciklopropán” (két különálló, 3 szénatomos gyűrű): minden atom szén, mindegyiknek két szomszédja van. Bármennyi réteg után minden atom vektora ugyanaz, a kiolvasás is. Ez nem a kiolvasás hibája – az üzenetküldésé (<a href="#s137-a">13.7</a>).
+  </div>
+</div>
+<div class="widget" data-widget="molecule-readout"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Átlag = méretvak, összeg = méretfüggő.</b> Ha a tulajdonság extenzív (a molekula tömege, energiája – nagyobb molekulában több), összeg kell. Ha intenzív (mérgező-e egy csoport miatt), az átlag vagy a maximum is jó lehet. Nagy gráfoknál az összeg nagy számokat ad – normalizálni kell.</li>
+    <li><b>Kötéstípus és hidrogének.</b> A fenti példák elhagyják őket (ahogy sok adatkészlet). A glioxál (O=C–C=O) és az etilénglikol (HO–CH₂–CH₂–OH) ezért ugyanaz a gráf! Ha a kötés számít, éljellemző kell (13.5 döntési táblázata).</li>
+    <li><b>Egy szám az egész gráfra</b> sok információt eldob. Bonyolultabb, hierarchikus pooling-módszerek (pl. a csúcsok csoportokba vonása rétegenként) is léteznek, de a gyakorlatban az egyszerű összeg/átlag ritkán marad el tőlük.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – kiolvasás</summary>
+  <ol>
+    <li>A propán (C–C–C) és az etanol (C–C–O) atomjainak one-hot (C; O) jellemzőiből mi az összeg- és az átlag-kiolvasás?
+      <details><summary>Megoldás</summary>Propán: összeg $(3;\allowbreak\ 0)$, átlag $(1;\allowbreak\ 0)$. Etanol: összeg $(2;\allowbreak\ 1)$, átlag $(0{,}667;\allowbreak\ 0{,}333)$.</details></li>
+    <li>Melyik kiolvasás különbözteti meg a metanolt (C–O) és a „két metanolt” egy gráfban (C–O, C–O)?
+      <details><summary>Megoldás</summary>Csak az összeg: $(1;\allowbreak\ 1)$ vs. $(2;\allowbreak\ 2)$. Az átlag $(0{,}5;\allowbreak\ 0{,}5)$, a maximum $(1;\allowbreak\ 1)$ mindkettőnél. (Üzenetküldés után is így marad, mert a két darab külön-külön ugyanaz, mint a metanol.)</details></li>
+    <li>Egy rétegnyi $\mathbf h_v' = \mathbf h_v + \sum_u \mathbf h_u$ üzenetküldés után mi a propán összeg-kiolvasása?
+      <details><summary>Megoldás</summary>A szélső szenek $(2;\allowbreak\ 0)$, a középső $(3;\allowbreak\ 0)$: összeg $(7;\allowbreak\ 0)$.</details></li>
+    <li>Egy modell a molekula forráspontját jósolja (nagyobb molekula – általában magasabb). Átlag vagy összeg?
+      <details><summary>Megoldás</summary>Összeg: a forráspont a mérettel együtt nő (extenzív jellegű), az átlag a méretet eldobná.</details></li>
+    <li>(nehezebb) Miért invariáns a „minden réteg utáni kiolvasások összefűzése”, ha az összefűzés sorrendfüggő művelet?
+      <details><summary>Megoldás</summary>Mert a <b>rétegek</b> sorrendjében fűzünk össze, nem a csúcsokéban. Minden rétegnél a kiolvasás (összeg a csúcsokon) invariáns; az 1., 2., 3. réteg sorrendje pedig rögzített, nem függ a számozástól.</details></li>
+  </ol>
+</details>
+
+<h3 id="s136-b">2. lépés: kapcsolat-előrejelzés – ki mit vesz meg, ki kit ismerhet?</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – három vásárló, két termék</span>
+  Egy GNN minden felhasználónak és terméknek kiszámolt egy kétdimenziós vektort: U1 $(1;\allowbreak\ 0)$, U2 $(0;\allowbreak\ 1)$, U3 $(1;\allowbreak\ 1)$; T1 $(1;\allowbreak\ -0{,}5)$, T2 $(0{,}5;\allowbreak\ 1)$. Mekkora az esélye, hogy U3 megveszi T1-et? Skaláris szorzat, aztán szigmoid (<a href="../05-osztalyozas/#s53-b">5.3</a>):
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:520px">
+    <tr><th></th><th>T1</th><th>T2</th></tr>
+    <tr><td>U1</td><td>$1 \to 0{,}731$</td><td>$0{,}5 \to 0{,}622$</td></tr>
+    <tr><td>U2</td><td>$-0{,}5 \to 0{,}378$</td><td>$1 \to 0{,}731$</td></tr>
+    <tr><td>U3</td><td>$0{,}5 \to 0{,}622$</td><td>$1{,}5 \to 0{,}818$</td></tr>
+  </table></div>
+  U3-nak a T2-t ajánljuk elsőként (0,818), U2-nek semmiképp sem a T1-et (0,378).
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – kapcsolat-előrejelzés, negatív mintavétel</span>
+  A GNN csúcsvektoraiból ($\mathbf z_u$, $\mathbf z_v$) egy <b>párpontszámot</b> számolunk – legegyszerűbben $s(u, v) = \mathbf z_u \cdot \mathbf z_v$, és $p(u{-}v) = \sigma(s)$. Tanítás bináris keresztentrópiával:
+  $$\mathcal L = -\sum_{(u,v) \in E^+} \ln \sigma(s_{uv}) \;-\; \sum_{(u,v) \in E^-} \ln\big(1 - \sigma(s_{uv})\big),$$
+  ahol $E^+$ a meglévő (pozitív) élek, $E^-$ pedig <b>véletlenül választott, nem létező</b> párok (negatív minták).
+  <b>Miért kellenek negatívak?</b> Csak pozitív példákkal a legjobb „megoldás” az, hogy minden vektor nagy és egyirányú – akkor minden párra 1 jön ki. A negatív minták mondják meg, mi <em>nem</em> él.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a veszteség egy pozitív és egy negatív párra</span>
+    U1–T1 vásárlás (pozitív): $-\ln 0{,}731 \approx 0{,}313$. U2–T1 nem vásárlás (negatív): $-\ln(1 - 0{,}378) \approx 0{,}474$. Ha a modell U2–T1-re 0,881-et mondana (pontszám 2), a negatív pár vesztesége $-\ln 0{,}119 \approx 2{,}127$ lenne – erős büntetés.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a 8.6 mátrixfaktorizációja, gráfként</span>
+    A <a href="../08-felugyelet-nelkuli-tanulas/#s86-c">8.6</a> ajánlójában is skaláris szorzat volt a pontszám, de ott a vektorok szabad paraméterek voltak (felhasználónként egy sor). Itt egy GNN <b>számolja</b> őket a jellemzőkből és a vásárlási gráf szomszédaiból – ezért egy új terméknek is lesz vektora, ha van leírása és néhány első vásárlója.
+  </div>
+</div>
+<div class="widget" data-widget="link-predict"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A véletlen negatív túl könnyű.</b> Egy véletlen pár szinte biztosan nem él (a gráf ritka, 13.1) – a modell könnyen megtanulja. A valóságban a nehéz kérdés a „majdnem” pár (szomszéd szomszédja). Ezért keverik a véletlen és a „nehéz” negatívakat.</li>
+    <li><b>A skaláris szorzat szimmetrikus.</b> $s(u, v) = s(v, u)$ – irányított gráfnál (ki kit követ) ez hiba lehet; ott két külön vektor vagy aszimmetrikus pontszám kell.</li>
+    <li><b>A népszerűség torzít.</b> A sok kapcsolatú csúcsok (népszerű termék) sok pozitív példában szerepelnek, a vektoruk mindenkivel nagy pontszámot ad. Az ajánló „mindenkinek ugyanazt” kezdi mondani.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – kapcsolat-előrejelzés</summary>
+  <ol>
+    <li>$\mathbf z_u = (2;\allowbreak\ 1)$, $\mathbf z_v = (1;\allowbreak\ -1)$. Mennyi a pontszám és a valószínűség?
+      <details><summary>Megoldás</summary>$2 - 1 = 1$; $\sigma(1) \approx 0{,}731$.</details></li>
+    <li>A kiinduló példában melyik terméket ajánlod elsőként U1-nek, és mekkora valószínűséggel?
+      <details><summary>Megoldás</summary>T1-et, 0,731-gyel (T2: 0,622).</details></li>
+    <li>Mennyi a veszteség, ha egy pozitív párra a modell 0,5-öt mond? És ha egy negatívra 0,5-öt?
+      <details><summary>Megoldás</summary>Mindkettő $-\ln 0{,}5 \approx 0{,}693$ – a „nem tudom” válasz mindkét irányban ugyanannyiba kerül.</details></li>
+    <li>Egy 1000 felhasználós, 500 termékes boltban 20&nbsp;000 vásárlás van. Hány nem létező felhasználó–termék pár van? Mennyi negatív mintát vennél pozitívonként?
+      <details><summary>Megoldás</summary>$1000 \cdot 500 - 20\,000 = 480\,000$. Az összes negatívat nem érdemes használni (24-szer annyi, mint a pozitív); tipikusan pozitívonként 1–5 véletlen (és néhány nehéz) negatív mintát veszünk, minden lépésben újakat.</details></li>
+    <li>(nehezebb) Miért vezetne a kizárólag pozitív élekkel végzett tanítás minden párra 1-hez közeli jóslathoz? Mutasd meg a veszteségből!
+      <details><summary>Megoldás</summary>Csak pozitívakkal $\mathcal L = -\sum \ln\sigma(\mathbf z_u \cdot \mathbf z_v)$. Ez akkor csökken, ha minden skaláris szorzat nő. Ha minden vektort egy irányba állítunk és megnövelünk, minden szorzat (a nem létező párokra is) nagy lesz, $\sigma \to 1$, $\mathcal L \to 0$. A modell „mindenki mindenkivel kapcsolatban áll” megoldást talál – használhatatlan. A negatív tag bünteti ezt.</details></li>
+  </ol>
+</details>
+
+<h3 id="s136-c">3. lépés: tanítás és kiértékelés – hogyan szivárog a válasz?</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a rejtett él, amely nem rejtett</span>
+  A futó példán meg akarjuk tanulni, hogy a Dávid–Emese barátság kitalálható-e. Teszt-élnek tesszük félre. Ha azonban az él <b>bent marad a gráfban</b>, amelyen az üzenetküldés fut, Emese vektora közvetlenül Dávidtól gyűjt – a modell „látja” a választ, a teszt értelmetlenül jó lesz. Ha kivesszük, Emese a tanítógráfban <b>elszigetelt</b> csúcs: az egyetlen kapcsolata volt. Ez a valóság: amit a modell nem láthat, azt tényleg nem láthatja.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – felosztás a három szinten</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Csúcsszint, transzduktív:</b> egy gráf, a csúcsokat címke szerint osztjuk fel (tanító / validációs / teszt maszk); az üzenetküldés mindenhol fut, de a veszteség és a mérés csak a megfelelő maszkon. <b>Induktív:</b> a tesztcsúcsok (és éleik) tanításkor ki vannak véve.</li>
+    <li><b>Élszint:</b> az éleket négy részre osztjuk: <b>üzenetküldő élek</b> (ezeken fut a GNN), <b>felügyeleti élek</b> (a tanító pozitívak), validációs és teszt élek. A validációs és teszt élek <b>nincsenek benne</b> az üzenetküldő gráfban.</li>
+    <li><b>Gráfszint:</b> egész gráfokat osztunk fel (<a href="../06-modellertekeles/#s64-b">6.4</a>). Molekuláknál a véletlen felosztás túl könnyű lehet – a hasonló molekulák mindkét oldalra kerülnek –, ezért használnak <b>vázfelosztást</b> (<em>scaffold split</em>): a közös alapvázú molekulák egy oldalra kerülnek.</li>
+    <li><b>Időbeli gráf</b> (közösségi háló, tranzakciók): a jövő élei sosem lehetnek a múlt tanításában – idő szerinti vágás (<a href="../06-modellertekeles/#s64-b">6.4</a>).</li>
+  </ul>
+  <b>Miért ennyi szabály?</b> Mert a gráfban a csúcsok nem függetlenek: az információ az éleken át „átfolyik” a tanító- és a tesztrész között. A szivárgás (<a href="../04-adatok-es-jellemzok/#s47-b">4.7</a>) itt sokkal könnyebben becsúszik, mint táblázatos adatnál.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a Cora rögzített felosztása</span>
+    A szabványos (Planetoid) felosztás: 140 tanító, 500 validációs, 1000 teszt csúcs. Mivel mindenki ugyanazt használja, összehasonlíthatók az eredmények – de egyetlen felosztás szerencse kérdése is lehet. O. Shchur és társai (2018) véletlen felosztásokon újramérve azt találták, hogy a modellek sorrendje felosztásról felosztásra változik. Hüvelykujjszabály: <b>több felosztás és több kezdés átlagát</b> közöld (<a href="../06-modellertekeles/#s65-a">6.5</a>).
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a jellemző is szivároghat</span>
+    Egy csalásfelderítő modell jellemzője: „hány csalóval van kapcsolatban a számla”. Ha ezt a <b>teljes</b> címkehalmazból számoltuk – a tesztszámlák címkéit is felhasználva –, a jellemző a teszt válaszát hordozza. Minden címkéből számolt jellemzőt csak a tanítócímkékből szabad előállítani.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Tesztél az üzenetküldő gráfban</b> – a leggyakoribb hiba a kapcsolat-előrejelzésnél. Még a fokszám is elárulja: ha a tesztél bent van, a végpontjainak fokszáma 1-gyel nagyobb.</li>
+    <li><b>Ugyanazok a csúcsok mindkét oldalon.</b> Egy élfelosztásnál a tesztél két végpontja a tanításban is szerepel. Ez rendben van (transzduktív), de azt méri, mennyire jósolja meg az ismert csúcsok közti új kapcsolatot – nem azt, mennyire működik új felhasználókra.</li>
+    <li><b>Benchmark-adatkészletek hibái.</b> Néhány népszerű adatkészletben duplikált csúcsok vannak, így a „teszt” csúcs tanítóban is megvan (📅 <a href="#s137-c">13.7</a>). Mindig nézd meg, mit mér az adatkészlet.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – felosztás és szivárgás</summary>
+  <ol>
+    <li>A futó példán az Anna–Bence élt tesszük félre teszt-élnek. Ki lesz a tanítógráfban elszigetelt?
+      <details><summary>Megoldás</summary>Senki: Annának Csilla, Bencének Csilla és Dávid marad. (A Dávid–Emese él kivétele Emesét szigetelné el.)</details></li>
+    <li>Egy kétrétegű GNN-nel kapcsolat-előrejelzést tanítunk, és a teszt-élek bent maradnak az üzenetküldő gráfban. Miért lesz túl jó az eredmény?
+      <details><summary>Megoldás</summary>Mert a tesztél végpontjai közvetlenül egymástól gyűjtenek: a vektoraik hasonlóvá válnak, a skaláris szorzatuk nagy lesz – éppen azért, mert az él létezik. A modell a választ olvassa ki, nem jósolja.</details></li>
+    <li>Mit jelent, hogy a Cora tanítóhalmaza 140 csúcs, ha az üzenetküldés mind a 2708 csúcson fut? Szivárgás-e ez?
+      <details><summary>Megoldás</summary>A veszteséget csak 140 csúcs címkéjén számoljuk, de a tesztcsúcsok jellemzői és élei részt vesznek az üzenetküldésben. Ez nem szivárgás – a tesztcsúcsok <em>címkéi</em> nem kerülnek be. Ez a transzduktív beállítás definíciója (13.1).</details></li>
+    <li>Egy gyógyszerkutató 10&nbsp;000 molekulán tanít, amelyek 50 alapvázba tartoznak. Miért ad véletlen felosztással jobb eredményt a modell, mint vázfelosztással?
+      <details><summary>Megoldás</summary>Véletlen felosztásnál egy tesztmolekula „testvérei” (ugyanazzal a vázzal) a tanítóban vannak – a modell a hasonlóságot ismeri fel. Vázfelosztásnál a tesztben új vázak vannak, mint a valóságban, amikor új vegyületcsaládot vizsgálnak. Az utóbbi a becsületesebb becslés.</details></li>
+    <li>(nehezebb) Egy közösségi hálón január–júniusi adatokból akarod megjósolni, ki kivel barátkozik júliusban. Írd le a felosztást!
+      <details><summary>Megoldás</summary>Üzenetküldő és felügyeleti élek: a január–májusi barátságok (a felügyelethez pl. a májusiak, az üzenetküldéshez a korábbiak). Validáció: júniusi új barátságok, a május végi gráfon. Teszt: júliusi új barátságok, a június végi gráfon. Negatív minták minden szakaszban az adott időpontban nem létező párokból. A jellemzőket (fokszám, aktivitás) mindig csak az adott időpontig számolod.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai13-136"></div>
+</section>

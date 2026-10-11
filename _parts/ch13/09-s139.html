@@ -1,0 +1,143 @@
+
+<!-- ===================================================== 13.9 -->
+<section id="s139">
+<h2>13.9 Geometriai és ekvivariáns GNN-ek ★★★</h2>
+<p>Eddig a molekula csak „mi mivel van összekötve” volt. A valódi molekula azonban térbeli: az atomoknak koordinátájuk van, és az energia, a kötődés, a reakció a távolságokon és a szögeken múlik. Ha a koordinátákat beadjuk a hálónak, új szimmetria jelenik meg: a molekula <b>elforgatható és eltolható</b>, a fizika mégis ugyanaz.</p>
+
+<h3 id="s139-a">1. lépés: invariancia a térben – forgatás és eltolás</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a vízmolekula elfordul</span>
+  A vízben az O–H kötés 0,96 Å hosszú, a kötésszög 104,5°, a két H atom távolsága így 1,518 Å. Fordítsuk el a molekulát 90°-kal: minden atom koordinátája megváltozik – a <b>távolságok</b> és a szög nem. Egyszerűbb, síkbeli esetben: három atom a $(0;0)$, $(1;0)$, $(0;1)$ pontban; 90°-os forgatás után $(0;0)$, $(0;1)$, $(-1;0)$. Távolságok előtte és utána is: 1, 1, $\sqrt 2$. A molekula energiája nem változhat attól, hogy mi hogyan tartjuk a koordináta-rendszert.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – E(3)-invariancia, sugárgráf</span>
+  Egy $f$ függvény (pl. az energia) <b>E(3)-invariáns</b>, ha minden $R$ forgatásra (és tükrözésre) és $\mathbf t$ eltolásra $f(R\mathbf x_1 + \mathbf t, \ldots, R\mathbf x_n + \mathbf t) = f(\mathbf x_1, \ldots, \mathbf x_n)$ – a csúcsok permutációján túl.
+  <b>Hogyan építsük?</b> A koordinátákat <em>nem</em> adjuk be közvetlenül, csak forgatástól független mennyiségeket: <b>távolságokat</b> (és szögeket). A gráf is a térből jön: <b>sugárgráf</b> – két atom között él van, ha a távolságuk egy határ (pl. 5 Å) alatt van; az üzenet a távolságtól függ: $\psi(\mathbf h_u, \|\mathbf x_u - \mathbf x_v\|)$.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a nyers koordináta rossz jellemző</span>
+    Ha a háló a koordinátákat kapja jellemzőként, ugyanannak a molekulának minden elforgatott példányát külön kellene megtanulnia – mint az MLP-nek a számozásokat (13.2). Az adatbővítés (véletlen forgatások) segít, de nem garantál semmit; a távolságokra épülő háló <b>biztosan</b> invariáns.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a sugárgráf és a kötésgráf</span>
+    Egy fehérjében két aminosav, amely a láncban 100 lépésre van egymástól, a térben szomszédos lehet. A kötésgráfban 100 ugrás (túlnyomás, 13.7), a sugárgráfban 1. A térbeli gráf sok „rövidítést” ad – ezért használják a 3D-modellek.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A tükörkép csapdája.</b> A távolságok a tükrözéskor sem változnak – egy csak távolságokat látó háló a molekulát és a <b>tükörképét</b> (kiralitás) nem tudja megkülönböztetni. Pedig a gyógyszereknél ez létfontosságú lehet: a talidomid két tükörképi formája közül az egyiket hozták összefüggésbe a fejlődési rendellenességekkel (bár a szervezetben a két forma egymásba is alakul). Ilyenkor csak a forgatásra (SE(3)) szabad invariánsnak lenni, a tükrözésre nem.</li>
+    <li><b>A távolság sem mindig elég.</b> Az összes páronkénti távolság (a tükrözéstől eltekintve) meghatározza a geometriát – de ha a háló csak a határon belüli szomszédok távolságait látja, üzenetküldéssel összegezve, egyes eltérő geometriák egyformának látszanak – ezért adnak sok modell (pl. a DimeNet) szögeket is az üzenetekhez.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – invariancia a térben</summary>
+  <ol>
+    <li>Két atom a $(1;\allowbreak\ 2;\allowbreak\ 0)$ és a $(4;\allowbreak\ 6;\allowbreak\ 0)$ pontban. Mennyi a távolságuk? Változik-e, ha mindkettőt $(10;\allowbreak\ 0;\allowbreak\ 5)$-tel eltoljuk?
+      <details><summary>Megoldás</summary>$\sqrt{3^2 + 4^2} = 5$. Nem változik: az eltolás a különbségvektort nem érinti.</details></li>
+    <li>A sugárgráfban 5 Å a határ. Három atom távolságai: A–B 1,5 Å, B–C 4,8 Å, A–C 6,1 Å. Mely élek vannak a gráfban?
+      <details><summary>Megoldás</summary>A–B és B–C (mindkettő 5 Å alatt); A–C nincs.</details></li>
+    <li>Invariáns-e forgatásra: (a) két atom távolsága; (b) a molekula tömegközéppontjának $x$-koordinátája; (c) három atom által bezárt szög?
+      <details><summary>Megoldás</summary>(a) igen; (b) nem (a forgatás és az eltolás is megváltoztatja); (c) igen.</details></li>
+    <li>Miért nem tudja egy csak távolságokat látó háló megkülönböztetni egy molekulát a tükörképétől?
+      <details><summary>Megoldás</summary>Mert a tükrözés minden távolságot (és szöget) megőriz – a háló bemenete a két esetben pontosan ugyanaz. A különbség csak az „irányítottságban” (jobb- vagy balkezes elrendezés) van, ehhez előjeles mennyiség kell (pl. vegyes szorzat, torziós szög előjele).</details></li>
+    <li>(nehezebb) Hány páronkénti távolság van egy 20 atomos molekulában, és hány él lesz nagyjából a sugárgráfban, ha minden atomnak átlagosan 8 atom van 5 Å-ön belül?
+      <details><summary>Megoldás</summary>Párok: $\binom{20}{2} = 190$. Sugárgráf: $20 \cdot 8 / 2 = 80$ él. Nagy rendszerekben (több ezer atom) a sugárgráf élszáma az atomszámmal arányos, a pároké négyzetesen – ezért kell a határ.</details></li>
+  </ol>
+</details>
+
+<h3 id="s139-b">2. lépés: ekvivariancia – ami együtt forog a molekulával</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a rugó két atom között</span>
+  Két atom a $(0;0)$ és a $(2;0)$ pontban, köztük egy „rugó”, amelynek nyugalmi hossza 1. Mozdítsuk el mindkét atomot a másik felé: $\mathbf x_i' = \mathbf x_i + (\mathbf x_i - \mathbf x_j)\cdot c(d)$, ahol $c(d) = -0{,}25\,(d - 1)$ és $d$ a távolság. Itt $d = 2$, $c = -0{,}25$: az új helyek $(0{,}5;\allowbreak\ 0)$ és $(1{,}5;\allowbreak\ 0)$. Forgassuk el a kiindulást 90°-kal: $(0;0)$ és $(0;2)$ → az új helyek $(0;\allowbreak\ 0{,}5)$ és $(0;\allowbreak\ 1{,}5)$ – pontosan az előző eredmény elforgatva. Az elmozdulás <b>együtt forog</b> a molekulával.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – ekvivariancia és az EGNN</span>
+  Egy vektort adó $F$ (pl. az atomokra ható erő) <b>ekvivariáns</b>, ha $F(R\mathbf x + \mathbf t) = R\,F(\mathbf x)$: a molekula elforgatásakor a kimenet ugyanúgy elfordul. Az <b>E(n)-ekvivariáns GNN</b> (V. G. Satorras, E. Hoogeboom, M. Welling, 2021) rétege:
+  $$\mathbf m_{ij} = \phi_e\big(\mathbf h_i, \mathbf h_j, \|\mathbf x_i - \mathbf x_j\|^2\big),\quad \mathbf x_i' = \mathbf x_i + \tfrac{1}{n-1}\sum_{j \ne i}(\mathbf x_i - \mathbf x_j)\,\phi_x(\mathbf m_{ij}),\quad \mathbf h_i' = \phi_h\Big(\mathbf h_i, \sum_{j} \mathbf m_{ij}\Big).$$
+  <b>Miért ekvivariáns?</b> Az üzenet csak a (forgatásra invariáns) távolságot látja; a koordináta-frissítés pedig a különbségvektorok ($\mathbf x_i - \mathbf x_j$) számmal szorzott összege – ezek a vektorok maguk forognak a molekulával.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – eltolva</span>
+    A rugós példa kiindulása eltolva: $(1;1)$ és $(3;1)$. Az új helyek: $(1{,}5;\allowbreak\ 1)$ és $(2{,}5;\allowbreak\ 1)$ – az előző eredmény ugyanazzal a vektorral eltolva. A különbségvektor nem érzi az eltolást.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – gépi tanult atomközi potenciál</span>
+    Egy háló az energiát jósolja (invariáns), az erőket pedig az energia deriváltjából ($-\nabla_{\mathbf x} E$) kapjuk – ezek automatikusan ekvivariánsak. Ilyen modellekkel a kvantumkémiai számításnál nagyságrendekkel gyorsabban lehet molekuladinamikát futtatni. Az ekvivariáns NequIP (S. Batzner és társai, 2022) a korábbi modellek pontosságát akár ezerszer kevesebb tanítóadattal érte el.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Invariáns vagy ekvivariáns?</b> A szám (energia, oldhatóság) legyen invariáns, a vektor (erő, elmozdulás, dipólus) ekvivariáns. Ha egy erőt invariáns modellel jósolsz, elforgatott molekulára rossz irányt kapsz.</li>
+    <li><b>A „hiányzó” ekvivariancia adatbővítéssel csak közelíthető.</b> A pontos szimmetria a felépítésből jön; ez kevesebb adatot és jobb általánosítást jelent – ugyanaz a lecke, mint a CNN-nél és a GNN-nél.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – ekvivariancia</summary>
+  <ol>
+    <li>A rugós szabállyal ($c(d) = -0{,}25(d-1)$) mi lesz a $(0;0)$ és a $(3;0)$ atomok új helye?
+      <details><summary>Megoldás</summary>$d = 3$, $c = -0{,}5$. Első: $(0;0) + (-3;\allowbreak\ 0)\cdot(-0{,}5) = (1{,}5;\allowbreak\ 0)$. Második: $(3;0) + (3;\allowbreak\ 0)\cdot(-0{,}5) = (1{,}5;\allowbreak\ 0)$. Mindkettő a középpontba ugrik – túl nagy lépés, de ekvivariáns.</details></li>
+    <li>És ha a távolság pontosan 1?
+      <details><summary>Megoldás</summary>$c = 0$: semmi nem mozdul – a rugó nyugalomban van.</details></li>
+    <li>Melyik ekvivariáns, melyik invariáns: (a) egy molekula teljes energiája; (b) az egyes atomokra ható erők; (c) az atomok közti legkisebb távolság?
+      <details><summary>Megoldás</summary>(a) invariáns; (b) ekvivariáns; (c) invariáns.</details></li>
+    <li>Miért ekvivariánsak automatikusan az energiából deriválással kapott erők?
+      <details><summary>Megoldás</summary>Ha $E(R\mathbf x) = E(\mathbf x)$ minden forgatásra, akkor a láncszabály szerint $\nabla E(R\mathbf x) = R\,\nabla E(\mathbf x)$: a gradiens a forgatással együtt fordul. Az invariáns skalár deriváltja ekvivariáns vektor.</details></li>
+    <li>(nehezebb) Egy kolléga az EGNN koordináta-frissítésében a különbségvektor helyett az abszolút koordinátát ($\mathbf x_j$) használná: $\mathbf x_i' = \mathbf x_i + \sum_j \mathbf x_j\,\phi(\ldots)$. Mi romlik el?
+      <details><summary>Megoldás</summary>Az eltolás-ekvivariancia: ha minden atomot $\mathbf t$-vel eltolunk, a $\sum_j \mathbf x_j\phi$ tag $\mathbf t\sum_j\phi$-vel változik, ami általában nem $\mathbf t$ – az eredmény nem egyszerűen eltolódik. A különbségvektorban az eltolás kiesik ($(\mathbf x_i + \mathbf t) - (\mathbf x_j + \mathbf t) = \mathbf x_i - \mathbf x_j$).</details></li>
+  </ol>
+</details>
+
+<h3 id="s139-c">3. lépés: geometriai mélytanulás – egy közös nézőpont</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – négy háló, egy recept</span>
+  Nézzük vissza, mit tanultunk eddig. A CNN-ben a szűrő minden helyen ugyanaz (eltolás). A GNN-ben a réteg minden csúcson ugyanaz, és a számozás nem számít (permutáció). A Transformer egy halmazon figyel, a sorrendet a pozíciókódolás adja (permutáció). Az EGNN ezen felül a forgatást és az eltolást is tiszteli. Mind ugyanazt a receptet követi: <b>a szimmetriát a felépítésbe tesszük</b> – ekvivariáns rétegek, a végén invariáns összegzés.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – a geometriai mélytanulás „táblázata” (M. Bronstein, J. Bruna, T. Cohen, P. Veličković, 2021 nyomán)</span>
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;max-width:720px">
+    <tr><th>adat (tartomány)</th><th>szimmetria</th><th>architektúra</th></tr>
+    <tr><td>rács (kép)</td><td>eltolás</td><td>CNN (11.)</td></tr>
+    <tr><td>halmaz</td><td>permutáció</td><td>összegzés + MLP („Deep Sets”); Transformer pozíció nélkül</td></tr>
+    <tr><td>gráf</td><td>permutáció</td><td>GNN (üzenetküldés)</td></tr>
+    <tr><td>sorozat</td><td>(időbeli eltolás)</td><td>RNN, Transformer pozíciókódolással (12.)</td></tr>
+    <tr><td>térbeli pontfelhő, 3D molekula</td><td>permutáció + forgatás + eltolás</td><td>ekvivariáns GNN (EGNN, NequIP, MACE)</td></tr>
+    <tr><td>gömb (Föld, időjárás)</td><td>forgatás</td><td>gömbi CNN; GNN a gömbhálón (GraphCast)</td></tr>
+  </table></div>
+  <b>Miért hasznos ez a nézőpont?</b> Új adattípusnál két kérdés: <em>milyen átalakítás nem változtatja meg a választ?</em> és <em>mi a „szomszédság”?</em> A kettőből szinte kiolvasható a háló felépítése.
+</div>
+<div class="box tip">
+  <span class="box-title">📅 Állapot: 2026 – a geometriai GNN-ek nagy eredményei és vitái</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Fehérjék – AlphaFold 2 (2021) és 3 (2024).</b> Az AlphaFold 2 saját leírása szerint a szerkezetjóslás „gráfkövetkeztetési feladat” a térben: az aminosavpárok reprezentációja egy (teljes) gráf irányított éleinek felel meg, amelyeket „háromszög-frissítések” finomítanak, a szerkezeti modul pedig ekvivariáns. Pontosan fogalmazva: <b>gráfszemléletű, figyelemre épülő háló sűrű gráfon</b>, nem klasszikus, ritka üzenetküldő GNN. Az AlphaFold 3 a törzset egyszerűsítette (Pairformer), a szerkezetet pedig diffúziós modullal állítja elő.</li>
+    <li><b>Anyagtudomány – GNoME (2023).</b> Nagy léptékben tanított gráfhálók 2,2 millió új, a korábban ismertnél stabilabbnak jósolt kristályszerkezetet javasoltak; ebből 736-ot független laborok már előállítottak (A. Merchant és társai, Nature 2023). ⚖️ Anyagkémikusok szerint kevés a bizonyíték arra, hogy ezek egyszerre újak, hihetők és hasznosak (A. Cheetham, R. Seshadri, 2024).</li>
+    <li><b>„Alapmodell-potenciálok”.</b> Az atomszimulációban léteznek a gráfos világ legérettebb alapmodelljei: pl. a MACE-MP-0 egyetlen előtanított ekvivariáns GNN-ként szilárd anyagokon, folyadékokon, felületeken stabil molekuladinamikát ad, és kevés adattal finomhangolható (I. Batatia és társai, 2023–2025). ⚖️ Rendszeres hibájuk, hogy „puhábbnak” látják az energiafelületet a valóságosnál – ezt kevés adatos finomhangolás javítja.</li>
+  </ul>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>„Az AlphaFold egy GNN”</b> – pontatlan (lásd fent). Gráfszemléletű, de figyelemre épül, teljes páros reprezentációval.</li>
+    <li><b>Jóslat ≠ felfedezés.</b> Egy anyag vagy molekula „stabilnak jósolt” állapota még nem előállított, kipróbált, hasznos anyag. A számítógépes szűrés a laborkísérletet rövidíti le, nem helyettesíti.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a közös nézőpont</summary>
+  <ol>
+    <li>Melyik szimmetriát érdemes beépíteni: (a) egy pontfelhő (lidar) osztályozása autóban; (b) egy kéziratos számjegy felismerése; (c) egy vásárlói kosár (termékek halmaza) alapján a következő vásárlás jóslása?
+      <details><summary>Megoldás</summary>(a) a pontok permutációja + eltolás (és részben forgatás a függőleges tengely körül); (b) eltolás (CNN), forgatás csak kicsit (a 6 és a 9!); (c) a termékek permutációja – halmazon dolgozó modell (összegzés + MLP).</details></li>
+    <li>Miért nem jó a kézírásos számjegyeknél a teljes forgatási invariancia?
+      <details><summary>Megoldás</summary>Mert 180°-os forgatással a 6-osból 9-es lesz – a címke megváltozik. Csak az a szimmetria jó, amely a választ tényleg nem változtatja meg.</details></li>
+    <li>A „Deep Sets” modell: $f(X) = \rho\big(\sum_i \phi(\mathbf x_i)\big)$. Miért invariáns a halmaz elemeinek sorrendjére, és mi köze a GIN-hez?
+      <details><summary>Megoldás</summary>Az összeg nem függ a sorrendtől. A GIN egy csúcs szomszédain ugyanezt teszi (összeg + MLP), és a kiolvasás az egész gráfon – a GNN „halmazmodellek gráfra kiterjesztve”.</details></li>
+    <li>Mi az a két kérdés, amelyből a geometriai mélytanulás szerint egy új adattípushoz a háló felépítése következik?
+      <details><summary>Megoldás</summary>Milyen átalakítások hagyják a választ változatlanul (szimmetria), és mi a szomszédság (a tartomány szerkezete: rács, gráf, gömb, tér).</details></li>
+    <li>(nehezebb) Egy időjárásmodell a Föld felszínén dolgozik. Miért nem jó egy sima szélesség–hosszúság rácson futó CNN, és mit csinál helyette a GraphCast?
+      <details><summary>Megoldás</summary>A szélesség–hosszúság rács a pólusoknál összesűrűsödik (a cellák egyre kisebbek, a „szomszédság” torzul), és a rács széle (180°-os hosszúság) mesterséges határ. A GraphCast egy ikozaéderből finomított, egyenletes gömbhálón (kb. 41&nbsp;000 csúcs) futtat üzenetküldést, amely a gömbön közel egyforma szomszédságokat ad, és több felbontás éleivel a távoli pontokat is gyorsan összeköti.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai13-139"></div>
+</section>

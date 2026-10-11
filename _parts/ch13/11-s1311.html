@@ -1,0 +1,92 @@
+
+<!-- ===================================================== 13.11 -->
+<section id="s1311">
+<h2>13.11 Alkalmazás: hivatkozások és molekulák</h2>
+<p>Most minden eszközt együtt használunk, két valódi adatkészleten: egy hivatkozási hálón (csúcsszintű feladat, 13.4) és 188 molekulán (gráfszintű feladat, 13.6). Mindkettőn ugyanaz a kérdés: <b>mennyit ad hozzá a gráf</b> – és mennyit egy egyszerű alapvonal?</p>
+
+<h3 id="s1311-a">Cora: cikkek és hivatkozások</h3>
+<div class="box example">
+  <span class="box-title">A kísérlet – 2708 cikk, 7 téma, 140 címke</span>
+  A Cora-adatkészlet 2708 gépi tanulási cikke 7 témába tartozik (neurális hálók, valószínűségi módszerek, genetikus algoritmusok, elmélet, esetalapú következtetés, megerősítéses tanulás, szabálytanulás). Minden cikk jellemzője egy 1433 szavas szózsák (van-e benne az adott szó), a gráf a hivatkozások 5278 éle (irányítatlanul). Címke csak <b>témánként 20</b> cikknél van; 500 validációs és 1000 tesztcikk (a szabványos felosztás, 13.6). Öt modell, mindegyik 10 különböző kezdéssel tanítva (PyTorch, Adam, korai leállítás a validáción). A teszt helyes válaszai:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.86rem;text-align:center;max-width:720px">
+    <tr><th style="text-align:left">modell</th><th>szöveg</th><th>gráf</th><th>paraméter</th><th>teszt</th></tr>
+    <tr><td style="text-align:left">mindig a leggyakoribb téma</td><td>–</td><td>–</td><td>0</td><td>31,9%</td></tr>
+    <tr><td style="text-align:left">MLP a szózsákon (9.)</td><td>✓</td><td>–</td><td>92&nbsp;231</td><td>58,6% ± 0,6</td></tr>
+    <tr><td style="text-align:left">címketerjesztés (13.2)</td><td>–</td><td>✓</td><td>0</td><td>69,9%</td></tr>
+    <tr><td style="text-align:left">GCN (13.4)</td><td>✓</td><td>✓</td><td>23&nbsp;063</td><td><b>82,2% ± 0,7</b></td></tr>
+    <tr><td style="text-align:left">GraphSAGE (13.5)</td><td>✓</td><td>✓</td><td>46&nbsp;103</td><td>81,4% ± 0,5</td></tr>
+    <tr><td style="text-align:left">GAT, 8 fej (13.5)</td><td>✓</td><td>✓</td><td>92&nbsp;373</td><td><b>82,6% ± 0,8</b></td></tr>
+  </table></div>
+  A szöveg egyedül 58,6%, a gráf egyedül 69,9% – a kettő együtt 82%. A három GNN eltérése a kezdések szórásának nagyságrendjében van.
+</div>
+<div class="widget" data-widget="cora-explorer"></div>
+<div class="box example">
+  <span class="box-title">Kísérletek – mindegyik egy szakasz egy gondolata</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Mit tesz a gráf a térképpel?</b> (<a href="#s133">13.3</a>, <a href="#s134">13.4</a>) Válts a szózsák és a GCN rejtett rétegének térképe között. A szózsákon a témák összefolynak – két cikk ritkán használja pontosan ugyanazokat a szavakat. A GCN rétege után minden cikk vektora a hivatkozott cikkekével keveredik, és a témák szigetekké állnak össze: ez a homofília (81,0%) haszna.</li>
+    <li><b>Ki nyer a legtöbbet?</b> (<a href="#s133-b">13.3</a>) A fokszám szerinti bontás (a widget egyetlen modelljén: GCN 83,4%, MLP 58,7%): 1 hivatkozású cikkeken a GCN 76,4%, 2–3 hivatkozásúakon 81,7%, legalább 4 hivatkozásúakon 88,6% (az MLP mindhárom csoportban 57–61%). Több szomszéd – több bizonyíték.</li>
+    <li><b>Hol téved a GCN?</b> (<a href="#s137-c">13.7</a>) Kapcsold be a GCN hibáit, és kattints néhányra: sok hibás cikk szomszédai többségükben más témájúak – egy témák közötti „híd” cikk vagy egy heterofil szomszédság.</li>
+    <li><b>Kevés címke.</b> (<a href="#s134-c">13.4</a>) Ugyanez témánként kevesebb címkével, 10 véletlen címkézés átlaga (a validáció és a teszt a szabványos):<div class="tw" style="overflow-x:auto"><table style="font-size:.86rem;text-align:center;max-width:560px;margin:.3rem 0">
+      <tr><th>címke témánként</th><td>1</td><td>2</td><td>5</td><td>10</td><td>20</td></tr>
+      <tr><th>MLP</th><td>29,7%</td><td>33,9%</td><td>44,2%</td><td>51,2%</td><td>58,8%</td></tr>
+      <tr><th>GCN</th><td>44,2%</td><td>52,9%</td><td>71,8%</td><td>77,1%</td><td>80,1%</td></tr>
+      <tr><th>különbség</th><td>+14,5</td><td>+19,0</td><td>+27,6</td><td>+25,9</td><td>+21,3</td></tr>
+    </table></div>
+    Témánként 5 címkével (összesen 35 címkézett cikkel) a GCN többet tud, mint az MLP 20 címkével (140-nel). A gráf a kevés címkét „megsokszorozza”: a szomszédokon át terjed.</li>
+  </ol>
+</div>
+<div class="box tip">
+  <span class="box-title">Összevetés a szakirodalommal</span>
+  Az eredeti cikkekben: GCN 81,5% (Kipf és Welling, 2017), GAT 83,0 ± 0,7% (Veličković és társai, 2018), MLP 55,1% (a GAT-cikk táblázata). A mi számaink ugyanebben a tartományban vannak – és jól mutatják, amit a 📅 13.8 is mond: a jól beállított GCN, GraphSAGE és GAT között a Cora-n a különbség a zaj szintjén van.
+</div>
+
+<h3 id="s1311-b">MUTAG: mutagén-e a molekula?</h3>
+<div class="box example">
+  <span class="box-title">A kísérlet – 188 nitrovegyület</span>
+  A MUTAG-adatkészlet (A. K. Debnath és társai, 1991) 188 aromás nitrovegyülete közül 125 mutagén egy <em>Salmonella</em>-baktériumon. A molekulák hidrogén nélküli gráfok, 10–28 atommal (átlag 17,9), hétféle atomtípussal (C, N, O, F, I, Cl, Br). Tízszeres rétegzett keresztvalidáció (<a href="../06-modellertekeles/#s65-c">6.5</a>), háromszor ismételve, minden modell ugyanazokon a hajtásokon:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.86rem;text-align:center;max-width:720px">
+    <tr><th style="text-align:left">modell</th><th>mit lát?</th><th>pontosság</th></tr>
+    <tr><td style="text-align:left">mindig „mutagén”</td><td>semmit</td><td>66,5%</td></tr>
+    <tr><td style="text-align:left">atomzsák + logisztikus regresszió</td><td>melyik atomból hány van</td><td><b>86,0% ± 7,2</b></td></tr>
+    <tr><td style="text-align:left">WL-színek (1 kör) + logisztikus regresszió</td><td>atomok + közvetlen szomszédságuk</td><td><b>87,6% ± 7,0</b></td></tr>
+    <tr><td style="text-align:left">MLP a szomszédsági mátrixon (13.2)</td><td>a mátrix, rögzített számozással</td><td>83,7% ± 8,9</td></tr>
+    <tr><td style="text-align:left">ugyanez, átszámozott tesztmolekulákon</td><td></td><td>69,5% ± 8,6</td></tr>
+    <tr><td style="text-align:left">GCN + átlag-kiolvasás</td><td>szerkezet, átlagolva</td><td>74,6% ± 10,3</td></tr>
+    <tr><td style="text-align:left">GIN átlagoló gyűjtéssel + összeg-kiolvasás</td><td>szerkezet, arányok</td><td>78,8% ± 8,7</td></tr>
+    <tr><td style="text-align:left">GIN + átlag-kiolvasás</td><td>szerkezet, méret nélkül</td><td>80,7% ± 7,5</td></tr>
+    <tr><td style="text-align:left">GIN + összeg-kiolvasás (13.5)</td><td>szerkezet, darabszámok</td><td>81,9% ± 7,9</td></tr>
+  </table></div>
+  A GNN-ek (3 réteg, 32 neuron, 150 lépés) itt nincsenek külön hangolva; egy külön hangolási futásban a GIN kb. 85–86%-ig jutott. A GIN kimenete a tesztmolekulák átszámozásakor legfeljebb $4 \cdot 10^{-6}$-nal változott (lebegőpontos kerekítés) – az MLP-é 14 százalékpontot esett.
+</div>
+<div class="widget" data-widget="mutag-lab"></div>
+<p><small>A widget egyetlen keresztvalidációs futás jóslatait mutatja (GIN 80,9%, atomzsák + LR 85,6%, MLP 83,0% → átszámozva 69,5%), ezért a számai kicsit eltérnek a fenti, háromszor ismételt átlagoktól. Az „élő GIN” mind a 188 molekulán tanult – rajta csak kísérletezni lehet, a pontossága (88,8% a saját tanítóhalmazán) nem becslés.</small></p>
+<div class="box example">
+  <span class="box-title">Kísérletek</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Az átszámozás</b> (<a href="#s132-a">13.2</a>): nyomd meg többször az „Átszámozás” gombot. A rajz ugyanaz, az atomok sorszáma más; az MLP valószínűsége ugrál, a GIN-é és az atomzsáké meg sem mozdul.</li>
+    <li><b>Mit tanult a GIN?</b> (<a href="#s136-a">13.6</a>) Az élő GIN-nel cserélj ki egy nitrocsoport nitrogénjét szénre, vagy egy gyűrűs szenet nitrogénre, és figyeld a valószínűséget. Ez nem kémiai magyarázat – csak azt mutatja, mire érzékeny a modell.</li>
+    <li><b>Hol téved?</b> Szűrj a GIN hibáira: a tévesztett molekulák egy része olyan, amelyen az atomzsák is téved – az atomösszetétel alapján „a másik osztályba illenek”.</li>
+  </ol>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Mit tanulunk ebből? – őszintén</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Kis adaton a szórás óriási.</b> Egy hajtásban 18–19 molekula van: egyetlen molekula 5,3–5,6 százalékpont. A ±7–10 pontos szórás mellett a 86,0% és a 81,9% közti különbség nem bizonyít semmit – de azt sem, hogy a GNN jobb.</li>
+    <li><b>A MUTAG-on az atomösszetétel sokat elárul.</b> Ezért ér el az atomzsák 86%-ot. A GNN-ek előnye ott jön ki, ahol a szerkezet (melyik atom hol, mivel kötve) dönt, és sok az adat – pl. a halicin-kísérlet 2335 molekulája vagy a QM9 130&nbsp;000 molekulája (13.10).</li>
+    <li><b>A WL + logisztikus regresszió ugyanazt látja, mint a GIN</b> (13.7: az üzenetküldés ereje a WL-teszté) – és kevés adaton kevesebb paraméterrel jobban általánosít. Ez a gráfos „klasszikus alapvonal”.</li>
+    <li><b>A szabványos benchmarkok korlátai</b> (📅 Bechler-Speicher és társai, ICML 2025): a kis, régi molekulás adatkészleteken mért különbségekből óvatosan kell következtetni.</li>
+  </ul>
+</div>
+
+<h3 id="s1311-c">Válaszok a fejezet kérdéseire</h3>
+<div class="box tip">
+  <span class="box-title">A három rejtvény</span>
+  <ol style="margin:.2rem 0">
+    <li><b>A karateklub:</b> igen – egy kétrétegű GCN két címkéből a 32 ismeretlen tagból 31-et eltalál (<a href="#s134-c">13.4</a>). Az egyetlen „hiba”, a 9-es tag, a barátságai alapján az elnök oldalán állt, mégis az edző klubjába lépett át. (A régi címketerjesztés ugyanezt tudja – jellemzők nélkül a szerkezet a lényeg.)</li>
+    <li><b>Ugyanaz a molekula, más számozás:</b> az MLP a mátrix <em>helyeihez</em> köt súlyokat, ezért a számozási konvenciót tanulja meg (83,7% → 69,5%). Egy GNN halmazokon számol – a rétegei ekvivariánsak, a kiolvasása invariáns –, így a kimenete átszámozáskor nem változik (<a href="#s132">13.2</a>).</li>
+    <li><b>A hatszög és a két háromszög:</b> nem – egy üzenetküldő GNN sem tudja megkülönböztetni őket, mert az 1-WL-teszt sem (<a href="#s137-a">13.7</a>). Egy csúcsjellemző, amely a gráf globális szerkezetéből jön (háromszögek száma, véletlenséta-visszatérés), megoldja (<a href="#s138-b">13.8</a>).</li>
+  </ol>
+  <b>A négy kérdés:</b> (1) a gráfot szomszédsági mátrixszal vagy éllistával írjuk le, de a modellnek a számozástól függetlennek kell lennie – ekvivariáns rétegek, invariáns kiolvasás. (2) A csúcs <b>üzenetküldéssel</b> tanul: összegyűjti a szomszédai vektorait (összeg, átlag, maximum, figyelem), és frissíti a sajátját; $k$ réteg $k$ ugrásnyira lát. (3) Gráfszinten <b>kiolvasással</b> (összeg/átlag a csúcsokon), élszinten <b>két csúcsvektor skaláris szorzatával</b> és negatív mintavétellel. (4) Nem látja, amit az 1-WL sem; sok rétegnél <b>túlsimít</b>, távoli információnál <b>túlnyom</b>, heterofil gráfon félrevezet – ezért kell gondos alapvonal, pozíciókódolás, néha globális figyelem, és 📅 ezért vitatott ma is, mikor éri meg a gráf-Transformer.
+</div>
+<div class="quiz" data-quiz="ai13-1311"></div>
+</section>

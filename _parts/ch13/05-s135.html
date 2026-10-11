@@ -1,0 +1,173 @@
+
+<!-- ===================================================== 13.5 -->
+<section id="s135">
+<h2>13.5 GraphSAGE, GAT, GIN ★★</h2>
+<p>A GCN egy konkrét választás: önhurok, közös súly, fokszámos normalizálás. Mindhárom választásnak ára van. A következő három modell egy-egy korlátot old fel – ugyanabban az üzenetküldő keretben (13.3), csak a gyűjtés vagy a frissítés más.</p>
+
+<h3 id="s135-a">1. lépés: GraphSAGE – külön a saját hang, és mintavétel</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két gond a GCN-nel</span>
+  <b>1.</b> Az elnök (34) saját vektora a 18 tagú átlagban csak 1/18 súlyt kap (<a href="#s134-a">13.4</a>). <b>2.</b> Egy közösségi hálón, ahol mindenkinek 200 ismerőse van, két réteghez $200^2 = 40\,000$ szomszéd-a-szomszédot kellene kiszámolni – csúcsonként. A GraphSAGE (W. Hamilton, R. Ying, J. Leskovec, 2017) mindkettőre egyszerű választ ad: <b>a saját vektort külön kezeli</b>, és a szomszédoknak csak egy <b>véletlen mintáját</b> nézi.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – GraphSAGE-réteg</span>
+  $$\mathbf h_v' = \sigma\Big(\big[\,\mathbf h_v \;\big\|\; \operatorname{AGG}\{\mathbf h_u : u \in S(v)\}\,\big]\, W\Big),$$
+  ahol $\|$ az <b>összefűzés</b> (két vektor egymás után írva), $S(v)$ a szomszédok egy rögzített méretű véletlen mintája (minden lépésben új), az $\operatorname{AGG}$ pedig átlag, elemenkénti maximum (egy kis réteg után) vagy LSTM. Mivel $W$ felső fele a saját, alsó fele a gyűjtött vektort szorozza, ez ugyanaz, mint $\mathbf h_v W_1 + \operatorname{AGG}(\cdot)\, W_2$.
+  <b>Miért?</b> A saját vektor súlya nem függ a fokszámtól, és a költség csúcsonként rögzített: rétegenként legfeljebb $k$ szomszéd. És mivel a modell egy <b>függvényt</b> tanul (jellemzőkből vektort), nem csúcsonkénti táblázatot, <b>induktív</b>: új csúcsra, sőt új gráfra is használható.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – összefűzés a futó példán</span>
+    $\mathbf x = (1;\allowbreak\ 0;\allowbreak\ 0;\allowbreak\ 0;\allowbreak\ 5)$, átlag-gyűjtés, $W = \begin{pmatrix}1\\0{,}5\end{pmatrix}$ (saját súly 1, a szomszédoké 0,5): $h' = x_v + 0{,}5 \cdot m_v = (1;\allowbreak\ 0{,}167;\allowbreak\ 0{,}25;\allowbreak\ 1{,}25;\allowbreak\ 5)$. Emese megtartja az 5-öt, Dávid 1,25-öt hall. A GCN-nel Emeséé 2,5 lett volna.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – mintavétel két rétegben</span>
+    Az eredeti cikk beállítása: 1. szinten 25, 2. szinten 10 szomszéd. Egy célcsúcshoz így legfeljebb $1 + 25 + 25 \cdot 10 = 276$ csúcs kell, akármekkora a gráf – szemben a 200 ismerősös hálón szükséges 40&nbsp;000-rel. A mintából számolt átlag várható értéke a teljes átlag; a mintavétel zajt ad, de nem torzít.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">Nagyban: PinSage a Pinteresten</span>
+  A GraphSAGE ipari változata, a <b>PinSage</b> (R. Ying és társai, 2018) egy kb. <b>3 milliárd</b> csúcsú (képek és táblák) és <b>18 milliárd</b> élű gráfon tanult, 7,5 milliárd tanítópéldán. A szomszédokat nem egyenletesen, hanem rövid véletlen sétákkal választotta (a gyakran meglátogatott szomszéd a „fontos”). A beágyazásokból ajánlások lettek; az A/B-tesztekben 30–100%-kal több felhasználói interakciót hoztak a korábbi módszerekhez képest.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az induktivitáshoz jellemző kell.</b> Ha a csúcsoknak nincs saját jellemzője (csak „kicsoda” one-hot), a GraphSAGE sem tud mit mondani egy új csúcsról.</li>
+    <li><b>Tanításkor minta, kiértékeléskor?</b> A mintavétel zajos kimenetet ad. Kiértékeléskor vagy a teljes szomszédságot használjuk, vagy több minta átlagát – és ezt le kell írni, mert az eredmény függ tőle.</li>
+    <li><b>A maximum- és az LSTM-gyűjtés</b> más tulajdonságú: a maximum nem számol, az LSTM pedig sorrendfüggő (véletlen keveréssel használják, 13.2).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – GraphSAGE</summary>
+  <ol>
+    <li>Számold ki a futó példán $h' = x_v + 0{,}5\, m_v$-t maximum-gyűjtéssel!
+      <details><summary>Megoldás</summary>Maximumok: $(0;\allowbreak\ 1;\allowbreak\ 1;\allowbreak\ 5;\allowbreak\ 0)$. $h' = (1 + 0;\allowbreak\ 0 + 0{,}5;\allowbreak\ 0 + 0{,}5;\allowbreak\ 0 + 2{,}5;\allowbreak\ 5 + 0) = (1;\allowbreak\ 0{,}5;\allowbreak\ 0{,}5;\allowbreak\ 2{,}5;\allowbreak\ 5)$.</details></li>
+    <li>Egy GraphSAGE-réteg 64 dimenziós bemenetből 32 dimenziósat csinál, összefűzéssel. Mekkora $W$, és hány paramétere van (torzítással)?
+      <details><summary>Megoldás</summary>Az összefűzött vektor 128 hosszú, $W$ $128 \times 32$-es: $4096 + 32 = 4128$ paraméter (ugyanannyi, mint a 13.3 $W_1$, $W_2$-es rétegénél).</details></li>
+    <li>Három réteg, szintenként 10 mintával. Legfeljebb hány csúcs kell egy célcsúcs kiszámításához?
+      <details><summary>Megoldás</summary>$1 + 10 + 100 + 1000 = 1111$.</details></li>
+    <li>Miért nem szükséges a GraphSAGE-nél a teljes gráfot a memóriában tartani egy tanítólépéshez?
+      <details><summary>Megoldás</summary>Mert egy mini-köteg célcsúcsaihoz csak a mintavételezett számítási fáik kellenek (pl. 276 csúcs célcsúcsonként). Ezeket a gráftárolóból kikeresve, kis kötegekben lehet tanítani – mint a képeket.</details></li>
+    <li>(nehezebb) Egy csúcsnak 4 szomszédja van, értékeik $(0;\allowbreak\ 0;\allowbreak\ 0;\allowbreak\ 8)$, és 2 szomszédot mintavételezünk (visszatevés nélkül). Mennyi a mintaátlag várható értéke, és mekkora valószínűséggel lesz 0?
+      <details><summary>Megoldás</summary>A mintaátlag várható értéke a teljes átlag: 2. Hat egyformán valószínű pár van; a 8-as 3 párban szerepel (a mintaátlag akkor 4), 3-ban nem (akkor 0). Tehát $1/2$ eséllyel 0, $1/2$ eséllyel 4 – átlagosan 2, de nagy szórással. Ezért zajos a mintavételes tanítás.</details></li>
+  </ol>
+</details>
+
+<h3 id="s135-b">2. lépés: GAT – a szomszédok súlyát figyelem dönti el</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – kire hallgasson Bence?</span>
+  A GCN-ben Bence a szomszédait a fokszámuk alapján súlyozza: Anna, Csilla, Dávid 0,289-del, saját magát 0,25-tel – a tartalomtól függetlenül. De mi van, ha Anna véleménye ebben a kérdésben sokkal fontosabb? Számoljunk minden szomszédra egy <b>pontszámot</b> a vektoraikból, és a softmax (<a href="../02-matematikai-eszkoztar/#s25-d">2.5</a>) döntse el a súlyokat – ahogy a figyelemben (<a href="../12-beagyazasok-figyelem/#s124-b">12.4</a>). Legyen a pontszám $e_{Bu} = \operatorname{LeakyReLU}(0{,}5\, h_B + 1 \cdot h_u)$:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>$u$</th><th>$h_u$</th><th>pontszám $e_{Bu}$</th><th>$\alpha_{Bu}$ (GAT)</th><th>GCN-súly</th><th>átlag</th></tr>
+    <tr><td>A</td><td>1</td><td>1</td><td><b>0,475</b></td><td>0,289</td><td>0,25</td></tr>
+    <tr><td>B</td><td>0</td><td>0</td><td>0,175</td><td>0,25</td><td>0,25</td></tr>
+    <tr><td>C</td><td>0</td><td>0</td><td>0,175</td><td>0,289</td><td>0,25</td></tr>
+    <tr><td>D</td><td>0</td><td>0</td><td>0,175</td><td>0,289</td><td>0,25</td></tr>
+  </table></div>
+  Bence új értéke: GAT $0{,}475 \cdot 1 = 0{,}475$; GCN 0,289; átlag 0,25. A GAT többet ad Annára, mert a pontszáma nagyobb.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – gráffigyelem (GAT; P. Veličković és társai, 2018)</span>
+  $$e_{vu} = \operatorname{LeakyReLU}\big(\mathbf a^\top[\,\mathbf h_v W \,\|\, \mathbf h_u W\,]\big),\qquad \alpha_{vu} = \frac{\exp(e_{vu})}{\sum_{w \in N(v)\cup\{v\}} \exp(e_{vw})},\qquad \mathbf h_v' = \sigma\Big(\sum_{u \in N(v)\cup\{v\}} \alpha_{vu}\, \mathbf h_u W\Big).$$
+  A softmax <b>csak a szomszédokon</b> (és a csúcs önmagán) fut (a 12.5 önfigyelme mindenkin). A pontszám nem skaláris szorzat, hanem egy tanult $\mathbf a$ vektorral vett „összeadó” forma (mint Bahdanau figyelme, 12.4). <b>Több fej:</b> $K$ független figyelemfej, az eredményük összefűzve (rejtett rétegben) vagy átlagolva (kimeneti rétegben).
+  <b>Miért jó?</b> A szomszédok fontossága a <em>tartalmukból</em> jön, nem a fokszámukból – és tanulható.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy erős pontszám</span>
+    Ha a pontszámok $(2;\allowbreak\ 0;\allowbreak\ 0;\allowbreak\ 0)$, a súlyok $\dfrac{e^2}{e^2 + 3} \approx 0{,}711$ és háromszor $0{,}096$. A softmax a legnagyobbat erősen kiemeli, de a többit sem nullázza. A súlyok összege mindig 1.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – Cora</span>
+    Az eredeti cikkben a GAT (8 fej, 8 dimenzió fejenként) a Cora szabványos felosztásán $83{,}0 \pm 0{,}7\%$-ot ért el, a GCN 81,5%-ot. Másfél százalékpont – később kiderült, hogy jó hangolással a különbség el is tűnhet (📅 <a href="#s138-c">13.8</a>).
+  </div>
+</div>
+<div class="widget" data-widget="gat-attention"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A súlyok összege 1 – a fokszám elvész.</b> A GAT súlyozott <em>átlag</em>: két egyforma szomszéd és egy ugyanolyan szomszéd ugyanazt adja. Számolni nem tud (13.5 c).</li>
+    <li><b>„Statikus” figyelem.</b> Az eredeti GAT pontszáma $a_1 \cdot (\ldots h_v) + a_2 \cdot (\ldots h_u)$ alakú, és a LeakyReLU monoton. Ezért a szomszédok <em>rangsorát</em> csak a $h_u$-s tag dönti el – minden $v$ ugyanúgy rangsorol. (A fenti widgetben próbáld ki: $h_B$ változtatása a sorrendet sosem cseréli meg – ha nincs negatív pontszám, még a súlyokat sem változtatja, mert a közös tag a softmaxban kiesik.) A GATv2 (S. Brody és társai, 2022) a sorrendet cseréli meg: előbb nemlinearitás, aztán $\mathbf a$.</li>
+    <li><b>A figyelmi súly nem magyarázat</b> – ugyanaz a figyelmeztetés, mint a 12. fejezetben: azt mutatja, honnan kever a modell, nem azt, miért dönt így.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – GAT</summary>
+  <ol>
+    <li>Pontszámok $(1;\allowbreak\ 1;\allowbreak\ 0)$ három szomszédra. Mennyik a súlyok?
+      <details><summary>Megoldás</summary>$e + e + 1 = 6{,}437$: $(0{,}422;\allowbreak\ 0{,}422;\allowbreak\ 0{,}155)$.</details></li>
+    <li>Az előző súlyokkal és $h = (2;\allowbreak\ 4;\allowbreak\ 10)$ szomszédértékekkel mennyi a GAT kimenete (aktiváció nélkül)?
+      <details><summary>Megoldás</summary>$0{,}422 \cdot 2 + 0{,}422 \cdot 4 + 0{,}155 \cdot 10 \approx 0{,}845 + 1{,}690 + 1{,}554 = 4{,}09$.</details></li>
+    <li>A kiinduló példa pontszámával ($e = \operatorname{LeakyReLU}(0{,}5\,h_v + h_u)$) számold ki Csilla súlyait a szomszédságán (A, B és önmaga)!
+      <details><summary>Megoldás</summary>$h_C = 0$: pontszámok A: 1, B: 0, C: 0. Súlyok: $e/(e+2) \approx 0{,}576$, és kétszer $0{,}212$.</details></li>
+    <li>Hány paramétere van egy GAT-rétegnek, ha $d = 16$, $d' = 8$, egy fej, torzítás nélkül? És 8 fejjel?
+      <details><summary>Megoldás</summary>Egy fej: $W$ $16 \cdot 8 = 128$, $\mathbf a$ $2 \cdot 8 = 16$ – összesen 144. Nyolc fej: $8 \cdot 144 = 1152$.</details></li>
+    <li>(nehezebb) Dávid szomszédsága a kiinduló példa pontszámával: B (0), D (0), E (5). Mennyik a súlyok? Mit mutat ez a GAT-ról, és miért veszélyes?
+      <details><summary>Megoldás</summary>Mivel $h_D = 0$, a pontszám egyszerűen $h_u$: B 0, D 0, E 5. Súlyok: $1/(2 + e^5) \approx 0{,}007$, $0{,}007$ és $e^5/(2 + e^5) \approx 0{,}987$. Dávid szinte csak Emesére figyel. A softmax egy kiugró pontszámra „rákeményedik” (12.5) – a modell egyetlen szomszédra támaszkodik, ami zajos adatnál törékeny; ezért használnak több fejet és dropoutot a figyelmi súlyokon.</details></li>
+  </ol>
+</details>
+
+<h3 id="s135-c">3. lépés: GIN – az összeg tud számolni</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy szén vagy két szén?</span>
+  Egy atom szomszédai: (a) egy szénatom; (b) két szénatom. A szén jellemzője $(1;\allowbreak\ 0)$ (C; O). A három gyűjtés:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>szomszédok</th><th>összeg</th><th>átlag</th><th>maximum</th></tr>
+    <tr><td>{C}</td><td>$(1;\allowbreak\ 0)$</td><td>$(1;\allowbreak\ 0)$</td><td>$(1;\allowbreak\ 0)$</td></tr>
+    <tr><td>{C, C}</td><td>$(2;\allowbreak\ 0)$</td><td>$(1;\allowbreak\ 0)$</td><td>$(1;\allowbreak\ 0)$</td></tr>
+    <tr><td>{C, O}</td><td>$(1;\allowbreak\ 1)$</td><td>$(0{,}5;\allowbreak\ 0{,}5)$</td><td>$(1;\allowbreak\ 1)$</td></tr>
+    <tr><td>{C, C, O, O}</td><td>$(2;\allowbreak\ 2)$</td><td>$(0{,}5;\allowbreak\ 0{,}5)$</td><td>$(1;\allowbreak\ 1)$</td></tr>
+  </table></div>
+  Az átlag az <b>arányokat</b> látja (a {C, O} és a {C, C, O, O} egyforma), a maximum csak azt, <b>mi fordul elő</b> (a {C} és a {C, C}, illetve a {C, O} és a {C, C, O, O} egyforma). Csak az összeg különbözteti meg mind a négyet – egy molekulában pedig nagyon nem mindegy, hány szomszédja van egy atomnak.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – GIN (K. Xu és társai, 2019)</span>
+  $$\mathbf h_v' = \operatorname{MLP}\Big((1 + \varepsilon)\,\mathbf h_v + \sum_{u \in N(v)} \mathbf h_u\Big),$$
+  ahol $\varepsilon$ egy (tanulható vagy 0) szám, az MLP pedig egy kis, kétrétegű háló. <b>Miért összeg + MLP?</b> Az összeg (megszámlálható, pl. one-hot jellemzőknél) a szomszédok <b>multihalmazát</b> – mi hányszor fordul elő – egyértelműen kódolja; az MLP pedig (az univerzális approximációs tétel szerint, <a href="../09-neuralis-halozatok/#s95-b">9.5</a>) bármilyen függvényt megtanulhat belőle. <b>Tétel</b> (Xu és társai; C. Morris és társai, 2019): <em>egy üzenetküldő GNN legfeljebb annyi gráfot tud megkülönböztetni, mint a Weisfeiler–Leman-teszt, és a GIN ezt el is éri.</em> A tétel jelentése a <a href="#s137-a">13.7</a>-ben jön.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – két multihalmaz, ugyanaz az összeg</span>
+    Skalár jellemzőkkel az összeg sem mindenható: a $\{0, 2\}$ és az $\{1, 1\}$ összege is 2. Ezért kell az <b>MLP az összeg előtt</b> is (az előző réteg MLP-je „kódolja” a jellemzőt): ha a 0, 1, 2 értékeket one-hot vektorokká alakítjuk, az összeg $(1;\allowbreak\ 0;\allowbreak\ 1)$ és $(0;\allowbreak\ 2;\allowbreak\ 0)$ – már különbözik.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – molekulákon (valódi adat)</span>
+    A MUTAG 188 molekuláján, ugyanazzal a beállítással: GCN átlagoló kiolvasással <b>74,6%</b>, GIN összegző kiolvasással <b>81,9%</b> (10-szeres keresztvalidáció, 3 ismétlés). A GIN-t átlagoló gyűjtéssel futtatva 78,8%. Az összeg itt mérhetően segít (részletek: <a href="#s1311-b">13.11</a>).
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">Melyiket válaszd? – döntési táblázat</span>
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;max-width:720px">
+    <tr><th>ha…</th><th>…akkor</th><th>miért</th></tr>
+    <tr><td>csúcsosztályozás, homofil gráf (a szomszédok hasonlók), első próbálkozás</td><td><b>GCN</b></td><td>egyszerű, gyors, erős alapvonal</td></tr>
+    <tr><td>nagy gráf, új csúcsok jönnek, mini-köteg kell</td><td><b>GraphSAGE</b></td><td>mintavétel, induktív, külön saját súly</td></tr>
+    <tr><td>a szomszédok fontossága eltérő, a tartalomtól függ</td><td><b>GAT</b> (inkább GATv2)</td><td>tanult súlyok a szomszédokra</td></tr>
+    <tr><td>gráfszintű feladat (molekula), számít a szerkezet és a darabszám</td><td><b>GIN</b></td><td>összeg + MLP, a WL-teszt erejéig kifejező</td></tr>
+    <tr><td>éljellemzők (kötéstípus, távolság) fontosak</td><td>általános <b>MPNN</b> élfüggő üzenettel</td><td>$\psi(\mathbf h_u, \mathbf e_{uv})$ az üzenetben</td></tr>
+  </table></div>
+  <b>Hüvelykujjszabály: a gyűjtőfüggvényt a feladat dönti el.</b> Arány számít (vélemény, téma) → átlag; darabszám számít (kémia, szerkezet) → összeg; elég, ha valami előfordul (van-e csaló a szomszédok közt) → maximum.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az összeg nagy fokszámnál elszállhat</b> (13.4) – ezért a GIN-ben kötegnormalizálás (<a href="../10-halo-tanitasa/#s106-c">10.6</a>) szokott lenni az MLP-ben.</li>
+    <li><b>A kifejezőbb modell nem mindig jobb.</b> Kis adaton (188 molekula) a nagyobb kifejezőerő könnyen túlillesztést jelent. A Cora-féle témaosztályozáshoz a GCN átlagolása pont jó.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – GIN és a gyűjtőfüggvények</summary>
+  <ol>
+    <li>Melyik gyűjtés különbözteti meg a $\{3\}$ és a $\{3, 3, 3\}$ multihalmazt?
+      <details><summary>Megoldás</summary>Csak az összeg (3 vs. 9). Az átlag (3, 3) és a maximum (3, 3) nem.</details></li>
+    <li>Melyik gyűjtés különbözteti meg az $\{1, 3\}$ és a $\{2, 2\}$ multihalmazt (skalár értékekkel)?
+      <details><summary>Megoldás</summary>Csak a maximum (3 vs. 2). Az összeg (4, 4) és az átlag (2, 2) nem. Skalár értékeknél tehát egyik gyűjtés sem tökéletes – ezért kódolja az MLP több dimenzióba a jellemzőt.</details></li>
+    <li>Számold ki a GIN gyűjtését ($\varepsilon = 0$) a futó példán $\mathbf x = (1;\allowbreak\ 0;\allowbreak\ 0;\allowbreak\ 0;\allowbreak\ 5)$-re (az MLP előtt)!
+      <details><summary>Megoldás</summary>$x_v + \sum_{u} x_u$: $(1 + 0;\allowbreak\ 0 + 1;\allowbreak\ 0 + 1;\allowbreak\ 0 + 5;\allowbreak\ 5 + 0) = (1;\allowbreak\ 1;\allowbreak\ 1;\allowbreak\ 5;\allowbreak\ 5)$ – ugyanaz, mint $(A + I)\mathbf x$.</details></li>
+    <li>Egy atom szomszédai one-hot (C, N, O) jellemzőkkel: két C és egy O. Mi az összeg és az átlag?
+      <details><summary>Megoldás</summary>Összeg $(2;\allowbreak\ 0;\allowbreak\ 1)$, átlag $(0{,}667;\allowbreak\ 0;\allowbreak\ 0{,}333)$.</details></li>
+    <li>(nehezebb) Egy csalásfelderítő modellben az a kérdés, hogy egy számla küldött-e pénzt <b>legalább egy</b> ismert csalónak. Melyik gyűjtés illik ide, és miért rossz itt az átlag?
+      <details><summary>Megoldás</summary>A maximum (a „csaló-e” jelzőn): ha bármelyik szomszéd csaló, 1. Az átlag „felhígítja” a jelet: egy csaló 100 tisztességes partner között $1/101 \approx 0{,}01$ – a modell nehezen különbözteti meg a nullától, pedig a kérdésre a válasz egyértelműen „igen”. (Az összeg is működne: 1 vs. 0.)</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai13-135"></div>
+</section>

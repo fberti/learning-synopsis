@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>13. Gráf neurális hálók – Mesterséges intelligencia – Synopsis</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="../../assets/common.js"></script>
+  <script defer src="../../assets/quiz.js"></script>
+  <script defer src="../../assets/calc.js"></script>
+  <script defer src="graph-data.js"></script>
+  <script defer src="cora-data.js"></script>
+  <script defer src="mutag-data.js"></script>
+  <script defer src="widgets.js"></script>
+  <script defer src="quizzes.js"></script>
+</head>
+<body>
+<div class="progressbar"></div>
+<header class="topbar">
+  <a class="brand" href="../../">📚 Synopsis</a>
+  <span class="crumbs"><a href="../../">Tartalomjegyzék</a> › <a href="../">Mesterséges intelligencia</a> › 13. fejezet</span>
+  <button class="icon-btn" data-theme-toggle title="Téma váltása">🌙</button>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <div class="toc-title">13. fejezet</div>
+  <ol>
+    <li><a href="#s131">13.1 Gráfok mint adat</a></li>
+    <li><a href="#s132">13.2 Miért nem elég az MLP?</a></li>
+    <li><a href="#s133">13.3 Üzenetküldés</a></li>
+    <li><a href="#s134">13.4 Gráfkonvolúciós háló (GCN)</a></li>
+    <li><a href="#s135">13.5 GraphSAGE, GAT, GIN</a></li>
+    <li><a href="#s136">13.6 Csúcs, él, gráf – a kimenet</a></li>
+    <li><a href="#s137">13.7 Mennyit tud egy GNN?</a></li>
+    <li><a href="#s138">13.8 Gráf-Transformerek</a></li>
+    <li><a href="#s139">13.9 Geometriai GNN-ek</a></li>
+    <li><a href="#s1310">13.10 Alkalmazások, gráfok és LLM-ek</a></li>
+    <li><a href="#s1311">13.11 Alkalmazás: hivatkozások és molekulák</a>
+      <ol>
+        <li><a href="#s1311-a">Cora: cikkek és hivatkozások</a></li>
+        <li><a href="#s1311-b">MUTAG: mutagén-e a molekula?</a></li>
+        <li><a href="#s1311-c">Válaszok a fejezet kérdéseire</a></li>
+      </ol>
+    </li>
+    <li><a href="#s-sum">Összefoglalás</a></li>
+    <li><a href="#s-check">Ellenőrző kérdések</a></li>
+    <li><a href="#s-ex">Vegyes gyakorló feladatok</a></li>
+    <li><a href="#s-final">Fejezetzáró teszt</a></li>
+    <li><a href="#s-gloss">Szómagyarázó</a></li>
+  </ol>
+</nav>
+
+<main class="content">
+
+<section class="hero" style="padding-top:.5rem">
+  <div class="kicker">Mesterséges intelligencia · 13. fejezet · ★★–★★★</div>
+  <h1>Gráf neurális hálók</h1>
+  <p class="lead">A <a href="../11-konvolucios-halok/">11. fejezet</a> hálói rácsot néztek: minden pixelnek ugyanannyi szomszédja van, és tudjuk, melyik van fölötte. A <a href="../12-beagyazasok-figyelem/">12. fejezet</a> hálói sorozatot: minden tokennek van egy előzője és egy következője. A világ sok adata egyik sem. Egy molekulában az atomok kötésekkel kapcsolódnak, egy közösségi hálóban az emberek barátsággal, egy úthálózatban a kereszteződések utakkal. Ezek <b>gráfok</b>: tetszőleges számú szomszéd, semmi „bal felső sarok”, semmi „első elem”.
+  Ebben a fejezetben felépítjük a <b>gráf neurális hálót</b> (GNN). Az ötlete egyetlen mondat: <b>minden csúcs a szomszédaitól tanul</b>. Ebből lesz a gyógyszerkutatás molekulamodellje, a Google Maps érkezésiidő-becslője és egy ma is használt időjárás-előrejelző.</p>
+</section>
+
+<div class="box tip">
+  <span class="box-title">Mit fogsz megtanulni?</span>
+  <ul style="margin:.2rem 0">
+    <li>hogyan írunk le egy <b>gráfot</b> számokkal (szomszédsági mátrix, lista), és milyen <b>feladatok</b> vannak rajta (csúcs, él, egész gráf);</li>
+    <li>miért bukik el az MLP a gráfon: a csúcsok <b>számozása</b> önkényes, a modellnek ettől <b>függetlennek</b> kell lennie;</li>
+    <li>mi az <b>üzenetküldés</b>: gyűjtés a szomszédoktól, aztán frissítés – minden GNN közös váza;</li>
+    <li>hogyan működik a <b>GCN</b>, a <b>GraphSAGE</b>, a <b>GAT</b> és a <b>GIN</b>, és mikor melyiket válaszd;</li>
+    <li>hogyan lesz a csúcsvektorokból <b>gráfvektor</b> (molekula) vagy <b>kapcsolat-előrejelzés</b> (ajánlás);</li>
+    <li>mit <b>nem</b> tud egy GNN: a <b>Weisfeiler–Lehman-teszt</b>, a <b>túlsimítás</b> és a <b>túlnyomás</b>;</li>
+    <li>hogyan kapcsolódik a GNN a <b>Transformerhez</b>, mi a <b>geometriai</b> GNN, és hol tart ma a terület (📅 2026).</li>
+  </ul>
+</div>
+
+<div class="box">
+  <span class="box-title">🔁 Amit használni fogunk</span>
+  A <a href="../02-matematikai-eszkoztar/">2. fejezetből</a>: a mátrix–vektor és a mátrix–mátrix szorzás (<a href="../02-matematikai-eszkoztar/#s22-c">2.2</a>), a sajátvektor (<a href="../02-matematikai-eszkoztar/#s24-b">2.4</a>), a softmax (<a href="../02-matematikai-eszkoztar/#s25-d">2.5</a>).
+  Az <a href="../05-osztalyozas/">5. fejezetből</a>: a logisztikus regresszió és a szigmoid (<a href="../05-osztalyozas/#s53-b">5.3</a>).
+  A <a href="../06-modellertekeles/">6. fejezetből</a>: a felosztások és a keresztvalidáció (<a href="../06-modellertekeles/#s64-b">6.4</a>, <a href="../06-modellertekeles/#s65-a">6.5</a>).
+  A <a href="../08-felugyelet-nelkuli-tanulas/">8. fejezetből</a>: a mátrixfaktorizációs ajánló (<a href="../08-felugyelet-nelkuli-tanulas/#s86-c">8.6</a>).
+  A <a href="../09-neuralis-halozatok/">9.</a> és a <a href="../10-halo-tanitasa/">10. fejezetből</a>: a réteg mátrixalakja (<a href="../09-neuralis-halozatok/#s93-b">9.3</a>), a ReLU, a keresztentrópia, az Adam és a normalizálás (<a href="../10-halo-tanitasa/#s106-c">10.6</a>).
+  A <a href="../11-konvolucios-halok/">11. fejezetből</a>: a súlymegosztás és a recepciós mező (<a href="../11-konvolucios-halok/#s113-c">11.3</a>), a maradékkapcsolat (<a href="../11-konvolucios-halok/#s114-c">11.4</a>).
+  A <a href="../12-beagyazasok-figyelem/">12. fejezetből</a>: a word2vec (<a href="../12-beagyazasok-figyelem/#s122-c">12.2</a>), az önfigyelem és a pozíciókódolás (<a href="../12-beagyazasok-figyelem/#s125-a">12.5</a>).
+  <br><small>Jelölések: ★ alap · ★★ közép · ★★★ haladó (kihagyható). A 📐 jelű lenyílók levezetéseket rejtenek, a 🐍 jelűek rövid Python-kódot – a továbbhaladáshoz egyik sem kell. A 📅 jelű dobozok a terület mai állását írják le (2026. október), forrással.
+  $n$ a csúcsok, $|E|$ az élek száma; $A$ a szomszédsági mátrix; $N(v)$ a $v$ csúcs szomszédainak halmaza, $\deg(v)$ a fokszáma; $\mathbf h_v$ a $v$ csúcs vektora. A vektorok sorvektorok, ahogy a 12. fejezetben: a csúcsok vektorai egy $n \times d$-s $H$ mátrix sorai.</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">🎯 A fejezet kérdése – hogyan tanul egy gép abból, hogy mi mivel van összekötve?</span>
+  Három rejtvény, mind valódi adatokkal.
+  <div class="two-col" style="margin-top:.4rem">
+    <div>
+      <b>1. A kettévált karateklub.</b><br>
+      W. Zachary 1970 és 1972 között egy amerikai egyetemi karateklubot figyelt meg: 34 tag, 78 baráti kapcsolat (ki kivel találkozott az edzéseken kívül is). Az edző és az elnök összeveszett, a klub kettévált. Tegyük fel, hogy <b>csak két ember</b> oldalát tudod: az edzőét és az elnökét. Kitalálható-e a többi 32 ember döntése pusztán abból, ki kivel barátkozott?
+    </div>
+    <div>
+      <b>2. Ugyanaz a molekula, más számozás.</b><br>
+      188 nitrovegyület: mindegyikről tudjuk, mutagén-e (károsítja-e egy baktérium DNS-ét). Egy MLP-t a molekulák szomszédsági mátrixán tanítottunk; a tesztmolekulák <b>83,7%</b>-át eltalálja. Most csak <b>átszámozzuk</b> a tesztmolekulák atomjait – a molekulák ugyanazok. Az MLP találati aránya <b>69,5%</b>-ra esik.
+    </div>
+  </div>
+  <div style="margin-top:.4rem"><b>3. A hatszög és a két háromszög.</b> Az egyik gráf egy hatszög (mint a benzolgyűrű), a másik két különálló háromszög. Mindkettőben 6 csúcs és 6 él van, és <b>minden</b> csúcsnak pontosan két szomszédja. Meg tudja-e különböztetni őket egy gráf neurális háló?</div>
+  Négy kérdés:
+  <ol style="margin:.3rem 0">
+    <li>Hogyan írjunk le egy gráfot <b>számokkal</b> – és miért nem szabad, hogy a csúcsok <b>számozása</b> számítson?</li>
+    <li>Hogyan „tanulhat” egy csúcs a <b>szomszédaitól</b>, és hogyan lesz ebből tanítható háló?</li>
+    <li>Hogyan lesz a csúcsokból egy <b>egész molekulára</b> vonatkozó válasz, vagy egy <b>ajánlás</b> (ki mit vesz meg, ki kit ismerhet)?</li>
+    <li>Mit <b>nem lát</b> egy ilyen háló – és mit kezd ezzel ma a kutatás?</li>
+  </ol>
+  A fejezet végén (<a href="#s1311">13.11</a>) egy valódi hivatkozási hálón és a 188 molekulán hasonlítod össze a modelleket, és mindhárom rejtvényre visszatérünk.
+</div>
+
+<p><b>Útiterv</b> – lépésről lépésre, az egyszerűtől a bonyolultig:</p>
+<ol>
+  <li><b>A gráf mint adat</b>
+    <ol>
+      <li><a href="#s131">Gráfok mint adat</a>: csúcsok és élek; mátrix és lista; csúcs-, él- és gráfszintű feladatok.</li>
+      <li><a href="#s132">Miért nem elég az MLP?</a> A számozás csapdája; invariancia és ekvivariancia; régi megoldások.</li>
+    </ol></li>
+  <li><b>Üzenetküldés</b>
+    <ol start="3">
+      <li><a href="#s133">Üzenetküldés</a>: egy lépés kézzel; $k$ réteg = $k$ ugrás; mátrixalak.</li>
+      <li><a href="#s134">GCN</a>: önhurok; normalizálás; tanítás két címkéből.</li>
+      <li><a href="#s135">GraphSAGE, GAT, GIN</a>: mintavételezés, figyelem, összeg + MLP.</li>
+    </ol></li>
+  <li><b>Feladatok és korlátok</b>
+    <ol start="6">
+      <li><a href="#s136">Csúcs, él, gráf</a>: kiolvasás; kapcsolat-előrejelzés; tanítás és adatszivárgás.</li>
+      <li><a href="#s137">Mennyit tud egy GNN?</a> A WL-teszt; túlsimítás; túlnyomás és heterofília. ★★★</li>
+    </ol></li>
+  <li><b>Kitekintés</b> ★★★
+    <ol start="8">
+      <li><a href="#s138">Gráf-Transformerek</a>: a Transformer mint GNN; pozíciókódolás gráfon; mikor éri meg?</li>
+      <li><a href="#s139">Geometriai GNN-ek</a>: 3D molekulák, invariancia és ekvivariancia; egy közös nézőpont.</li>
+      <li><a href="#s1310">Alkalmazások</a>: tudomány, ipar, gráfok és nagy nyelvi modellek. 📅</li>
+    </ol></li>
+  <li><b>Összerakva</b>
+    <ol start="11">
+      <li><a href="#s1311">Alkalmazás</a>: hivatkozási háló és molekulák – alapvonalak és GNN-ek.</li>
+    </ol></li>
+</ol>
