@@ -1,0 +1,11 @@
+import numpy as np
+def cov(x,y): x=np.array(x,float);y=np.array(y,float); return ((x-x.mean())*(y-y.mean())).mean()
+def r(x,y): x=np.array(x,float);y=np.array(y,float); return cov(x,y)/x.std()/y.std()
+T=np.array([-1,1,6,12,17,21,23,22,18,11,5,0])
+F=np.array([3,2,9,20,38,44,47,41,35,18,8,4])
+D=np.array([0,1,0,2,5,7,5,7,6,3,1,0])
+print("rFD",r(F,D),"rTF",r(T,F),"rTD",r(T,D))
+rFD,rTF,rTD=r(F,D),r(T,F),r(T,D)
+print("partial",(rFD-rTF*rTD)/np.sqrt((1-rTF**2)*(1-rTD**2)))
+w=T>=17; print("warm r",r(F[w],D[w]),r(T[w],D[w]), F[w],D[w],T[w]); c=T<=6; print("cold r", r(F[c],D[c]),F[c],D[c])
+print(F.sum(),D.sum(),F.mean(),D.mean())

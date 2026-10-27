@@ -31,7 +31,9 @@ synopsis/
 ├── matematikai-statisztika/
 │   ├── index.html                  ← a témakör fejezetlistája
 │   ├── TERV.md                     ← a 14 fejezet részletes kidolgozási terve
-│   └── 01-adatok-populacio-minta/  ← index.html, widgets.js, quizzes.js
+│   ├── 01-adatok-populacio-minta/  ← index.html, widgets.js, quizzes.js
+│   ├── 02-egy-valtozo-leirasa/     ← (ugyanígy)
+│   └── 03-ket-valtozo-kapcsolata/  ← (ugyanígy)
 ├── analizis/
 │   ├── index.html                  ← a témakör fejezetlistája
 │   ├── TERV.md                     ← a 11 fejezet részletes kidolgozási terve

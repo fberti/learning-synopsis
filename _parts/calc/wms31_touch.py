@@ -1,0 +1,20 @@
+import sys
+from playwright.sync_api import sync_playwright
+with sync_playwright() as p:
+    b = p.chromium.launch(); ctx = b.new_context(viewport={"width": 380, "height": 800}, has_touch=True, is_mobile=True)
+    pg = ctx.new_page(); errs = []; pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.goto(f"http://127.0.0.1:{sys.argv[1]}/_parts/ms3/wtest1.html"); pg.wait_for_timeout(1200)
+    cv = pg.locator("#w-sd canvas"); cv.scroll_into_view_if_needed(); bb = cv.bounding_box()
+    w, H = bb["width"], bb["height"]; print("canvas", w, H)
+    X = lambda x: bb["x"] + 46 + x / 10 * (w - 14 - 46); Y = lambda y: bb["y"] + 18 + (100 - y) / 70 * (H - 38 - 18)
+    pg.evaluate("window._ev=[]; document.querySelector('#w-sd canvas').addEventListener('pointermove', e => _ev.push([e.pointerType, Math.round(e.clientX), Math.round(e.clientY)]))")
+    print("targets", [round(X(5 + k * 0.5)) for k in range(8)], round(Y(40)))
+    s = ctx.new_cdp_session(pg)
+    t = lambda typ, x, y: s.send("Input.dispatchTouchEvent", {"type": typ, "touchPoints": [] if typ == "touchEnd" else [{"x": x, "y": y}]})
+    t("touchStart", X(5), Y(68))
+    for k in range(1, 8): t("touchMove", X(5 + k * 0.5), Y(68 - k * 4))
+    t("touchEnd", 0, 0); pg.wait_for_timeout(200)
+    print(pg.eval_on_selector_all("#w-sd .stat .v", "e => e.map(x => x.innerText)"))
+    print(pg.evaluate("_ev"), pg.evaluate("window._w1p")); print("rect", pg.evaluate("JSON.stringify(document.querySelector('#w-sd canvas').getBoundingClientRect())"), bb, pg.evaluate("[innerWidth, visualViewport.scale, visualViewport.offsetLeft]")); print("scrollY", pg.evaluate("scrollY"), "errs", errs)
+    pg.locator("#w-sd").screenshot(path="_parts/ms3/shots1/touch-380-w-sd.png")
+    b.close()
