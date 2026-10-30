@@ -310,6 +310,11 @@ előkészítése.
 ### Kvízek
 `gh2-21` … `gh2-27`, `gh2-final`.
 
+> ✅ **Elkészült** (`02-setak-utak-fak/`, 2026-10-30). 8 szakasz (+ 2.8 Alkalmazás), kvízek `gh2-21` … `gh2-28`, `gh2-final` (69 kérdés), 7 widget:
+> `path-enumerator`, `components`, `bfs-animator`, `dijkstra-step`, `spanning-tree`, `euler-trail`, `walk-counter`. A „vonal” (trail) fogalma is bekerült.
+> Árvízhét: átmérő 3, sugár 2, központ {Ko, Vi, Po}, átlagos úthossz 36/21; Po elvágó csúcs, híd nincs; Ko nélkül átmérő 4; nyitott Euler-vonal Vi→Sz;
+> Hamilton-út van, -kör nincs; 4 háromszög. A szereplőrövidítések a képletekben `\mathrm{…}` / `\text{Ön}` alakban (KaTeX). Összeállítás: `_parts/gh2/build.sh`.
+
 ### Csapdák
 Séta ≠ út · a súly erősség vagy távolság? · a nem összefüggő gráf átmérője végtelen (a programok gyakran csendben az
 óriáskomponensen számolnak) · „hat lépés” ≠ „bárki elérhető” (a kereshetőség más kérdés).

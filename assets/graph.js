@@ -269,14 +269,34 @@
       for (let i = this.nodes.length - 1; i >= 0; i--) { const [nx, ny] = this.px(this.nodes[i]); if (Math.hypot(nx - x, ny - y) <= r) return i; }
       return -1;
     }
+    /* az i-edik él geometriája: végpontok, ív esetén a kontrollpont (cx, cy), és a felezőpont (mx, my) a görbén */
+    edgeGeom(i) {
+      const e = this.edges[i], k = edgeKey(e.a, e.b);
+      const [x1, y1] = this.px(this.nodes[e.a]), [x2, y2] = this.px(this.nodes[e.b]);
+      const g = this.edges.reduce((acc, f, j) => (edgeKey(f.a, f.b) === k ? acc.concat(j) : acc), []);
+      const off = (g.indexOf(i) - (g.length - 1) / 2) * 18;
+      if (e.a === e.b || off === 0) return { x1, y1, x2, y2, cx: null, cy: null, mx: (x1 + x2) / 2, my: (y1 + y2) / 2 };
+      const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, dx = x2 - x1, dy = y2 - y1, d = Math.hypot(dx, dy) || 1, s = e.a < e.b ? 1 : -1;
+      const cx = mx - dy / d * off * 2 * s, cy = my + dx / d * off * 2 * s;
+      return { x1, y1, x2, y2, cx, cy, mx: 0.25 * x1 + 0.5 * cx + 0.25 * x2, my: 0.25 * y1 + 0.5 * cy + 0.25 * y2 };
+    }
     _hitEdge(x, y) {
-      let best = -1, bd = 7;
-      this.edges.forEach((e, i) => {
-        if (e.a === e.b) return;
-        const [x1, y1] = this.px(this.nodes[e.a]), [x2, y2] = this.px(this.nodes[e.b]);
+      let best = -1, bd = this.o.edgeHitTol || 7;
+      const seg = (x1, y1, x2, y2) => {
         const dx = x2 - x1, dy = y2 - y1, L2 = dx * dx + dy * dy || 1;
         const t = Math.max(0, Math.min(1, ((x - x1) * dx + (y - y1) * dy) / L2));
-        const d = Math.hypot(x - (x1 + t * dx), y - (y1 + t * dy));
+        return Math.hypot(x - (x1 + t * dx), y - (y1 + t * dy));
+      };
+      this.edges.forEach((e, i) => {
+        if (e.a === e.b) return;
+        const G = this.edgeGeom(i);
+        let d;
+        if (G.cx === null) d = seg(G.x1, G.y1, G.x2, G.y2);
+        else {                                                   // ív: 16 szakasszal közelítve
+          d = Infinity;
+          const q = t => [(1 - t) * (1 - t) * G.x1 + 2 * (1 - t) * t * G.cx + t * t * G.x2, (1 - t) * (1 - t) * G.y1 + 2 * (1 - t) * t * G.cy + t * t * G.y2];
+          for (let s = 0; s < 16; s++) { const [ax, ay] = q(s / 16), [bx, by] = q((s + 1) / 16); d = Math.min(d, seg(ax, ay, bx, by)); }
+        }
         if (d < bd) { bd = d; best = i; }
       });
       return best;
@@ -297,13 +317,14 @@
           this.nodes[drag].x = Math.max(r, Math.min(this.w - r, x)) / this.w;
           this.nodes[drag].y = Math.max(r, Math.min(this.h - r, y)) / this.h;
           this.draw();
-        } else this.c.style.cursor = this._hitNode(x, y) >= 0 ? "pointer" : (this.o.editable && this._hitEdge(x, y) >= 0 ? "not-allowed" : (this.o.editable ? "crosshair" : "default"));
+        } else this.c.style.cursor = this._hitNode(x, y) >= 0 || (this.o.onEdgeClick && this._hitEdge(x, y) >= 0) ? "pointer" : (this.o.editable && this._hitEdge(x, y) >= 0 ? "not-allowed" : (this.o.editable ? "crosshair" : "default"));
       });
       this.c.addEventListener("pointerup", ev => {
         const [x, y] = pos(ev);
         const d = drag; drag = -1;
         if (moved) { this.o.onMove && this.o.onMove(this); return; }
         if (this.o.onNodeClick && d >= 0) { this.o.onNodeClick(d, this); return; }
+        if (this.o.onEdgeClick && d < 0) { const ei = this._hitEdge(x, y); if (ei >= 0) { this.o.onEdgeClick(ei, this); return; } }
         if (!this.o.editable) return;
         if (d >= 0) {
           if (this.sel < 0) this.sel = d;
@@ -330,29 +351,34 @@
       // élek (a többszöröseket ívben)
       const groups = {};
       this.edges.forEach((e, i) => { const k = edgeKey(e.a, e.b); (groups[k] = groups[k] || []).push(i); });
+      /* élenkénti, opcionális mezők: color (szín vagy CSS-változó), width (vonalvastagság), dash (pl. [6, 4]),
+         label (a súly helyett kiírt szöveg, showWeights mellett) */
       this.edges.forEach((e, i) => {
-        const k = edgeKey(e.a, e.b), on = this.hlE.has(k);
+        const k = edgeKey(e.a, e.b), on = this.hlE.has(k), ec = e.color ? color(e.color) : null;
         const [x1, y1] = this.px(this.nodes[e.a]), [x2, y2] = this.px(this.nodes[e.b]);
-        ctx.strokeStyle = on ? accent : (anyHL ? border : muted);
-        ctx.globalAlpha = anyHL && !on ? 0.7 : 1;
-        ctx.lineWidth = (this.o.showWeights || this.o.weightWidth ? 1.3 + 2.4 * (e.w || 1) / maxW * (maxW > 1 ? 1.4 : 1) : 2) + (on ? 1 : 0);
+        ctx.strokeStyle = ec || (on ? accent : (anyHL ? border : muted));
+        ctx.globalAlpha = anyHL && !on && !ec ? 0.7 : 1;
+        ctx.lineWidth = e.width != null ? e.width : (this.o.showWeights || this.o.weightWidth ? 1.3 + 2.4 * (e.w || 1) / maxW * (maxW > 1 ? 1.4 : 1) : 2) + (on ? 1 : 0);
+        if (e.dash) ctx.setLineDash(e.dash);
         ctx.beginPath();
-        if (e.a === e.b) { ctx.arc(x1, y1 - r - 8, 10, 0, 2 * Math.PI); ctx.stroke(); ctx.globalAlpha = 1; return; }
-        const g = groups[k], j = g.indexOf(i), off = (j - (g.length - 1) / 2) * 18;
+        if (e.a === e.b) { ctx.arc(x1, y1 - r - 8, 10, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1; return; }
+        const G = groups[k].length > 1 ? this.edgeGeom(i) : { cx: null, mx: (x1 + x2) / 2, my: (y1 + y2) / 2 };
         ctx.moveTo(x1, y1);
-        if (off === 0) ctx.lineTo(x2, y2);
-        else {
-          const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, dx = x2 - x1, dy = y2 - y1, d = Math.hypot(dx, dy) || 1, s = e.a < e.b ? 1 : -1;
-          ctx.quadraticCurveTo(mx - dy / d * off * 2 * s, my + dx / d * off * 2 * s, x2, y2);
-        }
+        if (G.cx === null) ctx.lineTo(x2, y2);
+        else ctx.quadraticCurveTo(G.cx, G.cy, x2, y2);
         ctx.stroke();
+        ctx.setLineDash([]);
         ctx.globalAlpha = 1;
-        if (this.o.showWeights && (e.w || 1) > 0) {
-          const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
-          ctx.fillStyle = card; ctx.strokeStyle = border; ctx.lineWidth = 1;
-          ctx.beginPath(); ctx.arc(mx, my, 9, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+        if (this.o.showWeights && (e.label != null ? e.label !== "" : (e.w || 1) > 0)) {
+          const mx = G.mx, my = G.my, lab = e.label != null ? String(e.label) : String(e.w);
+          const rw = lab.length <= 2 ? 9 : 3.4 * lab.length + 4.5;
+          ctx.fillStyle = card; ctx.strokeStyle = ec || border; ctx.lineWidth = 1;
+          ctx.beginPath();
+          if (rw <= 9) ctx.arc(mx, my, 9, 0, 2 * Math.PI);
+          else { ctx.moveTo(mx - rw + 9, my - 9); ctx.lineTo(mx + rw - 9, my - 9); ctx.arc(mx + rw - 9, my, 9, -Math.PI / 2, Math.PI / 2); ctx.lineTo(mx - rw + 9, my + 9); ctx.arc(mx - rw + 9, my, 9, Math.PI / 2, 3 * Math.PI / 2); }
+          ctx.fill(); ctx.stroke();
           ctx.fillStyle = text; ctx.font = "600 11px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-          ctx.fillText(String(e.w), mx, my + 0.5);
+          ctx.fillText(lab, mx, my + 0.5);
         }
       });
       // csúcsok
@@ -372,6 +398,7 @@
         ctx.fillText(lab, x, y + 0.5);
         if (n.badge != null) {                                   // pl. fokszám a csúcs mellett
           ctx.font = "600 11px system-ui, sans-serif"; ctx.fillStyle = accent;
+          ctx.lineWidth = 3; ctx.strokeStyle = card; ctx.strokeText(String(n.badge), x + r + 7, y - r + 2);   // háttér-körvonal: élen is olvasható
           ctx.fillText(String(n.badge), x + r + 7, y - r + 2);
         }
         if (n.sub) { ctx.font = "11px system-ui, sans-serif"; ctx.lineWidth = 3; ctx.strokeStyle = card; ctx.strokeText(n.sub, x, y + r + 10); ctx.fillStyle = muted; ctx.fillText(n.sub, x, y + r + 10); }

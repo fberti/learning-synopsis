@@ -1,0 +1,131 @@
+
+<!-- ===================================================== 2.4 -->
+<section id="s24">
+<h2>2.4 Súlyozott legrövidebb út</h2>
+<p>Eddig minden él egy lépést ért. Egy úthálózatban viszont az élek hossza különböző: a két él hosszú kerülő lehet rövidebb, mint egy hosszú egyenes út.
+Súlyozott gráfban a „legrövidebb” mást jelent.</p>
+
+<h3 id="s24-a">1. lépés: az út hossza súlyozott gráfban</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a kevesebb lépés nem mindig rövidebb</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="A-D,A-B,B-C,C-D" data-weights="10,3,3,3" data-show-weights data-pos="A:0,1 B:.7,0 C:1.7,0 D:2.4,1" data-w="250" data-h="120"></div></div>
+    <div>$A$-ból $D$-be a közvetlen él 10 km, a $B$-n és $C$-n át vezető kerülő $3 + 3 + 3 = 9$ km. Lépésben a közvetlen út a rövidebb (1 vs. 3), kilométerben a kerülő (10 vs. 9).</div>
+  </div>
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – súlyozott úthossz és távolság</span>
+  Ha minden $uv$ élnek $w_{uv} \ge 0$ <b>hossza</b> (költsége) van, egy út hossza az élei hosszának <b>összege</b>. A súlyozott távolság a legkisebb ilyen összeg.
+  A BFS ezt nem tudja kiszámolni, mert csak a lépéseket számolja.
+</div>
+
+<h3 id="s24-b">2. lépés: Dijkstra algoritmusa</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – öt Csongrád megyei település</span>
+  <div class="two-col">
+    <div>
+      <div class="gfig" data-edges="Sze-Hmv,Sze-Mak,Hmv-Mak,Sze-Kis,Kis-Csg,Hmv-Csg" data-weights="25,33,30,30,36,37" data-show-weights
+        data-pos="Sze:1,1.2 Hmv:1.6,.3 Mak:2.4,1.4 Kis:0,.6 Csg:.9,-.4" data-w="260" data-h="200"
+        data-caption="Sze: Szeged, Hmv: Hódmezővásárhely, Mak: Makó,<br>Kis: Kistelek, Csg: Csongrád (km, kerekítve)"></div>
+    </div>
+    <div>
+      Melyik a legrövidebb út Szegedről Csongrádra? Két úton juthatunk oda két lépésben: Kisteleken át ($30 + 36 = 66$ km) és Hódmezővásárhelyen át
+      ($25 + 37 = 62$ km). A második a rövidebb. Ezt a kis hálózatban még ránézésre is látjuk, de nagy hálózatban (egy ország úthálózata, egy egymillió
+      csúcsú hírgráf) módszer kell.
+    </div>
+  </div>
+</div>
+
+<div class="box def">
+  <span class="box-title">Algoritmus – Dijkstra</span>
+  Minden csúcsnak van egy <b>ideiglenes</b> távolságcímkéje (kezdetben a kezdőcsúcsé 0, a többié $\infty$).
+  <ol style="margin:.2rem 0">
+    <li>Válaszd ki a <b>legkisebb ideiglenes címkéjű</b> csúcsot, és tedd a címkéjét <b>véglegessé</b>.</li>
+    <li>Minden még nem végleges szomszédjánál nézd meg: rövidebb-e az út rajta keresztül? Ha a címke $>$ (a kiválasztott csúcs címkéje + az él hossza),
+      írd át erre.</li>
+    <li>Ismételd, amíg minden csúcs végleges (vagy a többi $\infty$).</li>
+  </ol>
+  <small>Miért helyes? A legkisebb ideiglenes címkéjű csúcshoz nem vezethet rövidebb út egy másik, még nem végleges csúcson át, hiszen annak a címkéje
+  már most legalább ekkora, az élhosszak pedig nem negatívak. A BFS ennek speciális esete: ha minden él 1 hosszú, a Dijkstra-algoritmus a BFS
+  hullámait járja be. (Edsger W. Dijkstra, 1959.)</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa – Dijkstra Szegedről, lépésről lépésre</span>
+  <table>
+    <tr><th>lépés</th><th>véglegessé válik</th><th>Hmv</th><th>Mak</th><th>Kis</th><th>Csg</th></tr>
+    <tr><td>1</td><td>Sze (0)</td><td>25</td><td>33</td><td>30</td><td>∞</td></tr>
+    <tr><td>2</td><td>Hmv (25)</td><td><b>25</b></td><td>33 (55 nem jobb)</td><td>30</td><td>62</td></tr>
+    <tr><td>3</td><td>Kis (30)</td><td>–</td><td>33</td><td><b>30</b></td><td>62 (66 nem jobb)</td></tr>
+    <tr><td>4</td><td>Mak (33)</td><td>–</td><td><b>33</b></td><td>–</td><td>62</td></tr>
+    <tr><td>5</td><td>Csg (62)</td><td>–</td><td>–</td><td>–</td><td><b>62</b></td></tr>
+  </table>
+  Csongrád távolsága 62 km, az út Sze → Hmv → Csg (a címke átírásakor feljegyezzük, honnan jöttünk).
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A címkét az első frissítéskor véglegesíteni.</b> A Csongrád címkéje a 2. lépésben 62 lett, de csak az 5. lépésben vált véglegessé. Ha a 3. lépésben a
+      Kisteleken át rövidebb utat találtunk volna, át kellett volna írni.</li>
+    <li><b>Negatív élhossz.</b> A Dijkstra-algoritmus helyessége a nemnegatív hosszakon múlik. Negatív súlyokra más módszer kell (Bellman–Ford).</li>
+  </ul>
+</div>
+
+<div class="widget" data-widget="dijkstra-step"></div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – súlyozott legrövidebb út</summary>
+  <ol>
+    <li>Az A–D példában mennyi a súlyozott távolság $A$ és $C$ között?
+      <details><summary>Megoldás</summary>Két út: $A, B, C$ (6) és $A, D, C$ ($10 + 3 = 13$). A távolság 6.</details></li>
+    <li>Futtasd a Dijkstra-algoritmust Makóról a települések gráfján! Mennyi a csongrádi távolság, és melyik az út?
+      <details><summary>Megoldás</summary>Mak 0 → Hmv 30, Sze 33 véglegesek; Kis $33 + 30 = 63$; Csg $\min(30 + 37,\ 63 + 36) = 67$. Az út Mak → Hmv → Csg, 67 km.</details></li>
+    <li>Ha a Szeged–Hódmezővásárhely út lezárul (az él kiesik), mennyi lesz Szeged és Csongrád távolsága?
+      <details><summary>Megoldás</summary>Kisteleken át 66 km, vagy Makón és Hódmezővásárhelyen át $33 + 30 + 37 = 100$ km: a távolság 66.</details></li>
+    <li>Mi a legrövidebb út hossza lépésekben és kilométerben Kistelek és Makó között?
+      <details><summary>Megoldás</summary>Lépésben 2 (Kis → Sze → Mak, 63 km). Más 2 lépéses út nincs, a 3 lépésesek hosszabbak (Kis → Sze → Hmv → Mak 85 km, Kis → Csg → Hmv → Mak 103 km). Mindkét értelemben a Szegeden át vezető a legrövidebb: 63 km.</details></li>
+    <li>(nehezebb) Miért nem jó a Dijkstra-algoritmus, ha egy él hossza negatív? Adj meg egy 3 csúcsú ellenpéldát!
+      <details><summary>Megoldás</summary>Irányított élek (csak a nyíl irányában járhatók): $s \to a = 2$, $s \to b = 3$, $b \to a = -2$. Az algoritmus az $a$-t 2-vel véglegesíti, pedig az $s, b, a$ út hossza $3 - 2 = 1$. A véglegesítés feltételezi,
+      hogy egy kerülő nem lehet rövidebb – negatív élnél lehet. (Irányítatlan gráfban egy negatív él még rosszabb: oda-vissza járva tetszőlegesen „rövid” sétát kapnánk.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s24-c">3. lépés: ha a súly erősség</h3>
+<p>Az Árvízhéten az él súlya azt mondja meg, <b>hány cikkben</b> szerepel együtt két szereplő. Ez <b>erősség</b>: minél nagyobb, annál szorosabb a kapcsolat.
+Ha erre a súlyra futtatjuk a Dijkstra-algoritmust, éppen a <b>leggyengébb</b> kapcsolatokon át vezető utat kapjuk.</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – erős kerülő vagy gyenge rövidítés?</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="A-B,B-C,A-C" data-weights="5,5,1" data-show-weights data-pos="A:0,1 B:.8,0 C:1.6,1" data-w="190" data-h="120" data-caption="súly = közös cikkek száma"></div></div>
+    <div>$A$ és $C$ egyetlen cikkben szerepel együtt, de mindkettő öt-öt cikkben a $B$-vel. Ha a súlyt hossznak vesszük, a közvetlen él (1) „rövidebb”,
+      mint a kerülő (10). A kapcsolat erőssége szerint azonban az $A$–$B$–$C$ lánc a szorosabb.</div>
+  </div>
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – erősségből távolság</span>
+  Ha a súly <b>erősséget</b> jelent (gyakoriság, bizalom, forgalom), a legrövidebb út kereséséhez előbb alakítsd <b>hosszá</b>, például
+  $$\ell_{uv} = \frac{1}{w_{uv}}.$$
+  A példában: közvetlenül $1/1 = 1$, a kerülő $1/5 + 1/5 = 0{,}4$ – így már a kerülő a „rövidebb”, vagyis az erősebb láncolat.
+  <small>Más átalakítás is használatos (pl. $-\log p$, ha a súly valószínűség). A lényeg: a nagyobb erősséghez kisebb hossz tartozzon.</small>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hiba</span>
+  A programok (<code>networkx</code>, Gephi) a <code>weight</code> attribútumot alapértelmezésben <b>hosszként</b> kezelik. Ha a súly erősség, átalakítás nélkül a
+  legrövidebb út, a távolság és minden rájuk épülő mérőszám (közelségi és köztességi centralitás – 5. fejezet) a <b>gyenge</b> kapcsolatokat részesíti
+  előnyben. A hálózatelemzés egyik leggyakoribb rejtett hibája.
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – erősség és hossz</summary>
+  <ol>
+    <li>Két szereplő 4 cikkben szerepel együtt. Mekkora az él hossza az $\ell = 1/w$ átalakítással?
+      <details><summary>Megoldás</summary>$1/4 = 0{,}25$.</details></li>
+    <li>Az Árvízhéten mennyi a Klímaváltozás és a Lakók távolsága $\ell = 1/w$ hosszakkal a $\mathrm{Kl}, \mathrm{Ko}, \mathrm{Po}, \mathrm{La}$ úton? (Súlyok: $\mathrm{Kl}$–$\mathrm{Ko}$ 1, $\mathrm{Ko}$–$\mathrm{Po}$ 2, $\mathrm{Po}$–$\mathrm{La}$ 2.)
+      <details><summary>Megoldás</summary>$1 + 0{,}5 + 0{,}5 = 2$. (Ez a legrövidebb is; a Szakértőn át vezető legrövidebb utak hossza 2,5.)</details></li>
+    <li>Melyik utat választaná a Dijkstra-algoritmus a példában $A$-ból $C$-be, ha a súlyt átalakítás nélkül hossznak venné?
+      <details><summary>Megoldás</summary>A közvetlen $A$–$C$ élt (1 < 10) – éppen a leggyengébb kapcsolatot.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh2-24"></div>
+</section>
