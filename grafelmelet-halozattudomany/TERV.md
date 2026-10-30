@@ -372,6 +372,13 @@ Ez a fejezet a IV. blokk kulcs-előfeltétele.
 ### Kvízek
 `gh3-31` … `gh3-38`, `gh3-final`.
 
+> ✅ **Elkészült** (`03-graftipusok/`, 2026-10-30). Szakaszok: 3.1 irányított, 3.2 súlyozott + normalizálás (Newman-súly), 3.3 előjeles, 3.4 páros + vetület,
+> 3.5 időbeli, 3.6 többrétegű / heterogén / hipergráf, 3.7 tudásgráf, 3.8 alkalmazás. Kvízek `gh3-31` … `gh3-38`, `gh3-final` (69 kérdés); 7 widget: `directed-explorer`,
+> `signed-view`, `bipartite-projection`, `temporal-paths`, `multilayer-view`, `kg-explorer`, `graph-type-chooser`.
+> Az `arvizhet-data.js` rögzített bővítést kapott: `events` (E1–E6), `citations` (12, DAG), `relations` (8 előjeles, egy negatív: Sz–Ko → a Ko–Vi–Sz háromszög $++-$, a 6. fejezethez),
+> `triples` (12). Lapszintű hivatkozások: EK→RH 2, NY→EK 1, VN→RH 1, VN→NY 2 (RH a hírforrás, VN a gyűjtő). Terminológia: gráfelméleti „forráscsúcs” (befok 0) ≠ „hírforrás”.
+> `graph.js`: `directed` nyilak (View és `.gfig data-directed`), `data-signs`, élenkénti `alpha`, `multiGap`. Összeállítás: `_parts/gh3/build.sh`.
+
 ### Csapdák
 A vetítés információt veszít és torzítja a fokszámokat · irányított gráfot irányítatlanként elemezni · a súly egysége
 (darab? arány?) · az aggregált időbeli gráfban „utak” jelennek meg, amelyek időben nem léteztek.

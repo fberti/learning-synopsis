@@ -1,6 +1,6 @@
 import sys
 from playwright.sync_api import sync_playwright
-url="http://localhost:8766/grafelmelet-halozattudomany/01-mi-a-halozat/"
+url="http://localhost:8767/grafelmelet-halozattudomany/01-mi-a-halozat/"
 with sync_playwright() as p:
     b=p.chromium.launch(); pg=b.new_page(viewport={"width":1280,"height":900})
     errs=[]; pg.on("console", lambda m: errs.append(m.type+": "+m.text) if m.type in("error","warning") else None)

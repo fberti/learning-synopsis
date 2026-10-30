@@ -131,6 +131,8 @@
     const col = {};
     (root.dataset.color || "").trim().split(/\s+/).filter(Boolean).forEach(t => { const [l, c] = t.split(":"); col[l] = c; });
     const wts = (root.dataset.weights || "").split(",").filter(Boolean).map(Number);
+    const signs = (root.dataset.signs || "").split(",").map(t => t.trim());   // „+”, „-” élenként (előjeles gráf)
+    const directed = root.dataset.directed != null;                        // irányított: az él a→b, nyíl b-nél
     const r = +root.dataset.r || 13;
     const NS = "http://www.w3.org/2000/svg";
     const svg = document.createElementNS(NS, "svg");
@@ -151,11 +153,20 @@
       const k = (seen[key] = (seen[key] || 0) + 1) - 1;
       const [x1, y1] = P[a], [x2, y2] = P[b];
       const off = (k - (cnt - 1) / 2) * 16;                    // többszörös él: ívek
-      if (off === 0) el("line", { x1, y1, x2, y2, class: "ge", "stroke-width": sw });
+      const sg = signs[ei], cls = "ge" + (sg === "+" ? " pos" : sg === "-" ? " neg" : "");
+      let tx = x2 - x1, ty = y2 - y1;                           // a végpontbeli érintő (a nyílhoz)
+      if (off === 0) el("line", { x1, y1, x2, y2, class: cls, "stroke-width": sw });
       else {
         const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, dx = x2 - x1, dy = y2 - y1, d = Math.hypot(dx, dy) || 1;
         const sgn = a < b ? 1 : -1;
-        el("path", { d: `M${x1},${y1} Q${mx - dy / d * off * 2 * sgn},${my + dx / d * off * 2 * sgn} ${x2},${y2}`, fill: "none", class: "ge", "stroke-width": sw });
+        const cx = mx - dy / d * off * 2 * sgn, cy = my + dx / d * off * 2 * sgn;
+        el("path", { d: `M${x1},${y1} Q${cx},${cy} ${x2},${y2}`, fill: "none", class: cls, "stroke-width": sw });
+        tx = x2 - cx; ty = y2 - cy;
+      }
+      if (directed) {
+        const L = Math.hypot(tx, ty) || 1, ux = tx / L, uy = ty / L, rr = g.labels[b].length > 3 ? Math.min(2 * r, 24) / 2 + 2 : r + 1;
+        const px = x2 - ux * rr, py = y2 - uy * rr, hs = 8;
+        el("polygon", { points: `${px},${py} ${px - ux * hs - uy * hs * 0.5},${py - uy * hs + ux * hs * 0.5} ${px - ux * hs + uy * hs * 0.5},${py - uy * hs - ux * hs * 0.5}`, class: "ga" + (sg === "+" ? " pos" : sg === "-" ? " neg" : "") });
       }
       if (w && root.dataset.showWeights != null) {
         const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
@@ -187,7 +198,7 @@
 
   /* ---------- interaktív canvas-nézet ----------
      opts: { aspect, maxW, editable, nodes: [{label, x, y, color}], edges: [{a, b, w}],
-             onChange(view), radius, showWeights, weightWidth }
+             onChange(view), radius, showWeights, weightWidth, directed (nyílhegy a b végen; élenként: dir), multiGap (párhuzamos élek távolsága, 18) }
      Szerkesztés (editable): üres helyre kattintás → új csúcs; csúcs, majd egy másik csúcs → él be/ki;
      élre kattintás → él törlése; húzás → mozgatás.                                            */
   const views = [];
@@ -274,7 +285,7 @@
       const e = this.edges[i], k = edgeKey(e.a, e.b);
       const [x1, y1] = this.px(this.nodes[e.a]), [x2, y2] = this.px(this.nodes[e.b]);
       const g = this.edges.reduce((acc, f, j) => (edgeKey(f.a, f.b) === k ? acc.concat(j) : acc), []);
-      const off = (g.indexOf(i) - (g.length - 1) / 2) * 18;
+      const off = (g.indexOf(i) - (g.length - 1) / 2) * (this.o.multiGap || 18);     // multiGap: a párhuzamos ívek távolsága
       if (e.a === e.b || off === 0) return { x1, y1, x2, y2, cx: null, cy: null, mx: (x1 + x2) / 2, my: (y1 + y2) / 2 };
       const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, dx = x2 - x1, dy = y2 - y1, d = Math.hypot(dx, dy) || 1, s = e.a < e.b ? 1 : -1;
       const cx = mx - dy / d * off * 2 * s, cy = my + dx / d * off * 2 * s;
@@ -352,12 +363,12 @@
       const groups = {};
       this.edges.forEach((e, i) => { const k = edgeKey(e.a, e.b); (groups[k] = groups[k] || []).push(i); });
       /* élenkénti, opcionális mezők: color (szín vagy CSS-változó), width (vonalvastagság), dash (pl. [6, 4]),
-         label (a súly helyett kiírt szöveg, showWeights mellett) */
+         label (a súly helyett kiírt szöveg, showWeights mellett), alpha (átlátszóság 0–1, a kiemelés szerinti halványítás helyett), dir (nyílhegy) */
       this.edges.forEach((e, i) => {
         const k = edgeKey(e.a, e.b), on = this.hlE.has(k), ec = e.color ? color(e.color) : null;
         const [x1, y1] = this.px(this.nodes[e.a]), [x2, y2] = this.px(this.nodes[e.b]);
         ctx.strokeStyle = ec || (on ? accent : (anyHL ? border : muted));
-        ctx.globalAlpha = anyHL && !on && !ec ? 0.7 : 1;
+        ctx.globalAlpha = e.alpha != null ? e.alpha : (anyHL && !on && !ec ? 0.7 : 1);
         ctx.lineWidth = e.width != null ? e.width : (this.o.showWeights || this.o.weightWidth ? 1.3 + 2.4 * (e.w || 1) / maxW * (maxW > 1 ? 1.4 : 1) : 2) + (on ? 1 : 0);
         if (e.dash) ctx.setLineDash(e.dash);
         ctx.beginPath();
@@ -368,9 +379,20 @@
         else ctx.quadraticCurveTo(G.cx, G.cy, x2, y2);
         ctx.stroke();
         ctx.setLineDash([]);
+        if (this.o.directed || e.dir) {                          // nyílhegy a b végponton
+          let tx = G.cx === null ? x2 - x1 : x2 - G.cx, ty = G.cx === null ? y2 - y1 : y2 - G.cy;
+          const L = Math.hypot(tx, ty) || 1; tx /= L; ty /= L;
+          const px = x2 - tx * (r + 1), py = y2 - ty * (r + 1), hs = 9;
+          ctx.fillStyle = ctx.strokeStyle;
+          ctx.beginPath(); ctx.moveTo(px, py);
+          ctx.lineTo(px - tx * hs - ty * hs * 0.5, py - ty * hs + tx * hs * 0.5);
+          ctx.lineTo(px - tx * hs + ty * hs * 0.5, py - ty * hs - tx * hs * 0.5);
+          ctx.closePath(); ctx.fill();
+        }
         ctx.globalAlpha = 1;
         if (this.o.showWeights && (e.label != null ? e.label !== "" : (e.w || 1) > 0)) {
           const mx = G.mx, my = G.my, lab = e.label != null ? String(e.label) : String(e.w);
+          if (e.alpha != null) ctx.globalAlpha = e.alpha;
           const rw = lab.length <= 2 ? 9 : 3.4 * lab.length + 4.5;
           ctx.fillStyle = card; ctx.strokeStyle = ec || border; ctx.lineWidth = 1;
           ctx.beginPath();
@@ -379,6 +401,7 @@
           ctx.fill(); ctx.stroke();
           ctx.fillStyle = text; ctx.font = "600 11px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
           ctx.fillText(lab, mx, my + 0.5);
+          ctx.globalAlpha = 1;
         }
       });
       // csúcsok
