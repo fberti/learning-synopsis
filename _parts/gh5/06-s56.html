@@ -1,0 +1,93 @@
+
+<!-- ===================================================== 5.6 -->
+<section id="s56">
+<h2>5.6 HITS: hubok és tekintélyek ★★★</h2>
+<p>A PageRank egyetlen számot ad minden oldalnak. A hírek világában viszont két, egészen különböző szerep van. Egy <b>hírösszesítő</b> (aggregátor) maga nem tudósít, de jó forrásokra mutat. Egy <b>eredeti tudósító</b> ritkán linkel, de sokan hivatkoznak rá.
+Mindkettő „fontos”, csak másképp. Jon Kleinberg <b>HITS</b> algoritmusa (<em>Hyperlink-Induced Topic Search</em>, 1999) ezt a két szerepet választja szét.</p>
+
+<h3 id="s56-a">1. lépés: két pontszám, amelyek egymást erősítik</h3>
+<div class="box def">
+  <span class="box-title">Definíció – hub és tekintély</span>
+  Minden csúcsnak két pontszáma van: $a_i$ (<b>tekintély</b>, <em>authority</em>) és $h_i$ (<b>hub</b>, gyűjtő).
+  <ul style="margin:.3rem 0">
+    <li>Jó tekintély az, akire <b>jó hubok</b> mutatnak: $a_i = \sum_{j \to i} h_j$, vagyis $\mathbf a = A^\top\mathbf h$.</li>
+    <li>Jó hub az, aki <b>jó tekintélyekre</b> mutat: $h_i = \sum_{i \to j} a_j$, vagyis $\mathbf h = A\mathbf a$.</li>
+  </ul>
+  Számolás: $\mathbf h = \mathbf 1$-ből indulva felváltva frissítjük $\mathbf a$-t és $\mathbf h$-t, és minden lépés után normálunk (pl. a legnagyobb legyen 1). A két vektor beáll.
+  <small>Miért normálunk? Mint a hatványiterációnál (4.3): a számok minden lépésben nőnek, de az arányuk beáll. Csak az arány érdekes.</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két összesítő, három tudósító</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="H1-T1,H1-T2,H1-T3,H2-T1,H2-T2,T3-T1" data-directed data-pos="H1:0,.3 H2:0,1.5 T1:2,0 T2:2.15,1 T3:2,2" data-w="200" data-h="170" data-r="15"
+      data-color="H1:--setA H2:--setA T1:--setB T2:--setB T3:--setB" data-caption="H: összesítő (hub), T: tudósító"></div></div>
+    <div><b>1. lépés.</b> $\mathbf h = \mathbf 1$. Tekintély = a rá mutatók hub-pontszámának összege – most ez a <b>befok</b>:
+      $a_{T1} = 3$, $a_{T2} = 2$, $a_{T3} = 1$, $a_{H1} = a_{H2} = 0$.<br>
+      Hub = akikre mutat, azok tekintélyének összege:
+      $h_{H1} = 3 + 2 + 1 = 6$, $h_{H2} = 3 + 2 = 5$, $h_{T3} = 3$ (a T3 a T1-re mutat), a többi 0.<br>
+      Normálva: $\mathbf a$: $T1$ 1, $T2$ 0,67, $T3$ 0,33; $\mathbf h$: $H1$ 1, $H2$ 0,83, $T3$ 0,5.</div>
+  </div>
+  <b>A határ</b> (néhány további lépés után): tekintély $T1$ 1, $T2$ 0,80, $T3$ 0,45; hub $H1$ 1, $H2$ 0,80, $T3$ 0,45. A két összesítő jó hub, de semmilyen tekintély; a T1 és a T2 tiszta tekintély.
+  A T3 <b>mindkettő</b> egy kicsit: idézik is, és ő is idéz.
+</div>
+
+<div class="widget" data-widget="hits-steps"></div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy lépés egy másik gráfon</span>
+    Az $A\to B$, $A\to C$, $B\to C$, $C\to A$, $D\to C$ gráfon ($\mathbf h = \mathbf 1$-ből) mi az első lépés tekintély- és hub-vektora (max = 1)?
+    <details><summary>Megoldás</summary>$\mathbf a$ = befok: $(1, 1, 3, 0)$ → normálva $(\tfrac13, \tfrac13, 1, 0)$.
+      $\mathbf h$: $A$ a $B$-re és a $C$-re mutat: $\tfrac13 + 1 = \tfrac43$; $B$ → $C$: 1; $C$ → $A$: $\tfrac13$; $D$ → $C$: 1. Normálva ($\div \tfrac43$): $(1;\ 0{,}75;\ 0{,}25;\ 0{,}75)$.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a lapok hubjai és tekintélyei</span>
+    A lapok hivatkozási gráfjában ($\mathrm{EK}\to\mathrm{RH}$, $\mathrm{NY}\to\mathrm{EK}$, $\mathrm{VN}\to\mathrm{RH}$, $\mathrm{VN}\to\mathrm{NY}$) ki a legjobb hub és a legjobb tekintély?
+    <details><summary>Megoldás</summary>Tekintély: $\mathrm{RH}$ 1, $\mathrm{NY}$ 0,62, a többi 0. Hub: $\mathrm{VN}$ 1, $\mathrm{EK}$ 0,62, a többi 0. A VN mindkét tekintélyre mutat, ezért a legjobb hub; az EK az RH-ra mutat, így ő is hub (0,62). Tekintélyként viszont az EK 0: hiába kap hivatkozást, a hivatkozója (NY) nem mutat tekintélyre, tehát a hub-pontszáma 0.</details>
+  </div>
+</div>
+
+<h3 id="s56-b">2. lépés: mi van a háttérben? – két sajátvektor</h3>
+<p>Tegyük össze a két frissítést: $\mathbf a_{\text{új}} = A^\top\mathbf h = A^\top A\,\mathbf a$. A tekintély-vektor tehát az $A^\top A$ mátrixszal végzett <b>hatványiteráció</b>, a hub-vektor az $AA^\top$-vel.</p>
+<div class="box thm">
+  <span class="box-title">Tétel</span>
+  A HITS tekintély-vektora az $A^\top A$, hub-vektora az $AA^\top$ mátrix domináns sajátvektora.
+  <small>$(A^\top A)_{ij}$ = hány oldal mutat <b>egyszerre</b> $i$-re és $j$-re (<b>közös idézés</b>, <em>co-citation</em>); $(AA^\top)_{ij}$ = hány oldalra mutat <b>mindkettő</b> (<b>bibliográfiai csatolás</b>).
+  Két tekintély akkor erősíti egymást, ha ugyanazok a hubok idézik őket – ez a 3. fejezet <a href="../03-graftipusok/#s34-b">vetülete</a> irányított gráfra.</small>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák és korlátok</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A két szerep felcserélése.</b> A tekintélyt a <b>bejövő</b>, a hubot a <b>kimenő</b> élek adják. A sok linket kiosztó oldal hub, nem tekintély.</li>
+    <li><b>A HITS a legsűrűbb csoportot jutalmazza.</b> Ha a gráfban két, egymással alig kapcsolódó tábor van, a domináns sajátvektor szinte csak a sűrűbbikben ad nagy értéket. A politikai blogoknál (<a href="#s58">5.8</a>) a 10 legjobb tekintélyből 9 liberális – a PageRank szerint 4.</li>
+    <li><b>Nem mindig egyértelmű.</b> Ha az $A^\top A$ legnagyobb sajátértéke többszörös (pl. két, egymástól független részgráfban egyforma), az eredmény a kezdővektortól függ.</li>
+    <li><b>Irányítatlan gráfon nincs értelme</b>: ott $A^\top = A$, és mindkét vektor a sajátvektor-centralitás lenne.</li>
+  </ul>
+</div>
+
+<div class="box history">
+  <span class="box-title">📜 Kleinberg és a keresési témák</span>
+  <b>Jon Kleinberg</b> az IBM-nél 1998-ban dolgozta ki a HITS-et (folyóiratban 1999). Eredetileg <b>kérdésfüggő</b> volt: egy keresőkérdésre talált oldalakból és szomszédaikból építette a gráfot, és abban kereste a hubokat és a tekintélyeket.
+  Ugyanabban az évben jelent meg a PageRank; a kettő az internetes keresés és a hivatkozáselemzés két alapmodellje lett.
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – HITS</summary>
+  <ol>
+    <li>Két oldal ($A$, $B$) a $C$-re mutat, más él nincs. Mi a tekintély- és a hub-vektor (max = 1)?
+      <details><summary>Megoldás</summary>Tekintély: $C$ 1, $A$ = $B$ = 0. Hub: $A$ = $B$ = 1, $C$ = 0.</details></li>
+    <li>Mennyi annak az oldalnak a tekintély-pontszáma, amelyre egyetlen link sem mutat? És a hub-pontszáma annak, amelyikből nem indul link?
+      <details><summary>Megoldás</summary>Mindkettő 0: a tekintély a bejövő, a hub a kimenő élekből áll össze.</details></li>
+    <li>Az „összesítők és tudósítók” gráfjában a második lépésben mennyi a T2 tekintély-pontszáma, ha az első lépés hub-vektora $(1;\ 0{,}83;\ 0;\ 0;\ 0{,}5)$ a H1, H2, T1, T2, T3 sorrendben?
+      <details><summary>Megoldás</summary>A T2-re a H1 és a H2 mutat: $a_{T2} = 1 + 0{,}83 \approx 1{,}83$. (A T1: $1 + 0{,}83 + 0{,}5 = 2{,}33$; normálva a T2 $1{,}83/2{,}33 \approx 0{,}79$.)</details></li>
+    <li>Egy hírösszesítő 50 cikkre linkel, egy tényfeltáró oldalra pedig 30 másik oldal hivatkozik. Melyik melyik szerepben erős, és mitől függ, mennyire?
+      <details><summary>Megoldás</summary>Az összesítő hub, a tényfeltáró oldal tekintély. A pontszámuk attól függ, mennyire jók a <b>partnereik</b>: az összesítő akkor jó hub, ha a cikkek, amelyekre mutat, maguk is jó tekintélyek; a tényfeltáró akkor jó tekintély, ha jó hubok idézik.</details></li>
+    <li>(nehezebb) Mutasd meg, hogy az első lépésben ($\mathbf h = \mathbf 1$) a tekintély-vektor a befok, és a hub-vektor a „kimenő szomszédok befokának összege”!
+      <details><summary>Megoldás</summary>$a_i = \sum_{j \to i} 1$ = a $i$-re mutatók száma = befok. Ezután $h_i = \sum_{i \to j} a_j$ = azoknak a befoka, akikre $i$ mutat, összeadva. A HITS tehát a befokból indul, és – mint a sajátvektor a fokszámból – lépésenként finomítja.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh5-56"></div>
+</section>

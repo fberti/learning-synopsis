@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>5. Centralitás – Gráfelmélet és hálózattudomány – Synopsis</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="../../assets/common.js"></script>
+  <script defer src="../../assets/quiz.js"></script>
+  <script defer src="../../assets/graph.js"></script>
+  <script defer src="../arvizhet-data.js"></script>
+  <script defer src="../../mesterseges-intelligencia/13-graf-neuralis-halok/graph-data.js"></script>
+  <script defer src="polblogs-data.js"></script>
+  <script defer src="widgets.js"></script>
+  <script defer src="quizzes.js"></script>
+</head>
+<body>
+<div class="progressbar"></div>
+<header class="topbar">
+  <a class="brand" href="../../">📚 Synopsis</a>
+  <span class="crumbs"><a href="../../">Tartalomjegyzék</a> › <a href="../">Gráfelmélet és hálózattudomány</a> › 5. fejezet</span>
+  <button class="icon-btn" data-theme-toggle title="Téma váltása">🌙</button>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <div class="toc-title">5. fejezet</div>
+  <ol>
+    <li><a href="#s51">5.1 Fokszám-centralitás</a></li>
+    <li><a href="#s52">5.2 Közelségi centralitás</a></li>
+    <li><a href="#s53">5.3 Köztességi centralitás</a></li>
+    <li><a href="#s54">5.4 Sajátvektor-centralitás</a></li>
+    <li><a href="#s55">5.5 PageRank</a></li>
+    <li><a href="#s56">5.6 HITS: hubok és tekintélyek</a></li>
+    <li><a href="#s57">5.7 Melyiket mikor?</a></li>
+    <li><a href="#s58">5.8 Alkalmazás</a></li>
+    <li><a href="#s-sum">Összefoglalás</a></li>
+    <li><a href="#s-check">Ellenőrző kérdések</a></li>
+    <li><a href="#s-ex">Vegyes gyakorló feladatok</a></li>
+    <li><a href="#s-final">Fejezetzáró teszt</a></li>
+    <li><a href="#s-gloss">Szómagyarázó</a></li>
+  </ol>
+</nav>
+
+<main class="content">
+
+<section class="hero" style="padding-top:.5rem">
+  <div class="kicker">Gráfelmélet és hálózattudomány · 5. fejezet · ★★</div>
+  <h1>Centralitás: ki a fontos a hálózatban?</h1>
+  <p class="lead">„Ki a legfontosabb szereplő?” – ez az első kérdés, amit egy hálózatról feltesznek. A válasz azon múlik, mit értünk <b>fontoson</b>.
+  Akit a legtöbbször említenek? Aki mindenkihez közel van? Akin keresztül a legtöbb kapcsolat fut? Akit fontos szereplők említenek?
+  Mindegyik kérdésből egy-egy <b>centralitás</b> lesz: egy szám minden csúcsra. Ebben a fejezetben hatot ismersz meg – és megtanulod, miért adnak
+  ugyanarra a gráfra más-más győztest.</p>
+</section>
+
+<div class="box tip">
+  <span class="box-title">Mit fogsz megtanulni?</span>
+  <ul style="margin:.2rem 0">
+    <li>kiszámolni és normálni a <b>fokszám-centralitást</b>, súlyozott gráfon az <b>erősséget</b>, irányítotton a <b>befokot</b> és a <b>kifokot</b>;</li>
+    <li>kiszámolni a <b>közelségi</b> centralitást a távolságokból, és a <b>harmonikus</b> változatot nem összefüggő gráfon;</li>
+    <li>megszámolni, hány legrövidebb út megy át egy csúcson: ez a <b>köztesség</b>, a „hídszereplők” mértéke;</li>
+    <li>a 4. fejezet sajátvektorából <b>sajátvektor-centralitást</b>, a véletlen sétából <b>PageRanket</b> csinálni;</li>
+    <li>irányított gráfon szétválasztani a <b>hubokat</b> és a <b>tekintélyeket</b> (HITS);</li>
+    <li>a kutatási kérdéshez <b>kiválasztani</b> a megfelelő centralitást – és nem összekeverni a „központit” a „befolyásossal”.</li>
+  </ul>
+</div>
+
+<div class="box">
+  <span class="box-title">🔁 Amit használni fogunk</span>
+  Az <a href="../01-mi-a-halozat/">1. fejezetből</a>: a <b>fokszám</b> és a kézfogási lemma (<a href="../01-mi-a-halozat/#s13-a">1.3</a>). A <a href="../02-setak-utak-fak/">2. fejezetből</a>: <b>távolság</b>, <b>szélességi bejárás</b>
+  (<a href="../02-setak-utak-fak/#s23-a">2.3</a>) és a <b>híd</b>, <b>elvágó csúcs</b> (<a href="../02-setak-utak-fak/#s22-b">2.2</a>). A <a href="../03-graftipusok/">3. fejezetből</a>: <b>befok</b>, <b>kifok</b>, <b>erősség</b> (<a href="../03-graftipusok/#s31-a">3.1</a>, <a href="../03-graftipusok/#s32-a">3.2</a>).
+  A <a href="../04-grafok-es-matrixok/">4. fejezetből</a>: a <b>szomszédösszeg</b> $A\mathbf x$, a <b>véletlen séta</b> és a stacionárius eloszlás (<a href="../04-grafok-es-matrixok/#s42">4.2</a>), a <b>sajátvektor</b> és a <b>hatványiteráció</b> (<a href="../04-grafok-es-matrixok/#s43">4.3</a>).
+</div>
+
+<div class="box example">
+  <span class="box-title">🎯 A fejezet kérdése</span>
+  Az Árvízhét szereplőgráfjában <b>ki a „legfontosabb” szereplő</b>: akit a legtöbbször említenek együtt másokkal, aki mindenkihez közel van, akin át a legtöbb kapcsolat fut,
+  vagy akit fontos szereplők vesznek körül? És <b>miért adnak ezek más-más választ</b>? A 4. fejezet végén már láttuk az első jelet: a Kormány és a Polgármester fokszáma egyforma (4),
+  a sajátvektor mégis a Kormányt teszi előre. A válasz az <a href="#s58">5.8</a>-ban.
+</div>
+
+<div class="gfig" data-edges="Ko-Vi,Ko-Po,Vi-Po,Vi-Sz,Sz-Kl,Sz-Ko,Kl-Ko,La-Ön,La-Po,Po-Ön" data-weights="2,2,2,1,2,1,1,3,2,2" data-show-weights
+  data-pos="Kl:.6,0 Sz:0,.5 Ko:1.3,.5 Vi:.65,1 Po:1.6,1.3 La:2.4,1 Ön:2.3,1.9" data-w="330" data-h="210" data-r="16"
+  data-caption="Az Árvízhét szereplőgráfja (1. fejezet): 7 csúcs, 10 él; a szám: hány cikkben szerepeltek együtt"></div>
+
+<p><b>Útiterv</b> – a legegyszerűbb „fontosságtól” haladunk a rekurzív definíciók felé:</p>
+<ol>
+  <li><a href="#s51">Fokszám-centralitás</a> – hány kapcsolatod van? (súlyozva, irányítva is)</li>
+  <li><a href="#s52">Közelségi centralitás</a> – de mi van, ha a kevés kapcsolatod mind „jó helyre” visz? Milyen közel vagy mindenkihez?</li>
+  <li><a href="#s53">Köztességi centralitás</a> – és ha nem te vagy közel, hanem rajtad át vezet az út? Hídszereplők.</li>
+  <li><a href="#s54">Sajátvektor-centralitás</a> – nem az számít, hány szomszédod van, hanem hogy mennyire fontosak.</li>
+  <li><a href="#s55">PageRank</a> – ugyanez irányított gráfon, ahol a sajátvektor elakad: véletlen szörföző teleportálással.</li>
+  <li><a href="#s56">HITS</a> – két szerep: aki jó forrásokra mutat (hub), és akire jó gyűjtők mutatnak (tekintély).</li>
+  <li><a href="#s57">Melyiket mikor?</a> – egy gráf, négy győztes; döntés a kutatási kérdés szerint.</li>
+  <li><a href="#s58">Alkalmazás</a> – az Árvízhét szereplői lapokra bontva, és 1222 politikai blog.</li>
+</ol>
+
+<div class="box tip">
+  <span class="box-title">📐 Jelölések ebben a fejezetben</span>
+  $n$ csúcs, $m$ él; $d(v)$ vagy $d_i$ a fokszám; $\operatorname{dist}(u, v)$ a két csúcs <b>távolsága</b> (a legrövidebb út éleinek száma, <a href="../02-setak-utak-fak/#s23-a">2.3</a>); $A$ a szomszédsági mátrix.
+  Minden centralitás egy <b>szám csúcsonként</b>; a nagyobb jelenti a „központibbat”. Jelölésük: $C_{\text{fok}}$, $C_{\text{köz}}$ (közelségi), $C_{\text{harm}}$ (harmonikus), $C_{\text{btw}}$ (köztesség; az angol <em>betweenness</em> rövidítése, mert a „köz” már foglalt),
+  $C_{\text{saját}}$, PageRank: $p_i$. A hálózattudományi irodalom a fokszámot $k_i$-vel jelöli – ugyanaz a szám.
+</div>
+
+<!-- ===================================================== 5.1 -->
+<section id="s51">
+<h2>5.1 Fokszám-centralitás: hány kapcsolatod van? ★</h2>
+<p>Kezdjük a legegyszerűbb ötlettel: <b>az fontos, akinek sok kapcsolata van</b>. Egy hírszereplő annál központibb, minél több másik szereplővel említik együtt.
+Ezt a számot már ismered: ez a <a href="../01-mi-a-halozat/#s13-a">fokszám</a>. A kérdés csak az, hogyan tegyük összehasonlíthatóvá, és mi a teendő súlyozott vagy irányított gráfon.</p>
+
+<h3 id="s51-a">1. lépés: a fokszám mint centralitás – és a normálás</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két gráf, ugyanaz a fokszám</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="K-1,K-2,K-3,K-4" data-pos="K:1,1 1:0,0 2:2,0 3:0,2 4:2,2" data-w="150" data-h="130"
+      data-color="K:--accent" data-caption="csillag: K fokszáma 4, n = 5"></div></div>
+    <div><div class="gfig" data-edges="Ko-Vi,Ko-Po,Vi-Po,Vi-Sz,Sz-Kl,Sz-Ko,Kl-Ko,La-Ön,La-Po,Po-Ön"
+      data-pos="Kl:.6,0 Sz:0,.5 Ko:1.3,.5 Vi:.65,1 Po:1.6,1.3 La:2.4,1 Ön:2.3,1.9" data-w="230" data-h="150" data-r="14"
+      data-color="Ko:--accent" data-caption="Árvízhét: Ko fokszáma 4, n = 7"></div></div>
+  </div>
+  A csillag közepének is 4 szomszédja van, a Kormánynak is. Mégis más a helyzetük: a csillag közepe <b>mindenkivel</b> össze van kötve, a Kormány a 6 lehetséges szereplőből csak 4-gyel.
+  Ha különböző méretű gráfokat hasonlítunk össze, a nyers fokszám félrevezet. Azt kell megnézni, a <b>lehetséges</b> kapcsolatok hányad része valósult meg.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – fokszám-centralitás</span>
+  Egy $n$ csúcsú egyszerű gráfban a $v$ csúcs (normált) fokszám-centralitása
+  $$C_{\text{fok}}(v) = \frac{d(v)}{n - 1}.$$
+  <small>Miért $n - 1$? Egy csúcs legfeljebb az összes többivel lehet összekötve, ez $n - 1$ szomszéd. Így $0 \le C_{\text{fok}} \le 1$: a 0 az izolált csúcs, az 1 az, aki mindenkit ismer.
+  Egyetlen gráfon belül a normálás a <b>sorrenden</b> nem változtat, csak a különböző méretű gráfok összevetéséhez kell.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a csillag és a Kormány</span>
+    Mennyi a csillag közepének és a Kormánynak a normált fokszám-centralitása?
+    <details><summary>Megoldás</summary>Csillag: $4/(5-1) = 1$. Kormány: $4/(7-1) = 4/6 \approx 0{,}67$. Ugyanaz a nyers szám, de a csillag közepe a maximumot éri el.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – az Árvízhét rangsora</span>
+    Írd fel az Árvízhét összes szereplőjének fokszám-centralitását!
+    <details><summary>Megoldás</summary>$n - 1 = 6$: $\mathrm{Ko}$, $\mathrm{Po}$: $4/6 \approx 0{,}67$; $\mathrm{Vi}$, $\mathrm{Sz}$: $3/6 = 0{,}5$; $\mathrm{La}$, $\text{Ön}$, $\mathrm{Kl}$: $2/6 \approx 0{,}33$.
+      <b>Holtverseny</b> az élen: a fokszám nem tud különbséget tenni a Kormány és a Polgármester között.</details>
+  </div>
+</div>
+<div class="box example">
+  <span class="box-title">Példa – a karateklub két vezetője</span>
+  Zachary karateklubjában (<a href="../04-grafok-es-matrixok/#s45">4.5</a>) $n = 34$. Az edző (1-es tag) fokszáma 16, az elnöké (34-es) 17. Mennyi a fokszám-centralitásuk?
+  <details><summary>Megoldás</summary>$16/33 \approx 0{,}48$ és $17/33 \approx 0{,}52$. A klub két legtöbb kapcsolatú tagja éppen a két vezető – akik körül a klub később kettévált.</details>
+</div>
+
+<div class="box history">
+  <span class="box-title">📜 A véleményvezérektől Freemanig</span>
+  A médiakutatás korán rájött, hogy a hírek nem közvetlenül hatnak mindenkire. <b>Lazarsfeld, Berelson és Gaudet</b> (<em>The People's Choice</em>, 1944) és <b>Katz és Lazarsfeld</b> (<em>Personal Influence</em>, 1955)
+  a <b>kétlépcsős kommunikáció</b> modelljében leírták, hogy a médiából a <b>véleményvezérek</b> szűrik tovább az információt a környezetüknek – ők a sok kapcsolatú, „központi” emberek.
+  A „központiság” pontos mérőszámait <b>Linton Freeman</b> rendszerezte (<em>Centrality in social networks</em>, 1979): a fokszám-, a közelségi és a köztességi centralitás az ő cikke óta a hálózatelemzés alapkészlete.
+  (A médiakutatás hálózati korszakairól a 14. fejezet szól.)
+</div>
+
+<h3 id="s51-b">2. lépés: súlyozott gráf – az erősség</h3>
+<p>Az Árvízhét gráfjában az élnek <b>súlya</b> is van: hány cikkben szerepelt együtt a két szereplő. A fokszám ezt nem látja: egy egyszeri közös említés ugyanannyit ér, mint három. Súlyozott gráfon a
+<a href="../03-graftipusok/#s32-a">3.2-ben</a> bevezetett <b>erősség</b> a természetes folytatás.</p>
+
+<div class="box def">
+  <span class="box-title">Definíció – erősség (súlyozott fokszám)</span>
+  $$s(v) = \sum_{u \text{ szomszédja } v\text{-nek}} w_{uv}.$$
+  <small>Miért? Ha minden súly 1, visszakapjuk a fokszámot. A súly itt „hány cikk”, így az erősség azt méri, <b>hány együttes említésben</b> vett részt a szereplő (cikkenként annyiszor számolva, ahány társa volt).</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Fokszám szerint</span>
+    <div class="tw" style="overflow-x:auto"><table>
+      <tr><th>Ko</th><th>Po</th><th>Vi</th><th>Sz</th><th>La</th><th>Ön</th><th>Kl</th></tr>
+      <tr><td><b>4</b></td><td><b>4</b></td><td>3</td><td>3</td><td>2</td><td>2</td><td>2</td></tr>
+    </table></div>
+    A Lakók és az Önkéntesek a sereghajtók között vannak: csak két-két társuk van.
+  </div>
+  <div class="box example">
+    <span class="box-title">Erősség szerint</span>
+    <div class="tw" style="overflow-x:auto"><table>
+      <tr><th>Po</th><th>Ko</th><th>Vi</th><th>La</th><th>Ön</th><th>Sz</th><th>Kl</th></tr>
+      <tr><td><b>8</b></td><td>6</td><td>5</td><td>5</td><td>5</td><td>4</td><td>3</td></tr>
+    </table></div>
+    A Polgármester egyedül vezet, a Lakók és az Önkéntesek a középmezőnybe jönnek fel: a $\mathrm{La}$–$\text{Ön}$ élnek 3 a súlya.
+  </div>
+</div>
+<div class="box example">
+  <span class="box-title">Példa – a Lakók erőssége</span>
+  A Lakók szomszédai az Önkéntesek (3 közös cikk) és a Polgármester (2). Mennyi $s(\mathrm{La})$?
+  <details><summary>Megoldás</summary>$3 + 2 = 5$. A fokszám 2, az erősség 5: kevés, de <b>tartós</b> kapcsolat.</details>
+</div>
+
+<h3 id="s51-c">3. lépés: irányított gráf – befok és kifok</h3>
+<p>Irányított gráfban a fokszám kettéválik (<a href="../03-graftipusok/#s31-a">3.1</a>): a <b>befok</b> azt számolja, hányan mutatnak rád, a <b>kifok</b> azt, hogy te hányra mutatsz.
+Centralitásként a kettő <b>mást jelent</b>: a befok a „népszerűség”, „tekintély” (akit idéznek), a kifok az „aktivitás” (aki idéz).</p>
+
+<div class="box example">
+  <span class="box-title">Példa – a lapok hivatkozásai</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="EK-RH,NY-EK,VN-RH,VN-NY" data-directed data-weights="2,1,1,2" data-show-weights
+      data-pos="RH:0,0 EK:1.4,0 NY:1.4,1.1 VN:0,1.1" data-w="200" data-h="160" data-r="15"
+      data-color="RH:--setA EK:--setB NY:--setC VN:#a855f7" data-caption="melyik lap cikke melyik lap cikkére hivatkozik (3.1)"></div></div>
+    <div>Súly nélkül (minden lappár egy él): befok $\mathrm{RH}$ 2, $\mathrm{EK}$ 1, $\mathrm{NY}$ 1, $\mathrm{VN}$ 0; kifok $\mathrm{VN}$ 2, $\mathrm{EK}$ 1, $\mathrm{NY}$ 1, $\mathrm{RH}$ 0.
+      A Reggeli Hírlapot idézik a legtöbben, de ő senkit; a Vidéki Napló idéz a legtöbbet, de őt senki. A <b>tekintély</b> és az <b>aktivitás</b> itt két különböző lap.</div>
+  </div>
+</div>
+
+<div class="box tip">
+  <span class="box-title">🗞️ Melyik gráf fokszáma? – három „gyakoriság” ugyanabból a korpuszból</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th></th><th>Ko</th><th>Vi</th><th>Po</th><th>La</th><th>Ön</th><th>Sz</th><th>Kl</th></tr>
+    <tr><td>hány cikk <b>említi</b> (cikk–szereplő páros gráf)</td><td>4</td><td>4</td><td><b>6</b></td><td>4</td><td>4</td><td>3</td><td>2</td></tr>
+    <tr><td>hány cikkben <b>szólal meg</b> (cikk → megszólaló)</td><td>2</td><td>1</td><td>2</td><td><b>3</b></td><td>2</td><td><b>3</b></td><td>0</td></tr>
+    <tr><td>hány szereplővel <b>említik együtt</b> (szereplőgráf)</td><td><b>4</b></td><td>3</td><td><b>4</b></td><td>2</td><td>2</td><td>3</td><td>2</td></tr>
+  </table></div>
+  Mindhárom „fokszám”, de három kérdésre felel. Az első a <b>láthatóság</b> (ez a napirend-kijelölés első szintjének „kiemeltsége”, 16. fejezet), a második a <b>hang</b> (ki kap szót), a harmadik a <b>kapcsoltság</b>.
+  A Lakókról 4 cikk szól, és 3-ban ők beszélnek – mégis csak 2 szereplővel említik őket együtt. A Vízügyet 4 cikk említi, de csak egyben kap szót.
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Nyers fokszámok különböző méretű gráfokból.</b> Egy 1000 csúcsú hálózatban a 20-as fokszám kevés, egy 25 csúcsúban szinte minden. Különböző gráfok összevetésénél normálj $n - 1$-gyel.</li>
+    <li><b>A súly elfelejtése.</b> Súlyozott gráfon a fokszám a kapcsolatok <b>számát</b>, az erősség a <b>mennyiségét</b> méri. Mondd meg, melyiket számoltad.</li>
+    <li><b>Befok és kifok összeadása.</b> Irányított gráfon a „fokszám” két külön kérdés: idéznek-e, vagy idézel-e. Az összegük elmossa a különbséget.</li>
+    <li><b>A fokszám helyi.</b> Csak a közvetlen szomszédokat látja. Hogy a szomszédok kik, és hogy a csúcs hol van a gráf egészében, arról nem mond semmit – erről szól a fejezet többi része.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – fokszám, erősség, befok</summary>
+  <ol>
+    <li>Mennyi az 5 csúcsú út (1–2–3–4–5) csúcsainak fokszám-centralitása?
+      <details><summary>Megoldás</summary>$n - 1 = 4$: a két végpont $1/4 = 0{,}25$, a három belső csúcs $2/4 = 0{,}5$. A fokszám nem látja, hogy a 3-as „középen” van – a 2-es és a 4-es ugyanannyit kap.</details></li>
+    <li>Egy 101 csúcsú gráf legnagyobb fokszáma 20, egy 11 csúcsúé 6. Melyik csúcs a „központibb” a saját gráfjában?
+      <details><summary>Megoldás</summary>$20/100 = 0{,}2$ és $6/10 = 0{,}6$. A kis gráf csúcsa – a nagyobb nyers szám ellenére.</details></li>
+    <li>Mennyi az Önkéntesek erőssége az Árvízhét gráfjában?
+      <details><summary>Megoldás</summary>Szomszédai: Lakók (3 cikk) és Polgármester (2 cikk): $s(\text{Ön}) = 3 + 2 = 5$.</details></li>
+    <li>A lapok súlyozott hivatkozási gráfjában (élek: $\mathrm{EK}\to\mathrm{RH}$ 2, $\mathrm{NY}\to\mathrm{EK}$ 1, $\mathrm{VN}\to\mathrm{RH}$ 1, $\mathrm{VN}\to\mathrm{NY}$ 2) mennyi az RH súlyozott befoka, és a VN súlyozott kifoka?
+      <details><summary>Megoldás</summary>RH: $2 + 1 = 3$ hivatkozás érkezik. VN: $1 + 2 = 3$ hivatkozás indul. A befokok összege $3 + 1 + 2 + 0 = 6$ = a kifokok összege = az összes hivatkozás.</details></li>
+    <li>(nehezebb) A Polgármestert 6 cikk említi, a szereplőgráfban mégis csak 4 a fokszáma. Hogyan lehet ez?
+      <details><summary>Megoldás</summary>A fokszám <b>különböző társakat</b> számol: a 6 cikkben a Polgármester mellett a Kormány, a Vízügy, a Lakók és az Önkéntesek szerepel, többször is (pl. a Lakókkal 2 cikkben). A többszöri együttszereplést a <b>súly</b> őrzi meg: az erőssége 8.
+        Egy cikk viszont, amelyben egyedül szerepelne, a szereplőgráfban <b>semmit</b> sem adna hozzá – a vetület ezt az információt elveszíti (<a href="../03-graftipusok/#s34-c">3.4</a>).</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh5-51"></div>
+</section>
+
+<!-- ===================================================== 5.2 -->
+<section id="s52">
+<h2>5.2 Közelségi centralitás: milyen közel vagy mindenkihez? ★★</h2>
+<p>A fokszám csak a közvetlen szomszédokat látja. Az 5 csúcsú úton (1–2–3–4–5) a 2-es, a 3-as és a 4-es fokszáma egyaránt 2 – pedig a 3-as nyilvánvalóan „középen” van:
+tőle mindenki legfeljebb 2 lépésre van. Ha egy hír a 3-astól indul, hamarabb ér el mindenkihez, mint a 2-estől. Ez a <b>közelség</b>.</p>
+
+<h3 id="s52-a">1. lépés: a távolságösszeg és a reciproka</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – az 5 csúcsú út, teljes felsorolással</span>
+  <div class="gfig" data-edges="1-2,2-3,3-4,4-5" data-pos="1:0,0 2:1,0 3:2,0 4:3,0 5:4,0" data-w="280" data-h="60"></div>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>honnan</th><th>→1</th><th>→2</th><th>→3</th><th>→4</th><th>→5</th><th>összeg</th></tr>
+    <tr><td>1</td><td>–</td><td>1</td><td>2</td><td>3</td><td>4</td><td><b>10</b></td></tr>
+    <tr><td>2</td><td>1</td><td>–</td><td>1</td><td>2</td><td>3</td><td><b>7</b></td></tr>
+    <tr><td>3</td><td>2</td><td>1</td><td>–</td><td>1</td><td>2</td><td><b>6</b></td></tr>
+  </table></div>
+  (A 4-es és az 5-ös a szimmetria miatt 7 és 10.) A 3-asnak a legkisebb a <b>távolságösszege</b>: ő van a legközelebb mindenkihez. Az átlagos távolsága $6/4 = 1{,}5$ lépés, a végpontoké $10/4 = 2{,}5$.
+</div>
+
+<p>A távolságösszeg „fordított” mérőszám: a <b>kisebb</b> a jobb. Centralitást úgy kapunk belőle, hogy megfordítjuk, és normáljuk:</p>
+
+<div class="box def">
+  <span class="box-title">Definíció – közelségi centralitás</span>
+  Összefüggő gráfban
+  $$C_{\text{köz}}(v) = \frac{n - 1}{\sum_{u \ne v} \operatorname{dist}(v, u)} = \frac{1}{\text{átlagos távolság } v\text{-től}} .$$
+  <small>Miért így? A reciprok megfordítja az irányt (kis távolság → nagy centralitás). Az $n - 1$-es szorzó a távolságösszegből átlagot csinál, így a maximum 1: ezt az kapja, aki mindenkivel szomszédos (minden távolsága 1).
+  A távolságokat <a href="../02-setak-utak-fak/#s23-a">szélességi bejárással</a> számoljuk, csúcsonként egyszer.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – az út</span>
+    Mennyi az 5 csúcsú út csúcsainak közelségi centralitása?
+    <details><summary>Megoldás</summary>$4/10 = 0{,}4$; $4/7 \approx 0{,}57$; $4/6 \approx 0{,}67$; $0{,}57$; $0{,}4$. A 3-as nyer – a fokszám ezt nem látta.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a csillag</span>
+    Egy 6 csúcsú csillagban (közép + 5 levél) mennyi a közép és egy levél közelségi centralitása?
+    <details><summary>Megoldás</summary>Közép: minden távolsága 1, $5/5 = 1$. Levél: a közép 1, a többi 4 levél 2 lépésre: $5/(1 + 4 \cdot 2) = 5/9 \approx 0{,}56$.</details>
+  </div>
+</div>
+<div class="box example">
+  <span class="box-title">Példa – a Kormány és a Lakók</span>
+  Számold ki az Árvízhét gráfjában a Kormány és a Lakók távolságösszegét és közelségi centralitását!
+  <details><summary>Megoldás</summary>Kormány: $\mathrm{Vi}$, $\mathrm{Po}$, $\mathrm{Sz}$, $\mathrm{Kl}$ 1 lépés, $\mathrm{La}$, $\text{Ön}$ 2 lépés (a Polgármesteren át): $4 + 4 = 8$, $C_{\text{köz}} = 6/8 = 0{,}75$.
+    Lakók: $\text{Ön}$, $\mathrm{Po}$ 1; $\mathrm{Ko}$, $\mathrm{Vi}$ 2; $\mathrm{Sz}$, $\mathrm{Kl}$ 3: összesen $12$, $C_{\text{köz}} = 6/12 = 0{,}5$.
+    A teljes rangsor: $\mathrm{Ko} = \mathrm{Po} = 0{,}75$, $\mathrm{Vi} \approx 0{,}67$, $\mathrm{Sz} \approx 0{,}55$, $\mathrm{La} = \text{Ön} = \mathrm{Kl} = 0{,}5$. Megint <b>holtverseny</b> a Kormány és a Polgármester között.</details>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A távolságösszeg nem centralitás.</b> Ott a kisebb a központibb. Ha a táblázatban a „legnagyobb” értéket keresed, előbb fordítsd meg.</li>
+    <li><b>Súlyozott gráfon a súly nem távolság.</b> Ha a súly „hány közös cikk” (erősség), a nagy súly <b>közelebbi</b> kapcsolatot jelent – a távolsághoz előbb meg kell fordítani (pl. $1/w$), ahogy a <a href="../02-setak-utak-fak/#s24-c">2.4</a> mutatta.</li>
+    <li><b>Az értékek összenyomódnak.</b> Nagy, „kisvilág” hálózatokban (7. fejezet) majdnem mindenki 3–5 lépésre van mindenkitől, így a közelségi centralitások nagyon közel esnek egymáshoz. A kis különbséget ne értelmezd túl.</li>
+  </ul>
+</div>
+
+<h3 id="s52-b">2. lépés: ha a gráf nem összefüggő – harmonikus centralitás</h3>
+<p>Mi a helyzet, ha valakit egyáltalán nem lehet elérni? Akkor a távolság végtelen, a távolságösszeg is végtelen, és a képlet mindenkinek 0-t ad. Pedig egy hírkorpusz szereplőgráfja gyakran
+<b>több komponensből</b> áll (egy-egy mellékszál, amely sosem találkozik a főszállal). A megoldás: ne a távolságokat adjuk össze, hanem a <b>reciprokukat</b>.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két komponens</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="1-2,2-3,4-5" data-pos="1:0,0 2:1,0 3:2,0 4:3,0 5:4,0" data-w="260" data-h="60"></div></div>
+    <div>A 2-es csúcs: az 1-es és a 3-as 1 lépésre, a 4-es és az 5-ös elérhetetlen. Ha az elérhetetlen csúcs <b>0-t</b> ad, a többi $1/\operatorname{dist}$-et:
+      $$C_{\text{harm}}(2) = \tfrac11 + \tfrac11 + 0 + 0 = 2.$$
+      Az 1-es: $1 + \tfrac12 = 1{,}5$; a 4-es: $1$.</div>
+  </div>
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – harmonikus centralitás</span>
+  $$C_{\text{harm}}(v) = \sum_{u \ne v} \frac{1}{\operatorname{dist}(v, u)}, \qquad \frac{1}{\infty} := 0 .$$
+  Normált alakja: $C_{\text{harm}}(v)/(n - 1)$, amely szintén 1, ha $v$ mindenkivel szomszédos.
+  <small>Miért jobb? Az elérhetetlen csúcs nem „rontja el” a többit, csak nem ad semmit. A közeli csúcsok sokat, a távoliak keveset számítanak: $1, \tfrac12, \tfrac13, \dots$ Összefüggő gráfon általában ugyanazt a sorrendet adja, mint a közelségi centralitás.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – az út, harmonikusan</span>
+    Mennyi az 5 csúcsú út 1-es és 3-as csúcsának harmonikus centralitása?
+    <details><summary>Megoldás</summary>1-es: $1 + \tfrac12 + \tfrac13 + \tfrac14 = \tfrac{25}{12} \approx 2{,}08$. 3-as: $1 + 1 + \tfrac12 + \tfrac12 = 3$. Ugyanaz a sorrend, mint a közelséginél.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – Árvízhét</span>
+    Mennyi a Kormány és a Szakértő harmonikus centralitása?
+    <details><summary>Megoldás</summary>Kormány: négy 1-es és két 2-es távolság: $4 + 2 \cdot \tfrac12 = 5$. Szakértő: $\mathrm{Vi}$, $\mathrm{Kl}$, $\mathrm{Ko}$ 1, $\mathrm{Po}$ 2, $\mathrm{La}$, $\text{Ön}$ 3: $3 + \tfrac12 + \tfrac23 = \tfrac{25}{6} \approx 4{,}17$.</details>
+  </div>
+</div>
+
+<div class="box history">
+  <span class="box-title">📜 Kísérletek a kommunikációs hálózatokban</span>
+  <b>Alex Bavelas</b> és tanítványa, <b>Harold Leavitt</b> az MIT-n (1948–1951) kis csoportokkal oldattak meg feladatokat úgy, hogy a tagok csak írásban, előre megszabott csatornákon üzenhettek egymásnak (kör, lánc, csillag…).
+  A „központi” helyzetű tag – akinek a legkisebb a távolságösszege – lett jellemzően a csoport informális vezetője. A mérőszámot <b>Sabidussi</b> (1966) formalizálta.
+  A harmonikus változatot <b>Marchiori és Latora</b> (2000) javasolta nem összefüggő hálózatokra; <b>Boldi és Vigna</b> (2014) szerint a klasszikus mérőszámok közül ez viselkedik a legjobban.
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – közelségi és harmonikus centralitás</summary>
+  <ol>
+    <li>Mennyi a 4 hosszú kör ($C_4$) bármely csúcsának közelségi centralitása?
+      <details><summary>Megoldás</summary>Két szomszéd 1, a szemközti csúcs 2 lépésre: $3/(1 + 1 + 2) = 3/4 = 0{,}75$. Szimmetrikus gráf, mindenki egyforma.</details></li>
+    <li>A „két háromszög + híd” gráfban (élek $12, 13, 23, 34, 45, 46, 56$) mennyi a 3-as és az 1-es csúcs közelségi centralitása?
+      <details><summary>Megoldás</summary>3-as: $1, 1, 1, 2, 2$ → összeg 7, $5/7 \approx 0{,}71$. 1-es: $1, 1, 2, 3, 3$ → összeg 10, $5/10 = 0{,}5$.</details></li>
+    <li>Az Árvízhét gráfjában mennyi a Vízügy távolságösszege és közelségi centralitása?
+      <details><summary>Megoldás</summary>$\mathrm{Ko}$, $\mathrm{Po}$, $\mathrm{Sz}$ 1; $\mathrm{Kl}$, $\mathrm{La}$, $\text{Ön}$ 2: $3 + 6 = 9$, $C_{\text{köz}} = 6/9 \approx 0{,}67$.</details></li>
+    <li>A két komponensből álló gráfban (1–2–3 és 4–5) mennyi a 3-as és az 5-ös harmonikus centralitása? Mit adna a közelségi?
+      <details><summary>Megoldás</summary>3-as: $1 + \tfrac12 = 1{,}5$; 5-ös: $1$. A közelségi képlet a végtelen távolságösszeg miatt mindkettőre 0-t adna – nem tudna különbséget tenni.</details></li>
+    <li>(nehezebb) Egy hírszereplő-gráf két komponensből áll: egy 50 csúcsúból és egy 3 csúcsú háromszögből. A háromszög csúcsai a saját komponensükben mindenkivel szomszédosak. Mit mutatna a „komponensen belül számolt” közelségi centralitás, és miért félrevezető?
+      <details><summary>Megoldás</summary>A háromszögben mindenki távolsága 1, így a komponensen belüli közelség $2/2 = 1$ – a maximum, többet, mint bárki a nagy komponensben. Pedig a háromszög egy elszigetelt mellékszál.
+        A harmonikus centralitás a teljes gráfra számolva ezt helyre teszi: a háromszög csúcsai csak $2$-t kapnak, $(n - 1) = 52$-vel normálva $\approx 0{,}04$.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh5-52"></div>
+</section>
+
+<!-- ===================================================== 5.3 -->
+<section id="s53">
+<h2>5.3 Köztességi centralitás: kin megy át az út? ★★</h2>
+<p>Eddig két mérőszám, és mindkettő holtversenyt hozott a Kormány és a Polgármester között. Nézd meg azonban a gráfot: a Lakók és az Önkéntesek <b>csak a Polgármesteren át</b> érik el a többieket.
+Ha a Polgármestert kivennénk, a gráf szétesne. Ez másfajta fontosság: nem az, hogy <i>kit érsz el</i>, hanem hogy <i>kik érik el egymást rajtad keresztül</i>. A hálózatkutatás <b>közvetítőnek</b> (angolul <em>broker</em>) hívja az ilyen szereplőt.</p>
+
+<h3 id="s53-a">1. lépés: hány legrövidebb út megy át rajtad?</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a „csokornyakkendő”, teljes felsorolással</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="A-B,A-C,B-C,C-D,C-E,D-E" data-pos="A:0,0 B:0,1.2 C:1,.6 D:2,0 E:2,1.2" data-w="200" data-h="130"
+      data-color="C:--accent" data-caption="két háromszög egy közös csúccsal"></div></div>
+    <div>Öt csúcs, $\binom52 = 10$ csúcspár. Melyik pár legrövidebb útja megy át a $C$-n (úgy, hogy $C$ nem végpont)?
+      <ul style="margin:.3rem 0">
+        <li>$A$–$B$, $D$–$E$: közvetlen él, nem megy át senkin.</li>
+        <li>$A$–$D$, $A$–$E$, $B$–$D$, $B$–$E$: egyetlen legrövidebb út, és az a $C$-n át vezet. <b>4 pár.</b></li>
+        <li>a $C$-t tartalmazó 4 pár: ott $C$ végpont, nem számít.</li>
+      </ul>
+      $C$ köztessége tehát <b>4</b>, a többi csúcsé 0.</div>
+  </div>
+</div>
+
+<div class="box def">
+  <span class="box-title">Szabály – köztesség, ha a legrövidebb utak egyértelműek</span>
+  $$C_{\text{btw}}(v) = \text{azon } \{s, t\} \text{ csúcspárok száma } (s, t \ne v), \text{ amelyek legrövidebb útja átmegy } v\text{-n.}$$
+  <small>Miért a legrövidebb út? Azt feltételezzük, hogy az információ (üzenet, hír, pletyka) a legrövidebb úton halad. Akin sok ilyen út átmegy, az <b>ellenőrizheti</b>, késleltetheti, átszínezheti az áramlást.</small>
+</div>
+
+<h3 id="s53-b">2. lépés: ha több legrövidebb út van – törtek</h3>
+<p>Mi van, ha két egyformán rövid út is van $s$ és $t$ között? Akkor egyiknek sem „jár” az egész pár. Igazságos, ha az utak között egyenlően osztjuk szét.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a 4 hosszú kör</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="1-2,2-3,3-4,4-1" data-pos="1:0,0 2:1,0 3:1,1 4:0,1" data-w="120" data-h="120"></div></div>
+    <div>Az $1$–$3$ pár között két legrövidebb út van: $1$–$2$–$3$ és $1$–$4$–$3$. A 2-es csúcs a kettőből egyen van rajta: <b>$\tfrac12$</b> pár „jut” neki.
+      A $2$–$4$ pár útjai az 1-esen és a 3-ason mennek át, a 2-esen nem. A szomszédos párok közvetlenek. Így a 2-es köztessége $\tfrac12$ – és a szimmetria miatt mindenkié $\tfrac12$.</div>
+  </div>
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – köztességi centralitás (Freeman, 1977)</span>
+  Legyen $\sigma_{st}$ az $s$ és $t$ közötti legrövidebb utak száma, $\sigma_{st}(v)$ ezek közül azoké, amelyek átmennek $v$-n. Ekkor
+  $$C_{\text{btw}}(v) = \sum_{\{s, t\},\ s, t \ne v} \frac{\sigma_{st}(v)}{\sigma_{st}} .$$
+  Normált alakja: osztva a $v$-t nem tartalmazó párok számával, $\binom{n-1}{2} = \frac{(n-1)(n-2)}{2}$-vel; így $0 \le C_{\text{btw}} \le 1$.
+  <small>Miért ez a normálás? A legjobb, ami történhet, hogy a $v$-t nem tartalmazó <b>összes</b> pár csak rajta át éri el egymást – ez a csillag közepe, ott a hányados 1.
+  Irányítatlan gráfon minden párt <b>egyszer</b> számolunk ($\{s, t\}$ = $\{t, s\}$). Nagy gráfokra a számítást Brandes algoritmusa (2001) végzi: minden csúcsból egy szélességi bejárás.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – normálás</span>
+    Mennyi a csokornyakkendő $C$ csúcsának normált köztessége?
+    <details><summary>Megoldás</summary>$n = 5$, a $C$-t nem tartalmazó párok száma $\binom42 = 6$. $4/6 \approx 0{,}67$. (A hiányzó 2 pár, $A$–$B$ és $D$–$E$, közvetlenül szomszédos.)</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – az út</span>
+    Mennyi az 5 csúcsú út (1–2–3–4–5) köztességi rangsora?
+    <details><summary>Megoldás</summary>A 3-ason átmegy $1$–$4$, $1$–$5$, $2$–$4$, $2$–$5$: <b>4</b>. A 2-esen $1$–$3$, $1$–$4$, $1$–$5$: <b>3</b>, a 4-esen szintén 3. A végpontok 0. Normálva ($\binom42 = 6$): $0{,}67$, $0{,}5$, 0.</details>
+  </div>
+</div>
+
+<h3 id="s53-c">3. lépés: a közvetítő az Árvízhéten</h3>
+<div class="box example">
+  <span class="box-title">Példa – a Polgármester és a Kormány köztessége</span>
+  <b>Polgármester.</b> A Lakók és az Önkéntesek csak rajta át érik el az „országos” négyest ($\mathrm{Ko}$, $\mathrm{Vi}$, $\mathrm{Sz}$, $\mathrm{Kl}$). Ez $2 \cdot 4 = 8$ pár, mindegyik egyetlen legrövidebb úttal:
+  $C_{\text{btw}}(\mathrm{Po}) = 8$. Más pár nem megy át rajta (a $\mathrm{Ko}$–$\mathrm{Vi}$ szomszédos).<br>
+  <b>Kormány.</b> Itt törtek is kellenek:
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>pár</th><th>legrövidebb utak</th><th>a Kormányon át</th></tr>
+    <tr><td>$\mathrm{Kl}$–$\mathrm{Po}$</td><td>$\mathrm{Kl}$–$\mathrm{Ko}$–$\mathrm{Po}$</td><td>1</td></tr>
+    <tr><td>$\mathrm{Kl}$–$\mathrm{La}$, $\mathrm{Kl}$–$\text{Ön}$</td><td>$\mathrm{Kl}$–$\mathrm{Ko}$–$\mathrm{Po}$–…</td><td>1 + 1</td></tr>
+    <tr><td>$\mathrm{Kl}$–$\mathrm{Vi}$</td><td>$\mathrm{Kl}$–$\mathrm{Ko}$–$\mathrm{Vi}$ és $\mathrm{Kl}$–$\mathrm{Sz}$–$\mathrm{Vi}$</td><td>$\tfrac12$</td></tr>
+    <tr><td>$\mathrm{Sz}$–$\mathrm{Po}$, $\mathrm{Sz}$–$\mathrm{La}$, $\mathrm{Sz}$–$\text{Ön}$</td><td>a $\mathrm{Ko}$-n vagy a $\mathrm{Vi}$-n át</td><td>$\tfrac12 + \tfrac12 + \tfrac12$</td></tr>
+  </table></div>
+  Összesen $C_{\text{btw}}(\mathrm{Ko}) = 3 + \tfrac12 + \tfrac32 = 5$. A teljes rangsor: $\mathrm{Po}$ 8, $\mathrm{Ko}$ 5, $\mathrm{Vi}$ 1,5, $\mathrm{Sz}$ 0,5, a többi 0. Normálva ($\binom62 = 15$): $\mathrm{Po} \approx 0{,}53$, $\mathrm{Ko} \approx 0{,}33$.<br>
+  <b>Végre eldőlt a holtverseny:</b> köztesség szerint a Polgármester a legfontosabb. Ő köti össze a helyi és az országos szálat – ugyanaz a szerep, amelyet a 4.6-ban a Fiedler-vektor is mutatott (a két vágott él hozzá futott).
+</div>
+
+<div class="widget" data-widget="betweenness-paths"></div>
+
+<div class="box tip">
+  <span class="box-title">👍 Hüvelykujjszabály – strukturális lyukak</span>
+  <b>Magas köztesség, alacsony fokszám = közvetítő.</b> Aki két, egymással alig kapcsolódó csoport között áll, kevés kapcsolattal is sok utat ellenőriz. <b>Ronald Burt</b> (<em>Structural Holes</em>, 1992) ezeket a csoportok közötti „lyukakat” nevezte
+  <b>strukturális lyuknak</b>: aki áthidalja őket, információs előnyhöz jut. Hírelemzésben ilyen a szereplő, aki két keretben is megjelenik, vagy a forrás, akit két tábor médiumai egyaránt idéznek.
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A végpontot is beszámolni.</b> Az $s$–$t$ út $s$-en és $t$-n „átmegy”, de a köztesség csak a <b>belső</b> csúcsokat jutalmazza.</li>
+    <li><b>Több legrövidebb útnál az egész párt odaadni.</b> Ha $\sigma_{st} = 2$, és csak az egyik út megy át $v$-n, $v$ csak $\tfrac12$-et kap.</li>
+    <li><b>A párokat kétszer számolni.</b> Irányítatlan gráfon az $s$–$t$ és a $t$–$s$ ugyanaz a pár. (Egyes programok mindkét irányt számolják, így kétszeres értéket adnak – nézd meg, melyik konvenciót használja!)</li>
+    <li><b>Érzékeny a hiányzó élekre.</b> Ha az Árvízhéten egyetlen cikk a Lakókat és a Vízügyet együtt említené ($\mathrm{La}$–$\mathrm{Vi}$ él), a Polgármester köztessége <b>8-ról 4-re</b> esne, és utolérné a Kormány (4).
+      Egy kisebb korpuszban egyetlen cikk is átrendezheti a „közvetítők” listáját.</li>
+  </ul>
+</div>
+
+<div class="box history">
+  <span class="box-title">📜 Kin múlik az információ?</span>
+  A köztességet <b>Linton Freeman</b> vezette be 1977-ben (<em>A set of measures of centrality based on betweenness</em>), a legrövidebb utakat tartalmazó csúcsok „ellenőrző” szerepéből kiindulva; hasonló mértéket J. M. Anthonisse már 1971-ben leírt.
+  A gyors számítást <b>Ulrik Brandes</b> 2001-es algoritmusa tette lehetővé nagy hálózatokon. A hídszerep gondolata <b>Granovetter</b> „gyenge kötéseiig” (1973) vezet vissza – erről a 6. fejezet szól.
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – köztesség</summary>
+  <ol>
+    <li>Mennyi egy 5 csúcsú csillag (közép + 4 levél) közepének köztessége, nyersen és normálva?
+      <details><summary>Megoldás</summary>A levelek közötti minden pár ($\binom42 = 6$) a közepen át megy: <b>6</b>. Normálva $6/6 = 1$ – a maximum.</details></li>
+    <li>A „két háromszög + híd” gráfban (élek $12, 13, 23, 34, 45, 46, 56$) mennyi a 3-as csúcs köztessége?
+      <details><summary>Megoldás</summary>Az $\{1, 2\}$ és a $\{4, 5, 6\}$ közötti $2 \cdot 3 = 6$ pár mind a 3-ason át megy (a 3-as–4-es–… párokban a 3-as végpont, nem számít): <b>6</b>. A 4-esé szintén 6, a többieké 0.</details></li>
+    <li>Mennyi az 5 hosszú kör ($C_5$) egy csúcsának köztessége?
+      <details><summary>Megoldás</summary>$C_5$-ben minden pár távolsága 1 vagy 2, és a 2 távolságú pároknak egyetlen legrövidebb útjuk van. A $v$ csúcs pontosan egy pár útjának közepén áll: a két szomszédjáén. Köztessége <b>1</b>.</details></li>
+    <li>Az Árvízhét gráfjában mennyi a Szakértő köztessége? Melyik párból kapja?
+      <details><summary>Megoldás</summary>Csak a $\mathrm{Kl}$–$\mathrm{Vi}$ párból: két legrövidebb út ($\mathrm{Kl}$–$\mathrm{Sz}$–$\mathrm{Vi}$ és $\mathrm{Kl}$–$\mathrm{Ko}$–$\mathrm{Vi}$), az egyik rajta megy: <b>$\tfrac12$</b>.</details></li>
+    <li>(nehezebb) Mi lenne a Polgármester köztessége, ha a $\mathrm{Ko}$–$\mathrm{Po}$ élt törölnénk? És a Vízügyé?
+      <details><summary>Megoldás</summary>A Lakók és az Önkéntesek továbbra is csak a Polgármesteren át érnek ki: 8 pár, a Polgármester köztessége marad <b>8</b>.
+        De a Polgármester most csak a Vízügyön át éri el az országos szálat, így a $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$ × $\{\mathrm{Ko}, \mathrm{Sz}, \mathrm{Kl}\}$ = 9 pár mind a Vízügyön megy át: $C_{\text{btw}}(\mathrm{Vi}) = 9$ – ő lesz az első.
+        (Pythonnal ellenőrizve: $\mathrm{Vi}$ 9, $\mathrm{Po}$ 8, $\mathrm{Ko}$ 2, $\mathrm{Sz}$ 2.)</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh5-53"></div>
+</section>
+
+<!-- ===================================================== 5.4 -->
+<section id="s54">
+<h2>5.4 Sajátvektor-centralitás: fontos, akinek fontosak a szomszédai ★★</h2>
+<p>Az eddigi három mérőszám a gráf <b>alakját</b> nézte: hány szomszéd, milyen messze, mi van közte. Egy dolgot egyik sem kérdezett: <b>kik</b> a szomszédok? Egy újságíró, akit egy miniszter és egy pártelnök idéz,
+„fontosabb”, mint akit két névtelen kommentelő – akkor is, ha mindkettőt kétszer idézték. Ez egy <b>rekurzív</b> ötlet: a fontosságod a szomszédaid fontosságából jön, az övék az ő szomszédaikéból, és így tovább.</p>
+
+<h3 id="s54-a">1. lépés: ugyanaz a fokszám, más szomszédok</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – $X$ és $Y$</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="A-B,A-C,B-C,X-A,X-B,C-Y,Y-L" data-pos="A:1,0 B:1,1.2 C:2,.6 X:0,.6 Y:3,.6 L:4,.6" data-w="260" data-h="120"
+      data-color="X:--setA Y:--setB" data-caption="X és Y fokszáma egyaránt 2"></div></div>
+    <div>$X$ két szomszédja ($A$, $B$) egy sűrű háromszög tagja. $Y$ egyik szomszédja ($C$) is a háromszögben van, a másik ($L$) viszont egy zsákutca. A fokszám szerint $X$ és $Y$ egyforma.
+      <b>Legyen mindenki pontszáma a szomszédai pontszámainak összege.</b> Induljunk csupa 1-ből, és alkalmazzuk ezt a szabályt (ez éppen $A\mathbf x$, <a href="../04-grafok-es-matrixok/#s41">4.1</a>):</div>
+  </div>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>lépés</th><th>A</th><th>B</th><th>C</th><th>X</th><th>Y</th><th>L</th></tr>
+    <tr><td>0. ($\mathbf 1$)</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr>
+    <tr><td>1. ($A\mathbf 1$ = fokszám)</td><td>3</td><td>3</td><td>3</td><td><b>2</b></td><td><b>2</b></td><td>1</td></tr>
+    <tr><td>2. (a szomszédok fokszámának összege)</td><td>8</td><td>8</td><td>8</td><td><b>6</b></td><td><b>4</b></td><td>2</td></tr>
+    <tr><td>3.</td><td>22</td><td>22</td><td>20</td><td><b>16</b></td><td><b>10</b></td><td>4</td></tr>
+    <tr><td>határ (max = 1-re normálva)</td><td>1</td><td>1</td><td>0,90</td><td><b>0,75</b></td><td><b>0,40</b></td><td>0,15</td></tr>
+  </table></div>
+  Az első lépés még a fokszámot adja, a második már különbséget tesz: $X$ szomszédai „erősebbek” ($3 + 3$), mint $Y$-éi ($3 + 1$). A számok nőnek, de az <b>arányuk</b> beáll – ez a 4.3 hatványiterációja.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – sajátvektor-centralitás (Bonacich, 1972)</span>
+  Keressünk olyan pozitív $\mathbf x$ pontszámokat, hogy mindenkié a szomszédai pontszámának összegével <b>arányos</b> legyen, ugyanazzal a $\lambda$ tényezővel:
+  $$\lambda\, x_i = \sum_{j \text{ szomszédja } i\text{-nek}} x_j , \qquad \text{vagyis}\qquad A\mathbf x = \lambda\mathbf x .$$
+  A $C_{\text{saját}}$ a legnagyobb sajátértékhez ($\lambda_1$) tartozó sajátvektor, általában max = 1-re (vagy 1 hosszúra) normálva.
+  <small>Miért éppen a legnagyobb sajátérték? A Perron–Frobenius-tétel (<a href="../04-grafok-es-matrixok/#s43-c">4.3</a>) szerint összefüggő gráfon csak ehhez tartozik <b>csupa pozitív</b> sajátvektor, és ez egyértelmű (számszorzótól eltekintve).
+  A hatványiteráció is ehhez tart. Egy „pontszám” negatív nem lehet – ezért ez az egyetlen értelmes választás.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a csillag</span>
+    Mennyi a sajátvektor-centralitás egy 5 csúcsú csillagban (közép + 4 levél)?
+    <details><summary>Megoldás</summary>Legyen a közép $1$, a levél $y$. A levélnek egy szomszédja van, a közép: $\lambda y = 1$. A középnek négy levele: $\lambda \cdot 1 = 4y$. Ebből $\lambda^2 = 4$, $\lambda = 2$, $y = \tfrac12$.
+      A közép 1, a levelek 0,5.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – Kormány és Polgármester</span>
+    Az Árvízhét gráfjában mindkettőnek 4 a fokszáma. Mit mond a sajátvektor (<a href="../04-grafok-es-matrixok/#s46-b">4.6</a>)?
+    <details><summary>Megoldás</summary>$\mathrm{Ko}$ 1, $\mathrm{Po}$ 0,87, $\mathrm{Vi}$ 0,86, $\mathrm{Sz}$ 0,79, $\mathrm{Kl}$ 0,58, $\mathrm{La}$ = $\text{Ön}$ 0,42 ($\lambda_1 \approx 3{,}09$). A Kormány szomszédai a sűrű országos csoport tagjai, a Polgármesteréi közül kettő a gráf szélén ül.
+      <b>A sajátvektor a Kormányt teszi előre</b> – ellentétben a köztességgel.</details>
+  </div>
+</div>
+<div class="box example">
+  <span class="box-title">Példa – a 3 csúcsú út</span>
+  Igazold, hogy az 1–2–3 úton $\mathbf x = (1, \sqrt2, 1)$ sajátvektor! Mennyi a $\lambda$, és mi a max = 1-re normált centralitás?
+  <details><summary>Megoldás</summary>1-es: szomszédja a 2-es, $\sqrt2 = \sqrt2 \cdot 1$. 2-es: $1 + 1 = 2 = \sqrt2 \cdot \sqrt2$. 3-as: mint az 1-es. Tehát $\lambda = \sqrt2$. Normálva: $(0{,}71;\ 1;\ 0{,}71)$.</details>
+</div>
+
+<div class="box tip">
+  <span class="box-title">👍 Hüvelykujjszabály</span>
+  <b>Fokszám = 1 lépés, sajátvektor = végtelen sok lépés.</b> A fokszám azt számolja, hány szomszéd; a második iteráció, hány 2 lépéses séta; a sajátvektor, hogy „hosszú távon” mennyi séta fut be hozzád.
+  Ezért a sajátvektor-centralitás a gráf <b>sűrű magját</b> jutalmazza: aki egy jól összekötött csoport közepén ül, az nyer.
+</div>
+
+<h3 id="s54-b">2. lépés: ahol a sajátvektor elakad – irányított gráf</h3>
+<p>Hírek között a kapcsolat gyakran <b>irányított</b>: egy cikk hivatkozik egy másikra, egy lap átvesz egy hírt. Itt a „fontos, akit fontosak idéznek” ötlet a <b>befelé mutató</b> élekkel számol: $x_i$ = a rá mutatók pontszámának összege.
+De nézd meg, mi történik egy egyszerű láncon: $A \to B \to C$.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a nulla „terjed”</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="A-B,B-C" data-directed data-pos="A:0,0 B:1,0 C:2,0" data-w="200" data-h="50"></div></div>
+    <div>Az $A$-ra senki sem mutat: $x_A = 0$. A $B$-re csak az $A$: $x_B \propto x_A = 0$. A $C$-re csak a $B$: $x_C = 0$. <b>Mindenki 0</b> – pedig a $C$-t idézték, az $A$-t nem.
+      Egyetlen „idézetlen” forrás nullája végigfut a gráfon. Ugyanez történik a lapok hivatkozási gráfjában: a Vidéki Naplóra senki sem hivatkozik.</div>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák és korlátok</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Irányított gráfon a sajátvektor-centralitás sokszor csupa 0</b> (vagy csak egy erősen összefüggő magban nem 0). Erre a két szokásos javítás: a <b>Katz-centralitás</b> (mindenki kap egy kis alappontszámot, $\mathbf x = \alpha A^\top\mathbf x + \beta\mathbf 1$)
+      és a <b>PageRank</b> (<a href="#s55">5.5</a>).</li>
+    <li><b>Nem összefüggő gráfon</b> csak a legnagyobb $\lambda_1$-ű komponens kap nem nulla értéket; a többi komponenst külön kell számolni.</li>
+    <li><b>Az előjel önkényes.</b> Egy program $-\mathbf v$-t is visszaadhat (<a href="../04-grafok-es-matrixok/#s43">4.3</a>): ha minden elem negatív, fordítsd meg.</li>
+    <li><b>A sajátvektor nem a fokszám.</b> Erősen korrelálnak, de két egyforma fokszámú csúcs jócskán eltérhet ($X$: 0,75, $Y$: 0,40).</li>
+  </ul>
+</div>
+
+<div class="box history">
+  <span class="box-title">📜 Státusz a státuszból</span>
+  <b>Leo Katz</b> 1953-ban szociometriai adatokon javasolta, hogy a „státuszt” a beérkező, egyre hosszabb (és egyre kisebb súllyal számolt) láncok összegével mérjük. <b>Phillip Bonacich</b> 1972-ben mutatta meg, hogy a határesetben ez a
+  szomszédsági mátrix domináns sajátvektora, 1987-ben pedig egy paraméteres családba („hatalom-centralitás”) foglalta a fokszámot és a sajátvektort.
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – sajátvektor-centralitás</summary>
+  <ol>
+    <li>Mennyi a sajátvektor-centralitás a teljes gráfban ($K_4$) és a 4 hosszú körben ($C_4$)?
+      <details><summary>Megoldás</summary>Mindkettőben mindenki egyforma (a gráf szimmetrikus): mindenki 1 (max = 1-re normálva). $K_4$-ben $\lambda = 3$, $C_4$-ben $\lambda = 2$ – a csupa egyes vektor sajátvektor, ha mindenkinek ugyanannyi a fokszáma.</details></li>
+    <li>Egy 4 csúcsú csillagban (közép + 3 levél) mennyi a levelek sajátvektor-centralitása, ha a közép 1?
+      <details><summary>Megoldás</summary>$\lambda y = 1$ és $\lambda = 3y$, így $\lambda^2 = 3$, $\lambda = \sqrt3$, $y = 1/\sqrt3 \approx 0{,}58$.</details></li>
+    <li>A „csillag + él” gráfban (élek $AB$, $AC$, $AD$, $BC$) végezz két lépést a $\mathbf 1$ vektorból (normálás nélkül)!
+      <details><summary>Megoldás</summary>1. lépés (fokszám): $A$ 3, $B$ 2, $C$ 2, $D$ 1. 2. lépés: $A = 2 + 2 + 1 = 5$, $B = 3 + 2 = 5$, $C = 3 + 2 = 5$, $D = 3$. A második lépés után $B$ és $C$ utolérte $A$-t – de ez még nem a határ: a 4.3 szerint a határ $(1;\ 0{,}85;\ 0{,}85;\ 0{,}46)$.</details></li>
+    <li>Melyik nagyobb az $X$–$Y$ gráfban: $C_{\text{saját}}(C)$ vagy $C_{\text{saját}}(A)$? Miért, ha mindkettő fokszáma 3?
+      <details><summary>Megoldás</summary>$A$ (1) nagyobb, mint $C$ (0,90). $A$ szomszédai $B$, $C$, $X$; $C$ szomszédai $A$, $B$, $Y$. A különbség $X$ (0,75) és $Y$ (0,40): $A$-nak „jobb” a harmadik szomszédja.</details></li>
+    <li>(nehezebb) A lapok hivatkozási gráfjában ($\mathrm{EK}\to\mathrm{RH}$, $\mathrm{NY}\to\mathrm{EK}$, $\mathrm{VN}\to\mathrm{RH}$, $\mathrm{VN}\to\mathrm{NY}$) a „beérkező” sajátvektor-centralitás mindenkire 0. Miért?
+      <details><summary>Megoldás</summary>A gráfban nincs irányított kör, ezért a nulla „végigfolyik”: $x_{\mathrm{VN}} = 0$ (senki sem mutat rá), $x_{\mathrm{NY}} \propto x_{\mathrm{VN}} = 0$, $x_{\mathrm{EK}} \propto x_{\mathrm{NY}} = 0$, $x_{\mathrm{RH}} \propto x_{\mathrm{EK}} + x_{\mathrm{VN}} = 0$.
+        Körmentes gráfban az egyetlen sajátérték a 0. Ezért kell a PageRank.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh5-54"></div>
+</section>
+
+<!-- ===================================================== 5.5 -->
+<section id="s55">
+<h2>5.5 PageRank: a véletlen szörföző teleportál ★★</h2>
+<p>A sajátvektor irányított gráfon elakadt. A 4. fejezetben láttunk egy másik eszközt, amely irányított gráfon is értelmes: a <b>véletlen sétát</b>. Egy olvasó linkről linkre kattint; ahol sokat tartózkodik, az a fontos oldal.
+Csak két hibát kell kijavítani: a <b>zsákutcát</b> (ahonnan nem vezet ki link) és azt, hogy egyes oldalakra <b>soha nem jut el</b> a séta. A javítás neve <b>teleportálás</b> – és ebből lett a Google keresője.</p>
+
+<h3 id="s55-a">1. lépés: pontszám, amely a linkeken át folyik</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – három oldal</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="A-B,A-C,B-C,C-A" data-directed data-pos="A:0,0 B:2,0 C:1,1.3" data-w="170" data-h="130"></div></div>
+    <div>Minden oldal a pontszámát <b>egyenlően szétosztja</b> a kimenő linkjei között: $A$ két linkje között felezi, $B$ és $C$ az egyetlen linkjén át mindent továbbad. Ha a pontszám beállt, minden oldal annyit kap, amennyit küldtek neki:
+      $$p_A = p_C, \qquad p_B = \tfrac12 p_A, \qquad p_C = \tfrac12 p_A + p_B .$$
+      Legyen $p_A = a$. Ekkor $p_B = a/2$, $p_C = a$, és az összeg $2{,}5a = 1$, így $\mathbf p = (0{,}4;\ 0{,}2;\ 0{,}4)$.</div>
+  </div>
+  Figyeld meg: a $C$-re két link mutat, az $A$-ra csak egy, mégis egyforma a pontszámuk. Az $A$ egyetlen linkje a <b>fontos</b> $C$-től jön, és a $C$ <b>mindent</b> neki ad.
+</div>
+
+<div class="box def">
+  <span class="box-title">Szabály – a véletlen szörföző (teleportálás nélkül)</span>
+  $$p_i = \sum_{j \to i} \frac{p_j}{k^{\text{ki}}_j}, \qquad \sum_i p_i = 1,$$
+  ahol $k^{\text{ki}}_j$ a $j$ kifoka. Ez éppen a 4.2 véletlen sétájának stacionárius eloszlása: $\mathbf p^\top = \mathbf p^\top P$, $P = D_{\text{ki}}^{-1}A$.
+  <small>Miért osztunk a kifokkal? Egy sok linket kiosztó oldal (pl. egy linkgyűjtemény) linkje kevesebbet ér, mint egy válogatós oldalé: a szavazata eloszlik. Ez a különbség a befokhoz képest, amely minden linket egyformán számol.</small>
+</div>
+
+<h3 id="s55-b">2. lépés: két hiba – zsákutca és elérhetetlen oldal</h3>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Zsákutca: a pontszám elszivárog</span>
+    <div class="gfig" data-edges="A-B,A-C,B-C,D-C" data-directed data-pos="A:0,0 B:2,0 C:1,1.3 D:2.4,1.6" data-w="170" data-h="130"></div>
+    Ha a $C$-ből <b>nem</b> vezet ki link, a nála lévő pontszám nem megy sehova. Egyenletes $\tfrac14$-ből indulva: 1 lépés után $(0;\ 0{,}125;\ 0{,}625;\ 0)$, összesen csak $0{,}75$; 2 lépés után $0{,}125$; 3 lépés után <b>minden elfolyt</b>.
+  </div>
+  <div class="box example">
+    <span class="box-title">Elérhetetlen oldal: nulla pont</span>
+    <div class="gfig" data-edges="A-B,A-C,B-C,C-A,D-C" data-directed data-pos="A:0,0 B:2,0 C:1,1.3 D:2.4,1.6" data-w="170" data-h="130"></div>
+    Most a $C$-ből van link. De a $D$-re senki sem mutat: akárhonnan indul a szörföző, egy lépés után <b>soha többé</b> nem jár ott. A határ $(0{,}4;\ 0{,}2;\ 0{,}4;\ 0)$. Ha egy csoportból nem vezet ki link, minden pontszám ott gyűlik össze („pókcsapda”).
+  </div>
+</div>
+
+<p>A megoldás egy realisztikus feltevés: az olvasó <b>nem kattint örökké</b>. Időnként megunja, és beír egy teljesen új címet – egy véletlenszerű oldalra <b>teleportál</b>.</p>
+
+<div class="box def">
+  <span class="box-title">Definíció – PageRank (Brin és Page, 1998)</span>
+  Minden lépésben a szörföző $\alpha$ valószínűséggel egy véletlen kimenő linket követ, $1 - \alpha$ valószínűséggel egy egyenletesen véletlen oldalra ugrik. Zsákutcából mindig ugrik. A PageRank ennek a sétának a stacionárius eloszlása:
+  $$p_i = \frac{1 - \alpha}{n} + \alpha \sum_{j \to i} \frac{p_j}{k^{\text{ki}}_j} \;+\; \alpha \sum_{j \text{ zsákutca}} \frac{p_j}{n} .$$
+  A szokásos érték $\alpha = 0{,}85$ (átlagosan kb. 5–6 kattintás egy teleportálás előtt). Számolni iterációval szokás: $p_i = \tfrac1n$-ből indulva a képletet ismételjük, amíg be nem áll.
+  <small>Miért működik? A teleportálás miatt minden oldalról minden oldalra van esély eljutni, ezért a séta „összefüggő” és nem ragad be: a stacionárius eloszlás <b>létezik, egyértelmű, minden eleme pozitív</b>, és bárhonnan ide tart (a Perron–Frobenius-tétel itt is dolgozik).
+  A zsákutcák pontszáma nem vész el, hanem mindenki között egyenlően szétoszlik.</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa – egy lépés kézzel ($\alpha = 0{,}85$)</span>
+  Az „elérhetetlen oldal” gráfján ($A\to B$, $A\to C$, $B\to C$, $C\to A$, $D\to C$) indulj $\mathbf p_0 = (\tfrac14, \tfrac14, \tfrac14, \tfrac14)$-ből. Mennyi $\mathbf p_1$?
+  <details><summary>Megoldás</summary>Mindenki kap $\frac{0{,}15}{4} = 0{,}0375$-öt a teleportálásból. Ehhez jön a linkeken érkező rész, $0{,}85$-tel szorozva:
+    <ul style="margin:.3rem 0">
+      <li>$A$: a $C$-től $0{,}25/1$ → $0{,}0375 + 0{,}85 \cdot 0{,}25 = 0{,}25$;</li>
+      <li>$B$: az $A$-tól $0{,}25/2$ → $0{,}0375 + 0{,}85 \cdot 0{,}125 \approx 0{,}144$;</li>
+      <li>$C$: az $A$-tól $0{,}125$, a $B$-től $0{,}25$, a $D$-től $0{,}25$ → $0{,}0375 + 0{,}85 \cdot 0{,}625 \approx 0{,}569$;</li>
+      <li>$D$: senki sem küld → $0{,}0375$.</li>
+    </ul>
+    Az összeg $1$. Sok lépés után a határ $A \approx 0{,}373$, $B \approx 0{,}196$, $C \approx 0{,}394$, $D = 0{,}0375$ – a $D$ pontosan a teleportálásból kapott részt őrzi meg.</details>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a lapok PageRankje</span>
+    A lapok hivatkozási gráfjában ($\mathrm{EK}\to\mathrm{RH}$, $\mathrm{NY}\to\mathrm{EK}$, $\mathrm{VN}\to\mathrm{RH}$, $\mathrm{VN}\to\mathrm{NY}$) az RH zsákutca. Mi lesz a sorrend?
+    <details><summary>Megoldás</summary>$\alpha = 0{,}85$-tel: $\mathrm{RH}$ 0,416, $\mathrm{EK}$ 0,278, $\mathrm{NY}$ 0,179, $\mathrm{VN}$ 0,126. A sorrend a befoké, de a holtverseny ($\mathrm{EK}$ és $\mathrm{NY}$ befoka 1–1) eldől: az EK-t a NY <b>egyetlen</b> linkje viszi, a NY-et a VN két linkjének csak a fele.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – miért nem 0 a VN?</span>
+    A VN-re senki sem hivatkozik, mégis $0{,}126 > 0{,}0375$. Honnan kapja a többit?
+    <details><summary>Megoldás</summary>Az RH zsákutca: a nála lévő pontszám ($0{,}416$) $\alpha$-szorosa mindenki között egyenlően oszlik szét. A VN része: $0{,}0375 + 0{,}85 \cdot 0{,}416/4 \approx 0{,}126$.</details>
+  </div>
+</div>
+
+<div class="widget" data-widget="pagerank-surfer"></div>
+
+<div class="box tip">
+  <span class="box-title">👍 Hüvelykujjszabály</span>
+  <b>Irányítatlan gráfon a PageRank majdnem a fokszám.</b> Teleportálás nélkül pontosan $d_i/2m$ lenne (4.2); a teleportálás ezt csak kicsit simítja. Az Árvízhéten $\mathrm{Po}$ 0,196, $\mathrm{Ko}$ 0,190 (a $d_i/2m$ 0,2–0,2), a karateklubon a PageRank és a fokszám korrelációja 0,998.
+  <b>A PageRank irányított gráfon ad igazán újat.</b>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az $\alpha$ szerepének felcserélése.</b> Az $\alpha$ a link <b>követésének</b> valószínűsége, nem a teleportálásé. $\alpha = 0$: mindenki $1/n$; $\alpha \to 1$: a teleportálás nélküli séta, a fenti hibákkal.</li>
+    <li><b>A kifokkal való osztás elhagyása.</b> Akkor nem eloszlást kapsz (az összeg nem 1), és a sok linket kiosztó oldalak túl nagy súlyt kapnak.</li>
+    <li><b>A zsákutca kezelésének elhagyása.</b> Az összeg lépésenként csökken. A programok (pl. <code>networkx</code>) egyenletesen szétosztják, de vannak más konvenciók is – a pontos számok ettől függnek.</li>
+    <li><b>A PageRank nem „igazság”.</b> Egy modell válasza arra, hol tölt sok időt egy véletlenül kattintgató olvasó. Hogy a valódi olvasók így viselkednek-e, az empirikus kérdés.</li>
+  </ul>
+</div>
+
+<div class="box history">
+  <span class="box-title">📜 Az idézetektől a keresőig</span>
+  Az ötlet, hogy egy hivatkozás annál többet ér, minél „fontosabb” helyről jön, és minél kevesebb hivatkozással osztozik, a tudománymetriából jön: <b>Pinski és Narin</b> 1976-ban így súlyozták a folyóiratok közötti idézeteket.
+  <b>Sergey Brin és Larry Page</b> 1998-ban a teljes webre alkalmazta, teleportálással – ez lett a Google keresőjének első rangsoroló algoritmusa. A médiakutatásban hivatkozási és átvételi hálózatokon használják (18. fejezet).
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – PageRank</summary>
+  <ol>
+    <li>Két oldal egymásra linkel ($A \leftrightarrow B$). Mennyi a PageRankjük bármely $\alpha$-ra?
+      <details><summary>Megoldás</summary>Szimmetria: $p_A = p_B = 0{,}5$. Ellenőrzés: $0{,}075 + 0{,}85 \cdot 0{,}5 = 0{,}5$. ✓</details></li>
+    <li>Az $A \leftrightarrow B$ párhoz jön egy $C$ oldal, amely az $A$-ra linkel, rá senki. Mennyi $p_C$ ($\alpha = 0{,}85$, $n = 3$)?
+      <details><summary>Megoldás</summary>A $C$-re nem mutat link, és zsákutca sincs: csak a teleportálásból kap, $p_C = 0{,}15/3 = 0{,}05$. (A teljes eredmény: $A \approx 0{,}486$, $B \approx 0{,}464$, $C = 0{,}05$.)</details></li>
+    <li>Az „elérhetetlen oldal” gráfján számold ki a második lépést: $\mathbf p_2$-ből a $B$ és a $D$ értékét!
+      <details><summary>Megoldás</summary>$\mathbf p_1 = (0{,}25;\ 0{,}144;\ 0{,}569;\ 0{,}0375)$. $B$: $0{,}0375 + 0{,}85 \cdot 0{,}25/2 \approx 0{,}144$ (a $B$ csak az $A$-tól kap, és $p_A$ nem változott). $D$: megint $0{,}0375$.</details></li>
+    <li>Mennyi a PageRank, ha $\alpha = 0$? És mi történik a „zsákutca” gráfon, ha $\alpha = 1$, és a zsákutcát nem kezeljük?
+      <details><summary>Megoldás</summary>$\alpha = 0$: a szörföző mindig teleportál, mindenki $1/n$. $\alpha = 1$, kezeletlen zsákutca: a pontszám elszivárog, 3 lépés után minden 0.</details></li>
+    <li>(nehezebb) Egy hírportál minden cikke linkel a „Legfrissebb” oldalra, amely csak a portál 5 legújabb cikkére linkel. Mi történik a „Legfrissebb” és a régi cikkek PageRankjével?
+      <details><summary>Megoldás</summary>A „Legfrissebb” sok bejövő linket kap, ezért magas a PageRankje. Ezt a <b>teljes</b> pontszámát 5 cikk között osztja szét, ezért azok is magasra kerülnek. A régi cikkekre csak más cikkek linkelhetnek – nekik sokkal kevesebb jut.
+        A PageRank tehát a <b>linkstruktúrát</b> méri, és a portál navigációs döntései (menü, ajánló) erősen befolyásolják. Hírelemzésben ezért a navigációs linkeket általában kiszűrik.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh5-55"></div>
+</section>
+
+<!-- ===================================================== 5.6 -->
+<section id="s56">
+<h2>5.6 HITS: hubok és tekintélyek ★★★</h2>
+<p>A PageRank egyetlen számot ad minden oldalnak. A hírek világában viszont két, egészen különböző szerep van. Egy <b>hírösszesítő</b> (aggregátor) maga nem tudósít, de jó forrásokra mutat. Egy <b>eredeti tudósító</b> ritkán linkel, de sokan hivatkoznak rá.
+Mindkettő „fontos”, csak másképp. Jon Kleinberg <b>HITS</b> algoritmusa (<em>Hyperlink-Induced Topic Search</em>, 1999) ezt a két szerepet választja szét.</p>
+
+<h3 id="s56-a">1. lépés: két pontszám, amelyek egymást erősítik</h3>
+<div class="box def">
+  <span class="box-title">Definíció – hub és tekintély</span>
+  Minden csúcsnak két pontszáma van: $a_i$ (<b>tekintély</b>, <em>authority</em>) és $h_i$ (<b>hub</b>, gyűjtő).
+  <ul style="margin:.3rem 0">
+    <li>Jó tekintély az, akire <b>jó hubok</b> mutatnak: $a_i = \sum_{j \to i} h_j$, vagyis $\mathbf a = A^\top\mathbf h$.</li>
+    <li>Jó hub az, aki <b>jó tekintélyekre</b> mutat: $h_i = \sum_{i \to j} a_j$, vagyis $\mathbf h = A\mathbf a$.</li>
+  </ul>
+  Számolás: $\mathbf h = \mathbf 1$-ből indulva felváltva frissítjük $\mathbf a$-t és $\mathbf h$-t, és minden lépés után normálunk (pl. a legnagyobb legyen 1). A két vektor beáll.
+  <small>Miért normálunk? Mint a hatványiterációnál (4.3): a számok minden lépésben nőnek, de az arányuk beáll. Csak az arány érdekes.</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két összesítő, három tudósító</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="H1-T1,H1-T2,H1-T3,H2-T1,H2-T2,T3-T1" data-directed data-pos="H1:0,.3 H2:0,1.5 T1:2,0 T2:2.15,1 T3:2,2" data-w="200" data-h="170" data-r="15"
+      data-color="H1:--setA H2:--setA T1:--setB T2:--setB T3:--setB" data-caption="H: összesítő (hub), T: tudósító"></div></div>
+    <div><b>1. lépés.</b> $\mathbf h = \mathbf 1$. Tekintély = a rá mutatók hub-pontszámának összege – most ez a <b>befok</b>:
+      $a_{T1} = 3$, $a_{T2} = 2$, $a_{T3} = 1$, $a_{H1} = a_{H2} = 0$.<br>
+      Hub = akikre mutat, azok tekintélyének összege:
+      $h_{H1} = 3 + 2 + 1 = 6$, $h_{H2} = 3 + 2 = 5$, $h_{T3} = 3$ (a T3 a T1-re mutat), a többi 0.<br>
+      Normálva: $\mathbf a$: $T1$ 1, $T2$ 0,67, $T3$ 0,33; $\mathbf h$: $H1$ 1, $H2$ 0,83, $T3$ 0,5.</div>
+  </div>
+  <b>A határ</b> (néhány további lépés után): tekintély $T1$ 1, $T2$ 0,80, $T3$ 0,45; hub $H1$ 1, $H2$ 0,80, $T3$ 0,45. A két összesítő jó hub, de semmilyen tekintély; a T1 és a T2 tiszta tekintély.
+  A T3 <b>mindkettő</b> egy kicsit: idézik is, és ő is idéz.
+</div>
+
+<div class="widget" data-widget="hits-steps"></div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy lépés egy másik gráfon</span>
+    Az $A\to B$, $A\to C$, $B\to C$, $C\to A$, $D\to C$ gráfon ($\mathbf h = \mathbf 1$-ből) mi az első lépés tekintély- és hub-vektora (max = 1)?
+    <details><summary>Megoldás</summary>$\mathbf a$ = befok: $(1, 1, 3, 0)$ → normálva $(\tfrac13, \tfrac13, 1, 0)$.
+      $\mathbf h$: $A$ a $B$-re és a $C$-re mutat: $\tfrac13 + 1 = \tfrac43$; $B$ → $C$: 1; $C$ → $A$: $\tfrac13$; $D$ → $C$: 1. Normálva ($\div \tfrac43$): $(1;\ 0{,}75;\ 0{,}25;\ 0{,}75)$.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a lapok hubjai és tekintélyei</span>
+    A lapok hivatkozási gráfjában ($\mathrm{EK}\to\mathrm{RH}$, $\mathrm{NY}\to\mathrm{EK}$, $\mathrm{VN}\to\mathrm{RH}$, $\mathrm{VN}\to\mathrm{NY}$) ki a legjobb hub és a legjobb tekintély?
+    <details><summary>Megoldás</summary>Tekintély: $\mathrm{RH}$ 1, $\mathrm{NY}$ 0,62, a többi 0. Hub: $\mathrm{VN}$ 1, $\mathrm{EK}$ 0,62, a többi 0. A VN mindkét tekintélyre mutat, ezért a legjobb hub; az EK az RH-ra mutat, így ő is hub (0,62). Tekintélyként viszont az EK 0: hiába kap hivatkozást, a hivatkozója (NY) nem mutat tekintélyre, tehát a hub-pontszáma 0.</details>
+  </div>
+</div>
+
+<h3 id="s56-b">2. lépés: mi van a háttérben? – két sajátvektor</h3>
+<p>Tegyük össze a két frissítést: $\mathbf a_{\text{új}} = A^\top\mathbf h = A^\top A\,\mathbf a$. A tekintély-vektor tehát az $A^\top A$ mátrixszal végzett <b>hatványiteráció</b>, a hub-vektor az $AA^\top$-vel.</p>
+<div class="box thm">
+  <span class="box-title">Tétel</span>
+  A HITS tekintély-vektora az $A^\top A$, hub-vektora az $AA^\top$ mátrix domináns sajátvektora.
+  <small>$(A^\top A)_{ij}$ = hány oldal mutat <b>egyszerre</b> $i$-re és $j$-re (<b>közös idézés</b>, <em>co-citation</em>); $(AA^\top)_{ij}$ = hány oldalra mutat <b>mindkettő</b> (<b>bibliográfiai csatolás</b>).
+  Két tekintély akkor erősíti egymást, ha ugyanazok a hubok idézik őket – ez a 3. fejezet <a href="../03-graftipusok/#s34-b">vetülete</a> irányított gráfra.</small>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák és korlátok</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A két szerep felcserélése.</b> A tekintélyt a <b>bejövő</b>, a hubot a <b>kimenő</b> élek adják. A sok linket kiosztó oldal hub, nem tekintély.</li>
+    <li><b>A HITS a legsűrűbb csoportot jutalmazza.</b> Ha a gráfban két, egymással alig kapcsolódó tábor van, a domináns sajátvektor szinte csak a sűrűbbikben ad nagy értéket. A politikai blogoknál (<a href="#s58">5.8</a>) a 10 legjobb tekintélyből 9 liberális – a PageRank szerint 4.</li>
+    <li><b>Nem mindig egyértelmű.</b> Ha az $A^\top A$ legnagyobb sajátértéke többszörös (pl. két, egymástól független részgráfban egyforma), az eredmény a kezdővektortól függ.</li>
+    <li><b>Irányítatlan gráfon nincs értelme</b>: ott $A^\top = A$, és mindkét vektor a sajátvektor-centralitás lenne.</li>
+  </ul>
+</div>
+
+<div class="box history">
+  <span class="box-title">📜 Kleinberg és a keresési témák</span>
+  <b>Jon Kleinberg</b> az IBM-nél 1998-ban dolgozta ki a HITS-et (folyóiratban 1999). Eredetileg <b>kérdésfüggő</b> volt: egy keresőkérdésre talált oldalakból és szomszédaikból építette a gráfot, és abban kereste a hubokat és a tekintélyeket.
+  Ugyanabban az évben jelent meg a PageRank; a kettő az internetes keresés és a hivatkozáselemzés két alapmodellje lett.
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – HITS</summary>
+  <ol>
+    <li>Két oldal ($A$, $B$) a $C$-re mutat, más él nincs. Mi a tekintély- és a hub-vektor (max = 1)?
+      <details><summary>Megoldás</summary>Tekintély: $C$ 1, $A$ = $B$ = 0. Hub: $A$ = $B$ = 1, $C$ = 0.</details></li>
+    <li>Mennyi annak az oldalnak a tekintély-pontszáma, amelyre egyetlen link sem mutat? És a hub-pontszáma annak, amelyikből nem indul link?
+      <details><summary>Megoldás</summary>Mindkettő 0: a tekintély a bejövő, a hub a kimenő élekből áll össze.</details></li>
+    <li>Az „összesítők és tudósítók” gráfjában a második lépésben mennyi a T2 tekintély-pontszáma, ha az első lépés hub-vektora $(1;\ 0{,}83;\ 0;\ 0;\ 0{,}5)$ a H1, H2, T1, T2, T3 sorrendben?
+      <details><summary>Megoldás</summary>A T2-re a H1 és a H2 mutat: $a_{T2} = 1 + 0{,}83 \approx 1{,}83$. (A T1: $1 + 0{,}83 + 0{,}5 = 2{,}33$; normálva a T2 $1{,}83/2{,}33 \approx 0{,}79$.)</details></li>
+    <li>Egy hírösszesítő 50 cikkre linkel, egy tényfeltáró oldalra pedig 30 másik oldal hivatkozik. Melyik melyik szerepben erős, és mitől függ, mennyire?
+      <details><summary>Megoldás</summary>Az összesítő hub, a tényfeltáró oldal tekintély. A pontszámuk attól függ, mennyire jók a <b>partnereik</b>: az összesítő akkor jó hub, ha a cikkek, amelyekre mutat, maguk is jó tekintélyek; a tényfeltáró akkor jó tekintély, ha jó hubok idézik.</details></li>
+    <li>(nehezebb) Mutasd meg, hogy az első lépésben ($\mathbf h = \mathbf 1$) a tekintély-vektor a befok, és a hub-vektor a „kimenő szomszédok befokának összege”!
+      <details><summary>Megoldás</summary>$a_i = \sum_{j \to i} 1$ = a $i$-re mutatók száma = befok. Ezután $h_i = \sum_{i \to j} a_j$ = azoknak a befoka, akikre $i$ mutat, összeadva. A HITS tehát a befokból indul, és – mint a sajátvektor a fokszámból – lépésenként finomítja.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh5-56"></div>
+</section>
+
+<!-- ===================================================== 5.7 -->
+<section id="s57">
+<h2>5.7 Melyik centralitást mikor? ★★</h2>
+<p>Hat mérőszámunk van. Most tegyük őket egymás mellé ugyanazon a gráfon: mikor egyeznek, mikor térnek el, és mit árul el az eltérés? Végül: hogyan válassz a <b>kutatási kérdés</b> alapján?</p>
+
+<h3 id="s57-a">1. lépés: egy gráf, négy győztes – Krackhardt sárkánya</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a „sárkány”</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="A-B,A-C,A-D,A-F,B-D,B-E,B-G,C-D,C-F,D-E,D-F,D-G,E-G,F-G,F-H,G-H,H-I,I-J"
+      data-pos="A:1,0 B:1,2 C:0,.4 D:1.3,1 E:0,1.6 F:2.1,.4 G:2.1,1.6 H:3,1 I:4,1 J:5,1" data-w="320" data-h="150"
+      data-color="D:--setA F:--setB G:--setB H:--setC" data-caption="David Krackhardt (1990) példagráfja: 10 csúcs, 18 él"></div></div>
+    <div><div class="tw" style="overflow-x:auto"><table>
+      <tr><th></th><th>fokszám</th><th>közelségi</th><th>köztesség</th><th>sajátvektor</th></tr>
+      <tr><td>D</td><td><b>6</b></td><td>0,60</td><td>3,67</td><td><b>1</b></td></tr>
+      <tr><td>F, G</td><td>5</td><td><b>0,64</b></td><td>8,33</td><td>0,83</td></tr>
+      <tr><td>H</td><td>3</td><td>0,60</td><td><b>14</b></td><td>0,41</td></tr>
+      <tr><td>I</td><td>2</td><td>0,43</td><td>8</td><td>0,10</td></tr>
+      <tr><td>A, B</td><td>4</td><td>0,53</td><td>0,83</td><td>0,73</td></tr>
+    </table></div></div>
+  </div>
+  <ul style="margin:.3rem 0">
+    <li><b>D</b> – a legtöbb kapcsolat, a sűrű „sárkánytest” közepén: a <b>fokszám</b> és a <b>sajátvektor</b> győztese. De minden kapcsolata a saját csoportjában van.</li>
+    <li><b>F és G</b> – a test és a farok határán: innen mindenki a legközelebb van, ők a <b>közelség</b> győztesei.</li>
+    <li><b>H</b> – csak 3 kapcsolat, mégis rajta át fut minden út a farok (I, J) és a test között: a <b>köztesség</b> győztese ($14/36 \approx 0{,}39$ normálva).</li>
+  </ul>
+  Négy mérőszám, három különböző válasz. Egyik sem „rossz” – mindegyik másik kérdésre felel.
+</div>
+
+<div class="widget" data-widget="centrality-explorer"></div>
+
+<h3 id="s57-b">2. lépés: mennyire egyeznek? – a korreláció</h3>
+<p>A sárkány szándékosan „szélsőséges”. Valós hálózatokon a centralitások <b>erősen korrelálnak</b>: a sok kapcsolatú csúcsok általában közel is vannak mindenkihez, és sok út is átmegy rajtuk.</p>
+<div class="box example">
+  <span class="box-title">Példa – a karateklub</span>
+  A 34 tagú klubban a centralitások páronkénti (Pearson-)korrelációja:
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th></th><th>közelségi</th><th>köztesség</th><th>sajátvektor</th><th>PageRank</th></tr>
+    <tr><th>fokszám</th><td>0,77</td><td>0,91</td><td>0,92</td><td><b>1,00</b></td></tr>
+    <tr><th>közelségi</th><td></td><td><b>0,72</b></td><td>0,90</td><td>0,74</td></tr>
+    <tr><th>köztesség</th><td></td><td></td><td>0,80</td><td>0,92</td></tr>
+  </table></div>
+  A fokszám és a PageRank gyakorlatilag ugyanaz (irányítatlan gráf, 0,998). A leggyengébb a közelségi és a köztességi kapcsolat. A győztesek is mások: fokszám, sajátvektor és PageRank szerint a 34-es (az elnök) az első,
+  köztesség és közelség szerint az 1-es (az edző) – a köztessége ($0{,}44$) jóval nagyobb, mint az elnöké ($0{,}30$).
+</div>
+
+<div class="box tip">
+  <span class="box-title">👍 Hüvelykujjszabály – az eltérés a hír</span>
+  Ha két centralitás erősen korrelál, az <b>eltérő</b> csúcsok az érdekesek:
+  <ul style="margin:.2rem 0">
+    <li><b>magas köztesség, alacsony fokszám</b> → közvetítő, híd két csoport között (sárkány: H; Árvízhét: a Polgármester a fokszámhoz képest);</li>
+    <li><b>magas fokszám, alacsony köztesség</b> → egy sűrű csoport belsejében ül, kifelé nem közvetít (sárkány: D);</li>
+    <li><b>magas sajátvektor, közepes fokszám</b> → kevés, de fontos kapcsolat (az elit közelében);</li>
+    <li><b>magas befok, alacsony PageRank</b> → sokan idézik, de jelentéktelen helyekről.</li>
+  </ul>
+</div>
+
+<h3 id="s57-c">3. lépés: döntés a kutatási kérdés alapján</h3>
+<div class="box tip">
+  <span class="box-title">Melyik centralitás melyik kérdéshez?</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>A kutatási kérdés…</th><th>Centralitás</th><th>Feltevés az áramlásról</th></tr>
+    <tr><td>„Kit említenek / idéznek a legtöbben?”, láthatóság</td><td>fokszám, befok (súlyozva: erősség)</td><td>csak a közvetlen kapcsolat számít</td></tr>
+    <tr><td>„Ki éri el leggyorsabban a többieket?”, terjesztés</td><td>közelségi (nem összefüggő gráfon harmonikus)</td><td>legrövidebb utakon, mindenki felé</td></tr>
+    <tr><td>„Ki közvetít, ki ellenőrzi az áramlást?”, híd két tábor között</td><td>köztesség</td><td>legrövidebb utakon, átmenő forgalom</td></tr>
+    <tr><td>„Ki van a fontosak között?”, elit, mag</td><td>sajátvektor (irányítatlan)</td><td>végtelen sok lépés, a sűrű mag dominál</td></tr>
+    <tr><td>„Melyik forrás a legtekintélyesebb?”, hivatkozás, átvétel</td><td>PageRank</td><td>véletlen séta irányított éleken, teleportálással</td></tr>
+    <tr><td>„Ki gyűjt, ki az eredeti forrás?”</td><td>HITS (hub / tekintély)</td><td>két kölcsönösen erősítő szerep</td></tr>
+  </table></div>
+  <small>A „feltevés az áramlásról” oszlop <b>Borgatti</b> (2005) gondolatát követi: minden centralitás hallgatólagosan feltételezi, hogyan halad valami a hálózatban. Ha a feltevés nem illik a jelenséghez (pl. egy pletyka nem a legrövidebb úton terjed), a mérőszám félrevezethet.</small>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Módszertani józanság</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A centralitás az élmodellhez képest „fontos”.</b> Az Árvízhét szereplőgráfjában az él együttes említés. Egy másik élmodellben (pl. ki kit idéz, ki kit bírál) más lenne a rangsor.</li>
+    <li><b>A centralitás nem oksági hatás.</b> Hogy valaki központi helyen van, nem jelenti, hogy <b>befolyásolja</b> a többieket. Ehhez beavatkozás vagy időbeli adat kell (9., 10. fejezet).</li>
+    <li><b>Normált és nyers értékeket ne keverj.</b> Különböző méretű gráfok között csak normált értékek, vagy még inkább <b>rangsorok</b> hasonlíthatók össze.</li>
+    <li><b>Nullmodell nélkül nincs „magas” érték.</b> Hogy egy köztességi érték meglepően nagy-e, azt egy véletlen gráfhoz kell mérni (7. fejezet).</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – melyiket mikor?</summary>
+  <ol>
+    <li>Egy kutató azt kérdezi: melyik politikus kommunikációs stábja „szűri” leginkább a pártok közötti információt? Melyik centralitást javasolnád?
+      <details><summary>Megoldás</summary>Köztességet: a „szűrés” azt jelenti, hogy rajta át megy az információ két csoport között.</details></li>
+    <li>Melyik centralitás felel arra, hogy egy hírügynökség jelentését melyik lap veszi át leghamarabb a lapok közötti átvételi hálózatban, ha minden lap minden átvételt azonnal továbbad?
+      <details><summary>Megoldás</summary>A forrás szemszögéből a <b>közelségi</b> (kimenő irányban számolt) centralitás: minél kisebb az átlagos távolsága a többi laptól, annál hamarabb ér el mindenkihez. (Hogy ki veszi át <i>leghamarabb</i>, azt a távolságok egyenként mutatják.)</details></li>
+    <li>A sárkányban miért nem az I-nek nagy a közelségi centralitása, ha a köztessége 8?
+      <details><summary>Megoldás</summary>Az I a gráf szélén van: a test csúcsaitól 2–3 lépésre. A köztességét a J-től kapja: a J minden útja rajta megy át (8 pár). Közvetít, de messze van mindenkitől.</details></li>
+    <li>Egy 200 tagú online hírfórum válaszhálózatában a fokszám és a PageRank korrelációja 0,99. Megéri-e mindkettőt közölni?
+      <details><summary>Megoldás</summary>Alig: ugyanazt mérik. Érdemesebb egy <b>más szempontot</b> mérő centralitást (pl. köztességet) mellé tenni, és az <b>eltérő</b> csúcsokat elemezni.</details></li>
+    <li>(nehezebb) Egy cikk azt írja: „X a hálózat legbefolyásosabb szereplője, mert neki a legnagyobb a sajátvektor-centralitása.” Mit kifogásolnál?
+      <details><summary>Megoldás</summary>(1) A centralitás pozíciót mér, nem befolyást (oksági állítás). (2) Melyik élmodellben? (3) A sajátvektor a sűrű magot jutalmazza – lehet, hogy X egyszerűen a legaktívabb csoportban van. (4) Más centralitás mást mutathat – ezt is közölni kell.
+        (5) Nullmodell nélkül nem tudjuk, a különbség mennyire meglepő.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh5-57"></div>
+</section>
+
+<!-- ===================================================== 5.8 -->
+<section id="s58">
+<h2>5.8 Alkalmazás: ki a fontos az Árvízhéten – és a blogoszférában? ★★</h2>
+<p>Minden eszköz megvan. Előbb a fejezet kérdését válaszoljuk meg az Árvízhét szereplőgráfján, aztán lapokra bontjuk, végül egy valódi, 1222 csúcsú hivatkozási hálózaton nézzük meg a PageRanket és a HITS-et.</p>
+
+<h3 id="s58-a">1. lépés: a teljes hét – minden centralitás egy táblázatban</h3>
+<div class="tw" style="overflow-x:auto"><table>
+  <tr><th></th><th>Ko</th><th>Po</th><th>Vi</th><th>Sz</th><th>La</th><th>Ön</th><th>Kl</th></tr>
+  <tr><td>fokszám ($/6$)</td><td><b>0,67</b></td><td><b>0,67</b></td><td>0,5</td><td>0,5</td><td>0,33</td><td>0,33</td><td>0,33</td></tr>
+  <tr><td>erősség</td><td>6</td><td><b>8</b></td><td>5</td><td>4</td><td>5</td><td>5</td><td>3</td></tr>
+  <tr><td>közelségi</td><td><b>0,75</b></td><td><b>0,75</b></td><td>0,67</td><td>0,55</td><td>0,5</td><td>0,5</td><td>0,5</td></tr>
+  <tr><td>harmonikus ($/6$)</td><td><b>0,83</b></td><td><b>0,83</b></td><td>0,75</td><td>0,69</td><td>0,61</td><td>0,61</td><td>0,61</td></tr>
+  <tr><td>köztesség (nyers)</td><td>5</td><td><b>8</b></td><td>1,5</td><td>0,5</td><td>0</td><td>0</td><td>0</td></tr>
+  <tr><td>sajátvektor</td><td><b>1</b></td><td>0,87</td><td>0,86</td><td>0,79</td><td>0,42</td><td>0,42</td><td>0,58</td></tr>
+  <tr><td>PageRank</td><td>0,190</td><td><b>0,196</b></td><td>0,145</td><td>0,147</td><td>0,110</td><td>0,110</td><td>0,103</td></tr>
+</table></div>
+<p>A kép egyértelmű: <b>két szereplő</b> osztozik az élen, a Kormány és a Polgármester – csak a szempont dönti el, melyikük az első.</p>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">A Kormány: a mag közepe</span>
+    A sajátvektor szerint első. A szomszédai ($\mathrm{Vi}$, $\mathrm{Sz}$, $\mathrm{Kl}$) egymással is sűrűn össze vannak kötve: az <b>országos, szakpolitikai</b> szál közepén ül, „fontosak között fontos”.
+  </div>
+  <div class="box example">
+    <span class="box-title">A Polgármester: a híd</span>
+    A köztesség és az erősség szerint első. A Lakók és az Önkéntesek <b>csak rajta át</b> kapcsolódnak a többiekhez: ő köti össze a <b>helyi</b> szálat az országossal.
+  </div>
+</div>
+
+<h3 id="s58-b">2. lépés: lapokra bontva – minden lapnak más a főszereplője</h3>
+<p>Az egyes lapok saját szereplőgráfja (csak a lap 3–3 cikkéből) egészen más képet ad:</p>
+<div class="tw" style="overflow-x:auto"><table>
+  <tr><th>lap</th><th>szereplőgráf</th><th>központi szereplő</th></tr>
+  <tr><td>Reggeli Hírlap</td><td>háromszög: $\mathrm{Ko}$–$\mathrm{Vi}$–$\mathrm{Po}$</td><td>nincs – mindhárom egyforma</td></tr>
+  <tr><td>Esti Krónika</td><td>$\mathrm{Sz}$ mindhárom társával, plusz $\mathrm{Kl}$–$\mathrm{Ko}$</td><td><b>Szakértő</b> (fokszám 3, köztesség 2)</td></tr>
+  <tr><td>Nyitott Szó</td><td>háromszög: $\mathrm{La}$–$\mathrm{Po}$–$\text{Ön}$</td><td>nincs – mindhárom egyforma</td></tr>
+  <tr><td>Vidéki Napló</td><td>csillag: $\mathrm{Po}$ középen ($\mathrm{Vi}$, $\mathrm{La}$, $\text{Ön}$)</td><td><b>Polgármester</b> (fokszám 3, köztesség 3)</td></tr>
+</table></div>
+<p>A Kormány <b>sehol</b> sem egyedül központi, pedig az összesített gráfban az élen van: a négy lap közül kettőben szerepel, és mindkettőben „csak egy a sok közül”. Az összesítés elfedi, hogy a lapok más-más szereplő köré szervezik a történetet –
+ez a <b>napirend-hálózatok összehasonlításának</b> alapötlete (16. fejezet).</p>
+
+<div class="widget" data-widget="arvizhet-centrality"></div>
+
+<h3 id="s58-c">3. lépés: 1222 politikai blog – PageRank és HITS</h3>
+<p><b>Lada Adamic és Natalie Glance</b> (2005) a 2004-es amerikai elnökválasztás idején letöltötte 1490 politikai blog címlapját, és feljegyezte, melyik blog melyikre linkel. Minden blogot liberálisnak vagy konzervatívnak címkéztek.
+A legnagyobb (gyengén) összefüggő komponensben <b>1222 blog</b> és <b>19&#8239;021 irányított link</b> maradt: 586 liberális és 636 konzervatív. A linkeknek csak <b>8,8%-a</b> fut a két tábor között – ez a hírek világának egyik leghíresebb <b>polarizációs</b> ábrája.</p>
+
+<div class="widget" data-widget="polblogs-hits"></div>
+
+<div class="tw" style="overflow-x:auto"><table>
+  <tr><th>mérőszám</th><th>a 10 legjobb blog közül konzervatív</th><th>az első</th></tr>
+  <tr><td>befok</td><td>6</td><td>dailykos.com (L, 337 link)</td></tr>
+  <tr><td>PageRank</td><td>6</td><td>dailykos.com (L)</td></tr>
+  <tr><td>HITS-tekintély</td><td><b>1</b></td><td>dailykos.com (L)</td></tr>
+  <tr><td>HITS-hub</td><td><b>0</b></td><td>politicalstrategy.org (L)</td></tr>
+  <tr><td>kifok</td><td>4</td><td>blogsforbush.com (K, 256 link)</td></tr>
+</table></div>
+<ul>
+  <li><b>A befok és a PageRank majdnem ugyanazt mutatja</b> (rangkorreláció 0,94, a top 10-ből 9 közös). Mindkettő kiegyensúlyozott: a két tábor nagy blogjai vegyesen vannak az élen.</li>
+  <li><b>A HITS szinte csak liberális blogokat talál.</b> A liberális tábor linkjei sűrűbben fonódnak össze, ezért az $A^\top A$ domináns sajátvektora erre a csoportra „ül rá” (<a href="#s56-b">5.6</a>). Ez nem azt jelenti, hogy a konzervatív blogok kevésbé tekintélyesek – hanem azt, hogy a HITS egy <b>közösségre</b> fókuszál.</li>
+  <li><b>A legtöbbet linkelő blog</b> (blogsforbush.com, 256 kimenő link) nem a legjobb hub: a hub-pontszám nem a linkek számát, hanem a linkelt oldalak <b>tekintélyét</b> díjazza.</li>
+</ul>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Módszertani józanság</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az adat egy pillanatfelvétel.</b> A linkek a címlapokról származnak, egyetlen időpontból; a blogok azóta jórészt megszűntek. Az eredmény a 2005-ös blogoszféráról szól.</li>
+    <li><b>A címke is döntés.</b> A liberális / konzervatív címkéket részben blogkönyvtárakból, részben kézzel adták – a leírás szerint mindkettő hibás lehet.</li>
+    <li><b>Más centralitás, más győztes – ugyanazon az adaton.</b> Ha egy cikk csak a HITS-et közölné, azt hihetnénk, hogy a liberális blogok uralták a vitát. A befok és a PageRank ezt nem támasztja alá.</li>
+  </ul>
+</div>
+
+<details class="box">
+  <summary>🐍 Python – a fejezet számai (networkx)</summary>
+<pre><code>import networkx as nx
+elek = [("Ko","Vi"), ("Ko","Po"), ("Vi","Po"), ("Vi","Sz"), ("Sz","Kl"),
+        ("Sz","Ko"), ("Kl","Ko"), ("La","Ön"), ("La","Po"), ("Po","Ön")]
+G = nx.Graph(elek)
+print(nx.degree_centrality(G))                       # d / (n-1)
+print(nx.closeness_centrality(G))                    # (n-1) / távolságösszeg
+print(nx.harmonic_centrality(G))                     # Σ 1/távolság (nem normált)
+print(nx.betweenness_centrality(G, normalized=False))
+print(nx.eigenvector_centrality_numpy(G))            # 1 hosszúra normálva
+print(nx.pagerank(G, alpha=0.85))
+D = nx.DiGraph([("EK","RH"), ("NY","EK"), ("VN","RH"), ("VN","NY")])
+print(nx.pagerank(D, alpha=0.85))                    # a zsákutcát egyenletesen osztja szét
+hub, tekintely = nx.hits(D)                          # összegük 1-re normálva</code></pre>
+  Kimenet (kerekítve): a köztesség <code>{'Ko': 5.0, 'Vi': 1.5, 'Po': 8.0, 'Sz': 0.5, …}</code>, a lapok PageRankje <code>{'EK': 0.278, 'RH': 0.416, 'NY': 0.179, 'VN': 0.126}</code>.
+  Figyelem: a <code>networkx</code> a sajátvektort és a HITS-et <b>más normálással</b> adja, mint a szöveg (1 hosszú, illetve 1 összegű vektor) – a sorrend ugyanaz, a számok nem.
+</details>
+
+<div class="box tip">
+  <span class="box-title">✅ Válasz a fejezet kérdésére</span>
+  Az Árvízhéten <b>nincs egyetlen „legfontosabb” szereplő</b>: két szereplő osztozik az élen, és a mérőszám dönti el a sorrendet.
+  A <b>fokszám</b>, a <b>közelség</b> (és a harmonikus centralitás) szerint a Kormány és a Polgármester holtversenyben van. A <b>köztesség</b> (8 a 5 ellen), az <b>erősség</b> és – minimálisan – a <b>PageRank</b> a Polgármestert teszi előre: ő a <b>híd</b> a helyi és az országos szál között.
+  A <b>sajátvektor</b> a Kormányt: ő a sűrű, országos <b>mag</b> közepén ül. Lapokra bontva pedig kiderül, hogy a Kormány egyik lapnál sem főszereplő, az Esti Krónikánál a Szakértő, a Vidéki Naplónál a Polgármester az.
+  <b>A „ki a fontos?” kérdésre a jó válasz mindig így kezdődik: „attól függ, mit értünk fontoson”</b> – és a kutatási kérdéshez illő centralitást kell választani (<a href="#s57-c">5.7</a>).
+</div>
+
+<div class="quiz" data-quiz="gh5-58"></div>
+</section>
+
+<!-- ===================================================== Összefoglalás -->
+<section id="s-sum">
+<h2>Összefoglalás</h2>
+<div class="tw" style="overflow-x:auto"><table>
+  <tr><th>Centralitás</th><th>Képlet</th><th>Mit mér?</th><th>Árvízhét győztese</th></tr>
+  <tr><td>fokszám</td><td>$d(v)/(n-1)$; súlyozva $s(v) = \sum w$; irányítva befok / kifok</td><td>hány közvetlen kapcsolat</td><td>$\mathrm{Ko} = \mathrm{Po}$ (erősség: $\mathrm{Po}$)</td></tr>
+  <tr><td>közelségi</td><td>$(n-1)/\sum_u \operatorname{dist}(v, u)$</td><td>milyen közel van mindenkihez (összefüggő gráfon)</td><td>$\mathrm{Ko} = \mathrm{Po}$</td></tr>
+  <tr><td>harmonikus</td><td>$\sum_u 1/\operatorname{dist}(v, u)$, $1/\infty = 0$</td><td>ugyanez, nem összefüggő gráfon is</td><td>$\mathrm{Ko} = \mathrm{Po}$</td></tr>
+  <tr><td>köztesség</td><td>$\sum_{\{s,t\}} \sigma_{st}(v)/\sigma_{st}$; normálva $/\binom{n-1}{2}$</td><td>hány legrövidebb út megy át rajta: közvetítés</td><td>$\mathrm{Po}$ (8)</td></tr>
+  <tr><td>sajátvektor</td><td>$A\mathbf x = \lambda_1\mathbf x$, $\mathbf x > 0$</td><td>fontos, akinek fontosak a szomszédai</td><td>$\mathrm{Ko}$</td></tr>
+  <tr><td>PageRank</td><td>$p_i = \frac{1-\alpha}{n} + \alpha\sum_{j\to i} p_j/k^{\text{ki}}_j$ (+ zsákutcák)</td><td>véletlen szörföző teleportálással; irányított gráfon is</td><td>$\mathrm{Po}$ (alig)</td></tr>
+  <tr><td>HITS</td><td>$\mathbf a = A^\top\mathbf h$, $\mathbf h = A\mathbf a$</td><td>tekintély (akit jó hubok idéznek) és hub (aki jó tekintélyekre mutat)</td><td>– (irányított gráf kell)</td></tr>
+</table></div>
+
+<div class="box tip">
+  <span class="box-title">Melyik centralitás kell? – döntési táblázat</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>Ha a kérdésben ez áll…</th><th>…akkor ezt használd</th></tr>
+    <tr><td>„kit említenek / idéznek a legtöbben?”</td><td>fokszám / befok; ha számít, hányszor: erősség</td></tr>
+    <tr><td>különböző méretű gráfokat hasonlítasz</td><td>normált értékek ($/(n-1)$, $/\binom{n-1}{2}$) vagy rangsorok</td></tr>
+    <tr><td>„ki éri el leggyorsabban a többieket?”</td><td>közelségi; ha a gráf nem összefüggő: harmonikus</td></tr>
+    <tr><td>„ki köt össze két csoportot / ki szűri az információt?”</td><td>köztesség (és vesd össze a fokszámmal)</td></tr>
+    <tr><td>„ki van a fontosak között?” – irányítatlan gráf</td><td>sajátvektor</td></tr>
+    <tr><td>ugyanez irányított gráfon (hivatkozás, átvétel, link)</td><td>PageRank ($\alpha = 0{,}85$)</td></tr>
+    <tr><td>„ki gyűjt, ki az eredeti forrás?”</td><td>HITS – de vigyázz, a legsűrűbb csoportra fókuszál</td></tr>
+    <tr><td>„ki a legfontosabb?” – általában</td><td>több centralitás egymás mellett; az eltérések a tanulságosak</td></tr>
+  </table></div>
+</div>
+</section>
+
+<!-- ===================================================== Ellenőrző kérdések -->
+<section id="s-check">
+<h2>Ellenőrző kérdések</h2>
+<p>Gondold végig a választ, aztán kattints a kártyára a megfordításhoz!</p>
+<div class="flashcards">
+  <div class="flash"><div class="inner"><div class="face front">Miért normáljuk a fokszámot $n - 1$-gyel?</div>
+    <div class="face back">Mert ennyi a lehetséges szomszédok száma; így $0 \le C_{\text{fok}} \le 1$, és különböző méretű gráfok összehasonlíthatók.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a különbség a fokszám és az erősség között?</div>
+    <div class="face back">A fokszám a kapcsolatok számát, az erősség a súlyok összegét (pl. a közös cikkek számát) méri.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit mér a befok és a kifok egy hivatkozási hálózatban?</div>
+    <div class="face back">Befok: hányan hivatkoznak rá (tekintély, népszerűség). Kifok: hányra hivatkozik (aktivitás).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a közelségi centralitás képlete, és mikor nem használható?</div>
+    <div class="face back">$(n-1)/\sum \operatorname{dist}$ – az átlagos távolság reciproka. Nem összefüggő gráfon (végtelen távolság); ott a harmonikus $\sum 1/\operatorname{dist}$ kell.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit számol a köztesség, és mit kezd a több legrövidebb úttal?</div>
+    <div class="face back">Hány csúcspár legrövidebb útja megy át $v$-n ($v$ nem végpont). Ha $\sigma_{st}$ út van, és ebből $\sigma_{st}(v)$ megy át rajta, a pár $\sigma_{st}(v)/\sigma_{st}$-t ad.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Kire jellemző a magas köztesség és az alacsony fokszám?</div>
+    <div class="face back">A közvetítőre (broker): két csoport között áll, strukturális lyukat hidal át (Burt).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a sajátvektor-centralitás egy mondatban?</div>
+    <div class="face back">Mindenki pontszáma a szomszédai pontszámának összegével arányos: $A\mathbf x = \lambda_1\mathbf x$, a pozitív (Perron-) sajátvektor.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért nem jó a sajátvektor-centralitás irányított gráfon?</div>
+    <div class="face back">Akire senki sem mutat, az 0, és a nulla továbbterjed; körmentes gráfon mindenki 0. Javítás: Katz-centralitás vagy PageRank.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a teleportálás a PageRankben, és mi az $\alpha$?</div>
+    <div class="face back">A szörföző $1 - \alpha$ eséllyel véletlen oldalra ugrik; $\alpha$ (általában 0,85) a link követésének valószínűsége. Így nincs beragadás, és minden oldal pozitív pontszámot kap.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit kezd a PageRank a zsákutcával?</div>
+    <div class="face back">A zsákutcából a szörföző mindig teleportál: a pontszáma mindenki között egyenlően oszlik szét.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a hub és mi a tekintély a HITS-ben?</div>
+    <div class="face back">Tekintély: akire jó hubok mutatnak ($\mathbf a = A^\top\mathbf h$). Hub: aki jó tekintélyekre mutat ($\mathbf h = A\mathbf a$). Hírekben: eredeti tudósító és összesítő.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért adhat négy centralitás négy különböző győztest?</div>
+    <div class="face back">Mert más-más kérdésre felelnek (kapcsolatok száma, közelség, közvetítés, a szomszédok fontossága) – és más áramlást feltételeznek. A sárkánygráf ezt mutatja.</div></div></div>
+</div>
+</section>
+
+<!-- ===================================================== Vegyes gyakorló feladatok -->
+<section id="s-ex">
+<h2>Vegyes gyakorló feladatok</h2>
+<p>Itt már nincs megmondva, melyik részhez tartozik a feladat: neked kell eldönteni, melyik centralitás kell.</p>
+<details class="box practice">
+  <summary>✏️ Vegyes gyakorló feladatok – kattints a kinyitáshoz</summary>
+  <ol>
+    <li>A barátsággráfban (élek $AB$, $AC$, $BC$, $CD$) ki a fokszám, a közelség és a köztesség győztese?
+      <details><summary>Tipp</summary>Számold ki a fokszámokat, a távolságösszegeket, és nézd meg, melyik pár útja megy át kin.</details>
+      <details><summary>Megoldás</summary>Mindháromban a $C$: fokszám 3; távolságösszeg $1 + 1 + 1 = 3$, közelségi $3/3 = 1$; köztesség 2 (az $A$–$D$ és a $B$–$D$ pár). Ebben a kis gráfban nincs vita.</details></li>
+    <li>Egy 7 csúcsú út (1–…–7) középső csúcsának mennyi a normált köztessége?
+      <details><summary>Tipp</summary>A 4-es csúcson azok a párok mennek át, amelyek egyik vége tőle balra, másik jobbra van.</details>
+      <details><summary>Megoldás</summary>$3 \cdot 3 = 9$ pár; normálva $9/\binom62 = 9/15 = 0{,}6$.</details></li>
+    <li>Egy kutató egy 40 csúcsú és egy 400 csúcsú szereplőhálózat „legközpontibb” szereplőit akarja összevetni. Melyik fokszám-adat összevetése értelmes: 12 és 30, vagy 0,31 és 0,075?
+      <details><summary>Tipp</summary>Normálás.</details>
+      <details><summary>Megoldás</summary>A normált értékeké: $12/39 \approx 0{,}31$, $30/399 \approx 0{,}075$. Relatíve a kis hálózat szereplője sokkal központibb.</details></li>
+    <li>Melyik centralitás adna 0-t mindenkinek egy irányított láncon ($A \to B \to C \to D$)? És melyik nem?
+      <details><summary>Tipp</summary>Nulla terjed.</details>
+      <details><summary>Megoldás</summary>A „beérkező” sajátvektor-centralitás mindenkinek 0 (körmentes gráf). A PageRank nem: a teleportálás miatt mindenki pozitív, és a $D$ kapja a legtöbbet (a láncon a pontszám előrefolyik, a $D$ zsákutca).</details></li>
+    <li>Az Árvízhét gráfjában melyik szereplő köztessége nő, ha a $\mathrm{Kl}$–$\mathrm{Ko}$ élt töröljük?
+      <details><summary>Tipp</summary>Hogyan éri el ezután a Klímaváltozás a többieket?</details>
+      <details><summary>Megoldás</summary>A Klímaváltozás csak a Szakértőn át éri el a többieket: a $\mathrm{Kl}$ és a többi 5 szereplő közötti mind az 5 pár a Szakértőn megy át. A Szakértő köztessége 0,5-ről 5-re nő.</details></li>
+    <li>Egy lap átvételi hálózatában a $V$ lap hírét 20 lap veszi át, de mind a 20 jelentéktelen; a $W$ lapét csak 3, de azok a legnagyobbak. Melyik centralitás teszi előre a $V$-t, és melyik a $W$-t?
+      <details><summary>Tipp</summary>Számít-e, honnan jön a hivatkozás?</details>
+      <details><summary>Megoldás</summary>A befok a $V$-t (20 > 3), a PageRank (vagy a tekintély) valószínűleg a $W$-t: ott a „fontos” lapok hivatkozása többet ér.</details></li>
+    <li>A „két háromszög + híd” gráfban mennyi a 3-as csúcs harmonikus centralitása (nem normálva)?
+      <details><summary>Tipp</summary>Sorold fel a távolságait.</details>
+      <details><summary>Megoldás</summary>Távolságok: $1, 1, 1, 2, 2$: $3 + \tfrac12 + \tfrac12 = 4$.</details></li>
+    <li>Egy csúcs sajátvektor-centralitása 0,95 (max = 1), a köztessége 0. Hol lehet a gráfban?
+      <details><summary>Tipp</summary>Melyik mérőszám jutalmazza a sűrű magot, és melyik a hidat?</details>
+      <details><summary>Megoldás</summary>Egy sűrű csoport (klikk) belsejében: minden szomszédja fontos és egymással is össze van kötve, ezért egyetlen legrövidebb út sem megy át rajta.</details></li>
+    <li>A PageRankben $\alpha = 0{,}85$ helyett $\alpha = 0{,}5$-öt használunk. Közelebb vagy távolabb kerülnek egymáshoz a pontszámok?
+      <details><summary>Tipp</summary>Mi történik $\alpha = 0$-nál?</details>
+      <details><summary>Megoldás</summary>Közelebb: több a teleportálás, az eloszlás az egyenleteshez közeledik. A lapok gráfján az RH 0,416-ról 0,347-re csökken, a VN 0,126-ról 0,168-ra nő.</details></li>
+    <li>(nehezebb) Egy cikk „a hálózat legfontosabb szereplőjeként” mutatja be azt, akinek a legnagyobb a fokszáma egy együttemlítési hálózatban. Mit kérdeznél a szerzőtől?
+      <details><summary>Tipp</summary>Élmodell, normálás, más centralitások, nullmodell, oksági állítás.</details>
+      <details><summary>Megoldás</summary>(1) Mi az él – és súlyozott-e? (2) A fokszám csak a láthatóságot méri: mit mutat a köztesség, a sajátvektor? (3) Lapokra / időszakokra bontva is így van? (4) A gyakori szereplő nem feltétlenül befolyásos – a centralitás nem okság. (5) Meglepő-e az érték egy véletlen gráfhoz képest?</details></li>
+  </ol>
+</details>
+</section>
+
+<!-- ===================================================== Fejezetzáró -->
+<section id="s-final">
+<h2>Fejezetzáró teszt</h2>
+<p>Vegyes feladatok az egész fejezetből. Ha legalább 80%-ot elérsz, nyugodtan továbbléphetsz!</p>
+<div class="quiz" data-quiz="gh5-final"></div>
+</section>
+
+<!-- ===================================================== Szómagyarázó -->
+<section id="s-gloss">
+<h2>Szómagyarázó</h2>
+<p>A fejezetben előforduló idegen vagy kevésbé ismert szakkifejezések, betűrendben.</p>
+<dl class="glossary">
+  <dt id="g-broker">broker (közvetítő) <span class="etym">ang. <em>broker</em> „alkusz, ügynök” (anglo-normann <em>brocour</em> „kiskereskedő, alkusz”, talán a hordó „megcsapolásából”)</span></dt>
+  <dd><p>A hálózatkutatásban az a szereplő, aki két, egymással alig kapcsolódó csoport között áll, és így ellenőrzi a köztük áramló információt. Mérőszáma jellemzően a köztesség.</p></dd>
+
+  <dt id="g-centralitas">centralitás <span class="etym">lat. <em>centrum</em> „középpont” (gör. <em>kentron</em> „tüske, a körző hegye”)</span></dt>
+  <dd><p>Egy csúcs „központiságát” mérő szám. Nem egyetlen mérőszám, hanem egy család: fokszám-, közelségi, köztességi, sajátvektor-centralitás, PageRank, HITS.</p></dd>
+
+  <dt id="g-harmonikus">harmonikus <span class="etym">gör. <em>harmonia</em> „összeillesztés, összhang”</span></dt>
+  <dd><p>A matematikában a reciprokok összegével kapcsolatos (pl. harmonikus sor: $1 + \tfrac12 + \tfrac13 + \dots$). A harmonikus centralitás a távolságok reciprokát adja össze.</p></dd>
+
+  <dt id="g-hub">hub <span class="etym">ang. <em>hub</em> „kerékagy”</span></dt>
+  <dd><p>A kerék közepe, amelybe a küllők futnak. A HITS-ben az a csúcs, amely sok jó tekintélyre mutat (gyűjtő, összesítő); a hálózattudományban általában a kiugróan nagy fokszámú csúcs (7. fejezet).</p></dd>
+
+  <dt id="g-pagerank">PageRank <span class="etym">Larry <em>Page</em> nevéből és az ang. <em>rank</em> „rang” szóból – szójáték a weboldal (<em>page</em>) szóval</span></dt>
+  <dd><p>A véletlen szörföző teleportálásos sétájának stacionárius eloszlása; a Google keresőjének első rangsoroló algoritmusa (1998).</p></dd>
+
+  <dt id="g-teleport">teleportálás <span class="etym">gör. <em>tele</em> „messze” + lat. <em>portare</em> „vinni”</span></dt>
+  <dd><p>A PageRankben: a szörföző nem linket követ, hanem egy véletlenszerűen választott oldalra „ugrik”. Ettől lesz a séta minden irányított gráfon jól viselkedő.</p></dd>
+</dl>
+</section>
+
+<nav class="pager">
+  <a href="../04-grafok-es-matrixok/">← 4. Gráfok és mátrixok</a>
+  <span class="next muted">6. Helyi szerkezet (hamarosan) →</span>
+</nav>
+
+</main>
+</div>
+
+<footer class="site">
+  Források: M. E. J. Newman: <em>Networks</em> (2. kiad., Oxford UP, 2018), 7. fejezet · D. Easley – J. Kleinberg: <em>Networks, Crowds, and Markets</em> (2010), 14. fejezet ·
+  A.-L. Barabási: <em>Network Science</em> (2016) · F. Menczer – S. Fortunato – C. A. Davis: <em>A First Course in Network Science</em> (2020), 2. fejezet ·
+  L. C. Freeman (1977, 1979) · A. Bavelas (1950) · G. Sabidussi (1966) · M. Marchiori – V. Latora (2000) · P. Boldi – S. Vigna (2014) · L. Katz (1953) · P. Bonacich (1972, 1987) ·
+  G. Pinski – F. Narin (1976) · S. Brin – L. Page (1998) · J. Kleinberg (1999) · R. S. Burt (1992) · U. Brandes (2001) · S. P. Borgatti (2005) · D. Krackhardt (1990) ·
+  L. A. Adamic – N. Glance: The political blogosphere and the 2004 U.S. election (2005; adat: M. E. J. Newman gyűjteménye) · W. W. Zachary (1977) · Az Árvízhét kitalált példa.
+</footer>
+</body>
+</html>

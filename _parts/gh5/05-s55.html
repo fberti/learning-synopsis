@@ -1,0 +1,120 @@
+
+<!-- ===================================================== 5.5 -->
+<section id="s55">
+<h2>5.5 PageRank: a véletlen szörföző teleportál ★★</h2>
+<p>A sajátvektor irányított gráfon elakadt. A 4. fejezetben láttunk egy másik eszközt, amely irányított gráfon is értelmes: a <b>véletlen sétát</b>. Egy olvasó linkről linkre kattint; ahol sokat tartózkodik, az a fontos oldal.
+Csak két hibát kell kijavítani: a <b>zsákutcát</b> (ahonnan nem vezet ki link) és azt, hogy egyes oldalakra <b>soha nem jut el</b> a séta. A javítás neve <b>teleportálás</b> – és ebből lett a Google keresője.</p>
+
+<h3 id="s55-a">1. lépés: pontszám, amely a linkeken át folyik</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – három oldal</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="A-B,A-C,B-C,C-A" data-directed data-pos="A:0,0 B:2,0 C:1,1.3" data-w="170" data-h="130"></div></div>
+    <div>Minden oldal a pontszámát <b>egyenlően szétosztja</b> a kimenő linkjei között: $A$ két linkje között felezi, $B$ és $C$ az egyetlen linkjén át mindent továbbad. Ha a pontszám beállt, minden oldal annyit kap, amennyit küldtek neki:
+      $$p_A = p_C, \qquad p_B = \tfrac12 p_A, \qquad p_C = \tfrac12 p_A + p_B .$$
+      Legyen $p_A = a$. Ekkor $p_B = a/2$, $p_C = a$, és az összeg $2{,}5a = 1$, így $\mathbf p = (0{,}4;\ 0{,}2;\ 0{,}4)$.</div>
+  </div>
+  Figyeld meg: a $C$-re két link mutat, az $A$-ra csak egy, mégis egyforma a pontszámuk. Az $A$ egyetlen linkje a <b>fontos</b> $C$-től jön, és a $C$ <b>mindent</b> neki ad.
+</div>
+
+<div class="box def">
+  <span class="box-title">Szabály – a véletlen szörföző (teleportálás nélkül)</span>
+  $$p_i = \sum_{j \to i} \frac{p_j}{k^{\text{ki}}_j}, \qquad \sum_i p_i = 1,$$
+  ahol $k^{\text{ki}}_j$ a $j$ kifoka. Ez éppen a 4.2 véletlen sétájának stacionárius eloszlása: $\mathbf p^\top = \mathbf p^\top P$, $P = D_{\text{ki}}^{-1}A$.
+  <small>Miért osztunk a kifokkal? Egy sok linket kiosztó oldal (pl. egy linkgyűjtemény) linkje kevesebbet ér, mint egy válogatós oldalé: a szavazata eloszlik. Ez a különbség a befokhoz képest, amely minden linket egyformán számol.</small>
+</div>
+
+<h3 id="s55-b">2. lépés: két hiba – zsákutca és elérhetetlen oldal</h3>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Zsákutca: a pontszám elszivárog</span>
+    <div class="gfig" data-edges="A-B,A-C,B-C,D-C" data-directed data-pos="A:0,0 B:2,0 C:1,1.3 D:2.4,1.6" data-w="170" data-h="130"></div>
+    Ha a $C$-ből <b>nem</b> vezet ki link, a nála lévő pontszám nem megy sehova. Egyenletes $\tfrac14$-ből indulva: 1 lépés után $(0;\ 0{,}125;\ 0{,}625;\ 0)$, összesen csak $0{,}75$; 2 lépés után $0{,}125$; 3 lépés után <b>minden elfolyt</b>.
+  </div>
+  <div class="box example">
+    <span class="box-title">Elérhetetlen oldal: nulla pont</span>
+    <div class="gfig" data-edges="A-B,A-C,B-C,C-A,D-C" data-directed data-pos="A:0,0 B:2,0 C:1,1.3 D:2.4,1.6" data-w="170" data-h="130"></div>
+    Most a $C$-ből van link. De a $D$-re senki sem mutat: akárhonnan indul a szörföző, egy lépés után <b>soha többé</b> nem jár ott. A határ $(0{,}4;\ 0{,}2;\ 0{,}4;\ 0)$. Ha egy csoportból nem vezet ki link, minden pontszám ott gyűlik össze („pókcsapda”).
+  </div>
+</div>
+
+<p>A megoldás egy realisztikus feltevés: az olvasó <b>nem kattint örökké</b>. Időnként megunja, és beír egy teljesen új címet – egy véletlenszerű oldalra <b>teleportál</b>.</p>
+
+<div class="box def">
+  <span class="box-title">Definíció – PageRank (Brin és Page, 1998)</span>
+  Minden lépésben a szörföző $\alpha$ valószínűséggel egy véletlen kimenő linket követ, $1 - \alpha$ valószínűséggel egy egyenletesen véletlen oldalra ugrik. Zsákutcából mindig ugrik. A PageRank ennek a sétának a stacionárius eloszlása:
+  $$p_i = \frac{1 - \alpha}{n} + \alpha \sum_{j \to i} \frac{p_j}{k^{\text{ki}}_j} \;+\; \alpha \sum_{j \text{ zsákutca}} \frac{p_j}{n} .$$
+  A szokásos érték $\alpha = 0{,}85$ (átlagosan kb. 5–6 kattintás egy teleportálás előtt). Számolni iterációval szokás: $p_i = \tfrac1n$-ből indulva a képletet ismételjük, amíg be nem áll.
+  <small>Miért működik? A teleportálás miatt minden oldalról minden oldalra van esély eljutni, ezért a séta „összefüggő” és nem ragad be: a stacionárius eloszlás <b>létezik, egyértelmű, minden eleme pozitív</b>, és bárhonnan ide tart (a Perron–Frobenius-tétel itt is dolgozik).
+  A zsákutcák pontszáma nem vész el, hanem mindenki között egyenlően szétoszlik.</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa – egy lépés kézzel ($\alpha = 0{,}85$)</span>
+  Az „elérhetetlen oldal” gráfján ($A\to B$, $A\to C$, $B\to C$, $C\to A$, $D\to C$) indulj $\mathbf p_0 = (\tfrac14, \tfrac14, \tfrac14, \tfrac14)$-ből. Mennyi $\mathbf p_1$?
+  <details><summary>Megoldás</summary>Mindenki kap $\frac{0{,}15}{4} = 0{,}0375$-öt a teleportálásból. Ehhez jön a linkeken érkező rész, $0{,}85$-tel szorozva:
+    <ul style="margin:.3rem 0">
+      <li>$A$: a $C$-től $0{,}25/1$ → $0{,}0375 + 0{,}85 \cdot 0{,}25 = 0{,}25$;</li>
+      <li>$B$: az $A$-tól $0{,}25/2$ → $0{,}0375 + 0{,}85 \cdot 0{,}125 \approx 0{,}144$;</li>
+      <li>$C$: az $A$-tól $0{,}125$, a $B$-től $0{,}25$, a $D$-től $0{,}25$ → $0{,}0375 + 0{,}85 \cdot 0{,}625 \approx 0{,}569$;</li>
+      <li>$D$: senki sem küld → $0{,}0375$.</li>
+    </ul>
+    Az összeg $1$. Sok lépés után a határ $A \approx 0{,}373$, $B \approx 0{,}196$, $C \approx 0{,}394$, $D = 0{,}0375$ – a $D$ pontosan a teleportálásból kapott részt őrzi meg.</details>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a lapok PageRankje</span>
+    A lapok hivatkozási gráfjában ($\mathrm{EK}\to\mathrm{RH}$, $\mathrm{NY}\to\mathrm{EK}$, $\mathrm{VN}\to\mathrm{RH}$, $\mathrm{VN}\to\mathrm{NY}$) az RH zsákutca. Mi lesz a sorrend?
+    <details><summary>Megoldás</summary>$\alpha = 0{,}85$-tel: $\mathrm{RH}$ 0,416, $\mathrm{EK}$ 0,278, $\mathrm{NY}$ 0,179, $\mathrm{VN}$ 0,126. A sorrend a befoké, de a holtverseny ($\mathrm{EK}$ és $\mathrm{NY}$ befoka 1–1) eldől: az EK-t a NY <b>egyetlen</b> linkje viszi, a NY-et a VN két linkjének csak a fele.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – miért nem 0 a VN?</span>
+    A VN-re senki sem hivatkozik, mégis $0{,}126 > 0{,}0375$. Honnan kapja a többit?
+    <details><summary>Megoldás</summary>Az RH zsákutca: a nála lévő pontszám ($0{,}416$) $\alpha$-szorosa mindenki között egyenlően oszlik szét. A VN része: $0{,}0375 + 0{,}85 \cdot 0{,}416/4 \approx 0{,}126$.</details>
+  </div>
+</div>
+
+<div class="widget" data-widget="pagerank-surfer"></div>
+
+<div class="box tip">
+  <span class="box-title">👍 Hüvelykujjszabály</span>
+  <b>Irányítatlan gráfon a PageRank majdnem a fokszám.</b> Teleportálás nélkül pontosan $d_i/2m$ lenne (4.2); a teleportálás ezt csak kicsit simítja. Az Árvízhéten $\mathrm{Po}$ 0,196, $\mathrm{Ko}$ 0,190 (a $d_i/2m$ 0,2–0,2), a karateklubon a PageRank és a fokszám korrelációja 0,998.
+  <b>A PageRank irányított gráfon ad igazán újat.</b>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az $\alpha$ szerepének felcserélése.</b> Az $\alpha$ a link <b>követésének</b> valószínűsége, nem a teleportálásé. $\alpha = 0$: mindenki $1/n$; $\alpha \to 1$: a teleportálás nélküli séta, a fenti hibákkal.</li>
+    <li><b>A kifokkal való osztás elhagyása.</b> Akkor nem eloszlást kapsz (az összeg nem 1), és a sok linket kiosztó oldalak túl nagy súlyt kapnak.</li>
+    <li><b>A zsákutca kezelésének elhagyása.</b> Az összeg lépésenként csökken. A programok (pl. <code>networkx</code>) egyenletesen szétosztják, de vannak más konvenciók is – a pontos számok ettől függnek.</li>
+    <li><b>A PageRank nem „igazság”.</b> Egy modell válasza arra, hol tölt sok időt egy véletlenül kattintgató olvasó. Hogy a valódi olvasók így viselkednek-e, az empirikus kérdés.</li>
+  </ul>
+</div>
+
+<div class="box history">
+  <span class="box-title">📜 Az idézetektől a keresőig</span>
+  Az ötlet, hogy egy hivatkozás annál többet ér, minél „fontosabb” helyről jön, és minél kevesebb hivatkozással osztozik, a tudománymetriából jön: <b>Pinski és Narin</b> 1976-ban így súlyozták a folyóiratok közötti idézeteket.
+  <b>Sergey Brin és Larry Page</b> 1998-ban a teljes webre alkalmazta, teleportálással – ez lett a Google keresőjének első rangsoroló algoritmusa. A médiakutatásban hivatkozási és átvételi hálózatokon használják (18. fejezet).
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – PageRank</summary>
+  <ol>
+    <li>Két oldal egymásra linkel ($A \leftrightarrow B$). Mennyi a PageRankjük bármely $\alpha$-ra?
+      <details><summary>Megoldás</summary>Szimmetria: $p_A = p_B = 0{,}5$. Ellenőrzés: $0{,}075 + 0{,}85 \cdot 0{,}5 = 0{,}5$. ✓</details></li>
+    <li>Az $A \leftrightarrow B$ párhoz jön egy $C$ oldal, amely az $A$-ra linkel, rá senki. Mennyi $p_C$ ($\alpha = 0{,}85$, $n = 3$)?
+      <details><summary>Megoldás</summary>A $C$-re nem mutat link, és zsákutca sincs: csak a teleportálásból kap, $p_C = 0{,}15/3 = 0{,}05$. (A teljes eredmény: $A \approx 0{,}486$, $B \approx 0{,}464$, $C = 0{,}05$.)</details></li>
+    <li>Az „elérhetetlen oldal” gráfján számold ki a második lépést: $\mathbf p_2$-ből a $B$ és a $D$ értékét!
+      <details><summary>Megoldás</summary>$\mathbf p_1 = (0{,}25;\ 0{,}144;\ 0{,}569;\ 0{,}0375)$. $B$: $0{,}0375 + 0{,}85 \cdot 0{,}25/2 \approx 0{,}144$ (a $B$ csak az $A$-tól kap, és $p_A$ nem változott). $D$: megint $0{,}0375$.</details></li>
+    <li>Mennyi a PageRank, ha $\alpha = 0$? És mi történik a „zsákutca” gráfon, ha $\alpha = 1$, és a zsákutcát nem kezeljük?
+      <details><summary>Megoldás</summary>$\alpha = 0$: a szörföző mindig teleportál, mindenki $1/n$. $\alpha = 1$, kezeletlen zsákutca: a pontszám elszivárog, 3 lépés után minden 0.</details></li>
+    <li>(nehezebb) Egy hírportál minden cikke linkel a „Legfrissebb” oldalra, amely csak a portál 5 legújabb cikkére linkel. Mi történik a „Legfrissebb” és a régi cikkek PageRankjével?
+      <details><summary>Megoldás</summary>A „Legfrissebb” sok bejövő linket kap, ezért magas a PageRankje. Ezt a <b>teljes</b> pontszámát 5 cikk között osztja szét, ezért azok is magasra kerülnek. A régi cikkekre csak más cikkek linkelhetnek – nekik sokkal kevesebb jut.
+        A PageRank tehát a <b>linkstruktúrát</b> méri, és a portál navigációs döntései (menü, ajánló) erősen befolyásolják. Hírelemzésben ezért a navigációs linkeket általában kiszűrik.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh5-55"></div>
+</section>
