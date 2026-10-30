@@ -250,6 +250,13 @@ modellezési döntés első tudatosítása.
 ### Kvízek
 `gh1-11` … `gh1-17`, `gh1-final`.
 
+> ✅ **Elkészült** (`01-mi-a-halozat/`, 2026-10-30). Kvízek: `gh1-11` … `gh1-17`, `gh1-final` (63 kérdés). 6 widget: `three-graphs`, `handshake`,
+> `graph-draw`, `named-graphs`, `isomorphism-game`, `cooccurrence-builder`; statikus ábrák a közös `assets/graph.js` `.gfig` elemével.
+> Az Árvízhét adatai rögzítve: `grafelmelet-halozattudomany/arvizhet-data.js` (ellenőrzés: `_parts/gh1/arviz.py`). Teljes szereplőgráf: 7 csúcs, 10 él,
+> fokszámok Ko 4, Po 4, Vi 3, Sz 3, Kl 2, La 2, Ön 2; erősség Po 8, Ko 6, Vi/La/Ön 5, Sz 4, Kl 3; multigráf 18 él; komplementer 11 él.
+> Lapgráfok: RH $K_3$ (Ko, Vi, Po), EK háromszög + levél (Sz középpont), NY $K_3$ (La, Ön, Po), VN csillag $K_{1,3}$ (Po). Az árvízi 8. fejezet „nagy kérdése”
+> a tényleges közösségekhez igazítandó. Összeállítás: `_parts/gh1/build.sh`.
+
 ### Csapdák
 A rajz elrendezése nem információ (két közeli csúcs nem feltétlenül szomszédos) · a fokszám nem fontosság · az
 együttemlítés nem kapcsolat · irányítatlan gráf mátrixa szimmetrikus, irányítotté nem (3. fejezet) · a „hálózat” ábrája

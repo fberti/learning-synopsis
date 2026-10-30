@@ -13,6 +13,7 @@ synopsis/
 │   ├── common.js                   ← téma, KaTeX, tartalomjegyzék, haladás mentése
 │   ├── quiz.js                     ← általános kvízmotor
 │   ├── calc.js                     ← analízis: képletértelmező (eval nélkül) és függvényrajzoló
+│   ├── graph.js                    ← gráfok: elrendezés, statikus SVG-ábrák (.gfig), szerkeszthető canvas-nézet (GraphKit.View)
 │   └── ml.js                       ← MI: magolt véletlen, 2D adatkészletek, aktivációk, MLP visszaterjesztéssel (SGD, momentum, RMSProp, Adam; L2, dropout)
 ├── valoszinusegszamitas/
 │   ├── index.html                  ← a témakör fejezetlistája
@@ -38,6 +39,11 @@ synopsis/
 │   ├── index.html                  ← a témakör fejezetlistája
 │   ├── TERV.md                     ← a 11 fejezet részletes kidolgozási terve
 │   └── 01-fuggvenyek-es-modellek/  ← index.html, widgets.js (a calc.js-re épül), quizzes.js
+├── grafelmelet-halozattudomany/
+│   ├── index.html                  ← a témakör fejezetlistája és tanulási útvonalai
+│   ├── TERV.md                     ← a 21 fejezet részletes kidolgozási terve
+│   ├── arvizhet-data.js            ← a futó példa (Árvízhét: 4 lap, 12 cikk, 7 szereplő) – rögzített adat
+│   └── 01-mi-a-halozat/            ← index.html, widgets.js (graph.js), quizzes.js
 └── mesterseges-intelligencia/
     ├── index.html                  ← a témakör fejezetlistája és tanulási útvonalai
     ├── TERV.md                     ← a 24 fejezet részletes kidolgozási terve
