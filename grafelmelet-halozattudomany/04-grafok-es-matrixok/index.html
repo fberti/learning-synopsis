@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>4. Gráfok és mátrixok – Gráfelmélet és hálózattudomány – Synopsis</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="../../assets/common.js"></script>
+  <script defer src="../../assets/quiz.js"></script>
+  <script defer src="../../assets/graph.js"></script>
+  <script defer src="../arvizhet-data.js"></script>
+  <script defer src="../../mesterseges-intelligencia/13-graf-neuralis-halok/graph-data.js"></script>
+  <script defer src="widgets.js"></script>
+  <script defer src="quizzes.js"></script>
+</head>
+<body>
+<div class="progressbar"></div>
+<header class="topbar">
+  <a class="brand" href="../../">📚 Synopsis</a>
+  <span class="crumbs"><a href="../../">Tartalomjegyzék</a> › <a href="../">Gráfelmélet és hálózattudomány</a> › 4. fejezet</span>
+  <button class="icon-btn" data-theme-toggle title="Téma váltása">🌙</button>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <div class="toc-title">4. fejezet</div>
+  <ol>
+    <li><a href="#s41">4.1 Mátrix–vektor szorzás</a></li>
+    <li><a href="#s42">4.2 Véletlen séta</a></li>
+    <li><a href="#s43">4.3 Sajátvektorok, hatványiteráció</a></li>
+    <li><a href="#s44">4.4 A Laplace-mátrix</a></li>
+    <li><a href="#s45">4.5 Spektrális kettévágás</a></li>
+    <li><a href="#s46">4.6 Alkalmazás: az Árvízhét mátrixai</a></li>
+    <li><a href="#s-sum">Összefoglalás</a></li>
+    <li><a href="#s-check">Ellenőrző kérdések</a></li>
+    <li><a href="#s-ex">Vegyes gyakorló feladatok</a></li>
+    <li><a href="#s-final">Fejezetzáró teszt</a></li>
+    <li><a href="#s-gloss">Szómagyarázó</a></li>
+  </ol>
+</nav>
+
+<main class="content">
+
+<section class="hero" style="padding-top:.5rem">
+  <div class="kicker">Gráfelmélet és hálózattudomány · 4. fejezet · ★★</div>
+  <h1>Gráfok és mátrixok: véletlen séta, sajátvektorok, Laplace-mátrix</h1>
+  <p class="lead">Az 1. fejezetben a szomszédsági mátrix még csak egy <b>táblázat</b> volt: ki kivel van összekötve. A 2. fejezetben kiderült, hogy a
+  hatványai sétákat számolnak. Ebben a fejezetben a mátrix <b>gépként</b> működik: értékeket kap a csúcsokon, és továbbadja őket a szomszédoknak.
+  Ebből az egyetlen műveletből jön ki, <b>hol tölti az idejét</b> egy véletlenszerűen kattintgató olvasó, <b>ki a „fontos”</b> szereplő, mennyire
+  <b>sima</b> egy jel a gráfon, és hogyan vágható <b>ketté</b> egy hálózat a lehető legkevesebb él elvágásával. Ez a lineáris algebra kell majd a
+  centralitáshoz (5.), a közösségkereséshez (8.), a beágyazásokhoz (11.) és a gráf neurális hálókhoz (12.).</p>
+</section>
+
+<div class="box tip">
+  <span class="box-title">Mit fogsz megtanulni?</span>
+  <ul style="margin:.2rem 0">
+    <li>az $A\mathbf x$ szorzatot <b>szomszédösszegzésként</b>, a $D^{-1}A\mathbf x$-et <b>szomszédátlagként</b> olvasni;</li>
+    <li>felírni a <b>véletlen séta</b> átmenetmátrixát ($P = D^{-1}A$), lépésenként kiszámolni az eloszlást, és megmondani a <b>stacionárius eloszlást</b> ($\pi_i = d_i/2m$);</li>
+    <li>felismerni a <b>sajátvektort</b>, és megtalálni a legnagyobbat <b>hatványiterációval</b>;</li>
+    <li>felírni a <b>Laplace-mátrixot</b> ($L = D - A$), és kiszámolni, mennyire „sima” egy jel: $\mathbf x^\top L\mathbf x = \sum (x_i - x_j)^2$;</li>
+    <li>a Laplace-mátrix nulla sajátértékeiből a <b>komponensek számát</b>, a <b>Fiedler-vektorból</b> egy jó <b>kettévágást</b> leolvasni;</li>
+    <li>mindezt az Árvízhét szereplőgráfján alkalmazni.</li>
+  </ul>
+</div>
+
+<div class="box">
+  <span class="box-title">🔁 Amit használni fogunk</span>
+  Az <a href="../01-mi-a-halozat/">1. fejezetből</a>: a <b>szomszédsági mátrix</b> (<a href="../01-mi-a-halozat/#s14-b">1.4</a>), a <b>fokszám</b> és a <b>kézfogási lemma</b> ($\sum d(v) = 2m$),
+  a <b>súly</b> és az <b>erősség</b> (<a href="../01-mi-a-halozat/#s15-b">1.5</a>). A <a href="../02-setak-utak-fak/">2. fejezetből</a>: <b>séta</b>, <b>komponens</b>, <b>híd</b>, és a
+  <b>mátrixszorzás</b> a séták számolásánál (<a href="../02-setak-utak-fak/#s27-a">2.7</a>). A <a href="../03-graftipusok/">3. fejezetből</a>: <b>irányított</b> és <b>súlyozott</b> gráf, a lapok
+  <b>hivatkozási gráfja</b> (<a href="../03-graftipusok/#s31">3.1</a>). A valószínűségből csak annyi kell, amennyi a <a href="../../valoszinusegszamitas/02-felteteles-valoszinuseg-es-fuggetlenseg/#s23">teljes valószínűség tételében</a> van:
+  „az eseményhez vezető utak valószínűségeit összeadjuk”.
+</div>
+
+<div class="box example">
+  <span class="box-title">🎯 A fejezet kérdései</span>
+  Az Árvízhét híroldalán minden szereplőnek van egy aloldala, és onnan linkek mutatnak azokra a szereplőkre, akikkel együtt szerepelt egy cikkben.
+  Egy olvasó találomra kattintgat linkről linkre. <b>Melyik aloldalon tölti majd a legtöbb időt?</b> És ha a szerkesztőség két rovatra akarja bontani a szereplőket úgy, hogy a
+  lehető <b>legkevesebb link</b> fusson a két rovat között, <b>hol vágjon?</b> Mindkét kérdést mátrixszal válaszoljuk meg – a <a href="#s46">4.6</a>-ban.
+</div>
+
+<div class="gfig" data-edges="Ko-Vi,Ko-Po,Vi-Po,Vi-Sz,Sz-Kl,Sz-Ko,Kl-Ko,La-Ön,La-Po,Po-Ön" data-weights="2,2,2,1,2,1,1,3,2,2" data-show-weights
+  data-pos="Kl:.6,0 Sz:0,.5 Ko:1.3,.5 Vi:.65,1 Po:1.6,1.3 La:2.4,1 Ön:2.3,1.9" data-w="330" data-h="210" data-r="16"
+  data-caption="Az Árvízhét szereplőgráfja (1. fejezet): 7 csúcs, 10 él; a szám: hány cikkben szerepeltek együtt"></div>
+
+<p><b>Útiterv</b> – egyetlen műveletből, az „add tovább a szomszédoknak” lépésből építkezünk:</p>
+<ol>
+  <li><a href="#s41">Mátrix–vektor szorzás</a> – $A\mathbf x$: minden csúcs összeadja a szomszédai értékét.</li>
+  <li><a href="#s42">Véletlen séta</a> – ha az érték valószínűség, a szorzás egy lépés egy véletlen sétában. Hová tart?</li>
+  <li><a href="#s43">Sajátvektorok, hatványiteráció</a> – ha a szorzást ismételjük, egy kitüntetett irányba áll be a vektor.</li>
+  <li><a href="#s44">A Laplace-mátrix</a> – nem összeadjuk, hanem <b>összehasonlítjuk</b> a szomszédokat: mennyire sima a jel?</li>
+  <li><a href="#s45">Spektrális kettévágás</a> – a „legsimább” nem konstans jel megmutatja, hol vágjuk ketté a gráfot.</li>
+  <li><a href="#s46">Alkalmazás</a> – a fejezet kérdései az Árvízhéten.</li>
+</ol>
+
+<div class="box tip">
+  <span class="box-title">📐 Jelölések ebben a fejezetben</span>
+  $n$ csúcs, $m$ él; $A$ a szomszédsági mátrix ($A_{ij} = 1$, ha $i$ és $j$ szomszédos; súlyozott gráfban $A_{ij} = w_{ij}$); $d_i$ az $i$ csúcs fokszáma (súlyozva: erőssége);
+  $D$ a <b>fokszámmátrix</b>: átlójában a fokszámok, máshol 0. A vektorok vastag kisbetűk ($\mathbf x$, $\mathbf p$), és <b>oszlopvektorok</b>; a $\top$ jel fordít sorrá: $\mathbf x^\top$.
+  $\mathbf 1$ a csupa egyes vektor. A <a href="../01-mi-a-halozat/">gráfelméleti fejezetekhez</a> igazodva a fokszám $d_i$; a hálózattudományi irodalom ugyanezt $k_i$-vel jelöli.
+</div>
+
+<!-- ===================================================== 4.1 -->
+<section id="s41">
+<h2>4.1 Mátrix–vektor szorzás: „add össze a szomszédaidat” ★</h2>
+<p>Eddig a csúcsoknak csak nevük volt. Most <b>értéket</b> is kapnak: egy szereplőnek, hogy hány cikkben szerepelt; egy oldalnak, hány olvasó van rajta éppen;
+egy embernek, mennyire hisz egy hírben. A hálózatelemzés legtöbb módszere ugyanazt a lépést ismétli: <b>minden csúcs összegyűjti a szomszédai értékét</b>.
+Ez a lépés pontosan a mátrix–vektor szorzás.</p>
+
+<h3 id="s41-a">1. lépés: értékek a csúcsokon – a vektor</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy kis út, értékekkel</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="1-2,2-3,3-4" data-pos="1:0,0 2:1,0 3:2,0 4:3,0" data-w="250" data-h="70"
+      data-caption="az értékek: 5, 1, 2, 4 (ezer olvasó)"></div></div>
+    <div>Négy hírportál egy láncban linkel egymásra: 1–2–3–4. Egy adott percben az 1-esen 5, a 2-esen 1, a 3-ason 2, a 4-esen 4 ezer olvasó van.
+      Ezt a négy számot egyetlen oszlopba írjuk, a csúcsok sorrendjében:
+      $$\mathbf x = \begin{pmatrix} 5\\1\\2\\4 \end{pmatrix}.$$
+      Ez a <b>vektor</b>: csúcsonként egy szám. A sorrend ugyanaz, mint a szomszédsági mátrix sorainak sorrendje.</div>
+  </div>
+</div>
+
+<div class="box tip">
+  <span class="box-title">🔁 Emlékeztető – mátrix szorozva vektorral</span>
+  Az $n \times n$-es $A$ mátrix és az $n$ elemű $\mathbf x$ vektor szorzata egy $n$ elemű vektor. Az $i$-edik eleme: az $A$ <b>$i$-edik sorát</b> elemenként összeszorozzuk $\mathbf x$-szel, és összeadjuk:
+  $$(A\mathbf x)_i = \sum_{j} A_{ij}\,x_j = A_{i1}x_1 + A_{i2}x_2 + \dots + A_{in}x_n.$$
+  Ez a <a href="../02-setak-utak-fak/#s27-a">2.7-ben</a> látott mátrixszorzás speciális esete: a második „mátrixnak” egyetlen oszlopa van.
+</div>
+
+<h3 id="s41-b">2. lépés: $A\mathbf x$ = a szomszédok összege</h3>
+<p>Számoljuk ki a fenti útra $A\mathbf x$-et! A mátrix $i$-edik sorában ott áll 1-es, ahol $i$-nek szomszédja van. A szorzásban tehát csak a <b>szomszédok értékei</b> maradnak meg:</p>
+$$A\mathbf x = \begin{pmatrix} 0&1&0&0\\ 1&0&1&0\\ 0&1&0&1\\ 0&0&1&0 \end{pmatrix}\begin{pmatrix} 5\\1\\2\\4 \end{pmatrix}
+= \begin{pmatrix} 1\\ 5 + 2\\ 1 + 4\\ 2 \end{pmatrix} = \begin{pmatrix} 1\\7\\5\\2 \end{pmatrix}.$$
+<p>Az 1-es csúcs egyetlen szomszédjától, a 2-estől 1-et kap; a 2-es a két szomszédjától $5 + 2 = 7$-et, és így tovább. <b>A saját érték nem számít bele</b>: a főátlóban 0 áll.</p>
+
+<div class="box def">
+  <span class="box-title">Szabály – szomszédösszegzés</span>
+  Ha $A$ egy (irányítatlan, egyszerű) gráf szomszédsági mátrixa, és $\mathbf x$ csúcsonkénti értékek vektora, akkor
+  $$(A\mathbf x)_i = \sum_{j \text{ szomszédja } i\text{-nek}} x_j .$$
+  <small>Miért? Az $i$-edik sorban $A_{ij} = 1$, ha $j$ szomszéd, különben 0. Az $A_{ij}x_j$ szorzat tehát a szomszédoknál $x_j$, a többieknél 0 – az összeg a szomszédok értékeinek összege.
+  Súlyozott gráfban ($A_{ij} = w_{ij}$) a szomszédok értékét a súllyal szorozva adjuk össze.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a csupa egyes vektor</span>
+    Mit ad $A\mathbf 1$, ha $\mathbf 1 = (1, 1, \dots, 1)^\top$?
+    <details><summary>Megoldás</summary>Minden csúcs annyi 1-est kap, ahány szomszédja van: $A\mathbf 1 = \mathbf d$, a <b>fokszámok vektora</b>. A fenti útra $(1, 2, 2, 1)^\top$.
+      Az elemek összege $2m = 6$ – a kézfogási lemma.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egyetlen 1-es</span>
+    Az Árvízhét gráfjában legyen $x_{\mathrm{Ko}} = 1$, a többi 0. Mi lesz $A\mathbf x$?
+    <details><summary>Megoldás</summary>Csak a Kormány szomszédai kapnak valamit, mindegyik 1-et: $\mathrm{Vi}$, $\mathrm{Po}$, $\mathrm{Sz}$, $\mathrm{Kl}$ értéke 1, a többié 0.
+      Az $A\mathbf x$ ekkor az $A$ Kormány-<b>oszlopa</b>: a „kik a szomszédaim?” kérdés válasza.</details>
+  </div>
+</div>
+<div class="box example">
+  <span class="box-title">Példa – hány „hétfői” szomszédod van?</span>
+  Hétfőn a Kormány, a Vízügy és a Szakértő szerepelt a hírekben (1. és 4. cikk). Legyen $x_i = 1$, ha az $i$ szereplő hétfőn szerepelt, különben 0. Mit jelent és mennyi $(A\mathbf x)_{\mathrm{La}}$ és $(A\mathbf x)_{\mathrm{Po}}$?
+  <details><summary>Megoldás</summary>$(A\mathbf x)_i$ = hány szomszédja szerepelt hétfőn. A Lakók szomszédai ($\text{Ön}$, $\mathrm{Po}$) közül senki: <b>0</b>. A Polgármester szomszédai ($\mathrm{Ko}$, $\mathrm{Vi}$, $\mathrm{La}$, $\text{Ön}$) közül kettő: <b>2</b>.
+    Ugyanígy működik egy hír „terjedésének” első lépése: kinek hány szomszédja hallotta már (9. fejezet).</details>
+</div>
+
+<h3 id="s41-c">3. lépés: összeg helyett átlag – $D^{-1}A\mathbf x$</h3>
+<p>Az összegnek van egy hibája: a sok szomszédú csúcs mindig nagy számot kap, akkor is, ha a szomszédai értéke kicsi. A 2-es csúcs 7-et kapott, de a szomszédai
+átlaga csak $3{,}5$. Ha azt akarjuk tudni, <b>milyen a környezete</b> egy csúcsnak, átlagolnunk kell: osztani a fokszámmal.</p>
+
+<div class="box def">
+  <span class="box-title">Szabály – szomszédátlag</span>
+  Legyen $D$ a <b>fokszámmátrix</b> (átlójában $d_1, \dots, d_n$, máshol 0). Ekkor $D^{-1}$ átlójában $1/d_i$ áll, és
+  $$(D^{-1}A\mathbf x)_i = \frac{1}{d_i}\sum_{j \text{ szomszédja } i\text{-nek}} x_j \quad = \text{ a szomszédok átlaga.}$$
+  <small>Miért? A $D^{-1}$-gyel való szorzás az $i$-edik elemet osztja $d_i$-vel – ez minden sorban más szám, ezért nem egyetlen osztás, hanem egy átlós mátrix. (Izolált csúcsnál $d_i = 0$: ott nincs mit átlagolni, ezt külön kezelni kell.)</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – az út szomszédátlaga</span>
+    Számold ki a fenti útra $D^{-1}A\mathbf x$-et!
+    <details><summary>Megoldás</summary>$D = \operatorname{diag}(1, 2, 2, 1)$, így $D^{-1}A\mathbf x = (1/1,\ 7/2,\ 5/2,\ 2/1)^\top$ $= (1;\ 3{,}5;\ 2{,}5;\ 2)^\top$.
+      Az értékek „közelebb kerültek egymáshoz”: az eredeti $5, 1, 2, 4$ szórt, az átlagolt $1;\ 3{,}5;\ 2{,}5;\ 2$ kevésbé. Ismételve egyre simább lesz (<a href="#s44">4.4</a>).</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – konstans vektor</span>
+    Mit ad $D^{-1}A$ a csupa egyes vektorra (izolált csúcs nélküli gráfban)?
+    <details><summary>Megoldás</summary>Minden csúcs szomszédainak átlaga 1: $D^{-1}A\mathbf 1 = \mathbf 1$. A konstans jelet az átlagolás nem változtatja meg – ez a <a href="#s42">4.2</a>-ben azt jelenti, hogy a $D^{-1}A$ minden sorának összege 1.</details>
+  </div>
+</div>
+
+<div class="box tip">
+  <span class="box-title">👍 Hüvelykujjszabály</span>
+  <b>$A\mathbf x$: add össze a szomszédaidat. $D^{-1}A\mathbf x$: átlagold a szomszédaidat. $A^k\mathbf x$: csináld meg $k$-szor.</b>
+  Az utolsó a <a href="../02-setak-utak-fak/#s27-a">2.7</a> eredménye: $(A^k\mathbf x)_i$ a $k$ hosszú, $i$-ből induló séták végpontjain álló értékek összege.
+  A gráf neurális háló egy rétege is pontosan ezt teszi, csak tanult súlyokkal (<a href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s133">MI 13.3</a>).
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A saját értéket is beszámolni.</b> Hurok nélküli gráfban $A_{ii} = 0$, így $(A\mathbf x)_i$-ben <b>nincs benne</b> $x_i$. Ha a saját érték is kell (mint a GCN-ben), az $A + I$ mátrixot használjuk.</li>
+    <li><b>Az átlag nem $\frac1n A\mathbf x$.</b> Nem a csúcsok számával, hanem <b>csúcsonként a saját fokszámmal</b> osztunk.</li>
+    <li><b>Irányított gráfban számít, sorral vagy oszloppal szorzunk.</b> $A\mathbf x$ az $i$-edik sor mentén, a <b>kimenő</b> szomszédok értékét gyűjti; a $\mathbf x^\top A$ sorvektor $j$-edik eleme az oszlop mentén, a <b>bejövő</b> szomszédokét.
+      Irányítatlan gráfban $A$ szimmetrikus, így a kettő ugyanaz.</li>
+  </ul>
+</div>
+
+<div class="widget" data-widget="matvec"></div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – szomszédösszeg és szomszédátlag</summary>
+  <ol>
+    <li>A 4 csúcsú úton (1–2–3–4) legyen $\mathbf x = (1, 0, 0, 0)^\top$. Mi $A\mathbf x$?
+      <details><summary>Megoldás</summary>$(0, 1, 0, 0)^\top$: csak az 1-es szomszédja, a 2-es kap értéket.</details></li>
+    <li>A barátsággráfban (élek $AB$, $AC$, $BC$, $CD$) legyen $\mathbf x = (1, 2, 3, 4)^\top$ az $A, B, C, D$ sorrendben. Mi $A\mathbf x$?
+      <details><summary>Megoldás</summary>$A$: $x_B + x_C = 5$; $B$: $x_A + x_C = 4$; $C$: $x_A + x_B + x_D = 7$; $D$: $x_C = 3$. Tehát $(5, 4, 7, 3)^\top$.</details></li>
+    <li>Ugyanitt mi $A\mathbf 1$, és mennyi az elemeinek összege?
+      <details><summary>Megoldás</summary>A fokszámok: $(2, 2, 3, 1)^\top$; összegük $8 = 2m$ (4 él).</details></li>
+    <li>Ugyanitt számold ki a szomszédátlagot, $D^{-1}A\mathbf x$-et az $\mathbf x = (1, 2, 3, 4)^\top$ vektorra!
+      <details><summary>Megoldás</summary>$(5/2,\ 4/2,\ 7/3,\ 3/1)^\top \approx (2{,}5;\ 2;\ 2{,}33;\ 3)^\top$.</details></li>
+    <li>(nehezebb) Mutasd meg, hogy $A\mathbf x$ elemeinek összege $\sum_j d_j x_j$! Ellenőrizd a 2. feladaton.
+      <details><summary>Megoldás</summary>Minden $x_j$ annyiszor kerül be valamelyik szomszéd összegébe, ahány szomszédja van $j$-nek, vagyis $d_j$-szer. A 2. feladatban
+        $5 + 4 + 7 + 3 = 19$, és $2 \cdot 1 + 2 \cdot 2 + 3 \cdot 3 + 1 \cdot 4 = 19$. ✓</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh4-41"></div>
+</section>
+
+<!-- ===================================================== 4.2 -->
+<section id="s42">
+<h2>4.2 Véletlen séta ★★</h2>
+<p>Eddig a csúcsok értéke tetszőleges szám volt. Most legyen <b>valószínűség</b>: annak az esélye, hogy egy olvasó éppen azon az oldalon van.
+Az olvasó minden lépésben a jelenlegi oldala egyik linkjére kattint, <b>egyenlő eséllyel</b> választva közülük. Ez a <b>véletlen séta</b>.
+Hogyan változik lépésről lépésre, hol lehet az olvasó – és hová áll be hosszú távon?</p>
+
+<h3 id="s42-a">1. lépés: egy lépés – az átmenetmátrix</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy lépés a barátsággráfon</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="A-B,A-C,B-C,C-D" data-pos="A:0,0 B:0,1 C:1,.5 D:2.1,.5" data-w="210" data-h="120"></div></div>
+    <div>Ha az olvasó a $C$-n van, három link közül választ: $A$, $B$ vagy $D$ – mindegyiket $\frac13$ eséllyel. Ha a $D$-n van, csak egy linkje van: $\frac11 = 1$ eséllyel a $C$-re lép.
+      Ha az $A$-n, akkor $\frac12$–$\frac12$ eséllyel $B$-re vagy $C$-re. Általában: <b>$i$-ből $j$-be $\frac{1}{d_i}$ eséllyel lép, ha $j$ szomszéd, különben 0 eséllyel.</b></div>
+  </div>
+  Táblázatba írva (sor: honnan, oszlop: hová):
+  $$P = \begin{pmatrix} 0 & \frac12 & \frac12 & 0\\ \frac12 & 0 & \frac12 & 0\\ \frac13 & \frac13 & 0 & \frac13\\ 0 & 0 & 1 & 0 \end{pmatrix}.$$
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – véletlen séta, átmenetmátrix</span>
+  A gráfon a <b>véletlen séta</b> minden lépésben a jelenlegi csúcs egy szomszédjára lép, a szomszédok közül egyenletesen választva. Az <b>átmenetmátrix</b>
+  $$P_{ij} = \frac{A_{ij}}{d_i}, \qquad P = D^{-1}A .$$
+  A $P$ minden sorának összege 1 (az olvasó valahová biztosan lép); az ilyen mátrix neve <b>sztochasztikus mátrix</b>. Súlyozott gráfban $P_{ij} = w_{ij}/s_i$: az erősebb kapcsolat felé nagyobb eséllyel lép.
+  <small>Miért éppen $D^{-1}A$? Az $i$-edik sorban az $A$ 1-esei a szomszédokat jelölik; ezeket $d_i$-vel osztva éppen az egyenletes $\frac1{d_i}$ esélyeket kapjuk. Ez ugyanaz a mátrix, amely a <a href="#s41-c">4.1</a>-ben szomszédátlagot számolt.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – az Árvízhét egy sora</span>
+    Mi az átmenetmátrix Kormány-sora (súlyozatlanul)?
+    <details><summary>Megoldás</summary>A Kormány szomszédai: $\mathrm{Vi}$, $\mathrm{Po}$, $\mathrm{Sz}$, $\mathrm{Kl}$ ($d = 4$). Mindegyikhez $\frac14$, a többiekhez ($\mathrm{La}$, $\text{Ön}$, önmaga) 0. Összeg: 1.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – súlyozva</span>
+    Mi a Lakók sora a súlyozott sétában? (Súlyok: $\mathrm{La}$–$\text{Ön}$ 3, $\mathrm{La}$–$\mathrm{Po}$ 2.)
+    <details><summary>Megoldás</summary>Az erősség $s = 3 + 2 = 5$. Az Önkéntesekhez $\frac35$, a Polgármesterhez $\frac25$ eséllyel lép. Súlyozatlanul mindkettő $\frac12$ lenne.</details>
+  </div>
+</div>
+
+<h3 id="s42-b">2. lépés: az eloszlás lépésről lépésre</h3>
+<p>Nem tudjuk biztosan, hol van az olvasó – csak azt, <b>milyen eséllyel</b> hol. Ezt egy $\mathbf p_t$ vektor írja le: $(\mathbf p_t)_i$ annak a valószínűsége, hogy a $t$-edik lépés után az $i$ csúcson van.
+Az elemek összege 1. Kezdjünk a $D$-ről: $\mathbf p_0 = (0, 0, 0, 1)$.</p>
+<ul>
+  <li>1 lépés után biztosan a $C$-n van: $\mathbf p_1 = (0, 0, 1, 0)$.</li>
+  <li>2 lépés után a $C$ három szomszédja közül bármelyiken: $\mathbf p_2 = (\frac13, \frac13, 0, \frac13)$.</li>
+  <li>3 lépés után: az $A$-ra csak $B$-ből juthat ($\frac13 \cdot \frac12 = \frac16$), a $B$-re csak $A$-ból ($\frac16$), a $C$-re $A$-ból, $B$-ből és $D$-ből: $\frac13 \cdot \frac12 + \frac13 \cdot \frac12 + \frac13 \cdot 1 = \frac23$; a $D$-re senki sem lép (a $D$ egyetlen szomszédja, a $C$, üres volt). $\mathbf p_3 = (\frac16, \frac16, \frac23, 0)$.</li>
+</ul>
+<p>Minden lépésben ugyanazt csináltuk: a $j$ csúcsra kerülés esélye = minden $i$-re ($i$-n voltam esélye) × ($i$-ből $j$-be lépés esélye), összeadva. Ez a teljes valószínűség tétele – és egyben egy sorvektor szorzása a $P$ mátrixszal.</p>
+
+<div class="box def">
+  <span class="box-title">Szabály – egy lépés az eloszlással</span>
+  $$(\mathbf p_{t+1})_j = \sum_i (\mathbf p_t)_i\,P_{ij}, \qquad \text{röviden} \qquad \mathbf p_{t+1}^\top = \mathbf p_t^\top P, \qquad \mathbf p_t^\top = \mathbf p_0^\top P^t .$$
+  <small>Miért balról, sorvektorként szorzunk? Mert a $j$-be érkező valószínűséget a $P$ <b>$j$-edik oszlopa</b> mentén gyűjtjük (honnan jöhet az olvasó), nem a sora mentén (hová mehet). A $P\mathbf x$ (jobbról) a 4.1-es szomszédátlag; a $\mathbf p^\top P$ (balról) a valószínűség továbbadása.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – indulás az $A$-ról</span>
+    $\mathbf p_0 = (1, 0, 0, 0)$. Mi $\mathbf p_1$ és $\mathbf p_2$?
+    <details><summary>Megoldás</summary>$\mathbf p_1 = (0, \frac12, \frac12, 0)$ – az $A$ sora. $\mathbf p_2$: az $A$-ra $B$-ből ($\frac12 \cdot \frac12$) és $C$-ből ($\frac12 \cdot \frac13$): $\frac14 + \frac16 = \frac5{12}$; a $B$-re $C$-ből: $\frac16$;
+      a $C$-re $B$-ből: $\frac14$; a $D$-re $C$-ből: $\frac16$. $\mathbf p_2 = (\frac5{12}, \frac16, \frac14, \frac16)$, összeg 1. ✓</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – az Árvízhéten a Klímaváltozásról</span>
+    Az olvasó a Klímaváltozás oldalán kezd. Hol lehet egy lépés után?
+    <details><summary>Megoldás</summary>A $\mathrm{Kl}$ szomszédai a $\mathrm{Ko}$ és a $\mathrm{Sz}$: $\mathbf p_1$ szerint $\frac12$–$\frac12$ eséllyel. Két lépés után már öt oldalon lehet (pl. $\mathrm{Vi}$ $\frac{7}{24}$, $\mathrm{Kl}$ is $\frac7{24}$ – visszatérhet).</details>
+  </div>
+</div>
+
+<div class="widget" data-widget="walk-distribution"></div>
+
+<h3 id="s42-c">3. lépés: hová áll be? – a stacionárius eloszlás</h3>
+<p>Ha a widgetben elég sokat léptetsz, a barátsággráfon a vektor beáll: $(0{,}25;\ 0{,}25;\ 0{,}375;\ 0{,}125)$, <b>bárhonnan is indultál</b>. Ezek pedig ismerős számok: a fokszámok $2, 2, 3, 1$, az összegük $2m = 8$,
+és $\frac28, \frac28, \frac38, \frac18$ éppen ez. A séta minden csúcson a <b>fokszámával arányos</b> időt tölt.</p>
+
+<div class="box thm">
+  <span class="box-title">Tétel – stacionárius eloszlás irányítatlan gráfon</span>
+  A $\boldsymbol\pi$ eloszlás <b>stacionárius</b>, ha egy lépés után sem változik: $\boldsymbol\pi^\top P = \boldsymbol\pi^\top$. Irányítatlan gráfon (izolált csúcs nélkül)
+  $$\pi_i = \frac{d_i}{2m}$$
+  stacionárius. Ha a gráf <b>összefüggő</b>, ez az egyetlen stacionárius eloszlás; ha ráadásul <b>nem páros</b>, akkor bármely kezdő eloszlásból $\mathbf p_t \to \boldsymbol\pi$.
+  Súlyozott sétánál $\pi_i = s_i / \sum_k s_k$.
+  <details><summary>📐 Bizonyítás (a stacionaritás)</summary>
+    $$(\boldsymbol\pi^\top P)_j = \sum_i \pi_i P_{ij} = \sum_i \frac{d_i}{2m}\cdot\frac{A_{ij}}{d_i} = \frac{1}{2m}\sum_i A_{ij} = \frac{d_j}{2m} = \pi_j .$$
+    A fokszám kiesik: minden csúcs $\frac{1}{2m}$ valószínűséget küld <b>minden élén</b> át, és $j$ éppen $d_j$ élen kap. Az egyértelműség és a konvergencia a Perron–Frobenius-tételből jön (<a href="#s43-c">4.3</a>);
+    a páros gráf kivételét a buktató-doboz mutatja.</details>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – ellenőrzés a barátsággráfon</span>
+    Ellenőrizd, hogy $\boldsymbol\pi = (\frac14, \frac14, \frac38, \frac18)$ a $D$ csúcsra stacionárius!
+    <details><summary>Megoldás</summary>A $D$-re csak $C$-ből lehet lépni, $\frac13$ eséllyel: $(\boldsymbol\pi^\top P)_D = \frac38 \cdot \frac13 = \frac18 = \pi_D$. ✓</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – szabályos gráf</span>
+    Mi a stacionárius eloszlás egy $n$ csúcsú körön ($C_n$)?
+    <details><summary>Megoldás</summary>Minden fokszám 2, $2m = 2n$, így $\pi_i = \frac{2}{2n} = \frac1n$: <b>egyenletes</b>. Minden szabályos gráfon (minden fokszám egyenlő) egyenletes a stacionárius eloszlás.</details>
+  </div>
+</div>
+
+<div class="box tip">
+  <span class="box-title">👍 Hüvelykujjszabály</span>
+  <b>Irányítatlan gráfon a véletlen séta hosszú távon a fokszámmal arányos időt tölt egy csúcson.</b> Nem kell hozzá mátrixot hatványozni: elég megszámolni az éleket.
+  Ezért a véletlen sétán alapuló mérőszámok irányítatlan gráfon sokszor „csak” a fokszámot adják vissza – az érdekes eset az <b>irányított</b> gráf (PageRank, 5. fejezet).
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Mikor nem áll be? – tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Páros gráf: oszcillál.</b> A csillagon (középen $A$, levelei $B, C, D$) a középről indulva: $\mathbf p_1 = (0, \frac13, \frac13, \frac13)$, $\mathbf p_2 = (1, 0, 0, 0)$, $\mathbf p_3 = \mathbf p_1$, … – örökké ugrál.
+      A stacionárius eloszlás létezik ($\frac36 = \frac12$ középen, $\frac16$ a leveleken), és az <b>időátlag</b> hozzá tart, de $\mathbf p_t$ nem. Javítás: <b>lusta séta</b> – minden lépésben $\frac12$ eséllyel helyben marad ($P' = \frac12(I + P)$); ennek ugyanaz a $\boldsymbol\pi$-je, és már konvergál.</li>
+    <li><b>Nem összefüggő gráf: a kezdéstől függ.</b> A séta sosem hagyja el a komponensét, így a határeloszlás attól függ, honnan indult. Stacionárius eloszlás végtelen sok van.</li>
+    <li><b>Irányított gráf: beragadhat.</b> A lapok hivatkozási gráfjában (<a href="../03-graftipusok/#s31">3.1</a>) a Reggeli Hírlapból nem vezet ki él. A Vidéki Naplóról induló olvasó legfeljebb 3 lépés után ott ragad ($\mathrm{VN} \to \mathrm{RH}$ vagy $\mathrm{VN} \to \mathrm{NY} \to \mathrm{EK} \to \mathrm{RH}$).
+      A $d_i/2m$ képlet irányított gráfra <b>nem érvényes</b>. A megoldás a <b>teleportálás</b>: a PageRank (5. fejezet).</li>
+    <li><b>Sor és oszlop.</b> $\mathbf p^\top P$ (a valószínűség továbbadása) és $P\mathbf x$ (szomszédátlag) két különböző művelet.</li>
+  </ul>
+</div>
+
+<div class="box history">
+  <span class="box-title">📜 Pólya György és a sétáló pár</span>
+  A véletlen séta egyik első matematikai vizsgálója a budapesti születésű <b>Pólya György</b> volt. A legenda szerint Zürichben, egy parkban sétálva újra meg újra ugyanabba a fiatal párba botlott,
+  és elgondolkodott: véletlenül bolyongva mennyire valószínű, hogy újra találkozunk? 1921-es tétele szerint a síkbeli rácson bolyongó séta 1 valószínűséggel visszatér a kiindulópontba, a térbeli rácson nem.
+  A gráfokon való véletlen sétákról szóló modern elmélet egyik alapműve is magyar: <b>Lovász László</b> <em>Random walks on graphs</em> (1993) összefoglalója.
+</div>
+
+<div class="widget" data-widget="random-surfer"></div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – véletlen séta</summary>
+  <ol>
+    <li>Írd fel a barátsággráf átmenetmátrixának $C$-sorát, és ellenőrizd az összegét!
+      <details><summary>Megoldás</summary>$(\frac13, \frac13, 0, \frac13)$, összeg 1.</details></li>
+    <li>A csillagon (középen $A$, levelek $B, C, D$) az olvasó a $B$-ről indul. Mi $\mathbf p_1$ és $\mathbf p_2$?
+      <details><summary>Megoldás</summary>$\mathbf p_1 = (1, 0, 0, 0)$ (a levélnek csak a közép a szomszédja), $\mathbf p_2 = (0, \frac13, \frac13, \frac13)$.</details></li>
+    <li>Mi a stacionárius eloszlás a 4 csúcsú úton (1–2–3–4)?
+      <details><summary>Megoldás</summary>Fokszámok $1, 2, 2, 1$, $2m = 6$: $\boldsymbol\pi = (\frac16, \frac13, \frac13, \frac16)$.</details></li>
+    <li>Az Árvízhét szereplőgráfján (súlyozatlanul) mennyi $\pi_{\mathrm{Ko}}$ és $\pi_{\mathrm{Kl}}$? Hányszor annyi időt tölt az olvasó a Kormány oldalán, mint a Klímaváltozásén?
+      <details><summary>Megoldás</summary>$2m = 20$; $\pi_{\mathrm{Ko}} = \frac4{20} = 0{,}2$, $\pi_{\mathrm{Kl}} = \frac2{20} = 0{,}1$ – kétszer annyit.</details></li>
+    <li>(nehezebb) Konvergál-e $\mathbf p_t$ egy csúcsból indítva a $C_4$ és a $C_5$ körön? Mi a határérték, ha van?
+      <details><summary>Megoldás</summary>A $C_4$ páros (váltakozva színezhető), ezért a séta páros lépésszámnál mindig az egyik, páratlannál a másik színosztályban van: <b>nem konvergál</b>.
+        A $C_5$ nem páros (páratlan kör), összefüggő: konvergál az egyenletes $(\frac15, \dots, \frac15)$ eloszláshoz.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh4-42"></div>
+</section>
+
+<!-- ===================================================== 4.3 -->
+<section id="s43">
+<h2>4.3 Sajátvektorok szemléletesen: hatványiteráció ★★</h2>
+<p>A véletlen sétánál azt láttuk, hogy a $P$-vel való ismételt szorzás után a vektor <b>beáll</b>: van egy eloszlás, amelyet a szorzás már nem változtat meg.
+Mi történik, ha nem $P$-vel, hanem magával $A$-val szorzunk újra és újra? Az értékek nőni fognak – de az <b>arányaik</b> beállnak. Az ilyen „kitüntetett irányú” vektor a <b>sajátvektor</b>.</p>
+
+<h3 id="s43-a">1. lépés: amikor a szorzás csak nyújt</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egyetlen él</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="1-2" data-pos="1:0,0 2:1,0" data-w="150" data-h="60"></div></div>
+    <div>Két csúcs, egy él: $A = \begin{pmatrix} 0&1\\1&0 \end{pmatrix}$, a szorzás <b>felcseréli</b> a két értéket.
+      <ul style="margin:.2rem 0">
+        <li>$\mathbf x = (3, 1)$: $A\mathbf x = (1, 3)$ – más irányú vektor, nem csak nagyobb vagy kisebb.</li>
+        <li>$\mathbf x = (1, 1)$: $A\mathbf x = (1, 1)$ – <b>változatlan</b>, $1$-szerese önmagának.</li>
+        <li>$\mathbf x = (1, -1)$: $A\mathbf x = (-1, 1)$ – önmaga $(-1)$-szerese.</li>
+      </ul></div>
+  </div>
+  A legtöbb vektort a szorzás „elforgatja”. Néhány különleges vektort viszont csak <b>megnyújt</b> (vagy összenyom, vagy megfordít).
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – sajátvektor, sajátérték</span>
+  A nem nulla $\mathbf v$ vektor az $A$ mátrix <b>sajátvektora</b> $\lambda$ <b>sajátértékkel</b>, ha
+  $$A\mathbf v = \lambda\,\mathbf v .$$
+  Gráfnyelven: <b>minden csúcs szomszédainak összege a saját értékének ugyanannyiszorosa</b>. A sajátvektor bármely (nem nulla) számszorosa is sajátvektor ugyanazzal a $\lambda$-val.
+  <small>A szimmetrikus (irányítatlan gráfból jövő) mátrixnak $n$ valós sajátértéke van, $\lambda_1 \ge \lambda_2 \ge \dots \ge \lambda_n$, és a sajátvektorok merőlegesek egymásra – ezt itt bizonyítás nélkül használjuk.
+  A sajátértékek együtt a gráf <b>spektruma</b>; a spektrális gráfelmélet ezt vizsgálja.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – szabályos gráf</span>
+    Sajátvektora-e a háromszög ($K_3$) $A$-jának az $\mathbf 1$?
+    <details><summary>Megoldás</summary>Igen: minden csúcsnak 2 szomszédja van, $A\mathbf 1 = (2, 2, 2) = 2 \cdot \mathbf 1$, $\lambda = 2$. Általában: $d$-szabályos gráfban $\mathbf 1$ sajátvektor $\lambda = d$ sajátértékkel.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – csillag</span>
+    A csillagban (középen $A$, levelek $B, C, D$) sajátvektor-e a $\mathbf v = (\sqrt3, 1, 1, 1)$?
+    <details><summary>Megoldás</summary>A középen: $1 + 1 + 1 = 3 = \sqrt3 \cdot \sqrt3$. A leveleken: $\sqrt3 = \sqrt3 \cdot 1$. Tehát igen, $\lambda = \sqrt3 \approx 1{,}73$. A középső csúcs értéke nagyobb: ő a „központ”.</details>
+  </div>
+</div>
+<div class="box example">
+  <span class="box-title">Példa – a véletlen séta is sajátvektor</span>
+  Hogyan írható le sajátvektorként a <a href="#s42-c">4.2</a> stacionárius eloszlása?
+  <details><summary>Megoldás</summary>$\boldsymbol\pi^\top P = 1 \cdot \boldsymbol\pi^\top$: a $\boldsymbol\pi$ a $P$ <b>bal oldali</b> sajátvektora (balról szorzunk), $\lambda = 1$ sajátértékkel. A jobb oldali párja a $P\mathbf 1 = \mathbf 1$ (a sorösszegek 1-ek).
+    A „hová áll be a séta?” kérdés tehát egy sajátvektor-kérdés.</details>
+</div>
+
+<h3 id="s43-b">2. lépés: hatványiteráció – szorozd, normáld, ismételd</h3>
+<p>Hogyan találjuk meg a sajátvektort, ha nem tudjuk kitalálni? A legegyszerűbb módszer: <b>szorozzunk újra és újra</b>, és minden lépés után osszuk el a vektort a legnagyobb elemével (hogy ne nőjön a végtelenbe).
+Vegyük a „csillag + él” gráfot: középen $A$, szomszédai $B, C, D$, és még a $B$–$C$ él.</p>
+<div class="two-col">
+  <div><div class="gfig" data-edges="A-B,A-C,A-D,B-C" data-pos="A:1,.9 B:.2,0 C:1.8,0 D:1,1.8" data-w="180" data-h="150"></div></div>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>lépés</th><th>$A\mathbf x$ (előtte)</th><th>$\mathbf x$ = $(x_A, x_B, x_C, x_D)$, normálva</th></tr>
+    <tr><td>0</td><td>–</td><td>$1;\ 1;\ 1;\ 1$</td></tr>
+    <tr><td>1</td><td>$3;\ 2;\ 2;\ 1$</td><td>$1;\ 0{,}67;\ 0{,}67;\ 0{,}33$</td></tr>
+    <tr><td>2</td><td>$1{,}67;\ 1{,}67;\ 1{,}67;\ 1$</td><td>$1;\ 1;\ 1;\ 0{,}6$</td></tr>
+    <tr><td>3</td><td>$2{,}6;\ 2;\ 2;\ 1$</td><td>$1;\ 0{,}77;\ 0{,}77;\ 0{,}38$</td></tr>
+    <tr><td>4</td><td>$1{,}92;\ 1{,}77;\ 1{,}77;\ 1$</td><td>$1;\ 0{,}92;\ 0{,}92;\ 0{,}52$</td></tr>
+    <tr><td>5</td><td>$2{,}36;\ 1{,}92;\ 1{,}92;\ 1$</td><td>$1;\ 0{,}81;\ 0{,}81;\ 0{,}42$</td></tr>
+    <tr><td>∞</td><td></td><td>$1;\ 0{,}85;\ 0{,}85;\ 0{,}46$, &nbsp;$\lambda_1 \approx 2{,}17$</td></tr>
+  </table></div>
+</div>
+<p>A vektor kilengve, de egyre szűkülő sávban áll be az $(1;\ 0{,}85;\ 0{,}85;\ 0{,}46)$ irányba. Ellenőrizd: az $A$ szomszédainak összege $0{,}85 + 0{,}85 + 0{,}46 = 2{,}17 \approx 2{,}17 \cdot 1$. Sajátvektor!
+A középső $A$ kapja a legnagyobb értéket, a $B$ és a $C$ (két szomszéd) a közepeset, a csak $A$-hoz kötött $D$ a legkisebbet.</p>
+
+<div class="box def">
+  <span class="box-title">Szabály – hatványiteráció</span>
+  Indulj egy pozitív vektorból (pl. $\mathbf x_0 = \mathbf 1$), és ismételd:
+  $$\mathbf x_{k+1} = \frac{A\mathbf x_k}{\text{normáló szám}} \quad (\text{pl. a legnagyobb elem vagy a vektor hossza}).$$
+  Összefüggő, nem páros gráfon $\mathbf x_k$ a <b>legnagyobb sajátértékhez</b> ($\lambda_1$) tartozó sajátvektorhoz tart, a normáló szám pedig $\lambda_1$-hez.
+  <small>Miért? A kezdővektor felbontható sajátvektorok összegére: $\mathbf x_0 = c_1\mathbf v_1 + c_2\mathbf v_2 + \dots$. $k$ szorzás után $A^k\mathbf x_0 = c_1\lambda_1^k\mathbf v_1 + c_2\lambda_2^k\mathbf v_2 + \dots$.
+  Ha $|\lambda_1|$ a legnagyobb abszolút értékű, az első tag $\lambda_1^k$-val nő, a többi lassabban: arányaiban eltűnnek. A sebességet a $|\lambda_2| / |\lambda_1|$ arány szabja meg
+  (itt $1{,}48 / 2{,}17 \approx 0{,}68$, és a második legnagyobb abszolút értékű sajátérték negatív – innen a kilengés).</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – az Árvízhét</span>
+    Az Árvízhét gráfjának domináns sajátvektora (a Kormányra normálva):
+    $\mathrm{Ko}\ 1$, $\mathrm{Po}\ 0{,}87$, $\mathrm{Vi}\ 0{,}86$, $\mathrm{Sz}\ 0{,}79$, $\mathrm{Kl}\ 0{,}58$, $\mathrm{La}\ 0{,}42$, $\text{Ön}\ 0{,}42$; $\lambda_1 \approx 3{,}09$.
+    Miért előzi meg a Kormány a Polgármestert, pedig mindkettő fokszáma 4?
+    <details><summary>Megoldás</summary>A Kormány szomszédai ($\mathrm{Vi}$, $\mathrm{Po}$, $\mathrm{Sz}$, $\mathrm{Kl}$) maguk is sok szálon kötődnek, a Polgármester szomszédai közül kettő ($\mathrm{La}$, $\text{Ön}$) csak egymáshoz és hozzá.
+      A sajátvektor <b>„az a fontos, akinek fontos szomszédai vannak”</b> elvet valósítja meg – ez a <b>sajátvektor-centralitás</b> (5. fejezet).</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – becslés a $\lambda_1$-re</span>
+    A fenti táblázatban a normáló szám (a legnagyobb elem) $3;\ 1{,}67;\ 2{,}6;\ 1{,}92;\ 2{,}36;\ \dots$ Mihez tart, és mit becsül?
+    <details><summary>Megoldás</summary>Ugyancsak kilengve tart $\lambda_1 \approx 2{,}17$-hez. Ha $\mathbf x$ már sajátvektor, amelynek legnagyobb eleme 1, akkor $A\mathbf x = \lambda_1\mathbf x$ legnagyobb eleme éppen $\lambda_1$.</details>
+  </div>
+</div>
+
+<div class="widget" data-widget="power-iteration"></div>
+
+<h3 id="s43-c">3. lépés: miért pozitív és egyértelmű? – Perron–Frobenius</h3>
+<p>A hatványiteráció pozitív vektorból indul, és pozitív számokat ad össze – a végeredmény is pozitív. De biztos, hogy <b>egyetlen</b> ilyen irány van, és nem függ a kezdéstől? Erre felel a lineáris algebra egyik leghasznosabb tétele.</p>
+<div class="box thm">
+  <span class="box-title">Tétel – Perron–Frobenius (gráfokra kimondva)</span>
+  Ha a gráf <b>összefüggő</b>, akkor $A$ legnagyobb sajátértéke $\lambda_1 > 0$ <b>egyszeres</b>, sajátvektora (alkalmas előjellel) <b>minden csúcson pozitív</b>, és minden más sajátértékre $|\lambda| \le \lambda_1$.
+  Ha a gráf ráadásul <b>nem páros</b>, akkor $|\lambda| \lt \lambda_1$ is teljesül, és a hatványiteráció bármely pozitív kezdővektorból konvergál.
+  Továbbá: $\displaystyle \frac{2m}{n} \le \lambda_1 \le d_{\max}$ (az átlagos és a legnagyobb fokszám között).
+  <details><summary>📐 ★★★ Vázlat és következmények</summary>
+    <p>A pozitív sajátvektor <b>létezését</b> egy fixpont-érvelés adja: az $\mathbf x \mapsto A\mathbf x / (\mathbf 1^\top A\mathbf x)$ leképezés a nemnegatív, 1 összegű vektorokat önmagukba viszi, és van fixpontja (és belátható, hogy ennek sajátértéke éppen a legnagyobb, $\lambda_1$).
+    <b>Pozitivitás:</b> ha egy nemnegatív sajátvektor valamelyik csúcson 0, akkor ott $\sum_j A_{ij}v_j = \lambda_1 \cdot 0 = 0$, tehát minden szomszédján is 0 – és az összefüggőség miatt mindenütt, ami lehetetlen.
+    <b>Egyszeresség:</b> ha $\mathbf u$ és $\mathbf v$ két független pozitív sajátvektor lenne, a $\mathbf v - c\,\mathbf u$ vektor (a legnagyobb olyan $c$-vel, amelynél még nemnegatív) nemnegatív sajátvektor volna, amely valahol 0 – az előbbi érv szerint ez csak a nullvektor lehet.
+    A korlátok: $\lambda_1 \ge \frac{\mathbf 1^\top A\mathbf 1}{\mathbf 1^\top\mathbf 1} = \frac{2m}{n}$ (a szimmetrikus mátrix legnagyobb sajátértéke a Rayleigh-hányados maximuma), és a sajátvektor legnagyobb elemű $i$ csúcsánál $\lambda_1 v_i = \sum_{j} A_{ij}v_j \le d_i v_i$.</p>
+    <p>Páros gráfban a spektrum szimmetrikus: ha $\lambda$ sajátérték, akkor $-\lambda$ is (a sajátvektor egyik osztályán előjelet váltunk). Ezért ott $-\lambda_1$ is sajátérték, és a hatványiteráció oszcillál.
+    Ugyanez a tétel garantálja, hogy a véletlen séta stacionárius eloszlása összefüggő gráfon egyértelmű, és nem páros gráfon konvergál (<a href="#s42-c">4.2</a>).</p>
+  </details>
+  <small>Az Árvízhéten: $\frac{2m}{n} = \frac{20}{7} \approx 2{,}86 \le \lambda_1 \approx 3{,}09 \le 4$. ✓</small>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A sajátvektor előjele önkényes.</b> Ha $\mathbf v$ sajátvektor, $-\mathbf v$ is. A programok (pl. <code>numpy.linalg.eigh</code>) bármelyiket visszaadhatják; a domináns sajátvektort ezért úgy fordítjuk, hogy pozitív legyen. (A Fiedler-vektornál, <a href="#s45">4.5</a>, ez még fontosabb.)</li>
+    <li><b>A normálás csak skála.</b> Normálhatunk a legnagyobb elemre (max = 1), az összegre (összeg = 1) vagy a hosszra (hossz = 1) – a sorrend és az arányok ugyanazok, a számok nem. Mindig írd ki, melyiket használod.</li>
+    <li><b>Páros gráfon oszcillál.</b> A csillagon $\mathbf 1$-ből indulva: $(3, 1, 1, 1) \to (3, 3, 3, 3) \to (9, 3, 3, 3) \to \dots$ – normálva $(1; \frac13; \frac13; \frac13)$ és $(1; 1; 1; 1)$ váltakozik, mert $-\sqrt3$ is sajátérték.
+      Javítás: az $A + I$ mátrixszal iterálunk (sajátvektorai ugyanazok, sajátértékei 1-gyel nagyobbak, így $\lambda_1 + 1 > |-\lambda_1 + 1|$).</li>
+    <li><b>A domináns sajátvektor nem a fokszám.</b> Rokonok, de nem ugyanazok: a Kormánynak és a Polgármesternek egyforma a fokszáma, a sajátvektor-értéke nem.</li>
+  </ul>
+</div>
+
+<div class="box history">
+  <span class="box-title">📜 Perrontól a Google-ig</span>
+  <b>Oskar Perron</b> 1907-ben pozitív mátrixokra, <b>Ferdinand Georg Frobenius</b> 1912-ben a gráfokéhoz hasonló nemnegatív mátrixokra bizonyította a tételt. A hálózatkutatásba <b>Phillip Bonacich</b> 1972-es cikke hozta
+  a sajátvektor-centralitást („a státusz a kapcsolatok státuszából jön”), 1998-ban pedig <b>Brin és Page</b> erre építette a Google keresőjének PageRank-algoritmusát – egy irányított gráfon futó véletlen séta stacionárius eloszlását (5. fejezet).
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – sajátvektorok, hatványiteráció</summary>
+  <ol>
+    <li>A 4 hosszú körben ($C_4$, élek $12, 23, 34, 41$) sajátvektor-e az $\mathbf 1$? Mekkora sajátértékkel?
+      <details><summary>Megoldás</summary>Igen: minden csúcs 2 szomszédja 1-1 értéket ad, $A\mathbf 1 = 2 \cdot \mathbf 1$, $\lambda = 2$ (a kör 2-szabályos).</details></li>
+    <li>Ugyanitt sajátvektor-e az $(1, -1, 1, -1)$? Ha igen, mi a sajátérték?
+      <details><summary>Megoldás</summary>Az 1-es csúcs szomszédai (2 és 4) $-1 + (-1) = -2 = -2 \cdot 1$; a 2-es szomszédai (1 és 3) $1 + 1 = 2 = -2 \cdot (-1)$. Igen, $\lambda = -2$. Ez a páros gráf „tükörsajátértéke”: $-\lambda_1$.</details></li>
+    <li>Végezz el egy lépést a hatványiterációból a 4 csúcsú úton (1–2–3–4) az $\mathbf x_0 = \mathbf 1$ vektorból, a legnagyobb elemre normálva!
+      <details><summary>Megoldás</summary>$A\mathbf 1 = (1, 2, 2, 1)$, normálva $(0{,}5;\ 1;\ 1;\ 0{,}5)$. A határérték $(0{,}62;\ 1;\ 1;\ 0{,}62)$, $\lambda_1 \approx 1{,}62$ – az aranymetszés aránya.</details></li>
+    <li>A csillag + él gráfon a domináns sajátvektor $(1;\ 0{,}85;\ 0{,}85;\ 0{,}46)$. Ellenőrizd a $D$ csúcsra, hogy $\lambda_1 \approx 2{,}17$!
+      <details><summary>Megoldás</summary>A $D$ egyetlen szomszédja az $A$ (értéke 1): $1 \approx 2{,}17 \cdot 0{,}46 = 1{,}00$. ✓</details></li>
+    <li>(nehezebb) Egy összefüggő gráfnak 6 csúcsa és 9 éle van, a legnagyobb fokszám 4. Mit mondhatsz a $\lambda_1$-ről? És ha a gráf 3-szabályos?
+      <details><summary>Megoldás</summary>$\frac{2m}{n} = \frac{18}{6} = 3 \le \lambda_1 \le 4$. Ha 3-szabályos (6 csúcs, $\frac{6 \cdot 3}{2} = 9$ él – ez stimmel), akkor $\lambda_1 = 3$ pontosan, a sajátvektor $\mathbf 1$.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh4-43"></div>
+</section>
+
+<!-- ===================================================== 4.4 -->
+<section id="s44">
+<h2>4.4 A Laplace-mátrix: mennyire sima a jel? ★★</h2>
+<p>Az $A\mathbf x$ <b>összeadta</b> a szomszédok értékét. Sokszor azonban nem az a kérdés, mennyi a szomszédok összege, hanem az, hogy <b>mennyire különbözik</b> egy csúcs a szomszédaitól.
+Ha a szomszédos szereplőkről hasonló a hangvétel, a jel „sima”; ha két szomszéd között nagy az ugrás, a jel „ugráló”. Ezt a különbséget méri a Laplace-mátrix.</p>
+
+<h3 id="s44-a">1. lépés: összeg helyett különbség – $L = D - A$</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – 3 csúcsú út</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="1-2,2-3" data-pos="1:0,0 2:1,0 3:2,0" data-w="200" data-h="60"></div></div>
+    <div>Legyen $\mathbf x = (1, 2, 3)$. Számoljuk ki csúcsonként, <b>mennyivel nagyobb a csúcs, mint a szomszédai</b>, összeadva:
+      <ul style="margin:.2rem 0">
+        <li>1-es: $(1 - 2) = -1$;</li>
+        <li>2-es: $(2 - 1) + (2 - 3) = 0$;</li>
+        <li>3-as: $(3 - 2) = 1$.</li>
+      </ul>
+      A középső csúcs pont a szomszédai átlaga: nála 0. A két szélső eltér a szomszédjától.</div>
+  </div>
+  Átrendezve: $\sum_j (x_i - x_j) = d_i x_i - \sum_j x_j$ – a <b>fokszámszor saját érték mínusz a szomszédok összege</b>. Mátrixosan: $D\mathbf x - A\mathbf x = (D - A)\mathbf x$.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – Laplace-mátrix</span>
+  $$L = D - A, \qquad L_{ij} = \begin{cases} d_i, & i = j,\\ -1, & i \text{ és } j \text{ szomszédos},\\ 0, & \text{különben,}\end{cases} \qquad (L\mathbf x)_i = \sum_{j \text{ szomszédja } i\text{-nek}} (x_i - x_j).$$
+  A 3 csúcsú útra:
+  $$L = \begin{pmatrix} 1&-1&0\\ -1&2&-1\\ 0&-1&1 \end{pmatrix}.$$
+  Minden sor összege 0, ezért $L\mathbf 1 = \mathbf 0$: a <b>konstans jelen</b> nincs különbség. Súlyozott gráfban $D$ az erősségeket, $A$ a súlyokat tartalmazza.
+  <small>Miért „Laplace”? A fizikában a Laplace-operátor ($\Delta f$) azt méri, mennyivel tér el egy pontban a függvény a környezete átlagától – a hővezetés és a diffúzió egyenletében szerepel. A gráfon a szomszédok a „környezet”, és a $-L$ ugyanezt méri.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a barátsággráf $L$-je</span>
+    Írd fel az $L$-et (élek $AB$, $AC$, $BC$, $CD$)!
+    <details><summary>Megoldás</summary>
+      $$L = \begin{pmatrix} 2&-1&-1&0\\ -1&2&-1&0\\ -1&-1&3&-1\\ 0&0&-1&1 \end{pmatrix}.$$
+      Az átlóban a fokszámok, a szomszédoknál $-1$; sorösszeg 0.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – ugráló jel</span>
+    Mi $L\mathbf x$ a 3 csúcsú úton, ha $\mathbf x = (1, 3, 1)$?
+    <details><summary>Megoldás</summary>$(1 - 3,\ 2 \cdot 3 - 1 - 1,\ 1 - 3) = (-2, 4, -2)$. A középső csúcs „kiugrik”: 4-gyel nagyobb a szomszédai összegénél (fokszámszor).</details>
+  </div>
+</div>
+
+<h3 id="s44-b">2. lépés: egyetlen szám a simaságra – $\mathbf x^\top L\mathbf x$</h3>
+<p>Az $L\mathbf x$ csúcsonként mér. Egyetlen számot kapunk, ha <b>élenként</b> nézzük az ugrást, és a négyzetét összeadjuk. A 3 csúcsú úton:</p>
+<div class="tw" style="overflow-x:auto"><table>
+  <tr><th>$\mathbf x$</th><th>$(x_1 - x_2)^2$</th><th>$(x_2 - x_3)^2$</th><th>összeg</th><th>jelleg</th></tr>
+  <tr><td>$(1, 1, 1)$</td><td>0</td><td>0</td><td><b>0</b></td><td>konstans</td></tr>
+  <tr><td>$(1, 2, 3)$</td><td>1</td><td>1</td><td><b>2</b></td><td>egyenletesen változó, „sima”</td></tr>
+  <tr><td>$(1, 3, 1)$</td><td>4</td><td>4</td><td><b>8</b></td><td>ugráló</td></tr>
+</table></div>
+<p>És ugyanez jön ki, ha $\mathbf x$-et skalárisan szorozzuk $L\mathbf x$-szel: $(1, 2, 3) \cdot (-1, 0, 1) = -1 + 0 + 3 = 2$, illetve $(1, 3, 1) \cdot (-2, 4, -2) = -2 + 12 - 2 = 8$. Nem véletlen:</p>
+
+<div class="box thm">
+  <span class="box-title">Tétel – a Laplace-forma</span>
+  $$\mathbf x^\top L\,\mathbf x = \sum_{\{i, j\} \in E} (x_i - x_j)^2 \;\ge\; 0 .$$
+  Súlyozott gráfban: $\sum w_{ij}(x_i - x_j)^2$. Minél kisebb, annál <b>simább</b> a jel a gráfon (a szomszédok értéke közel van egymáshoz).
+  <details><summary>📐 Bizonyítás</summary>
+    $\mathbf x^\top L\mathbf x = \mathbf x^\top D\mathbf x - \mathbf x^\top A\mathbf x = \sum_i d_i x_i^2 - \sum_{i,j} A_{ij}x_ix_j$. A második összegben minden él kétszer szerepel ($ij$ és $ji$): $-2\sum_{\{i,j\} \in E} x_ix_j$.
+    Az elsőben $x_i^2$ annyiszor szerepel, ahány élnek $i$ a végpontja, így élenként szétosztva $\sum_{\{i,j\} \in E} (x_i^2 + x_j^2)$. Együtt: $\sum_{\{i,j\} \in E}(x_i^2 - 2x_ix_j + x_j^2) = \sum_{\{i,j\} \in E}(x_i - x_j)^2$.
+  </details>
+  <small>Következmény: ha $L\mathbf v = \mu\mathbf v$, akkor $\mu\,\mathbf v^\top\mathbf v = \mathbf v^\top L\mathbf v \ge 0$, tehát <b>a Laplace-mátrix minden sajátértéke nemnegatív</b>: $0 = \mu_1 \le \mu_2 \le \dots \le \mu_n$.
+  (A Laplace-sajátértékeket <b>növekvő</b> sorrendben számozzuk – fordítva, mint az $A$-éit.)</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – két csoport jelölése</span>
+    A barátsággráfban jelöld 1-gyel $A$-t és $B$-t, 0-val $C$-t és $D$-t. Mennyi $\mathbf x^\top L\mathbf x$?
+    <details><summary>Megoldás</summary>Csak azok az élek számítanak, amelyek két végén különböző érték áll: $AC$ és $BC$, mindkettő $1^2$. Összesen <b>2</b> – ennyi él fut a két csoport között. (Ez lesz a <a href="#s45">4.5</a> kulcsa.)</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a legugrálóbb jel</span>
+    A 4 csúcsú úton mennyi $\mathbf x^\top L\mathbf x$, ha $\mathbf x = (1, -1, 1, -1)$?
+    <details><summary>Megoldás</summary>Mindhárom élen $(\pm 2)^2 = 4$: összesen <b>12</b>. A váltakozó jel a lehető legjobban „ugrál” – a nagy Laplace-sajátértékek sajátvektorai ilyenek.</details>
+  </div>
+</div>
+
+<h3 id="s44-c">3. lépés: a nulla sajátérték megszámolja a komponenseket</h3>
+<p>Mikor lehet $\mathbf x^\top L\mathbf x = 0$? Csak ha <b>minden élen</b> $x_i = x_j$ – vagyis ha $\mathbf x$ minden <b>komponensen konstans</b>. Összefüggő gráfban ez csak a $c \cdot \mathbf 1$.
+De két komponens esetén a két komponens két külön konstanst kaphat!</p>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két háromszög, híddal és híd nélkül</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="1-2,1-3,2-3,4-5,4-6,5-6" data-pos="1:0,0 2:0,1.2 3:1,.6 4:2.2,.6 5:3.2,0 6:3.2,1.2" data-w="230" data-h="110" data-caption="híd nélkül: 0; 0; 3; 3; 3; 3"></div></div>
+    <div><div class="gfig" data-edges="1-2,1-3,2-3,3-4,4-5,4-6,5-6" data-pos="1:0,0 2:0,1.2 3:1,.6 4:2.2,.6 5:3.2,0 6:3.2,1.2" data-w="230" data-h="110" data-caption="híddal: 0; 0,44; 3; 3; 3; 4,56"></div></div>
+  </div>
+  Híd nélkül <b>két</b> nulla sajátérték van: a $(1, 1, 1, 0, 0, 0)$ és a $(0, 0, 0, 1, 1, 1)$ is „nulla energiájú”. A hidat behúzva az egyik nulla <b>felemelkedik</b> – de csak egy kicsit, $0{,}44$-re: a gráf összefügg, de alig.
+</div>
+
+<div class="box thm">
+  <span class="box-title">Tétel – komponensek és algebrai összefüggőség</span>
+  A Laplace-mátrix 0 sajátértékének <b>multiplicitása</b> (hányszor fordul elő) = a gráf <b>komponenseinek száma</b>. Így a gráf pontosan akkor összefüggő, ha $\mu_2 > 0$.
+  A $\mu_2$ neve <b>algebrai összefüggőség</b> (Fiedler, 1973): minél kisebb, annál könnyebb a gráfot két részre vágni.
+  <small>Miért? A 0-hoz tartozó sajátvektorok éppen azok, amelyekre $\mathbf x^\top L\mathbf x = 0$, vagyis a komponensenként konstans vektorok. Ezek tere annyi dimenziós, ahány komponens van (minden komponens egy „saját konstanst” kap).</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – kis spektrumok</span>
+    A 3 csúcsú út Laplace-spektruma $0;\ 1;\ 3$, a háromszögé ($K_3$) $0;\ 3;\ 3$, a 3 levelű csillagé $0;\ 1;\ 1;\ 4$. Mind összefüggő?
+    <details><summary>Megoldás</summary>Igen: mindegyikben pontosan egy 0 van. A háromszög $\mu_2 = 3$-a nagyobb, mint az úté (1): a háromszöget nehezebb kettévágni (legalább 2 élt kell elvágni, az utat 1-gyel kettévágjuk).</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – az Árvízhét</span>
+    Az Árvízhét szereplőgráfjának spektruma $0;\ 0{,}64;\ 2{,}29;\ 3;\ 3{,}84;\ 4{,}71;\ 5{,}51$. Ha töröljük a $\mathrm{Ko}$–$\mathrm{Po}$ és a $\mathrm{Vi}$–$\mathrm{Po}$ élt, hány 0 lesz?
+    <details><summary>Megoldás</summary>Két él törlése után a $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$ leválik a többiről: 2 komponens, tehát <b>két</b> 0 sajátérték (Pythonnal: $0;\ 0;\ 2;\ 3;\ 3;\ 4;\ 4$).
+      Az eredeti kicsi $\mu_2 = 0{,}64$ már előre jelezte, hogy itt „vékony” a gráf.</details>
+  </div>
+</div>
+
+<div class="widget" data-widget="laplacian-smooth"></div>
+
+<div class="box tip">
+  <span class="box-title">📛 Terminológia – melyik Laplace-mátrix?</span>
+  A szakirodalomban háromféle Laplace-mátrix fut, és a programok sem egységesek:
+  <ul style="margin:.2rem 0">
+    <li><b>kombinatorikus</b> (nem normalizált): $L = D - A$ – ebben a fejezetben ez;</li>
+    <li><b>véletlen sétás</b>: $L_{\mathrm{rw}} = D^{-1}L = I - P$ – a véletlen séta átmenetmátrixából;</li>
+    <li><b>szimmetrikusan normalizált</b>: $L_{\mathrm{sym}} = D^{-1/2}LD^{-1/2} = I - D^{-1/2}AD^{-1/2}$ – a spektrális klaszterezés (8.) és a GCN (<a href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s134">MI 13.4</a>) ezt használja, önhurokkal kiegészítve.</li>
+  </ul>
+  A normalizált változatok sajátértékei a $[0, 2]$ intervallumban vannak, és a 0 multiplicitása mindháromnál a komponensek száma. Angolul: <em>(combinatorial / random-walk / normalized) graph Laplacian</em>.
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>$L = A - D$.</b> Az előjel fordítva van: az átlóban a <b>pozitív</b> fokszámok, a szomszédoknál $-1$. Fordított előjellel minden sajátérték nempozitív lenne.</li>
+    <li><b>A normalizált és a nem normalizált Laplace-mátrix keverése.</b> A sajátértékek és a sajátvektorok különbözők (a sajátértékek tartománya is), csak a nullák száma közös. Mindig nézd meg, melyiket adja a programod.</li>
+    <li><b>Nagy $\mathbf x^\top L\mathbf x$ = „fontos” csúcsok?</b> Nem: ez a jel <b>változékonyságát</b> méri, nem a csúcsok fontosságát. Ugyanazon a gráfon a konstans jel 0-t ad, egy ugráló nagyot.</li>
+    <li><b>A Laplace-sajátértékek sorrendje.</b> $A$-nál a legnagyobb sajátérték az érdekes ($\lambda_1$), $L$-nél a legkisebbek ($\mu_1 = 0$, $\mu_2$). Nézd meg, melyik irányba rendez a program.</li>
+  </ul>
+</div>
+
+<div class="box history">
+  <span class="box-title">📜 Kirchhofftól Fiedlerig</span>
+  A Laplace-mátrix először <b>Gustav Kirchhoff</b> 1847-es, elektromos hálózatokról szóló munkájában jelent meg: a csomóponti törvény mátrixa éppen $L$. Ugyanott bizonyította a <b>mátrix–fa tételt</b> is:
+  a gráf feszítőfáinak száma (<a href="../02-setak-utak-fak/">2. fejezet</a>) egyenlő $L$ bármely sorának és ugyanannyiadik oszlopának törlése után kapott mátrix determinánsával. A cseh matematikus <b>Miroslav Fiedler</b> 1973-ban mutatta meg,
+  hogy $\mu_2$ az összefüggőség mértéke, 1975-ben pedig, hogy a hozzá tartozó sajátvektor jól vágja ketté a gráfot – ez a következő szakasz.
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – Laplace-mátrix</summary>
+  <ol>
+    <li>Írd fel a 4 csúcsú út (1–2–3–4) Laplace-mátrixát!
+      <details><summary>Megoldás</summary>
+        $$L = \begin{pmatrix} 1&-1&0&0\\ -1&2&-1&0\\ 0&-1&2&-1\\ 0&0&-1&1 \end{pmatrix}.$$</details></li>
+    <li>A 4 csúcsú úton mennyi $\mathbf x^\top L\mathbf x$, ha $\mathbf x = (1, 2, 3, 4)$, és ha $\mathbf x = (5, 1, 2, 4)$?
+      <details><summary>Megoldás</summary>$(1, 2, 3, 4)$: $1 + 1 + 1 = 3$. $(5, 1, 2, 4)$: $16 + 1 + 4 = 21$. Az első jóval simább.</details></li>
+    <li>A barátsággráfban mennyi $\mathbf x^\top L\mathbf x$, ha $\mathbf x = (1, 1, 1, 0)$ ($A, B, C, D$)?
+      <details><summary>Megoldás</summary>Egyetlen élen különbözik a két vég ($CD$): <b>1</b>. Ennyi él választja el a $\{A, B, C\}$ csoportot a $D$-től.</details></li>
+    <li>Egy 7 csúcsú gráfnak 3 komponense van. Hány 0 sajátértéke van a Laplace-mátrixának? És a szomszédsági mátrixának?
+      <details><summary>Megoldás</summary>A Laplace-mátrixnak pontosan <b>3</b>. A szomszédsági mátrix nulla sajátértékeiből erre nem lehet következtetni – a komponensek számát az $L$ mutatja meg, nem az $A$.</details></li>
+    <li>(nehezebb) A 3 csúcsú úton rögzítsük: $x_1 = 0$, $x_3 = 2$. Milyen $x_2$ mellett lesz $\mathbf x^\top L\mathbf x$ a legkisebb, és mennyi ekkor?
+      <details><summary>Megoldás</summary>$f(x_2) = x_2^2 + (x_2 - 2)^2$, ennek minimuma $x_2 = 1$-nél van, értéke $1 + 1 = 2$. A legsimább jelben a szabad csúcs a <b>szomszédai átlaga</b> – vagyis $(L\mathbf x)_2 = 0$. (A „szomszédátlag” a <a href="#s41-c">4.1</a>-ből: a simítás és a $L$ ugyanannak az éremnek két oldala.)</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh4-44"></div>
+</section>
+
+<!-- ===================================================== 4.5 -->
+<section id="s45">
+<h2>4.5 Spektrális kettévágás ★★★</h2>
+<p>A 4.4-ben láttuk: ha két csoportot két különböző számmal jelölünk, a $\mathbf x^\top L\mathbf x$ a csoportok közötti éleket számolja. A kicsi $\mu_2$ pedig azt jelezte, hogy a gráf „vékony” valahol.
+Most összekötjük a kettőt: <b>a legsimább nem konstans jel megmutatja, hol érdemes kettévágni a gráfot.</b></p>
+
+<h3 id="s45-a">1. lépés: a vágás mint Laplace-forma</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két háromszög és egy híd</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="1-2,1-3,2-3,3-4,4-5,4-6,5-6" data-pos="1:0,0 2:0,1.2 3:1,.6 4:2.2,.6 5:3.2,0 6:3.2,1.2" data-w="240" data-h="120"
+      data-color="1:--setA 2:--setA 3:--setA 4:--setB 5:--setB 6:--setB"></div></div>
+    <div>Jelöljük a bal háromszöget $+1$-gyel, a jobbat $-1$-gyel: $\mathbf x = (1, 1, 1, -1, -1, -1)$. A háromszögeken belül minden él két vége egyforma (0), a hídon $(1 - (-1))^2 = 4$.
+      Tehát $\mathbf x^\top L\mathbf x = 4 = 4 \cdot 1$, és 1 élt vágtunk el.</div>
+  </div>
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – a vágás mérete</span>
+  Ha a csúcsokat két csoportra osztjuk, és $x_i = +1$ az egyik, $x_i = -1$ a másik csoportban, akkor
+  $$\mathbf x^\top L\,\mathbf x = \sum_{\{i,j\} \in E}(x_i - x_j)^2 = 4 \cdot (\text{a két csoport között futó élek száma}).$$
+  Ezt a számot nevezzük a <b>vágás méretének</b>; a „legkisebb vágás” a legkevesebb elvágott él.
+  <small>Miért 4? A csoporton belüli élen $x_i - x_j = 0$, a csoportok közöttin $\pm 2$, a négyzete 4.</small>
+</div>
+
+<h3 id="s45-b">2. lépés: miért nem elég a legkisebb vágás? – a kiegyensúlyozás</h3>
+<p>Ha csak a vágott éleket minimalizálnánk, a győztes a <b>semmi</b>: mindenkit egy csoportba teszünk ($\mathbf x = \mathbf 1$), és 0 élt vágunk el. Vagy levágunk egyetlen, egy éllel kötődő csúcsot. Egyik sem az, amit akarunk.
+Két nagyjából <b>egyforma méretű</b> csoportot keresünk. Ha a csoportok pontosan egyformák, a $+1$-ek és a $-1$-ek száma egyenlő:</p>
+$$\sum_i x_i = 0, \qquad \text{vagyis} \qquad \mathbf x \perp \mathbf 1 .$$
+<p>A feladat tehát: <b>$\pm 1$ értékű, 0 összegű $\mathbf x$, amelyre $\mathbf x^\top L\mathbf x$ minimális.</b> Kis gráfon kipróbálhatjuk az összes felosztást, de már 40 csúcsnál is $\binom{40}{20} \approx 1{,}4 \cdot 10^{11}$ lehetőség van – és általában nincs ismert gyors pontos módszer (a feladat NP-nehéz).</p>
+
+<h3 id="s45-c">3. lépés: lazítás – a Fiedler-vektor</h3>
+<p>A trükk: <b>engedjük meg, hogy $x_i$ tetszőleges valós szám legyen</b> (a hosszát rögzítve, hogy ne zsugorodhasson nullára), és utána nézzük meg, melyik csúcs pozitív, melyik negatív.
+A lazított feladatnak van pontos megoldása, és az éppen egy sajátvektor.</p>
+
+<div class="box thm">
+  <span class="box-title">Tétel – a legsimább nem konstans jel</span>
+  $$\min_{\mathbf x \perp \mathbf 1,\ \mathbf x \ne \mathbf 0}\ \frac{\mathbf x^\top L\,\mathbf x}{\mathbf x^\top\mathbf x} = \mu_2 ,$$
+  és a minimumot a $\mu_2$-höz tartozó sajátvektor, a <b>Fiedler-vektor</b> adja. <b>Spektrális kettévágás:</b> számold ki a Fiedler-vektort, és tedd az egyik oldalra a pozitív, a másikra a negatív értékű csúcsokat.
+  <details><summary>📐 Bizonyítás (vázlat)</summary>
+    Írjuk fel $\mathbf x$-et az $L$ merőleges, egységnyi sajátvektoraival: $\mathbf x = \sum_k c_k\mathbf u_k$. Ekkor $\mathbf x^\top L\mathbf x = \sum_k \mu_k c_k^2$ és $\mathbf x^\top\mathbf x = \sum_k c_k^2$.
+    A $\mathbf x \perp \mathbf 1$ feltétel azt jelenti, hogy $c_1 = 0$ ($\mathbf u_1 \propto \mathbf 1$). A hányados a $\mu_2, \mu_3, \dots$ súlyozott átlaga, amely legalább $\mu_2$, és $\mathbf x = \mathbf u_2$-nél egyenlő vele.
+    (Ez a Courant–Fischer-tétel legegyszerűbb esete.)</details>
+  <small>Következmény – alsó korlát: minden pontosan kiegyensúlyozott kettévágásra ($n$ páros, $\mathbf x \in \{\pm 1\}^n$, $\sum x_i = 0$, így $\mathbf x^\top\mathbf x = n$): $4 \cdot \text{vágás} \ge n\mu_2$, azaz <b>vágás $\ge n\mu_2/4$</b>.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – két háromszög + híd</span>
+    A Fiedler-vektor (Pythonból, előjellel úgy fordítva, hogy az 1-es csúcs pozitív): (0,46; 0,46; 0,26; −0,26; −0,46; −0,46), $\mu_2 \approx 0{,}44$. Mi a kettévágás?
+    <details><summary>Megoldás</summary>Pozitív: $\{1, 2, 3\}$, negatív: $\{4, 5, 6\}$ – a két háromszög, 1 vágott éllel (a híd). Figyeld meg: a hídhoz közeli 3-as és 4-es csúcs értéke kisebb abszolút értékű: ők „kevésbé biztosan” tartoznak a saját oldalukhoz.
+      Az alsó korlát: $6 \cdot 0{,}44 / 4 \approx 0{,}66$, tehát legalább 1 élt el kell vágni – ez a vágás optimális.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a karateklub</span>
+    Zachary karateklubja (34 tag, 78 él; <a href="../../mesterseges-intelligencia/13-graf-neuralis-halok/">MI 13.</a>) a megfigyelés alatt két részre szakadt. Az előjel szerinti vágás 10 élt vág el (15–19 tag), és a 34 tagból <b>32</b>-t a valódi oldalára tesz. Mi a helyzet a kivételekkel?
+    <details><summary>Megoldás</summary>A két kivétel a 3. és a 9. tag; Fiedler-értékük nagyon közel van a nullához ($\approx -0{,}02$ és $-0{,}05$, miközben az értékek $-0{,}19$ és $0{,}42$ között szórnak): a vágás „határán” állnak, mindkét csoporthoz sok szál köti őket.
+      A 9. tagról Zachary azt írja, hogy személyes okból (közelgő övvizsgája miatt) maradt az oktatóval, nem a kapcsolatai alapján. Ha a küszöb az előjel helyett a <b>medián</b> (17–17 tag), a vágás <b>mind a 34</b> tagot jó oldalra teszi, és pontosan a valódi szakadás 11 élét vágja el.</details>
+  </div>
+</div>
+
+<div class="widget" data-widget="spectral-cut"></div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az előjel önkényes.</b> Ha $\mathbf u_2$ Fiedler-vektor, $-\mathbf u_2$ is. A két oldal „neve” felcserélődhet, a vágás ugyanaz. Két futtatás eredményét ezért nem oldalnév, hanem felosztás szerint hasonlítsd össze.</li>
+    <li><b>A nullához közeli csúcsok bizonytalanok.</b> A 0 körüli érték azt jelenti: a csúcs a két oldal között áll (híd, közvetítő). A kerekítés ott könnyen „rossz” oldalra teszi – mint a karateklub 3. és 9. tagját. Ilyenkor érdemes a küszöböt (0 helyett pl. a mediánt) is kipróbálni.</li>
+    <li><b>Nem összefüggő gráfon.</b> Ha $\mu_2 = 0$, a Fiedler-vektor a komponenseket választja szét (0 éllel) – ez helyes, de semmit nem mond a komponenseken belüli szerkezetről. Előbb bontsd komponensekre a gráfot (2. fejezet).</li>
+    <li><b>A lazítás nem garancia.</b> A Fiedler-vektor kerekítése jó közelítés, de nem mindig a legjobb kiegyensúlyozott vágás. A kiegyensúlyozást sem kényszeríti ki pontosan (a karateklubon 15–19).</li>
+    <li><b>Kettőnél több csoport</b> ennyiből nem jön ki: ahhoz több sajátvektor kell (spektrális klaszterezés), vagy más módszer – ez a <b>közösségkeresés</b> (8. fejezet).</li>
+  </ul>
+</div>
+
+<div class="box tip">
+  <span class="box-title">🔭 Előremutatás</span>
+  A Fiedler-vektor a gráf „legsimább nem konstans rezgése”. A következő néhány sajátvektorral együtt minden csúcsnak <b>koordinátákat</b> ad: ez a <b>spektrális beágyazás</b> (11. fejezet), amelyben a hasonló csúcsok közel kerülnek egymáshoz,
+  és amelyen a <b>spektrális klaszterezés</b> (8. fejezet) $k$-közepekkel csoportosít. A GCN-réteg (<a href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s134">MI 13.4</a>) pedig egy <b>aluláteresztő szűrő</b>: a kis Laplace-sajátértékekhez tartozó, sima összetevőket megtartja, az ugrálókat elnyomja.
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – spektrális kettévágás</summary>
+  <ol>
+    <li>A 4 csúcsú úton (1–2–3–4) legyen $\mathbf x = (1, 1, -1, -1)$. Mennyi $\mathbf x^\top L\mathbf x$, és hány élt vág el ez a felosztás?
+      <details><summary>Megoldás</summary>Csak a 2–3 élen különbözik a két vég: $(1 - (-1))^2 = 4$, tehát 1 él.</details></li>
+    <li>A barátsággráfban (élek $AB$, $AC$, $BC$, $CD$) sorold fel a 2–2-es felosztásokat és a vágott élek számát! Melyik a legjobb?
+      <details><summary>Megoldás</summary>$\{A, B\} | \{C, D\}$: $AC$, $BC$ – 2. $\{A, C\} | \{B, D\}$: $AB$, $BC$, $CD$ – 3. $\{A, D\} | \{B, C\}$: $AB$, $AC$, $CD$ – 3. A legjobb az $\{A, B\} | \{C, D\}$, 2 éllel.</details></li>
+    <li>Egy 6 csúcsú gráf Fiedler-vektora $(0{,}5;\ 0{,}4;\ 0{,}1;\ -0{,}2;\ -0{,}3;\ -0{,}5)$. Mi a spektrális kettévágás? Melyik csúcs besorolása a legbizonytalanabb?
+      <details><summary>Megoldás</summary>$\{1, 2, 3\}$ és $\{4, 5, 6\}$. A legbizonytalanabb a 3-as (0,1 – legközelebb a nullához).</details></li>
+    <li>Egy 20 csúcsú összefüggő gráfra $\mu_2 = 0{,}6$. Legalább hány élt kell elvágni bármely 10–10-es kettévágásnál?
+      <details><summary>Megoldás</summary>Vágás $\ge n\mu_2/4 = 20 \cdot 0{,}6 / 4 = 3$: legalább <b>3</b> élt.</details></li>
+    <li>(nehezebb) A barátsággráf Fiedler-vektora $(-0{,}41;\ -0{,}41;\ 0;\ 0{,}82)$ ($A, B, C, D$). Mi a gond az előjel szerinti vágással, és mit javasolsz?
+      <details><summary>Megoldás</summary>A $C$ értéke pontosan 0: egyik oldalhoz sem tartozik. Ha a nemnegatívakat vesszük egy oldalra, $\{C, D\} | \{A, B\}$ – 2 vágott él, a 2. feladat legjobbja. Ha a $C$-t a negatívakhoz, $\{D\} | \{A, B, C\}$ – csak 1 él, de nagyon kiegyensúlyozatlan.
+        A gráf egyik oldala háromszög, a $D$ csak egy éllel lóg rajta: a „természetes” vágás a $D$ levágása, a kiegyensúlyozott pedig a $\{C, D\}$-é. A kérdés eldöntése a célunkon múlik – ezért kell a vágásnál a méretet is figyelni (8. fejezet: modularitás).</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh4-45"></div>
+</section>
+
+<!-- ===================================================== 4.6 -->
+<section id="s46">
+<h2>4.6 Alkalmazás: az Árvízhét mátrixai</h2>
+<p>Minden eszköz megvan. Térjünk vissza a fejezet két kérdéséhez: <b>hol tölti a legtöbb időt</b> a véletlenszerűen kattintgató olvasó, és <b>hol vágjuk ketté</b> a szereplőket két rovatra?
+Közben megnézzük, mit mond a domináns sajátvektor, és mi történik, ha a linkeknek iránya is van.</p>
+
+<h3 id="s46-a">1. kérdés: hol tölti az idejét az olvasó?</h3>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Súlyozatlan linkek</span>
+    Minden együttes említés egy link, a linkek közül az olvasó egyenlő eséllyel választ. A 4.2 tétele szerint $\pi_i = d_i/2m$, $2m = 20$:
+    <div class="tw" style="overflow-x:auto"><table>
+      <tr><th></th><th>Ko</th><th>Po</th><th>Vi</th><th>Sz</th><th>La</th><th>Ön</th><th>Kl</th></tr>
+      <tr><th>$d_i$</th><td>4</td><td>4</td><td>3</td><td>3</td><td>2</td><td>2</td><td>2</td></tr>
+      <tr><th>$\pi_i$</th><td><b>20%</b></td><td><b>20%</b></td><td>15%</td><td>15%</td><td>10%</td><td>10%</td><td>10%</td></tr>
+    </table></div>
+    Holtverseny: a <b>Kormány</b> és a <b>Polgármester</b> oldalán tölti a legtöbb időt, egyenként az idő ötödét.
+  </div>
+  <div class="box example">
+    <span class="box-title">Súlyozott linkek</span>
+    Ha a link annál feltűnőbb, minél több cikkben szerepeltek együtt (a súly), az olvasó a súlyokkal arányosan választ. Ekkor $\pi_i = s_i/\sum s$, $\sum s = 36$:
+    <div class="tw" style="overflow-x:auto"><table>
+      <tr><th></th><th>Po</th><th>Ko</th><th>Vi</th><th>La</th><th>Ön</th><th>Sz</th><th>Kl</th></tr>
+      <tr><th>$s_i$</th><td>8</td><td>6</td><td>5</td><td>5</td><td>5</td><td>4</td><td>3</td></tr>
+      <tr><th>$\pi_i$</th><td><b>22,2%</b></td><td>16,7%</td><td>13,9%</td><td>13,9%</td><td>13,9%</td><td>11,1%</td><td>8,3%</td></tr>
+    </table></div>
+    A holtverseny eldől: a <b>Polgármester</b> nyer. A Lakók és az Önkéntesek feljönnek a Vízügy mellé, mert a kevés kapcsolatuk erős (3 közös cikk).
+  </div>
+</div>
+<p>Milyen gyorsan áll be? A Klímaváltozás oldaláról indulva 10 lépés után az eloszlás már legfeljebb 1 százalékponttal tér el a $\boldsymbol\pi$-től, 30 lépés után három tizedesjegyre egyezik vele. A kezdőpont gyorsan „elfelejtődik”.</p>
+
+<h3 id="s46-b">Kitérő: ki a „fontos”? – a sajátvektor és a fokszám</h3>
+<p>A véletlen séta irányítatlan gráfon a fokszámot adja vissza – a Kormány és a Polgármester egyforma. A <b>domináns sajátvektor</b> (<a href="#s43-b">4.3</a>) viszont különbséget tesz:</p>
+<div class="tw" style="overflow-x:auto"><table>
+  <tr><th></th><th>Ko</th><th>Po</th><th>Vi</th><th>Sz</th><th>Kl</th><th>La</th><th>Ön</th></tr>
+  <tr><th>fokszám</th><td>4</td><td>4</td><td>3</td><td>3</td><td>2</td><td>2</td><td>2</td></tr>
+  <tr><th>sajátvektor (max = 1)</th><td><b>1</b></td><td>0,87</td><td>0,86</td><td>0,79</td><td>0,58</td><td>0,42</td><td>0,42</td></tr>
+</table></div>
+<p>A Kormány a sűrű „országos” csoport ($\mathrm{Vi}$, $\mathrm{Sz}$, $\mathrm{Kl}$) közepén áll, és a Polgármesterhez is kötődik, a Polgármester két szomszédja ($\mathrm{La}$, $\text{Ön}$) viszont a gráf szélén. Ugyanaz a fokszám, más a „szomszédok fontossága”.
+Az 5. fejezet ezt a két mérőszámot – és még továbbiakat – állítja egymás mellé.</p>
+
+<h3 id="s46-c">2. kérdés: hol vágjuk ketté?</h3>
+<div class="box example">
+  <span class="box-title">A Fiedler-vektor az Árvízhéten</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="Ko-Vi,Ko-Po,Vi-Po,Vi-Sz,Sz-Kl,Sz-Ko,Kl-Ko,La-Ön,La-Po,Po-Ön"
+      data-pos="Kl:.6,0 Sz:0,.5 Ko:1.3,.5 Vi:.65,1 Po:1.6,1.3 La:2.4,1 Ön:2.3,1.9" data-w="300" data-h="200" data-r="16"
+      data-color="Ko:--setA Vi:--setA Sz:--setA Kl:--setA Po:--setB La:--setB Ön:--setB"
+      data-caption="kék: negatív, narancs: pozitív Fiedler-érték"></div></div>
+    <div>$\mu_2 \approx 0{,}64$, a Fiedler-vektor (Pythonból):
+      <div class="tw" style="overflow-x:auto"><table>
+        <tr><th>Kl</th><th>Sz</th><th>Ko</th><th>Vi</th><th>Po</th><th>La</th><th>Ön</th></tr>
+        <tr><td>−0,45</td><td>−0,37</td><td>−0,24</td><td>−0,18</td><td>0,19</td><td>0,52</td><td>0,52</td></tr>
+      </table></div>
+      Előjel szerint: $\{\mathrm{Ko}, \mathrm{Vi}, \mathrm{Sz}, \mathrm{Kl}\}$ és $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$. A vágott élek: $\mathrm{Ko}$–$\mathrm{Po}$ és $\mathrm{Vi}$–$\mathrm{Po}$, <b>2 él</b> ($\mathbf x^\top L\mathbf x = 8$).</div>
+  </div>
+  <b>Értelmezés:</b> az egyik rovat az <b>országos, szakpolitikai szál</b> (kormány, vízügy, szakértő, klíma – a Reggeli Hírlap és az Esti Krónika világa), a másik a <b>helyi, lakossági szál</b> (polgármester, lakók, önkéntesek – a Nyitott Szó és a Vidéki Napló).
+  A Polgármester (0,19) és a Vízügy (−0,18) értéke van a legközelebb a nullához: ők állnak a határon, a vágás két oldalán. A két átvágott él a Polgármesterhez fut – ő a <b>közvetítő</b>, aki mindkét szálban megjelenik.
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Módszertani józanság</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A modell egy döntés.</b> A „linkek = együttes említések” és az „olvasó egyenletesen választ” feltevés a mi választásunk. Súlyozva más lett a győztes – az eredményt mindig a modellel együtt közöld.</li>
+    <li><b>Hét csúcs kevés.</b> Egy 7 szereplős, 12 cikkes korpuszon a „két szál” szemléltetés, nem felfedezés. Hogy egy vágás valódi szerkezetet jelez-e, azt <b>nullmodellel</b> kell ellenőrizni (7. és 10. fejezet).</li>
+    <li><b>A kettévágás nem közösségkeresés.</b> A Fiedler-vektor mindig két részt ad, akkor is, ha a gráfban nincs is két csoport (vagy három van). Hogy hány csoport van, azt a 8. fejezet módszerei döntik el.</li>
+  </ul>
+</div>
+
+<h3 id="s46-d">És ha a linkeknek iránya van?</h3>
+<p>A lapok hivatkozási gráfjában (<a href="../03-graftipusok/#s31">3.1</a>) a véletlen séta a Reggeli Hírlapnál <b>beragad</b>: onnan nem vezet ki él (próbáld ki a <a href="#s42-c">random-surfer</a> widgetben a „lapok hivatkozásai” gráfot).
+A $d_i/2m$ képlet itt nem érvényes, és stacionárius eloszlásként minden idő az RH-ra jutna – ami túloz. A <b>PageRank</b> (5. fejezet) úgy javít ezen, hogy az olvasó minden lépésben kis eséllyel egy teljesen véletlen oldalra „teleportál”.</p>
+
+<details class="box">
+  <summary>🐍 Python – a fejezet számai néhány sorban (numpy)</summary>
+<pre><code>import numpy as np
+ids = ["Ko", "Vi", "Po", "La", "Ön", "Sz", "Kl"]
+elek = [("Ko","Vi"), ("Ko","Po"), ("Vi","Po"), ("Vi","Sz"), ("Sz","Kl"),
+        ("Sz","Ko"), ("Kl","Ko"), ("La","Ön"), ("La","Po"), ("Po","Ön")]
+A = np.zeros((7, 7))
+for u, v in elek:
+    i, j = ids.index(u), ids.index(v); A[i, j] = A[j, i] = 1
+d = A.sum(axis=1)
+print("pi:", d / d.sum())                     # stacionárius eloszlás: d_i / 2m
+lam, V = np.linalg.eigh(A)                    # növekvő sajátértékek
+v = np.abs(V[:, -1]); print("sajátvektor:", (v / v.max()).round(2), "lambda1:", lam[-1].round(2))
+L = np.diag(d) - A
+mu, U = np.linalg.eigh(L)
+print("mu2:", mu[1].round(3), "Fiedler:", U[:, 1].round(2))
+print("egyik oldal:", [ids[i] for i in range(7) if U[i, 1] > 0])</code></pre>
+  Kimenet: <code>pi: [0.2 0.15 0.2 0.1 0.1 0.15 0.1]</code>, <code>sajátvektor: [1. 0.86 0.87 0.42 0.42 0.79 0.58] lambda1: 3.09</code>,
+  <code>mu2: 0.643</code>, <code>egyik oldal: ['Po', 'La', 'Ön']</code>. (Az <code>eigh</code> a szimmetrikus mátrixok függvénye; az előjel gépenként eltérhet – lásd a 4.3 és 4.5 buktatóit.)
+</details>
+
+<div class="box tip">
+  <span class="box-title">✅ Válasz a fejezet kérdéseire</span>
+  <b>1.</b> A véletlenszerűen kattintgató olvasó hosszú távon a <b>fokszámmal arányos</b> időt tölt egy oldalon: a Kormány és a Polgármester oldalán 20–20%-ot. Ha a linkeket az együttes cikkek számával súlyozzuk, a <b>Polgármester</b> oldala nyer (22%).
+  Ehhez nem kellett szimulálni: elég volt az éleket (vagy a súlyokat) megszámolni.<br>
+  <b>2.</b> A legkevesebb link elvágásával – a Fiedler-vektor előjele szerint – az <b>országos</b> ($\mathrm{Ko}$, $\mathrm{Vi}$, $\mathrm{Sz}$, $\mathrm{Kl}$) és a <b>helyi</b> ($\mathrm{Po}$, $\mathrm{La}$, $\text{Ön}$) szál választható szét, <b>2</b> vágott linkkel; a Polgármester a két szál közvetítője.
+</div>
+
+<div class="quiz" data-quiz="gh4-46"></div>
+</section>
+
+<!-- ===================================================== Összefoglalás -->
+<section id="s-sum">
+<h2>Összefoglalás</h2>
+<div class="tw" style="overflow-x:auto"><table>
+  <tr><th>Eszköz</th><th>Képlet</th><th>Mit jelent a gráfon?</th></tr>
+  <tr><td>szomszédösszeg</td><td>$(A\mathbf x)_i = \sum_{j \sim i} x_j$; $A\mathbf 1 = \mathbf d$</td><td>minden csúcs összegyűjti a szomszédai értékét (a sajátját nem)</td></tr>
+  <tr><td>szomszédátlag</td><td>$D^{-1}A\mathbf x$</td><td>a szomszédok átlaga; ismételve simít</td></tr>
+  <tr><td>véletlen séta</td><td>$P = D^{-1}A$; $\mathbf p_{t+1}^\top = \mathbf p_t^\top P$</td><td>egy lépés: egyenletesen véletlen szomszédra; a sorok összege 1</td></tr>
+  <tr><td>stacionárius eloszlás</td><td>$\boldsymbol\pi^\top P = \boldsymbol\pi^\top$; $\pi_i = d_i/2m$ (súlyozva $s_i/\sum s$)</td><td>hosszú távon a fokszámmal arányos idő; összefüggő, nem páros gráfon bárhonnan ide tart</td></tr>
+  <tr><td>sajátvektor</td><td>$A\mathbf v = \lambda\mathbf v$</td><td>a szomszédok összege a saját érték $\lambda$-szorosa</td></tr>
+  <tr><td>hatványiteráció</td><td>$\mathbf x_{k+1} = A\mathbf x_k / \text{norma}$</td><td>a domináns sajátvektorhoz tart: „fontos, akinek fontos szomszédai vannak”</td></tr>
+  <tr><td>Perron–Frobenius</td><td>$\lambda_1 > 0$ egyszeres, $\mathbf v_1 > 0$; $2m/n \le \lambda_1 \le d_{\max}$</td><td>összefüggő gráfon egyetlen pozitív domináns irány</td></tr>
+  <tr><td>Laplace-mátrix</td><td>$L = D - A$; $\mathbf x^\top L\mathbf x = \sum_{ij \in E}(x_i - x_j)^2$</td><td>a jel ugrálása; sajátértékek $0 = \mu_1 \le \mu_2 \le \dots$</td></tr>
+  <tr><td>komponensek</td><td>a 0 multiplicitása</td><td>= komponensek száma; $\mu_2 > 0$ ⇔ összefüggő</td></tr>
+  <tr><td>vágás</td><td>$\mathbf x \in \{\pm1\}^n$: $\mathbf x^\top L\mathbf x = 4 \cdot \text{vágás}$</td><td>a két csoport között futó élek</td></tr>
+  <tr><td>Fiedler-vektor</td><td>$\min_{\mathbf x \perp \mathbf 1} \frac{\mathbf x^\top L\mathbf x}{\mathbf x^\top\mathbf x} = \mu_2$</td><td>előjele szerint jó kettévágás; vágás $\ge n\mu_2/4$ (kiegyensúlyozott esetben)</td></tr>
+</table></div>
+
+<div class="box tip">
+  <span class="box-title">Melyik eszköz kell? – döntési táblázat</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>Ha a kérdésben ez áll…</th><th>…akkor ezt használd</th></tr>
+    <tr><td>„mennyi a szomszédaim összege / hány szomszédom…?”</td><td>$A\mathbf x$</td></tr>
+    <tr><td>„milyen a környezetem átlagosan?”, simítás</td><td>$D^{-1}A\mathbf x$</td></tr>
+    <tr><td>„hol lesz az olvasó $t$ lépés múlva?”</td><td>$\mathbf p_0^\top P^t$, lépésenként</td></tr>
+    <tr><td>„hol tölti hosszú távon az idejét?” – irányítatlan gráf</td><td>$\pi_i = d_i/2m$ (súlyozva $s_i/\sum s$) – számolni sem kell</td></tr>
+    <tr><td>ugyanez irányított gráfon</td><td>vigyázz: beragadhat – PageRank (5. fejezet)</td></tr>
+    <tr><td>„ki fontos, ha a szomszédai fontossága is számít?”</td><td>domináns sajátvektor, hatványiterációval (páros gráfon $A + I$)</td></tr>
+    <tr><td>„mennyire sima / változékony egy jel a gráfon?”</td><td>$\mathbf x^\top L\mathbf x$</td></tr>
+    <tr><td>„hány komponens van?”, „mennyire függ össze?”</td><td>a $L$ nulla sajátértékei, illetve $\mu_2$</td></tr>
+    <tr><td>„hol vágjam ketté kevés él elvágásával?”</td><td>Fiedler-vektor előjele (vagy mediánja); több csoporthoz: 8. fejezet</td></tr>
+  </table></div>
+</div>
+</section>
+
+<!-- ===================================================== Ellenőrző kérdések -->
+<section id="s-check">
+<h2>Ellenőrző kérdések</h2>
+<p>Gondold végig a választ, aztán kattints a kártyára a megfordításhoz!</p>
+<div class="flashcards">
+  <div class="flash"><div class="inner"><div class="face front">Mit számol az $A\mathbf x$ $i$-edik eleme?</div>
+    <div class="face back">Az $i$ szomszédainak értékeit összeadva (a saját értékét nem, mert $A_{ii} = 0$).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi $A\mathbf 1$?</div>
+    <div class="face back">A fokszámok vektora; elemeinek összege $2m$.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a véletlen séta átmenetmátrixa, és mi a sorösszege?</div>
+    <div class="face back">$P = D^{-1}A$, $P_{ij} = A_{ij}/d_i$; minden sor összege 1 (sztochasztikus mátrix).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a stacionárius eloszlás irányítatlan gráfon?</div>
+    <div class="face back">$\pi_i = d_i/2m$ – a fokszámmal arányos (súlyozva az erősséggel arányos).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mikor nem tart a séta eloszlása a stacionáriushoz?</div>
+    <div class="face back">Páros gráfon (oszcillál – lusta séta segít), nem összefüggő gráfon (a kezdéstől függ), irányított gráfon zsákutcával (beragad).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a sajátvektor gráfnyelven?</div>
+    <div class="face back">Olyan csúcsérték-kiosztás, amelyben minden csúcs szomszédainak összege a saját értékének ugyanannyiszorosa ($\lambda$).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit ad a hatványiteráció, és mikor nem működik?</div>
+    <div class="face back">A legnagyobb sajátértékhez tartozó (pozitív) sajátvektort. Páros gráfon oszcillál, mert $-\lambda_1$ is sajátérték; javítás: $A + I$.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit mond ki a Perron–Frobenius-tétel összefüggő gráfra?</div>
+    <div class="face back">A legnagyobb sajátérték pozitív és egyszeres, a sajátvektora minden csúcson pozitív, és $|\lambda| \le \lambda_1$ minden sajátértékre.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a Laplace-mátrix, és mit mér a $\mathbf x^\top L\mathbf x$?</div>
+    <div class="face back">$L = D - A$; $\mathbf x^\top L\mathbf x = \sum_{ij \in E}(x_i - x_j)^2$ – mennyire ugrál a jel az éleken.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit árul el a Laplace-mátrix 0 sajátértéke?</div>
+    <div class="face back">A multiplicitása a komponensek száma. $\mu_2 > 0$ ⇔ összefüggő; a kis $\mu_2$ könnyen kettévágható gráfot jelez.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Hogyan vág ketté a spektrális módszer?</div>
+    <div class="face back">Kiszámolja a Fiedler-vektort ($\mu_2$ sajátvektorát), és az előjele (vagy mediánja) szerint két csoportra osztja a csúcsokat.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért kell a vágásnál a kiegyensúlyozás?</div>
+    <div class="face back">Mert különben a legkisebb vágás a semmi (mindenki egy oldalon) vagy egy lelógó csúcs levágása. A $\mathbf x \perp \mathbf 1$ feltétel egyforma méretű oldalakat kér.</div></div></div>
+</div>
+</section>
+
+<!-- ===================================================== Vegyes gyakorló feladatok -->
+<section id="s-ex">
+<h2>Vegyes gyakorló feladatok</h2>
+<p>Itt már nincs megmondva, melyik részhez tartozik a feladat: neked kell eldönteni, melyik eszköz kell.</p>
+<details class="box practice">
+  <summary>✏️ Vegyes gyakorló feladatok – kattints a kinyitáshoz</summary>
+  <ol>
+    <li>A $C_4$ körön (élek $12, 23, 34, 41$) legyen $\mathbf x = (4, 0, 2, 0)$. Mi $A\mathbf x$ és $D^{-1}A\mathbf x$?
+      <details><summary>Tipp</summary>Szomszédösszeg, aztán osztás a fokszámmal (mindenhol 2).</details>
+      <details><summary>Megoldás</summary>$A\mathbf x = (0 + 0,\ 4 + 2,\ 0 + 0,\ 2 + 4) = (0, 6, 0, 6)$; $D^{-1}A\mathbf x = (0, 3, 0, 3)$.</details></li>
+    <li>Egy összefüggő, nem páros gráfnak 12 éle van, a $v$ csúcs fokszáma 3. Hosszú távon az idő hányad részét tölti a véletlen séta a $v$-n?
+      <details><summary>Tipp</summary>$\pi_i = d_i/2m$.</details>
+      <details><summary>Megoldás</summary>$3/24 = 1/8 = 12{,}5\%$.</details></li>
+    <li>Az Árvízhét súlyozott szereplőgráfján a Polgármester erőssége 8, az összes erősség 36. Mennyi a $\pi_{\mathrm{Po}}$ a súlyozott sétában, és mennyi a súlyozatlanban?
+      <details><summary>Tipp</summary>Súlyozva az erősség, súlyozatlanul a fokszám számít.</details>
+      <details><summary>Megoldás</summary>Súlyozva $8/36 \approx 22{,}2\%$, súlyozatlanul $4/20 = 20\%$.</details></li>
+    <li>Sajátvektora-e a 3 csúcsú út (1–2–3) szomszédsági mátrixának az $(1, \sqrt2, 1)$ vektor? Mekkora sajátértékkel?
+      <details><summary>Tipp</summary>Számold ki csúcsonként a szomszédok összegét, és nézd meg, ugyanannyiszorosa-e a saját értéknek.</details>
+      <details><summary>Megoldás</summary>1-es: $\sqrt2 = \sqrt2 \cdot 1$; 2-es: $1 + 1 = 2 = \sqrt2 \cdot \sqrt2$; 3-as: $\sqrt2$. Igen, $\lambda = \sqrt2 \approx 1{,}41$ – és mivel minden eleme pozitív, ez a domináns.</details></li>
+    <li>Egy gráf Laplace-spektruma $0;\ 0;\ 0;\ 1;\ 2;\ 3;\ 3$. Hány csúcsa és hány komponense van?
+      <details><summary>Tipp</summary>Hány sajátérték van összesen, és hány 0?</details>
+      <details><summary>Megoldás</summary>7 csúcs (7 sajátérték), 3 komponens (három 0).</details></li>
+    <li>A 3 csúcsú úton melyik a simább jel: $(0, 1, 0)$ vagy $(0, 1, 2)$? Számolj!
+      <details><summary>Tipp</summary>$\mathbf x^\top L\mathbf x$ élenként.</details>
+      <details><summary>Megoldás</summary>$(0, 1, 0)$: $1 + 1 = 2$. $(0, 1, 2)$: $1 + 1 = 2$. Egyformán simák! Bár az első „visszafordul”, élenként ugyanakkorát ugrik.</details></li>
+    <li>Egy hat csúcsú gráfban az $\{1, 2, 3\} | \{4, 5, 6\}$ felosztás 2 élt vág el. Mennyi a hozzá tartozó $\pm 1$ vektorra a $\mathbf x^\top L\mathbf x$?
+      <details><summary>Tipp</summary>Minden vágott él 4-et ad.</details>
+      <details><summary>Megoldás</summary>$4 \cdot 2 = 8$.</details></li>
+    <li>A hatványiteráció egy gráfon két vektor között ugrál, és nem áll be. Mi lehet az oka, és mit tennél?
+      <details><summary>Tipp</summary>Melyik gráfosztálynál van $-\lambda_1$ is a spektrumban?</details>
+      <details><summary>Megoldás</summary>A gráf (vagy egy komponense) páros, így $-\lambda_1$ is sajátérték. Iterálj az $A + I$ mátrixszal, vagy átlagold két egymást követő lépés eredményét.</details></li>
+    <li>Egy 10 csúcsú összefüggő gráfra $\mu_2 = 2$. Elvágható-e 4 éllel két 5 csúcsú részre?
+      <details><summary>Tipp</summary>Alsó korlát a kiegyensúlyozott vágásra.</details>
+      <details><summary>Megoldás</summary>Nem: minden 5–5-ös vágás legalább $n\mu_2/4 = 10 \cdot 2/4 = 5$ élt vág el.</details></li>
+    <li>(nehezebb) Egy hírportál linkgráfjában a „Legfrissebb” oldalra minden cikk linkel, de onnan semmi sem vezet tovább. Mit „gondol” a véletlen séta erről az oldalról hosszú távon, és miért félrevezető ez?
+      <details><summary>Tipp</summary>Irányított gráf, zsákutca.</details>
+      <details><summary>Megoldás</summary>A séta előbb-utóbb a zsákutcába ér, és ott beragad: hosszú távon minden valószínűség ott gyűlik össze, mintha ez lenne az egyetlen fontos oldal. Ez a modell hibája, nem a hálózat tulajdonsága.
+        A PageRank teleportálással (kis eséllyel véletlen oldalra ugrik az olvasó) kezeli – 5. fejezet.</details></li>
+  </ol>
+</details>
+</section>
+
+<!-- ===================================================== Fejezetzáró -->
+<section id="s-final">
+<h2>Fejezetzáró teszt</h2>
+<p>Vegyes feladatok az egész fejezetből. Ha legalább 80%-ot elérsz, nyugodtan továbbléphetsz!</p>
+<div class="quiz" data-quiz="gh4-final"></div>
+</section>
+
+<!-- ===================================================== Szómagyarázó -->
+<section id="s-gloss">
+<h2>Szómagyarázó</h2>
+<p>A fejezetben előforduló idegen vagy kevésbé ismert szakkifejezések, betűrendben.</p>
+<dl class="glossary">
+  <dt id="g-fiedler">Fiedler-vektor <span class="etym">Miroslav Fiedler (1926–2015) cseh matematikus nevéből</span></dt>
+  <dd><p>A Laplace-mátrix második legkisebb sajátértékéhez tartozó sajátvektor. Fiedler 1973-ban a sajátértéket „algebrai összefüggőségnek” nevezte el, 1975-ben a sajátvektor vágó tulajdonságát írta le.</p></dd>
+
+  <dt id="g-iteracio">iteráció <span class="etym">lat. <em>iterare</em> „ismételni” (<em>iterum</em> „újra”)</span></dt>
+  <dd><p>Ugyanannak a lépésnek az ismétlése, mindig az előző eredményéből kiindulva. A hatványiteráció az $A$-val való szorzást ismétli.</p></dd>
+
+  <dt id="g-laplace">Laplace-mátrix <span class="etym">Pierre-Simon Laplace (1749–1827) francia matematikus nevéből</span></dt>
+  <dd><p>A gráf „különbség-mátrixa”, $L = D - A$. A neve a fizika Laplace-operátorából jön, amely azt méri, mennyire tér el egy függvény egy pontban a környezete átlagától.</p></dd>
+
+  <dt id="g-spektrum">spektrum <span class="etym">lat. <em>spectrum</em> „kép, jelenés” (<em>specere</em> „nézni”)</span></dt>
+  <dd><p>Egy mátrix sajátértékeinek összessége. A fizikában a fény felbontásának „képe”; a gráf spektruma a gráf rezgéseinek „frekvenciáit” adja.</p></dd>
+
+  <dt id="g-stacionarius">stacionárius <span class="etym">lat. <em>stationarius</em> „egy helyben álló” (<em>stare</em> „állni”)</span></dt>
+  <dd><p>Időben nem változó. A stacionárius eloszlást egy lépés sem változtatja meg.</p></dd>
+
+  <dt id="g-sztochasztikus">sztochasztikus <span class="etym">gör. <em>sztokhasztikosz</em> „célzásban ügyes, találgató” (<em>sztokhosz</em> „célpont”)</span></dt>
+  <dd><p>Véletlenen alapuló. A sztochasztikus mátrix nemnegatív, és minden sorának összege 1: minden sora egy valószínűség-eloszlás.</p></dd>
+</dl>
+</section>
+
+<nav class="pager">
+  <a href="../03-graftipusok/">← 3. Gráftípusok</a>
+  <span class="next muted">5. Centralitás (hamarosan) →</span>
+</nav>
+
+</main>
+</div>
+
+<footer class="site">
+  Források: M. E. J. Newman: <em>Networks</em> (2. kiad., Oxford UP, 2018), 6. és 11. fejezet (mátrixok, véletlen séta, Laplace-mátrix, spektrális kettévágás) ·
+  A.-L. Barabási: <em>Network Science</em> (Cambridge UP, 2016), 4. fejezet függeléke · D. Easley – J. Kleinberg: <em>Networks, Crowds, and Markets</em> (2010), 14. fejezet ·
+  W. L. Hamilton: <em>Graph Representation Learning</em> (2020), 2. fejezet · L. Lovász: Random walks on graphs: a survey (1993) · M. Fiedler: Algebraic connectivity of graphs (1973) ·
+  P. Bonacich (1972) · W. W. Zachary (1977) · Az Árvízhét kitalált példa.
+</footer>
+</body>
+</html>

@@ -45,7 +45,8 @@ synopsis/
 │   ├── arvizhet-data.js            ← a futó példa (Árvízhét: 4 lap, 12 cikk, 7 szereplő) – rögzített adat
 │   ├── 01-mi-a-halozat/            ← index.html, widgets.js (graph.js), quizzes.js
 │   ├── 02-setak-utak-fak/          ← index.html, widgets.js (graph.js), quizzes.js
-│   └── 03-graftipusok/             ← index.html, widgets.js (graph.js), quizzes.js; az arvizhet-data.js események, hivatkozások, előjeles viszonyok, hármasok bővítést kapott
+│   ├── 03-graftipusok/             ← index.html, widgets.js (graph.js), quizzes.js; az arvizhet-data.js események, hivatkozások, előjeles viszonyok, hármasok bővítést kapott
+│   └── 04-grafok-es-matrixok/      ← index.html, widgets.js (graph.js; saját Jacobi-sajátérték-számítás), quizzes.js; a karateklubot az MI 13. fejezet graph-data.js-éből tölti
 └── mesterseges-intelligencia/
     ├── index.html                  ← a témakör fejezetlistája és tanulási útvonalai
     ├── TERV.md                     ← a 24 fejezet részletes kidolgozási terve

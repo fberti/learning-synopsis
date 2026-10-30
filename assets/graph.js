@@ -197,7 +197,7 @@
   }
 
   /* ---------- interaktív canvas-nézet ----------
-     opts: { aspect, maxW, editable, nodes: [{label, x, y, color}], edges: [{a, b, w}],
+     opts: { aspect, maxW, editable, nodes: [{label, x, y, color, ink?}], edges: [{a, b, w}],
              onChange(view), radius, showWeights, weightWidth, directed (nyílhegy a b végen; élenként: dir), multiGap (párhuzamos élek távolsága, 18) }
      Szerkesztés (editable): üres helyre kattintás → új csúcs; csúcs, majd egy másik csúcs → él be/ki;
      élre kattintás → él törlése; húzás → mozgatás.                                            */
@@ -415,7 +415,7 @@
         ctx.lineWidth = on ? 3.5 : 2; ctx.strokeStyle = on ? accent : (c || text); ctx.stroke();
         if (this.sel === i) { ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.arc(x, y, r + 5, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]); }
         const lab = String(n.label);
-        ctx.fillStyle = c ? "#fff" : text;
+        ctx.fillStyle = n.ink ? color(n.ink) : (c ? "#fff" : text);          // ink: a címke színe (opcionális)
         ctx.font = `600 ${lab.length > 2 ? Math.max(9, 13 - (lab.length - 2) * 1.5) : 13}px system-ui, sans-serif`;
         ctx.textAlign = "center"; ctx.textBaseline = "middle";
         ctx.fillText(lab, x, y + 0.5);
