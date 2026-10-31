@@ -53,6 +53,7 @@ synopsis/
 │   ├── index.html                  ← a témakör fejezetlistája
 │   ├── TERV.md                     ← a 26 fejezet (0–25) részletes kidolgozási terve
 │   ├── sketches/                   ← a laborok Arduino-sketchei (NN_nev/NN_nev.ino)
+│   ├── 00-laborkalauz/             ← index.html, widgets.js, quizzes.js (biztonság, breadboard, multiméter, színkód, Arduino, tápok, mérési napló)
 │   └── 01-toltes-es-mezo/          ← index.html, widgets.js, quizzes.js
 └── mesterseges-intelligencia/
     ├── index.html                  ← a témakör fejezetlistája és tanulási útvonalai

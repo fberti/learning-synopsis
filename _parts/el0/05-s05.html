@@ -1,0 +1,245 @@
+
+<!-- ===================================================== 0.5 -->
+<section id="s05">
+<h2>0.5 Az Arduino MEGA 2560 <small class="muted">★</small></h2>
+<p>Az <b>Arduino</b> egy kis panel, amelynek közepén egy <b>mikrovezérlő</b> ül: egy egész számítógép egyetlen tokban (processzor, memória, ki- és bemenetek). A témakörben
+háromféle szerepben használjuk: <b>mérőműszer</b> (feszültséget mér és rajzol), <b>jelforrás</b> (villogtat, hangot ad, impulzust küld) és <b>tesztelő</b> (logikai kapukat
+emulál). A 24. fejezetben pedig belülről is megnézzük.</p>
+
+<p><b>Útiterv</b>:</p>
+<ol>
+  <li><a href="#s05-a">A panel részei</a> – csatlakozók, lábak, határértékek.</li>
+  <li><a href="#s05-b">Telepítés Linuxon</a> – Arduino IDE, soros port, jogosultság.</li>
+  <li><a href="#s05-c">Az első program</a> – <code>Blink</code>, és mit jelent egy sketch.</li>
+  <li><a href="#s05-d">Soros monitor és soros plotter</a> – az Arduino „beszél” a géppel.</li>
+</ol>
+
+<!-- ---------- 0.5 a -->
+<h3 id="s05-a">1. lépés: a panel részei</h3>
+
+<div class="box example">
+  <span class="box-title">Kiinduló eset – körbe a panelen</span>
+  Fogd a kezedbe a kék panelt, a USB-csatlakozóval balra. Az óramutató járásával megegyezően:
+  <ol style="margin:.2rem 0">
+    <li><b>USB-B aljzat</b> (bal felső): ezen át kap tápot (5 V) és ezen át töltjük fel a programot.</li>
+    <li><b>Tápcsatlakozó</b> (bal alsó, kerek): külső tápnak, 7–12 V (pl. a 9 V-os elem a kit csatlakozójával).</li>
+    <li><b>Felső tüskesor</b>: digitális lábak (0–13), köztük a 13-ashoz kötött <b>beépített LED</b> („L”), valamint GND és AREF.</li>
+    <li><b>Jobb oldali dupla tüskesor</b>: további digitális lábak (22–53).</li>
+    <li><b>Alsó tüskesor</b>: <b>tápfeszültség-lábak</b> (IOREF, RESET, 3.3V, 5V, GND, GND, Vin) és az <b>analóg bemenetek</b> (A0–A15).</li>
+    <li><b>Középen</b>: az ATmega2560 mikrovezérlő (16 MHz), mellette a RESET gomb.</li>
+  </ol>
+</div>
+
+<div class="box def">
+  <span class="box-title">Az Arduino MEGA 2560 fontos adatai</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>rész</th><th>adat</th><th>mire figyelj?</th></tr>
+    <tr><td>mikrovezérlő</td><td>ATmega2560, 16 MHz, 256 KB program-, 8 KB adatmemória</td><td>–</td></tr>
+    <tr><td>digitális lábak</td><td>0–53 (ebből PWM: 2–13 és 44–46)</td><td>a 0 és 1 a USB-s soros kapcsolaté (TX0/RX0) – ne használd mást</td></tr>
+    <tr><td>analóg bemenetek</td><td>A0–A15, 10 bites (0–1023)</td><td>7. és 22. fejezet</td></tr>
+    <tr><td>lábáram</td><td>ajánlott ≤ 20 mA, abszolút határ 40 mA</td><td>összesen se legyen több kb. 200 mA-nél</td></tr>
+    <tr><td>5V láb</td><td>USB-ről kb. 5 V</td><td>itt jön ki a táp – <b>ide nem kötünk be</b> másik tápot</td></tr>
+    <tr><td>3.3V láb</td><td>3,3 V, legfeljebb 50 mA</td><td>kis érzékelőkhöz</td></tr>
+    <tr><td>Vin</td><td>a tápcsatlakozó feszültsége (pl. 9 V)</td><td>ez <b>nem</b> 5 V!</td></tr>
+    <tr><td>USB-védelem</td><td>500 mA-es visszaálló biztosíték</td><td>rövidzárnál kiold (0.1)</td></tr>
+  </table></div>
+  <small>Miért ilyen szigorúak a lábáram-határok? Egy láb mögött a mikrovezérlő belsejében parányi tranzisztorok vannak; túl nagy áramnál túlmelegszenek. A részleteket a 13. és a 24. fejezet mutatja meg.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa 1 – honnan vegyél 5 V-ot?</span>
+    A breadboardra 5 V-ot szeretnél vinni az Arduinóról. Melyik lábról?
+    <details><summary>Megoldás</summary>Az alsó tüskesor <b>5V</b> lábáról (és mellé egy <b>GND</b>-ről a $-$ sínre). A Vin nem jó: tápcsatlakozóról járatva ott 9 V is lehet.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa 2 – két LED egy lábon?</span>
+    Egy lábról két LED-et hajtanál meg, mindkettő kb. 13,6 mA-t vesz fel. Belefér?
+    <details><summary>Megoldás</summary>Összesen kb. 27 mA: az ajánlott 20 mA fölött, a 40 mA-es abszolút határ alatt. Működne, de nem ajánlott: tegyél mindkettőt külön lábra, vagy használj tranzisztort (13. fejezet).</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Vin ≠ 5V.</b> A Vin a külső táp feszültsége. Ha onnan „5 V”-ot vinnél egy IC-nek, és az Arduino épp 9 V-os elemről jár, az IC tönkremegy (6. aranyszabály).</li>
+    <li><b>A 0-s és 1-es láb foglalt.</b> Ha ide kötsz valamit, a programfeltöltés és a soros monitor megzavarodhat.</li>
+    <li><b>Az 5V lábra nem kötünk be tápot</b>, amíg az Arduino USB-ről kap tápot – két táp „egymás ellen” dolgozna.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a panel</summary>
+  <ol>
+    <li>Melyik lábra van kötve a beépített LED?
+      <details><summary>Megoldás</summary>A 13-asra (a programban <code>LED_BUILTIN</code>).</details></li>
+    <li>Az Arduinót a 9 V-os elemről járatod. Mennyi feszültséget mérsz a Vin és az 5V lábon (a GND-hez képest)?
+      <details><summary>Megoldás</summary>A Vin-en kb. az elem feszültségét (kicsit kevesebbet, kb. 8,5–9 V-ot), az 5V lábon kb. 5 V-ot – a panel feszültségszabályzója állítja elő.</details></li>
+    <li>Hány analóg bemenete van a MEGA-nak, és milyen értéktartományban olvas?
+      <details><summary>Megoldás</summary>16 (A0–A15), 0 és 1023 között.</details></li>
+    <li>Öt LED-et kötsz öt különböző lábra, mindegyik 13,6 mA-t vesz fel. Rendben van?
+      <details><summary>Megoldás</summary>Lábanként igen (13,6 mA ≤ 20 mA), és összesen $5 \cdot 13{,}6 = 68\,\text{mA}$ – messze a kb. 200 mA-es összhatár alatt.</details></li>
+  </ol>
+</details>
+
+<!-- ---------- 0.5 b -->
+<h3 id="s05-b">2. lépés: telepítés Linuxon</h3>
+<p>A programot (az Arduino nyelvén: <b>sketch</b>) a számítógépen írjuk az <b>Arduino IDE</b> nevű fejlesztőkörnyezetben, és USB-n töltjük fel. Linuxon három dolgot kell rendbe tenni:
+a programot, a soros portot és a jogosultságot.</p>
+
+<div class="box def">
+  <span class="box-title">Telepítés lépésről lépésre</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Arduino IDE 2</b> letöltése az <a href="https://www.arduino.cc/en/software">arduino.cc/en/software</a> oldalról (Linux AppImage vagy ZIP), vagy Flatpakként (<code>cc.arduino.IDE2</code>).
+      Az AppImage-et futtathatóvá kell tenni: <code>chmod +x arduino-ide_*.AppImage</code>.</li>
+    <li><b>Jogosultság a soros porthoz:</b> a felhasználódat add hozzá a <code>dialout</code> csoporthoz, majd <b>jelentkezz ki és be</b> (vagy indítsd újra a gépet):
+      <pre><code>sudo usermod -aG dialout $USER</code></pre></li>
+    <li><b>Csatlakoztasd az Arduinót.</b> A port neve általában <code>/dev/ttyACM0</code>. Ellenőrzés a terminálban: <code>ls /dev/ttyACM*</code>.</li>
+    <li>Az IDE-ben: <b>Eszközök → Alaplap → Arduino AVR Boards → Arduino Mega or Mega 2560</b>, <b>Eszközök → Port → /dev/ttyACM0</b>.</li>
+  </ol>
+  <small>Miért kell a <code>dialout</code> csoport? Linuxon a soros eszközök (mint a <code>/dev/ttyACM0</code>) alapból csak a rendszergazdának és a <code>dialout</code> csoport tagjainak írhatók.
+  Enélkül az IDE „Permission denied” hibával nem tud feltölteni.</small>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Gyakori telepítési hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>„Permission denied: /dev/ttyACM0”</b> – nem vagy a <code>dialout</code> csoportban, vagy nem jelentkeztél ki és be. Ellenőrzés: <code>groups</code>.</li>
+    <li><b>Nincs port a listában</b> – rossz (csak töltésre jó) USB-kábel, vagy kilazult a csatlakozó. Próbálj másik kábelt és portot; <code>dmesg | tail</code> megmutatja, felismerte-e a gép.</li>
+    <li><b>Az AppImage nem indul</b> – egyes újabb disztribúciókon hiányzik a <code>libfuse2</code> csomag, vagy a sandbox tiltja: telepítsd a <code>libfuse2</code>-t (Ubuntu 24.04-en <code>libfuse2t64</code>), vagy használd a Flatpak változatot.</li>
+  </ul>
+</div>
+
+<div class="box tip">
+  <span class="box-title">Kiegészítés – parancssorból</span>
+  Aki a terminált szereti, az <b>arduino-cli</b> paranccsal is fordíthat és tölthet fel:
+  <code>arduino-cli compile --fqbn arduino:avr:mega sketch</code> és <code>arduino-cli upload -p /dev/ttyACM0 --fqbn arduino:avr:mega sketch</code>.
+  A témakör sketchjei így is működnek.
+</div>
+
+<!-- ---------- 0.5 c -->
+<h3 id="s05-c">3. lépés: az első program – Blink</h3>
+
+<div class="box example">
+  <span class="box-title">Kiinduló eset – a beépített LED villogtatása</span>
+  Az IDE-ben: <b>Fájl → Példák → 01.Basics → Blink</b>. A lényeg néhány sor:
+<pre><code>void setup() {
+  pinMode(LED_BUILTIN, OUTPUT);     // a 13-as láb kimenet lesz
+}
+
+void loop() {
+  digitalWrite(LED_BUILTIN, HIGH);  // a láb 5 V-ra kapcsol: a LED világít
+  delay(1000);                      // vár 1000 ms = 1 s-ot
+  digitalWrite(LED_BUILTIN, LOW);   // a láb 0 V-ra kapcsol: a LED kialszik
+  delay(1000);                      // vár 1 s-ot
+}</code></pre>
+  Kattints a <b>Feltöltés</b> (→) gombra. Néhány másodperc múlva az „L” LED másodpercenként felvillan és kialszik: egy teljes ciklus (be + ki) <b>2 másodperc</b>.
+</div>
+
+<div class="box def">
+  <span class="box-title">A sketch szerkezete</span>
+  <ul style="margin:.2rem 0">
+    <li><code>setup()</code> – egyszer fut le, bekapcsoláskor vagy RESET után: itt állítjuk be a lábakat (<code>pinMode</code>), a soros kapcsolatot stb.</li>
+    <li><code>loop()</code> – utána újra és újra lefut, a végtelenségig.</li>
+    <li><code>digitalWrite(láb, HIGH / LOW)</code> – a kimenet 5 V-ra vagy 0 V-ra kapcsol. <code>delay(ms)</code> – vár ennyi ezredmásodpercet.</li>
+  </ul>
+  Ha a LED $t_\text{be}$ ideig világít és $t_\text{ki}$ ideig nem, akkor a <b>periódusidő</b> $T = t_\text{be} + t_\text{ki}$, a villogás <b>frekvenciája</b> $f = 1/T$ (Hz = 1/s), a <b>kitöltési tényező</b> pedig $t_\text{be}/T$.
+  <small>A C++ nyelvet nem tanuljuk külön. A sketcheket mindig soronként magyarázzuk, a későbbiekben csak az újat.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa 1 – gyorsabban</span>
+    Mindkét <code>delay</code>-t 250-re írod át. Mi lesz a periódusidő és a frekvencia?
+    <details><summary>Megoldás</summary>$T = 0{,}25 + 0{,}25 = 0{,}5\,\text{s}$, $f = 1/0{,}5 = 2\,\text{Hz}$: másodpercenként kétszer villan.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa 2 – rövid villanás</span>
+    Bekapcsolva 100 ms, kikapcsolva 900 ms. Mennyi a frekvencia és a kitöltési tényező?
+    <details><summary>Megoldás</summary>$T = 1\,\text{s}$, $f = 1\,\text{Hz}$, kitöltés $0{,}1 / 1 = 10\%$ – egy rövid felvillanás másodpercenként, mint egy jelzőfény.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Rossz alaplap vagy port</b> az Eszközök menüben: a feltöltés hibával áll le („programmer is not responding”). Ellenőrizd mindkettőt.</li>
+    <li><b>Pontosvessző, kapcsos zárójel</b> hiányzik: a fordító piros hibaüzenettel áll meg, és megmutatja a sort.</li>
+    <li><b>Forráshiba (KIT, 1. lecke):</b> a kit mintakódjában a <code>digitalWrite(ledPin, LOW)</code> melletti komment azt írja, hogy a láb „kb. 5 V”-ra áll. Helyesen: <b>LOW = 0 V</b> (GND).</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – Blink</summary>
+  <ol>
+    <li>Mennyi az eredeti Blink frekvenciája?
+      <details><summary>Megoldás</summary>$T = 1 + 1 = 2\,\text{s}$, $f = 0{,}5\,\text{Hz}$.</details></li>
+    <li>Bekapcsolva 500 ms, kikapcsolva 1500 ms. Periódusidő, frekvencia, kitöltés?
+      <details><summary>Megoldás</summary>$T = 2\,\text{s}$, $f = 0{,}5\,\text{Hz}$, kitöltés $0{,}5/2 = 25\%$.</details></li>
+    <li>Milyen <code>delay</code> értékekkel villog a LED 5 Hz-cel, 50%-os kitöltéssel?
+      <details><summary>Megoldás</summary>$T = 1/5 = 0{,}2\,\text{s} = 200\,\text{ms}$, fele-fele: <code>delay(100)</code> mindkét helyen.</details></li>
+    <li>Mi történik, ha a <code>pinMode(LED_BUILTIN, OUTPUT);</code> sort kitörlöd?
+      <details><summary>Megoldás</summary>A láb bemenet marad; a <code>digitalWrite(…, HIGH)</code> ilyenkor csak a belső felhúzó ellenállást kapcsolja be (KIT 1. lecke). A LED legfeljebb nagyon halványan pislákol.</details></li>
+  </ol>
+</details>
+
+<!-- ---------- 0.5 d -->
+<h3 id="s05-d">4. lépés: soros monitor és soros plotter</h3>
+<p>Az Arduino a USB-kábelen át szöveget is tud küldeni a gépnek. Ez lesz a mérőműszerünk kijelzője: a <b>soros monitor</b> szövegként, a <b>soros plotter</b> görbeként mutatja a küldött számokat.</p>
+
+<div class="box def">
+  <span class="box-title">Soros kommunikáció röviden (KIT 5. lecke)</span>
+  <ul style="margin:.2rem 0">
+    <li><code>Serial.begin(115200);</code> a <code>setup()</code>-ban: elindítja a kapcsolatot 115200 baud (bit/s) sebességgel.</li>
+    <li><code>Serial.print(x);</code> kiír, <code>Serial.println(x);</code> kiír és új sort kezd.</li>
+    <li>A soros monitorban (Eszközök → Soros monitor) <b>ugyanazt a baudot</b> kell beállítani, mint a programban.</li>
+    <li>A soros plotter a soronként küldött számokat rajzolja. Több görbe: <code>név1:érték1,név2:érték2</code> egy sorban (így használtuk az 1. fejezet elektroszkópjában).</li>
+  </ul>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa – „Helló” és egy számláló</span>
+<pre><code>int n = 0;
+
+void setup() {
+  Serial.begin(115200);
+  Serial.println("Hello, itt az Arduino!");
+}
+
+void loop() {
+  Serial.print("szamlalo:");   // a plotter jelmagyarázata
+  Serial.println(n);
+  n = n + 1;
+  delay(500);
+}</code></pre>
+  A soros monitorban fél másodpercenként megjelenik egy sor (<code>szamlalo:0</code>, <code>szamlalo:1</code>, …), a plotterben egy emelkedő egyenes.
+  A letölthető változat a Blinket is tartalmazza: <a href="../sketches/00_hello/00_hello.ino" download><code>00_hello.ino</code></a>.
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Buktató – zagyva karakterek</span>
+  Ha a soros monitorban értelmetlen jeleket látsz (pl. <code>⸮⸮x⸮</code>), a baud a monitorban nem egyezik a programéval. Állítsd a monitor jobb alsó sarkában 115200-ra.
+  Ékezetes betűk helyett a kódban inkább ékezet nélkül írj, ha a monitor rosszul jeleníti meg őket.
+</div>
+
+<div class="box lab" id="l03">
+  <span class="box-title">🔧 L0.3 – Az első sketch</span>
+  <p><b>1. Cél.</b> Programot feltölteni, a villogás ütemét megváltoztatni, és szöveget küldeni a gépre.</p>
+  <p><b>2. Eszközök.</b> Arduino MEGA 2560 · USB-kábel (54.) · számítógép az Arduino IDE-vel.</p>
+  <p><b>3. Jóslat.</b> Számold ki előre: a <code>delay(100)</code> / <code>delay(900)</code> beállításnál hányszor villan a LED egy perc alatt?</p>
+  <p><b>4. Lépések.</b></p>
+  <ol>
+    <li>Töltsd fel a <code>Blink</code> példát; ellenőrizd, hogy az „L” LED másodpercenként vált.</li>
+    <li>Írd át a késleltetéseket 100 / 900 ms-ra, töltsd fel újra, és számold meg egy perc alatt a villanásokat (stopperrel).</li>
+    <li>Töltsd fel a <code>00_hello.ino</code>-t; nyisd meg a soros monitort (115200 baud), aztán a soros plottert.</li>
+    <li>Nyomd meg a RESET gombot: mit látsz a monitorban?</li>
+  </ol>
+  <p><b>5. Mérési napló.</b></p>
+  <div class="lab-log" data-lab="el0-L03"
+       data-cols="Jóslat|Megfigyelés"
+       data-compare="0,1"
+       data-rows="Villanások száma 1 perc alatt (100/900 ms)|Számláló értéke 30 s után|RESET után az első sor"></div>
+  <p><b>6. Mi történt?</b> 100/900 ms-nál percenként 60 villanás. A számláló fél másodpercenként lép, így 30 s után kb. 60-nál tart. RESET-kor a program elölről indul: a monitorban újra megjelenik a köszönés, és a számláló 0-ról kezd.</p>
+  <p><b>7. Ha nem működik.</b> Lásd a telepítési hibákat fent; a feltöltés közben a soros monitor lehet nyitva, de ha egy másik program (pl. egy másik IDE-ablak) foglalja a portot, a feltöltés sikertelen.</p>
+</div>
+</section>
