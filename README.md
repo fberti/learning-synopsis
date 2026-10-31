@@ -14,7 +14,8 @@ synopsis/
 │   ├── quiz.js                     ← általános kvízmotor
 │   ├── calc.js                     ← analízis: képletértelmező (eval nélkül) és függvényrajzoló
 │   ├── graph.js                    ← gráfok: elrendezés, statikus SVG-ábrák (.gfig), szerkeszthető canvas-nézet (GraphKit.View)
-│   └── ml.js                       ← MI: magolt véletlen, 2D adatkészletek, aktivációk, MLP visszaterjesztéssel (SGD, momentum, RMSProp, Adam; L2, dropout)
+│   ├── ml.js                       ← MI: magolt véletlen, 2D adatkészletek, aktivációk, MLP visszaterjesztéssel (SGD, momentum, RMSProp, Adam; L2, dropout)
+│   └── lab.js                      ← mérési napló a laborokhoz (kitölthető táblázat, a böngészőben mentve; eltérés %-ban)
 ├── valoszinusegszamitas/
 │   ├── index.html                  ← a témakör fejezetlistája
 │   ├── 01-esemenyek-es-valoszinuseg/
@@ -48,6 +49,11 @@ synopsis/
 │   ├── 03-graftipusok/             ← index.html, widgets.js (graph.js), quizzes.js; az arvizhet-data.js események, hivatkozások, előjeles viszonyok, hármasok bővítést kapott
 │   ├── 04-grafok-es-matrixok/      ← index.html, widgets.js (graph.js; saját Jacobi-sajátérték-számítás), quizzes.js; a karateklubot az MI 13. fejezet graph-data.js-éből tölti
 │   └── 05-centralitas/            ← index.html, widgets.js (graph.js; Brandes-köztesség, PageRank, HITS), quizzes.js, polblogs-data.js (Adamic–Glance, előre számolva)
+├── elektronika/
+│   ├── index.html                  ← a témakör fejezetlistája
+│   ├── TERV.md                     ← a 26 fejezet (0–25) részletes kidolgozási terve
+│   ├── sketches/                   ← a laborok Arduino-sketchei (NN_nev/NN_nev.ino)
+│   └── 01-toltes-es-mezo/          ← index.html, widgets.js, quizzes.js
 └── mesterseges-intelligencia/
     ├── index.html                  ← a témakör fejezetlistája és tanulási útvonalai
     ├── TERV.md                     ← a 24 fejezet részletes kidolgozási terve
