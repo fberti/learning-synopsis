@@ -528,7 +528,7 @@ gráfon; motívumok röviden.
 - `weak-ties` – élsúlyok + hídélek kiemelése; a hídél törlése szétszakítja a komponenst.
 
 ### Kvízek
-`gh6-61` … `gh6-65`, `gh6-final`.
+`gh6-61` … `gh6-66` (a 6.6 alkalmazás külön kvízzel), `gh6-final`.
 
 ### Csapdák
 Átlagos és globális klaszterezettség különböző szám · a homofília és a társadalmi befolyás nem különíthető el

@@ -108,7 +108,8 @@
   /* ---------- statikus SVG-ábra ----------
      <div class="gfig" data-edges="A-B,B-C,C-C" data-pos="A:0,0 B:1,0 C:.5,1"
           data-layout="circle|force" data-w="260" data-h="180" data-color="A:--setA B:--setB"
-          data-weights="2,1,…" data-caption="…"></div>                                        */
+          data-weights="2,1,…" data-caption="…"></div>
+     data-hl="A-B,…": kiemelt élek (akcentusszín); data-dim-others: a többi él halvány                                           */
   function svgFigure(root) {
     const g = parseEdges(root.dataset.edges);
     if (root.dataset.nodes) root.dataset.nodes.split(/[,\s]+/).filter(Boolean).forEach(l => { if (!g.labels.includes(l)) g.labels.push(l); });
@@ -133,6 +134,9 @@
     const wts = (root.dataset.weights || "").split(",").filter(Boolean).map(Number);
     const signs = (root.dataset.signs || "").split(",").map(t => t.trim());   // „+”, „-” élenként (előjeles gráf)
     const directed = root.dataset.directed != null;                        // irányított: az él a→b, nyíl b-nél
+    const hlSet = new Set((root.dataset.hl || "").split(",").map(t => t.trim()).filter(Boolean)
+      .map(t => { const [x, y] = t.split(/[->]/).filter(Boolean); return edgeKey(g.labels.indexOf(x), g.labels.indexOf(y)); }));
+    const dimAll = root.dataset.dimOthers != null;                         // data-hl mellett: a többi él halvány
     const r = +root.dataset.r || 13;
     const NS = "http://www.w3.org/2000/svg";
     const svg = document.createElementNS(NS, "svg");
@@ -153,7 +157,8 @@
       const k = (seen[key] = (seen[key] || 0) + 1) - 1;
       const [x1, y1] = P[a], [x2, y2] = P[b];
       const off = (k - (cnt - 1) / 2) * 16;                    // többszörös él: ívek
-      const sg = signs[ei], cls = "ge" + (sg === "+" ? " pos" : sg === "-" ? " neg" : "");
+      const sg = signs[ei], cls = "ge" + (sg === "+" ? " pos" : sg === "-" ? " neg" : "") +
+        (hlSet.has(key) ? " hl" : dimAll && hlSet.size ? " dim" : "");
       let tx = x2 - x1, ty = y2 - y1;                           // a végpontbeli érintő (a nyílhoz)
       if (off === 0) el("line", { x1, y1, x2, y2, class: cls, "stroke-width": sw });
       else {

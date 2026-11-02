@@ -48,7 +48,8 @@ synopsis/
 │   ├── 02-setak-utak-fak/          ← index.html, widgets.js (graph.js), quizzes.js
 │   ├── 03-graftipusok/             ← index.html, widgets.js (graph.js), quizzes.js; az arvizhet-data.js események, hivatkozások, előjeles viszonyok, hármasok bővítést kapott
 │   ├── 04-grafok-es-matrixok/      ← index.html, widgets.js (graph.js; saját Jacobi-sajátérték-számítás), quizzes.js; a karateklubot az MI 13. fejezet graph-data.js-éből tölti
-│   └── 05-centralitas/            ← index.html, widgets.js (graph.js; Brandes-köztesség, PageRank, HITS), quizzes.js, polblogs-data.js (Adamic–Glance, előre számolva)
+│   ├── 05-centralitas/            ← index.html, widgets.js (graph.js; Brandes-köztesség, PageRank, HITS), quizzes.js, polblogs-data.js (Adamic–Glance, előre számolva)
+│   └── 06-helyi-szerkezet/        ← index.html, widgets.js (graph.js; klaszterezettség, asszortativitás, átfedés, előjeles egyensúly, nullmodellek), quizzes.js, karate-weights.js (Zachary-élsúlyok)
 ├── elektronika/
 │   ├── index.html                  ← a témakör fejezetlistája
 │   ├── TERV.md                     ← a 26 fejezet (0–25) részletes kidolgozási terve
