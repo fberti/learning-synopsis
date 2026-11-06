@@ -40,7 +40,8 @@ synopsis/
 ├── analizis/
 │   ├── index.html                  ← a témakör fejezetlistája
 │   ├── TERV.md                     ← a 11 fejezet részletes kidolgozási terve
-│   └── 01-fuggvenyek-es-modellek/  ← index.html, widgets.js (a calc.js-re épül), quizzes.js
+│   ├── 01-fuggvenyek-es-modellek/  ← index.html, widgets.js (a calc.js-re épül), quizzes.js
+│   └── 02-szamsorozatok-es-sorok/  ← index.html, widgets.js (a calc.js-re épül), quizzes.js
 ├── grafelmelet-halozattudomany/
 │   ├── index.html                  ← a témakör fejezetlistája és tanulási útvonalai
 │   ├── TERV.md                     ← a 21 fejezet részletes kidolgozási terve

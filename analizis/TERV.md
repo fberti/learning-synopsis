@@ -135,6 +135,14 @@ CS 1–2, KM 1, AC 1, RY 4–6, KR 1.
 
 **Nagy kérdés:** *Ha évente nem egyszer, hanem havonta, naponta, másodpercenként írják jóvá a kamatot, végtelen gazdag leszek?* (Nem – de megszületik az $e$.)
 
+> **Megvalósítás (2026-11-06, `02-szamsorozatok-es-sorok/`):** a 2.6 (tágabb értelemben vett határérték) nem külön szakasz – a $\pm\infty$
+> és a divergencia a 2.3 4. lépésébe, a $\frac{\infty}{\infty}$ típusú racionális kifejezések a 2.4-be kerültek, mert a polinom/polinom
+> szabályhoz már kell a $\pm\infty$. Így 7 szakasz lett: 2.1 sorozat, megadás, számtani/mértani · 2.2 monotonitás, korlátosság ·
+> 2.3 konvergencia (ε–N, küszöbindex, divergencia) · 2.4 határérték-számolás (műveletek, polinom/polinom, gyöktelenítés, rendőrelv,
+> mozgólépcső + fixpont) · 2.5 nevezetes határértékek és $e$ · 2.6 végtelen sorok · 2.7 alkalmazás: pénzügyi számítások.
+> Kvízek: `an2-21` … `an2-27`, `an2-final`. Widgetek: `sequence-plot`, `epsilon-band`, `cobweb`, `growth-race`, `e-limit`, `series-sum`,
+> `annuity-calc`. Az `assets/calc.js` képletértelmezője `fact(n)`-nel bővült.
+
 ### Felépítés
 1. **2.1 Sorozat fogalma, megadása** ★ – mint $\mathbb N$-en értelmezett függvény; explicit és rekurzív megadás; számtani és mértani sorozat ismétlése (CS 3.1, BME-S, MAT1-2 – rádium felezési ideje mint motiváció).
 2. **2.2 Tulajdonságok** ★ – korlátosság, monotonitás, infimum/szuprémum (CS 3.2, PT1 I.).

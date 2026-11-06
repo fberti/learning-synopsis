@@ -19,7 +19,8 @@
   const FUNCS = {
     sin: Math.sin, cos: Math.cos, tan: Math.tan, tg: Math.tan, exp: Math.exp,
     ln: Math.log, lg: Math.log10, log: Math.log10, log2: Math.log2,
-    sqrt: Math.sqrt, cbrt: Math.cbrt, abs: Math.abs, sgn: Math.sign
+    sqrt: Math.sqrt, cbrt: Math.cbrt, abs: Math.abs, sgn: Math.sign,
+    fact: x => { const k = Math.round(x); if (x < 0 || Math.abs(x - k) > 1e-9 || k > 170) return NaN; let r = 1; for (let i = 2; i <= k; i++) r *= i; return r; }
   };
   const CONSTS = { pi: Math.PI, e: Math.E };
 
