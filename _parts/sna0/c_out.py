@@ -1,0 +1,16 @@
+import numpy as np, pandas as pd, networkx as nx
+from sna_utils import load_project, check_matrix, to_networkx
+p = load_project("Padgett_FlorentineFamilies"); print(p)
+print(check_matrix(p.networks["Marriage"]))
+k = load_project("Knecht_Class12b"); print(k); print(check_matrix(k.networks["FriendshipT3"]))
+M = k.networks["FriendshipT3"]; print("9:", int((M==9).sum().sum()), "10:", int((M==10).sum().sum()), "1:", int((M==1).sum().sum()))
+G = to_networkx(M); print("naiv él:", G.number_of_edges(), "ebből 9/10 súlyú:", sum(1 for *_, w in G.edges(data="weight") if w >= 9))
+w = load_project("Wolfe_Primates"); print(check_matrix(w.networks["Kinship"])); print(w.network_info)
+Gk = to_networkx(w.networks["Kinship"]); print(type(Gk).__name__, Gk.number_of_edges())
+Gk2 = to_networkx(w.networks["Kinship"], directed=False); print(type(Gk2).__name__, Gk2.number_of_edges())
+r = load_project("Rehnquist_SupremeCourt"); print(check_matrix(r.networks["Votes"]))
+try: to_networkx(r.networks["Votes"])
+except ValueError as e: print("ValueError:", e)
+d = load_project("Davis_SouthernWomen"); print(check_matrix(d.networks["Attendance"]), int(d.networks["Attendance"].to_numpy().sum()))
+z = load_project("Zachary_KarateClub"); print(check_matrix(z.networks["Strength"]), int(z.networks["Strength"].to_numpy().sum()), int((z.networks["Strength"].to_numpy()>0).sum()))
+kr = load_project("Krackhardt_HighTech"); print(check_matrix(kr.networks["Advice"]), int(kr.networks["Advice"].to_numpy().sum()))

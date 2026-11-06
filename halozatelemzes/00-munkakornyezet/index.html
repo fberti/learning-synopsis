@@ -1,0 +1,1842 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>0. Munkakörnyezet és adatok – Hálózatelemzés – Synopsis</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="../../assets/common.js"></script>
+  <script defer src="../../assets/quiz.js"></script>
+  <script defer src="widgets.js"></script>
+  <script defer src="quizzes.js"></script>
+</head>
+<body>
+<div class="progressbar"></div>
+<header class="topbar">
+  <a class="brand" href="../../">📚 Synopsis</a>
+  <span class="crumbs"><a href="../../">Tartalomjegyzék</a> › <a href="../">Hálózatelemzés</a> › 0. fejezet</span>
+  <button class="icon-btn" data-theme-toggle title="Téma váltása">🌙</button>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <div class="toc-title">0. fejezet</div>
+  <ol>
+    <li><a href="#s01">0.1 Projekt és Python-környezet</a></li>
+    <li><a href="#s02">0.2 Jegyzetfüzet: Jupyter vagy marimo</a></li>
+    <li><a href="#s03">0.3 Hálózati adat CSV-ben</a></li>
+    <li><a href="#s04">0.4 A könyv adatkészletei Pythonban</a></li>
+    <li><a href="#s05">0.5 R – csak ahol muszáj</a></li>
+    <li><a href="#s06">0.6 A saját segédmodul</a></li>
+    <li><a href="#s07">0.7 Alkalmazás: a Medici-szám</a></li>
+    <li><a href="#s-sum">Összefoglalás</a></li>
+    <li><a href="#s-check">Ellenőrző kérdések</a></li>
+    <li><a href="#s-ex">Vegyes gyakorló feladatok</a></li>
+    <li><a href="#s-final">Fejezetzáró teszt</a></li>
+    <li><a href="#s-gloss">Szómagyarázó</a></li>
+  </ol>
+</nav>
+
+<main class="content">
+
+<section class="hero" style="padding-top:.5rem">
+  <div class="kicker">Hálózatelemzés · 0. fejezet · ★ · előkészítő</div>
+  <h1>Munkakörnyezet és adatok</h1>
+  <p class="lead">Mielőtt hálózatokat elemeznénk, berendezzük a műhelyt. Ebben a fejezetben felépítünk egy <b>reprodukálható Python-projektet</b>,
+  megtanuljuk, hogyan néz ki a hálózati adat egy CSV-fájlban, betöltjük a tankönyv (<b>ASNR</b>) összes adatát
+  (26 adatkészlet és a könyv ábráinak adatai) <b>R nélkül</b>, és megírjuk a saját segédmodulunk első három függvényét. Az R-t csak ott telepítjük, ahol tényleg nincs más
+  út. A fejezet végére a könyv egyik kinyomtatott eredményét Pythonban, a tizedesjegyig pontosan visszakapod.</p>
+</section>
+
+<div class="box tip">
+  <span class="box-title">Mit fogsz megtanulni?</span>
+  <ul style="margin:.2rem 0">
+    <li>miért kell <b>projektenként külön környezet</b>, és hogyan kezeld <code>uv</code>-vel (<code>init</code>, <code>add</code>, <code>run</code>, <code>sync</code>);</li>
+    <li>mi a különbség a <b>Jupyter</b> és a <b>marimo</b> jegyzetfüzet között, és miért hazudhat egy Jupyter-füzet;</li>
+    <li>hogyan olvass ki egy <b>szomszédsági mátrixot</b>, <b>élistát</b> és <b>attribútumtáblát</b> egy CSV-ből, és mit veszíthetsz el közben;</li>
+    <li>honnan és hogyan jutnak el a könyv <b>adatkészletei</b> a Python-projektedbe, és milyen hibák vannak bennük;</li>
+    <li>mikor kell <b>R</b> (ERGM, SAOM), és hogyan telepítsd fájdalommentesen;</li>
+    <li>hogyan épül fel a kurzus saját segédmodulja, a <code>sna_utils</code>, és hogyan lesznek a könyv számaiból <b>tesztek</b>.</li>
+  </ul>
+</div>
+
+<div class="box">
+  <span class="box-title">🔁 Amit használni fogunk</span>
+  Hálózatelméleti előismeret nem kell. Kell egy kevés <b>parancssor</b> (<code>cd</code>, <code>ls</code>, egy parancs futtatása) és
+  <b>Python-alap</b> (változó, lista, szótár, függvény, <code>import</code>). A szomszédsági mátrixot itt még csak <em>táblázatként</em> kezeljük;
+  a matematikáját a <a href="#s03">0.3</a> csak érinti, a 2. lecke részletezi. A parancsok <b>Linuxra</b> (Ubuntu 24.04) vonatkoznak;
+  macOS-en ugyanígy, Windowson WSL-ben működnek.
+</div>
+
+<div class="box example">
+  <span class="box-title">🎯 A fejezet kérdése</span>
+  Az ASNR 9.3.4. szakasza szerint a firenzei családok házassági hálójában a <b>Medici</b> család (normalizált) közelségi centralitása
+  <b>0,484</b>. Ha ugyanezt a <code>networkx</code> beépített adatán számolod ki
+  (<code>nx.closeness_centrality(nx.florentine_families_graph())["Medici"]</code>), <b>0,56</b> jön ki.
+  <b>Melyik a jó, és hogyan kapod meg Pythonban pontosan a könyv számát?</b> A választ a <a href="#s07">0.7</a> adja meg.
+  Addigra az összes eszköz a kezedben lesz hozzá.
+</div>
+
+<p><b>Útiterv</b>, lépésről lépésre:</p>
+<ol>
+  <li><a href="#s01">Projekt és Python-környezet</a>: miért ad ugyanaz a kód két gépen két számot, és hogyan előzd meg <code>uv</code>-vel.</li>
+  <li><a href="#s02">Jegyzetfüzet</a>: a Jupyter rejtett állapota és a marimo reaktív füzete.</li>
+  <li><a href="#s03">Hálózati adat CSV-ben</a>: mátrix, élista, attribútumtábla; mit árul el egy mátrix, és mit veszít el egy élista.</li>
+  <li><a href="#s04">A könyv adatkészletei Pythonban</a>: a könyv csomagja, az adatprojekt szerkezete, export R nélkül, és a metaadatok hibái.</li>
+  <li><a href="#s05">R, csak ahol muszáj</a>: telepítés, ellenőrző export, <code>statnet</code> és <code>RSiena</code> a 16. leckéhez.</li>
+  <li><a href="#s06">A saját segédmodul</a>: <code>load_project</code>, <code>check_matrix</code>, <code>to_networkx</code> és tesztek a könyv számaiból.</li>
+  <li><a href="#s07">Alkalmazás: a Medici-szám</a>: a teljes út az üres mappától a könyv eredményéig.</li>
+</ol>
+
+<div class="box tip">
+  <span class="box-title">Források és eltérés a kurzustervtől</span>
+  <p style="margin:.2rem 0">Az adatkezelés az <b>ASNR</b> 1. és 5. fejezetére épül (adatformátumok, az <code>xUCINET</code> adatprojektje). A könyv
+  csomagjának telepítési útmutatója a könyv weboldaláról származik, a Medici-szám az ASNR 9.3.4-ből. A <code>uv</code> és a <code>marimo</code> használata
+  a dokumentációjukat követi. <b>Kiegészítés</b>, vagyis a könyvben nincs benne: az R nélküli export, a <code>sna_utils</code>, a csomagtérkép és
+  a metaadat-hibák listája. Ezeket mind kipróbáltuk: a parancsok és a kódok lefutottak, a kiírt számok valódi kimenetek.</p>
+  <p style="margin:.4rem 0 .2rem">A kurzustervhez képest négy dolgot másként csinálunk, mert a kipróbálás során jobb utat találtunk:</p>
+  <ol style="margin:.2rem 0">
+    <li>A CSV-exporthoz <b>nem kell R</b>: a Python <code>rdata</code> csomagja közvetlenül olvassa a könyv adatfájljait. Az R-es exportot csak
+        ellenőrzésre futtatjuk le, és a két export cellára egyezik.</li>
+    <li>A segédmodul nem egyetlen <code>sna_utils.py</code> fájl, hanem egy <code>sna_utils/</code> <b>mappa</b> (csomag), mert így minden almappából importálható.</li>
+    <li>A kurzus <b>Python 3.12</b>-t használ (lásd <a href="#s01-c">0.1, 3. lépés</a>).</li>
+    <li>A <code>netbone</code> nem kerülhet a fő környezetbe, mert régi <code>networkx</code>-et rögzít; <b>külön, eldobható környezetben</b> futtatjuk.</li>
+  </ol>
+</div>
+
+<div class="box">
+  <span class="box-title">📦 A kész kód</span>
+  A fejezet végére elkészülő projekt kiinduló fájljai a repóban vannak:
+  <a href="https://github.com/fberti/learning-synopsis/tree/main/halozatelemzes/kod/sna-kurzus"><code>halozatelemzes/kod/sna-kurzus/</code></a>.
+  Ha elakadsz, onnan átmásolhatod őket. Javasoljuk viszont, hogy a lépéseket egyszer kézzel is végigcsináld: a 0. fejezet lényege
+  éppen az, hogy <em>értsd</em>, mi van a mappádban és miért.
+</div>
+
+<!-- ===================================================== 0.1 -->
+<section id="s01">
+<h2>0.1 Projekt és Python-környezet <small class="muted">★</small></h2>
+<p>A hálózatelemzés eredménye egy <b>szám</b> (egy centralitás, egy modularitás, egy QAP-féle $p$-érték). Egy számot csak akkor lehet
+ellenőrizni, ha valaki más, más gépen, más napon ugyanazt kapja. Ebben a részben ehhez rendezzük be a környezetet.</p>
+
+<p><b>Útiterv</b>:</p>
+<ol>
+  <li><a href="#s01-a">Miért kell projektkörnyezet?</a> Ugyanaz a kód, két szám.</li>
+  <li><a href="#s01-b">A <code>uv</code> öt parancsa</a>: projekt, csomag, futtatás, szinkron.</li>
+  <li><a href="#s01-c">Melyik Python, melyik csomag?</a> A kurzus csomagtérképe.</li>
+</ol>
+
+<!-- ---------- 0.1 a -->
+<h3 id="s01-a">1. lépés: miért kell projektkörnyezet?</h3>
+
+<div class="box example">
+  <span class="box-title">Kiinduló eset: ugyanaz a három sor, két szám</span>
+  <p>Két hallgató ugyanazt a kódot futtatja a karateklub hálóján (34 tag, 78 barátság):</p>
+<pre><code>import networkx as nx
+G = nx.karate_club_graph()
+print(nx.to_numpy_array(G).sum())</code></pre>
+  <div class="two-col">
+    <div><b>Anna gépe</b> (<code>networkx 2.6.3</code>, egy régi globális telepítés):<br><code>156.0</code></div>
+    <div><b>Bence gépe</b> (<code>networkx 2.7</code> vagy újabb):<br><code>462.0</code></div>
+  </div>
+  <p style="margin-bottom:0">Egyikük sem rontott el semmit. A <code>networkx</code> 2.7-es verziója óta a beépített karateklub éleinek
+  <b>súlya</b> is van (Zachary eredeti adatai: hány közös helyzetben találkoztak). A mátrix így nem 0/1-es, és az összege $2 \cdot 231 = 462$, nem
+  $2 \cdot 78 = 156$. Ugyanaz a kód más <em>adatot</em> kapott, mert más volt a csomag verziója.</p>
+</div>
+
+<div class="box def">
+  <span class="box-title">Projektkörnyezet</span>
+  <p>A <b>projektkörnyezet</b> (virtuális környezet) egy projekthez tartozó saját Python-telepítés a saját csomagjaival. A projekt mappájában
+  három fájl írja le teljesen:</p>
+  <ul style="margin:.2rem 0">
+    <li><code>pyproject.toml</code>: <b>mit</b> kérsz (pl. <code>networkx&gt;=3.7</code>), ezt te szerkeszted;</li>
+    <li><code>uv.lock</code>: <b>pontosan mit kaptál</b> (minden csomag pontos verziója, a függőségek függőségei is), ezt a gép írja;</li>
+    <li><code>.python-version</code>: melyik Python (pl. <code>3.12</code>).</li>
+  </ul>
+  <p style="margin-bottom:0"><b>Miért?</b> Ha a három fájl a projekttel együtt utazik (gitben), bárki, bármikor ugyanazt a környezetet állítja elő, így ugyanazt a
+  számot kapja. A környezet maga (a <code>.venv</code> mappa) nem utazik, mert a három fájlból bármikor újraépíthető.</p>
+</div>
+
+<div class="box tip">
+  <span class="box-title">Hüvelykujjszabály</span>
+  <b>Egy projekt = egy környezet = egy lock-fájl.</b> Globálisan (<code>sudo pip install …</code>) soha ne telepíts csomagot.
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa 1 – mi kerül gitbe?</span>
+  A projekt mappájában ez van: <code>pyproject.toml</code>, <code>uv.lock</code>, <code>.python-version</code>, <code>.venv/</code>, <code>sna_utils/</code>.
+  <details><summary>Megoldás</summary>Minden, kivéve a <code>.venv/</code> mappát. A <code>.venv</code> több száz megabájt, gépfüggő (benne vannak
+  a lefordított bináris fájlok), és a másik három fájlból egy paranccsal újraépül.</details>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa 2 – mit árul el a lock-fájl?</span>
+  Anna és Bence <code>pyproject.toml</code>-jában is ez áll: <code>networkx&gt;=2.5</code>. Miért kaphattak mégis más verziót?
+  <details><summary>Megoldás</summary>A <code>&gt;=2.5</code> csak alsó korlát: a 2.6.3 és a 3.7 is kielégíti. Hogy pontosan melyiket kapod,
+  azt a <b>telepítés napja</b> dönti el. A <code>uv.lock</code> ezt rögzíti; ha Bence Anna lock-fájljából telepít, ő is 2.6.3-at kap.</details>
+</div>
+
+<div class="box warn">
+  <span class="box-title">Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>„Nálam működik.”</b> A globálisan telepített csomagok verzióját senki nem jegyzi fel. Ha egy eredményt nem lehet reprodukálni, előbb a környezetet
+        nézd meg, ne az algoritmust.</li>
+    <li><b>A lock-fájl kihagyása a gitből.</b> Enélkül a <code>pyproject.toml</code> csak egy kívánságlista.</li>
+    <li><b>Szám a régi, kód az új környezetből.</b> Ha frissítesz egy csomagot, a korábban kiírt számok érvényüket veszthetik. A tesztek
+        (<a href="#s06-d">0.6</a>) éppen ezt fogják ki.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – miért kell projektkörnyezet?</summary>
+  <ol>
+    <li>Melyik fájlt szerkeszted kézzel: a <code>pyproject.toml</code>-t vagy a <code>uv.lock</code>-ot?
+      <details><summary>Megoldás</summary>A <code>pyproject.toml</code>-t (vagy a <code>uv add</code> parancs szerkeszti helyetted). A <code>uv.lock</code>-ot a <code>uv</code> írja; kézzel ne nyúlj hozzá.</details></li>
+    <li>Anna gépén a karateklubra $156$, Bencéén $462$ jön ki. Hány barátság van a hálóban, és mennyi az élsúlyok összege?
+      <details><summary>Megoldás</summary>Egy irányítatlan háló mátrixában minden él kétszer szerepel ($i \to j$ és $j \to i$). Barátság: $156/2 = 78$; súlyösszeg: $462/2 = 231$.</details></li>
+    <li>Törölted a <code>.venv</code> mappát. Elveszett valami?
+      <details><summary>Megoldás</summary>Nem. A <code>uv sync</code> (vagy az első <code>uv run</code>) a lock-fájlból pontosan ugyanazt építi újra.</details></li>
+    <li>Egy cikk módszertani része szerint „az elemzés <code>networkx</code>-szel készült”. Miért kevés ez a reprodukáláshoz?
+      <details><summary>Megoldás</summary>Nincs verziószám: a karateklub példája mutatja, hogy két verzió ugyanarra a hívásra más adatot adhat. A jó módszertani rész megadja
+      a verziókat, vagy közzéteszi a lock-fájlt.</details></li>
+    <li>(nehezebb) Bence frissíti a csomagjait, és egy korábbi centralitás-rangsor megváltozik. Hogyan tudod kideríteni, hogy a frissítés okozta-e?
+      <details><summary>Megoldás</summary>A régi <code>uv.lock</code>-ot visszaveszed a gitből (pl. <code>git stash</code> vagy egy régi commit), <code>uv sync</code>, és újrafuttatod.
+      Ha így a régi rangsor jön vissza, a csomagfrissítés volt az ok. Utána a két lock-fájl különbségéből (<code>git diff uv.lock</code>) látod, melyik csomag változott.</details></li>
+  </ol>
+</details>
+
+<!-- ---------- 0.1 b -->
+<h3 id="s01-b">2. lépés: a <code>uv</code> öt parancsa</h3>
+
+<p>Eddig azt láttuk, <em>mit</em> kell rögzíteni. Most azt nézzük meg, mivel. A <b><code>uv</code></b> egy gyors Python-csomagkezelő: Pythont telepít,
+környezetet épít, csomagot ad hozzá és lock-fájlt ír, egyetlen programként. Telepítése (egyszer, a felhasználódnak):</p>
+<pre><code>curl -LsSf https://astral.sh/uv/install.sh | sh</code></pre>
+
+<div class="box example">
+  <span class="box-title">Kiinduló eset: az első projekt, parancsról parancsra</span>
+<pre><code>uv init sna-kurzus --python 3.12   # új mappa: pyproject.toml, .python-version, README.md, main.py
+cd sna-kurzus
+uv add networkx numpy scipy pandas matplotlib   # pyproject.toml + uv.lock + .venv
+uv run python -c "import networkx; print(networkx.__version__)"
+3.7</code></pre>
+  <p style="margin-bottom:0">Az <code>uv add</code> három dolgot csinál egyszerre: beírja a csomagot a <code>pyproject.toml</code>-ba, feloldja a függőségeket (ebből
+  lesz a <code>uv.lock</code>), és telepíti őket a <code>.venv</code>-be. Az <code>uv run</code> a projekt környezetében futtat, „aktiválás” nélkül.
+  (Ha a mappa még nincs git-tárban, az <code>uv init</code> egy <code>.git</code>-et és egy <code>.gitignore</code>-t is létrehoz.)</p>
+</div>
+
+<div class="box def">
+  <span class="box-title">A <code>uv</code> öt parancsa</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>Parancs</th><th>Mit csinál?</th><th>Mikor?</th></tr>
+    <tr><td><code>uv init név --python 3.12</code></td><td>új projekt (mappa + <code>pyproject.toml</code> + <code>.python-version</code>)</td><td>egyszer, a legelején</td></tr>
+    <tr><td><code>uv add csomag</code></td><td>csomag hozzáadása (pyproject + lock + telepítés)</td><td>ha új csomag kell</td></tr>
+    <tr><td><code>uv add --dev csomag</code></td><td>csak a fejlesztéshez kell (teszt, jegyzetfüzet)</td><td>pl. <code>pytest</code>, <code>marimo</code></td></tr>
+    <tr><td><code>uv run parancs</code></td><td>futtatás a projekt környezetében (előtte szükség esetén szinkronizál)</td><td>mindig, amikor futtatsz</td></tr>
+    <tr><td><code>uv sync</code></td><td>a <code>.venv</code>-t a lock-fájlhoz igazítja</td><td>klónozás után, <code>git pull</code> után</td></tr>
+  </table></div>
+  <p style="margin:.4rem 0 0">Két hasznos ráadás: az <code>uv run --with csomag …</code> <b>ideiglenesen</b> hozzátesz egy csomagot (a projektbe nem kerül be),
+  az <code>uv remove csomag</code> pedig kiveszi a csomagot.</p>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa 3 – a kolléga klónozta a repót</span>
+    Bence letölti Anna projektjét a GitHubról. Mi az első parancs?
+    <details><summary>Megoldás</summary><code>uv sync</code>: a lock-fájlból felépíti a környezetet, pontosan Anna verzióival. (Az első <code>uv run</code> ezt magától is megtenné.)</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa 4 – csak kipróbálnád</span>
+    Meg akarod nézni, hogyan rajzol a <code>pyvis</code>, de még nem tudod, kell-e a projektbe.
+    <details><summary>Megoldás</summary><code>uv run --with pyvis python proba.py</code>. A csomag egy ideiglenes környezetbe kerül, a <code>pyproject.toml</code> nem változik.</details>
+  </div>
+</div>
+
+<div class="box tip">
+  <span class="box-title">uv vagy conda?</span>
+  A kurzustervben mindkettő szerepel. A <b><code>uv</code></b> a gyorsabb és egyszerűbb, és a PyPI-n lévő csomagokhoz (a kurzus szinte mindegyike ilyen)
+  elég. A <b>conda</b> (conda-forge) egyetlen esetben kell: a <code>graph-tool</code>hoz, amely nem telepíthető pip-pel (lásd a következő lépést).
+  Erre a 12. és a 14. leckében, opcionálisan lesz szükség, külön környezetben.
+</div>
+
+<div class="box warn">
+  <span class="box-title">Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b><code>python proba.py</code> az <code>uv run</code> helyett.</b> Így a rendszer Pythonja fut, amelyben nincsenek meg a csomagjaid:
+        <code>ModuleNotFoundError: No module named 'networkx'</code>.</li>
+    <li><b><code>pip install</code> a projektben.</b> A csomag bekerül a <code>.venv</code>-be, de a <code>pyproject.toml</code>-ba és a lock-fájlba nem.
+        A következő <code>uv sync</code> el is távolítja. Mindig <code>uv add</code>-ot használj.</li>
+    <li><b>Rossz mappában futtatott parancs.</b> A <code>uv</code> a <code>pyproject.toml</code>-t a mappától fölfelé keresi. Más mappából indítva más
+        projekt környezetét használja, vagy egyiket sem.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a <code>uv</code> parancsai</summary>
+  <ol>
+    <li>A 11. leckében kelleni fog a <code>leidenalg</code>. Melyik paranccsal veszed fel?
+      <details><summary>Megoldás</summary><code>uv add leidenalg</code>. Bekerül a <code>pyproject.toml</code>-ba és a lock-fájlba, és telepítődik.</details></li>
+    <li>A <code>pytest</code>-re csak a tesztekhez van szükség, az elemzéshez nem. Hogyan veszed fel?
+      <details><summary>Megoldás</summary><code>uv add --dev pytest</code>. A <code>[dependency-groups]</code> <code>dev</code> csoportjába kerül.</details></li>
+    <li><code>git pull</code> után a kód egy új csomagot importál, és <code>ModuleNotFoundError</code>-t kapsz. Mi a teendő?
+      <details><summary>Megoldás</summary><code>uv sync</code> (vagy futtasd <code>uv run</code>-nal, az magától szinkronizál). A lock-fájl már tartalmazza az új csomagot, csak a te <code>.venv</code>-d régi.</details></li>
+    <li>Egyetlen ábrához kipróbálnád a <code>seaborn</code>-t. A projektbe nem akarod felvenni.
+      <details><summary>Megoldás</summary><code>uv run --with seaborn python abra.py</code>.</details></li>
+    <li>(nehezebb) Valaki <code>pip install python-louvain</code>-nal telepít egy csomagot a projekt <code>.venv</code>-jébe, és minden működik. Egy héttel
+        később, <code>uv sync</code> után eltűnik. Miért, és mi lett volna a helyes?
+      <details><summary>Megoldás</summary>A <code>uv sync</code> pontosan a lock-fájl tartalmát állítja elő, és mindent eltávolít, ami nincs benne. A pip-pel telepített csomag nem került a lock-fájlba.
+      Helyesen: <code>uv add python-louvain</code>.</details></li>
+  </ol>
+</details>
+
+<!-- ---------- 0.1 c -->
+<h3 id="s01-c">3. lépés: melyik Python, melyik csomag?</h3>
+
+<p>Eddig egy csomagot adtunk hozzá. A kurzus végére kb. harminc lesz. A kérdés most az, hogy ezek <b>együtt</b> is telepíthetők-e.
+A legtöbb csomag <b>kerékként</b> (<em>wheel</em>, előre lefordított fájlként) érkezik, és minden kerék adott Python-verzióhoz készül.
+Ha a te verziódhoz nincs kerék, a <code>uv</code> forrásból próbálja lefordítani a csomagot. Ez lassú, és gyakran elbukik.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló eset: három Python-verzió, ugyanaz a csomaglista</span>
+  <p>Ellenőriztük (<code>uv pip compile --only-binary :all:</code>), hogy a kurzus csomagjai együtt, csak kész kerekekből telepíthetők-e:</p>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>Python</th><th>A kurzus csomagjai együtt</th><th>Kivétel</th></tr>
+    <tr><td><b>3.12</b></td><td>✔ mind kész kerékből</td><td><code>netbone</code>, <code>rpy2</code>: csak forrásból, lásd lent</td></tr>
+    <tr><td>3.13</td><td>✔</td><td>a <code>netbone</code> egyáltalán nem telepíthető (a függősége, a <code>jaxlib 0.4.23</code> 3.12-ig készült)</td></tr>
+    <tr><td>3.14</td><td>✘</td><td>a <code>textnets</code>-nek nincs kereke, és a <code>netbone</code> sem megy</td></tr>
+  </table></div>
+  <p style="margin-bottom:0">Ezért a kurzus a <b>Python 3.12</b>-t használja. A biztonsági frissítései 2028 októberéig érkeznek, ez a kurzushoz bőven elég.</p>
+</div>
+
+<div class="box def">
+  <span class="box-title">A kurzus csomagtérképe</span>
+  <p style="margin-top:0">Nem kell mindent most telepíteni. <b>Akkor veszel fel egy csomagot, amikor az első lecke használja</b>; így a lock-fájl mindig azt tükrözi, amire
+  tényleg szükség van.</p>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>Lecke</th><th>Csomag(ok)</th><th>Megjegyzés</th></tr>
+    <tr><td>0</td><td><code>networkx numpy scipy pandas matplotlib rdata</code>; dev: <code>pytest marimo</code></td><td>most</td></tr>
+    <tr><td>4</td><td><code>krippendorff</code></td><td>kódolók közötti megbízhatóság</td></tr>
+    <tr><td>5</td><td><code>spacy huspacy</code></td><td>a magyar nyelvi modellt külön kell letölteni (5. lecke)</td></tr>
+    <tr><td>6</td><td><code>scikit-learn prince</code></td><td>MDS, korrespondenciaelemzés</td></tr>
+    <tr><td>7</td><td><code>pyvis</code></td><td>interaktív ábra</td></tr>
+    <tr><td>9–12</td><td><code>python-igraph leidenalg infomap cpnet</code></td><td>centralitás, közösségek, mag–periféria</td></tr>
+    <tr><td>13</td><td><code>netbone</code></td><td><b>csak külön környezetben</b>, lásd a buktatót</td></tr>
+    <tr><td>12, 14</td><td><code>graph-tool</code> (SBM), <code>networkit</code></td><td>a <code>graph-tool</code> <b>pip-pel nem telepíthető</b>: conda-forge vagy Docker; opcionális</td></tr>
+    <tr><td>15, 20</td><td><code>statsmodels pyinform</code></td><td>QAP-hoz saját kód; idősorok</td></tr>
+    <tr><td>16</td><td>R: <code>statnet RSiena</code></td><td>lásd <a href="#s05">0.5</a></td></tr>
+    <tr><td>18</td><td><code>gensim bertopic sentence-transformers anthropic</code></td><td>nagy csomagok (PyTorch is jön velük)</td></tr>
+    <tr><td>22, 24</td><td><code>textnets rdflib</code></td><td>szöveghálók, tudásgráfok</td></tr>
+  </table></div>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa 5 – kerék van, nincs fordítás</span>
+    A <code>leidenalg</code> C++ kódot tartalmaz. Python 3.12-n mégis pár másodperc alatt települ. Miért?
+    <details><summary>Megoldás</summary>Mert van hozzá <code>cp312</code>-es kerék: a C++ részt a fejlesztők előre lefordították. A <code>uv</code> csak letölti és kicsomagolja.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa 6 – nincs kerék</span>
+    A <code>textnets</code> kerekei <code>cp310</code>, <code>cp311</code>, <code>cp312</code> jelzésűek. Mi történik Python 3.14-en?
+    <details><summary>Megoldás</summary>A <code>uv</code> a forráscsomagot (<em>sdist</em>) próbálja lefordítani. Ehhez fordítóprogram és fejlécfájlok kellenek; ha hiányoznak, a telepítés elbukik.
+    Ha sikerül is, lassú. Ezért választunk olyan verziót, amelyhez minden csomagnak van kereke.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A <code>netbone</code> felveszi a fő környezetbe.</b> A <code>netbone 0.2.3</code> (az egyetlen kiadás, 2024) <b>pontos</b> régi verziókat rögzít:
+        <code>networkx==2.8.8</code>, <code>scipy==1.13.0</code>, <code>matplotlib==3.6.0</code>. Az <code>uv add netbone</code> ezért feloldhatatlan ütközéssel leáll.
+        Megoldás: külön, eldobható környezet, amely a projektet nem érinti (kipróbáltuk):<br>
+        <code>uv run --isolated --no-project --python 3.12 --with netbone python backbone.py</code><br>
+        Ilyenkor az adatot fájlon keresztül (CSV) adod át. A 13. leckében a legfontosabb szűrőt (<em>disparity filter</em>) saját kóddal is megírjuk.</li>
+    <li><b>A „legújabb Python” reflex.</b> A legújabb Python-verzióhoz gyakran még nincs minden csomagnak kereke. Előbb nézd meg a csomaglistát.</li>
+    <li><b><code>pip install graph-tool</code>.</b> A PyPI-n csak egy üres névfoglaló van, a telepítés hibával leáll. A <code>graph-tool</code> a conda-forge-ról vagy Dockerből telepíthető.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – Python-verzió és csomagok</summary>
+  <ol>
+    <li>Melyik fájlban látod, hogy a projekt melyik Pythont használja? Melyik paranccsal állítanád át?
+      <details><summary>Megoldás</summary>A <code>.python-version</code>-ben. Átállítás: <code>uv python pin 3.12</code>. (A <code>pyproject.toml</code> <code>requires-python</code> sora
+      azt mondja meg, milyen verziókkal kompatibilis a projekt.)</details></li>
+    <li>A 6. leckéhez kell a <code>scikit-learn</code> és a <code>prince</code>. Telepítsd most előre?
+      <details><summary>Megoldás</summary>Nem szükséges: akkor vedd fel (<code>uv add scikit-learn prince</code>), amikor a 6. leckéhez érsz. Így a lock-fájl mindig azt tükrözi, amit a kód tényleg használ.</details></li>
+    <li>Egy csomag kerekeinek a neve így végződik: <code>…-cp312-cp312-manylinux_2_17_x86_64.whl</code>. Mit jelent a <code>cp312</code> és a <code>manylinux…x86_64</code>?
+      <details><summary>Megoldás</summary><code>cp312</code>: CPython 3.12-höz készült; <code>manylinux…x86_64</code>: a legtöbb 64 bites Linuxon fut. Python 3.13-hoz vagy ARM-os géphez ez a kerék nem jó.</details></li>
+    <li>Miért nem jó megoldás, hogy a <code>netbone</code> kedvéért a fő környezetben visszalépsz a <code>networkx 2.8.8</code>-ra?
+      <details><summary>Megoldás</summary>Mert akkor az egész kurzus egy 2022-es <code>networkx</code>-szel futna: hiányoznának újabb függvények, és más lenne az alapértelmezett viselkedés (lásd a karateklubot).
+      Egyetlen lecke egyetlen függvénye miatt nem érdemes. Arra a külön környezet való.</details></li>
+    <li>(nehezebb) Az <code>uv add netbone</code> hibaüzenetének vége: „<em>…all versions of netbone depend on scipy==1.13.0. And because your project depends on netbone and scipy&gt;=1.18.1, we can conclude that your project's requirements are unsatisfiable.</em>”
+        Fogalmazd meg egy mondatban, mi a baj!
+      <details><summary>Megoldás</summary>A két követelménynek nincs közös megoldása: a <code>netbone</code> pontosan az 1.13.0-s <code>scipy</code>-t kéri, a projekt legalább 1.18.1-et, és egy környezetben egy csomagból csak egy verzió lehet.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="sna0-1"></div>
+</section>
+
+<!-- ===================================================== 0.2 -->
+<section id="s02">
+<h2>0.2 Jegyzetfüzet: Jupyter vagy marimo <small class="muted">★</small></h2>
+<p>A környezet most már rögzített. A hálózatelemzés nagy része mégis jegyzetfüzetben (<em>notebook</em>) zajlik, ahol kód, szám és ábra
+egymás alatt áll. Ez kényelmes, de van egy csapdája: a füzetben látott szám nem feltétlenül az, amit a füzet kódja ad.</p>
+
+<p><b>Útiterv</b>:</p>
+<ol>
+  <li><a href="#s02-a">A Jupyter rejtett állapota</a>: amikor a cellák sorrendje számít.</li>
+  <li><a href="#s02-b">A marimo reaktív füzete</a>: amikor a füzet maga gondoskodik a sorrendről.</li>
+</ol>
+
+<!-- ---------- 0.2 a -->
+<h3 id="s02-a">1. lépés: a Jupyter rejtett állapota</h3>
+
+<div class="box example">
+  <span class="box-title">Kiinduló eset: három cella</span>
+<pre><code>[A]  n = 16        # a firenzei családok száma
+[B]  n = n - 1     # a Pucci család nélkül
+[C]  print(n)</code></pre>
+  <p>Sorban futtatva (A, B, C) a kiírás <b>15</b>. Most futtasd újra a B-t, majd a C-t: a kiírás <b>14</b>. A füzetben ugyanaz a három cella
+  áll, egy olvasó 15-öt várna. A cellák bal oldalán viszont ott a nyom: <code>[1]</code>, <code>[4]</code>, <code>[5]</code>. Ezek a futtatások
+  sorszámai, és elárulják, hogy a B kétszer futott.</p>
+  <p style="margin-bottom:0">A Jupyter mögött egy <b>kernel</b> (futó Python-folyamat) áll, amely mindent megjegyez, amit valaha lefuttattál, abban a sorrendben, ahogy
+  futtattad. A változók értéke tehát a <b>futtatások történetén</b> múlik, nem a füzet szövegén.</p>
+</div>
+
+<div class="box def">
+  <span class="box-title">Rejtett állapot</span>
+  <p style="margin:0">Egy jegyzetfüzetnek <b>rejtett állapota</b> van, ha a változók értéke nem olvasható ki a cellák szövegéből, mert a futtatás sorrendjétől és
+  ismétléseitől is függ. A Jupyterben ez alapértelmezés. <b>Miért baj?</b> Mert a füzetben látott szám nem reprodukálható. A szerzője sem tudja
+  utólag megmondani, melyik sorrend adta.</p>
+</div>
+
+<div class="box tip">
+  <span class="box-title">Hüvelykujjszabály</span>
+  Mielőtt egy Jupyter-füzet számának hinnél: <b>Kernel → Restart Kernel and Run All Cells</b>. Ami ezután is kijön, azt a füzet szövege adja.
+</div>
+
+<div class="widget" data-widget="cell-order"></div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa 1 – kihagyott cella</span>
+    Sorrend: A, C, B, C. Mit írnak ki a C futásai?
+    <details><summary>Megoldás</summary>Először <b>16</b> (a B még nem futott), aztán <b>15</b>.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa 2 – rossz kezdés</span>
+    Újraindított kernel után rögtön a B-t futtatod. Mi történik?
+    <details><summary>Megoldás</summary><code>NameError: name 'n' is not defined</code>. Az <code>n</code>-et csak az A hozza létre.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Törölt cella, élő változó.</b> Ha egy cellát kitörölsz, az általa létrehozott változó a kernelben tovább él. A füzet „működik”, amíg újra nem indítod.</li>
+    <li><b>Önmagát módosító cella.</b> Az <code>n = n - 1</code> vagy a <code>df = df[df.x &gt; 0]</code> minden futtatással mást ad. Inkább adj új nevet: <code>m = n - 1</code>.</li>
+    <li><b>Rossz kernel.</b> Ha a Jupytert nem a projektből indítod (<code>uv run jupyter lab</code>), hanem egy globális telepítésből, akkor a projekt csomagjai helyett
+        más csomagokat lát: <code>ModuleNotFoundError: No module named 'sna_utils'</code>.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – futtatási sorrend</summary>
+  <p>Az A, B, C cella ugyanaz, mint fent. Minden feladat újraindított kernellel kezdődik.</p>
+  <ol>
+    <li>Sorrend: A, B, B, B, C. Mit ír ki a C?
+      <details><summary>Megoldás</summary>$16 - 3 = 13$.</details></li>
+    <li>Sorrend: A, B, C, A, C. Mit írnak ki a C futásai?
+      <details><summary>Megoldás</summary>15, majd 16: az A újra 16-ra állítja az <code>n</code>-et.</details></li>
+    <li>A futtatási sorszámok: A <code>[1]</code>, B <code>[3]</code>, C <code>[4]</code>. Mi történt a 2. futtatásban, és mennyi lehet a kiírás?
+      <details><summary>Megoldás</summary>A cellák mellett mindig az <em>utolsó</em> futtatás sorszáma áll. Az A nem lehetett, mert akkor nála <code>[2]</code> állna.
+      Ha a 2. a <b>B</b> volt (A, B, B, C), a kiírás <b>14</b>. Ha a <b>C</b> volt (A, C, B, C), a kiírás <b>15</b> (előtte egyszer 16). Lehetett egy azóta törölt cella is.
+      A sorszámokból ez nem dönthető el: ez a rejtett állapot lényege.</details></li>
+    <li>Hogyan írnád át a B-t, hogy akárhányszor futtatod, mindig ugyanazt adja?
+      <details><summary>Megoldás</summary><code>m = n - 1</code> (és a C-ben <code>print(m)</code>). Így a B nem írja felül a saját bemenetét.</details></li>
+    <li>(nehezebb) Egy kolléga füzete szerint a Medici-centralitás 0,56, de nálad Restart &amp; Run All után 0,484. Mi lehet a magyarázat, ha a kód ugyanaz?
+      <details><summary>Megoldás</summary>Rejtett állapot: a kolléga kernelében egy korábban futtatott (esetleg már törölt) cella egy másik gráfot (pl. a <code>networkx</code> beépített, 15 csúcsú változatát)
+      töltött be ugyanazzal a névvel. Vagy más környezetben futott. A 0.7-ben kiderül, hogy a 0,56 éppen a 15 csúcsú gráfból jön.</details></li>
+  </ol>
+</details>
+
+<!-- ---------- 0.2 b -->
+<h3 id="s02-b">2. lépés: a marimo reaktív füzete</h3>
+
+<p>A Jupyterben neked kell figyelned a sorrendre. Mi lenne, ha a füzet maga tudná, melyik cella melyiktől függ, és mindig
+helyes sorrendben futtatna? Ezt tudja a <b>marimo</b>.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló eset: ugyanaz a három cella, marimóban</span>
+<pre><code>[A]  n = 16
+[B]  m = n - 1     # új név: marimóban egy nevet csak egy cella definiálhat
+[C]  print(m)</code></pre>
+  <p style="margin-bottom:0">A marimo minden cellánál megnézi, mely neveket <b>definiál</b> és melyeket <b>használ</b>. Ebből tudja, hogy a C a B-től, a B az A-tól függ.
+  Ha az A-ban átírod a 16-ot 15-re, a B és a C <b>magától újrafut</b>, és 14-et ír ki. Rejtett állapot nincs: a kiírás mindig az, amit a cellák szövege ad.</p>
+</div>
+
+<div class="box def">
+  <span class="box-title">Reaktív jegyzetfüzet</span>
+  <p style="margin:0">Egy füzet <b>reaktív</b>, ha egy cella módosításakor minden tőle függő cella automatikusan újrafut. Ennek ára egy szabály: <b>minden nevet pontosan egy
+  cella definiálhat</b> (az <code>_</code>-sal kezdődő nevek cellán belüliek, ezekre nem vonatkozik). <b>Miért?</b> Ha két cella is definiálná az
+  <code>n</code>-et, nem lenne egyértelmű, melyik értékét lássa a többi.</p>
+</div>
+
+<div class="two-col">
+  <div class="box">
+    <span class="box-title">Jupyter</span>
+    <ul style="margin:.2rem 0">
+      <li>fájl: <code>.ipynb</code> (JSON, a kimenetekkel együtt)</li>
+      <li>sorrend: ahogy te futtatod</li>
+      <li>egy név több cellában is definiálható</li>
+      <li>gitben a különbségek nehezen olvashatók</li>
+      <li>indítás: <code>uv add --dev jupyterlab</code>, <code>uv run jupyter lab</code></li>
+    </ul>
+  </div>
+  <div class="box">
+    <span class="box-title">marimo</span>
+    <ul style="margin:.2rem 0">
+      <li>fájl: <code>.py</code> (sima Python, szkriptként is fut)</li>
+      <li>sorrend: a függőségekből következik</li>
+      <li>egy név = egy cella</li>
+      <li>gitben a különbségek jól olvashatók</li>
+      <li>indítás: <code>uv add --dev marimo</code>, <code>uv run marimo edit leckek/00_munkakornyezet.py</code></li>
+    </ul>
+  </div>
+</div>
+
+<div class="box tip">
+  <span class="box-title">Mit használjunk?</span>
+  A kurzus leckéihez <b>marimót</b> javaslunk: a füzet egyben szkript is (<code>uv run python leckek/00_munkakornyezet.py</code>), és nincs rejtett állapot.
+  A Jupyter is teljesen jó, ha jobban szereted. Ilyenkor a „Restart &amp; Run All” legyen a szokásod, mielőtt egy számot leírsz.
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa 3 – kétszer definiált név</span>
+  Marimóban a B cellába ezt írod: <code>n = n - 1</code>. Mi történik?
+  <details><summary>Megoldás</summary>A marimo hibát jelez (<code>multiple-definitions</code>: „Variable 'n' is defined in multiple cells”): az <code>n</code>-et már az A definiálja. Adj új nevet (<code>m = n - 1</code>), vagy vond össze a két cellát.</details>
+</div>
+
+<div class="box warn">
+  <span class="box-title">Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Ciklusváltozó két cellában.</b> Ha két cellában is <code>for i in …</code> áll, az <code>i</code> kétszer van definiálva. Írj <code>_i</code>-t, vagy tedd a ciklust függvénybe.</li>
+    <li><b>Helyben módosított objektum.</b> A marimo a neveket követi, a tartalmukat nem. Ha egy másik cellában <code>G.add_edge(…)</code>-t hívsz, az nem indítja újra a <code>G</code>-t
+        használó cellákat. Az átalakítás kerüljön abba a cellába, amelyik a <code>G</code>-t létrehozza, vagy adjon vissza új objektumot.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – Jupyter vagy marimo</summary>
+  <ol>
+    <li>Marimóban az A-ban az <code>n = 16</code>-ot átírod <code>n = 20</code>-ra. Mit ír ki a C (B: <code>m = n - 1</code>, C: <code>print(m)</code>)? Kell-e kézzel futtatnod valamit?
+      <details><summary>Megoldás</summary>19. Kézzel semmit nem kell futtatni: a B és a C magától újrafut.</details></li>
+    <li>Marimóban a C cellát a B fölé húzod. Változik a kiírás?
+      <details><summary>Megoldás</summary>Nem. A marimóban a sorrendet a függőségek adják, nem a cellák helye.</details></li>
+    <li>Miért jobb gitben egy marimo-füzet, mint egy <code>.ipynb</code>?
+      <details><summary>Megoldás</summary>Mert a marimo-füzet sima <code>.py</code> fájl: a változások soronként olvashatók. Az <code>.ipynb</code> JSON, és a kimeneteket (képeket is) tartalmazza, ezért a különbségei nehezen olvashatók.</details></li>
+    <li>Két cellában is ez áll: <code>for v in G: …</code>. Mit mond a marimo, és hogyan javítod?
+      <details><summary>Megoldás</summary><code>multiple-definitions</code> hibát a <code>v</code> miatt. Javítás: az egyikben <code>_v</code>, vagy mindkét ciklust függvénybe teszed.</details></li>
+    <li>(nehezebb) Egy cella betölti a gráfot (<code>G = to_networkx(…)</code>), egy másik cella kiírja az élszámát. Egy harmadik cellában <code>G.remove_node("PUCCI")</code>-t futtatsz. Frissül az élszám kiírása?
+      <details><summary>Megoldás</summary>Nem, mert a harmadik cella nem definiál új nevet, csak módosítja a <code>G</code>-t. A marimo ezt nem követi. (A Pucci izolált, így az élszám amúgy sem változna, de a csúcsszám igen.)
+      Helyesen: <code>H = G.copy(); H.remove_node("PUCCI")</code>, és a kiírás a <code>H</code>-t használja.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="sna0-2"></div>
+</section>
+
+<!-- ===================================================== 0.3 -->
+<section id="s03">
+<h2>0.3 Hálózati adat CSV-ben <small class="muted">★</small></h2>
+<p>A környezet és a füzet megvan. Most az jön, amit beletöltünk: a hálózati adat. A könyv összes adata, és később a saját hírkorpuszod hálózatai is,
+CSV-fájlokban fognak utazni. Ezért előbb azt kell látnod, hogyan áll egy hálózat egy táblázatban, és mit lehet közben elrontani.
+(A szomszédsági mátrix matematikáját a 2. lecke tárgyalja. Itt csak annyit nézünk, amennyi az <b>ellenőrzéshez</b> kell.)</p>
+
+<p><b>Útiterv</b>:</p>
+<ol>
+  <li><a href="#s03-a">A szomszédsági mátrix</a>: sorok, oszlopok, cellák; élek megszámolása.</li>
+  <li><a href="#s03-b">Az élista</a>: tömörebb, de elveszíti az izolált csúcsokat.</li>
+  <li><a href="#s03-c">Attribútumtábla és hiánykódok</a>: amikor a 9 nem kilencet jelent.</li>
+</ol>
+
+<!-- ---------- 0.3 a -->
+<h3 id="s03-a">1. lépés: a szomszédsági mátrix</h3>
+
+<div class="box example">
+  <span class="box-title">Kiinduló eset: négy kolléga, „dolgoztak-e már együtt?”</span>
+  <div class="two-col">
+    <div>
+      <p style="margin-top:0">A fájl (<code>egyutt.csv</code>), ahogy egy szövegszerkesztőben látod:</p>
+<pre><code>,Anna,Bence,Csaba,Dóra
+Anna,0,1,1,0
+Bence,1,0,1,0
+Csaba,1,1,0,0
+Dóra,0,0,0,0</code></pre>
+    </div>
+    <div>
+      <p style="margin-top:0">Ugyanez táblázatként:</p>
+      <div class="tw" style="overflow-x:auto"><table>
+        <tr><th></th><th>Anna</th><th>Bence</th><th>Csaba</th><th>Dóra</th></tr>
+        <tr><th>Anna</th><td>0</td><td>1</td><td>1</td><td>0</td></tr>
+        <tr><th>Bence</th><td>1</td><td>0</td><td>1</td><td>0</td></tr>
+        <tr><th>Csaba</th><td>1</td><td>1</td><td>0</td><td>0</td></tr>
+        <tr><th>Dóra</th><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+      </table></div>
+    </div>
+  </div>
+  <p>Olvassuk ki! Az első sor az oszlopok címkéje, az első oszlop a soroké. Az (Anna, Bence) cella 1: Anna és Bence dolgozott már együtt.
+  A (Bence, Anna) cella is 1, mert ez ugyanaz a tény, a másik oldalról nézve. A mátrix ezért <b>szimmetrikus</b> az átlóra.
+  Az átló csupa 0: önmagával senki nem „dolgozik együtt”. Dóra sora és oszlopa üres: ő <b>izolált</b> csúcs, de ott van az adatban.</p>
+  <p style="margin-bottom:0">Hány együttműködés van? A cellák összege 6, de minden kapcsolat kétszer szerepel (Anna–Bence és Bence–Anna), tehát <b>3</b>:
+  Anna–Bence, Anna–Csaba, Bence–Csaba.</p>
+</div>
+
+<div class="box def">
+  <span class="box-title">Szomszédsági mátrix CSV-ben</span>
+  <p style="margin-top:0">$n$ csúcsú háló esetén $n \times n$-es táblázat; az első sor és az első oszlop a csúcsok címkéi, <b>ugyanabban a sorrendben</b>.
+  Az $(i, j)$ cella a sorban álló $i$-től az oszlopban álló $j$ felé mutató kapcsolat: 0, ha nincs, különben 1 vagy a kapcsolat erőssége.</p>
+  <ul style="margin:.2rem 0">
+    <li><b>Irányítatlan</b> kapcsolat (együttműködés, házasság): a mátrix szimmetrikus, és $\text{élek száma} = \dfrac{\text{nem nulla cellák száma}}{2}$.</li>
+    <li><b>Irányított</b> kapcsolat (tanácskérés, idézés): a mátrix általában nem szimmetrikus, és $\text{élek száma} = \text{nem nulla cellák száma}$.</li>
+    <li>Az átló az önhurkok helye; a társas hálókban rendszerint 0.</li>
+  </ul>
+  <p style="margin-bottom:0"><b>Miért a nem nulla cellákat számoljuk, és nem az összeget?</b> Mert súlyozott (értékes) mátrixban egy cella értéke lehet 3 is, és az egy kapcsolat, nem három.</p>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa 1 – irányított: „kitől kérsz tanácsot?”</span>
+<pre><code>,Anna,Bence,Csaba,Dóra
+Anna,0,1,0,0
+Bence,1,0,0,0
+Csaba,1,0,0,0
+Dóra,1,0,0,0</code></pre>
+  Hány tanácskérés van, és hányan kérnek Annától tanácsot?
+  <details><summary>Megoldás</summary>Négy nem nulla cella, tehát <b>4</b> irányított kapcsolat (nyíl). Annától az kér, akinek a sorában Anna oszlopában 1 áll: Bence, Csaba, Dóra, tehát <b>3</b>-an
+  (Anna <em>oszlopának</em> összege). Anna maga egy embertől kér (az ő <em>sorának</em> összege 1). A mátrix nem szimmetrikus: Csaba Annától kér, Anna Csabától nem.</details>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa 2 – súlyozott: „hány közös projektjük volt?”</span>
+<pre><code>,Anna,Bence,Csaba,Dóra
+Anna,0,3,1,0
+Bence,3,0,2,0
+Csaba,1,2,0,0
+Dóra,0,0,0,0</code></pre>
+  Hány kapcsolat van, és hány közös projekt?
+  <details><summary>Megoldás</summary>Hat nem nulla cella, szimmetrikus mátrix: <b>3</b> kapcsolat (ugyanaz a háló, mint fent). A közös projektek: a cellák összege 12, ennek a fele, <b>6</b> ($3 + 1 + 2$).
+  A „cellák összege / 2” itt a súlyok összegét adja, nem a kapcsolatok számát.</details>
+</div>
+
+<div class="widget" data-widget="matrix-check"></div>
+
+<div class="box warn">
+  <span class="box-title">Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Összeg a kapcsolatok száma helyett.</b> Súlyozott mátrixban a $\sum/2$ a súlyösszeg. A kapcsolatokat a nem nulla cellák adják.</li>
+    <li><b>Felcserélt címkesorrend.</b> Ha a sorok sorrendje (Anna, Bence, Csaba, Dóra) és az oszlopoké (Anna, Csaba, Bence, Dóra) eltér, minden cella mást jelent, mint hiszed.
+        Betöltéskor mindig nézd meg, hogy a két címkesor azonos-e.</li>
+    <li><b>Magyar Excel-mentés.</b> A magyar beállítású Excel a CSV-t pontosvesszővel és tizedesvesszővel menti (<code>Anna;0;1,5;…</code>). A <code>pd.read_csv</code> ekkor egyetlen oszlopot lát.
+        Javítás: <code>pd.read_csv(f, sep=";", decimal=",", index_col=0)</code>.</li>
+    <li><b>Irány és sorrend.</b> A konvenció: <b>sor → oszlop</b>. Ha egy adatkészlet fordítva kódol (az oszlop választja a sort), a mátrixot transzponálni kell (5. lecke).</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a szomszédsági mátrix</summary>
+  <ol>
+    <li>Egy irányítatlan, 0/1-es mátrix celláinak összege 40. Hány él van a hálóban?
+      <details><summary>Megoldás</summary>$40/2 = 20$. (Ennyi a Padgett-féle házassági háló élszáma is, 16 családdal.)</details></li>
+    <li>Egy irányított, 0/1-es mátrix celláinak összege 190. Hány nyíl van?
+      <details><summary>Megoldás</summary>190: irányított hálóban minden nem nulla cella egy nyíl, nem kell felezni. (Ez a Krackhardt-féle tanácskérési háló, 21 menedzserrel.)</details></li>
+    <li>Egy súlyozott, szimmetrikus mátrixban 156 nem nulla cella van, a cellák összege 462. Hány kapcsolat van, és mennyi a súlyok összege?
+      <details><summary>Megoldás</summary>$156/2 = 78$ kapcsolat, $462/2 = 231$ súlyösszeg. Ez a karateklub (vö. 0.1).</details></li>
+    <li>A betöltött mátrix átlóján 1-esek állnak. Mire gondolsz?
+      <details><summary>Megoldás</summary>Vagy önhurkok (valaki önmagát jelölte meg), vagy kódolási hiba. Rosszabb esetben egy hiánykód (lásd a 3. lépést). Nézd meg az adat leírását. A legtöbb elemzés előtt az átlót nullázni kell.</details></li>
+    <li>(nehezebb) Egy $n = 5$ csúcsú irányítatlan háló mátrixában hány cella hordoz <b>független</b> információt, ha az átló 0?
+      <details><summary>Megoldás</summary>Az átló fölötti háromszög: $\binom{5}{2} = 10$ cella. A többi vagy az átló (mindig 0), vagy a tükörképe valamelyik felső cellának.</details></li>
+  </ol>
+</details>
+
+<!-- ---------- 0.3 b -->
+<h3 id="s03-b">2. lépés: az élista</h3>
+
+<p>A mátrix sok helyet foglal: egy 4&nbsp;275 csúcsú hálónál (a könyv egyik adatkészlete ilyen) több mint 18 millió cella, szinte csupa 0. Kézenfekvő,
+hogy csak a meglévő kapcsolatokat írjuk le. Ez az <b>élista</b>. De mit veszítünk vele?</p>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Mátrix (<code>egyutt.csv</code>)</span>
+<pre><code>,Anna,Bence,Csaba,Dóra
+Anna,0,1,1,0
+Bence,1,0,1,0
+Csaba,1,1,0,0
+Dóra,0,0,0,0</code></pre>
+    4 csúcs, 3 él.
+  </div>
+  <div class="box example">
+    <span class="box-title">Élista (<code>egyutt_el.csv</code>)</span>
+<pre><code>forras,cel
+Anna,Bence
+Anna,Csaba
+Bence,Csaba</code></pre>
+    <code>nx.from_pandas_edgelist(df, "forras", "cel")</code>: <b>3</b> csúcs, 3 él. <b>Dóra eltűnt.</b>
+  </div>
+</div>
+
+<div class="box def">
+  <span class="box-title">Élista és csúcslista</span>
+  <p style="margin-top:0">Az <b>élista</b> soronként egy kapcsolat: forrás, cél és esetleg súly. Irányítatlan hálóban minden kapcsolat egyszer szerepel.
+  Az élista <b>nem tudja</b>, hogy létezik-e egy kapcsolat nélküli csúcs. Ezért kell mellé a <b>csúcslista</b> (minden csúcs egy sorban, általában az attribútumtábla).
+  Gráfépítéskor előbb a csúcsokat adod hozzá, utána az éleket:</p>
+<pre><code>G = nx.Graph()
+G.add_nodes_from(csucsok["nev"])          # Dóra is benne lesz
+G.add_edges_from(zip(el["forras"], el["cel"]))</code></pre>
+  <p style="margin-bottom:0"><b>Miért számít egyetlen izolált csúcs?</b> Mert minden olyan mérték, amely a csúcsok számával oszt (sűrűség, normalizált centralitás), más számot ad.
+  A 0.7-ben pontosan ezen múlik a Medici-szám.</p>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa 3 – a hiányzó firenzei család</span>
+  A Padgett-féle házassági hálóban 16 család van, köztük a <b>Pucci</b>, akiknek egyetlen házassági kapcsolatuk sincs a többiekkel. A <code>networkx</code> beépített változata
+  (<code>nx.florentine_families_graph()</code>) élekből épül fel. Hány csúcsa van?
+  <details><summary>Megoldás</summary><b>15</b>. A Pucci kimaradt, mert nincs éle. Az élszám ugyanúgy 20. A kurzustervben szereplő „a Padgett-háló a <code>networkx</code>-ben is elérhető”
+  tehát csak fenntartással igaz: ez nem pontosan a könyv adata.</details>
+</div>
+
+<div class="box warn">
+  <span class="box-title">Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Izolált csúcs elvesztése</b> élistából építve. Mindig ellenőrizd: a gráf csúcsszáma egyezik-e a csúcslista hosszával?</li>
+    <li><b>Duplikált sorok.</b> Ha irányítatlan élistában Anna–Bence és Bence–Anna is szerepel, a <code>nx.Graph</code> egynek veszi, de egy saját számolás (sorok száma) kétszer számolja.</li>
+    <li><b>Irány elvesztése.</b> A <code>from_pandas_edgelist</code> alapból irányítatlan <code>Graph</code>-ot ad. Irányított adathoz: <code>create_using=nx.DiGraph</code>.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – élista</summary>
+  <ol>
+    <li>Hány sora van az <code>egyutt.csv</code> mátrixnak megfelelő irányítatlan élistának? És a „kitől kérsz tanácsot” mátrixénak (példa 1)?
+      <details><summary>Megoldás</summary>3, illetve 4. Irányítatlan hálóban kapcsolatonként egy sor, irányítottban nyilanként egy.</details></li>
+    <li>Az élista súlyozott változatához (példa 2) milyen oszlop kell, és mi kerül bele?
+      <details><summary>Megoldás</summary>Egy harmadik, <code>suly</code> oszlop: Anna–Bence 3, Anna–Csaba 1, Bence–Csaba 2.</details></li>
+    <li>Egy 100 csúcsú hálóban 300 él van, 12 csúcs izolált. Hány csúcsa lesz a csak élistából épített gráfnak?
+      <details><summary>Megoldás</summary>$100 - 12 = 88$.</details></li>
+    <li>(nehezebb) Egy irányítatlan élistának 50 sora van, de a <code>nx.Graph</code> élszáma 46. Mi lehet az oka?
+      <details><summary>Megoldás</summary>Négy kapcsolat kétszer szerepel (pl. egyszer A–B, egyszer B–A, vagy kétszer A–B). A <code>Graph</code> egy párhoz csak egy élt tárol. Önhurok (A–A) nem okozhatja, azt a <code>Graph</code> is tárolja.</details></li>
+  </ol>
+</details>
+
+<!-- ---------- 0.3 c -->
+<h3 id="s03-c">3. lépés: attribútumtábla és hiánykódok</h3>
+
+<p>A hálón kívül a csúcsokról is tudunk dolgokat: kor, nem, osztály, egy újság esetén a tulajdonos. Ezek az <b>attribútumok</b>. Itt jön elő
+az adatok legalattomosabb hibája: a hiányzó értéket gyakran egy szám jelöli.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló eset: egy -99-es életkor</span>
+<pre><code>,Nem,Kor
+a01,1,12
+a02,1,12
+a03,2,13
+a04,2,-99</code></pre>
+  <p style="margin-bottom:0">Az átlagéletkor naivan $(12 + 12 + 13 - 99)/4 = -15{,}5$ év. A kódkönyv szerint a <b>−99 = hiányzó</b>. Helyesen a −99-et hiányzónak
+  (<code>NaN</code>) jelöljük, és csak a három ismert korral számolunk: $(12 + 12 + 13)/3 \approx 12{,}33$ év.</p>
+</div>
+
+<div class="box def">
+  <span class="box-title">Attribútumtábla, hiánykód</span>
+  <p style="margin-top:0">Az <b>attribútumtábla</b> csúcsonként egy sor, attribútumonként egy oszlop; az első oszlop a csúcs címkéje, <b>ugyanazokkal a címkékkel</b>, mint a hálóban.
+  A <b>hiánykód</b> egy szám (pl. −99, 9, 999), amely „nincs adat”-ot jelent. Számolás előtt <code>NaN</code>-ra kell cserélni:</p>
+<pre><code>attr = attr.replace(-99, np.nan)</code></pre>
+  <p style="margin-bottom:0"><b>Miért nem írnak eleve üres cellát?</b> Mert sok régi program nem kezelte az üres cellát. Ráadásul néha többféle hiányt kell megkülönböztetni:
+  „nem válaszolt” és „nem is kérdeztük”.</p>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa 4 – hiánykód a <em>hálóban</em></span>
+  A könyv egyik adatkészletében (Knecht-féle iskolai osztály, 26 gyerek) a barátsághálók kódolása: 0 = nem barát, 1 = barát, <b>9 = hiányzó, 10 = szerkezeti hiány</b>
+  (a kapcsolat abban az időpontban nem is létezhetett, pl. mert a gyerek nem járt az osztályba). A 3. időpont mátrixában 133 darab 1-es, 50 darab 9-es és 51 darab 10-es van. Hány „kapcsolatot” lát az, aki minden nem nulla cellát élnek vesz?
+  <details><summary>Megoldás</summary>$133 + 50 + 51 = 234$-et, és ebből 101 nem barátság, hanem hiány. Ráadásul a 9-es és 10-es „élek” súlya 9 és 10 lesz. A valódi barátságok száma 133.</details>
+</div>
+
+<div class="box tip">
+  <span class="box-title">Hüvelykujjszabály</span>
+  <b>Számolás előtt: értékkészlet + leírás.</b> Nézd meg, milyen értékek fordulnak elő egy mátrixban vagy oszlopban. Ha a kódkönyv szerint ott nem lehetne ilyen érték
+  (egy 0/1-es hálóban 9-es, egy életkornál −99), az hiánykód.
+</div>
+
+<div class="box warn">
+  <span class="box-title">Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A sorrendre bízott párosítás.</b> Ha az attribútumtábla más sorrendben van, mint a háló, a <code>attr["Kor"].values</code> rossz csúcsokhoz rendel kort. Mindig címke szerint illessz:
+        <code>attr.loc[list(M.index)]</code>.</li>
+    <li><b>A hiánykód nulla helyett.</b> A <code>replace(9, 0)</code> „nincs barátság”-ot csinál a hiányból. Ez nem ugyanaz: a hiányt az 5. lecke kezeli (imputálás).</li>
+    <li><b>Más hiánykód attribútumban és hálóban.</b> A Knecht-adatban az attribútumoknál −99, a hálókban 9 és 10. Minden táblánál külön kell megnézni.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – attribútumok és hiánykódok</summary>
+  <ol>
+    <li>Egy oszlop értékei: 3, 5, 4, 999, 2; a 999 hiánykód. Mennyi az átlag helyesen, és mennyi naivan?
+      <details><summary>Megoldás</summary>Helyesen $(3 + 5 + 4 + 2)/4 = 3{,}5$; naivan $(3 + 5 + 4 + 999 + 2)/5 = 202{,}6$.</details></li>
+    <li>Egy 0/1-es barátsághálóban a <code>check</code> szerint az értékek: 0, 1, 9. Mi a teendő, mielőtt gráfot építesz?
+      <details><summary>Megoldás</summary>Megnézni a leírást. Ha a 9 hiánykód, <code>NaN</code>-ra cserélni, és eldönteni, mi legyen vele (kihagyás, imputálás). Gráfot csak utána építs.</details></li>
+    <li>Az attribútumtábla címkéi <code>a01 … a26</code>, a mátrixé <code>A01 … A26</code>. Mi lesz az <code>attr.loc[list(M.index)]</code> eredménye?
+      <details><summary>Megoldás</summary><code>KeyError</code>: a címkék kis- és nagybetűre is érzékenyek. Egységesíteni kell őket (pl. <code>attr.index = attr.index.str.upper()</code>), és utána ellenőrizni, hogy mind a 26 egyezik.</details></li>
+    <li>(nehezebb) Miért rosszabb a hiányzó barátságot 0-nak venni, mint kihagyni?
+      <details><summary>Megoldás</summary>A 0 állítás: „biztosan nem barátok”. Ha a hiányzók között barátok is vannak, akkor szisztematikusan kevesebb kapcsolatot mérsz, főleg azoknál, akiknél sok a hiány.
+      Ez torzítja a fokszámot, a sűrűséget és minden centralitást. A kihagyás legalább nem állít valótlant.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="sna0-3"></div>
+</section>
+
+<!-- ===================================================== 0.4 -->
+<section id="s04">
+<h2>0.4 A könyv adatkészletei Pythonban <small class="muted">★</small></h2>
+<p>Most már tudod, hogyan áll egy háló egy CSV-ben, és mire figyelj betöltéskor. Ideje a valódi adatoknak. A kurzus módszertani leckéi
+két lépésben gyakoroltatnak: előbb a könyv példáját futtatod újra a könyv adatán, és a kinyomtatott számmal veted össze, aztán a saját hírkorpuszodra viszed át.
+Ehhez az első lépéshez kellenek a könyv adatai, Pythonban.</p>
+
+<p><b>Útiterv</b>:</p>
+<ol>
+  <li><a href="#s04-a">Honnan?</a> A könyv R-csomagja, és miért nem a CRAN-ról jön.</li>
+  <li><a href="#s04-b">Az adatprojekt szerkezete</a>: hálók, attribútumok, metaadat egy helyen.</li>
+  <li><a href="#s04-c">Export R nélkül</a>: az <code>rdata</code> csomag és egy 80 soros szkript.</li>
+  <li><a href="#s04-d">Mi van benne, és mi hibás benne?</a> A 26 adatkészlet áttekintése.</li>
+</ol>
+
+<!-- ---------- 0.4 a -->
+<h3 id="s04-a">1. lépés: honnan jönnek az adatok?</h3>
+
+<p>Az ASNR saját R-csomagra épül, az <b><code>xUCINET</code></b>-re. Ez tartalmazza a könyv függvényeit (<code>xDensity()</code>, <code>xDegreeCentrality()</code> …)
+és az összes adatkészletét. A könyv 5.4.1. szakasza szerint <code>install.packages("xUCINET")</code>-tel telepíthető. <b>Ez ma nem működik</b>: a csomag nincs a CRAN-on.</p>
+
+<div class="box def">
+  <span class="box-title">A könyv csomagja: <code>xUCINET 0.0.2.0020</code></span>
+  <p style="margin-top:0">A könyv weboldala (<a href="https://sites.google.com/view/asnr-2022/xucinet">sites.google.com/view/asnr-2022/xucinet</a>) szerint a csomag
+  <b>sem a CRAN-on, sem a GitHubon nem érhető el</b>. Egy <code>.tar.gz</code> fájlként tölthető le: ez az aktuális <code>xUCINET_0.0.2.0020.tar.gz</code>
+  (2022. szeptember), mellette ott az előző, <code>0.0.1.0022</code>. Töltsd le a projekted <code>data/raw/</code> mappájába. Parancssorból (2026 novemberében ez a link működött):</p>
+<pre><code>mkdir -p data/raw
+curl -L -o data/raw/xUCINET_0.0.2.0020.tar.gz \
+  "https://drive.usercontent.google.com/download?id=1gGEGHq5z_Nrm1uPROXxUmuX-p4uibPKt&amp;export=download&amp;confirm=t"</code></pre>
+  <p style="margin-bottom:0">A fájl egy tömörített R-forráscsomag: <code>R/</code> (a függvények), <code>man/</code> (a súgó) és <code>data/</code> (52 <code>.rda</code> fájl).
+  <b>Nekünk csak a <code>data/</code> kell.</b></p>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa 1 – mi van a csomagban?</span>
+<pre><code>tar -tzf data/raw/xUCINET_0.0.2.0020.tar.gz | grep "data/.*rda" | wc -l
+52
+tar -tzf data/raw/xUCINET_0.0.2.0020.tar.gz | grep "data/Padgett"
+xUCINET/data/Padgett_FlorentineFamilies.rda</code></pre>
+  Az 52 fájl: <b>26 adatkészlet</b> (pl. <code>Padgett_FlorentineFamilies</code>), <b>25 ábraadat</b> (<code>ASNR_Fig09x4</code> = a 9.4. ábra kis hálója) és
+  egy mátrixpélda (<code>MAT_12_5</code>, a 12.5. mátrix).
+</div>
+
+<div class="box warn">
+  <span class="box-title">Buktató: két csomag, hasonló névvel</span>
+  <ul style="margin:.2rem 0">
+    <li>A GitHubon van egy <b><code>xucinet</code></b> (kisbetűvel, <code>stephenborgatti/xucinet</code>, 2.0-s verzió, 2026 szeptembere). Ez a könyv <b>2. kiadásához</b>
+        készült, a nulláról újraírva. A README szerint <b>nem kompatibilis</b> a 0.x-szel: más függvénynevek, más adatkészletnevek (pl. <code>padgett</code>, <code>hightech</code>).
+        A kurzus a 2022-es (1.) kiadást követi, ezért a <b>0.0.2.0020</b> kell.</li>
+    <li>Az <code>install.packages("xUCINET")</code> hibaüzenete („<em>package 'xUCINET' is not available</em>”) nem a te hibád: a csomag tényleg nincs a CRAN-on.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a könyv csomagja</summary>
+  <ol>
+    <li>Melyik fájl kell neked: <code>xUCINET_0.0.2.0020.tar.gz</code> vagy a GitHubos <code>xucinet</code> 2.0?
+      <details><summary>Megoldás</summary>A 0.0.2.0020: ez a 2022-es kiadás csomagja, ennek az adatkészletnevei és függvényei egyeznek a könyvvel.</details></li>
+    <li>Mit jelent az <code>ASNR_Fig10x3B</code> név?
+      <details><summary>Megoldás</summary>A könyv 10.3. ábrájának B része: egy kis szemléltető háló (6 csúcs). Az ábraadatokkal a könyv ábráin szereplő számok is reprodukálhatók.</details></li>
+    <li>Kell-e kicsomagolni a <code>.tar.gz</code>-t?
+      <details><summary>Megoldás</summary>Nem: az exportszkriptünk (3. lépés) közvetlenül a tömörített fájlból olvassa az <code>.rda</code>-kat. Így a <code>data/raw/</code> mappában csak a letöltött fájl van, változatlanul.</details></li>
+  </ol>
+</details>
+
+<!-- ---------- 0.4 b -->
+<h3 id="s04-b">2. lépés: az adatprojekt szerkezete</h3>
+
+<p>Egy adatkészlet ritkán egyetlen mátrix. A Padgett-adatban két háló van (házasság, üzlet), plusz a családok vagyona, és egy leírás arról, mi mit jelent.
+Az ASNR (5.4.1) ezért mindent egy <b>adatprojektbe</b> gyűjt.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló eset: a Padgett-projekt</span>
+<pre><code>Padgett_FlorentineFamilies
+├── ProjectInfo     leírás, attribútumok és hálók magyarázata, hivatkozások
+├── Attributes      16 × 4 táblázat: NodeName, Wealth, Priors, Degree116
+├── NetworkInfo     hálónként: név, mód, irányított?, értéktípus
+├── Business        16 × 16 mátrix (üzleti kapcsolat)
+└── Marriage        16 × 16 mátrix (házassági kapcsolat)</code></pre>
+  <p style="margin-bottom:0">R-ben ez egy <code>list</code>, amelynek az elemei mátrixok és <code>data.frame</code>-ek. Pythonba olvasva egy <b>szótár</b> lesz belőle:
+  a mátrixok <code>xarray.DataArray</code>-k (sor- és oszlopcímkékkel), a táblázatok <code>pandas.DataFrame</code>-ek.</p>
+</div>
+
+<div class="box def">
+  <span class="box-title">Adatprojekt</span>
+  <p style="margin:0">Egy vizsgálat <b>összes</b> hálója, attribútuma és metaadata <b>egy</b> objektumban: <code>ProjectInfo</code> (szöveges leírás, kódkönyv),
+  <code>Attributes</code> (csúcsattribútumok), <code>NetworkInfo</code> (hálónként: <code>Name</code>, <code>Mode</code>, <code>Directed</code>, <code>Values</code> …),
+  és a hálók a saját nevükön. <b>Miért jó?</b> Egyben marad, ami összetartozik: a mátrix mellett ott a kódkönyve. Ellenőrizni is lehet, hogy minden háló
+  és az attribútumtábla ugyanazokra a csúcsokra, ugyanabban a sorrendben vonatkozik-e.</p>
+</div>
+
+<div class="box tip">
+  <span class="box-title">Mi lesz ebből nálunk?</span>
+  Fájlszinten egy <b>mappa</b> adatkészletenként (<code>data/asnr/Padgett_FlorentineFamilies/</code>), benne hálónként egy CSV, egy <code>attributes.csv</code>,
+  egy <code>networkinfo.csv</code> és egy <code>info.json</code>. Pythonban egy <code>DataProject</code> objektum (<a href="#s06-a">0.6</a>), amely ezt a mappát egy lépésben betölti.
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – az adatprojekt</summary>
+  <ol>
+    <li>A Krackhardt-projektben három háló van (<code>Advice</code>, <code>Friendship</code>, <code>ReportTo</code>), 21 menedzser és 4 attribútum. Hány CSV-fájl lesz a mappájában?
+      <details><summary>Megoldás</summary>5: három háló, <code>attributes.csv</code>, <code>networkinfo.csv</code>. Mellettük egy <code>info.json</code>.</details></li>
+    <li>Hol keresed, hogy a Knecht-adatban mit jelent a 9-es érték?
+      <details><summary>Megoldás</summary>A <code>ProjectInfo</code>-ban (nálunk <code>info.json</code>), a <code>NetworksDescription</code> alatt: „9=missing, and 10=structural missing”.</details></li>
+    <li>(nehezebb) Miért jobb egy projektben tartani a hálót és a leírását, mint két külön fájlban?
+      <details><summary>Megoldás</summary>Mert a mátrix a leírása nélkül félreérthető (lásd a 9-es kódot). Ha külön utaznak, könnyen elválnak egymástól. Ráadásul egy projekten belül automatikusan
+      ellenőrizhető, hogy a hálók és az attribútumok ugyanarra a csúcshalmazra vonatkoznak-e.</details></li>
+  </ol>
+</details>
+
+<!-- ---------- 0.4 c -->
+<h3 id="s04-c">3. lépés: export R nélkül</h3>
+
+<p>A kurzusterv eredetileg egy „egyszeri R-lépést” írt elő: R-ben betölteni a csomagot, és onnan CSV-be menteni mindent. Kipróbáltuk, és van egyszerűbb út.
+Az <code>.rda</code> fájl az R saját, dokumentált bináris formátuma, és a Python <b><code>rdata</code></b> csomagja olvasni tudja. <b>Kiegészítés.</b></p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló eset: egyetlen adatkészlet</span>
+<pre><code>uv add rdata
+uv run python</code></pre>
+<pre><code>&gt;&gt;&gt; import tarfile, rdata
+&gt;&gt;&gt; tf = tarfile.open("data/raw/xUCINET_0.0.2.0020.tar.gz")
+&gt;&gt;&gt; raw = tf.extractfile("xUCINET/data/Padgett_FlorentineFamilies.rda").read()
+&gt;&gt;&gt; obj = rdata.conversion.convert(rdata.parser.parse_data(raw))["Padgett_FlorentineFamilies"]
+&gt;&gt;&gt; [str(k) for k in obj]
+['ProjectInfo', 'Attributes', 'NetworkInfo', 'Business', 'Marriage']
+&gt;&gt;&gt; obj["Marriage"].shape
+(16, 16)</code></pre>
+  (A <code>str(k)</code> azért kell, mert a kulcsok <code>numpy</code>-szövegek, és a puszta <code>list(obj)</code> <code>np.str_('ProjectInfo')</code> alakban írná ki őket.) Az <code>rdata</code> két lépésben dolgozik: a <code>parse_data</code> a bináris fájlt R-objektumokká bontja, a <code>convert</code> ezeket Python-objektumokká alakítja.
+</div>
+
+<div class="box def">
+  <span class="box-title">Az exportszkript: <code>scripts/asnr_export.py</code></span>
+  <p style="margin-top:0">Ugyanez mind az 52 fájlra, CSV-be mentve. A lényeg három függvény:</p>
+  <ul style="margin:.2rem 0">
+    <li><code>to_frame(x)</code>: egy R-mátrixot (<code>DataArray</code>) címkés <code>DataFrame</code>-mé alakít;</li>
+    <li><code>export(name, obj)</code>: egy adatprojekt minden részét a saját fájljába írja (<code>&lt;Háló&gt;.csv</code>, <code>attributes.csv</code>, <code>networkinfo.csv</code>, <code>info.json</code>);</li>
+    <li><code>main(tarball)</code>: végigmegy a tömörített fájl <code>data/*.rda</code> tagjain, kicsomagolás nélkül.</li>
+  </ul>
+<pre><code>uv run python scripts/asnr_export.py data/raw/xUCINET_0.0.2.0020.tar.gz
+Kész: 52 adatkészlet -&gt; data/asnr/</code></pre>
+  <details><summary>A teljes szkript</summary>
+<pre><code>"""Az ASNR (xUCINET 0.0.2) összes adatkészletének exportja CSV-be – R nélkül."""
+import json
+import sys
+import tarfile
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import rdata
+
+OUT = Path("data/asnr")
+
+
+def to_frame(x):
+    """R-mátrix (xarray.DataArray) vagy data.frame -&gt; pandas DataFrame, címkékkel."""
+    if isinstance(x, pd.DataFrame):
+        return x
+    labels = [x.coords[d].values if d in x.coords else np.arange(n) + 1
+              for d, n in zip(x.dims, x.shape)]
+    return pd.DataFrame(np.asarray(x), index=[str(v) for v in labels[0]],
+                        columns=[str(v) for v in labels[1]])
+
+
+def plain(x):
+    """ProjectInfo -&gt; JSON-ba írható szerkezet."""
+    if x is None:
+        return None
+    if isinstance(x, dict):
+        return {str(k): plain(v) for k, v in x.items()}
+    if isinstance(x, pd.DataFrame):
+        return x.astype(str).to_dict(orient="records")
+    return [str(v) for v in np.atleast_1d(x)]
+
+
+def export(name, obj):
+    folder = OUT / name
+    folder.mkdir(parents=True, exist_ok=True)
+    if not isinstance(obj, dict):                 # ábraadat vagy sima táblázat
+        to_frame(obj).to_csv(folder / f"{name}.csv")
+        return
+    for part, x in obj.items():
+        part = str(part)
+        if part == "ProjectInfo":
+            text = json.dumps(plain(x), ensure_ascii=False, indent=2)
+            (folder / "info.json").write_text(text, encoding="utf-8")
+        elif x is None:
+            continue
+        elif part == "Attributes":
+            to_frame(x).to_csv(folder / "attributes.csv")
+        elif part == "NetworkInfo":
+            to_frame(x).to_csv(folder / "networkinfo.csv")
+        else:
+            to_frame(x).to_csv(folder / f"{part}.csv")
+
+
+def main(tarball):
+    n = 0
+    with tarfile.open(tarball) as tf:             # a csomagot ki sem kell csomagolni
+        for m in tf.getmembers():
+            if m.isfile() and "/data/" in m.name and m.name.endswith(".rda"):
+                parsed = rdata.parser.parse_data(tf.extractfile(m).read())
+                for name, obj in rdata.conversion.convert(parsed).items():
+                    export(str(name), obj)
+                    n += 1
+    print(f"Kész: {n} adatkészlet -&gt; {OUT}/")
+
+
+if __name__ == "__main__":
+    main(sys.argv[1])</code></pre>
+  </details>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa 2 – az eredmény egy mappája</span>
+<pre><code>ls data/asnr/Padgett_FlorentineFamilies
+attributes.csv  Business.csv  info.json  Marriage.csv  networkinfo.csv
+head -2 data/asnr/Padgett_FlorentineFamilies/Marriage.csv
+,ACCIAIUOLI,ALBIZZI,BARBADORI,BISCHERI,CASTELLANI,GINORI,GUADAGNI,…
+ACCIAIUOLI,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0</code></pre>
+  Pontosan az a formátum, amelyet a <a href="#s03-a">0.3</a>-ban láttál: első sor és első oszlop a címkék.
+</div>
+
+<div class="box warn">
+  <span class="box-title">Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az <code>rdata.read_rda(útvonal)</code> fájlt vár.</b> A tömörített csomagon belüli tagot bájtokként kell beolvasni, és a <code>parse_data</code>-nak átadni, ahogy a szkript teszi.</li>
+    <li><b>Nem mind adatprojekt.</b> Az ábraadatok és a <code>Greenacre_DoctoratesByYearAndField</code> egyetlen mátrix vagy táblázat, nem lista. A szkript ezt külön kezeli (<code>if not isinstance(obj, dict)</code>).</li>
+    <li><b>Futtatás rossz mappából.</b> A szkript a <code>data/asnr</code>-t a <em>munkakönyvtárhoz</em> képest írja: mindig a projekt gyökeréből indítsd.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – export</summary>
+  <ol>
+    <li>Hány mappa lesz a <code>data/asnr/</code>-ban az export után?
+      <details><summary>Megoldás</summary>52: minden <code>.rda</code> fájl egy objektumot tartalmaz, és mindegyik saját mappát kap.</details></li>
+    <li>A <code>to_frame</code> miért nem egyszerűen <code>pd.DataFrame(np.asarray(x))</code>?
+      <details><summary>Megoldás</summary>Mert az elveszítené a címkéket: a sorok és oszlopok csak 0, 1, 2… sorszámot kapnának. A címkék a <code>DataArray</code> koordinátáiban vannak (<code>x.coords</code>).</details></li>
+    <li>Miért kerül a <code>data/raw/</code> és a <code>data/asnr/</code> a <code>.gitignore</code>-ba?
+      <details><summary>Megoldás</summary>A <code>data/asnr/</code> a szkripttel bármikor újra előállítható. A <code>data/raw/</code> egy más által terjesztett fájl, ezt a forrásából töltjük le, nem mi tesszük közzé.
+      A gitbe a <em>receptet</em> (szkript, lock-fájl) tesszük, nem a végterméket.</details></li>
+    <li>(nehezebb) Írj egy sort, amely kilistázza azokat az adatkészleteket, amelyeknek van <code>attributes.csv</code>-je!
+      <details><summary>Megoldás</summary><code>sorted(p.parent.name for p in Path("data/asnr").glob("*/attributes.csv"))</code>. Egy shellben: <code>ls data/asnr/*/attributes.csv</code>.</details></li>
+  </ol>
+</details>
+
+<!-- ---------- 0.4 d -->
+<h3 id="s04-d">4. lépés: mi van benne, és mi hibás benne?</h3>
+
+<p>Az alábbi táblázatot a saját exportunkból generáltuk. Az „irányítatlan / irányított” oszlop <b>az adatból</b> számolt (szimmetrikus-e a mátrix),
+nem a metaadatból. Hogy miért, az a táblázat után derül ki.</p>
+
+<div class="tw" style="overflow-x:auto"><table>
+  <tr><th>Adatkészlet (csomagbeli név)</th><th>Hálók</th><th>Méret</th><th>Az adat szerint</th><th>Értékek</th><th>Attr.</th><th>Lecke</th></tr>
+<tr><td><code>Baker_Journals</code></td><td>CoCitations</td><td>20×20</td><td>irányított</td><td>0; 2; 3; 4 …</td><td>–</td><td>12</td></tr>
+<tr><td><code>Bernard_HamRadio</code></td><td>Calls, Recalls</td><td>44×44</td><td>vegyes</td><td>0; 1; 2; 3 …</td><td>–</td><td>–</td></tr>
+<tr><td><code>Borgatti_Camp92</code></td><td>MostInteractionsT2, MostInteractionsT3</td><td>18×18</td><td>irányított</td><td>0; 1; 2; 3 …</td><td>3</td><td>2</td></tr>
+<tr><td><code>Borgatti_Cities</code><br><small class="muted">könyvben: Johnson CitiesUS</small></td><td>Distance</td><td>9×9</td><td>irányítatlan</td><td>0; 206; 233; 379 …</td><td>–</td><td>6</td></tr>
+<tr><td><code>Borgatti_Scientists504</code></td><td>Collaboration</td><td>504×504</td><td>irányítatlan</td><td>0; 1; 2; 3 …</td><td>3</td><td>7</td></tr>
+<tr><td><code>Borgatti_Scientists960</code></td><td>Collaboration</td><td>960×960</td><td>irányítatlan</td><td>0; 1; 2; 3 …</td><td>3</td><td>–</td></tr>
+<tr><td><code>Burkhardt_GovernmentAgency</code></td><td>5 háló (AdviceGivingT1 … AdviceGivingT5)</td><td>73×73</td><td>irányítatlan</td><td>0; 1; 2; 3 …</td><td>–</td><td>5</td></tr>
+<tr><td><code>Davis_SouthernWomen</code></td><td>Attendance</td><td>18×14</td><td>kétmódú</td><td>0/1</td><td>–</td><td>2, 13</td></tr>
+<tr><td><code>Freeman_EIES</code></td><td>AcquaintanceT1, AcquaintanceT2, Messages</td><td>32×32</td><td>irányított</td><td>0; 1; 2; 3 …</td><td>2</td><td>16</td></tr>
+<tr><td><code>Greenacre_DoctoratesByYearAndField</code><br><small class="muted">könyvben: Greenacre Doctorates</small></td><td>(egyetlen táblázat)</td><td>12×8</td><td>kétmódú</td><td>69; 82; 134; 162 …</td><td>–</td><td>6</td></tr>
+<tr><td><code>Hawthorne_BankWiring</code></td><td>6 háló (Antagonistic … TradeJobs)</td><td>14×14</td><td>vegyes</td><td>0; 1; 2; 4 …</td><td>–</td><td>2, 11</td></tr>
+<tr><td><code>Kapferer_TailorShop</code></td><td>4 háló (InstrumentalT1 … SociationalT2)</td><td>39×39</td><td>vegyes</td><td>0/1</td><td>–</td><td>11</td></tr>
+<tr><td><code>Knecht_Class12b</code><br><small class="muted">könyvben: Knecht Class12h</small></td><td>5 háló (FriendshipT1 … Primary)</td><td>26×26</td><td>irányított</td><td>0; 1; 9; 10</td><td>11</td><td>16</td></tr>
+<tr><td><code>Krackhardt_HighTech</code></td><td>Advice, Friendship, ReportTo</td><td>21×21</td><td>irányított</td><td>0/1</td><td>4</td><td>7, 10, 15</td></tr>
+<tr><td><code>Lazega_Lawyers</code></td><td>Advice, Cowork, Friendship</td><td>71×71</td><td>vegyes</td><td>0/1</td><td>7</td><td>–</td></tr>
+<tr><td><code>Mainas_Terro</code></td><td>Contact</td><td>4275×4275</td><td>irányított</td><td>0; 1; 2; 3 …</td><td>1</td><td>14</td></tr>
+<tr><td><code>Newcomb_Fraternity</code></td><td>15 háló (PreferenceT00 … PreferenceT15)</td><td>17×17</td><td>irányított</td><td>0; 1; 2; 3 …</td><td>–</td><td>15</td></tr>
+<tr><td><code>Padgett_FlorentineFamilies</code></td><td>Business, Marriage</td><td>16×16</td><td>irányítatlan</td><td>0/1</td><td>4</td><td>0, 9, 15</td></tr>
+<tr><td><code>Pane_Training</code></td><td>Trust</td><td>23×23</td><td>irányított</td><td>0/1</td><td>–</td><td>16</td></tr>
+<tr><td><code>Read_NewGuinea</code></td><td>Alliance, Opposition</td><td>16×16</td><td>irányítatlan</td><td>0/1</td><td>–</td><td>–</td></tr>
+<tr><td><code>Rehnquist_SupremeCourt</code></td><td>Votes</td><td>376×9</td><td>kétmódú</td><td>0; 0,5; 1</td><td>–</td><td>–</td></tr>
+<tr><td><code>Sampson_Monastery</code></td><td>10 háló (Blame … Praise)</td><td>18×18</td><td>irányított</td><td>0; 1; 2; 3</td><td>–</td><td>12</td></tr>
+<tr><td><code>Savage_TransactionFlows</code><br><small class="muted">könyvben: Savage TradePre29</small></td><td>ExportPerc</td><td>15×15</td><td>irányított</td><td>0; 0,02; 0,04; 0,08 …</td><td>10</td><td>7</td></tr>
+<tr><td><code>Schwimmer_PapuanVillage</code></td><td>TaroExchange</td><td>22×22</td><td>irányítatlan</td><td>0/1</td><td>–</td><td>12</td></tr>
+<tr><td><code>Wolfe_Primates</code></td><td>JointPresence, Kinship</td><td>20×20</td><td>vegyes</td><td>0; 1; 2; 3 …</td><td>3</td><td>7</td></tr>
+<tr><td><code>Zachary_KarateClub</code></td><td>Connection, Strength</td><td>34×34</td><td>irányítatlan</td><td>0; 1; 2; 3 …</td><td>3</td><td>11</td></tr>
+</table></div>
+<p class="muted" style="font-size:.9rem">„Vegyes”: a projekt egyik hálója szimmetrikus, a másik nem. „Lecke”: ahol a kurzusterv használja; a „–” jelűek a könyv gyakorlófeladataihoz kellhetnek.
+A könyv adatlistájában szerepel még a Johnson PolarStation és négy közösségimédia-adat (Everett: Hollywood, Reddit, Sunbelt, YouTube). Ezek <b>nincsenek</b> a 0.0.2-es csomagban.</p>
+
+<div class="box warn">
+  <span class="box-title">A metaadatok hibái (kipróbálás közben találtuk)</span>
+  <ul style="margin:.2rem 0">
+    <li><b><code>Wolfe_Primates</code>:</b> a <code>NetworkInfo</code> szerint a <code>Kinship</code> háló irányítatlan (<code>Directed = FALSE</code>), de a mátrix <b>nem szimmetrikus</b>:
+        15 nyíl, egyik sem kölcsönös (szülő → utód irányban kódolva).</li>
+    <li><b><code>Borgatti_Camp92</code>, <code>Baker_Journals</code>, <code>Mainas_Terro</code>:</b> a <code>NetworkInfo</code> nevei nem egyeznek a hálók neveivel
+        (<code>Borgatti_Campnet_MostInteractionsT2</code> ↔ <code>MostInteractionsT2</code>; <code>Citations</code> ↔ <code>CoCitations</code>; a Mainas-adatnál <code>Distance</code> ↔ <code>Contact</code>).</li>
+    <li><b><code>Mainas_Terro</code>, <code>Borgatti_Scientists960</code>:</b> az attribútumtábla mérete eltér a hálóétól (4&nbsp;614 sor a 4&nbsp;275 csúcshoz, illetve 504 sor a 960 csúcshoz). Címke szerint kell illeszteni,
+        és a 960-as hálónál a csúcsok fele attribútum nélkül marad.</li>
+    <li><b><code>Padgett_FlorentineFamilies</code>:</b> a <code>NetworkInfo</code> oszlopnevei mások (<code>NetworkName</code>, <code>ModeSender</code> … a többi projekt <code>Name</code>, <code>Mode</code> … oszlopai helyett).
+        Az <code>info.json</code> hálóleírásai elcsúsztak: a „Business” mellett az áll, hogy „marriage alliances”. Az attribútumtáblában a családnév oszlop (<code>NodeName</code>), a sorok címkéje pedig 1–16.</li>
+    <li><b><code>Knecht_Class12b</code>:</b> hiánykódok a hálókban (9, 10) és az attribútumokban (−99); néhány átlóelem sem 0.</li>
+    <li><b><code>Rehnquist_SupremeCourt</code>:</b> a leírás szerint 0/1 („a többséggel szavazott-e”), de 32 cellában 0,5 áll, és 9 cella hiányzik (<code>NaN</code>).</li>
+  </ul>
+</div>
+
+<div class="box tip">
+  <span class="box-title">Hüvelykujjszabály</span>
+  <b>Az adat a mérvadó, a metaadatot az adatból ellenőrizd.</b> Hogy irányított-e egy háló, azt a mátrix szimmetriája mutatja meg, nem egy <code>TRUE</code>/<code>FALSE</code> felirat.
+  Ha a kettő ellentmond, olvasd el a szöveges leírást, és döntsd el tudatosan.
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – az adatkészletek</summary>
+  <ol>
+    <li>Melyik két adatkészlet kétmódú (téglalap alakú mátrix)?
+      <details><summary>Megoldás</summary><code>Davis_SouthernWomen</code> (18 nő × 14 esemény) és <code>Rehnquist_SupremeCourt</code> (376 ügy × 9 bíró). A <code>Greenacre</code> is téglalap, de az kereszttábla (év × tudományterület), nem háló.</details></li>
+    <li>A könyv a 6. fejezetben a „Johnson CitiesUS” adatot használja. Melyik mappát nyitod meg?
+      <details><summary>Megoldás</summary><code>data/asnr/Borgatti_Cities/</code>: 9 amerikai város közúti távolsága mérföldben. A könyvbeli és a csomagbeli név eltér.</details></li>
+    <li>A <code>Wolfe_Primates</code> <code>Kinship</code> hálóját irányítatlanként akarod kezelni. Mit kell tenned a mátrixszal, és hány él lesz?
+      <details><summary>Megoldás</summary>Szimmetrizálni (pl. páronként a nagyobb értéket venni, 5. lecke). Mivel egyik nyíl sem kölcsönös, mind a 15 nyílból egy-egy él lesz: <b>15</b>.</details></li>
+    <li>(nehezebb) Egy kód a Padgett-projektnél a <code>NetworkInfo["Name"]</code> oszlopot olvassa. Mi történik, és hogyan írnád meg úgy, hogy minden projekten működjön?
+      <details><summary>Megoldás</summary><code>KeyError: 'Name'</code>, mert ott <code>NetworkName</code> az oszlop neve. Robusztusan:
+      <code>col = "Name" if "Name" in ni.columns else "NetworkName"</code>. Még jobb, ha a hálók nevét magukból a fájlnevekből veszed, ahogy a <code>load_project</code> teszi.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="sna0-4"></div>
+</section>
+
+<!-- ===================================================== 0.5 -->
+<section id="s05">
+<h2>0.5 R – csak ahol muszáj <small class="muted">★</small></h2>
+<p>A könyv adatai már R nélkül is megvannak. R-re mégis szükség lesz: néhány módszernek egyszerűen nincs érett Python-megvalósítása.
+Ebben a részben megnézzük, melyek ezek, egyszer feltelepítjük az R-t, és arra is felhasználjuk, hogy a Python-exportunkat egy független úton ellenőrizzük.</p>
+
+<p><b>Útiterv</b>:</p>
+<ol>
+  <li><a href="#s05-a">Mikor kell R?</a> A kurzus R-es pontjai.</li>
+  <li><a href="#s05-b">Telepítés</a>: R, a könyv csomagja, és a buktató, amelybe mi is belefutottunk.</li>
+  <li><a href="#s05-c">Ellenőrzés és előkészület</a>: R-es export összevetése, <code>statnet</code> és <code>RSiena</code> a 16. leckéhez.</li>
+</ol>
+
+<!-- ---------- 0.5 a -->
+<h3 id="s05-a">1. lépés: mikor kell R?</h3>
+
+<div class="box def">
+  <span class="box-title">A kurzus R-es pontjai</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>Feladat</th><th>Lecke</th><th>R-csomag</th><th>Miért nem Python?</th></tr>
+    <tr><td>ERGM (exponenciális véletlengráf-modell)</td><td>16</td><td><code>statnet</code> / <code>ergm</code></td><td>nincs érett megvalósítás</td></tr>
+    <tr><td>SAOM (hálózatdinamika)</td><td>16</td><td><code>RSiena</code></td><td>nincs</td></tr>
+    <tr><td>DyNAM, relációs eseménymodellek</td><td>16 (opc.)</td><td><code>goldfish</code></td><td>nincs érett megvalósítás</td></tr>
+    <tr><td>SDSM/FDSM backbone</td><td>13 (opc.)</td><td><code>backbone</code></td><td>a <code>netbone</code> csak részben tudja</td></tr>
+    <tr><td>QAP, MRQAP ellenőrzése</td><td>15 (opc.)</td><td><code>sna</code></td><td>Pythonban magunk írjuk meg; R csak összevetésre</td></tr>
+    <tr><td>a könyv függvényeinek kipróbálása</td><td>bármikor</td><td><code>xUCINET</code></td><td>a könyv számainak forrása, ellenőrzéshez</td></tr>
+  </table></div>
+  <p style="margin-bottom:0"><b>Hüvelykujjszabály:</b> az R a kurzusban <b>eszköz, nem munkakörnyezet</b>. Az adat CSV-ben utazik a két nyelv között, és minden, ami Pythonban is megy, Pythonban készül.</p>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa 1 – ugyanaz a szám R-ben</span>
+  Ha az R és az <code>xUCINET</code> már fent van (2. lépés), a Padgett-féle házassági háló sűrűsége:
+<pre><code>Rscript -e 'library(xUCINET); xDensity(Padgett_FlorentineFamilies$Marriage)'
+  .  ------------------------------------------------------------------
+  .   Number of valid cells: 240
+  .   which corresponds to: 100 % of considered cells.
+  .  ------------------------------------------------------------------
+
+[1] 0.1666667</code></pre>
+  Az <code>xDensity</code> előbb kiírja, hány cellát vett figyelembe ($16 \cdot 15 = 240$, az átló nélkül), aztán az eredményt. Kézzel: 16 család $16 \cdot 15 / 2 = 120$ párt alkot, ebből 20 között van házasság, $20/120 = 1/6 \approx 0{,}167$. (A sűrűséget a 10. lecke tárgyalja. Itt csak azt látjuk, hogy az R ugyanazt az adatot olvassa, mint mi.)
+</div>
+
+<!-- ---------- 0.5 b -->
+<h3 id="s05-b">2. lépés: telepítés</h3>
+
+<div class="box def">
+  <span class="box-title">Telepítés Ubuntu 24.04-en</span>
+  <p style="margin-top:0"><b>1. Friss R a CRAN Ubuntu-tárából</b>, és egy rendszerkönyvtár (az <code>igraph</code> R-csomag lefordított része a GLPK-t használja).
+  Az Ubuntu saját R-je túl régi (lásd a buktatókat), ezért előbb a CRAN tárolóját vesszük fel (a CRAN hivatalos útmutatója szerint):</p>
+<pre><code>sudo apt install --no-install-recommends software-properties-common dirmngr
+wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc \
+  | sudo tee -a /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc
+sudo add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu $(lsb_release -cs)-cran40/"
+sudo apt install --no-install-recommends r-base libglpk40
+R --version | head -1
+R version 4.6.2 (2026-10-29) -- "Diversified Portfolio"</code></pre>
+  <p><b>2. Bináris csomagtár.</b> A CRAN Linuxra csak forráscsomagot ad, ezért minden csomag percekig fordulna. A Posit Public Package Manager (<b>P3M</b>) előre lefordított
+  változatokat ad, ha az R elküldi a saját verzióját és platformját. Ez a Python-kerekek R-es párja. Írd ezt a <code>~/.Rprofile</code> fájlba:</p>
+<pre><code>options(repos = c(CRAN = "https://p3m.dev/cran/__linux__/noble/latest"))
+options(HTTPUserAgent = sprintf("R/%s R (%s)", getRversion(),
+  paste(getRversion(), R.version["platform"], R.version["arch"], R.version["os"])))</code></pre>
+  <p><b>3. A könyv csomagja és a függőségei</b> (a projekt gyökeréből, ahol a <code>data/raw/</code> van):</p>
+<pre><code>Rscript -e 'install.packages(c("sna", "igraph", "blockmodeling", "FactoMineR"))'
+Rscript -e 'install.packages("data/raw/xUCINET_0.0.2.0020.tar.gz", repos = NULL, type = "source")'</code></pre>
+  <p style="margin-bottom:0">A <code>repos = NULL, type = "source"</code> azt mondja: ne a netről, hanem ebből a fájlból telepíts. Az <code>xUCINET</code> tiszta R-kód, nem kell fordítani.
+  (Kipróbáltuk egy tiszta Ubuntu 24.04-en: a fenti lépésekkel 123 csomag települt binárisként, csak az <code>xUCINET</code> forrásból.)</p>
+</div>
+
+<div class="box tip">
+  <span class="box-title">B-terv: Docker</span>
+  Ha nem akarod a gépedre telepíteni az R-t, egy kész R-képben is futtathatod (mi is így ellenőriztük): <code>docker run --rm -it -v "$PWD:/work" -w /work rocker/r-ver:4.5 bash</code>,
+  benne <code>apt-get update &amp;&amp; apt-get install -y libglpk40</code>, és utána ugyanazok az <code>Rscript</code> parancsok. A <code>rocker</code>-kép a P3M-et már be is állította.
+</div>
+
+<div class="box warn">
+  <span class="box-title">Buktatók (az első kettőbe mi is belefutottunk)</span>
+  <ul style="margin:.2rem 0">
+    <li><b><code>libglpk.so.40: cannot open shared object file</code></b> az <code>xUCINET</code> telepítésekor: a hiba az <code>igraph</code> R-csomag betöltésénél jön, mert a GLPK-könyvtár hiányzik.
+        Javítás: <code>sudo apt install libglpk40</code>, és telepítsd újra. (Ha a csomagok forrásból fordulnak, a <code>libglpk-dev</code> kell.)</li>
+    <li><b><code>package 'RSiena' is not available for this version of R</code></b>: az Ubuntu 24.04 saját <code>r-base</code>-e az R 4.3.3, az <code>RSiena</code> 1.6.6 viszont
+        R&nbsp;≥&nbsp;4.5.0-t kér. Ezért kell a CRAN tárolója (1. pont). Az <code>xUCINET</code> és a <code>statnet</code> a régi R-rel is települne, ezért a hiba csak a 16. leckénél derülne ki.</li>
+    <li><b><code>package 'xUCINET' is not available</code></b>: a könyv szerinti <code>install.packages("xUCINET")</code> a CRAN-on keresi, ahol nincs. A letöltött fájlból telepíts (fent).</li>
+    <li><b>Kis- és nagybetű.</b> <code>library(xUCINET)</code>, nem <code>library(xucinet)</code>. Az utóbbi a GitHubos 2.0, egy másik csomag.</li>
+    <li><b>Lassú telepítés, „installing *source* package”.</b> Ha a P3M nem bináris csomagot ad, hanem forrást, akkor hiányzik vagy hibás a <code>HTTPUserAgent</code> beállítás, vagy a tár URL-je
+        nem a te Ubuntu-verziódhoz tartozik (<code>noble</code> = 24.04, <code>jammy</code> = 22.04).</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – telepítés</summary>
+  <ol>
+    <li>Az <code>install.packages("xUCINET")</code> hibát ad. Mi a helyes parancs?
+      <details><summary>Megoldás</summary><code>install.packages("data/raw/xUCINET_0.0.2.0020.tar.gz", repos = NULL, type = "source")</code>, a függőségek (<code>sna</code>, <code>igraph</code>, <code>blockmodeling</code>, <code>FactoMineR</code>) telepítése után.</details></li>
+    <li>Ubuntu 22.04-en dolgozol. Mit írsz át a <code>~/.Rprofile</code>-ban?
+      <details><summary>Megoldás</summary>A tár útvonalában a <code>noble</code>-t <code>jammy</code>-re: <code>https://p3m.dev/cran/__linux__/jammy/latest</code>.</details></li>
+    <li>Az <code>xDensity(Krackhardt_HighTech$Advice)</code> eredménye <code>0.452381</code> (előtte: „Number of valid cells: 420”). Ellenőrizd kézzel: 21 menedzser, 190 nyíl!
+      <details><summary>Megoldás</summary>Irányított hálóban a lehetséges nyilak száma $21 \cdot 20 = 420$, és $190/420 \approx 0{,}452$. (Irányítatlannak véve, $210$ párral számolva, hibásan 0,905 jönne ki.)</details></li>
+    <li>(nehezebb) Miért nem jó ötlet minden elemzést R-ben csinálni, ha úgyis telepítetted?
+      <details><summary>Megoldás</summary>A kurzus célja a Python-eszköztár (<code>networkx</code>, <code>igraph</code>, szövegfeldolgozás, LLM-ek), amely a hírelemzéshez kell. Két nyelv két környezetet, két hibaforrást és két verziókezelést jelent.
+      Az R ott kell, ahol nélkülözhetetlen, máshol csak ellenőrzésre.</details></li>
+  </ol>
+</details>
+
+<!-- ---------- 0.5 c -->
+<h3 id="s05-c">3. lépés: ellenőrző export, <code>statnet</code> és <code>RSiena</code></h3>
+
+<p>Most, hogy fent van az R, egy fontos ellenőrzést is el tudunk végezni: ugyanazt az exportot elkészítjük R-ben, és összevetjük a Python-exporttal.
+Ha a kettő egyezik, az <code>rdata</code>-ban megbízhatunk.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló eset: két export, egy összevetés</span>
+<pre><code>Rscript scripts/asnr_export.R                 # -&gt; data/asnr_r/
+Kész: 52 adatkészlet -&gt; data/asnr_r
+uv run python scripts/compare_exports.py data/asnr_r data/asnr
+105 mátrix összevetve, 0 eltérés.</code></pre>
+  <p style="margin-bottom:0">A 105 mátrix (hálók és ábraadatok) mind cellára egyezik, a címkékkel együtt. Az R-szkript lényege egy ciklus: <code>data(package = "xUCINET")</code> felsorolja az adatkészleteket,
+  és mindegyik minden mátrixát <code>write.csv</code>-vel kiírja. (A teljes szkript: <code>scripts/asnr_export.R</code> a kód mappájában.)</p>
+</div>
+
+<div class="box def">
+  <span class="box-title">Előkészület a 16. leckéhez</span>
+<pre><code>Rscript -e 'install.packages(c("statnet", "RSiena"))'
+Rscript -e 'library(ergm); library(RSiena); packageVersion("ergm"); packageVersion("RSiena")'</code></pre>
+  <p style="margin-bottom:0">A <code>statnet</code> egy csomaggyűjtemény (benne az <code>ergm</code>, a <code>network</code> és a <code>sna</code>). Kipróbáláskor (2026. november, R 4.6.2) az <code>ergm</code> 4.12.0 és az <code>RSiena</code> 1.6.6 települt.
+  Ha később Pythonból akarod hívni őket, arra az <code>rpy2</code> való. Ez opcionális: a 16. leckében az R-kódot külön futtatjuk, és CSV-n át adjuk vissza az eredményt.</p>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – ellenőrzés</summary>
+  <ol>
+    <li>Az összevetés 0 eltérést ad. Jelenti ez, hogy a könyv adatai hibátlanok?
+      <details><summary>Megoldás</summary>Nem. Csak azt, hogy az <code>rdata</code> pontosan azt olvassa ki, amit maga az R. A metaadat-hibák (0.4) mindkét exportban benne vannak.</details></li>
+    <li>Miért nem hasonlítjuk össze a <code>networkinfo.csv</code>-ket is?
+      <details><summary>Megoldás</summary>Mert a logikai értékeket a két nyelv másként írja ki (R: <code>TRUE</code>, Python: <code>True</code>), így szöveges eltérés lenne tartalmi eltérés nélkül. A számszerű mátrixok összevetése a lényeg.</details></li>
+    <li>(nehezebb) Mi szól amellett, hogy a 16. leckében az R-kódot külön futtasd, és ne <code>rpy2</code>-vel Pythonból?
+      <details><summary>Megoldás</summary>Az <code>rpy2</code>-nek nincs kereke, forrásból fordul (R-fejlécek kellenek hozzá), és a két nyelv adattípusainak átalakítása újabb hibaforrás. Egy R-szkript + CSV egyszerűbb, átláthatóbb, és ugyanúgy reprodukálható.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="sna0-5"></div>
+</section>
+
+<!-- ===================================================== 0.6 -->
+<section id="s06">
+<h2>0.6 A saját segédmodul: <code>sna_utils</code> <small class="muted">★</small></h2>
+<p>Az adatok CSV-ben vannak, és tudjuk, mit kell ellenőrizni rajtuk. Most ezt a tudást <b>függvényekbe</b> tesszük, hogy ne kelljen minden leckében újraírni.
+Ez a <code>sna_utils</code>, a kurzus saját segédmodulja. Leckéről leckére bővül, és a könyv <code>xUCINET</code>-függvényeit váltja ki. Most három függvénnyel indul.</p>
+
+<p><b>Útiterv</b>:</p>
+<ol>
+  <li><a href="#s06-a">Betöltés: <code>load_project</code></a>, és hogyan lesz a modul minden mappából importálható.</li>
+  <li><a href="#s06-b">Ellenőrzés: <code>check_matrix</code></a>, a 0.3 szabályai függvényben.</li>
+  <li><a href="#s06-c">Gráf: <code>to_networkx</code></a>, izolált csúcsokkal, hiányra figyelve.</li>
+  <li><a href="#s06-d">Tesztek</a>: a könyv kinyomtatott számaiból automatikus ellenőrzés lesz.</li>
+</ol>
+
+<!-- ---------- 0.6 a -->
+<h3 id="s06-a">1. lépés: betöltés – <code>load_project</code></h3>
+
+<div class="box example">
+  <span class="box-title">Kiinduló eset: a Padgett-projekt kézzel</span>
+<pre><code>import json, pandas as pd
+d = "data/asnr/Padgett_FlorentineFamilies/"
+marriage = pd.read_csv(d + "Marriage.csv", index_col=0)
+business = pd.read_csv(d + "Business.csv", index_col=0)
+attr     = pd.read_csv(d + "attributes.csv", index_col=0)
+ni       = pd.read_csv(d + "networkinfo.csv", index_col=0)
+info     = json.load(open(d + "info.json", encoding="utf-8"))</code></pre>
+  Hét sor, és minden adatkészletnél más hálónevekkel. Ha egyszer elfelejted az <code>index_col=0</code>-t, a címkék egy közönséges oszlopba kerülnek, és a mátrixod 16 × 17-es lesz.
+</div>
+
+<div class="box def">
+  <span class="box-title"><code>DataProject</code> és <code>load_project</code></span>
+<pre><code>@dataclass
+class DataProject:
+    """Az xUCINET adatprojektjének Python-párja: hálók + attribútumok + metaadat."""
+    name: str
+    networks: dict          # hálónév -&gt; pandas DataFrame (mátrix, címkékkel)
+    attributes: object      # pandas DataFrame vagy None
+    network_info: object    # pandas DataFrame vagy None
+    info: dict              # leírás, kódolás, hivatkozások
+
+
+def load_project(name, root=ASNR):
+    """Egy exportált ASNR-adatkészlet betöltése (lásd scripts/asnr_export.py)."""
+    folder = Path(root) / name
+    if not folder.is_dir():
+        raise FileNotFoundError(f"Nincs ilyen adatkészlet: {folder}")
+    nets = {p.stem: pd.read_csv(p, index_col=0)
+            for p in sorted(folder.glob("*.csv")) if p.name not in SPECIAL}
+    ...</code></pre>
+  <p style="margin-bottom:0">A hálók nevét a <b>fájlnevekből</b> veszi, nem a <code>NetworkInfo</code>-ból. Így a 0.4-ben talált névhibák nem zavarják.
+  A teljes kód: <a href="https://github.com/fberti/learning-synopsis/blob/main/halozatelemzes/kod/sna-kurzus/sna_utils/__init__.py"><code>sna_utils/__init__.py</code></a>.</p>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa 1 – egy sor</span>
+<pre><code>&gt;&gt;&gt; from sna_utils import load_project
+&gt;&gt;&gt; p = load_project("Padgett_FlorentineFamilies")
+&gt;&gt;&gt; p
+&lt;DataProject Padgett_FlorentineFamilies: Business 16×16, Marriage 16×16; attribútumok: 4 oszlop&gt;
+&gt;&gt;&gt; p.networks["Marriage"].loc["MEDICI", "ALBIZZI"]
+np.int64(1)</code></pre>
+  A Medici és az Albizzi család között van házassági kapcsolat. (Az <code>np.int64(1)</code> a <code>numpy</code> egész típusú 1-ese.)
+</div>
+
+<div class="box def">
+  <span class="box-title">Miért mappa, és nem egyetlen <code>sna_utils.py</code>?</span>
+  <p style="margin-top:0">A leckék füzetei a <code>leckek/</code> almappában lesznek. Az <code>uv run python leckek/x.py</code> a <code>leckek/</code> mappában keresi az importokat,
+  nem a projekt gyökerében. Egy gyökérbeli <code>sna_utils.py</code>-t ezért nem találna. A megoldás: a <code>sna_utils</code> legyen <b>csomag</b>
+  (<code>sna_utils/__init__.py</code>), és a <code>uv</code> telepítse <b>szerkeszthető</b> (<em>editable</em>) módon a projekt környezetébe. Ehhez ez a három blokk kell a <code>pyproject.toml</code> végére:</p>
+<pre><code>[build-system]
+requires = ["uv_build&gt;=0.9,&lt;0.10"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "sna_utils"
+module-root = ""</code></pre>
+  <p style="margin-bottom:0">A „szerkeszthető” azt jelenti, hogy a környezet a <em>mappádra</em> mutat, nem egy másolatra. Ha átírsz egy függvényt, a következő futtatás már az új változatot látja.</p>
+</div>
+
+<div class="box warn">
+  <span class="box-title">Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Előbb a <code>[build-system]</code>, aztán a mappa.</b> Ha a <code>pyproject.toml</code>-ban már ott a blokk, de a <code>sna_utils/__init__.py</code> még nincs meg, minden <code>uv</code> parancs leáll:
+        <code>Expected a Python module at: sna_utils/__init__.py</code>. Hozd létre a mappát és az (akár üres) <code>__init__.py</code>-t.</li>
+    <li><b>Jupyter-kernel újraindítás nélkül.</b> A szerkeszthető telepítés a <em>következő</em> importnál látszik. Egy már futó kernel a régi függvényt tartja meg, amíg újra nem indítod.
+        (A marimo a módosított modulokat figyelheti; ez a beállításaiban kapcsolható.)</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – betöltés</summary>
+  <ol>
+    <li>Mit ad vissza a <code>load_project("Krackhardt_HighTech").networks.keys()</code>?
+      <details><summary>Megoldás</summary><code>dict_keys(['Advice', 'Friendship', 'ReportTo'])</code>: a fájlnevekből, ábécérendben.</details></li>
+    <li>Mit kapsz a <code>load_project("Padgett")</code> hívásra?
+      <details><summary>Megoldás</summary><code>FileNotFoundError: Nincs ilyen adatkészlet: …/data/asnr/Padgett</code>. A mappa neve a teljes csomagbeli név: <code>Padgett_FlorentineFamilies</code>.</details></li>
+    <li>Miért kell az <code>index_col=0</code> a <code>read_csv</code>-ben?
+      <details><summary>Megoldás</summary>Az első oszlop a sorcímkéket tartalmazza. Nélküle a pandas közönséges adatoszlopnak venné, és a mátrix $n \times (n+1)$-es lenne, egy szöveges oszloppal.</details></li>
+    <li>(nehezebb) A <code>leckek/03.py</code>-ban <code>from sna_utils import load_project</code> áll, és <code>ModuleNotFoundError</code> jön. A <code>sna_utils/</code> mappa megvan. Mi hiányozhat?
+      <details><summary>Megoldás</summary>A <code>[build-system]</code> és a <code>[tool.uv.build-backend]</code> blokk a <code>pyproject.toml</code>-ból (így a <code>uv</code> nem telepíti a csomagot), vagy a <code>__init__.py</code> a mappából.
+      Esetleg a füzetet nem <code>uv run</code>-nal indítottad.</details></li>
+  </ol>
+</details>
+
+<!-- ---------- 0.6 b -->
+<h3 id="s06-b">2. lépés: ellenőrzés – <code>check_matrix</code></h3>
+
+<p>A 0.3-ban négy kérdést tettünk fel minden betöltött mátrixnak: mekkora, milyen értékek vannak benne, szimmetrikus-e, és mi van az átlón.
+A 0.4-ben láttuk, hogy a könyv adataiban mindegyikre akad meglepő válasz. Most ezt egy függvényre bízzuk.</p>
+
+<div class="box def">
+  <span class="box-title"><code>check_matrix</code></span>
+<pre><code>def check_matrix(df):
+    """Gyors épségellenőrzés betöltés után – mindig nézd meg, mielőtt számolsz!"""
+    A = df.to_numpy(dtype=float)
+    report = {
+        "méret": A.shape,
+        "értékek": sorted(np.unique(A[~np.isnan(A)]).tolist()),
+        "hiányzó (NaN)": int(np.isnan(A).sum()),
+    }
+    if A.shape[0] == A.shape[1]:
+        report["azonos címkék"] = list(df.index) == list(df.columns)
+        report["szimmetrikus"] = bool(np.array_equal(A, A.T, equal_nan=True))
+        report["átló összege"] = float(np.nansum(np.diag(A)))
+    return report</code></pre>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa 2 – egy rendes háló</span>
+<pre><code>check_matrix(p.networks["Marriage"])
+{'méret': (16, 16), 'értékek': [0.0, 1.0],
+ 'hiányzó (NaN)': 0, 'azonos címkék': True,
+ 'szimmetrikus': True, 'átló összege': 0.0}</code></pre>
+    Minden rendben: 0/1, szimmetrikus (irányítatlan), üres átló.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa 3 – egy gyanús háló</span>
+<pre><code>check_matrix(knecht.networks["FriendshipT3"])
+{'méret': (26, 26), 'értékek': [0.0, 1.0, 9.0, 10.0],
+ 'hiányzó (NaN)': 0, 'azonos címkék': True,
+ 'szimmetrikus': False, 'átló összege': 28.0}</code></pre>
+    Két piros zászló: a 9 és 10 egy 0/1-es barátsághálóban, és a nem üres átló. Mindkettő hiánykód (0.3).
+  </div>
+</div>
+
+<div class="box tip">
+  <span class="box-title">Hüvelykujjszabály</span>
+  <b>Betöltés után, számolás előtt: <code>check_matrix</code>.</b> Négy dolgot nézz: méret (annyi csúcs, amennyit vársz?), értékek (van-e oda nem illő kód?),
+  szimmetria (egyezik a leírással?), átló (üres?).
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – ellenőrzés</summary>
+  <ol>
+    <li>A <code>Wolfe_Primates</code> <code>Kinship</code> hálójára a <code>check_matrix</code> ezt adja: <code>'szimmetrikus': False</code>. A <code>networkinfo.csv</code> szerint <code>Directed = False</code>. Mi a teendő?
+      <details><summary>Megoldás</summary>Elolvasni a leírást („18 may be the granddaughter of 19”): a rokonság szülő → utód irányban van kódolva. El kell döntened, irányítottként elemzed, vagy szimmetrizálod (lásd a 3. lépést). A metaadatnak vakon hinni hiba.</details></li>
+    <li>A <code>Rehnquist_SupremeCourt</code> <code>Votes</code> mátrixára: <code>'méret': (376, 9), 'értékek': [0.0, 0.5, 1.0], 'hiányzó (NaN)': 9</code>. Miért nincs a jelentésben „szimmetrikus” kulcs?
+      <details><summary>Megoldás</summary>Mert a mátrix nem négyzetes (376 ügy × 9 bíró, kétmódú): a szimmetriának, az átlónak és a „sor = oszlop címke” kérdésnek nincs értelme.</details></li>
+    <li>Egy irányítatlannak mondott háló jelentése: <code>'szimmetrikus': False</code>, <code>'azonos címkék': False</code>. Mi lehet a közös ok?
+      <details><summary>Megoldás</summary>A sorok és az oszlopok más sorrendben vannak. Ekkor egy valójában szimmetrikus háló is aszimmetrikusnak látszik. Javítás: <code>M = M.loc[:, M.index]</code> (az oszlopok átrendezése a sorok sorrendjére), majd újraellenőrzés.</details></li>
+    <li>(nehezebb) Egészítsd ki a <code>check_matrix</code>-ot egy „izolált csúcsok” kulccsal (négyzetes mátrixnál)!
+      <details><summary>Megoldás</summary><code>iso = (np.nansum(A, axis=0) == 0) &amp; (np.nansum(A, axis=1) == 0)</code>, majd <code>report["izolált"] = list(df.index[iso])</code>.
+      Sor- és oszlopösszeg is kell, mert irányított hálóban valakinek csak bejövő kapcsolata is lehet. (A Padgett-házassági hálóra: <code>['PUCCI']</code>.)</details></li>
+  </ol>
+</details>
+
+<!-- ---------- 0.6 c -->
+<h3 id="s06-c">3. lépés: gráf – <code>to_networkx</code></h3>
+
+<p>Az ellenőrzött mátrixból végül gráf kell, mert a <code>networkx</code> függvényei gráfon dolgoznak. Van rá kész függvény (<code>nx.from_pandas_adjacency</code>).
+Mi mégis sajátot írunk, mert négy dolgot szeretnénk biztosan: az izolált csúcsok megmaradjanak, a hiányzó érték ne váljon csendben éllé,
+az irány az adatból következzen, és kétmódú (téglalap alakú) mátrixból ne lehessen véletlenül egymódú gráfot építeni.</p>
+
+<div class="box def">
+  <span class="box-title"><code>to_networkx</code></span>
+<pre><code>def to_networkx(df, directed=None):
+    """Szomszédsági mátrix (DataFrame) -&gt; networkx-gráf."""
+    A = df.to_numpy(dtype=float)
+    if A.shape[0] != A.shape[1]:
+        raise ValueError(f"A mátrix {A.shape[0]}×{A.shape[1]}-es: kétmódú adat, "
+                         "ehhez kétrészes gráf vagy vetítés kell (13. lecke).")
+    if np.isnan(A).any():
+        raise ValueError("A mátrixban hiányzó érték van – előbb döntsd el, mit kezdesz vele.")
+    symmetric = np.array_equal(A, A.T)
+    if directed is None:
+        directed = not symmetric                 # az irány az adatból
+    if not directed and not symmetric:
+        warnings.warn("A mátrix nem szimmetrikus, de irányítatlan gráfot kértél: "
+                      "páronként a nagyobb értéket veszem (max-szimmetrizálás).")
+        A = np.maximum(A, A.T)
+    G = nx.DiGraph() if directed else nx.Graph()
+    G.add_nodes_from(df.index)                   # az izolált csúcsok is!
+    for i, j in zip(*np.nonzero(A)):
+        if directed or i &lt; j:                    # irányítatlanul minden pár egyszer
+            G.add_edge(df.index[i], df.columns[j], weight=A[i, j])
+    return G</code></pre>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa 4 – a Padgett-háló, Puccival</span>
+<pre><code>&gt;&gt;&gt; G = to_networkx(p.networks["Marriage"])
+&gt;&gt;&gt; G.number_of_nodes(), G.number_of_edges(), G.degree["MEDICI"]
+(16, 20, 6)
+&gt;&gt;&gt; list(nx.isolates(G))
+['PUCCI']</code></pre>
+  16 csúcs, nem 15. A Medici-családnak 6 házassági kapcsolata van, ahogy az ASNR 9.3.4 is írja („egy lépésre hat másik családtól”).
+</div>
+
+<div class="box warn">
+  <span class="box-title">Buktatók – amiket a függvény elkap, és amiket nem</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Kétmódú mátrix</b> (pl. <code>Davis_SouthernWomen</code>, 18 nő × 14 esemény): védelem nélkül egy 32 csúcsú, „nő → esemény” irányú gráf lenne belőle, ami értelmetlen.
+        A függvény ezért <code>ValueError</code>-t dob. A kétmódú adatok a 13. lecke témája.</li>
+    <li><b>Hiányzó érték (<code>NaN</code>)</b>: a <code>np.nonzero</code> a <code>NaN</code>-t nem nullának látja, vagyis <em>élnek</em>. Ezért a függvény inkább hibát dob.</li>
+    <li><b>Hiánykód (9, 10, −99)</b>: ezt a függvény <b>nem</b> ismeri fel, hiszen egy 9-es súly lehet valódi is. A Knecht-hálóból csendben 234 élű gráf lesz, ebből 101 hamis. Ez ellen a <code>check_matrix</code> véd.</li>
+    <li><b>Nem szimmetrikus mátrix irányítatlanként</b>: a függvény figyelmeztet, és szimmetrizál. A <code>Wolfe_Primates</code> <code>Kinship</code>-ből így 15 él lesz. (Az első változatunk csak a felső háromszöget nézte, és 9 élt adott:
+        az alsó háromszögbeli nyilak elvesztek. A tesztek ezt fogták ki.)</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – gráf</summary>
+  <ol>
+    <li>Mit ad a <code>to_networkx</code> a <code>Krackhardt_HighTech</code> <code>Advice</code> mátrixára: <code>Graph</code>-ot vagy <code>DiGraph</code>-ot? Hány éllel?
+      <details><summary>Megoldás</summary><code>DiGraph</code>, mert a mátrix nem szimmetrikus. 190 nyíl (a nem nulla cellák száma).</details></li>
+    <li>A <code>Zachary_KarateClub</code> <code>Strength</code> mátrixából mennyi lesz az élek száma, és mennyi az élsúlyok összege?
+      <details><summary>Megoldás</summary>78 él (156 nem nulla cella, szimmetrikus), a súlyok összege 231. Pontosan ugyanaz, mint a <code>networkx</code> 2.7+ beépített karateklubja (0.1).</details></li>
+    <li>Miért adjuk hozzá a csúcsokat <em>az élek előtt</em>, külön?
+      <details><summary>Megoldás</summary>Mert a <code>add_edge</code> csak az éllel rendelkező csúcsokat hozza létre. Az izolált csúcsok (Pucci) csak így kerülnek a gráfba, a 0.3 élistás csapdáját elkerülve.</details></li>
+    <li>(nehezebb) Miért <code>i &lt; j</code> a feltétel irányítatlan esetben, és mi lenne, ha elhagynánk?
+      <details><summary>Megoldás</summary>Szimmetrikus mátrixban minden kapcsolat kétszer szerepel ($(i,j)$ és $(j,i)$). Az <code>i &lt; j</code> mindegyiket egyszer veszi. Elhagyva a <code>Graph</code> úgyis egy élt tárolna, de fölöslegesen kétszer írnánk.
+      Aszimmetrikus súlyoknál pedig a második írás felülírná az első súlyát. Ezért szimmetrizálunk előtte.</details></li>
+  </ol>
+</details>
+
+<!-- ---------- 0.6 d -->
+<h3 id="s06-d">4. lépés: tesztek – a könyv számai mint ellenőrzés</h3>
+
+<p>Most minden eszköz működik, de honnan fogod tudni egy hónap múlva, egy csomagfrissítés vagy egy függvénymódosítás után is? A könyv kinyomtatott számai
+erre tökéletesek: ha a mi kódunk mást ad, valami elromlott.</p>
+
+<div class="box def">
+  <span class="box-title">Teszt (<code>pytest</code>)</span>
+  <p style="margin-top:0">Egy <code>tests/</code> mappabeli <code>test_*.py</code> fájl <code>test_</code>-tel kezdődő függvényei, bennük <code>assert</code> állításokkal. Az <code>uv run pytest</code> mindet lefuttatja,
+  és megmondja, melyik bukott el.</p>
+<pre><code>def test_padgett_marriage():
+    p = load_project("Padgett_FlorentineFamilies")
+    M = p.networks["Marriage"]
+    rep = check_matrix(M)
+    assert rep["méret"] == (16, 16)
+    assert rep["szimmetrikus"] and rep["átló összege"] == 0
+    G = to_networkx(M)
+    assert G.number_of_nodes() == 16          # a Pucci is benne van!
+    assert G.number_of_edges() == 20
+    assert G.degree["MEDICI"] == 6            # ASNR 9.3.4: „egy lépésre hat családtól”</code></pre>
+<pre><code>uv add --dev pytest
+uv run pytest -q
+...                                                                      [100%]
+4 passed in 0.55s</code></pre>
+  <p style="margin-bottom:0"><b>Miért éri meg?</b> Egy teszt fél perc alatt megírható, és örökre ott marad. A négy teszt közül az egyik (<code>Wolfe_Primates</code>) éppen a fenti hibát fogta ki a <code>to_networkx</code> első változatában, egy másik (<code>Davis_SouthernWomen</code>) a kétmódú védelmet ellenőrzi.</p>
+</div>
+
+<div class="box tip">
+  <span class="box-title">Hüvelykujjszabály</span>
+  <b>Minden reprodukált könyvbeli szám egy teszt.</b> Ha egy leckében a Python-eredményed egyezik az ASNR-ével, írd be egy <code>assert</code>-be. A 26. leckére egy egész tesztgyűjteményed lesz,
+  amely minden futtatáskor igazolja, hogy a kódod azt számolja, amit a könyv.
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – tesztek</summary>
+  <ol>
+    <li>Írj egy tesztet, amely ellenőrzi, hogy a <code>Davis_SouthernWomen</code> <code>Attendance</code> mátrixa 18 × 14-es, és 89 egyes van benne!
+      <details><summary>Megoldás</summary><code>def test_davis(): M = load_project("Davis_SouthernWomen").networks["Attendance"]; assert M.shape == (18, 14); assert M.to_numpy().sum() == 89</code>
+      (Rendesen több sorba tördelve.)</details></li>
+    <li>Egy teszt elbukik: <code>assert G.number_of_nodes() == 16</code>, de 15 lett. Mire gyanakszol először?
+      <details><summary>Megoldás</summary>Elveszett az izolált csúcs (Pucci): valaki átírta a gráfépítést élista alapúra, vagy kivette a <code>G.add_nodes_from(df.index)</code> sort.</details></li>
+    <li>(nehezebb) Miért jobb a tesztbe a könyv számát írni (<code>== 6</code>), mint a saját kódod mostani kimenetét bemásolni?
+      <details><summary>Megoldás</summary>Mert a könyv száma <em>független</em> forrás. A saját kimeneted lehet már most is hibás, és akkor a teszt a hibát rögzítené. Ha a könyv száma jön ki, az a kódod és az adatod helyességét is igazolja.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="sna0-6"></div>
+</section>
+
+<!-- ===================================================== 0.7 -->
+<section id="s07">
+<h2>0.7 Alkalmazás: a Medici-szám</h2>
+<p>Minden eszköz megvan. Most visszatérünk a fejezet kérdéséhez: a könyv szerint a Medici család normalizált közelségi centralitása <b>0,484</b>, a <code>networkx</code> beépített
+adatán viszont <b>0,56</b> jön ki. Végigmegyünk a teljes úton, az üres mappától a könyv számáig. (A közelségi centralitást a 9. lecke tárgyalja. Itt csak annyit használunk belőle,
+amennyit a könyv 9.3.4. szakasza kiszámol.)</p>
+
+<h3 id="s07-a">A teljes út, parancsról parancsra</h3>
+<div class="box example">
+  <span class="box-title">Az üres mappától a tesztekig</span>
+<pre><code># 1. projekt (0.1)
+uv init sna-kurzus --python 3.12 &amp;&amp; cd sna-kurzus &amp;&amp; rm main.py
+mkdir -p sna_utils scripts tests leckek data/raw
+# 2. a segédmodul helye (0.6): sna_utils/__init__.py + a [build-system] blokk a pyproject.toml végére
+#    (a fájlok tartalma: halozatelemzes/kod/sna-kurzus/)
+# 3. csomagok (0.1, 0.2)
+uv add networkx numpy scipy pandas matplotlib rdata
+uv add --dev pytest marimo
+# 4. a könyv adatai (0.4)
+curl -L -o data/raw/xUCINET_0.0.2.0020.tar.gz "https://drive.usercontent.google.com/download?id=1gGEGHq5z_Nrm1uPROXxUmuX-p4uibPKt&amp;export=download&amp;confirm=t"
+uv run python scripts/asnr_export.py data/raw/xUCINET_0.0.2.0020.tar.gz
+Kész: 52 adatkészlet -&gt; data/asnr/
+# 5. ellenőrzés (0.6)
+uv run pytest -q
+4 passed
+# 6. a füzet (0.2)
+uv run marimo edit leckek/00_munkakornyezet.py</code></pre>
+</div>
+
+<h3 id="s07-b">A Medici-szám kézzel</h3>
+<div class="box example">
+  <span class="box-title">1. lépés: távolságok a Medici családtól</span>
+  <p style="margin-top:0">A <code>to_networkx</code>-szel épített, 16 csúcsú házassági hálón (<code>nx.single_source_shortest_path_length(G, "MEDICI")</code>):</p>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>Távolság</th><th>Családok</th><th>Darab</th></tr>
+    <tr><td>1</td><td>Acciaiuoli, Albizzi, Barbadori, Ridolfi, Salviati, Tornabuoni</td><td>6</td></tr>
+    <tr><td>2</td><td>Castellani, Ginori, Guadagni, Pazzi, Strozzi</td><td>5</td></tr>
+    <tr><td>3</td><td>Bischeri, Lamberteschi, Peruzzi</td><td>3</td></tr>
+    <tr><td>elérhetetlen</td><td>Pucci (izolált)</td><td>1</td></tr>
+  </table></div>
+  <p style="margin-bottom:0">Ez egyezik a könyvvel: „1 lépésre hat, 2 lépésre öt, 3 lépésre három családtól, a Puccit nem érik el”. A hálóban a legnagyobb megfigyelt távolság 5 (pl. Pazzi–Lamberteschi).</p>
+</div>
+
+<div class="box def">
+  <span class="box-title">2. lépés: a könyv konvenciója</span>
+  <p style="margin-top:0">A normalizált közelség $\dfrac{n-1}{\text{a távolságok összege}}$. Az elérhetetlen csúcs távolságát az ASNR a <b>legnagyobb megfigyelt távolság + 1</b> értékkel helyettesíti, ez itt $5 + 1 = 6$:</p>
+  $$\text{távolságösszeg} = 6 \cdot 1 + 5 \cdot 2 + 3 \cdot 3 + 1 \cdot 6 = 31, \qquad \frac{16 - 1}{31} = \frac{15}{31} \approx 0{,}484.$$
+  <p style="margin-bottom:0">Pythonban (ez a <code>leckek/00_munkakornyezet.py</code> utolsó cellája):</p>
+<pre><code>d = nx.single_source_shortest_path_length(G, "MEDICI")
+legtavolabb = max(max(t.values()) for _, t in nx.all_pairs_shortest_path_length(G))
+farness = sum(d.get(v, legtavolabb + 1) for v in G if v != "MEDICI")
+(G.number_of_nodes() - 1) / farness        # 0.4838709677419355</code></pre>
+</div>
+
+<div class="box example">
+  <span class="box-title">3. lépés: honnan jön a 0,56 és a 0,523?</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>Adat</th><th>Csúcsok</th><th>A Pucci kezelése</th><th>Számolás</th><th>Eredmény</th></tr>
+    <tr><td><code>nx.florentine_families_graph()</code></td><td>15</td><td>nincs a hálóban (élistából épült, 0.3)</td><td>$14/(6 + 10 + 9) = 14/25$</td><td><b>0,560</b></td></tr>
+    <tr><td>ASNR-adat, <code>nx.closeness_centrality</code></td><td>16</td><td>kihagyja, és az elért csúcsok arányával szoroz (Wasserman–Faust)</td><td>$(14/25) \cdot (14/15)$</td><td><b>0,523</b></td></tr>
+    <tr><td>ASNR-adat, a könyv konvenciója</td><td>16</td><td>távolsága $5 + 1 = 6$</td><td>$15/31$</td><td><b>0,484</b></td></tr>
+  </table></div>
+  <p style="margin-bottom:0">Mindhárom szám „helyes”, csak más kérdésre felel. Az első <b>más adatot</b> használ (hiányzik egy család), a második és a harmadik ugyanazt az adatot, de
+  <b>más konvencióval</b> kezeli az elérhetetlen csúcsot.</p>
+</div>
+
+<div class="box tip">
+  <span class="box-title">A fejezet válasza</span>
+  <b>Egy hálózati szám = adat + definíció + konvenció.</b> A könyv 0,484-e akkor jön ki, ha (1) a könyv adatát használod, mind a 16 családdal (a 0.4 exportja és a 0.6 <code>to_networkx</code>-e),
+  és (2) a könyv konvencióját alkalmazod az elérhetetlen csúcsra. A <code>networkx</code> 0,56-ja nem hibás, csak egy másik háló (15 család) és egy másik konvenció eredménye.
+  Ezért kezdődik minden módszertani lecke a <b>reprodukálással</b>: amíg a könyv számát nem kapod vissza, nem tudod, hogy az adatod, a definíciód és a konvenciód megegyezik-e a könyvével.
+</div>
+
+<h3 id="s07-c">A futó projekt váza</h3>
+<p>A kurzus végig egy közös projekten dolgozik: a könyv adatain reprodukálsz, a saját hírkorpuszodon alkalmazol. A 0. lecke végén ez a váz áll:</p>
+<pre><code>sna-kurzus/
+├── pyproject.toml, uv.lock, .python-version   ← a környezet receptje (gitbe)
+├── sna_utils/__init__.py                      ← saját segédmodul, leckéről leckére bővül
+├── scripts/asnr_export.py                     ← adat-előállítás (gitbe)
+├── tests/test_asnr.py                         ← a könyv számai mint tesztek
+├── leckek/00_munkakornyezet.py                ← marimo-füzetek, leckénként egy
+└── data/                                      ← NEM kerül gitbe (.gitignore)
+    ├── raw/        a letöltött xUCINET-csomag
+    ├── asnr/       a könyv adatai CSV-ben (újra előállítható)
+    └── corpus/     a hírkorpusz (4–5. lecke; szerzői jog miatt nem publikus)</code></pre>
+<pre><code>git init &amp;&amp; git add . &amp;&amp; git commit -m "0. lecke: munkakörnyezet, ASNR-adatok, sna_utils"</code></pre>
+
+<div class="box warn">
+  <span class="box-title">Buktató: a hírkorpusz és a nyilvános repó</span>
+  A hírportálok cikkei szerzői jogi védelem alatt állnak. A korpuszt a <code>data/corpus/</code>-ba tedd, amely a <code>.gitignore</code>-ban van. Ha a repód nyilvános (pl. GitHubon),
+  csak a gyűjtő- és feldolgozó <em>kódot</em> tedd közzé, a cikkeket ne. A jogi hátteret (szövegbányászati kivétel, GDPR) a 4. lecke tárgyalja.
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – alkalmazás</summary>
+  <ol>
+    <li>Számold ki a Medici normalizált közelségét a könyv konvenciójával, ha a Pucci-ra a „legnagyobb távolság + 1” helyett a csúcsok számát ($n = 16$) használnánk!
+      <details><summary>Megoldás</summary>Távolságösszeg $6 + 10 + 9 + 16 = 41$, közelség $15/41 \approx 0{,}366$. Megint más szám, ugyanabból az adatból.</details></li>
+    <li>Mennyi lenne a Medici közelsége a 15 csúcsú (Pucci nélküli) hálón a könyv képletével?
+      <details><summary>Megoldás</summary>Ott mindenki elérhető: $14/25 = 0{,}56$. Ugyanannyi, mint a <code>networkx</code>-é, mert összefüggő hálón a konvenciók nem különböznek.</details></li>
+    <li>A Ridolfi család az ASNR 9.3.5 szerint „3 lépésen belül” 93%-ot ér el, és ennél többet sosem. Miért éppen 93%?
+      <details><summary>Megoldás</summary>15 másik család van, a Pucci elérhetetlen, tehát legfeljebb $14/15 \approx 0{,}933$. (Ellenőrizd a <code>nx.single_source_shortest_path_length(G, "RIDOLFI")</code>-val!)</details></li>
+    <li>(nehezebb) Írd meg a könyv 0,484-ét tesztként a <code>tests/test_asnr.py</code>-ba!
+      <details><summary>Megoldás</summary><code>assert abs(closeness_asnr(G, "MEDICI") - 0.484) &lt; 0.0005</code>, ahol a <code>closeness_asnr</code> a fenti négy sor függvénybe téve. A könyv három tizedesjegyre kerekít, ezért tűréssel hasonlítunk.
+      (A 9. leckében ez a függvény a <code>sna_utils</code>-ba kerül.)</details></li>
+  </ol>
+</details>
+</section>
+
+<!-- ===================================================== Összefoglalás -->
+<section id="s-sum">
+<h2>Összefoglalás</h2>
+<div class="tw" style="overflow-x:auto"><table>
+  <tr><th>Téma</th><th>Lényeg</th></tr>
+  <tr><td>Projektkörnyezet</td><td><code>pyproject.toml</code> (mit kérsz) + <code>uv.lock</code> (mit kaptál) + <code>.python-version</code>; a <code>.venv</code> újraépíthető, nem kerül gitbe</td></tr>
+  <tr><td><code>uv</code></td><td><code>init</code> · <code>add</code> (<code>--dev</code>) · <code>run</code> · <code>sync</code>; ideiglenesen: <code>uv run --with</code>; soha <code>pip install</code> a projektben</td></tr>
+  <tr><td>Python-verzió</td><td>3.12: minden kurzuscsomagnak van kereke; <code>netbone</code> csak külön környezetben; <code>graph-tool</code> csak condával vagy Dockerrel</td></tr>
+  <tr><td>Jegyzetfüzet</td><td>Jupyter: rejtett állapot, a futtatás sorrendje számít, Restart &amp; Run All; marimo: reaktív, <code>.py</code>, egy név = egy cella</td></tr>
+  <tr><td>Szomszédsági mátrix</td><td>első sor és oszlop: címkék, azonos sorrendben; sor → oszlop; irányítatlan: szimmetrikus, élek = nem nulla cellák / 2; irányított: élek = nem nulla cellák</td></tr>
+  <tr><td>Élista</td><td>soronként egy kapcsolat; az izolált csúcsokat nem ismeri, ezért kell csúcslista</td></tr>
+  <tr><td>Attribútumok, hiánykódok</td><td>címke szerint illeszd; −99, 9, 10 … = hiány, számolás előtt <code>NaN</code>; a hiány nem 0</td></tr>
+  <tr><td>A könyv adatai</td><td><code>xUCINET_0.0.2.0020.tar.gz</code> a könyv weboldaláról (nem CRAN, nem a GitHubos 2.0); 26 adatkészlet + 25 ábraadat + 1 mátrix</td></tr>
+  <tr><td>Adatprojekt</td><td><code>ProjectInfo</code> + <code>Attributes</code> + <code>NetworkInfo</code> + hálók; nálunk mappa CSV-kkel és <code>info.json</code>-nal</td></tr>
+  <tr><td>Export</td><td><code>rdata</code>: <code>parse_data</code> → <code>convert</code>, közvetlenül a <code>.tar.gz</code>-ből; R nélkül, az R-es exporttal cellára egyezik</td></tr>
+  <tr><td>Metaadat</td><td>hibás lehet (Wolfe, Camp92, Baker, Mainas, Padgett); az adat a mérvadó</td></tr>
+  <tr><td>R</td><td>csak ERGM, SAOM (16. lecke) és ellenőrzés; R&nbsp;≥&nbsp;4.5 a CRAN Ubuntu-tárából (az <code>RSiena</code> miatt) + <code>libglpk40</code>; bináris csomagok a P3M-ről</td></tr>
+  <tr><td><code>sna_utils</code></td><td><code>load_project</code> · <code>check_matrix</code> · <code>to_networkx</code> (izolált csúcsok, <code>NaN</code> és kétmódú mátrix → hiba, irány az adatból); szerkeszthető csomag</td></tr>
+  <tr><td>Tesztek</td><td>a könyv kinyomtatott számai <code>assert</code>-ként; <code>uv run pytest</code></td></tr>
+  <tr><td>A fejezet válasza</td><td>szám = adat + definíció + konvenció; Medici: 0,560 (15 család) · 0,523 (<code>nx</code>-konvenció) · 0,484 (a könyvé)</td></tr>
+</table></div>
+
+<div class="box tip">
+  <span class="box-title">Mit használj? – döntési táblázat</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>Ha ezt akarod…</th><th>…akkor így</th></tr>
+    <tr><td>új csomagot a projektbe</td><td><code>uv add csomag</code> (csak fejlesztéshez: <code>--dev</code>)</td></tr>
+    <tr><td>egy csomagot csak kipróbálni</td><td><code>uv run --with csomag …</code></td></tr>
+    <tr><td>egy ütköző csomagot (pl. <code>netbone</code>) futtatni</td><td><code>uv run --isolated --no-project --python 3.12 --with csomag …</code>, adatcsere CSV-n át</td></tr>
+    <tr><td>klónozás vagy <code>git pull</code> után futtatni</td><td><code>uv sync</code> (vagy egyszerűen <code>uv run</code>)</td></tr>
+    <tr><td>egy füzet számában megbízni</td><td>marimo; Jupyterben Restart &amp; Run All</td></tr>
+    <tr><td>egy CSV-mátrixot betölteni</td><td><code>pd.read_csv(f, index_col=0)</code>; magyar Excel: <code>sep=";", decimal=","</code></td></tr>
+    <tr><td>élt számolni</td><td>irányított: nem nulla cellák; irányítatlan: nem nulla cellák / 2 (nem az összeg!)</td></tr>
+    <tr><td>élistából gráfot építeni</td><td>előbb <code>G.add_nodes_from(csúcslista)</code>, aztán az élek</td></tr>
+    <tr><td>a könyv egy adatkészletét</td><td><code>load_project("Csomagbeli_Név")</code>; a könyvbeli név eltérhet (táblázat a 0.4-ben)</td></tr>
+    <tr><td>tudni, irányított-e egy háló</td><td><code>check_matrix(M)["szimmetrikus"]</code>, nem a <code>NetworkInfo</code></td></tr>
+    <tr><td>hiánykódot kezelni</td><td><code>info.json</code> → <code>replace(kód, np.nan)</code> → döntés (5. lecke)</td></tr>
+    <tr><td>ERGM-et vagy SAOM-ot futtatni</td><td>R: <code>statnet</code>, <code>RSiena</code> (16. lecke)</td></tr>
+    <tr><td>egy könyvbeli számot megőrizni</td><td><code>tests/test_asnr.py</code>: <code>assert …</code></td></tr>
+  </table></div>
+</div>
+</section>
+
+<!-- ===================================================== Ellenőrző kérdések -->
+<section id="s-check">
+<h2>Ellenőrző kérdések</h2>
+<p>Gondold végig a választ, aztán kattints a kártyára a megfordításhoz!</p>
+<div class="flashcards">
+  <div class="flash"><div class="inner"><div class="face front">Mi a különbség a <code>pyproject.toml</code> és a <code>uv.lock</code> között?</div>
+    <div class="face back">A <code>pyproject.toml</code> azt írja le, mit kérsz (pl. <code>networkx&gt;=3.7</code>); a <code>uv.lock</code> azt, pontosan mit kaptál (minden csomag pontos verzióját).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit csinál az <code>uv sync</code>?</div>
+    <div class="face back">A <code>.venv</code>-t pontosan a lock-fájl tartalmához igazítja: telepít, frissít, eltávolít.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért Python 3.12?</div>
+    <div class="face back">Mert ezen a kurzus minden csomagjának van kész kereke; 3.14-en a <code>textnets</code>-nek nincs.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a rejtett állapot?</div>
+    <div class="face back">Amikor a változók értéke a futtatások sorrendjén múlik, nem a füzet szövegén. Jupyterben alapeset; ellenszer: Restart &amp; Run All, vagy marimo.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit jelent, hogy a marimo reaktív?</div>
+    <div class="face back">Egy cella módosításakor minden tőle függő cella magától újrafut. Feltétele: minden nevet pontosan egy cella definiál.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Irányítatlan 0/1-es mátrix, cellaösszeg 40. Hány él?</div>
+    <div class="face back">20: minden él két cellában szerepel.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit veszít el egy élista?</div>
+    <div class="face back">Az izolált csúcsokat. Ezért kell mellé csúcslista.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a hiánykód?</div>
+    <div class="face back">Egy szám (−99, 9, 10 …), amely „nincs adat”-ot jelent. Számolás előtt <code>NaN</code>-ra kell cserélni.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Honnan van a könyv csomagja?</div>
+    <div class="face back">A könyv weboldaláról: <code>xUCINET_0.0.2.0020.tar.gz</code>. Nincs a CRAN-on; a GitHubos <code>xucinet</code> 2.0 más csomag.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi van egy adatprojektben?</div>
+    <div class="face back"><code>ProjectInfo</code> (leírás), <code>Attributes</code>, <code>NetworkInfo</code> (metaadat) és a hálók a saját nevükön.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Kell-e R a könyv adataihoz?</div>
+    <div class="face back">Nem: a Python <code>rdata</code> csomagja közvetlenül olvassa az <code>.rda</code>-kat. R csak ERGM-hez, SAOM-hoz és ellenőrzéshez kell.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit fog ki a <code>check_matrix</code>?</div>
+    <div class="face back">Rossz méretet, oda nem illő értékeket (hiánykód), <code>NaN</code>-t, eltérő címkesorrendet, váratlan (a)szimmetriát, nem üres átlót.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit csinál másként a <code>to_networkx</code>, mint egy élistás építés?</div>
+    <div class="face back">Előbb az összes csúcsot adja hozzá (izolált is marad), <code>NaN</code>-ra és nem négyzetes mátrixra hibát dob, és az irányt a szimmetriából dönti el.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért 0,484 a Medici a könyvben, és 0,56 a <code>networkx</code>-ben?</div>
+    <div class="face back">Más adat (15 vagy 16 család) és más konvenció (az elérhetetlen Pucci távolsága). Szám = adat + definíció + konvenció.</div></div></div>
+</div>
+</section>
+
+<!-- ===================================================== Vegyes gyakorló feladatok -->
+<section id="s-ex">
+<h2>Vegyes gyakorló feladatok</h2>
+<p>Itt már nincs megmondva, melyik részhez tartozik a feladat: neked kell eldönteni, melyik eszköz kell.</p>
+<details class="box practice">
+  <summary>✏️ Vegyes gyakorló feladatok – kattints a kinyitáshoz</summary>
+  <ol>
+    <li>Egy kolléga ezt írja: „Nálam a Medici közelsége 0,523, nálad 0,484. Valamelyikünk elrontotta.” Mit válaszolsz?
+      <details><summary>Tipp</summary>Ugyanaz az adat? Ugyanaz a konvenció?</details>
+      <details><summary>Megoldás</summary>Valószínűleg egyikük sem rontotta el. Mindketten a 16 családos adatot használják. A 0,523 a <code>nx.closeness_centrality</code> alapkonvenciója (kihagyja az elérhetetlen Puccit, és az elért csúcsok arányával szoroz), a 0,484 a könyvé (a Pucci távolsága 6).</details></li>
+    <li>A <code>Hawthorne_BankWiring</code> <code>Help</code> mátrixa nem szimmetrikus, a <code>Friendship</code> szimmetrikus. Mit ad rájuk a <code>to_networkx</code>, és miért természetes ez?
+      <details><summary>Tipp</summary>Melyik kapcsolat kölcsönös a természeténél fogva?</details>
+      <details><summary>Megoldás</summary>A <code>Help</code>-ből <code>DiGraph</code> lesz (ki segít kinek: irányított), a <code>Friendship</code>-ből <code>Graph</code> (a kutató itt kölcsönös viszonyként kódolta). Egy projekten belül is lehetnek különböző típusú hálók.</details></li>
+    <li>Egy hallgató a <code>Davis_SouthernWomen</code>-re lefuttatja a <code>to_networkx</code>-et. Mi történik, és mi lenne a helyes?
+      <details><summary>Tipp</summary>Nézd meg a mátrix méretét.</details>
+      <details><summary>Megoldás</summary><code>ValueError: A mátrix 18×14-es: kétmódú adat, ehhez kétrészes gráf vagy vetítés kell (13. lecke).</code> A mátrix nők × események, nem négyzetes.
+      Védelem nélkül egy értelmetlen, „nő → esemény” irányú gráf lenne belőle. Helyesen kétrészes (bipartit) gráfot kell építeni, vagy egymódúvá vetíteni (2. és 13. lecke).</details></li>
+    <li>A <code>uv run pytest</code> eddig zöld volt, de egy <code>uv add</code> után a <code>test_padgett_marriage</code> elbukik. Mi a hibakeresés első két lépése?
+      <details><summary>Tipp</summary>Mi változott? Hogyan teszed vissza?</details>
+      <details><summary>Megoldás</summary>(1) <code>git diff uv.lock</code>: mely csomagok verziója változott (az <code>uv add</code> függőségeket is frissíthet). (2) A régi lock-fájl visszaállítása (<code>git checkout uv.lock</code> + <code>uv sync</code>) és a teszt újrafuttatása. Ha így zöld, a frissítés okozta.</details></li>
+    <li>Egy hírportálról letöltött 300 cikket a projekted <code>data/</code> mappájába tennél, és a repót a GitHubon nyilvánossá tennéd. Mire figyelj?
+      <details><summary>Tipp</summary>Szerzői jog, <code>.gitignore</code>.</details>
+      <details><summary>Megoldás</summary>A cikkek a <code>data/corpus/</code>-ba kerüljenek, amely a <code>.gitignore</code>-ban van: nyilvános repóba csak a gyűjtő- és feldolgozó kód kerülhet. A jogi részleteket a 4. lecke tárgyalja.</details></li>
+    <li>Egy magyar kolléga Excelben készített egy 10 × 10-es súlyozott mátrixot. A <code>pd.read_csv("m.csv", index_col=0)</code> után a <code>shape</code> <code>(10, 0)</code>. Mi a baj, és mi a javítás?
+      <details><summary>Tipp</summary>Mivel választotta el a magyar Excel a cellákat?</details>
+      <details><summary>Megoldás</summary>Pontosvesszővel: így minden sor egyetlen cella, és az <code>index_col=0</code> után nem marad adatoszlop. Javítás: <code>pd.read_csv("m.csv", sep=";", decimal=",", index_col=0)</code>, majd <code>check_matrix</code>.</details></li>
+    <li>(nehezebb) A <code>Borgatti_Scientists960</code> hálóhoz az attribútumtáblának csak 504 sora van. Írj két sort, amely megmondja, hány csúcsnak nincs attribútuma!
+      <details><summary>Tipp</summary>Halmazkülönbség a címkéken.</details>
+      <details><summary>Megoldás</summary><code>p = load_project("Borgatti_Scientists960"); M = p.networks["Collaboration"]</code><br>
+      <code>len(set(M.index) - set(p.attributes.index))</code>. Az eredmény $960 - 504 = 456$, ha mind az 504 attribútumsor a hálóbeli csúcsokhoz tartozik. Ellenőriztük: így van.</details></li>
+    <li>(nehezebb) Egészítsd ki a <code>to_networkx</code>-et egy <code>missing</code> paraméterrel, amely a megadott kódokat (pl. <code>[9, 10]</code>) <code>NaN</code>-ra cseréli, mielőtt bármit csinálna! Mit ad ezután a Knecht <code>FriendshipT3</code>-ra a <code>to_networkx(M, missing=[9, 10])</code>?
+      <details><summary>Tipp</summary>A csere után mit csinál a függvény a <code>NaN</code>-nal?</details>
+      <details><summary>Megoldás</summary>Az első sor: <code>if missing: df = df.replace(missing, np.nan)</code>. Ezután a Knecht-mátrixban <code>NaN</code> lesz, és a függvény <b>hibát dob</b>. Ez így helyes: a hiányt nem szabad csendben 0-nak venni. Az 5. lecke megmutatja, hogyan döntsünk róla.</details></li>
+  </ol>
+</details>
+</section>
+
+<!-- ===================================================== Fejezetzáró -->
+<section id="s-final">
+<h2>Fejezetzáró teszt</h2>
+<p>Vegyes kérdések az egész fejezetből. Ha legalább 80%-ot elérsz, nyugodtan továbbléphetsz az 1. leckére!</p>
+<div class="quiz" data-quiz="sna0-final"></div>
+</section>
+
+<!-- ===================================================== Szómagyarázó -->
+<section id="s-gloss">
+<h2>Szómagyarázó</h2>
+<dl class="glossary">
+  <dt id="g-csv">CSV <span class="etym">angol <em>comma-separated values</em> „vesszővel elválasztott értékek”</span></dt>
+  <dd><p>Egyszerű szöveges táblázat: soronként egy rekord, az értékek vesszővel (a magyar Excelben pontosvesszővel) elválasztva.</p></dd>
+
+  <dt id="g-editable">szerkeszthető telepítés <span class="etym">angol <em>editable install</em></span></dt>
+  <dd><p>A környezet a forrásmappára mutat, nem egy másolatra, ezért a kód módosítása azonnal érvényes. Nálunk a <code>sna_utils</code> így települ.</p></dd>
+
+  <dt id="g-izolalt">izolált csúcs <span class="etym">lat. <em>insula</em> „sziget”</span></dt>
+  <dd><p>Kapcsolat nélküli csúcs; a hálóban „sziget”. Élistából építve elveszik.</p></dd>
+
+  <dt id="g-kernel">kernel <span class="etym">angol „mag”</span></dt>
+  <dd><p>A jegyzetfüzet mögött futó Python-folyamat, amely a változókat a futtatások között megőrzi.</p></dd>
+
+  <dt id="g-kerek">kerék <span class="etym">angol <em>wheel</em>; a <em>cheese wheel</em> „sajtkerék” szójátékból, mert a PyPI régi neve „Cheese Shop”</span></dt>
+  <dd><p>Előre lefordított, közvetlenül telepíthető Python-csomag (<code>.whl</code>) egy adott Python-verzióhoz és platformhoz.</p></dd>
+
+  <dt id="g-lock">lock-fájl <span class="etym">angol <em>lock</em> „zár, rögzít”</span></dt>
+  <dd><p>A feloldott függőségek pontos verzióit rögzítő fájl (<code>uv.lock</code>); ettől lesz a környezet reprodukálható.</p></dd>
+
+  <dt id="g-metaadat">metaadat <span class="etym">gör. <em>meta</em> „után, fölött” + adat</span></dt>
+  <dd><p>Adat az adatról: a háló neve, iránya, értéktípusa, a kódok jelentése. Az ASNR-ben a <code>NetworkInfo</code> és a <code>ProjectInfo</code>.</p></dd>
+
+  <dt id="g-p3m">P3M <span class="etym">angol <em>Posit Public Package Manager</em></span></dt>
+  <dd><p>A Posit cég nyilvános R-csomagtára, amely Linuxra is előre lefordított (bináris) csomagokat ad.</p></dd>
+
+  <dt id="g-rda">.rda <span class="etym">angol <em>R data</em></span></dt>
+  <dd><p>Az R bináris adatfájlja, egy vagy több R-objektummal. Pythonban az <code>rdata</code> csomag olvassa.</p></dd>
+
+  <dt id="g-reaktiv">reaktív <span class="etym">lat. <em>re-</em> „vissza” + <em>agere</em> „cselekszik”</span></dt>
+  <dd><p>Változásra magától visszahat. A reaktív füzetben egy cella módosítása a tőle függő cellákat újrafuttatja.</p></dd>
+
+  <dt id="g-tarball">tarball <span class="etym">angol <em>tar</em> (<em>tape archive</em> „szalagarchívum”) + <em>ball</em> „gombolyag”</span></dt>
+  <dd><p>Egyetlen fájlba csomagolt (és általában gzip-pel tömörített, <code>.tar.gz</code>) mappaszerkezet. Az R-forráscsomagok így terjednek.</p></dd>
+
+  <dt id="g-venv">virtuális környezet <span class="etym">lat. <em>virtualis</em> „lehetséges, hatásában létező”</span></dt>
+  <dd><p>Egy projekthez tartozó, elkülönített Python-telepítés a saját csomagjaival (<code>.venv</code>).</p></dd>
+</dl>
+</section>
+
+<nav class="pager">
+  <a href="../">← Hálózatelemzés</a>
+  <span class="next muted">1. Miért hálózatok? (hamarosan) →</span>
+</nav>
+
+</main>
+</div>
+
+<footer class="site">
+  Források: Borgatti, Everett, Johnson &amp; Agneessens: <em>Analyzing Social Networks Using R</em> (Sage, 2022; ASNR) 1., 5. és 9.3.4–9.3.5 szakasz ·
+  a könyv weboldala (<em>xUCINET</em> telepítési útmutató, sites.google.com/view/asnr-2022) · <em>xUCINET 0.0.2.0020</em> adatkészletei és leírásai ·
+  <em>uv</em>, <em>marimo</em>, <em>rdata</em>, <em>networkx</em> dokumentáció · Kiegészítés: R nélküli export, <code>sna_utils</code>, csomagtérkép, metaadat-hibák – saját, kipróbált anyag.
+</footer>
+</body>
+</html>

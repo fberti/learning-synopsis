@@ -1,0 +1,285 @@
+
+<!-- ===================================================== 0.6 -->
+<section id="s06">
+<h2>0.6 A saját segédmodul: <code>sna_utils</code> <small class="muted">★</small></h2>
+<p>Az adatok CSV-ben vannak, és tudjuk, mit kell ellenőrizni rajtuk. Most ezt a tudást <b>függvényekbe</b> tesszük, hogy ne kelljen minden leckében újraírni.
+Ez a <code>sna_utils</code>, a kurzus saját segédmodulja. Leckéről leckére bővül, és a könyv <code>xUCINET</code>-függvényeit váltja ki. Most három függvénnyel indul.</p>
+
+<p><b>Útiterv</b>:</p>
+<ol>
+  <li><a href="#s06-a">Betöltés: <code>load_project</code></a>, és hogyan lesz a modul minden mappából importálható.</li>
+  <li><a href="#s06-b">Ellenőrzés: <code>check_matrix</code></a>, a 0.3 szabályai függvényben.</li>
+  <li><a href="#s06-c">Gráf: <code>to_networkx</code></a>, izolált csúcsokkal, hiányra figyelve.</li>
+  <li><a href="#s06-d">Tesztek</a>: a könyv kinyomtatott számaiból automatikus ellenőrzés lesz.</li>
+</ol>
+
+<!-- ---------- 0.6 a -->
+<h3 id="s06-a">1. lépés: betöltés – <code>load_project</code></h3>
+
+<div class="box example">
+  <span class="box-title">Kiinduló eset: a Padgett-projekt kézzel</span>
+<pre><code>import json, pandas as pd
+d = "data/asnr/Padgett_FlorentineFamilies/"
+marriage = pd.read_csv(d + "Marriage.csv", index_col=0)
+business = pd.read_csv(d + "Business.csv", index_col=0)
+attr     = pd.read_csv(d + "attributes.csv", index_col=0)
+ni       = pd.read_csv(d + "networkinfo.csv", index_col=0)
+info     = json.load(open(d + "info.json", encoding="utf-8"))</code></pre>
+  Hét sor, és minden adatkészletnél más hálónevekkel. Ha egyszer elfelejted az <code>index_col=0</code>-t, a címkék egy közönséges oszlopba kerülnek, és a mátrixod 16 × 17-es lesz.
+</div>
+
+<div class="box def">
+  <span class="box-title"><code>DataProject</code> és <code>load_project</code></span>
+<pre><code>@dataclass
+class DataProject:
+    """Az xUCINET adatprojektjének Python-párja: hálók + attribútumok + metaadat."""
+    name: str
+    networks: dict          # hálónév -&gt; pandas DataFrame (mátrix, címkékkel)
+    attributes: object      # pandas DataFrame vagy None
+    network_info: object    # pandas DataFrame vagy None
+    info: dict              # leírás, kódolás, hivatkozások
+
+
+def load_project(name, root=ASNR):
+    """Egy exportált ASNR-adatkészlet betöltése (lásd scripts/asnr_export.py)."""
+    folder = Path(root) / name
+    if not folder.is_dir():
+        raise FileNotFoundError(f"Nincs ilyen adatkészlet: {folder}")
+    nets = {p.stem: pd.read_csv(p, index_col=0)
+            for p in sorted(folder.glob("*.csv")) if p.name not in SPECIAL}
+    ...</code></pre>
+  <p style="margin-bottom:0">A hálók nevét a <b>fájlnevekből</b> veszi, nem a <code>NetworkInfo</code>-ból. Így a 0.4-ben talált névhibák nem zavarják.
+  A teljes kód: <a href="https://github.com/fberti/learning-synopsis/blob/main/halozatelemzes/kod/sna-kurzus/sna_utils/__init__.py"><code>sna_utils/__init__.py</code></a>.</p>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa 1 – egy sor</span>
+<pre><code>&gt;&gt;&gt; from sna_utils import load_project
+&gt;&gt;&gt; p = load_project("Padgett_FlorentineFamilies")
+&gt;&gt;&gt; p
+&lt;DataProject Padgett_FlorentineFamilies: Business 16×16, Marriage 16×16; attribútumok: 4 oszlop&gt;
+&gt;&gt;&gt; p.networks["Marriage"].loc["MEDICI", "ALBIZZI"]
+np.int64(1)</code></pre>
+  A Medici és az Albizzi család között van házassági kapcsolat. (Az <code>np.int64(1)</code> a <code>numpy</code> egész típusú 1-ese.)
+</div>
+
+<div class="box def">
+  <span class="box-title">Miért mappa, és nem egyetlen <code>sna_utils.py</code>?</span>
+  <p style="margin-top:0">A leckék füzetei a <code>leckek/</code> almappában lesznek. Az <code>uv run python leckek/x.py</code> a <code>leckek/</code> mappában keresi az importokat,
+  nem a projekt gyökerében. Egy gyökérbeli <code>sna_utils.py</code>-t ezért nem találna. A megoldás: a <code>sna_utils</code> legyen <b>csomag</b>
+  (<code>sna_utils/__init__.py</code>), és a <code>uv</code> telepítse <b>szerkeszthető</b> (<em>editable</em>) módon a projekt környezetébe. Ehhez ez a három blokk kell a <code>pyproject.toml</code> végére:</p>
+<pre><code>[build-system]
+requires = ["uv_build&gt;=0.9,&lt;0.10"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "sna_utils"
+module-root = ""</code></pre>
+  <p style="margin-bottom:0">A „szerkeszthető” azt jelenti, hogy a környezet a <em>mappádra</em> mutat, nem egy másolatra. Ha átírsz egy függvényt, a következő futtatás már az új változatot látja.</p>
+</div>
+
+<div class="box warn">
+  <span class="box-title">Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Előbb a <code>[build-system]</code>, aztán a mappa.</b> Ha a <code>pyproject.toml</code>-ban már ott a blokk, de a <code>sna_utils/__init__.py</code> még nincs meg, minden <code>uv</code> parancs leáll:
+        <code>Expected a Python module at: sna_utils/__init__.py</code>. Hozd létre a mappát és az (akár üres) <code>__init__.py</code>-t.</li>
+    <li><b>Jupyter-kernel újraindítás nélkül.</b> A szerkeszthető telepítés a <em>következő</em> importnál látszik. Egy már futó kernel a régi függvényt tartja meg, amíg újra nem indítod.
+        (A marimo a módosított modulokat figyelheti; ez a beállításaiban kapcsolható.)</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – betöltés</summary>
+  <ol>
+    <li>Mit ad vissza a <code>load_project("Krackhardt_HighTech").networks.keys()</code>?
+      <details><summary>Megoldás</summary><code>dict_keys(['Advice', 'Friendship', 'ReportTo'])</code>: a fájlnevekből, ábécérendben.</details></li>
+    <li>Mit kapsz a <code>load_project("Padgett")</code> hívásra?
+      <details><summary>Megoldás</summary><code>FileNotFoundError: Nincs ilyen adatkészlet: …/data/asnr/Padgett</code>. A mappa neve a teljes csomagbeli név: <code>Padgett_FlorentineFamilies</code>.</details></li>
+    <li>Miért kell az <code>index_col=0</code> a <code>read_csv</code>-ben?
+      <details><summary>Megoldás</summary>Az első oszlop a sorcímkéket tartalmazza. Nélküle a pandas közönséges adatoszlopnak venné, és a mátrix $n \times (n+1)$-es lenne, egy szöveges oszloppal.</details></li>
+    <li>(nehezebb) A <code>leckek/03.py</code>-ban <code>from sna_utils import load_project</code> áll, és <code>ModuleNotFoundError</code> jön. A <code>sna_utils/</code> mappa megvan. Mi hiányozhat?
+      <details><summary>Megoldás</summary>A <code>[build-system]</code> és a <code>[tool.uv.build-backend]</code> blokk a <code>pyproject.toml</code>-ból (így a <code>uv</code> nem telepíti a csomagot), vagy a <code>__init__.py</code> a mappából.
+      Esetleg a füzetet nem <code>uv run</code>-nal indítottad.</details></li>
+  </ol>
+</details>
+
+<!-- ---------- 0.6 b -->
+<h3 id="s06-b">2. lépés: ellenőrzés – <code>check_matrix</code></h3>
+
+<p>A 0.3-ban négy kérdést tettünk fel minden betöltött mátrixnak: mekkora, milyen értékek vannak benne, szimmetrikus-e, és mi van az átlón.
+A 0.4-ben láttuk, hogy a könyv adataiban mindegyikre akad meglepő válasz. Most ezt egy függvényre bízzuk.</p>
+
+<div class="box def">
+  <span class="box-title"><code>check_matrix</code></span>
+<pre><code>def check_matrix(df):
+    """Gyors épségellenőrzés betöltés után – mindig nézd meg, mielőtt számolsz!"""
+    A = df.to_numpy(dtype=float)
+    report = {
+        "méret": A.shape,
+        "értékek": sorted(np.unique(A[~np.isnan(A)]).tolist()),
+        "hiányzó (NaN)": int(np.isnan(A).sum()),
+    }
+    if A.shape[0] == A.shape[1]:
+        report["azonos címkék"] = list(df.index) == list(df.columns)
+        report["szimmetrikus"] = bool(np.array_equal(A, A.T, equal_nan=True))
+        report["átló összege"] = float(np.nansum(np.diag(A)))
+    return report</code></pre>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa 2 – egy rendes háló</span>
+<pre><code>check_matrix(p.networks["Marriage"])
+{'méret': (16, 16), 'értékek': [0.0, 1.0],
+ 'hiányzó (NaN)': 0, 'azonos címkék': True,
+ 'szimmetrikus': True, 'átló összege': 0.0}</code></pre>
+    Minden rendben: 0/1, szimmetrikus (irányítatlan), üres átló.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa 3 – egy gyanús háló</span>
+<pre><code>check_matrix(knecht.networks["FriendshipT3"])
+{'méret': (26, 26), 'értékek': [0.0, 1.0, 9.0, 10.0],
+ 'hiányzó (NaN)': 0, 'azonos címkék': True,
+ 'szimmetrikus': False, 'átló összege': 28.0}</code></pre>
+    Két piros zászló: a 9 és 10 egy 0/1-es barátsághálóban, és a nem üres átló. Mindkettő hiánykód (0.3).
+  </div>
+</div>
+
+<div class="box tip">
+  <span class="box-title">Hüvelykujjszabály</span>
+  <b>Betöltés után, számolás előtt: <code>check_matrix</code>.</b> Négy dolgot nézz: méret (annyi csúcs, amennyit vársz?), értékek (van-e oda nem illő kód?),
+  szimmetria (egyezik a leírással?), átló (üres?).
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – ellenőrzés</summary>
+  <ol>
+    <li>A <code>Wolfe_Primates</code> <code>Kinship</code> hálójára a <code>check_matrix</code> ezt adja: <code>'szimmetrikus': False</code>. A <code>networkinfo.csv</code> szerint <code>Directed = False</code>. Mi a teendő?
+      <details><summary>Megoldás</summary>Elolvasni a leírást („18 may be the granddaughter of 19”): a rokonság szülő → utód irányban van kódolva. El kell döntened, irányítottként elemzed, vagy szimmetrizálod (lásd a 3. lépést). A metaadatnak vakon hinni hiba.</details></li>
+    <li>A <code>Rehnquist_SupremeCourt</code> <code>Votes</code> mátrixára: <code>'méret': (376, 9), 'értékek': [0.0, 0.5, 1.0], 'hiányzó (NaN)': 9</code>. Miért nincs a jelentésben „szimmetrikus” kulcs?
+      <details><summary>Megoldás</summary>Mert a mátrix nem négyzetes (376 ügy × 9 bíró, kétmódú): a szimmetriának, az átlónak és a „sor = oszlop címke” kérdésnek nincs értelme.</details></li>
+    <li>Egy irányítatlannak mondott háló jelentése: <code>'szimmetrikus': False</code>, <code>'azonos címkék': False</code>. Mi lehet a közös ok?
+      <details><summary>Megoldás</summary>A sorok és az oszlopok más sorrendben vannak. Ekkor egy valójában szimmetrikus háló is aszimmetrikusnak látszik. Javítás: <code>M = M.loc[:, M.index]</code> (az oszlopok átrendezése a sorok sorrendjére), majd újraellenőrzés.</details></li>
+    <li>(nehezebb) Egészítsd ki a <code>check_matrix</code>-ot egy „izolált csúcsok” kulccsal (négyzetes mátrixnál)!
+      <details><summary>Megoldás</summary><code>iso = (np.nansum(A, axis=0) == 0) &amp; (np.nansum(A, axis=1) == 0)</code>, majd <code>report["izolált"] = list(df.index[iso])</code>.
+      Sor- és oszlopösszeg is kell, mert irányított hálóban valakinek csak bejövő kapcsolata is lehet. (A Padgett-házassági hálóra: <code>['PUCCI']</code>.)</details></li>
+  </ol>
+</details>
+
+<!-- ---------- 0.6 c -->
+<h3 id="s06-c">3. lépés: gráf – <code>to_networkx</code></h3>
+
+<p>Az ellenőrzött mátrixból végül gráf kell, mert a <code>networkx</code> függvényei gráfon dolgoznak. Van rá kész függvény (<code>nx.from_pandas_adjacency</code>).
+Mi mégis sajátot írunk, mert négy dolgot szeretnénk biztosan: az izolált csúcsok megmaradjanak, a hiányzó érték ne váljon csendben éllé,
+az irány az adatból következzen, és kétmódú (téglalap alakú) mátrixból ne lehessen véletlenül egymódú gráfot építeni.</p>
+
+<div class="box def">
+  <span class="box-title"><code>to_networkx</code></span>
+<pre><code>def to_networkx(df, directed=None):
+    """Szomszédsági mátrix (DataFrame) -&gt; networkx-gráf."""
+    A = df.to_numpy(dtype=float)
+    if A.shape[0] != A.shape[1]:
+        raise ValueError(f"A mátrix {A.shape[0]}×{A.shape[1]}-es: kétmódú adat, "
+                         "ehhez kétrészes gráf vagy vetítés kell (13. lecke).")
+    if np.isnan(A).any():
+        raise ValueError("A mátrixban hiányzó érték van – előbb döntsd el, mit kezdesz vele.")
+    symmetric = np.array_equal(A, A.T)
+    if directed is None:
+        directed = not symmetric                 # az irány az adatból
+    if not directed and not symmetric:
+        warnings.warn("A mátrix nem szimmetrikus, de irányítatlan gráfot kértél: "
+                      "páronként a nagyobb értéket veszem (max-szimmetrizálás).")
+        A = np.maximum(A, A.T)
+    G = nx.DiGraph() if directed else nx.Graph()
+    G.add_nodes_from(df.index)                   # az izolált csúcsok is!
+    for i, j in zip(*np.nonzero(A)):
+        if directed or i &lt; j:                    # irányítatlanul minden pár egyszer
+            G.add_edge(df.index[i], df.columns[j], weight=A[i, j])
+    return G</code></pre>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa 4 – a Padgett-háló, Puccival</span>
+<pre><code>&gt;&gt;&gt; G = to_networkx(p.networks["Marriage"])
+&gt;&gt;&gt; G.number_of_nodes(), G.number_of_edges(), G.degree["MEDICI"]
+(16, 20, 6)
+&gt;&gt;&gt; list(nx.isolates(G))
+['PUCCI']</code></pre>
+  16 csúcs, nem 15. A Medici-családnak 6 házassági kapcsolata van, ahogy az ASNR 9.3.4 is írja („egy lépésre hat másik családtól”).
+</div>
+
+<div class="box warn">
+  <span class="box-title">Buktatók – amiket a függvény elkap, és amiket nem</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Kétmódú mátrix</b> (pl. <code>Davis_SouthernWomen</code>, 18 nő × 14 esemény): védelem nélkül egy 32 csúcsú, „nő → esemény” irányú gráf lenne belőle, ami értelmetlen.
+        A függvény ezért <code>ValueError</code>-t dob. A kétmódú adatok a 13. lecke témája.</li>
+    <li><b>Hiányzó érték (<code>NaN</code>)</b>: a <code>np.nonzero</code> a <code>NaN</code>-t nem nullának látja, vagyis <em>élnek</em>. Ezért a függvény inkább hibát dob.</li>
+    <li><b>Hiánykód (9, 10, −99)</b>: ezt a függvény <b>nem</b> ismeri fel, hiszen egy 9-es súly lehet valódi is. A Knecht-hálóból csendben 234 élű gráf lesz, ebből 101 hamis. Ez ellen a <code>check_matrix</code> véd.</li>
+    <li><b>Nem szimmetrikus mátrix irányítatlanként</b>: a függvény figyelmeztet, és szimmetrizál. A <code>Wolfe_Primates</code> <code>Kinship</code>-ből így 15 él lesz. (Az első változatunk csak a felső háromszöget nézte, és 9 élt adott:
+        az alsó háromszögbeli nyilak elvesztek. A tesztek ezt fogták ki.)</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – gráf</summary>
+  <ol>
+    <li>Mit ad a <code>to_networkx</code> a <code>Krackhardt_HighTech</code> <code>Advice</code> mátrixára: <code>Graph</code>-ot vagy <code>DiGraph</code>-ot? Hány éllel?
+      <details><summary>Megoldás</summary><code>DiGraph</code>, mert a mátrix nem szimmetrikus. 190 nyíl (a nem nulla cellák száma).</details></li>
+    <li>A <code>Zachary_KarateClub</code> <code>Strength</code> mátrixából mennyi lesz az élek száma, és mennyi az élsúlyok összege?
+      <details><summary>Megoldás</summary>78 él (156 nem nulla cella, szimmetrikus), a súlyok összege 231. Pontosan ugyanaz, mint a <code>networkx</code> 2.7+ beépített karateklubja (0.1).</details></li>
+    <li>Miért adjuk hozzá a csúcsokat <em>az élek előtt</em>, külön?
+      <details><summary>Megoldás</summary>Mert a <code>add_edge</code> csak az éllel rendelkező csúcsokat hozza létre. Az izolált csúcsok (Pucci) csak így kerülnek a gráfba, a 0.3 élistás csapdáját elkerülve.</details></li>
+    <li>(nehezebb) Miért <code>i &lt; j</code> a feltétel irányítatlan esetben, és mi lenne, ha elhagynánk?
+      <details><summary>Megoldás</summary>Szimmetrikus mátrixban minden kapcsolat kétszer szerepel ($(i,j)$ és $(j,i)$). Az <code>i &lt; j</code> mindegyiket egyszer veszi. Elhagyva a <code>Graph</code> úgyis egy élt tárolna, de fölöslegesen kétszer írnánk.
+      Aszimmetrikus súlyoknál pedig a második írás felülírná az első súlyát. Ezért szimmetrizálunk előtte.</details></li>
+  </ol>
+</details>
+
+<!-- ---------- 0.6 d -->
+<h3 id="s06-d">4. lépés: tesztek – a könyv számai mint ellenőrzés</h3>
+
+<p>Most minden eszköz működik, de honnan fogod tudni egy hónap múlva, egy csomagfrissítés vagy egy függvénymódosítás után is? A könyv kinyomtatott számai
+erre tökéletesek: ha a mi kódunk mást ad, valami elromlott.</p>
+
+<div class="box def">
+  <span class="box-title">Teszt (<code>pytest</code>)</span>
+  <p style="margin-top:0">Egy <code>tests/</code> mappabeli <code>test_*.py</code> fájl <code>test_</code>-tel kezdődő függvényei, bennük <code>assert</code> állításokkal. Az <code>uv run pytest</code> mindet lefuttatja,
+  és megmondja, melyik bukott el.</p>
+<pre><code>def test_padgett_marriage():
+    p = load_project("Padgett_FlorentineFamilies")
+    M = p.networks["Marriage"]
+    rep = check_matrix(M)
+    assert rep["méret"] == (16, 16)
+    assert rep["szimmetrikus"] and rep["átló összege"] == 0
+    G = to_networkx(M)
+    assert G.number_of_nodes() == 16          # a Pucci is benne van!
+    assert G.number_of_edges() == 20
+    assert G.degree["MEDICI"] == 6            # ASNR 9.3.4: „egy lépésre hat családtól”</code></pre>
+<pre><code>uv add --dev pytest
+uv run pytest -q
+...                                                                      [100%]
+4 passed in 0.55s</code></pre>
+  <p style="margin-bottom:0"><b>Miért éri meg?</b> Egy teszt fél perc alatt megírható, és örökre ott marad. A négy teszt közül az egyik (<code>Wolfe_Primates</code>) éppen a fenti hibát fogta ki a <code>to_networkx</code> első változatában, egy másik (<code>Davis_SouthernWomen</code>) a kétmódú védelmet ellenőrzi.</p>
+</div>
+
+<div class="box tip">
+  <span class="box-title">Hüvelykujjszabály</span>
+  <b>Minden reprodukált könyvbeli szám egy teszt.</b> Ha egy leckében a Python-eredményed egyezik az ASNR-ével, írd be egy <code>assert</code>-be. A 26. leckére egy egész tesztgyűjteményed lesz,
+  amely minden futtatáskor igazolja, hogy a kódod azt számolja, amit a könyv.
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – tesztek</summary>
+  <ol>
+    <li>Írj egy tesztet, amely ellenőrzi, hogy a <code>Davis_SouthernWomen</code> <code>Attendance</code> mátrixa 18 × 14-es, és 89 egyes van benne!
+      <details><summary>Megoldás</summary><code>def test_davis(): M = load_project("Davis_SouthernWomen").networks["Attendance"]; assert M.shape == (18, 14); assert M.to_numpy().sum() == 89</code>
+      (Rendesen több sorba tördelve.)</details></li>
+    <li>Egy teszt elbukik: <code>assert G.number_of_nodes() == 16</code>, de 15 lett. Mire gyanakszol először?
+      <details><summary>Megoldás</summary>Elveszett az izolált csúcs (Pucci): valaki átírta a gráfépítést élista alapúra, vagy kivette a <code>G.add_nodes_from(df.index)</code> sort.</details></li>
+    <li>(nehezebb) Miért jobb a tesztbe a könyv számát írni (<code>== 6</code>), mint a saját kódod mostani kimenetét bemásolni?
+      <details><summary>Megoldás</summary>Mert a könyv száma <em>független</em> forrás. A saját kimeneted lehet már most is hibás, és akkor a teszt a hibát rögzítené. Ha a könyv száma jön ki, az a kódod és az adatod helyességét is igazolja.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="sna0-6"></div>
+</section>

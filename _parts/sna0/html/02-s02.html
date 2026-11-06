@@ -1,0 +1,170 @@
+
+<!-- ===================================================== 0.2 -->
+<section id="s02">
+<h2>0.2 Jegyzetfüzet: Jupyter vagy marimo <small class="muted">★</small></h2>
+<p>A környezet most már rögzített. A hálózatelemzés nagy része mégis jegyzetfüzetben (<em>notebook</em>) zajlik, ahol kód, szám és ábra
+egymás alatt áll. Ez kényelmes, de van egy csapdája: a füzetben látott szám nem feltétlenül az, amit a füzet kódja ad.</p>
+
+<p><b>Útiterv</b>:</p>
+<ol>
+  <li><a href="#s02-a">A Jupyter rejtett állapota</a>: amikor a cellák sorrendje számít.</li>
+  <li><a href="#s02-b">A marimo reaktív füzete</a>: amikor a füzet maga gondoskodik a sorrendről.</li>
+</ol>
+
+<!-- ---------- 0.2 a -->
+<h3 id="s02-a">1. lépés: a Jupyter rejtett állapota</h3>
+
+<div class="box example">
+  <span class="box-title">Kiinduló eset: három cella</span>
+<pre><code>[A]  n = 16        # a firenzei családok száma
+[B]  n = n - 1     # a Pucci család nélkül
+[C]  print(n)</code></pre>
+  <p>Sorban futtatva (A, B, C) a kiírás <b>15</b>. Most futtasd újra a B-t, majd a C-t: a kiírás <b>14</b>. A füzetben ugyanaz a három cella
+  áll, egy olvasó 15-öt várna. A cellák bal oldalán viszont ott a nyom: <code>[1]</code>, <code>[4]</code>, <code>[5]</code>. Ezek a futtatások
+  sorszámai, és elárulják, hogy a B kétszer futott.</p>
+  <p style="margin-bottom:0">A Jupyter mögött egy <b>kernel</b> (futó Python-folyamat) áll, amely mindent megjegyez, amit valaha lefuttattál, abban a sorrendben, ahogy
+  futtattad. A változók értéke tehát a <b>futtatások történetén</b> múlik, nem a füzet szövegén.</p>
+</div>
+
+<div class="box def">
+  <span class="box-title">Rejtett állapot</span>
+  <p style="margin:0">Egy jegyzetfüzetnek <b>rejtett állapota</b> van, ha a változók értéke nem olvasható ki a cellák szövegéből, mert a futtatás sorrendjétől és
+  ismétléseitől is függ. A Jupyterben ez alapértelmezés. <b>Miért baj?</b> Mert a füzetben látott szám nem reprodukálható. A szerzője sem tudja
+  utólag megmondani, melyik sorrend adta.</p>
+</div>
+
+<div class="box tip">
+  <span class="box-title">Hüvelykujjszabály</span>
+  Mielőtt egy Jupyter-füzet számának hinnél: <b>Kernel → Restart Kernel and Run All Cells</b>. Ami ezután is kijön, azt a füzet szövege adja.
+</div>
+
+<div class="widget" data-widget="cell-order"></div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa 1 – kihagyott cella</span>
+    Sorrend: A, C, B, C. Mit írnak ki a C futásai?
+    <details><summary>Megoldás</summary>Először <b>16</b> (a B még nem futott), aztán <b>15</b>.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa 2 – rossz kezdés</span>
+    Újraindított kernel után rögtön a B-t futtatod. Mi történik?
+    <details><summary>Megoldás</summary><code>NameError: name 'n' is not defined</code>. Az <code>n</code>-et csak az A hozza létre.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Törölt cella, élő változó.</b> Ha egy cellát kitörölsz, az általa létrehozott változó a kernelben tovább él. A füzet „működik”, amíg újra nem indítod.</li>
+    <li><b>Önmagát módosító cella.</b> Az <code>n = n - 1</code> vagy a <code>df = df[df.x &gt; 0]</code> minden futtatással mást ad. Inkább adj új nevet: <code>m = n - 1</code>.</li>
+    <li><b>Rossz kernel.</b> Ha a Jupytert nem a projektből indítod (<code>uv run jupyter lab</code>), hanem egy globális telepítésből, akkor a projekt csomagjai helyett
+        más csomagokat lát: <code>ModuleNotFoundError: No module named 'sna_utils'</code>.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – futtatási sorrend</summary>
+  <p>Az A, B, C cella ugyanaz, mint fent. Minden feladat újraindított kernellel kezdődik.</p>
+  <ol>
+    <li>Sorrend: A, B, B, B, C. Mit ír ki a C?
+      <details><summary>Megoldás</summary>$16 - 3 = 13$.</details></li>
+    <li>Sorrend: A, B, C, A, C. Mit írnak ki a C futásai?
+      <details><summary>Megoldás</summary>15, majd 16: az A újra 16-ra állítja az <code>n</code>-et.</details></li>
+    <li>A futtatási sorszámok: A <code>[1]</code>, B <code>[3]</code>, C <code>[4]</code>. Mi történt a 2. futtatásban, és mennyi lehet a kiírás?
+      <details><summary>Megoldás</summary>A cellák mellett mindig az <em>utolsó</em> futtatás sorszáma áll. Az A nem lehetett, mert akkor nála <code>[2]</code> állna.
+      Ha a 2. a <b>B</b> volt (A, B, B, C), a kiírás <b>14</b>. Ha a <b>C</b> volt (A, C, B, C), a kiírás <b>15</b> (előtte egyszer 16). Lehetett egy azóta törölt cella is.
+      A sorszámokból ez nem dönthető el: ez a rejtett állapot lényege.</details></li>
+    <li>Hogyan írnád át a B-t, hogy akárhányszor futtatod, mindig ugyanazt adja?
+      <details><summary>Megoldás</summary><code>m = n - 1</code> (és a C-ben <code>print(m)</code>). Így a B nem írja felül a saját bemenetét.</details></li>
+    <li>(nehezebb) Egy kolléga füzete szerint a Medici-centralitás 0,56, de nálad Restart &amp; Run All után 0,484. Mi lehet a magyarázat, ha a kód ugyanaz?
+      <details><summary>Megoldás</summary>Rejtett állapot: a kolléga kernelében egy korábban futtatott (esetleg már törölt) cella egy másik gráfot (pl. a <code>networkx</code> beépített, 15 csúcsú változatát)
+      töltött be ugyanazzal a névvel. Vagy más környezetben futott. A 0.7-ben kiderül, hogy a 0,56 éppen a 15 csúcsú gráfból jön.</details></li>
+  </ol>
+</details>
+
+<!-- ---------- 0.2 b -->
+<h3 id="s02-b">2. lépés: a marimo reaktív füzete</h3>
+
+<p>A Jupyterben neked kell figyelned a sorrendre. Mi lenne, ha a füzet maga tudná, melyik cella melyiktől függ, és mindig
+helyes sorrendben futtatna? Ezt tudja a <b>marimo</b>.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló eset: ugyanaz a három cella, marimóban</span>
+<pre><code>[A]  n = 16
+[B]  m = n - 1     # új név: marimóban egy nevet csak egy cella definiálhat
+[C]  print(m)</code></pre>
+  <p style="margin-bottom:0">A marimo minden cellánál megnézi, mely neveket <b>definiál</b> és melyeket <b>használ</b>. Ebből tudja, hogy a C a B-től, a B az A-tól függ.
+  Ha az A-ban átírod a 16-ot 15-re, a B és a C <b>magától újrafut</b>, és 14-et ír ki. Rejtett állapot nincs: a kiírás mindig az, amit a cellák szövege ad.</p>
+</div>
+
+<div class="box def">
+  <span class="box-title">Reaktív jegyzetfüzet</span>
+  <p style="margin:0">Egy füzet <b>reaktív</b>, ha egy cella módosításakor minden tőle függő cella automatikusan újrafut. Ennek ára egy szabály: <b>minden nevet pontosan egy
+  cella definiálhat</b> (az <code>_</code>-sal kezdődő nevek cellán belüliek, ezekre nem vonatkozik). <b>Miért?</b> Ha két cella is definiálná az
+  <code>n</code>-et, nem lenne egyértelmű, melyik értékét lássa a többi.</p>
+</div>
+
+<div class="two-col">
+  <div class="box">
+    <span class="box-title">Jupyter</span>
+    <ul style="margin:.2rem 0">
+      <li>fájl: <code>.ipynb</code> (JSON, a kimenetekkel együtt)</li>
+      <li>sorrend: ahogy te futtatod</li>
+      <li>egy név több cellában is definiálható</li>
+      <li>gitben a különbségek nehezen olvashatók</li>
+      <li>indítás: <code>uv add --dev jupyterlab</code>, <code>uv run jupyter lab</code></li>
+    </ul>
+  </div>
+  <div class="box">
+    <span class="box-title">marimo</span>
+    <ul style="margin:.2rem 0">
+      <li>fájl: <code>.py</code> (sima Python, szkriptként is fut)</li>
+      <li>sorrend: a függőségekből következik</li>
+      <li>egy név = egy cella</li>
+      <li>gitben a különbségek jól olvashatók</li>
+      <li>indítás: <code>uv add --dev marimo</code>, <code>uv run marimo edit leckek/00_munkakornyezet.py</code></li>
+    </ul>
+  </div>
+</div>
+
+<div class="box tip">
+  <span class="box-title">Mit használjunk?</span>
+  A kurzus leckéihez <b>marimót</b> javaslunk: a füzet egyben szkript is (<code>uv run python leckek/00_munkakornyezet.py</code>), és nincs rejtett állapot.
+  A Jupyter is teljesen jó, ha jobban szereted. Ilyenkor a „Restart &amp; Run All” legyen a szokásod, mielőtt egy számot leírsz.
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa 3 – kétszer definiált név</span>
+  Marimóban a B cellába ezt írod: <code>n = n - 1</code>. Mi történik?
+  <details><summary>Megoldás</summary>A marimo hibát jelez (<code>multiple-definitions</code>: „Variable 'n' is defined in multiple cells”): az <code>n</code>-et már az A definiálja. Adj új nevet (<code>m = n - 1</code>), vagy vond össze a két cellát.</details>
+</div>
+
+<div class="box warn">
+  <span class="box-title">Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Ciklusváltozó két cellában.</b> Ha két cellában is <code>for i in …</code> áll, az <code>i</code> kétszer van definiálva. Írj <code>_i</code>-t, vagy tedd a ciklust függvénybe.</li>
+    <li><b>Helyben módosított objektum.</b> A marimo a neveket követi, a tartalmukat nem. Ha egy másik cellában <code>G.add_edge(…)</code>-t hívsz, az nem indítja újra a <code>G</code>-t
+        használó cellákat. Az átalakítás kerüljön abba a cellába, amelyik a <code>G</code>-t létrehozza, vagy adjon vissza új objektumot.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – Jupyter vagy marimo</summary>
+  <ol>
+    <li>Marimóban az A-ban az <code>n = 16</code>-ot átírod <code>n = 20</code>-ra. Mit ír ki a C (B: <code>m = n - 1</code>, C: <code>print(m)</code>)? Kell-e kézzel futtatnod valamit?
+      <details><summary>Megoldás</summary>19. Kézzel semmit nem kell futtatni: a B és a C magától újrafut.</details></li>
+    <li>Marimóban a C cellát a B fölé húzod. Változik a kiírás?
+      <details><summary>Megoldás</summary>Nem. A marimóban a sorrendet a függőségek adják, nem a cellák helye.</details></li>
+    <li>Miért jobb gitben egy marimo-füzet, mint egy <code>.ipynb</code>?
+      <details><summary>Megoldás</summary>Mert a marimo-füzet sima <code>.py</code> fájl: a változások soronként olvashatók. Az <code>.ipynb</code> JSON, és a kimeneteket (képeket is) tartalmazza, ezért a különbségei nehezen olvashatók.</details></li>
+    <li>Két cellában is ez áll: <code>for v in G: …</code>. Mit mond a marimo, és hogyan javítod?
+      <details><summary>Megoldás</summary><code>multiple-definitions</code> hibát a <code>v</code> miatt. Javítás: az egyikben <code>_v</code>, vagy mindkét ciklust függvénybe teszed.</details></li>
+    <li>(nehezebb) Egy cella betölti a gráfot (<code>G = to_networkx(…)</code>), egy másik cella kiírja az élszámát. Egy harmadik cellában <code>G.remove_node("PUCCI")</code>-t futtatsz. Frissül az élszám kiírása?
+      <details><summary>Megoldás</summary>Nem, mert a harmadik cella nem definiál új nevet, csak módosítja a <code>G</code>-t. A marimo ezt nem követi. (A Pucci izolált, így az élszám amúgy sem változna, de a csúcsszám igen.)
+      Helyesen: <code>H = G.copy(); H.remove_node("PUCCI")</code>, és a kiírás a <code>H</code>-t használja.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="sna0-2"></div>
+</section>

@@ -1,0 +1,143 @@
+
+<!-- ===================================================== 0.5 -->
+<section id="s05">
+<h2>0.5 R – csak ahol muszáj <small class="muted">★</small></h2>
+<p>A könyv adatai már R nélkül is megvannak. R-re mégis szükség lesz: néhány módszernek egyszerűen nincs érett Python-megvalósítása.
+Ebben a részben megnézzük, melyek ezek, egyszer feltelepítjük az R-t, és arra is felhasználjuk, hogy a Python-exportunkat egy független úton ellenőrizzük.</p>
+
+<p><b>Útiterv</b>:</p>
+<ol>
+  <li><a href="#s05-a">Mikor kell R?</a> A kurzus R-es pontjai.</li>
+  <li><a href="#s05-b">Telepítés</a>: R, a könyv csomagja, és a buktató, amelybe mi is belefutottunk.</li>
+  <li><a href="#s05-c">Ellenőrzés és előkészület</a>: R-es export összevetése, <code>statnet</code> és <code>RSiena</code> a 16. leckéhez.</li>
+</ol>
+
+<!-- ---------- 0.5 a -->
+<h3 id="s05-a">1. lépés: mikor kell R?</h3>
+
+<div class="box def">
+  <span class="box-title">A kurzus R-es pontjai</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>Feladat</th><th>Lecke</th><th>R-csomag</th><th>Miért nem Python?</th></tr>
+    <tr><td>ERGM (exponenciális véletlengráf-modell)</td><td>16</td><td><code>statnet</code> / <code>ergm</code></td><td>nincs érett megvalósítás</td></tr>
+    <tr><td>SAOM (hálózatdinamika)</td><td>16</td><td><code>RSiena</code></td><td>nincs</td></tr>
+    <tr><td>DyNAM, relációs eseménymodellek</td><td>16 (opc.)</td><td><code>goldfish</code></td><td>nincs érett megvalósítás</td></tr>
+    <tr><td>SDSM/FDSM backbone</td><td>13 (opc.)</td><td><code>backbone</code></td><td>a <code>netbone</code> csak részben tudja</td></tr>
+    <tr><td>QAP, MRQAP ellenőrzése</td><td>15 (opc.)</td><td><code>sna</code></td><td>Pythonban magunk írjuk meg; R csak összevetésre</td></tr>
+    <tr><td>a könyv függvényeinek kipróbálása</td><td>bármikor</td><td><code>xUCINET</code></td><td>a könyv számainak forrása, ellenőrzéshez</td></tr>
+  </table></div>
+  <p style="margin-bottom:0"><b>Hüvelykujjszabály:</b> az R a kurzusban <b>eszköz, nem munkakörnyezet</b>. Az adat CSV-ben utazik a két nyelv között, és minden, ami Pythonban is megy, Pythonban készül.</p>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa 1 – ugyanaz a szám R-ben</span>
+  Ha az R és az <code>xUCINET</code> már fent van (2. lépés), a Padgett-féle házassági háló sűrűsége:
+<pre><code>Rscript -e 'library(xUCINET); xDensity(Padgett_FlorentineFamilies$Marriage)'
+  .  ------------------------------------------------------------------
+  .   Number of valid cells: 240
+  .   which corresponds to: 100 % of considered cells.
+  .  ------------------------------------------------------------------
+
+[1] 0.1666667</code></pre>
+  Az <code>xDensity</code> előbb kiírja, hány cellát vett figyelembe ($16 \cdot 15 = 240$, az átló nélkül), aztán az eredményt. Kézzel: 16 család $16 \cdot 15 / 2 = 120$ párt alkot, ebből 20 között van házasság, $20/120 = 1/6 \approx 0{,}167$. (A sűrűséget a 10. lecke tárgyalja. Itt csak azt látjuk, hogy az R ugyanazt az adatot olvassa, mint mi.)
+</div>
+
+<!-- ---------- 0.5 b -->
+<h3 id="s05-b">2. lépés: telepítés</h3>
+
+<div class="box def">
+  <span class="box-title">Telepítés Ubuntu 24.04-en</span>
+  <p style="margin-top:0"><b>1. Friss R a CRAN Ubuntu-tárából</b>, és egy rendszerkönyvtár (az <code>igraph</code> R-csomag lefordított része a GLPK-t használja).
+  Az Ubuntu saját R-je túl régi (lásd a buktatókat), ezért előbb a CRAN tárolóját vesszük fel (a CRAN hivatalos útmutatója szerint):</p>
+<pre><code>sudo apt install --no-install-recommends software-properties-common dirmngr
+wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc \
+  | sudo tee -a /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc
+sudo add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu $(lsb_release -cs)-cran40/"
+sudo apt install --no-install-recommends r-base libglpk40
+R --version | head -1
+R version 4.6.2 (2026-10-29) -- "Diversified Portfolio"</code></pre>
+  <p><b>2. Bináris csomagtár.</b> A CRAN Linuxra csak forráscsomagot ad, ezért minden csomag percekig fordulna. A Posit Public Package Manager (<b>P3M</b>) előre lefordított
+  változatokat ad, ha az R elküldi a saját verzióját és platformját. Ez a Python-kerekek R-es párja. Írd ezt a <code>~/.Rprofile</code> fájlba:</p>
+<pre><code>options(repos = c(CRAN = "https://p3m.dev/cran/__linux__/noble/latest"))
+options(HTTPUserAgent = sprintf("R/%s R (%s)", getRversion(),
+  paste(getRversion(), R.version["platform"], R.version["arch"], R.version["os"])))</code></pre>
+  <p><b>3. A könyv csomagja és a függőségei</b> (a projekt gyökeréből, ahol a <code>data/raw/</code> van):</p>
+<pre><code>Rscript -e 'install.packages(c("sna", "igraph", "blockmodeling", "FactoMineR"))'
+Rscript -e 'install.packages("data/raw/xUCINET_0.0.2.0020.tar.gz", repos = NULL, type = "source")'</code></pre>
+  <p style="margin-bottom:0">A <code>repos = NULL, type = "source"</code> azt mondja: ne a netről, hanem ebből a fájlból telepíts. Az <code>xUCINET</code> tiszta R-kód, nem kell fordítani.
+  (Kipróbáltuk egy tiszta Ubuntu 24.04-en: a fenti lépésekkel 123 csomag települt binárisként, csak az <code>xUCINET</code> forrásból.)</p>
+</div>
+
+<div class="box tip">
+  <span class="box-title">B-terv: Docker</span>
+  Ha nem akarod a gépedre telepíteni az R-t, egy kész R-képben is futtathatod (mi is így ellenőriztük): <code>docker run --rm -it -v "$PWD:/work" -w /work rocker/r-ver:4.5 bash</code>,
+  benne <code>apt-get update &amp;&amp; apt-get install -y libglpk40</code>, és utána ugyanazok az <code>Rscript</code> parancsok. A <code>rocker</code>-kép a P3M-et már be is állította.
+</div>
+
+<div class="box warn">
+  <span class="box-title">Buktatók (az első kettőbe mi is belefutottunk)</span>
+  <ul style="margin:.2rem 0">
+    <li><b><code>libglpk.so.40: cannot open shared object file</code></b> az <code>xUCINET</code> telepítésekor: a hiba az <code>igraph</code> R-csomag betöltésénél jön, mert a GLPK-könyvtár hiányzik.
+        Javítás: <code>sudo apt install libglpk40</code>, és telepítsd újra. (Ha a csomagok forrásból fordulnak, a <code>libglpk-dev</code> kell.)</li>
+    <li><b><code>package 'RSiena' is not available for this version of R</code></b>: az Ubuntu 24.04 saját <code>r-base</code>-e az R 4.3.3, az <code>RSiena</code> 1.6.6 viszont
+        R&nbsp;≥&nbsp;4.5.0-t kér. Ezért kell a CRAN tárolója (1. pont). Az <code>xUCINET</code> és a <code>statnet</code> a régi R-rel is települne, ezért a hiba csak a 16. leckénél derülne ki.</li>
+    <li><b><code>package 'xUCINET' is not available</code></b>: a könyv szerinti <code>install.packages("xUCINET")</code> a CRAN-on keresi, ahol nincs. A letöltött fájlból telepíts (fent).</li>
+    <li><b>Kis- és nagybetű.</b> <code>library(xUCINET)</code>, nem <code>library(xucinet)</code>. Az utóbbi a GitHubos 2.0, egy másik csomag.</li>
+    <li><b>Lassú telepítés, „installing *source* package”.</b> Ha a P3M nem bináris csomagot ad, hanem forrást, akkor hiányzik vagy hibás a <code>HTTPUserAgent</code> beállítás, vagy a tár URL-je
+        nem a te Ubuntu-verziódhoz tartozik (<code>noble</code> = 24.04, <code>jammy</code> = 22.04).</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – telepítés</summary>
+  <ol>
+    <li>Az <code>install.packages("xUCINET")</code> hibát ad. Mi a helyes parancs?
+      <details><summary>Megoldás</summary><code>install.packages("data/raw/xUCINET_0.0.2.0020.tar.gz", repos = NULL, type = "source")</code>, a függőségek (<code>sna</code>, <code>igraph</code>, <code>blockmodeling</code>, <code>FactoMineR</code>) telepítése után.</details></li>
+    <li>Ubuntu 22.04-en dolgozol. Mit írsz át a <code>~/.Rprofile</code>-ban?
+      <details><summary>Megoldás</summary>A tár útvonalában a <code>noble</code>-t <code>jammy</code>-re: <code>https://p3m.dev/cran/__linux__/jammy/latest</code>.</details></li>
+    <li>Az <code>xDensity(Krackhardt_HighTech$Advice)</code> eredménye <code>0.452381</code> (előtte: „Number of valid cells: 420”). Ellenőrizd kézzel: 21 menedzser, 190 nyíl!
+      <details><summary>Megoldás</summary>Irányított hálóban a lehetséges nyilak száma $21 \cdot 20 = 420$, és $190/420 \approx 0{,}452$. (Irányítatlannak véve, $210$ párral számolva, hibásan 0,905 jönne ki.)</details></li>
+    <li>(nehezebb) Miért nem jó ötlet minden elemzést R-ben csinálni, ha úgyis telepítetted?
+      <details><summary>Megoldás</summary>A kurzus célja a Python-eszköztár (<code>networkx</code>, <code>igraph</code>, szövegfeldolgozás, LLM-ek), amely a hírelemzéshez kell. Két nyelv két környezetet, két hibaforrást és két verziókezelést jelent.
+      Az R ott kell, ahol nélkülözhetetlen, máshol csak ellenőrzésre.</details></li>
+  </ol>
+</details>
+
+<!-- ---------- 0.5 c -->
+<h3 id="s05-c">3. lépés: ellenőrző export, <code>statnet</code> és <code>RSiena</code></h3>
+
+<p>Most, hogy fent van az R, egy fontos ellenőrzést is el tudunk végezni: ugyanazt az exportot elkészítjük R-ben, és összevetjük a Python-exporttal.
+Ha a kettő egyezik, az <code>rdata</code>-ban megbízhatunk.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló eset: két export, egy összevetés</span>
+<pre><code>Rscript scripts/asnr_export.R                 # -&gt; data/asnr_r/
+Kész: 52 adatkészlet -&gt; data/asnr_r
+uv run python scripts/compare_exports.py data/asnr_r data/asnr
+105 mátrix összevetve, 0 eltérés.</code></pre>
+  <p style="margin-bottom:0">A 105 mátrix (hálók és ábraadatok) mind cellára egyezik, a címkékkel együtt. Az R-szkript lényege egy ciklus: <code>data(package = "xUCINET")</code> felsorolja az adatkészleteket,
+  és mindegyik minden mátrixát <code>write.csv</code>-vel kiírja. (A teljes szkript: <code>scripts/asnr_export.R</code> a kód mappájában.)</p>
+</div>
+
+<div class="box def">
+  <span class="box-title">Előkészület a 16. leckéhez</span>
+<pre><code>Rscript -e 'install.packages(c("statnet", "RSiena"))'
+Rscript -e 'library(ergm); library(RSiena); packageVersion("ergm"); packageVersion("RSiena")'</code></pre>
+  <p style="margin-bottom:0">A <code>statnet</code> egy csomaggyűjtemény (benne az <code>ergm</code>, a <code>network</code> és a <code>sna</code>). Kipróbáláskor (2026. november, R 4.6.2) az <code>ergm</code> 4.12.0 és az <code>RSiena</code> 1.6.6 települt.
+  Ha később Pythonból akarod hívni őket, arra az <code>rpy2</code> való. Ez opcionális: a 16. leckében az R-kódot külön futtatjuk, és CSV-n át adjuk vissza az eredményt.</p>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – ellenőrzés</summary>
+  <ol>
+    <li>Az összevetés 0 eltérést ad. Jelenti ez, hogy a könyv adatai hibátlanok?
+      <details><summary>Megoldás</summary>Nem. Csak azt, hogy az <code>rdata</code> pontosan azt olvassa ki, amit maga az R. A metaadat-hibák (0.4) mindkét exportban benne vannak.</details></li>
+    <li>Miért nem hasonlítjuk össze a <code>networkinfo.csv</code>-ket is?
+      <details><summary>Megoldás</summary>Mert a logikai értékeket a két nyelv másként írja ki (R: <code>TRUE</code>, Python: <code>True</code>), így szöveges eltérés lenne tartalmi eltérés nélkül. A számszerű mátrixok összevetése a lényeg.</details></li>
+    <li>(nehezebb) Mi szól amellett, hogy a 16. leckében az R-kódot külön futtasd, és ne <code>rpy2</code>-vel Pythonból?
+      <details><summary>Megoldás</summary>Az <code>rpy2</code>-nek nincs kereke, forrásból fordul (R-fejlécek kellenek hozzá), és a két nyelv adattípusainak átalakítása újabb hibaforrás. Egy R-szkript + CSV egyszerűbb, átláthatóbb, és ugyanúgy reprodukálható.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="sna0-5"></div>
+</section>

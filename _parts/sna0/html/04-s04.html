@@ -1,0 +1,301 @@
+
+<!-- ===================================================== 0.4 -->
+<section id="s04">
+<h2>0.4 A könyv adatkészletei Pythonban <small class="muted">★</small></h2>
+<p>Most már tudod, hogyan áll egy háló egy CSV-ben, és mire figyelj betöltéskor. Ideje a valódi adatoknak. A kurzus módszertani leckéi
+két lépésben gyakoroltatnak: előbb a könyv példáját futtatod újra a könyv adatán, és a kinyomtatott számmal veted össze, aztán a saját hírkorpuszodra viszed át.
+Ehhez az első lépéshez kellenek a könyv adatai, Pythonban.</p>
+
+<p><b>Útiterv</b>:</p>
+<ol>
+  <li><a href="#s04-a">Honnan?</a> A könyv R-csomagja, és miért nem a CRAN-ról jön.</li>
+  <li><a href="#s04-b">Az adatprojekt szerkezete</a>: hálók, attribútumok, metaadat egy helyen.</li>
+  <li><a href="#s04-c">Export R nélkül</a>: az <code>rdata</code> csomag és egy 80 soros szkript.</li>
+  <li><a href="#s04-d">Mi van benne, és mi hibás benne?</a> A 26 adatkészlet áttekintése.</li>
+</ol>
+
+<!-- ---------- 0.4 a -->
+<h3 id="s04-a">1. lépés: honnan jönnek az adatok?</h3>
+
+<p>Az ASNR saját R-csomagra épül, az <b><code>xUCINET</code></b>-re. Ez tartalmazza a könyv függvényeit (<code>xDensity()</code>, <code>xDegreeCentrality()</code> …)
+és az összes adatkészletét. A könyv 5.4.1. szakasza szerint <code>install.packages("xUCINET")</code>-tel telepíthető. <b>Ez ma nem működik</b>: a csomag nincs a CRAN-on.</p>
+
+<div class="box def">
+  <span class="box-title">A könyv csomagja: <code>xUCINET 0.0.2.0020</code></span>
+  <p style="margin-top:0">A könyv weboldala (<a href="https://sites.google.com/view/asnr-2022/xucinet">sites.google.com/view/asnr-2022/xucinet</a>) szerint a csomag
+  <b>sem a CRAN-on, sem a GitHubon nem érhető el</b>. Egy <code>.tar.gz</code> fájlként tölthető le: ez az aktuális <code>xUCINET_0.0.2.0020.tar.gz</code>
+  (2022. szeptember), mellette ott az előző, <code>0.0.1.0022</code>. Töltsd le a projekted <code>data/raw/</code> mappájába. Parancssorból (2026 novemberében ez a link működött):</p>
+<pre><code>mkdir -p data/raw
+curl -L -o data/raw/xUCINET_0.0.2.0020.tar.gz \
+  "https://drive.usercontent.google.com/download?id=1gGEGHq5z_Nrm1uPROXxUmuX-p4uibPKt&amp;export=download&amp;confirm=t"</code></pre>
+  <p style="margin-bottom:0">A fájl egy tömörített R-forráscsomag: <code>R/</code> (a függvények), <code>man/</code> (a súgó) és <code>data/</code> (52 <code>.rda</code> fájl).
+  <b>Nekünk csak a <code>data/</code> kell.</b></p>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa 1 – mi van a csomagban?</span>
+<pre><code>tar -tzf data/raw/xUCINET_0.0.2.0020.tar.gz | grep "data/.*rda" | wc -l
+52
+tar -tzf data/raw/xUCINET_0.0.2.0020.tar.gz | grep "data/Padgett"
+xUCINET/data/Padgett_FlorentineFamilies.rda</code></pre>
+  Az 52 fájl: <b>26 adatkészlet</b> (pl. <code>Padgett_FlorentineFamilies</code>), <b>25 ábraadat</b> (<code>ASNR_Fig09x4</code> = a 9.4. ábra kis hálója) és
+  egy mátrixpélda (<code>MAT_12_5</code>, a 12.5. mátrix).
+</div>
+
+<div class="box warn">
+  <span class="box-title">Buktató: két csomag, hasonló névvel</span>
+  <ul style="margin:.2rem 0">
+    <li>A GitHubon van egy <b><code>xucinet</code></b> (kisbetűvel, <code>stephenborgatti/xucinet</code>, 2.0-s verzió, 2026 szeptembere). Ez a könyv <b>2. kiadásához</b>
+        készült, a nulláról újraírva. A README szerint <b>nem kompatibilis</b> a 0.x-szel: más függvénynevek, más adatkészletnevek (pl. <code>padgett</code>, <code>hightech</code>).
+        A kurzus a 2022-es (1.) kiadást követi, ezért a <b>0.0.2.0020</b> kell.</li>
+    <li>Az <code>install.packages("xUCINET")</code> hibaüzenete („<em>package 'xUCINET' is not available</em>”) nem a te hibád: a csomag tényleg nincs a CRAN-on.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a könyv csomagja</summary>
+  <ol>
+    <li>Melyik fájl kell neked: <code>xUCINET_0.0.2.0020.tar.gz</code> vagy a GitHubos <code>xucinet</code> 2.0?
+      <details><summary>Megoldás</summary>A 0.0.2.0020: ez a 2022-es kiadás csomagja, ennek az adatkészletnevei és függvényei egyeznek a könyvvel.</details></li>
+    <li>Mit jelent az <code>ASNR_Fig10x3B</code> név?
+      <details><summary>Megoldás</summary>A könyv 10.3. ábrájának B része: egy kis szemléltető háló (6 csúcs). Az ábraadatokkal a könyv ábráin szereplő számok is reprodukálhatók.</details></li>
+    <li>Kell-e kicsomagolni a <code>.tar.gz</code>-t?
+      <details><summary>Megoldás</summary>Nem: az exportszkriptünk (3. lépés) közvetlenül a tömörített fájlból olvassa az <code>.rda</code>-kat. Így a <code>data/raw/</code> mappában csak a letöltött fájl van, változatlanul.</details></li>
+  </ol>
+</details>
+
+<!-- ---------- 0.4 b -->
+<h3 id="s04-b">2. lépés: az adatprojekt szerkezete</h3>
+
+<p>Egy adatkészlet ritkán egyetlen mátrix. A Padgett-adatban két háló van (házasság, üzlet), plusz a családok vagyona, és egy leírás arról, mi mit jelent.
+Az ASNR (5.4.1) ezért mindent egy <b>adatprojektbe</b> gyűjt.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló eset: a Padgett-projekt</span>
+<pre><code>Padgett_FlorentineFamilies
+├── ProjectInfo     leírás, attribútumok és hálók magyarázata, hivatkozások
+├── Attributes      16 × 4 táblázat: NodeName, Wealth, Priors, Degree116
+├── NetworkInfo     hálónként: név, mód, irányított?, értéktípus
+├── Business        16 × 16 mátrix (üzleti kapcsolat)
+└── Marriage        16 × 16 mátrix (házassági kapcsolat)</code></pre>
+  <p style="margin-bottom:0">R-ben ez egy <code>list</code>, amelynek az elemei mátrixok és <code>data.frame</code>-ek. Pythonba olvasva egy <b>szótár</b> lesz belőle:
+  a mátrixok <code>xarray.DataArray</code>-k (sor- és oszlopcímkékkel), a táblázatok <code>pandas.DataFrame</code>-ek.</p>
+</div>
+
+<div class="box def">
+  <span class="box-title">Adatprojekt</span>
+  <p style="margin:0">Egy vizsgálat <b>összes</b> hálója, attribútuma és metaadata <b>egy</b> objektumban: <code>ProjectInfo</code> (szöveges leírás, kódkönyv),
+  <code>Attributes</code> (csúcsattribútumok), <code>NetworkInfo</code> (hálónként: <code>Name</code>, <code>Mode</code>, <code>Directed</code>, <code>Values</code> …),
+  és a hálók a saját nevükön. <b>Miért jó?</b> Egyben marad, ami összetartozik: a mátrix mellett ott a kódkönyve. Ellenőrizni is lehet, hogy minden háló
+  és az attribútumtábla ugyanazokra a csúcsokra, ugyanabban a sorrendben vonatkozik-e.</p>
+</div>
+
+<div class="box tip">
+  <span class="box-title">Mi lesz ebből nálunk?</span>
+  Fájlszinten egy <b>mappa</b> adatkészletenként (<code>data/asnr/Padgett_FlorentineFamilies/</code>), benne hálónként egy CSV, egy <code>attributes.csv</code>,
+  egy <code>networkinfo.csv</code> és egy <code>info.json</code>. Pythonban egy <code>DataProject</code> objektum (<a href="#s06-a">0.6</a>), amely ezt a mappát egy lépésben betölti.
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – az adatprojekt</summary>
+  <ol>
+    <li>A Krackhardt-projektben három háló van (<code>Advice</code>, <code>Friendship</code>, <code>ReportTo</code>), 21 menedzser és 4 attribútum. Hány CSV-fájl lesz a mappájában?
+      <details><summary>Megoldás</summary>5: három háló, <code>attributes.csv</code>, <code>networkinfo.csv</code>. Mellettük egy <code>info.json</code>.</details></li>
+    <li>Hol keresed, hogy a Knecht-adatban mit jelent a 9-es érték?
+      <details><summary>Megoldás</summary>A <code>ProjectInfo</code>-ban (nálunk <code>info.json</code>), a <code>NetworksDescription</code> alatt: „9=missing, and 10=structural missing”.</details></li>
+    <li>(nehezebb) Miért jobb egy projektben tartani a hálót és a leírását, mint két külön fájlban?
+      <details><summary>Megoldás</summary>Mert a mátrix a leírása nélkül félreérthető (lásd a 9-es kódot). Ha külön utaznak, könnyen elválnak egymástól. Ráadásul egy projekten belül automatikusan
+      ellenőrizhető, hogy a hálók és az attribútumok ugyanarra a csúcshalmazra vonatkoznak-e.</details></li>
+  </ol>
+</details>
+
+<!-- ---------- 0.4 c -->
+<h3 id="s04-c">3. lépés: export R nélkül</h3>
+
+<p>A kurzusterv eredetileg egy „egyszeri R-lépést” írt elő: R-ben betölteni a csomagot, és onnan CSV-be menteni mindent. Kipróbáltuk, és van egyszerűbb út.
+Az <code>.rda</code> fájl az R saját, dokumentált bináris formátuma, és a Python <b><code>rdata</code></b> csomagja olvasni tudja. <b>Kiegészítés.</b></p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló eset: egyetlen adatkészlet</span>
+<pre><code>uv add rdata
+uv run python</code></pre>
+<pre><code>&gt;&gt;&gt; import tarfile, rdata
+&gt;&gt;&gt; tf = tarfile.open("data/raw/xUCINET_0.0.2.0020.tar.gz")
+&gt;&gt;&gt; raw = tf.extractfile("xUCINET/data/Padgett_FlorentineFamilies.rda").read()
+&gt;&gt;&gt; obj = rdata.conversion.convert(rdata.parser.parse_data(raw))["Padgett_FlorentineFamilies"]
+&gt;&gt;&gt; [str(k) for k in obj]
+['ProjectInfo', 'Attributes', 'NetworkInfo', 'Business', 'Marriage']
+&gt;&gt;&gt; obj["Marriage"].shape
+(16, 16)</code></pre>
+  (A <code>str(k)</code> azért kell, mert a kulcsok <code>numpy</code>-szövegek, és a puszta <code>list(obj)</code> <code>np.str_('ProjectInfo')</code> alakban írná ki őket.) Az <code>rdata</code> két lépésben dolgozik: a <code>parse_data</code> a bináris fájlt R-objektumokká bontja, a <code>convert</code> ezeket Python-objektumokká alakítja.
+</div>
+
+<div class="box def">
+  <span class="box-title">Az exportszkript: <code>scripts/asnr_export.py</code></span>
+  <p style="margin-top:0">Ugyanez mind az 52 fájlra, CSV-be mentve. A lényeg három függvény:</p>
+  <ul style="margin:.2rem 0">
+    <li><code>to_frame(x)</code>: egy R-mátrixot (<code>DataArray</code>) címkés <code>DataFrame</code>-mé alakít;</li>
+    <li><code>export(name, obj)</code>: egy adatprojekt minden részét a saját fájljába írja (<code>&lt;Háló&gt;.csv</code>, <code>attributes.csv</code>, <code>networkinfo.csv</code>, <code>info.json</code>);</li>
+    <li><code>main(tarball)</code>: végigmegy a tömörített fájl <code>data/*.rda</code> tagjain, kicsomagolás nélkül.</li>
+  </ul>
+<pre><code>uv run python scripts/asnr_export.py data/raw/xUCINET_0.0.2.0020.tar.gz
+Kész: 52 adatkészlet -&gt; data/asnr/</code></pre>
+  <details><summary>A teljes szkript</summary>
+<pre><code>"""Az ASNR (xUCINET 0.0.2) összes adatkészletének exportja CSV-be – R nélkül."""
+import json
+import sys
+import tarfile
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import rdata
+
+OUT = Path("data/asnr")
+
+
+def to_frame(x):
+    """R-mátrix (xarray.DataArray) vagy data.frame -&gt; pandas DataFrame, címkékkel."""
+    if isinstance(x, pd.DataFrame):
+        return x
+    labels = [x.coords[d].values if d in x.coords else np.arange(n) + 1
+              for d, n in zip(x.dims, x.shape)]
+    return pd.DataFrame(np.asarray(x), index=[str(v) for v in labels[0]],
+                        columns=[str(v) for v in labels[1]])
+
+
+def plain(x):
+    """ProjectInfo -&gt; JSON-ba írható szerkezet."""
+    if x is None:
+        return None
+    if isinstance(x, dict):
+        return {str(k): plain(v) for k, v in x.items()}
+    if isinstance(x, pd.DataFrame):
+        return x.astype(str).to_dict(orient="records")
+    return [str(v) for v in np.atleast_1d(x)]
+
+
+def export(name, obj):
+    folder = OUT / name
+    folder.mkdir(parents=True, exist_ok=True)
+    if not isinstance(obj, dict):                 # ábraadat vagy sima táblázat
+        to_frame(obj).to_csv(folder / f"{name}.csv")
+        return
+    for part, x in obj.items():
+        part = str(part)
+        if part == "ProjectInfo":
+            text = json.dumps(plain(x), ensure_ascii=False, indent=2)
+            (folder / "info.json").write_text(text, encoding="utf-8")
+        elif x is None:
+            continue
+        elif part == "Attributes":
+            to_frame(x).to_csv(folder / "attributes.csv")
+        elif part == "NetworkInfo":
+            to_frame(x).to_csv(folder / "networkinfo.csv")
+        else:
+            to_frame(x).to_csv(folder / f"{part}.csv")
+
+
+def main(tarball):
+    n = 0
+    with tarfile.open(tarball) as tf:             # a csomagot ki sem kell csomagolni
+        for m in tf.getmembers():
+            if m.isfile() and "/data/" in m.name and m.name.endswith(".rda"):
+                parsed = rdata.parser.parse_data(tf.extractfile(m).read())
+                for name, obj in rdata.conversion.convert(parsed).items():
+                    export(str(name), obj)
+                    n += 1
+    print(f"Kész: {n} adatkészlet -&gt; {OUT}/")
+
+
+if __name__ == "__main__":
+    main(sys.argv[1])</code></pre>
+  </details>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa 2 – az eredmény egy mappája</span>
+<pre><code>ls data/asnr/Padgett_FlorentineFamilies
+attributes.csv  Business.csv  info.json  Marriage.csv  networkinfo.csv
+head -2 data/asnr/Padgett_FlorentineFamilies/Marriage.csv
+,ACCIAIUOLI,ALBIZZI,BARBADORI,BISCHERI,CASTELLANI,GINORI,GUADAGNI,…
+ACCIAIUOLI,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0</code></pre>
+  Pontosan az a formátum, amelyet a <a href="#s03-a">0.3</a>-ban láttál: első sor és első oszlop a címkék.
+</div>
+
+<div class="box warn">
+  <span class="box-title">Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az <code>rdata.read_rda(útvonal)</code> fájlt vár.</b> A tömörített csomagon belüli tagot bájtokként kell beolvasni, és a <code>parse_data</code>-nak átadni, ahogy a szkript teszi.</li>
+    <li><b>Nem mind adatprojekt.</b> Az ábraadatok és a <code>Greenacre_DoctoratesByYearAndField</code> egyetlen mátrix vagy táblázat, nem lista. A szkript ezt külön kezeli (<code>if not isinstance(obj, dict)</code>).</li>
+    <li><b>Futtatás rossz mappából.</b> A szkript a <code>data/asnr</code>-t a <em>munkakönyvtárhoz</em> képest írja: mindig a projekt gyökeréből indítsd.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – export</summary>
+  <ol>
+    <li>Hány mappa lesz a <code>data/asnr/</code>-ban az export után?
+      <details><summary>Megoldás</summary>52: minden <code>.rda</code> fájl egy objektumot tartalmaz, és mindegyik saját mappát kap.</details></li>
+    <li>A <code>to_frame</code> miért nem egyszerűen <code>pd.DataFrame(np.asarray(x))</code>?
+      <details><summary>Megoldás</summary>Mert az elveszítené a címkéket: a sorok és oszlopok csak 0, 1, 2… sorszámot kapnának. A címkék a <code>DataArray</code> koordinátáiban vannak (<code>x.coords</code>).</details></li>
+    <li>Miért kerül a <code>data/raw/</code> és a <code>data/asnr/</code> a <code>.gitignore</code>-ba?
+      <details><summary>Megoldás</summary>A <code>data/asnr/</code> a szkripttel bármikor újra előállítható. A <code>data/raw/</code> egy más által terjesztett fájl, ezt a forrásából töltjük le, nem mi tesszük közzé.
+      A gitbe a <em>receptet</em> (szkript, lock-fájl) tesszük, nem a végterméket.</details></li>
+    <li>(nehezebb) Írj egy sort, amely kilistázza azokat az adatkészleteket, amelyeknek van <code>attributes.csv</code>-je!
+      <details><summary>Megoldás</summary><code>sorted(p.parent.name for p in Path("data/asnr").glob("*/attributes.csv"))</code>. Egy shellben: <code>ls data/asnr/*/attributes.csv</code>.</details></li>
+  </ol>
+</details>
+
+<!-- ---------- 0.4 d -->
+<h3 id="s04-d">4. lépés: mi van benne, és mi hibás benne?</h3>
+
+<p>Az alábbi táblázatot a saját exportunkból generáltuk. Az „irányítatlan / irányított” oszlop <b>az adatból</b> számolt (szimmetrikus-e a mátrix),
+nem a metaadatból. Hogy miért, az a táblázat után derül ki.</p>
+
+<div class="tw" style="overflow-x:auto"><table>
+  <tr><th>Adatkészlet (csomagbeli név)</th><th>Hálók</th><th>Méret</th><th>Az adat szerint</th><th>Értékek</th><th>Attr.</th><th>Lecke</th></tr>
+<!--TABLE-->
+</table></div>
+<p class="muted" style="font-size:.9rem">„Vegyes”: a projekt egyik hálója szimmetrikus, a másik nem. „Lecke”: ahol a kurzusterv használja; a „–” jelűek a könyv gyakorlófeladataihoz kellhetnek.
+A könyv adatlistájában szerepel még a Johnson PolarStation és négy közösségimédia-adat (Everett: Hollywood, Reddit, Sunbelt, YouTube). Ezek <b>nincsenek</b> a 0.0.2-es csomagban.</p>
+
+<div class="box warn">
+  <span class="box-title">A metaadatok hibái (kipróbálás közben találtuk)</span>
+  <ul style="margin:.2rem 0">
+    <li><b><code>Wolfe_Primates</code>:</b> a <code>NetworkInfo</code> szerint a <code>Kinship</code> háló irányítatlan (<code>Directed = FALSE</code>), de a mátrix <b>nem szimmetrikus</b>:
+        15 nyíl, egyik sem kölcsönös (szülő → utód irányban kódolva).</li>
+    <li><b><code>Borgatti_Camp92</code>, <code>Baker_Journals</code>, <code>Mainas_Terro</code>:</b> a <code>NetworkInfo</code> nevei nem egyeznek a hálók neveivel
+        (<code>Borgatti_Campnet_MostInteractionsT2</code> ↔ <code>MostInteractionsT2</code>; <code>Citations</code> ↔ <code>CoCitations</code>; a Mainas-adatnál <code>Distance</code> ↔ <code>Contact</code>).</li>
+    <li><b><code>Mainas_Terro</code>, <code>Borgatti_Scientists960</code>:</b> az attribútumtábla mérete eltér a hálóétól (4&nbsp;614 sor a 4&nbsp;275 csúcshoz, illetve 504 sor a 960 csúcshoz). Címke szerint kell illeszteni,
+        és a 960-as hálónál a csúcsok fele attribútum nélkül marad.</li>
+    <li><b><code>Padgett_FlorentineFamilies</code>:</b> a <code>NetworkInfo</code> oszlopnevei mások (<code>NetworkName</code>, <code>ModeSender</code> … a többi projekt <code>Name</code>, <code>Mode</code> … oszlopai helyett).
+        Az <code>info.json</code> hálóleírásai elcsúsztak: a „Business” mellett az áll, hogy „marriage alliances”. Az attribútumtáblában a családnév oszlop (<code>NodeName</code>), a sorok címkéje pedig 1–16.</li>
+    <li><b><code>Knecht_Class12b</code>:</b> hiánykódok a hálókban (9, 10) és az attribútumokban (−99); néhány átlóelem sem 0.</li>
+    <li><b><code>Rehnquist_SupremeCourt</code>:</b> a leírás szerint 0/1 („a többséggel szavazott-e”), de 32 cellában 0,5 áll, és 9 cella hiányzik (<code>NaN</code>).</li>
+  </ul>
+</div>
+
+<div class="box tip">
+  <span class="box-title">Hüvelykujjszabály</span>
+  <b>Az adat a mérvadó, a metaadatot az adatból ellenőrizd.</b> Hogy irányított-e egy háló, azt a mátrix szimmetriája mutatja meg, nem egy <code>TRUE</code>/<code>FALSE</code> felirat.
+  Ha a kettő ellentmond, olvasd el a szöveges leírást, és döntsd el tudatosan.
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – az adatkészletek</summary>
+  <ol>
+    <li>Melyik két adatkészlet kétmódú (téglalap alakú mátrix)?
+      <details><summary>Megoldás</summary><code>Davis_SouthernWomen</code> (18 nő × 14 esemény) és <code>Rehnquist_SupremeCourt</code> (376 ügy × 9 bíró). A <code>Greenacre</code> is téglalap, de az kereszttábla (év × tudományterület), nem háló.</details></li>
+    <li>A könyv a 6. fejezetben a „Johnson CitiesUS” adatot használja. Melyik mappát nyitod meg?
+      <details><summary>Megoldás</summary><code>data/asnr/Borgatti_Cities/</code>: 9 amerikai város közúti távolsága mérföldben. A könyvbeli és a csomagbeli név eltér.</details></li>
+    <li>A <code>Wolfe_Primates</code> <code>Kinship</code> hálóját irányítatlanként akarod kezelni. Mit kell tenned a mátrixszal, és hány él lesz?
+      <details><summary>Megoldás</summary>Szimmetrizálni (pl. páronként a nagyobb értéket venni, 5. lecke). Mivel egyik nyíl sem kölcsönös, mind a 15 nyílból egy-egy él lesz: <b>15</b>.</details></li>
+    <li>(nehezebb) Egy kód a Padgett-projektnél a <code>NetworkInfo["Name"]</code> oszlopot olvassa. Mi történik, és hogyan írnád meg úgy, hogy minden projekten működjön?
+      <details><summary>Megoldás</summary><code>KeyError: 'Name'</code>, mert ott <code>NetworkName</code> az oszlop neve. Robusztusan:
+      <code>col = "Name" if "Name" in ni.columns else "NetworkName"</code>. Még jobb, ha a hálók nevét magukból a fájlnevekből veszed, ahogy a <code>load_project</code> teszi.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="sna0-4"></div>
+</section>

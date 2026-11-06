@@ -1,0 +1,248 @@
+
+<!-- ===================================================== 0.3 -->
+<section id="s03">
+<h2>0.3 Hálózati adat CSV-ben <small class="muted">★</small></h2>
+<p>A környezet és a füzet megvan. Most az jön, amit beletöltünk: a hálózati adat. A könyv összes adata, és később a saját hírkorpuszod hálózatai is,
+CSV-fájlokban fognak utazni. Ezért előbb azt kell látnod, hogyan áll egy hálózat egy táblázatban, és mit lehet közben elrontani.
+(A szomszédsági mátrix matematikáját a 2. lecke tárgyalja. Itt csak annyit nézünk, amennyi az <b>ellenőrzéshez</b> kell.)</p>
+
+<p><b>Útiterv</b>:</p>
+<ol>
+  <li><a href="#s03-a">A szomszédsági mátrix</a>: sorok, oszlopok, cellák; élek megszámolása.</li>
+  <li><a href="#s03-b">Az élista</a>: tömörebb, de elveszíti az izolált csúcsokat.</li>
+  <li><a href="#s03-c">Attribútumtábla és hiánykódok</a>: amikor a 9 nem kilencet jelent.</li>
+</ol>
+
+<!-- ---------- 0.3 a -->
+<h3 id="s03-a">1. lépés: a szomszédsági mátrix</h3>
+
+<div class="box example">
+  <span class="box-title">Kiinduló eset: négy kolléga, „dolgoztak-e már együtt?”</span>
+  <div class="two-col">
+    <div>
+      <p style="margin-top:0">A fájl (<code>egyutt.csv</code>), ahogy egy szövegszerkesztőben látod:</p>
+<pre><code>,Anna,Bence,Csaba,Dóra
+Anna,0,1,1,0
+Bence,1,0,1,0
+Csaba,1,1,0,0
+Dóra,0,0,0,0</code></pre>
+    </div>
+    <div>
+      <p style="margin-top:0">Ugyanez táblázatként:</p>
+      <div class="tw" style="overflow-x:auto"><table>
+        <tr><th></th><th>Anna</th><th>Bence</th><th>Csaba</th><th>Dóra</th></tr>
+        <tr><th>Anna</th><td>0</td><td>1</td><td>1</td><td>0</td></tr>
+        <tr><th>Bence</th><td>1</td><td>0</td><td>1</td><td>0</td></tr>
+        <tr><th>Csaba</th><td>1</td><td>1</td><td>0</td><td>0</td></tr>
+        <tr><th>Dóra</th><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+      </table></div>
+    </div>
+  </div>
+  <p>Olvassuk ki! Az első sor az oszlopok címkéje, az első oszlop a soroké. Az (Anna, Bence) cella 1: Anna és Bence dolgozott már együtt.
+  A (Bence, Anna) cella is 1, mert ez ugyanaz a tény, a másik oldalról nézve. A mátrix ezért <b>szimmetrikus</b> az átlóra.
+  Az átló csupa 0: önmagával senki nem „dolgozik együtt”. Dóra sora és oszlopa üres: ő <b>izolált</b> csúcs, de ott van az adatban.</p>
+  <p style="margin-bottom:0">Hány együttműködés van? A cellák összege 6, de minden kapcsolat kétszer szerepel (Anna–Bence és Bence–Anna), tehát <b>3</b>:
+  Anna–Bence, Anna–Csaba, Bence–Csaba.</p>
+</div>
+
+<div class="box def">
+  <span class="box-title">Szomszédsági mátrix CSV-ben</span>
+  <p style="margin-top:0">$n$ csúcsú háló esetén $n \times n$-es táblázat; az első sor és az első oszlop a csúcsok címkéi, <b>ugyanabban a sorrendben</b>.
+  Az $(i, j)$ cella a sorban álló $i$-től az oszlopban álló $j$ felé mutató kapcsolat: 0, ha nincs, különben 1 vagy a kapcsolat erőssége.</p>
+  <ul style="margin:.2rem 0">
+    <li><b>Irányítatlan</b> kapcsolat (együttműködés, házasság): a mátrix szimmetrikus, és $\text{élek száma} = \dfrac{\text{nem nulla cellák száma}}{2}$.</li>
+    <li><b>Irányított</b> kapcsolat (tanácskérés, idézés): a mátrix általában nem szimmetrikus, és $\text{élek száma} = \text{nem nulla cellák száma}$.</li>
+    <li>Az átló az önhurkok helye; a társas hálókban rendszerint 0.</li>
+  </ul>
+  <p style="margin-bottom:0"><b>Miért a nem nulla cellákat számoljuk, és nem az összeget?</b> Mert súlyozott (értékes) mátrixban egy cella értéke lehet 3 is, és az egy kapcsolat, nem három.</p>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa 1 – irányított: „kitől kérsz tanácsot?”</span>
+<pre><code>,Anna,Bence,Csaba,Dóra
+Anna,0,1,0,0
+Bence,1,0,0,0
+Csaba,1,0,0,0
+Dóra,1,0,0,0</code></pre>
+  Hány tanácskérés van, és hányan kérnek Annától tanácsot?
+  <details><summary>Megoldás</summary>Négy nem nulla cella, tehát <b>4</b> irányított kapcsolat (nyíl). Annától az kér, akinek a sorában Anna oszlopában 1 áll: Bence, Csaba, Dóra, tehát <b>3</b>-an
+  (Anna <em>oszlopának</em> összege). Anna maga egy embertől kér (az ő <em>sorának</em> összege 1). A mátrix nem szimmetrikus: Csaba Annától kér, Anna Csabától nem.</details>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa 2 – súlyozott: „hány közös projektjük volt?”</span>
+<pre><code>,Anna,Bence,Csaba,Dóra
+Anna,0,3,1,0
+Bence,3,0,2,0
+Csaba,1,2,0,0
+Dóra,0,0,0,0</code></pre>
+  Hány kapcsolat van, és hány közös projekt?
+  <details><summary>Megoldás</summary>Hat nem nulla cella, szimmetrikus mátrix: <b>3</b> kapcsolat (ugyanaz a háló, mint fent). A közös projektek: a cellák összege 12, ennek a fele, <b>6</b> ($3 + 1 + 2$).
+  A „cellák összege / 2” itt a súlyok összegét adja, nem a kapcsolatok számát.</details>
+</div>
+
+<div class="widget" data-widget="matrix-check"></div>
+
+<div class="box warn">
+  <span class="box-title">Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Összeg a kapcsolatok száma helyett.</b> Súlyozott mátrixban a $\sum/2$ a súlyösszeg. A kapcsolatokat a nem nulla cellák adják.</li>
+    <li><b>Felcserélt címkesorrend.</b> Ha a sorok sorrendje (Anna, Bence, Csaba, Dóra) és az oszlopoké (Anna, Csaba, Bence, Dóra) eltér, minden cella mást jelent, mint hiszed.
+        Betöltéskor mindig nézd meg, hogy a két címkesor azonos-e.</li>
+    <li><b>Magyar Excel-mentés.</b> A magyar beállítású Excel a CSV-t pontosvesszővel és tizedesvesszővel menti (<code>Anna;0;1,5;…</code>). A <code>pd.read_csv</code> ekkor egyetlen oszlopot lát.
+        Javítás: <code>pd.read_csv(f, sep=";", decimal=",", index_col=0)</code>.</li>
+    <li><b>Irány és sorrend.</b> A konvenció: <b>sor → oszlop</b>. Ha egy adatkészlet fordítva kódol (az oszlop választja a sort), a mátrixot transzponálni kell (5. lecke).</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a szomszédsági mátrix</summary>
+  <ol>
+    <li>Egy irányítatlan, 0/1-es mátrix celláinak összege 40. Hány él van a hálóban?
+      <details><summary>Megoldás</summary>$40/2 = 20$. (Ennyi a Padgett-féle házassági háló élszáma is, 16 családdal.)</details></li>
+    <li>Egy irányított, 0/1-es mátrix celláinak összege 190. Hány nyíl van?
+      <details><summary>Megoldás</summary>190: irányított hálóban minden nem nulla cella egy nyíl, nem kell felezni. (Ez a Krackhardt-féle tanácskérési háló, 21 menedzserrel.)</details></li>
+    <li>Egy súlyozott, szimmetrikus mátrixban 156 nem nulla cella van, a cellák összege 462. Hány kapcsolat van, és mennyi a súlyok összege?
+      <details><summary>Megoldás</summary>$156/2 = 78$ kapcsolat, $462/2 = 231$ súlyösszeg. Ez a karateklub (vö. 0.1).</details></li>
+    <li>A betöltött mátrix átlóján 1-esek állnak. Mire gondolsz?
+      <details><summary>Megoldás</summary>Vagy önhurkok (valaki önmagát jelölte meg), vagy kódolási hiba. Rosszabb esetben egy hiánykód (lásd a 3. lépést). Nézd meg az adat leírását. A legtöbb elemzés előtt az átlót nullázni kell.</details></li>
+    <li>(nehezebb) Egy $n = 5$ csúcsú irányítatlan háló mátrixában hány cella hordoz <b>független</b> információt, ha az átló 0?
+      <details><summary>Megoldás</summary>Az átló fölötti háromszög: $\binom{5}{2} = 10$ cella. A többi vagy az átló (mindig 0), vagy a tükörképe valamelyik felső cellának.</details></li>
+  </ol>
+</details>
+
+<!-- ---------- 0.3 b -->
+<h3 id="s03-b">2. lépés: az élista</h3>
+
+<p>A mátrix sok helyet foglal: egy 4&nbsp;275 csúcsú hálónál (a könyv egyik adatkészlete ilyen) több mint 18 millió cella, szinte csupa 0. Kézenfekvő,
+hogy csak a meglévő kapcsolatokat írjuk le. Ez az <b>élista</b>. De mit veszítünk vele?</p>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Mátrix (<code>egyutt.csv</code>)</span>
+<pre><code>,Anna,Bence,Csaba,Dóra
+Anna,0,1,1,0
+Bence,1,0,1,0
+Csaba,1,1,0,0
+Dóra,0,0,0,0</code></pre>
+    4 csúcs, 3 él.
+  </div>
+  <div class="box example">
+    <span class="box-title">Élista (<code>egyutt_el.csv</code>)</span>
+<pre><code>forras,cel
+Anna,Bence
+Anna,Csaba
+Bence,Csaba</code></pre>
+    <code>nx.from_pandas_edgelist(df, "forras", "cel")</code>: <b>3</b> csúcs, 3 él. <b>Dóra eltűnt.</b>
+  </div>
+</div>
+
+<div class="box def">
+  <span class="box-title">Élista és csúcslista</span>
+  <p style="margin-top:0">Az <b>élista</b> soronként egy kapcsolat: forrás, cél és esetleg súly. Irányítatlan hálóban minden kapcsolat egyszer szerepel.
+  Az élista <b>nem tudja</b>, hogy létezik-e egy kapcsolat nélküli csúcs. Ezért kell mellé a <b>csúcslista</b> (minden csúcs egy sorban, általában az attribútumtábla).
+  Gráfépítéskor előbb a csúcsokat adod hozzá, utána az éleket:</p>
+<pre><code>G = nx.Graph()
+G.add_nodes_from(csucsok["nev"])          # Dóra is benne lesz
+G.add_edges_from(zip(el["forras"], el["cel"]))</code></pre>
+  <p style="margin-bottom:0"><b>Miért számít egyetlen izolált csúcs?</b> Mert minden olyan mérték, amely a csúcsok számával oszt (sűrűség, normalizált centralitás), más számot ad.
+  A 0.7-ben pontosan ezen múlik a Medici-szám.</p>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa 3 – a hiányzó firenzei család</span>
+  A Padgett-féle házassági hálóban 16 család van, köztük a <b>Pucci</b>, akiknek egyetlen házassági kapcsolatuk sincs a többiekkel. A <code>networkx</code> beépített változata
+  (<code>nx.florentine_families_graph()</code>) élekből épül fel. Hány csúcsa van?
+  <details><summary>Megoldás</summary><b>15</b>. A Pucci kimaradt, mert nincs éle. Az élszám ugyanúgy 20. A kurzustervben szereplő „a Padgett-háló a <code>networkx</code>-ben is elérhető”
+  tehát csak fenntartással igaz: ez nem pontosan a könyv adata.</details>
+</div>
+
+<div class="box warn">
+  <span class="box-title">Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Izolált csúcs elvesztése</b> élistából építve. Mindig ellenőrizd: a gráf csúcsszáma egyezik-e a csúcslista hosszával?</li>
+    <li><b>Duplikált sorok.</b> Ha irányítatlan élistában Anna–Bence és Bence–Anna is szerepel, a <code>nx.Graph</code> egynek veszi, de egy saját számolás (sorok száma) kétszer számolja.</li>
+    <li><b>Irány elvesztése.</b> A <code>from_pandas_edgelist</code> alapból irányítatlan <code>Graph</code>-ot ad. Irányított adathoz: <code>create_using=nx.DiGraph</code>.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – élista</summary>
+  <ol>
+    <li>Hány sora van az <code>egyutt.csv</code> mátrixnak megfelelő irányítatlan élistának? És a „kitől kérsz tanácsot” mátrixénak (példa 1)?
+      <details><summary>Megoldás</summary>3, illetve 4. Irányítatlan hálóban kapcsolatonként egy sor, irányítottban nyilanként egy.</details></li>
+    <li>Az élista súlyozott változatához (példa 2) milyen oszlop kell, és mi kerül bele?
+      <details><summary>Megoldás</summary>Egy harmadik, <code>suly</code> oszlop: Anna–Bence 3, Anna–Csaba 1, Bence–Csaba 2.</details></li>
+    <li>Egy 100 csúcsú hálóban 300 él van, 12 csúcs izolált. Hány csúcsa lesz a csak élistából épített gráfnak?
+      <details><summary>Megoldás</summary>$100 - 12 = 88$.</details></li>
+    <li>(nehezebb) Egy irányítatlan élistának 50 sora van, de a <code>nx.Graph</code> élszáma 46. Mi lehet az oka?
+      <details><summary>Megoldás</summary>Négy kapcsolat kétszer szerepel (pl. egyszer A–B, egyszer B–A, vagy kétszer A–B). A <code>Graph</code> egy párhoz csak egy élt tárol. Önhurok (A–A) nem okozhatja, azt a <code>Graph</code> is tárolja.</details></li>
+  </ol>
+</details>
+
+<!-- ---------- 0.3 c -->
+<h3 id="s03-c">3. lépés: attribútumtábla és hiánykódok</h3>
+
+<p>A hálón kívül a csúcsokról is tudunk dolgokat: kor, nem, osztály, egy újság esetén a tulajdonos. Ezek az <b>attribútumok</b>. Itt jön elő
+az adatok legalattomosabb hibája: a hiányzó értéket gyakran egy szám jelöli.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló eset: egy -99-es életkor</span>
+<pre><code>,Nem,Kor
+a01,1,12
+a02,1,12
+a03,2,13
+a04,2,-99</code></pre>
+  <p style="margin-bottom:0">Az átlagéletkor naivan $(12 + 12 + 13 - 99)/4 = -15{,}5$ év. A kódkönyv szerint a <b>−99 = hiányzó</b>. Helyesen a −99-et hiányzónak
+  (<code>NaN</code>) jelöljük, és csak a három ismert korral számolunk: $(12 + 12 + 13)/3 \approx 12{,}33$ év.</p>
+</div>
+
+<div class="box def">
+  <span class="box-title">Attribútumtábla, hiánykód</span>
+  <p style="margin-top:0">Az <b>attribútumtábla</b> csúcsonként egy sor, attribútumonként egy oszlop; az első oszlop a csúcs címkéje, <b>ugyanazokkal a címkékkel</b>, mint a hálóban.
+  A <b>hiánykód</b> egy szám (pl. −99, 9, 999), amely „nincs adat”-ot jelent. Számolás előtt <code>NaN</code>-ra kell cserélni:</p>
+<pre><code>attr = attr.replace(-99, np.nan)</code></pre>
+  <p style="margin-bottom:0"><b>Miért nem írnak eleve üres cellát?</b> Mert sok régi program nem kezelte az üres cellát. Ráadásul néha többféle hiányt kell megkülönböztetni:
+  „nem válaszolt” és „nem is kérdeztük”.</p>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa 4 – hiánykód a <em>hálóban</em></span>
+  A könyv egyik adatkészletében (Knecht-féle iskolai osztály, 26 gyerek) a barátsághálók kódolása: 0 = nem barát, 1 = barát, <b>9 = hiányzó, 10 = szerkezeti hiány</b>
+  (a kapcsolat abban az időpontban nem is létezhetett, pl. mert a gyerek nem járt az osztályba). A 3. időpont mátrixában 133 darab 1-es, 50 darab 9-es és 51 darab 10-es van. Hány „kapcsolatot” lát az, aki minden nem nulla cellát élnek vesz?
+  <details><summary>Megoldás</summary>$133 + 50 + 51 = 234$-et, és ebből 101 nem barátság, hanem hiány. Ráadásul a 9-es és 10-es „élek” súlya 9 és 10 lesz. A valódi barátságok száma 133.</details>
+</div>
+
+<div class="box tip">
+  <span class="box-title">Hüvelykujjszabály</span>
+  <b>Számolás előtt: értékkészlet + leírás.</b> Nézd meg, milyen értékek fordulnak elő egy mátrixban vagy oszlopban. Ha a kódkönyv szerint ott nem lehetne ilyen érték
+  (egy 0/1-es hálóban 9-es, egy életkornál −99), az hiánykód.
+</div>
+
+<div class="box warn">
+  <span class="box-title">Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A sorrendre bízott párosítás.</b> Ha az attribútumtábla más sorrendben van, mint a háló, a <code>attr["Kor"].values</code> rossz csúcsokhoz rendel kort. Mindig címke szerint illessz:
+        <code>attr.loc[list(M.index)]</code>.</li>
+    <li><b>A hiánykód nulla helyett.</b> A <code>replace(9, 0)</code> „nincs barátság”-ot csinál a hiányból. Ez nem ugyanaz: a hiányt az 5. lecke kezeli (imputálás).</li>
+    <li><b>Más hiánykód attribútumban és hálóban.</b> A Knecht-adatban az attribútumoknál −99, a hálókban 9 és 10. Minden táblánál külön kell megnézni.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – attribútumok és hiánykódok</summary>
+  <ol>
+    <li>Egy oszlop értékei: 3, 5, 4, 999, 2; a 999 hiánykód. Mennyi az átlag helyesen, és mennyi naivan?
+      <details><summary>Megoldás</summary>Helyesen $(3 + 5 + 4 + 2)/4 = 3{,}5$; naivan $(3 + 5 + 4 + 999 + 2)/5 = 202{,}6$.</details></li>
+    <li>Egy 0/1-es barátsághálóban a <code>check</code> szerint az értékek: 0, 1, 9. Mi a teendő, mielőtt gráfot építesz?
+      <details><summary>Megoldás</summary>Megnézni a leírást. Ha a 9 hiánykód, <code>NaN</code>-ra cserélni, és eldönteni, mi legyen vele (kihagyás, imputálás). Gráfot csak utána építs.</details></li>
+    <li>Az attribútumtábla címkéi <code>a01 … a26</code>, a mátrixé <code>A01 … A26</code>. Mi lesz az <code>attr.loc[list(M.index)]</code> eredménye?
+      <details><summary>Megoldás</summary><code>KeyError</code>: a címkék kis- és nagybetűre is érzékenyek. Egységesíteni kell őket (pl. <code>attr.index = attr.index.str.upper()</code>), és utána ellenőrizni, hogy mind a 26 egyezik.</details></li>
+    <li>(nehezebb) Miért rosszabb a hiányzó barátságot 0-nak venni, mint kihagyni?
+      <details><summary>Megoldás</summary>A 0 állítás: „biztosan nem barátok”. Ha a hiányzók között barátok is vannak, akkor szisztematikusan kevesebb kapcsolatot mérsz, főleg azoknál, akiknél sok a hiány.
+      Ez torzítja a fokszámot, a sűrűséget és minden centralitást. A kihagyás legalább nem állít valótlant.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="sna0-3"></div>
+</section>

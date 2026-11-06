@@ -1,0 +1,264 @@
+
+<!-- ===================================================== 0.1 -->
+<section id="s01">
+<h2>0.1 Projekt és Python-környezet <small class="muted">★</small></h2>
+<p>A hálózatelemzés eredménye egy <b>szám</b> (egy centralitás, egy modularitás, egy QAP-féle $p$-érték). Egy számot csak akkor lehet
+ellenőrizni, ha valaki más, más gépen, más napon ugyanazt kapja. Ebben a részben ehhez rendezzük be a környezetet.</p>
+
+<p><b>Útiterv</b>:</p>
+<ol>
+  <li><a href="#s01-a">Miért kell projektkörnyezet?</a> Ugyanaz a kód, két szám.</li>
+  <li><a href="#s01-b">A <code>uv</code> öt parancsa</a>: projekt, csomag, futtatás, szinkron.</li>
+  <li><a href="#s01-c">Melyik Python, melyik csomag?</a> A kurzus csomagtérképe.</li>
+</ol>
+
+<!-- ---------- 0.1 a -->
+<h3 id="s01-a">1. lépés: miért kell projektkörnyezet?</h3>
+
+<div class="box example">
+  <span class="box-title">Kiinduló eset: ugyanaz a három sor, két szám</span>
+  <p>Két hallgató ugyanazt a kódot futtatja a karateklub hálóján (34 tag, 78 barátság):</p>
+<pre><code>import networkx as nx
+G = nx.karate_club_graph()
+print(nx.to_numpy_array(G).sum())</code></pre>
+  <div class="two-col">
+    <div><b>Anna gépe</b> (<code>networkx 2.6.3</code>, egy régi globális telepítés):<br><code>156.0</code></div>
+    <div><b>Bence gépe</b> (<code>networkx 2.7</code> vagy újabb):<br><code>462.0</code></div>
+  </div>
+  <p style="margin-bottom:0">Egyikük sem rontott el semmit. A <code>networkx</code> 2.7-es verziója óta a beépített karateklub éleinek
+  <b>súlya</b> is van (Zachary eredeti adatai: hány közös helyzetben találkoztak). A mátrix így nem 0/1-es, és az összege $2 \cdot 231 = 462$, nem
+  $2 \cdot 78 = 156$. Ugyanaz a kód más <em>adatot</em> kapott, mert más volt a csomag verziója.</p>
+</div>
+
+<div class="box def">
+  <span class="box-title">Projektkörnyezet</span>
+  <p>A <b>projektkörnyezet</b> (virtuális környezet) egy projekthez tartozó saját Python-telepítés a saját csomagjaival. A projekt mappájában
+  három fájl írja le teljesen:</p>
+  <ul style="margin:.2rem 0">
+    <li><code>pyproject.toml</code>: <b>mit</b> kérsz (pl. <code>networkx&gt;=3.7</code>), ezt te szerkeszted;</li>
+    <li><code>uv.lock</code>: <b>pontosan mit kaptál</b> (minden csomag pontos verziója, a függőségek függőségei is), ezt a gép írja;</li>
+    <li><code>.python-version</code>: melyik Python (pl. <code>3.12</code>).</li>
+  </ul>
+  <p style="margin-bottom:0"><b>Miért?</b> Ha a három fájl a projekttel együtt utazik (gitben), bárki, bármikor ugyanazt a környezetet állítja elő, így ugyanazt a
+  számot kapja. A környezet maga (a <code>.venv</code> mappa) nem utazik, mert a három fájlból bármikor újraépíthető.</p>
+</div>
+
+<div class="box tip">
+  <span class="box-title">Hüvelykujjszabály</span>
+  <b>Egy projekt = egy környezet = egy lock-fájl.</b> Globálisan (<code>sudo pip install …</code>) soha ne telepíts csomagot.
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa 1 – mi kerül gitbe?</span>
+  A projekt mappájában ez van: <code>pyproject.toml</code>, <code>uv.lock</code>, <code>.python-version</code>, <code>.venv/</code>, <code>sna_utils/</code>.
+  <details><summary>Megoldás</summary>Minden, kivéve a <code>.venv/</code> mappát. A <code>.venv</code> több száz megabájt, gépfüggő (benne vannak
+  a lefordított bináris fájlok), és a másik három fájlból egy paranccsal újraépül.</details>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa 2 – mit árul el a lock-fájl?</span>
+  Anna és Bence <code>pyproject.toml</code>-jában is ez áll: <code>networkx&gt;=2.5</code>. Miért kaphattak mégis más verziót?
+  <details><summary>Megoldás</summary>A <code>&gt;=2.5</code> csak alsó korlát: a 2.6.3 és a 3.7 is kielégíti. Hogy pontosan melyiket kapod,
+  azt a <b>telepítés napja</b> dönti el. A <code>uv.lock</code> ezt rögzíti; ha Bence Anna lock-fájljából telepít, ő is 2.6.3-at kap.</details>
+</div>
+
+<div class="box warn">
+  <span class="box-title">Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>„Nálam működik.”</b> A globálisan telepített csomagok verzióját senki nem jegyzi fel. Ha egy eredményt nem lehet reprodukálni, előbb a környezetet
+        nézd meg, ne az algoritmust.</li>
+    <li><b>A lock-fájl kihagyása a gitből.</b> Enélkül a <code>pyproject.toml</code> csak egy kívánságlista.</li>
+    <li><b>Szám a régi, kód az új környezetből.</b> Ha frissítesz egy csomagot, a korábban kiírt számok érvényüket veszthetik. A tesztek
+        (<a href="#s06-d">0.6</a>) éppen ezt fogják ki.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – miért kell projektkörnyezet?</summary>
+  <ol>
+    <li>Melyik fájlt szerkeszted kézzel: a <code>pyproject.toml</code>-t vagy a <code>uv.lock</code>-ot?
+      <details><summary>Megoldás</summary>A <code>pyproject.toml</code>-t (vagy a <code>uv add</code> parancs szerkeszti helyetted). A <code>uv.lock</code>-ot a <code>uv</code> írja; kézzel ne nyúlj hozzá.</details></li>
+    <li>Anna gépén a karateklubra $156$, Bencéén $462$ jön ki. Hány barátság van a hálóban, és mennyi az élsúlyok összege?
+      <details><summary>Megoldás</summary>Egy irányítatlan háló mátrixában minden él kétszer szerepel ($i \to j$ és $j \to i$). Barátság: $156/2 = 78$; súlyösszeg: $462/2 = 231$.</details></li>
+    <li>Törölted a <code>.venv</code> mappát. Elveszett valami?
+      <details><summary>Megoldás</summary>Nem. A <code>uv sync</code> (vagy az első <code>uv run</code>) a lock-fájlból pontosan ugyanazt építi újra.</details></li>
+    <li>Egy cikk módszertani része szerint „az elemzés <code>networkx</code>-szel készült”. Miért kevés ez a reprodukáláshoz?
+      <details><summary>Megoldás</summary>Nincs verziószám: a karateklub példája mutatja, hogy két verzió ugyanarra a hívásra más adatot adhat. A jó módszertani rész megadja
+      a verziókat, vagy közzéteszi a lock-fájlt.</details></li>
+    <li>(nehezebb) Bence frissíti a csomagjait, és egy korábbi centralitás-rangsor megváltozik. Hogyan tudod kideríteni, hogy a frissítés okozta-e?
+      <details><summary>Megoldás</summary>A régi <code>uv.lock</code>-ot visszaveszed a gitből (pl. <code>git stash</code> vagy egy régi commit), <code>uv sync</code>, és újrafuttatod.
+      Ha így a régi rangsor jön vissza, a csomagfrissítés volt az ok. Utána a két lock-fájl különbségéből (<code>git diff uv.lock</code>) látod, melyik csomag változott.</details></li>
+  </ol>
+</details>
+
+<!-- ---------- 0.1 b -->
+<h3 id="s01-b">2. lépés: a <code>uv</code> öt parancsa</h3>
+
+<p>Eddig azt láttuk, <em>mit</em> kell rögzíteni. Most azt nézzük meg, mivel. A <b><code>uv</code></b> egy gyors Python-csomagkezelő: Pythont telepít,
+környezetet épít, csomagot ad hozzá és lock-fájlt ír, egyetlen programként. Telepítése (egyszer, a felhasználódnak):</p>
+<pre><code>curl -LsSf https://astral.sh/uv/install.sh | sh</code></pre>
+
+<div class="box example">
+  <span class="box-title">Kiinduló eset: az első projekt, parancsról parancsra</span>
+<pre><code>uv init sna-kurzus --python 3.12   # új mappa: pyproject.toml, .python-version, README.md, main.py
+cd sna-kurzus
+uv add networkx numpy scipy pandas matplotlib   # pyproject.toml + uv.lock + .venv
+uv run python -c "import networkx; print(networkx.__version__)"
+3.7</code></pre>
+  <p style="margin-bottom:0">Az <code>uv add</code> három dolgot csinál egyszerre: beírja a csomagot a <code>pyproject.toml</code>-ba, feloldja a függőségeket (ebből
+  lesz a <code>uv.lock</code>), és telepíti őket a <code>.venv</code>-be. Az <code>uv run</code> a projekt környezetében futtat, „aktiválás” nélkül.
+  (Ha a mappa még nincs git-tárban, az <code>uv init</code> egy <code>.git</code>-et és egy <code>.gitignore</code>-t is létrehoz.)</p>
+</div>
+
+<div class="box def">
+  <span class="box-title">A <code>uv</code> öt parancsa</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>Parancs</th><th>Mit csinál?</th><th>Mikor?</th></tr>
+    <tr><td><code>uv init név --python 3.12</code></td><td>új projekt (mappa + <code>pyproject.toml</code> + <code>.python-version</code>)</td><td>egyszer, a legelején</td></tr>
+    <tr><td><code>uv add csomag</code></td><td>csomag hozzáadása (pyproject + lock + telepítés)</td><td>ha új csomag kell</td></tr>
+    <tr><td><code>uv add --dev csomag</code></td><td>csak a fejlesztéshez kell (teszt, jegyzetfüzet)</td><td>pl. <code>pytest</code>, <code>marimo</code></td></tr>
+    <tr><td><code>uv run parancs</code></td><td>futtatás a projekt környezetében (előtte szükség esetén szinkronizál)</td><td>mindig, amikor futtatsz</td></tr>
+    <tr><td><code>uv sync</code></td><td>a <code>.venv</code>-t a lock-fájlhoz igazítja</td><td>klónozás után, <code>git pull</code> után</td></tr>
+  </table></div>
+  <p style="margin:.4rem 0 0">Két hasznos ráadás: az <code>uv run --with csomag …</code> <b>ideiglenesen</b> hozzátesz egy csomagot (a projektbe nem kerül be),
+  az <code>uv remove csomag</code> pedig kiveszi a csomagot.</p>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa 3 – a kolléga klónozta a repót</span>
+    Bence letölti Anna projektjét a GitHubról. Mi az első parancs?
+    <details><summary>Megoldás</summary><code>uv sync</code>: a lock-fájlból felépíti a környezetet, pontosan Anna verzióival. (Az első <code>uv run</code> ezt magától is megtenné.)</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa 4 – csak kipróbálnád</span>
+    Meg akarod nézni, hogyan rajzol a <code>pyvis</code>, de még nem tudod, kell-e a projektbe.
+    <details><summary>Megoldás</summary><code>uv run --with pyvis python proba.py</code>. A csomag egy ideiglenes környezetbe kerül, a <code>pyproject.toml</code> nem változik.</details>
+  </div>
+</div>
+
+<div class="box tip">
+  <span class="box-title">uv vagy conda?</span>
+  A kurzustervben mindkettő szerepel. A <b><code>uv</code></b> a gyorsabb és egyszerűbb, és a PyPI-n lévő csomagokhoz (a kurzus szinte mindegyike ilyen)
+  elég. A <b>conda</b> (conda-forge) egyetlen esetben kell: a <code>graph-tool</code>hoz, amely nem telepíthető pip-pel (lásd a következő lépést).
+  Erre a 12. és a 14. leckében, opcionálisan lesz szükség, külön környezetben.
+</div>
+
+<div class="box warn">
+  <span class="box-title">Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b><code>python proba.py</code> az <code>uv run</code> helyett.</b> Így a rendszer Pythonja fut, amelyben nincsenek meg a csomagjaid:
+        <code>ModuleNotFoundError: No module named 'networkx'</code>.</li>
+    <li><b><code>pip install</code> a projektben.</b> A csomag bekerül a <code>.venv</code>-be, de a <code>pyproject.toml</code>-ba és a lock-fájlba nem.
+        A következő <code>uv sync</code> el is távolítja. Mindig <code>uv add</code>-ot használj.</li>
+    <li><b>Rossz mappában futtatott parancs.</b> A <code>uv</code> a <code>pyproject.toml</code>-t a mappától fölfelé keresi. Más mappából indítva más
+        projekt környezetét használja, vagy egyiket sem.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a <code>uv</code> parancsai</summary>
+  <ol>
+    <li>A 11. leckében kelleni fog a <code>leidenalg</code>. Melyik paranccsal veszed fel?
+      <details><summary>Megoldás</summary><code>uv add leidenalg</code>. Bekerül a <code>pyproject.toml</code>-ba és a lock-fájlba, és telepítődik.</details></li>
+    <li>A <code>pytest</code>-re csak a tesztekhez van szükség, az elemzéshez nem. Hogyan veszed fel?
+      <details><summary>Megoldás</summary><code>uv add --dev pytest</code>. A <code>[dependency-groups]</code> <code>dev</code> csoportjába kerül.</details></li>
+    <li><code>git pull</code> után a kód egy új csomagot importál, és <code>ModuleNotFoundError</code>-t kapsz. Mi a teendő?
+      <details><summary>Megoldás</summary><code>uv sync</code> (vagy futtasd <code>uv run</code>-nal, az magától szinkronizál). A lock-fájl már tartalmazza az új csomagot, csak a te <code>.venv</code>-d régi.</details></li>
+    <li>Egyetlen ábrához kipróbálnád a <code>seaborn</code>-t. A projektbe nem akarod felvenni.
+      <details><summary>Megoldás</summary><code>uv run --with seaborn python abra.py</code>.</details></li>
+    <li>(nehezebb) Valaki <code>pip install python-louvain</code>-nal telepít egy csomagot a projekt <code>.venv</code>-jébe, és minden működik. Egy héttel
+        később, <code>uv sync</code> után eltűnik. Miért, és mi lett volna a helyes?
+      <details><summary>Megoldás</summary>A <code>uv sync</code> pontosan a lock-fájl tartalmát állítja elő, és mindent eltávolít, ami nincs benne. A pip-pel telepített csomag nem került a lock-fájlba.
+      Helyesen: <code>uv add python-louvain</code>.</details></li>
+  </ol>
+</details>
+
+<!-- ---------- 0.1 c -->
+<h3 id="s01-c">3. lépés: melyik Python, melyik csomag?</h3>
+
+<p>Eddig egy csomagot adtunk hozzá. A kurzus végére kb. harminc lesz. A kérdés most az, hogy ezek <b>együtt</b> is telepíthetők-e.
+A legtöbb csomag <b>kerékként</b> (<em>wheel</em>, előre lefordított fájlként) érkezik, és minden kerék adott Python-verzióhoz készül.
+Ha a te verziódhoz nincs kerék, a <code>uv</code> forrásból próbálja lefordítani a csomagot. Ez lassú, és gyakran elbukik.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló eset: három Python-verzió, ugyanaz a csomaglista</span>
+  <p>Ellenőriztük (<code>uv pip compile --only-binary :all:</code>), hogy a kurzus csomagjai együtt, csak kész kerekekből telepíthetők-e:</p>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>Python</th><th>A kurzus csomagjai együtt</th><th>Kivétel</th></tr>
+    <tr><td><b>3.12</b></td><td>✔ mind kész kerékből</td><td><code>netbone</code>, <code>rpy2</code>: csak forrásból, lásd lent</td></tr>
+    <tr><td>3.13</td><td>✔</td><td>a <code>netbone</code> egyáltalán nem telepíthető (a függősége, a <code>jaxlib 0.4.23</code> 3.12-ig készült)</td></tr>
+    <tr><td>3.14</td><td>✘</td><td>a <code>textnets</code>-nek nincs kereke, és a <code>netbone</code> sem megy</td></tr>
+  </table></div>
+  <p style="margin-bottom:0">Ezért a kurzus a <b>Python 3.12</b>-t használja. A biztonsági frissítései 2028 októberéig érkeznek, ez a kurzushoz bőven elég.</p>
+</div>
+
+<div class="box def">
+  <span class="box-title">A kurzus csomagtérképe</span>
+  <p style="margin-top:0">Nem kell mindent most telepíteni. <b>Akkor veszel fel egy csomagot, amikor az első lecke használja</b>; így a lock-fájl mindig azt tükrözi, amire
+  tényleg szükség van.</p>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>Lecke</th><th>Csomag(ok)</th><th>Megjegyzés</th></tr>
+    <tr><td>0</td><td><code>networkx numpy scipy pandas matplotlib rdata</code>; dev: <code>pytest marimo</code></td><td>most</td></tr>
+    <tr><td>4</td><td><code>krippendorff</code></td><td>kódolók közötti megbízhatóság</td></tr>
+    <tr><td>5</td><td><code>spacy huspacy</code></td><td>a magyar nyelvi modellt külön kell letölteni (5. lecke)</td></tr>
+    <tr><td>6</td><td><code>scikit-learn prince</code></td><td>MDS, korrespondenciaelemzés</td></tr>
+    <tr><td>7</td><td><code>pyvis</code></td><td>interaktív ábra</td></tr>
+    <tr><td>9–12</td><td><code>python-igraph leidenalg infomap cpnet</code></td><td>centralitás, közösségek, mag–periféria</td></tr>
+    <tr><td>13</td><td><code>netbone</code></td><td><b>csak külön környezetben</b>, lásd a buktatót</td></tr>
+    <tr><td>12, 14</td><td><code>graph-tool</code> (SBM), <code>networkit</code></td><td>a <code>graph-tool</code> <b>pip-pel nem telepíthető</b>: conda-forge vagy Docker; opcionális</td></tr>
+    <tr><td>15, 20</td><td><code>statsmodels pyinform</code></td><td>QAP-hoz saját kód; idősorok</td></tr>
+    <tr><td>16</td><td>R: <code>statnet RSiena</code></td><td>lásd <a href="#s05">0.5</a></td></tr>
+    <tr><td>18</td><td><code>gensim bertopic sentence-transformers anthropic</code></td><td>nagy csomagok (PyTorch is jön velük)</td></tr>
+    <tr><td>22, 24</td><td><code>textnets rdflib</code></td><td>szöveghálók, tudásgráfok</td></tr>
+  </table></div>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa 5 – kerék van, nincs fordítás</span>
+    A <code>leidenalg</code> C++ kódot tartalmaz. Python 3.12-n mégis pár másodperc alatt települ. Miért?
+    <details><summary>Megoldás</summary>Mert van hozzá <code>cp312</code>-es kerék: a C++ részt a fejlesztők előre lefordították. A <code>uv</code> csak letölti és kicsomagolja.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa 6 – nincs kerék</span>
+    A <code>textnets</code> kerekei <code>cp310</code>, <code>cp311</code>, <code>cp312</code> jelzésűek. Mi történik Python 3.14-en?
+    <details><summary>Megoldás</summary>A <code>uv</code> a forráscsomagot (<em>sdist</em>) próbálja lefordítani. Ehhez fordítóprogram és fejlécfájlok kellenek; ha hiányoznak, a telepítés elbukik.
+    Ha sikerül is, lassú. Ezért választunk olyan verziót, amelyhez minden csomagnak van kereke.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A <code>netbone</code> felveszi a fő környezetbe.</b> A <code>netbone 0.2.3</code> (az egyetlen kiadás, 2024) <b>pontos</b> régi verziókat rögzít:
+        <code>networkx==2.8.8</code>, <code>scipy==1.13.0</code>, <code>matplotlib==3.6.0</code>. Az <code>uv add netbone</code> ezért feloldhatatlan ütközéssel leáll.
+        Megoldás: külön, eldobható környezet, amely a projektet nem érinti (kipróbáltuk):<br>
+        <code>uv run --isolated --no-project --python 3.12 --with netbone python backbone.py</code><br>
+        Ilyenkor az adatot fájlon keresztül (CSV) adod át. A 13. leckében a legfontosabb szűrőt (<em>disparity filter</em>) saját kóddal is megírjuk.</li>
+    <li><b>A „legújabb Python” reflex.</b> A legújabb Python-verzióhoz gyakran még nincs minden csomagnak kereke. Előbb nézd meg a csomaglistát.</li>
+    <li><b><code>pip install graph-tool</code>.</b> A PyPI-n csak egy üres névfoglaló van, a telepítés hibával leáll. A <code>graph-tool</code> a conda-forge-ról vagy Dockerből telepíthető.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – Python-verzió és csomagok</summary>
+  <ol>
+    <li>Melyik fájlban látod, hogy a projekt melyik Pythont használja? Melyik paranccsal állítanád át?
+      <details><summary>Megoldás</summary>A <code>.python-version</code>-ben. Átállítás: <code>uv python pin 3.12</code>. (A <code>pyproject.toml</code> <code>requires-python</code> sora
+      azt mondja meg, milyen verziókkal kompatibilis a projekt.)</details></li>
+    <li>A 6. leckéhez kell a <code>scikit-learn</code> és a <code>prince</code>. Telepítsd most előre?
+      <details><summary>Megoldás</summary>Nem szükséges: akkor vedd fel (<code>uv add scikit-learn prince</code>), amikor a 6. leckéhez érsz. Így a lock-fájl mindig azt tükrözi, amit a kód tényleg használ.</details></li>
+    <li>Egy csomag kerekeinek a neve így végződik: <code>…-cp312-cp312-manylinux_2_17_x86_64.whl</code>. Mit jelent a <code>cp312</code> és a <code>manylinux…x86_64</code>?
+      <details><summary>Megoldás</summary><code>cp312</code>: CPython 3.12-höz készült; <code>manylinux…x86_64</code>: a legtöbb 64 bites Linuxon fut. Python 3.13-hoz vagy ARM-os géphez ez a kerék nem jó.</details></li>
+    <li>Miért nem jó megoldás, hogy a <code>netbone</code> kedvéért a fő környezetben visszalépsz a <code>networkx 2.8.8</code>-ra?
+      <details><summary>Megoldás</summary>Mert akkor az egész kurzus egy 2022-es <code>networkx</code>-szel futna: hiányoznának újabb függvények, és más lenne az alapértelmezett viselkedés (lásd a karateklubot).
+      Egyetlen lecke egyetlen függvénye miatt nem érdemes. Arra a külön környezet való.</details></li>
+    <li>(nehezebb) Az <code>uv add netbone</code> hibaüzenetének vége: „<em>…all versions of netbone depend on scipy==1.13.0. And because your project depends on netbone and scipy&gt;=1.18.1, we can conclude that your project's requirements are unsatisfiable.</em>”
+        Fogalmazd meg egy mondatban, mi a baj!
+      <details><summary>Megoldás</summary>A két követelménynek nincs közös megoldása: a <code>netbone</code> pontosan az 1.13.0-s <code>scipy</code>-t kéri, a projekt legalább 1.18.1-et, és egy környezetben egy csomagból csak egy verzió lehet.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="sna0-1"></div>
+</section>

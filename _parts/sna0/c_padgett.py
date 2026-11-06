@@ -1,0 +1,20 @@
+import sys, rdata, numpy as np, pandas as pd, networkx as nx
+o = rdata.read_rda(sys.argv[1])["Padgett_FlorentineFamilies"]
+M = o["Marriage"]; labels=[str(x) for x in M.coords[M.dims[0]].values]
+A = np.asarray(M, dtype=int)
+print("labels", labels)
+print("n", A.shape, "sum", A.sum(), "edges", A.sum()//2, "diag", np.trace(A), "sym", (A==A.T).all())
+G = nx.from_numpy_array(A); G = nx.relabel_nodes(G, dict(enumerate(labels)))
+print("deg Medici", G.degree["MEDICI"], "isolates", list(nx.isolates(G)))
+d = nx.single_source_shortest_path_length(G, "MEDICI")
+from collections import Counter; print("dist counts", sorted(Counter(v for k,v in d.items() if k!="MEDICI").items()))
+allsp = dict(nx.all_pairs_shortest_path_length(G)); mx = max(v for s in allsp.values() for v in s.values()); print("max dist", mx)
+far = sum(d.get(k, mx+1) for k in labels if k!="MEDICI"); print("farness", far, "closeness", 15/far)
+print("nx closeness on 16", nx.closeness_centrality(G)["MEDICI"])
+F = nx.florentine_families_graph(); print("nx builtin", F.number_of_nodes(), F.number_of_edges(), sorted(F.nodes())[:3], "Medici closeness", nx.closeness_centrality(F)["Medici"], "deg", F.degree["Medici"])
+print("density16", 20/120, "density15", 20/105)
+B = np.asarray(o["Business"], dtype=int); print("business edges", B.sum()//2)
+print(o["Attributes"])
+print(nx.__version__)
+K = nx.karate_club_graph(); print("karate", K.number_of_nodes(), K.number_of_edges(), list(K.edges(data=True))[:2], K.nodes[0])
+D = nx.davis_southern_women_graph(); print("davis", D.number_of_nodes(), D.number_of_edges())

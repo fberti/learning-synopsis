@@ -1,0 +1,109 @@
+
+<!-- ===================================================== 0.7 -->
+<section id="s07">
+<h2>0.7 Alkalmazás: a Medici-szám</h2>
+<p>Minden eszköz megvan. Most visszatérünk a fejezet kérdéséhez: a könyv szerint a Medici család normalizált közelségi centralitása <b>0,484</b>, a <code>networkx</code> beépített
+adatán viszont <b>0,56</b> jön ki. Végigmegyünk a teljes úton, az üres mappától a könyv számáig. (A közelségi centralitást a 9. lecke tárgyalja. Itt csak annyit használunk belőle,
+amennyit a könyv 9.3.4. szakasza kiszámol.)</p>
+
+<h3 id="s07-a">A teljes út, parancsról parancsra</h3>
+<div class="box example">
+  <span class="box-title">Az üres mappától a tesztekig</span>
+<pre><code># 1. projekt (0.1)
+uv init sna-kurzus --python 3.12 &amp;&amp; cd sna-kurzus &amp;&amp; rm main.py
+mkdir -p sna_utils scripts tests leckek data/raw
+# 2. a segédmodul helye (0.6): sna_utils/__init__.py + a [build-system] blokk a pyproject.toml végére
+#    (a fájlok tartalma: halozatelemzes/kod/sna-kurzus/)
+# 3. csomagok (0.1, 0.2)
+uv add networkx numpy scipy pandas matplotlib rdata
+uv add --dev pytest marimo
+# 4. a könyv adatai (0.4)
+curl -L -o data/raw/xUCINET_0.0.2.0020.tar.gz "https://drive.usercontent.google.com/download?id=1gGEGHq5z_Nrm1uPROXxUmuX-p4uibPKt&amp;export=download&amp;confirm=t"
+uv run python scripts/asnr_export.py data/raw/xUCINET_0.0.2.0020.tar.gz
+Kész: 52 adatkészlet -&gt; data/asnr/
+# 5. ellenőrzés (0.6)
+uv run pytest -q
+4 passed
+# 6. a füzet (0.2)
+uv run marimo edit leckek/00_munkakornyezet.py</code></pre>
+</div>
+
+<h3 id="s07-b">A Medici-szám kézzel</h3>
+<div class="box example">
+  <span class="box-title">1. lépés: távolságok a Medici családtól</span>
+  <p style="margin-top:0">A <code>to_networkx</code>-szel épített, 16 csúcsú házassági hálón (<code>nx.single_source_shortest_path_length(G, "MEDICI")</code>):</p>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>Távolság</th><th>Családok</th><th>Darab</th></tr>
+    <tr><td>1</td><td>Acciaiuoli, Albizzi, Barbadori, Ridolfi, Salviati, Tornabuoni</td><td>6</td></tr>
+    <tr><td>2</td><td>Castellani, Ginori, Guadagni, Pazzi, Strozzi</td><td>5</td></tr>
+    <tr><td>3</td><td>Bischeri, Lamberteschi, Peruzzi</td><td>3</td></tr>
+    <tr><td>elérhetetlen</td><td>Pucci (izolált)</td><td>1</td></tr>
+  </table></div>
+  <p style="margin-bottom:0">Ez egyezik a könyvvel: „1 lépésre hat, 2 lépésre öt, 3 lépésre három családtól, a Puccit nem érik el”. A hálóban a legnagyobb megfigyelt távolság 5 (pl. Pazzi–Lamberteschi).</p>
+</div>
+
+<div class="box def">
+  <span class="box-title">2. lépés: a könyv konvenciója</span>
+  <p style="margin-top:0">A normalizált közelség $\dfrac{n-1}{\text{a távolságok összege}}$. Az elérhetetlen csúcs távolságát az ASNR a <b>legnagyobb megfigyelt távolság + 1</b> értékkel helyettesíti, ez itt $5 + 1 = 6$:</p>
+  $$\text{távolságösszeg} = 6 \cdot 1 + 5 \cdot 2 + 3 \cdot 3 + 1 \cdot 6 = 31, \qquad \frac{16 - 1}{31} = \frac{15}{31} \approx 0{,}484.$$
+  <p style="margin-bottom:0">Pythonban (ez a <code>leckek/00_munkakornyezet.py</code> utolsó cellája):</p>
+<pre><code>d = nx.single_source_shortest_path_length(G, "MEDICI")
+legtavolabb = max(max(t.values()) for _, t in nx.all_pairs_shortest_path_length(G))
+farness = sum(d.get(v, legtavolabb + 1) for v in G if v != "MEDICI")
+(G.number_of_nodes() - 1) / farness        # 0.4838709677419355</code></pre>
+</div>
+
+<div class="box example">
+  <span class="box-title">3. lépés: honnan jön a 0,56 és a 0,523?</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>Adat</th><th>Csúcsok</th><th>A Pucci kezelése</th><th>Számolás</th><th>Eredmény</th></tr>
+    <tr><td><code>nx.florentine_families_graph()</code></td><td>15</td><td>nincs a hálóban (élistából épült, 0.3)</td><td>$14/(6 + 10 + 9) = 14/25$</td><td><b>0,560</b></td></tr>
+    <tr><td>ASNR-adat, <code>nx.closeness_centrality</code></td><td>16</td><td>kihagyja, és az elért csúcsok arányával szoroz (Wasserman–Faust)</td><td>$(14/25) \cdot (14/15)$</td><td><b>0,523</b></td></tr>
+    <tr><td>ASNR-adat, a könyv konvenciója</td><td>16</td><td>távolsága $5 + 1 = 6$</td><td>$15/31$</td><td><b>0,484</b></td></tr>
+  </table></div>
+  <p style="margin-bottom:0">Mindhárom szám „helyes”, csak más kérdésre felel. Az első <b>más adatot</b> használ (hiányzik egy család), a második és a harmadik ugyanazt az adatot, de
+  <b>más konvencióval</b> kezeli az elérhetetlen csúcsot.</p>
+</div>
+
+<div class="box tip">
+  <span class="box-title">A fejezet válasza</span>
+  <b>Egy hálózati szám = adat + definíció + konvenció.</b> A könyv 0,484-e akkor jön ki, ha (1) a könyv adatát használod, mind a 16 családdal (a 0.4 exportja és a 0.6 <code>to_networkx</code>-e),
+  és (2) a könyv konvencióját alkalmazod az elérhetetlen csúcsra. A <code>networkx</code> 0,56-ja nem hibás, csak egy másik háló (15 család) és egy másik konvenció eredménye.
+  Ezért kezdődik minden módszertani lecke a <b>reprodukálással</b>: amíg a könyv számát nem kapod vissza, nem tudod, hogy az adatod, a definíciód és a konvenciód megegyezik-e a könyvével.
+</div>
+
+<h3 id="s07-c">A futó projekt váza</h3>
+<p>A kurzus végig egy közös projekten dolgozik: a könyv adatain reprodukálsz, a saját hírkorpuszodon alkalmazol. A 0. lecke végén ez a váz áll:</p>
+<pre><code>sna-kurzus/
+├── pyproject.toml, uv.lock, .python-version   ← a környezet receptje (gitbe)
+├── sna_utils/__init__.py                      ← saját segédmodul, leckéről leckére bővül
+├── scripts/asnr_export.py                     ← adat-előállítás (gitbe)
+├── tests/test_asnr.py                         ← a könyv számai mint tesztek
+├── leckek/00_munkakornyezet.py                ← marimo-füzetek, leckénként egy
+└── data/                                      ← NEM kerül gitbe (.gitignore)
+    ├── raw/        a letöltött xUCINET-csomag
+    ├── asnr/       a könyv adatai CSV-ben (újra előállítható)
+    └── corpus/     a hírkorpusz (4–5. lecke; szerzői jog miatt nem publikus)</code></pre>
+<pre><code>git init &amp;&amp; git add . &amp;&amp; git commit -m "0. lecke: munkakörnyezet, ASNR-adatok, sna_utils"</code></pre>
+
+<div class="box warn">
+  <span class="box-title">Buktató: a hírkorpusz és a nyilvános repó</span>
+  A hírportálok cikkei szerzői jogi védelem alatt állnak. A korpuszt a <code>data/corpus/</code>-ba tedd, amely a <code>.gitignore</code>-ban van. Ha a repód nyilvános (pl. GitHubon),
+  csak a gyűjtő- és feldolgozó <em>kódot</em> tedd közzé, a cikkeket ne. A jogi hátteret (szövegbányászati kivétel, GDPR) a 4. lecke tárgyalja.
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – alkalmazás</summary>
+  <ol>
+    <li>Számold ki a Medici normalizált közelségét a könyv konvenciójával, ha a Pucci-ra a „legnagyobb távolság + 1” helyett a csúcsok számát ($n = 16$) használnánk!
+      <details><summary>Megoldás</summary>Távolságösszeg $6 + 10 + 9 + 16 = 41$, közelség $15/41 \approx 0{,}366$. Megint más szám, ugyanabból az adatból.</details></li>
+    <li>Mennyi lenne a Medici közelsége a 15 csúcsú (Pucci nélküli) hálón a könyv képletével?
+      <details><summary>Megoldás</summary>Ott mindenki elérhető: $14/25 = 0{,}56$. Ugyanannyi, mint a <code>networkx</code>-é, mert összefüggő hálón a konvenciók nem különböznek.</details></li>
+    <li>A Ridolfi család az ASNR 9.3.5 szerint „3 lépésen belül” 93%-ot ér el, és ennél többet sosem. Miért éppen 93%?
+      <details><summary>Megoldás</summary>15 másik család van, a Pucci elérhetetlen, tehát legfeljebb $14/15 \approx 0{,}933$. (Ellenőrizd a <code>nx.single_source_shortest_path_length(G, "RIDOLFI")</code>-val!)</details></li>
+    <li>(nehezebb) Írd meg a könyv 0,484-ét tesztként a <code>tests/test_asnr.py</code>-ba!
+      <details><summary>Megoldás</summary><code>assert abs(closeness_asnr(G, "MEDICI") - 0.484) &lt; 0.0005</code>, ahol a <code>closeness_asnr</code> a fenti négy sor függvénybe téve. A könyv három tizedesjegyre kerekít, ezért tűréssel hasonlítunk.
+      (A 9. leckében ez a függvény a <code>sna_utils</code>-ba kerül.)</details></li>
+  </ol>
+</details>
+</section>

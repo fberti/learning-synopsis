@@ -51,6 +51,11 @@ synopsis/
 │   ├── 04-grafok-es-matrixok/      ← index.html, widgets.js (graph.js; saját Jacobi-sajátérték-számítás), quizzes.js; a karateklubot az MI 13. fejezet graph-data.js-éből tölti
 │   ├── 05-centralitas/            ← index.html, widgets.js (graph.js; Brandes-köztesség, PageRank, HITS), quizzes.js, polblogs-data.js (Adamic–Glance, előre számolva)
 │   └── 06-helyi-szerkezet/        ← index.html, widgets.js (graph.js; klaszterezettség, asszortativitás, átfedés, előjeles egyensúly, nullmodellek), quizzes.js, karate-weights.js (Zachary-élsúlyok)
+├── halozatelemzes/
+│   ├── index.html                  ← a témakör fejezetlistája (27 lecke, 0–26)
+│   ├── TERV.md                     ← a kurzus részletes terve (a Vault „Hálózatelemzés TOC.md” jegyzetéből)
+│   ├── kod/sna-kurzus/             ← a futó projekt kiinduló kódja (uv-projekt, sna_utils, ASNR-export, tesztek, marimo-füzet)
+│   └── 00-munkakornyezet/          ← index.html, widgets.js, quizzes.js (uv, marimo, CSV-mátrixok, xUCINET-adatok R nélkül, sna_utils)
 ├── elektronika/
 │   ├── index.html                  ← a témakör fejezetlistája
 │   ├── TERV.md                     ← a 26 fejezet (0–25) részletes kidolgozási terve
