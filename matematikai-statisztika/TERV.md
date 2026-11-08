@@ -312,6 +312,10 @@ OB II.1.; J-LS 5.; OI 4.1, 5.1; PSDS 2. (Sampling Distribution, CLT, Standard Er
 
 ## 6. fejezet – Becslés: pontbecslés és konfidencia-intervallum ★★
 
+> **Megvalósítás (2026-11-08):** `06-becsles/`, 8 szakasz a terv szerint (6.1–6.7) + 6.8 alkalmazás (a „31% ± 3%”, a konzervek teljes elemzése, menetrend).
+> Futó példa: NGA 10.2 zöldborsókonzervjei (15 adat; z-, t- és χ²-intervallum, mintanagyság) – a forrás „95%-os valószínűséggel … közé esik” megfogalmazását az oldalon jelezzük.
+> Kvízek `ms6-61…67` + `ms6-final`. 8 widget: `bias-variance`, `likelihood`, `ci-coverage`, `ci-width`, `proportion-ci`, `sigma-ci`, `n-planner`, `boot-ci`.
+
 **Nagy kérdés:** *„A párt támogatottsága 31% ± 3%” – pontosan mit jelent ez a ± 3%?*
 
 ### Felépítés
