@@ -14,6 +14,7 @@ synopsis/
 │   ├── quiz.js                     ← általános kvízmotor
 │   ├── calc.js                     ← analízis: képletértelmező (eval nélkül) és függvényrajzoló
 │   ├── graph.js                    ← gráfok: elrendezés, statikus SVG-ábrák (.gfig), szerkeszthető canvas-nézet (GraphKit.View)
+│   ├── stat.js                     ← statisztika: normális, t, χ², F, binomiális eloszlás (sűrűség, eloszlásfüggvény, kvantilis), véletlenszámok (window.Stat)
 │   ├── ml.js                       ← MI: magolt véletlen, 2D adatkészletek, aktivációk, MLP visszaterjesztéssel (SGD, momentum, RMSProp, Adam; L2, dropout)
 │   └── lab.js                      ← mérési napló a laborokhoz (kitölthető táblázat, a böngészőben mentve; eltérés %-ban)
 ├── valoszinusegszamitas/
@@ -36,7 +37,8 @@ synopsis/
 │   ├── 01-adatok-populacio-minta/  ← index.html, widgets.js, quizzes.js
 │   ├── 02-egy-valtozo-leirasa/     ← (ugyanígy)
 │   ├── 03-ket-valtozo-kapcsolata/  ← (ugyanígy)
-│   └── 04-viszonyszamok-indexek/   ← index.html, widgets.js, quizzes.js (opcionális gazdaságstatisztikai kitérő)
+│   ├── 04-viszonyszamok-indexek/   ← index.html, widgets.js, quizzes.js (opcionális gazdaságstatisztikai kitérő)
+│   └── 05-mintaveteli-eloszlasok/  ← index.html, widgets.js (az assets/stat.js-re épül), quizzes.js
 ├── analizis/
 │   ├── index.html                  ← a témakör fejezetlistája
 │   ├── TERV.md                     ← a 11 fejezet részletes kidolgozási terve

@@ -257,6 +257,12 @@ NGA 3., 4., 8., 9.; J-EL 3.2.
 
 ## 5. fejezet – Mintavételi eloszlások és a centrális határeloszlás-tétel ★★
 
+> **Megvalósítás (2026-11-08):** `05-mintaveteli-eloszlasok/`, 8 szakasz: 5.1 felsorolás (az 1. fejezet 5 fős sportoló-sokasága), 5.2 $E$, SE, √n, véges sokasági
+> korrekció, becsült SE · 5.3 CHT · **5.4 az arány külön szakasz** (a fejezet kérdése egy közvélemény-kutatás) · 5.5 χ², t, F · 5.6 bootstrap · 5.7 regresszió a
+> középhez · 5.8 alkalmazás (közvélemény-kutatás, töltősúly, menetrend). Kvízek `ms5-51…57` + `ms5-final`. 9 widget (a tervezett `t-vs-normal`, `dist-calc`,
+> `bootstrap`, `galton-board`, `sampling-dist`, `sqrt-n` mellett `sample-enum`, `poll-sim`, `regression-mean`). Új közös modul: `assets/stat.js`
+> (a `dist-calc` és a későbbi fejezetek erre épülnek). Az OB forrás nem volt elérhető; OI, PSDS és a saját jegyzet alapján készült.
+
 **Nagy kérdés:** *Ha ugyanabból a sokaságból sokszor vennénk mintát, mennyire ugrálna a mintaátlag?*
 
 **Előfeltétel:** valószínűségszámítás 3–5. fejezet (várható érték, szórás, normális eloszlás, nagy számok törvénye) – emlékeztetőkkel.
