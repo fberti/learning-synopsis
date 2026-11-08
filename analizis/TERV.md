@@ -184,6 +184,13 @@ CS 3, F.2; KM 2–3; PT1 I.; MAT1-2; BME-S; AC 10; RY 19.
 
 **Nagy kérdés:** *Egy hőmérővel mérjük a hőmérsékletet, és a térfogatot számoljuk belőle. Ha a mérés kicsit pontatlan, a számított térfogat is csak kicsit lesz az?* (MAT1-3 motivációja – ez a folytonosság.)
 
+> **Megvalósítás (2026-11-06, `03-hatarertek-es-folytonossag/`):** a nagy kérdés konkrét modellje 1 kg víz térfogata
+> ($V = 1000 + 0{,}0075(T - 4)^2$ cm³, jég: 1091 cm³): 20 °C-on $\delta \approx 0{,}41$ °C kell 0,1 cm³-hez, 4 °C-on 3,65 °C elég, 0 °C-on ugrás (90,88 cm³).
+> A 3.7 (többváltozós folytonosság) nem külön szakasz, hanem kitekintő doboz a 3.7 Alkalmazás végén; a 3.7 helyén az **Alkalmazás** áll
+> (hőmérő és térfogat, hitel kamatlába Bolzanóval és felezéssel, lépcsős parkolási díj, kitekintés két változóra). A 3.2 sorrendje:
+> átviteli elv → egyoldali → nemlétezés → $\varepsilon$–$\delta$. Ferde aszimptota kiegészítésként a 3.3-ban. Kvízek: `an3-31` … `an3-37`, `an3-final`.
+> Widgetek: `limit-zoom`, `epsilon-delta`, `asymptote-explorer`, `sinx-over-x`, `continuity-types`, `bisection`, `thermo-volume`.
+
 ### Felépítés
 1. **3.1 A határérték szemléletesen** ★ – $\frac{\sin x}{x}$ és $\frac{x^2 - 1}{x - 1}$ táblázattal és grafikonnal: „lyuk” a görbén; a határérték nem a helyettesítési érték.
 2. **3.2 Határérték véges helyen** ★★ – átviteli elv (sorozatokkal) és $\varepsilon$–$\delta$ definíció egymás mellett; egyoldali határértékek; a határérték egyértelmű (CS 4.1, MAT1-3).
