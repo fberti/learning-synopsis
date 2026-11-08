@@ -125,7 +125,10 @@
   const binom = {
     pmf: (k, n, p) => k < 0 || k > n ? 0 : p === 0 ? (k === 0 ? 1 : 0) : p === 1 ? (k === n ? 1 : 0)
       : Math.exp(lchoose(n, k) + k * Math.log(p) + (n - k) * Math.log(1 - p)),
-    cdf: (k, n, p) => k < 0 ? 0 : k >= n ? 1 : 1 - betaI(p, Math.floor(k) + 1, n - Math.floor(k))
+    /* P(X ≤ k) = I_{1-p}(n-k, k+1) – kivonás nélkül, a farkakban is pontos */
+    cdf: (k, n, p) => k < 0 ? 0 : k >= n ? 1 : betaI(1 - p, n - Math.floor(k), Math.floor(k) + 1),
+    /* P(X > k) = I_p(k+1, n-k) */
+    sf: (k, n, p) => k < 0 ? 1 : k >= n ? 0 : betaI(p, Math.floor(k) + 1, n - Math.floor(k))
   };
 
   /* monoton eloszlásfüggvény invertálása: biszekció, majd Newton-finomítás */

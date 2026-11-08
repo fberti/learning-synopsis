@@ -39,7 +39,8 @@ synopsis/
 │   ├── 03-ket-valtozo-kapcsolata/  ← (ugyanígy)
 │   ├── 04-viszonyszamok-indexek/   ← index.html, widgets.js, quizzes.js (opcionális gazdaságstatisztikai kitérő)
 │   ├── 05-mintaveteli-eloszlasok/  ← index.html, widgets.js (az assets/stat.js-re épül), quizzes.js
-│   └── 06-becsles/                 ← index.html, widgets.js (az assets/stat.js-re épül), quizzes.js
+│   ├── 06-becsles/                 ← index.html, widgets.js (az assets/stat.js-re épül), quizzes.js
+│   └── 07-hipotezisvizsgalat/      ← index.html, widgets.js (az assets/stat.js-re épül), quizzes.js
 ├── analizis/
 │   ├── index.html                  ← a témakör fejezetlistája
 │   ├── TERV.md                     ← a 11 fejezet részletes kidolgozási terve

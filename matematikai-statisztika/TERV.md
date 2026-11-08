@@ -359,6 +359,11 @@ OB II.2.; NGA 10.2; J-MBH; J-LS 6.; OI 5.2, 6.1, 7.1; PSDS 2. (Confidence Interv
 
 ## 7. fejezet – A hipotézisvizsgálat logikája ★★
 
+> **Megvalósítás (2026-11-08):** `07-hipotezisvizsgalat/`, 8 szakasz a terv szerint + 7.9 alkalmazás (tea, A/B-teszt-jelentés, menetrend). Futó példák: Fisher teája (8 csésze),
+> 100 dobás / 60 fej, NGA 10.3 joghurtpróbája. A saját jegyzet (J-PM 4.) p-érték-definícióját („annak valószínűsége, hogy a hatás csak véletlen”) az oldalon javítjuk.
+> Kvízek `ms7-71…78` + `ms7-final`. 7 widget: `tea-tasting`, `binom-test`, `p-value-machine`, `p-dance`, `errors-power`, `permutation-test`, `p-hacking`.
+> `assets/stat.js`: `binom.cdf` kivonás nélkül, új `binom.sf`.
+
 **Nagy kérdés:** *Egy hölgy állítja, hogy megkóstolva megmondja, a teába vagy a tejet öntötték előbb a csészébe. Hogyan teszteljük?* (Fisher)
 
 ### Felépítés
