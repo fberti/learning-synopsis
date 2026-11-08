@@ -1,0 +1,13 @@
+import math as m
+def d(f,x,h=1e-6): return (f(x+h)-f(x-h))/(2*h)
+print("sqrt x (x+1) at4", d(lambda x:m.sqrt(x)*(x+1),4), 1/4*5+2)
+print("e^x sin x at0", d(lambda x:m.exp(x)*m.sin(x),0))
+print("sinx/(x+cosx) at1", d(lambda x:m.sin(x)/(x+m.cos(x)),1), (1*m.cos(1)+1-m.sin(1))/(1+m.cos(1))**2)
+print("sqrt(1-x^2) at .6", d(lambda x:m.sqrt(1-x*x),0.6))
+print("sin sqrt5x at1", d(lambda x:m.sin(m.sqrt(5*x)),1), m.cos(m.sqrt(5))*5/(2*m.sqrt(5)))
+print("arcsin .5",d(m.asin,0.5),2/m.sqrt(3),"atan1",d(m.atan,1))
+print("cbrt at 8",d(lambda x:x**(1/3),8),1/12)
+print("x/(x^2+1) at 2", d(lambda x:x/(x*x+1),2),(1-4)/25)
+print("(2x+3)/(x-1) at 2", d(lambda x:(2*x+3)/(x-1),2), -5)
+print("lnx/x at e", d(lambda x:m.log(x)/x,m.e))
+print("(x-1)/(x+1) at 1",d(lambda x:(x-1)/(x+1),1),2/4)

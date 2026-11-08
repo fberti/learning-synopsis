@@ -230,6 +230,12 @@ CS 4; PT1 II.; MAT1-3; KR 2.1–2.3; RY 7–8.
 
 **Nagy kérdés:** *A sebességmérő egy pillanatban mutat egy számot – de a sebesség „út osztva idővel”. Milyen út és milyen idő egyetlen pillanatban?*
 
+> **Megvalósítás (2026-11-08, `04-derivalt/`):** futó példa a leejtett kő $s(t) = 5t^2$ ($v(2) = 20$ m/s = 72 km/h) és a 72 km/h-ról fékező autó
+> ($s = 20t - 2t^2$, 50 m). Sorrend: 4.1–4.6 a terv szerint; a 4.7 a **lineáris közelítés és differenciál** (a 3. fejezet hőmérő-kérdése differenciállal: 0,417 °C vs. pontos 0,411),
+> a 4.8 az **Alkalmazás** (sebességmérő, határköltség $C = 200 + 5q + 0{,}01q^2$, növekedési ütem, víz hőtágulása, kitekintés: rugalmasság – Kiegészítés).
+> Az arkuszfüggvények deriváltja kiegészítésként a 4.4 inverz lépésében. Kvízek: `an4-41` … `an4-48`, `an4-final`.
+> Widgetek: `secant-to-tangent`, `differentiable-or-not`, `derivative-sketcher`, `chain-rule-gears`, `derivative-machine` (saját szimbolikus deriváló, nem a calc.js-ben), `motion-graphs`, `linear-approx`, `marginal-cost`.
+
 ### Felépítés
 1. **4.1 Átlagos és pillanatnyi változás** ★ – átlagsebesség, szelő meredeksége; a $\frac{0}{0}$ probléma és a határátmenet (J-D1, MAT1-4).
 2. **4.2 A derivált definíciója** ★★ – differenciahányados, $f'(a) = \lim_{x\to a}\frac{f(x) - f(a)}{x - a} = \lim_{h\to0}\frac{f(a+h) - f(a)}{h}$; érintő egyenlete; bal- és jobboldali derivált; differenciálható ⇒ folytonos, de nem fordítva ($|x|$) (CS 5.1, 5.3; J-D2).

@@ -1,0 +1,17 @@
+import math as m
+def d(f,x,h=1e-6): return (f(x+h)-f(x-h))/(2*h)
+x=1.3
+print(d(lambda x:-6*m.cos(5*x+1)**2,x), 60*m.cos(5*x+1)*m.sin(5*x+1))
+print(d(lambda x:m.log2(2*x+3),x), 2/((2*x+3)*m.log(2)))
+print(d(lambda x:(2**(3*x)+1)**4,x), 4*(2**(3*x)+1)**3*2**(3*x)*3*m.log(2))
+print(d(lambda x:m.tan(m.sin(5*x)),x), 5*m.cos(5*x)/m.cos(m.sin(5*x))**2)
+print(d(lambda x:m.log(5*x/(4*x-3)),x), 1/x-4/(4*x-3))
+print(d(lambda x:m.exp(2*x+m.log(2*x)),x), 2*m.exp(2*x)+4*x*m.exp(2*x))
+print("x^x at2",d(lambda x:x**x,2), 2*2**1, 4*m.log(2))
+print(d(lambda x:x**m.sin(x),x), x**m.sin(x)*(m.cos(x)*m.log(x)+m.sin(x)/x))
+print(d(lambda x:x**(2*x),x), x**(2*x)*(2*m.log(x)+2))
+print(d(lambda x:x**m.sqrt(x),x), x**m.sqrt(x)*(m.log(x)/(2*m.sqrt(x))+1/m.sqrt(x)))
+print(d(lambda x:x**(x*x),x), x**(x*x)*(2*x*m.log(x)+x))
+print(d(lambda x:m.log(x)**m.log(x),2.0), m.log(2)**m.log(2)*(m.log(m.log(2))+1)/2)
+print(d(lambda x:3*x*m.sqrt(x)/x**0.2,x), 3.9*x**0.3)
+print("x^x at1", d(lambda x:x**x,1))
