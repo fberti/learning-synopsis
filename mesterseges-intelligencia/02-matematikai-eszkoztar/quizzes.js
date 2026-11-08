@@ -357,7 +357,7 @@
             "A KL-divergencia lehet negatív."
           ],
           answer: [0, 1, 2],
-          hint: "Gondolj az érmés példára: 0,531 bit az egyik irányban, 0,737 a másikban.",
+          hint: R`Gondolj az érmés példára: $p = (0{,}9;\ 0{,}1)$, $q = (0{,}5;\ 0{,}5)$ – $D(p\|q) = 0{,}531$ bit, $D(q\|p) = 0{,}737$ bit.`,
           explain: R`Az első három igaz. A KL-divergencia nem szimmetrikus (0,531 vs. 0,737 bit), és mindig $\ge 0$, mert $H(p, q) \ge H(p)$.`
         },
         {
