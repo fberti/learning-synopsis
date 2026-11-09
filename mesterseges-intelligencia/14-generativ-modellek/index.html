@@ -1,0 +1,1884 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>14. Generatív modellek – Mesterséges intelligencia – Synopsis</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="../../assets/common.js"></script>
+  <script defer src="../../assets/quiz.js"></script>
+  <script defer src="../../assets/calc.js"></script>
+  <script defer src="gen-data.js"></script>
+  <script defer src="widgets.js"></script>
+  <script defer src="quizzes.js"></script>
+</head>
+<body>
+<div class="progressbar"></div>
+<header class="topbar">
+  <a class="brand" href="../../">📚 Synopsis</a>
+  <span class="crumbs"><a href="../../">Tartalomjegyzék</a> › <a href="../">Mesterséges intelligencia</a> › 14. fejezet</span>
+  <button class="icon-btn" data-theme-toggle title="Téma váltása">🌙</button>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <div class="toc-title">14. fejezet</div>
+  <ol>
+    <li><a href="#s141">14.1 Mit jelent generálni?</a></li>
+    <li><a href="#s142">14.2 Autoregresszív modellek</a></li>
+    <li><a href="#s143">14.3 Autoenkóderek</a></li>
+    <li><a href="#s144">14.4 Variációs autoenkóder</a></li>
+    <li><a href="#s145">14.5 Generatív versengő hálók</a></li>
+    <li><a href="#s146">14.6 Diffúziós modellek</a></li>
+    <li><a href="#s147">14.7 Feltételes generálás: szövegből kép</a></li>
+    <li><a href="#s148">14.8 Értékelés és kockázatok</a></li>
+    <li><a href="#s149">14.9 Alkalmazás: négy gép, egy adathalmaz</a>
+      <ol>
+        <li><a href="#s149-a">A minták és a mérőszámok</a></li>
+        <li><a href="#s149-b">Másol-e a modell?</a></li>
+        <li><a href="#s149-c">Válaszok a fejezet kérdéseire</a></li>
+      </ol>
+    </li>
+    <li><a href="#s-sum">Összefoglalás</a></li>
+    <li><a href="#s-check">Ellenőrző kérdések</a></li>
+    <li><a href="#s-ex">Vegyes gyakorló feladatok</a></li>
+    <li><a href="#s-final">Fejezetzáró teszt</a></li>
+    <li><a href="#s-gloss">Szómagyarázó</a></li>
+  </ol>
+</nav>
+
+<main class="content">
+
+<section class="hero" style="padding-top:.5rem">
+  <div class="kicker">Mesterséges intelligencia · 14. fejezet · ★★–★★★</div>
+  <h1>Generatív modellek</h1>
+  <p class="lead">Eddig a modelljeink <b>döntöttek</b>: spam-e a levél, melyik számjegy van a képen, mutagén-e a molekula. Most megfordítjuk a kérdést. Nem azt kérdezzük, mi van a képen, hanem azt: <b>hogyan néz ki egy kép</b>? Egy <b>generatív modell</b> a tanítóadatokból megtanulja, milyenek az adatok általában – a szakszóval: megtanulja az adatok <b>eloszlását</b> –, aztán <b>mintát vesz</b> belőle: új képet, hangot, szöveget, molekulát állít elő, amely olyan, mint a tanítóadatok, de nincs köztük.
+  A fejezetben öt ötletet építünk fel, egyre erősebbet: pixelenkénti jóslás, tömörítés, tömörítés eloszlással, versenyeztetés, zajtalanítás. Az utolsóból lett a mai szövegből képet készítő rendszerek magja – az elsőből pedig a nagy nyelvi modelleké.</p>
+</section>
+
+<div class="box tip">
+  <span class="box-title">Mit fogsz megtanulni?</span>
+  <ul style="margin:.2rem 0">
+    <li>mi a különbség a <b>diszkriminatív</b> és a <b>generatív</b> modell között, mit jelent <b>eloszlást tanulni</b> és <b>mintát venni</b>, és hogyan mérjük a modellt <b>bitekben</b>;</li>
+    <li>hogyan bontja a <b>láncszabály</b> egy kép valószínűségét pixelenkénti jóslásokra – ez az <b>autoregresszív</b> modell, a nyelvi modellek őse;</li>
+    <li>mit tanul az <b>autoenkóder</b> a szűk keresztmetszetben, és miért nem tud mégsem új képet rajzolni;</li>
+    <li>hogyan javítja ezt a <b>variációs autoenkóder</b> (VAE): a kód eloszlás lesz, a veszteségbe KL-tag kerül;</li>
+    <li>hogyan tanít egymást a hamisító és a detektív a <b>generatív versengő hálóban</b> (GAN), és mi a <b>módusösszeomlás</b>;</li>
+    <li>hogyan működik a <b>diffúziós modell</b>: zajosítás előre, tanult zajtalanítás visszafelé;</li>
+    <li>hogyan lesz ebből <b>szövegből kép</b> (feltétel, osztályozómentes irányítás, látens diffúzió), és hol tart ma a terület (📅 2026);</li>
+    <li>hogyan <b>értékeljük</b> a generált képeket, honnan tudjuk, hogy a modell <b>nem másol</b>, és mit kezd a társadalom a <b>deepfake</b>-kel és a szerzői joggal.</li>
+  </ul>
+</div>
+
+<div class="box">
+  <span class="box-title">🔁 Amit használni fogunk</span>
+  A <a href="../02-matematikai-eszkoztar/">2. fejezetből</a>: a feltételes valószínűség (<a href="../02-matematikai-eszkoztar/#s25-a">2.5</a>), az entrópia, a keresztentrópia és a KL-divergencia (<a href="../02-matematikai-eszkoztar/#s26-b">2.6</a>), a PCA (<a href="../02-matematikai-eszkoztar/#s24-c">2.4</a>).
+  Az <a href="../05-osztalyozas/">5. fejezetből</a>: a logisztikus regresszió (<a href="../05-osztalyozas/#s53-b">5.3</a>), a naiv Bayes és a Laplace-simítás (<a href="../05-osztalyozas/#s55-a">5.5</a>).
+  A <a href="../08-felugyelet-nelkuli-tanulas/">8. fejezetből</a>: a PCA-rekonstrukció (<a href="../08-felugyelet-nelkuli-tanulas/#s83-b">8.3</a>) és a rekonstrukciós hiba (<a href="../08-felugyelet-nelkuli-tanulas/#s85-c">8.5</a>).
+  A <a href="../09-neuralis-halozatok/">9.</a> és a <a href="../10-halo-tanitasa/">10. fejezetből</a>: az MLP, a szigmoid kimenet, a visszaterjesztés és az Adam.
+  A <a href="../12-beagyazasok-figyelem/">12. fejezetből</a>: a maszkolt figyelem (<a href="../12-beagyazasok-figyelem/#s126-b">12.6</a>) és az önfelügyelt előtanítás (<a href="../12-beagyazasok-figyelem/#s127-b">12.7</a>).
+  <br><small>Jelölések: ★ alap · ★★ közép · ★★★ haladó (kihagyható). A 📐 jelű lenyílók levezetéseket rejtenek, a 🐍 jelűek rövid Python-kódot – a továbbhaladáshoz egyik sem kell. A 📅 jelű dobozok a terület mai állását írják le (2026. november), forrással.
+  $\mathbf x$ egy adatpont (pl. egy kép pixelei egy vektorban), $p(\mathbf x)$ a valószínűsége (folytonos adatnál a sűrűsége); $\mathbf z$ a <b>látens</b> (rejtett) kód; $\mathcal N(\mu, \sigma^2)$ a $\mu$ várható értékű, $\sigma$ szórású normális eloszlás; $\boldsymbol\varepsilon \sim \mathcal N(0, I)$ egy standard normális zajvektor. A logaritmus az információs mennyiségeknél 2-es alapú (bit), a veszteségeknél természetes ($\ln$).</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">🎯 A fejezet kérdése – hogyan rajzol egy gép olyat, ami sosem létezett?</span>
+  Három rejtvény.
+  <div class="two-col" style="margin-top:.4rem">
+    <div>
+      <b>1. A nem létező arc.</b><br>
+      2019 februárjában elindult egy weboldal (<em>thispersondoesnotexist.com</em>): minden frissítéskor egy fényképszerű arcot mutatott. Egyik ember sem létezik – egy neurális háló rajzolta őket 70 000 valódi arckép alapján. Hogyan lehet olyan arcot rajzolni, amely <b>nem</b> egyik tanítókép másolata, mégis <b>arc</b>?
+    </div>
+    <div>
+      <b>2. Négy gép, egy füzet.</b><br>
+      Ugyanazon az 1347 kézzel írt számjegyen (8 × 8 pixel, a <a href="../09-neuralis-halozatok/">9. fejezet</a> adatai) négy különböző generatív modellt tanítunk. Mindegyik rajzol 450 „új” számjegyet. Melyik a legjobb? És egyáltalán: <b>hogyan mérsz</b> olyat, hogy „jó a rajz”?
+    </div>
+  </div>
+  <div style="margin-top:.4rem"><b>3. A tökéletes tanuló csal.</b> Később kiszámoljuk, mi lenne egy diffúziós modell <b>tökéletes</b> zajtalanítója egy rögzített tanítóhalmazon. Kiderül, hogy ez a tökéletes modell <b>csak a tanítóképeket</b> tudja visszaadni. Honnan jön akkor az újdonság – és hogyan ellenőrizzük, hogy egy modell nem másol?</div>
+  Négy kérdés:
+  <ol style="margin:.3rem 0">
+    <li>Mit jelent <b>megtanulni egy eloszlást</b>, és hogyan veszünk belőle mintát?</li>
+    <li>Hogyan lehet kiszámolni egy 64 pixeles kép valószínűségét, ha a lehetséges fekete-fehér képek száma is $2^{64} \approx 1{,}8 \cdot 10^{19}$?</li>
+    <li>Mit tud és mit nem tud a négy fő ötlet: <b>pixelenként</b>, <b>tömörítve</b>, <b>versenyeztetve</b>, <b>zajtalanítva</b>?</li>
+    <li>Hogyan irányítjuk a generálást <b>szöveggel</b> – és hogyan mérjük, hogy jó-e, és hogy <b>nem másol-e</b>?</li>
+  </ol>
+  A fejezet végén (<a href="#s149">14.9</a>) a négy gépet egymás mellé tesszük, és mindhárom rejtvényre visszatérünk.
+</div>
+
+<p><b>Útiterv</b> – lépésről lépésre, az egyszerűtől a bonyolultig:</p>
+<ol>
+  <li><b>Az alapkérdés</b>
+    <ol>
+      <li><a href="#s141">Mit jelent generálni?</a> Diszkriminatív vs. generatív; eloszlás számlálással; mintavétel; mérés bitekben.</li>
+    </ol></li>
+  <li><b>Pontos valószínűség</b>
+    <ol start="2">
+      <li><a href="#s142">Autoregresszív modellek</a>: láncszabály; kevesebb paraméter; pixelenkénti rajzolás és kiegészítés.</li>
+    </ol></li>
+  <li><b>Tömörítés</b>
+    <ol start="3">
+      <li><a href="#s143">Autoenkóderek</a>: szűk keresztmetszet; mély autoenkóder és zajszűrés; a látens tér lyukai.</li>
+      <li><a href="#s144">Variációs autoenkóder</a>: a kód mint eloszlás; rekonstrukció + KL; mintavétel és interpoláció. ★★★</li>
+    </ol></li>
+  <li><b>Éles képek</b>
+    <ol start="5">
+      <li><a href="#s145">GAN</a>: hamisító és detektív; a tanítás; instabilitás és módusösszeomlás.</li>
+      <li><a href="#s146">Diffúziós modellek</a>: zajosítás; a zajtalanító tanítása; mintavétel visszafelé. ★★★</li>
+      <li><a href="#s147">Feltételes generálás</a>: feltétel; osztályozómentes irányítás; látens diffúzió és a mai rendszerek. 📅</li>
+    </ol></li>
+  <li><b>Mérés és felelősség</b>
+    <ol start="8">
+      <li><a href="#s148">Értékelés és kockázatok</a>: mérőszámok; memorizálás és szerzői jog; deepfake és eredetigazolás.</li>
+    </ol></li>
+  <li><b>Összerakva</b>
+    <ol start="9">
+      <li><a href="#s149">Alkalmazás</a>: négy generatív modell ugyanazokon a számjegyeken – minták, mérés, másolásvizsgálat.</li>
+    </ol></li>
+</ol>
+
+<!-- ===================================================== 14.1 -->
+<section id="s141">
+<h2>14.1 Mit jelent generálni? ★★</h2>
+<p>Kezdjük egy olyan kicsi világgal, amelyben minden kiszámolható. A képek <b>2 × 2 pixelesek</b>, minden pixel fekete (1) vagy fehér (0). A pixeleket soronként olvassuk: bal fent, jobb fent, bal lent, jobb lent. Így egy kép egy négyjegyű kód, pl. <code>1100</code> = a felső sor fekete. Összesen $2^4 = 16$ kép lehetséges.</p>
+<div class="box example">
+  <span class="box-title">A fejezet futó példája – tíz gyerekrajz</span>
+  Tíz gyerek rajzolt egy-egy „csíkot” a 2 × 2-es négyzetbe:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>kép</th><th><code>1100</code></th><th><code>0011</code></th><th><code>1010</code></th><th><code>0101</code></th><th><code>1001</code></th></tr>
+    <tr><td>mit ábrázol</td><td>felső csík</td><td>alsó csík</td><td>bal csík</td><td>jobb csík</td><td>átló</td></tr>
+    <tr><td>címke</td><td colspan="2">vízszintes</td><td colspan="2">függőleges</td><td>átló</td></tr>
+    <tr><td>hányan rajzolták</td><td>3</td><td>2</td><td>2</td><td>2</td><td>1</td></tr>
+  </table></div>
+  A másik 11 kép (pl. a fordított átló, <code>0110</code>, vagy a csupa fekete <code>1111</code>) egyszer sem fordult elő. Ezen a tíz rajzon építjük fel a fejezet minden ötletét, aztán áttérünk a 8 × 8-as számjegyekre.
+</div>
+
+<h3 id="s141-a">1. lépés: döntés vagy rajz? – diszkriminatív és generatív modell</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két feladat ugyanazon az adaton</span>
+  <b>1. feladat:</b> egy új rajzról mondd meg, vízszintes, függőleges vagy átló! Ehhez elég egy szabály: „ha a felső két pixel egyforma, vízszintes; ha a bal oldali kettő egyforma, függőleges; különben átló”. A szabály <b>nem tudja</b>, melyik rajz gyakori – csak a határt húzza meg.<br>
+  <b>2. feladat:</b> rajzolj egy új csíkot, olyat, amilyet a gyerekek rajzolnának! Ehhez azt kell tudni, <b>melyik kép milyen gyakori</b>: a felső csíkot 10-ből 3-an rajzolták, az átlót 1, a csupa feketét senki. Ez már nem egy határ, hanem az egész eloszlás:
+  $$p(\texttt{1100}) = 0{,}3,\quad p(\texttt{0011}) = p(\texttt{1010}) = p(\texttt{0101}) = 0{,}2,\quad p(\texttt{1001}) = 0{,}1,\quad \text{a többi } 0.$$
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – diszkriminatív és generatív modell</span>
+  <ul style="margin:.2rem 0">
+    <li>A <b>diszkriminatív</b> modell a címke feltételes eloszlását tanulja: $p(y \mid \mathbf x)$ – „ha ezt látom, mi a címke?”. Ilyen volt a logisztikus regresszió, a döntési fa, a 9–11. fejezet osztályozó hálói.</li>
+    <li>A <b>generatív</b> modell magának az adatnak az eloszlását tanulja: $p(\mathbf x)$, vagy címkével együtt $p(\mathbf x, y) = p(\mathbf x \mid y)\,p(y)$ – „milyenek az adatok?”.</li>
+  </ul>
+  <b>Miért erősebb a generatív?</b> Mert a Bayes-tétellel (<a href="../02-matematikai-eszkoztar/#s25-b">2.5</a>) belőle a döntés is kijön: $p(y \mid \mathbf x) = p(\mathbf x \mid y)\,p(y) / p(\mathbf x)$. Fordítva nem megy: a $p(y \mid \mathbf x)$ semmit nem mond arról, melyik $\mathbf x$ milyen gyakori. Az ár: a generatív modellnek sokkal többet kell megtanulnia – minden részletet, nem csak a határt.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a naiv Bayes generatív volt</span>
+    Az <a href="../05-osztalyozas/#s55-b">5.5</a> spamszűrője a $p(\text{szavak} \mid \text{spam})$ és a $p(\text{spam})$ valószínűségeket tanulta. Ebből elvben <b>spamet is írhatott volna</b>: húz egy osztályt, aztán szavanként eldönti, szerepel-e a szó. A logisztikus regresszió (<a href="../05-osztalyozas/#s53-b">5.3</a>) ugyanerre a kérdésre diszkriminatív választ adott: csak a $p(\text{spam} \mid \text{szavak})$-at.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a rajzok címkével</span>
+    $p(y)$: vízszintes 0,5, függőleges 0,4, átló 0,1. $p(\mathbf x \mid \text{vízszintes})$: <code>1100</code> 0,6, <code>0011</code> 0,4. Egy <b>vízszintes</b> csíkot úgy rajzolsz, hogy 60% eséllyel a felsőt, 40% eséllyel az alsót választod. A szorzat visszaadja a táblázatot: $p(\texttt{1100}, \text{vízszintes}) = 0{,}6 \cdot 0{,}5 = 0{,}3$.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Mire jó még az eloszlás?</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Mintavétel:</b> új adat előállítása – a fejezet fő témája.</li>
+    <li><b>Furcsaság mérése:</b> ha $p(\mathbf x)$ kicsi, az adat szokatlan – anomália (vö. <a href="../08-felugyelet-nelkuli-tanulas/#s85-c">8.5</a>).</li>
+    <li><b>Kiegészítés:</b> ha a kép egy része hiányzik, a modell megmondja, mi illik oda (<a href="#s142-c">14.2</a>).</li>
+    <li><b>Tömörítés:</b> ami valószínű, azt rövid kóddal lehet leírni (a <a href="#s141-c">3. lépésben</a> bitben mérjük).</li>
+  </ul>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Generatív modell ≠ nagy nyelvi modell.</b> Az LLM a generatív modellek egyik fajtája (szöveg, <a href="#s142">14.2</a>); a naiv Bayes, a Gauss-keverék, a diffúziós képmodell is generatív.</li>
+    <li><b>A „generatív MI” köznapi szóhasználat.</b> A sajtóban azt jelenti: „szöveget, képet gyárt”. A szakmában a megkülönböztetés a tanult eloszláson múlik: $p(\mathbf x)$ vagy $p(y \mid \mathbf x)$.</li>
+    <li><b>A generatív nem mindig jobb osztályozó.</b> Ha csak döntés kell, a diszkriminatív modell gyakran pontosabb, mert minden erejét a határra fordítja.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – diszkriminatív vagy generatív?</summary>
+  <ol>
+    <li>Diszkriminatív vagy generatív: (a) logisztikus regresszió, (b) naiv Bayes, (c) döntési fa, (d) egy modell, amely a mondat következő szavának eloszlását adja meg?
+      <details><summary>Megoldás</summary>(a) diszkriminatív, (b) generatív, (c) diszkriminatív, (d) generatív: a következő szó eloszlásából mintát véve szöveget ír (<a href="#s142">14.2</a>).</details></li>
+    <li>A futó példában mennyi $p(\mathbf x \mid \text{függőleges})$ a két függőleges képre?
+      <details><summary>Megoldás</summary>4 függőleges rajz van, 2–2: $p(\texttt{1010} \mid \text{függ.}) = p(\texttt{0101} \mid \text{függ.}) = 0{,}5$.</details></li>
+    <li>Ellenőrizd a Bayes-tétellel: mennyi $p(\text{függőleges} \mid \texttt{1010})$?
+      <details><summary>Megoldás</summary>$p(\texttt{1010} \mid \text{függ.})\,p(\text{függ.}) / p(\texttt{1010}) = 0{,}5 \cdot 0{,}4 / 0{,}2 = 1$. Itt a címke egyértelmű – a döntés könnyű, a rajzolás a nehéz.</details></li>
+    <li>Melyik a futó példa legszokatlanabb rajza a <b>tanítóadatok közül</b>? És melyik kép a legszokatlanabb az összes közül?
+      <details><summary>Megoldás</summary>A tanítóadatokból az átló, $p = 0{,}1$. Az összes képből a 11 soha nem látott kép, $p = 0$ – a modell szerint ezek „lehetetlenek”. (Ez gond lesz: <a href="#s141-c">3. lépés</a>.)</details></li>
+    <li>(nehezebb) Adj meg két különböző $p(\mathbf x)$ eloszlást a négy csíkon, amelyekben a $p(y \mid \mathbf x)$ ugyanaz! Mit mutat ez?
+      <details><summary>Megoldás</summary>Pl. a futó példa (0,3; 0,2; 0,2; 0,2 a csíkokra, 0,1 az átlóra) és egy egyenletes eloszlás (mind az öt képre 0,2). Mindkettőben $p(\text{vízszintes} \mid \texttt{1100}) = 1$ stb. A diszkriminatív modell tehát nem tudja megkülönböztetni a két világot – a generatív igen. A $p(y \mid \mathbf x)$-ből nem lehet rajzolni.</details></li>
+  </ol>
+</details>
+
+<h3 id="s141-b">2. lépés: eloszlás számlálással – és mintavétel</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy „rajzológép” egyetlen véletlen számmal</span>
+  Rakd egymás után a képek valószínűségét egy 0-tól 1-ig tartó szakaszon:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>kép</th><td><code>1100</code></td><td><code>0011</code></td><td><code>1010</code></td><td><code>0101</code></td><td><code>1001</code></td></tr>
+    <tr><th>$p$</th><td>0,3</td><td>0,2</td><td>0,2</td><td>0,2</td><td>0,1</td></tr>
+    <tr><th>szakasz</th><td>$[0;\ 0{,}3)$</td><td>$[0{,}3;\ 0{,}5)$</td><td>$[0{,}5;\ 0{,}7)$</td><td>$[0{,}7;\ 0{,}9)$</td><td>$[0{,}9;\ 1)$</td></tr>
+  </table></div>
+  Húzz egy egyenletes véletlen számot 0 és 1 között, pl. $u = 0{,}62$! Ez a <code>1010</code> szakaszába esik: a gép egy bal csíkot rajzol. Ha sokszor húzol, a felső csík a húzások kb. 30%-a lesz – pontosan úgy, ahogy a gyerekeknél.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – empirikus eloszlás és mintavétel</span>
+  <ul style="margin:.2rem 0">
+    <li>Az <b>empirikus eloszlás</b>: minden adatpont valószínűsége a relatív gyakorisága, $\hat p(\mathbf x) = (\text{hányszor fordult elő}) / N$. Ez a legegyszerűbb generatív „modell”: egy táblázat.</li>
+    <li><b>Mintavétel</b> véges sok értékből: rakd sorba az értékeket, és osszd fel a $[0; 1)$ szakaszt a valószínűségeik szerint. Egy egyenletes $u$ azt az értéket választja, amelynek a szakaszába esik (vagyis az első olyat, ahol a <b>halmozott</b> valószínűség már nagyobb $u$-nál).</li>
+  </ul>
+  <b>Miért működik?</b> Egy $[a; b)$ szakaszba az egyenletes $u$ pontosan $b - a$ valószínűséggel esik – ennyi a kép valószínűsége. Minden generatív modell végül ilyen mintavételre vezet vissza: a véletlen az <b>egyenletes számokból</b> jön, a modell <b>alakítja</b> a kívánt eloszlássá.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy másik modell: független pixelek</span>
+    Egy egyszerűbb modell csak azt tanulja meg, melyik pixel milyen gyakran fekete: $p_1 = 0{,}6$, $p_2 = 0{,}5$, $p_3 = 0{,}4$, $p_4 = 0{,}5$ (pl. a bal felső pixel 10 rajzból 6-on fekete). Rajzoláskor <b>pixelenként</b> külön pénzfeldobás dönt. Így bármelyik kép kijöhet: $p(\texttt{1111}) = 0{,}6 \cdot 0{,}5 \cdot 0{,}4 \cdot 0{,}5 = 0{,}06$ – a gép olyat is rajzol, amit egy gyerek sem.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – sok minta</span>
+    1000 húzásból a táblázatos modell várhatóan 300 felső, 200 alsó, 200 bal, 200 jobb csíkot és 100 átlót rajzol. Ugyanaz a gép más húzásokkal kicsit más darabszámokat ad (pl. 312, 191, …) – de <b>sosem</b> rajzol olyat, ami nincs a táblázatban.
+  </div>
+</div>
+<div class="widget" data-widget="sample-machine"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A táblázat csak másol.</b> Az empirikus eloszlás pontosan a tanítóadatokat adja vissza – ez a <b>memorizálás</b> legtisztább formája. Új rajz nincs benne. A jó generatív modell valahol a „csak másol” (táblázat) és a „mindent összekever” (független pixelek) között van.</li>
+    <li><b>A független pixelek modellje szétszedi a képet.</b> Nem tudja, hogy a felső csíkban a két felső pixel <b>együtt</b> fekete. Ezért csupa feketét és csupa fehéret is rajzol. A pixelek közötti összefüggés a lényeg – erről szól a <a href="#s142">14.2</a>.</li>
+    <li><b>A véletlen reprodukálható.</b> A számítógép álvéletlen számokat használ egy <b>mag</b>ból (seed). Ugyanaz a mag ugyanazt a képet adja – ezért tud egy képgenerátor „ugyanazt a képet még egyszer, kicsit másképp” előállítani.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – mintavétel</summary>
+  <ol>
+    <li>Melyik képet rajzolja a táblázatos modell, ha $u = 0{,}25$, $u = 0{,}30$, illetve $u = 0{,}89$?
+      <details><summary>Megoldás</summary>0,25 → <code>1100</code> ($[0; 0{,}3)$); 0,30 → <code>0011</code> (a szakasz bal vége a <code>0011</code>-hoz tartozik: $[0{,}3; 0{,}5)$); 0,89 → <code>0101</code> ($[0{,}7; 0{,}9)$).</details></li>
+    <li>500 mintából várhatóan hány átló lesz? És hány fordított átló (<code>0110</code>)?
+      <details><summary>Megoldás</summary>$500 \cdot 0{,}1 = 50$ átló, és 0 fordított átló – a táblázatban nincs.</details></li>
+    <li>A független pixelek modelljében mennyi $p(\texttt{0000})$?
+      <details><summary>Megoldás</summary>Minden pixel fehér: $(1 - 0{,}6)(1 - 0{,}5)(1 - 0{,}4)(1 - 0{,}5) = 0{,}4 \cdot 0{,}5 \cdot 0{,}6 \cdot 0{,}5 = 0{,}06$.</details></li>
+    <li>A független pixelek modellje négy egyenletes számot húz: $u = (0{,}2;\allowbreak\ 0{,}7;\allowbreak\ 0{,}3;\allowbreak\ 0{,}55)$. A pixel fekete, ha $u_i \lt p_i$. Melyik kép lesz?
+      <details><summary>Megoldás</summary>$0{,}2 \lt 0{,}6$ → 1; $0{,}7 \lt 0{,}5$ nem → 0; $0{,}3 \lt 0{,}4$ → 1; $0{,}55 \lt 0{,}5$ nem → 0. A kép <code>1010</code>, egy bal csík.</details></li>
+    <li>(nehezebb) A 16 kép közül hányat rajzolhat a táblázatos modell, és hányat a független pixeleké? Melyik „kreatívabb”, és melyik rajzol több hülyeséget?
+      <details><summary>Megoldás</summary>A táblázat 5-öt (csak a látottakat), a független pixeleké mind a 16-ot (minden $p_i$ 0 és 1 között van). A független modell „kreatívabb”, de pl. 6% eséllyel csupa feketét rajzol, ami nem csík. A felső csíkot viszont csak $0{,}6 \cdot 0{,}5 \cdot 0{,}6 \cdot 0{,}5 = 0{,}09$ eséllyel – a valódi 0,3 helyett.</details></li>
+  </ol>
+</details>
+
+<h3 id="s141-c">3. lépés: mennyire jó egy modell? – meglepetés bitekben, és a méret átka</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – mennyire lepődik meg a modell a rajzokon?</span>
+  A <a href="../02-matematikai-eszkoztar/#s26-a">2.6</a>-ban a $p$ valószínűségű esemény <b>meglepetése</b> $-\log_2 p$ bit volt. Nézzük meg, mennyire lepődik meg három modell a tíz rajzon, átlagosan:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>modell</th><th>$p(\texttt{1100})$</th><th>$p(\texttt{1001})$</th><th>átlagos meglepetés a 10 rajzon</th></tr>
+    <tr><td>egyenletes (minden kép $1/16$)</td><td>0,0625</td><td>0,0625</td><td>4 bit</td></tr>
+    <tr><td>független pixelek</td><td>0,09</td><td>0,09</td><td>3,94 bit</td></tr>
+    <tr><td>táblázat (empirikus)</td><td>0,3</td><td>0,1</td><td>2,25 bit</td></tr>
+  </table></div>
+  Minél kisebb a szám, annál jobban „ismeri” a modell az adatokat. A táblázat 2,25 bitje pontosan az adatok <b>entrópiája</b> (<a href="../02-matematikai-eszkoztar/#s26-b">2.6</a>): ennél jobbat a tanítóadatokon egyetlen modell sem érhet el.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – negatív log-likelihood (NLL)</span>
+  Egy $p$ modell <b>negatív log-likelihoodja</b> az $\mathbf x_1, \dots, \mathbf x_N$ adatokon az átlagos meglepetés:
+  $$\text{NLL} = -\frac1N \sum_{i=1}^N \log_2 p(\mathbf x_i)\quad\text{bit / adatpont}.$$
+  Ez a <b>keresztentrópia</b> az adatok és a modell között (<a href="../02-matematikai-eszkoztar/#s26-c">2.6</a>). A tanítás célja: minél kisebb NLL – vagyis a <b>legnagyobb valószínűség</b> (maximum likelihood) elve. <b>Miért bit?</b> Mert ennyi bitbe lehetne <b>tömöríteni</b> egy adatpontot, ha a tömörítő ezt a modellt használná: a jó generatív modell jó tömörítő.
+  <br>A valódi mérce a <b>tesztadatokon</b> mért NLL – ugyanúgy, mint az osztályozóknál (<a href="../06-modellertekeles/">6. fejezet</a>).
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy új rajz: a nulla csapdája</span>
+    Egy tizenegyedik gyerek a fordított átlót rajzolja: <code>0110</code>. A táblázat szerint $p = 0$, a meglepetés $-\log_2 0 = \infty$. Egyetlen új rajz végtelen rossz NLL-t ad. A megoldás ugyanaz, mint a naiv Bayesnél (<a href="../05-osztalyozas/#s55-c">5.5</a>): <b>Laplace-simítás</b>. Minden képhez +1-et adunk: $p(\texttt{0110}) = 1/26 \approx 0{,}038$, a meglepetés 4,70 bit.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a méret átka</span>
+    A 2 × 2-es táblázatnak $2^4 - 1 = 15$ szabad száma van (a 16. a többiből jön, mert az összeg 1). Egy 8 × 8-as fekete-fehér képnél $2^{64} - 1 \approx 1{,}8 \cdot 10^{19}$ – több, mint ahány homokszem a Földön. Egy 256 × 256-os színes képnél a lehetséges képek száma kb. $10^{473\,000}$. Táblázattal ez reménytelen: a modellnek <b>kevés paraméterből</b> kell eloszlást adnia, és olyan képekre is értelmes valószínűséget, amilyet sosem látott.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A tanítóadaton mért NLL a memorizálást jutalmazza.</b> A táblázat a legjobb a tanítóadaton (2,25 bit), és a legrosszabb egy új rajzon ($\infty$). Mindig tesztadaton mérj.</li>
+    <li><b>Kis NLL ≠ szép minták.</b> Egy modell lehet jó átlagos valószínűségben, és mégis rajzolhat csúnya képeket – és fordítva (<a href="#s148-a">14.8</a>). Több modell (GAN) NLL-t ki sem tud számolni.</li>
+    <li><b>Folytonos adatnál sűrűség van, nem valószínűség.</b> Egy szürkeárnyalatos pixel 0,37-es értékének „valószínűsége” 0; ott $p(\mathbf x)$ sűrűségfüggvény, és lehet 1-nél nagyobb is. Az összevetéshez ugyanazt a felbontást kell használni.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – NLL</summary>
+  <ol>
+    <li>Mennyi az egyenletes modell NLL-je bármilyen adaton 2 × 2-es, illetve 8 × 8-as fekete-fehér képeknél?
+      <details><summary>Megoldás</summary>$-\log_2(1/16) = 4$ bit, illetve $-\log_2(2^{-64}) = 64$ bit – pixelenként 1 bit. Ez a „semmit sem tudok” alapvonal.</details></li>
+    <li>Mekkora a független pixelek modelljének meglepetése az alsó csíkon (<code>0011</code>)?
+      <details><summary>Megoldás</summary>$p = 0{,}4 \cdot 0{,}5 \cdot 0{,}4 \cdot 0{,}5 = 0{,}04$, a meglepetés $-\log_2 0{,}04 \approx 4{,}64$ bit – rosszabb, mint az egyenletes modell 4 bitje ezen a képen.</details></li>
+    <li>Mekkora a táblázatos modell meglepetése az átlón?
+      <details><summary>Megoldás</summary>$-\log_2 0{,}1 \approx 3{,}32$ bit.</details></li>
+    <li>A Laplace-simított modell (minden darabszám + 1, a nevező $10 + 16 = 26$) mennyit ad a felső csíkra? Hány bit a meglepetés?
+      <details><summary>Megoldás</summary>$p = (3 + 1)/26 \approx 0{,}154$, a meglepetés $\approx 2{,}70$ bit (a simítás nélküli 1,74 bit helyett). A simítás valószínűséget vesz el a látott képektől, és szétosztja a nem látottak között.</details></li>
+    <li>(nehezebb) A simított modell NLL-je a tíz tanítórajzon 3,05 bit, a simítás nélkülié 2,25. Melyiket választanád, és miért?
+      <details><summary>Megoldás</summary>A simítottat. A tanítóadaton rosszabb, de minden új rajzra véges meglepetést ad; a simítás nélküli egyetlen nem látott rajzon is végtelen NLL-t kap. Ugyanaz a tanulság, mint a 6. fejezetben: a tanítóhibán mért győztes túlilleszthet.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai14-141"></div>
+</section>
+
+<!-- ===================================================== 14.2 -->
+<section id="s142">
+<h2>14.2 Autoregresszív modellek ★★</h2>
+<p>A 14.1 két véglete: a táblázat mindent tud a pixelek együttállásáról, de csak másol, és nagyobb képre reménytelenül nagy. A független pixelek modellje kicsi, de szétszedi a képet. Kell egy köztes út, amely <b>kevés paraméterrel</b> is tudja, mely pixelek járnak együtt. Az első ötlet: <b>rajzoljuk a képet pixelenként</b>, és minden pixelnél nézzük meg, mi van már a lapon.</p>
+
+<h3 id="s142-a">1. lépés: a láncszabály – egy kép valószínűsége pixelenként</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a felső csík négy kérdésben</span>
+  Rajzold meg a felső csíkot (<code>1100</code>) pixelenként, és minden lépésnél kérdezd meg a tíz rajzot, mi következik:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>lépés</th><th>kérdés</th><th>a rajzok közül</th><th>valószínűség</th></tr>
+    <tr><td>1.</td><td>fekete-e a bal felső?</td><td>10-ből 6</td><td>0,6</td></tr>
+    <tr><td>2.</td><td>fekete-e a jobb felső, ha a bal felső fekete?</td><td>6-ból 3</td><td>0,5</td></tr>
+    <tr><td>3.</td><td>fehér-e a bal alsó, ha fent <code>11</code>?</td><td>3-ból 3</td><td>1</td></tr>
+    <tr><td>4.</td><td>fehér-e a jobb alsó, ha eddig <code>110</code>?</td><td>3-ból 3</td><td>1</td></tr>
+  </table></div>
+  A szorzat: $0{,}6 \cdot 0{,}5 \cdot 1 \cdot 1 = 0{,}3$ – pontosan a táblázat értéke. A kép valószínűségét felbontottuk négy kisebb jóslásra: <b>mi a következő pixel, ha ismerem az eddigieket?</b>
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – a valószínűség láncszabálya</span>
+  Bármely $\mathbf x = (x_1, x_2, \dots, x_D)$-re, <b>közelítés nélkül</b>:
+  $$p(\mathbf x) = p(x_1)\, p(x_2 \mid x_1)\, p(x_3 \mid x_1, x_2) \cdots p(x_D \mid x_1, \dots, x_{D-1}) = \prod_{i=1}^{D} p(x_i \mid \mathbf x_{\lt i}).$$
+  Az <b>autoregresszív</b> modell ezeket a feltételes valószínűségeket tanulja meg: minden elemet az <b>előtte lévőkből</b> jósol. (<em>Auto-</em> „ön-”: a modell a saját korábbi kimenetéből „regresszál”.)
+  <b>Miért igaz?</b> A feltételes valószínűség definíciója (<a href="../02-matematikai-eszkoztar/#s25-a">2.5</a>) szerint $p(a, b) = p(a)\,p(b \mid a)$; ezt ismételjük. Bármely sorrend jó – képeknél általában soronként, balról jobbra (mint az olvasás).
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – az átló</span>
+    $p(x_1 = 1) = 0{,}6$; $p(x_2 = 0 \mid 1) = 3/6 = 0{,}5$; a <code>10</code>-val kezdődő rajzok: <code>1010</code> ×2, <code>1001</code> ×1, ezért $p(x_3 = 0 \mid 10) = 1/3$; végül $p(x_4 = 1 \mid 100) = 1$. A szorzat $0{,}6 \cdot 0{,}5 \cdot \tfrac13 \cdot 1 = 0{,}1$. ✓
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – más sorrendben</span>
+    Olvassuk a képet <b>oszloponként</b> (bal fent, bal lent, jobb fent, jobb lent)! A felső csíknál: $p(\text{bal fent} = 1) = 0{,}6$, $p(\text{bal lent} = 0 \mid 1) = 4/6$, $p(\text{jobb fent} = 1 \mid 10) = 3/4$, $p(\text{jobb lent} = 0 \mid 101) = 1$. A szorzat $0{,}6 \cdot \tfrac46 \cdot \tfrac34 \cdot 1 = 0{,}3$ – ugyanaz.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A láncszabály önmagában nem tanul semmit.</b> Ha minden feltételes valószínűséget teljes táblázatban tárolunk, $1 + 2 + 4 + 8 = 15$ szám kell – ugyanannyi, mint a táblázatnak, és ugyanúgy csak másol. Az erő abból jön, hogy a feltételeket <b>egyszerű, közös modellel</b> közelítjük (<a href="#s142-b">2. lépés</a>).</li>
+    <li><b>Csak az előzőkre feltételezünk.</b> $p(x_3 \mid x_1, x_2)$ – nem $p(x_3 \mid x_1, x_2, x_4)$. Ha a később jövő pixeleket is látná a modell, a szorzat nem a kép valószínűsége lenne. Ugyanezért kellett a GPT-ben a <b>maszkolt figyelem</b> (<a href="../12-beagyazasok-figyelem/#s126-b">12.6</a>).</li>
+    <li><b>Nulla egy tényezőben = nulla az egészben.</b> Ha egyetlen feltételes valószínűség 0, a kép valószínűsége 0, a meglepetés végtelen. A simítás itt is kell.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – láncszabály</summary>
+  <ol>
+    <li>Számold ki a láncszabállyal $p(\texttt{0011})$-et soronkénti sorrendben!
+      <details><summary>Megoldás</summary>$p(x_1 = 0) = 0{,}4$; a <code>0</code>-val kezdődők: <code>0011</code> ×2, <code>0101</code> ×2, így $p(x_2 = 0 \mid 0) = 0{,}5$; a <code>00</code>-val kezdődők csak <code>0011</code>: $p(x_3 = 1 \mid 00) = 1$, $p(x_4 = 1 \mid 001) = 1$. Szorzat: $0{,}4 \cdot 0{,}5 = 0{,}2$. ✓</details></li>
+    <li>Mennyi $p(x_2 = 1 \mid x_1 = 0)$ a rajzokon?
+      <details><summary>Megoldás</summary>A 4 db <code>0</code>-val kezdődő rajz közül 2-nél (<code>0101</code>) fekete a jobb felső: 0,5.</details></li>
+    <li>Mennyi a láncszabály szerint $p(\texttt{0110})$? Melyik tényező nullázza ki?
+      <details><summary>Megoldás</summary>$p(x_1 = 0) = 0{,}4$, $p(x_2 = 1 \mid 0) = 0{,}5$, de a <code>01</code>-gyel kezdődő rajzok (<code>0101</code> ×2) mind fehér bal alsóval folytatódnak: $p(x_3 = 1 \mid 01) = 0$. Az egész szorzat 0.</details></li>
+    <li>Egy 3 × 3-as fekete-fehér képnél hány szám kell, ha minden feltételes valószínűséget teljes táblázatban tárolunk?
+      <details><summary>Megoldás</summary>$1 + 2 + 4 + \dots + 2^8 = 2^9 - 1 = 511$ – ugyanannyi, mint a $2^9 = 512$ képet felsoroló táblázatnak (mínusz 1).</details></li>
+    <li>(nehezebb) Egy nyelvi modell szerint az első szó 0,1 valószínűséggel „a”; ha az első szó „a”, a második 0,02 valószínűséggel „macska”; ha az eleje „a macska”, a harmadik szó 0,3 valószínűséggel „alszik”. Mennyi „a macska alszik” valószínűsége, és hány bit a meglepetése?
+      <details><summary>Megoldás</summary>$0{,}1 \cdot 0{,}02 \cdot 0{,}3 = 0{,}000\,6$; $-\log_2 0{,}000\,6 \approx 10{,}7$ bit. Ez ugyanaz a láncszabály, csak a „pixel” itt szó (token) – így számol egy nyelvi modell (<a href="#s142-c">3. lépés</a>, 16. fejezet).</details></li>
+  </ol>
+</details>
+
+<h3 id="s142-b">2. lépés: kevesebb paraméter – egyszerűsített feltételek</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – csak az előző pixelt nézzük</span>
+  Egyszerűsítsünk: minden pixel csak az <b>előtte lévő egy</b> pixeltől függjön (<b>Markov-feltevés</b>). A tíz rajzból:
+  $p(x_1 = 1) = 0{,}6$; $p(x_2 = 1 \mid x_1) = 0{,}5$ bármely $x_1$-re; $p(x_3 = 1 \mid x_2 = 1) = 0$, $p(x_3 = 1 \mid x_2 = 0) = 0{,}8$; $p(x_4 = 1 \mid x_3) = 0{,}5$. Ez $1 + 2 + 2 + 2 = 7$ szám. A felső csík: $0{,}6 \cdot 0{,}5 \cdot 1 \cdot 0{,}5 = 0{,}15$. Három modell egymás mellett:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>modell</th><th>paraméterek</th><th>NLL a 10 rajzon</th><th>hány képet rajzolhat a 16-ból?</th></tr>
+    <tr><td>független pixelek</td><td>4</td><td>3,94 bit</td><td>16</td></tr>
+    <tr><td>Markov (előző pixel)</td><td>7</td><td>3,33 bit</td><td>12</td></tr>
+    <tr><td>teljes láncszabály (= táblázat)</td><td>15</td><td>2,25 bit</td><td>5</td></tr>
+  </table></div>
+  A Markov-modell pl. a <code>1011</code> képet 0,12 valószínűséggel rajzolja, pedig egyik gyerek sem rajzolta: <b>összerak</b> egy újat a látott darabokból.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – paraméteres autoregresszív modell</span>
+  A feltételes valószínűségeket <b>egy közös, tanulható függvény</b> adja:
+  $$p(x_i = 1 \mid \mathbf x_{\lt i}) = f_\theta(\mathbf x_{\lt i}).$$
+  A legegyszerűbb $f$ pixelenként egy <b>logisztikus regresszió</b> (<a href="../05-osztalyozas/#s53-b">5.3</a>): $p(x_i = 1 \mid \mathbf x_{\lt i}) = \sigma\big(\sum_{j \lt i} w_{ij} x_j + b_i\big)$. Egy 8 × 8-as képhez ez legfeljebb $2016 + 64 = 2080$ paraméter – a táblázat $1{,}8 \cdot 10^{19}$-je helyett.
+  A tanítás: a tanítóképeken a <b>keresztentrópia</b> minimalizálása – minden pixel egy bináris osztályozási feladat, a „címke” maga a pixel. Nincs szükség emberi címkére: az adat önmagát felügyeli (<b>önfelügyelt tanulás</b>, <a href="../12-beagyazasok-figyelem/#s127-b">12.7</a>).
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy pixel logisztikus jóslása</span>
+    Legyen $p(x_2 = 1 \mid x_1) = \sigma(-1 + 2x_1)$. Ha a bal felső fekete, $\sigma(1) \approx 0{,}73$; ha fehér, $\sigma(-1) \approx 0{,}27$. A modell megtanulta: „ha az előző fekete, ez is valószínűleg az” – két paraméterrel.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a 8 × 8-as számjegyek</span>
+    1347 számjegyet fekete-fehérre alakítottunk (a pixel fekete, ha az intenzitása legalább a fele). A 450 tesztképen mért NLL: egyenletes modell 64 bit, független pixelek 36,3 bit, logisztikus autoregresszív modell <b>25,9 bit</b>. A pixelek közti összefüggés 10,4 bitet ér képenként – a tesztképek átlagosan kb. $2^{10{,}4} \approx 1350$-szer valószínűbbek az autoregresszív modellben.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Neurális autoregresszív modellek – és a GPT</span>
+  A logisztikus regresszió helyére tetszőleges háló kerülhet, ha <b>csak az előző elemeket látja</b>. Képekre: <b>PixelRNN, PixelCNN</b> (A. van den Oord és társai, 2016 – maszkolt konvolúcióval). Hangra: <b>WaveNet</b> (2016). Szövegre: a <b>GPT</b>-család – egy maszkolt figyelmű Transformer (<a href="../12-beagyazasok-figyelem/#s126-c">12.6</a>), amely a következő <b>token</b> eloszlását adja. A nagy nyelvi modell tehát egy autoregresszív generatív modell; a 16. fejezet ezt bontja ki.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az egyszerűsítés a tanítóadaton mindig rosszabb.</b> A Markov-modell NLL-je 3,33 bit (a táblázaté 2,25). Ez nem hiba: cserébe új képekre is értelmes valószínűséget ad. A kérdés a <b>teszt</b>-NLL.</li>
+    <li><b>Az új kép nem feltétlenül jó kép.</b> A Markov-modell a <code>1101</code>-et is 0,15 valószínűséggel rajzolja – ez nem csík. A túl egyszerű feltétel (csak az előző pixel) nem látja a teljes alakot.</li>
+    <li><b>Folytonos pixelérték.</b> Szürkeárnyalatnál a következő pixel eloszlása nem két érték. A PixelCNN 256 kategóriára (softmax, <a href="../05-osztalyozas/#s54-b">5.4</a>) jósol – a nyelvi modell ugyanígy a szótár minden tokenjére.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – egyszerűsített feltételek</summary>
+  <ol>
+    <li>Mennyi a Markov-modellben $p(\texttt{1010})$?
+      <details><summary>Megoldás</summary>$p(x_1 = 1) = 0{,}6$, $p(x_2 = 0 \mid 1) = 0{,}5$, $p(x_3 = 1 \mid x_2 = 0) = 0{,}8$, $p(x_4 = 0 \mid x_3 = 1) = 0{,}5$. Szorzat: $0{,}6 \cdot 0{,}5 \cdot 0{,}8 \cdot 0{,}5 = 0{,}12$ (a táblázatban 0,2).</details></li>
+    <li>Miért 0 a Markov-modellben $p(\texttt{1111})$?
+      <details><summary>Megoldás</summary>Mert $p(x_3 = 1 \mid x_2 = 1) = 0$: a tíz rajzban ahol a jobb felső fekete (<code>1100</code>, <code>0101</code>), ott a bal alsó mindig fehér.</details></li>
+    <li>Hány paramétere van egy logisztikus autoregresszív modellnek 3 × 3-as képre?
+      <details><summary>Megoldás</summary>A $i$-edik pixelnek $i - 1$ súlya és 1 torzítása van: $\sum_{i=1}^{9} i = 45$. (Általában $D(D+1)/2$.)</details></li>
+    <li>$p(x_5 = 1 \mid \mathbf x_{\lt 5}) = \sigma(2x_1 - x_3 + 3x_4 - 2)$. Mennyi, ha $\mathbf x_{\lt 5} = (1, 0, 1, 1)$?
+      <details><summary>Megoldás</summary>$z = 2 - 1 + 3 - 2 = 2$, $\sigma(2) \approx 0{,}88$.</details></li>
+    <li>(nehezebb) A számjegyeken a független modell 36,3, az autoregresszív 25,9 bitet ad képenként. Átlagosan hány bit jut egy pixelre, és mit jelent, hogy ez jóval 1 alatt van?
+      <details><summary>Megoldás</summary>$36{,}3 / 64 \approx 0{,}57$ és $25{,}9 / 64 \approx 0{,}40$ bit/pixel. Az egyenletes modell 1 bit/pixel. Mivel a számjegyek nagy része fehér háttér, és a vonalak összefüggők, egy pixel átlagosan sokkal kevesebb „újdonságot” hordoz, mint egy pénzfeldobás – a jó modellel a kép kb. 40%-ára tömöríthető.</details></li>
+  </ol>
+</details>
+
+<h3 id="s142-c">3. lépés: mintavétel pixelenként – hőmérséklet és kiegészítés</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – rajzolj egy képet négy pénzfeldobással</span>
+  A teljes láncszabályos modellből: (1) bal felső: $p = 0{,}6$, húzás $u = 0{,}4$ → fekete. (2) jobb felső: $p(1 \mid 1) = 0{,}5$, $u = 0{,}8$ → fehér. (3) bal alsó: $p(1 \mid 10) = 2/3$, $u = 0{,}5$ → fekete. (4) jobb alsó: $p(1 \mid 101) = 0$ → fehér. A kép <code>1010</code>. Minden pixel egy húzás, és <b>minden húzás látja az eddigieket</b> – ezért lesz a végén egy egész csík, nem összevissza pixelek.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – autoregresszív mintavétel</span>
+  <ol style="margin:.2rem 0">
+    <li>$i = 1, 2, \dots, D$ sorban: számold ki $p(x_i \mid \mathbf x_{\lt i})$-t a <b>már kihúzott</b> értékekkel;</li>
+    <li>húzz belőle egy értéket (<a href="#s141-b">14.1</a>), és írd a helyére.</li>
+  </ol>
+  <b>Hőmérséklet</b> ($T$): a logitot osztjuk vele húzás előtt, $p = \sigma(z / T)$ (több kategóriánál softmax, <a href="../02-matematikai-eszkoztar/#s25-d">2.5</a>). $T \lt 1$: a valószínű érték még valószínűbb (óvatos, egyhangú minták); $T \gt 1$: kiegyenlítettebb, merészebb, hibásabb minták; $T \to 0$: mindig a legvalószínűbb (mohó választás).
+  <br><b>Kiegészítés:</b> ha a kép eleje adott (pl. a felső sorok), a mintavételt onnan folytatjuk – a modell a <b>hiányzó részt</b> rajzolja meg hozzá illően.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a hőmérséklet hatása</span>
+    Egy pixel logitja $z = 1$. $T = 1$: $\sigma(1) \approx 0{,}73$. $T = 0{,}5$: $\sigma(2) \approx 0{,}88$. $T = 2$: $\sigma(0{,}5) \approx 0{,}62$. Az alacsony hőmérséklet „határozottabb”, a magas „bizonytalanabb” modellt csinál ugyanabból a hálóból.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – kiegészítés</span>
+    Adott a felső sor: <code>10</code>. A teljes modell szerint a folytatás <code>10</code> (bal csík) $2/3$, <code>01</code> (átló) $1/3$ valószínűséggel. Ha a felső sor <code>11</code>, a folytatás biztosan <code>00</code>. Egy nyelvi modell ugyanígy fejezi be a mondatot, amit elkezdtél.
+  </div>
+</div>
+<div class="widget" data-widget="pixel-ar"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Lassú.</b> $D$ pixelhez $D$ egymás utáni lépés kell, mert minden lépés az előzőre vár. Egy 1024 × 1024-es színes kép kb. 3,1 millió lépés. A nyelvi modell is tokenenként ír – ezért „gépel” a válasz a képernyőn.</li>
+    <li><b>A hiba továbbgyűrűzik.</b> Ha egy korai húzás rossz (egy fura pixel), a modell onnantól ehhez igazodik, és nem tudja „kiradírozni”.</li>
+    <li><b>A sorrend korlátoz.</b> Soronkénti sorrendben a kép <b>végét</b> könnyű kiegészíteni, az <b>elejét</b> nem: a felső sorhoz a modell nem tudja figyelembe venni az alsót.</li>
+    <li><b>Hőmérséklet ≠ kreativitás.</b> A magas $T$ csak a véletlent növeli, nem a minőséget. A nagyon alacsony $T$ pedig ismétlődő, egyforma mintákat ad.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – mintavétel és kiegészítés</summary>
+  <ol>
+    <li>A teljes láncszabályos modell húzásai $u = (0{,}7;\allowbreak\ 0{,}2;\allowbreak\ 0{,}9;\allowbreak\ 0{,}1)$; a pixel fekete, ha $u \lt p$. Melyik kép lesz?
+      <details><summary>Megoldás</summary>(1) $0{,}7 \lt 0{,}6$? nem → 0. (2) $p(x_2 = 1 \mid 0) = 0{,}5$, $0{,}2 \lt 0{,}5$ → 1. (3) $p(x_3 = 1 \mid 01) = 0$ → 0. (4) $p(x_4 = 1 \mid 010) = 1$, $0{,}1 \lt 1$ → 1. A kép <code>0101</code>.</details></li>
+    <li>Mennyi $\sigma(z/T)$, ha $z = -2$ és $T = 0{,}5$, illetve $T = 4$?
+      <details><summary>Megoldás</summary>$\sigma(-4) \approx 0{,}018$; $\sigma(-0{,}5) \approx 0{,}38$.</details></li>
+    <li>Mit rajzol a modell $T \to 0$ mellett minden alkalommal (a teljes láncszabályos modellnél, ahol $p = 0{,}5$ esetén a feketét választjuk)?
+      <details><summary>Megoldás</summary>(1) $0{,}6 \gt 0{,}5$ → 1. (2) $0{,}5$ → 1 (a megállapodás szerint). (3) $p(1 \mid 11) = 0$ → 0. (4) → 0. Mindig <code>1100</code>, a felső csíkot – a legvalószínűbbet, sokféleség nélkül.</details></li>
+    <li>A felső sor <code>01</code>. Mit egészít ki a teljes modell?
+      <details><summary>Megoldás</summary>A <code>01</code>-gyel kezdődő rajzok mind <code>0101</code>-ek: a folytatás biztosan <code>01</code>, jobb csík.</details></li>
+    <li>(nehezebb) Egy nyelvi modell 500 tokenes választ ír, és tokenenként 20 ms kell. Mennyi ideig tart a válasz? Miért nem lehet egyszerűen 500 tokent párhuzamosan kiszámolni?
+      <details><summary>Megoldás</summary>$500 \cdot 0{,}02 = 10$ s. Párhuzamosan nem megy, mert az $i$-edik tokent az előző $i - 1$ <b>kihúzott</b> tokenre feltételezve kell kiszámolni – amíg azok nincsenek meg, nincs mire feltételezni. (Tanításkor viszont párhuzamos, mert ott a teljes szöveg ismert: <a href="../12-beagyazasok-figyelem/#s127-a">12.7</a>.)</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai14-142"></div>
+</section>
+
+<!-- ===================================================== 14.3 -->
+<section id="s143">
+<h2>14.3 Autoenkóderek ★★</h2>
+<p>Az autoregresszív modell pontos valószínűséget ad, de pixelenként, lassan rajzol, és sehol nincs benne egy „összefoglaló” a képről. Egy ember nem pixelenként gondol a felső csíkra, hanem úgy: „vízszintes, fent”. A második ötlet: tanuljunk meg <b>néhány számot</b>, amely egy képet összefoglal – egy <b>kódot</b> –, és egy gépet, amely a kódból visszarajzolja a képet. Ha ez megvan, talán új kódokból új képeket is rajzolhatunk.</p>
+
+<h3 id="s143-a">1. lépés: a szűk keresztmetszet – négy pixel két számban</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a csíkok két kérdésben</span>
+  A négy csík két kérdéssel leírható: „fent vagy lent?” és „bal vagy jobb?”. Számoljuk ki ezt két számmal:
+  $$z_1 = \tfrac12(x_1 + x_2 - x_3 - x_4)\ \ (\text{fent mínusz lent}),\qquad z_2 = \tfrac12(x_1 - x_2 + x_3 - x_4)\ \ (\text{bal mínusz jobb}).$$
+  Visszafelé minden pixel $0{,}5$ plusz a két kód hatása:
+  $$\hat{\mathbf x} = 0{,}5 + z_1 \cdot (0{,}5;\ 0{,}5;\ -0{,}5;\ -0{,}5) + z_2 \cdot (0{,}5;\ -0{,}5;\ 0{,}5;\ -0{,}5).$$
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>kép</th><td><code>1100</code></td><td><code>0011</code></td><td><code>1010</code></td><td><code>0101</code></td><td><code>1001</code> (átló)</td></tr>
+    <tr><th>kód $(z_1;\ z_2)$</th><td>$(1;\ 0)$</td><td>$(-1;\ 0)$</td><td>$(0;\ 1)$</td><td>$(0;\ -1)$</td><td>$(0;\ 0)$</td></tr>
+    <tr><th>visszarajzolva</th><td><code>1100</code> ✓</td><td><code>0011</code> ✓</td><td><code>1010</code> ✓</td><td><code>0101</code> ✓</td><td>$(0{,}5;\ 0{,}5;\ 0{,}5;\ 0{,}5)$ ✗</td></tr>
+  </table></div>
+  A négy csík <b>tökéletesen</b> átmegy a két számon. Az átló nem: a kódja $(0;\ 0)$, és csupa szürke lesz belőle. A két szám a csíkok nyelvét tanulta meg – az átlóra nincs szava.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – autoenkóder</span>
+  Az <b>autoenkóder</b> két hálóból áll:
+  <ul style="margin:.2rem 0">
+    <li>a <b>kódoló</b> (enkóder) a $D$ dimenziós $\mathbf x$-ből $k$ dimenziós <b>látens kódot</b> készít: $\mathbf z = e(\mathbf x)$, ahol $k \lt D$ – ez a <b>szűk keresztmetszet</b> (bottleneck);</li>
+    <li>a <b>dekódoló</b> (dekóder) a kódból visszarajzolja a bemenetet: $\hat{\mathbf x} = d(\mathbf z)$.</li>
+  </ul>
+  A tanítás célja a <b>rekonstrukciós hiba</b> minimalizálása, pl. $\lVert \mathbf x - d(e(\mathbf x)) \rVert^2$ (vagy pixelenkénti keresztentrópia). A cél maga a bemenet – címke nem kell: <b>önfelügyelt</b> tanulás.
+  <b>Miért tanul valamit?</b> Mert a szűk keresztmetszeten nem fér át minden: a hálónak azt kell megtartania, ami az adatokban <b>közös és ismétlődő</b>, és el kell dobnia, ami nem.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a lineáris autoenkóder a PCA</span>
+    A fenti kódoló és dekódoló lineáris (csak szoroz és összead). Ha egy lineáris autoenkódert négyzetes hibával tanítunk, ugyanazt a teret találja meg, mint a <b>PCA</b> (<a href="../08-felugyelet-nelkuli-tanulas/#s83-b">8.3</a>): az első $k$ főkomponenst. A $(0{,}5;\ 0{,}5;\ -0{,}5;\ -0{,}5)$ és a $(0{,}5;\ -0{,}5;\ 0{,}5;\ -0{,}5)$ irány itt a két főirány.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – idegen bemenet</span>
+    Kódold a <code>1000</code>-t (csak a bal felső fekete): $z = (0{,}5;\ 0{,}5)$, a visszarajzolt kép $(1;\ 0{,}5;\ 0{,}5;\ 0)$. A hiba $0{,}5$ – a kódoló a látott csíkok „nyelvére” fordította: kicsit felső csík, kicsit bal csík.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Túl tág keresztmetszet = másolás.</b> Ha $k \ge D$, a háló megtanulhatja egyszerűen továbbadni a pixeleket – kicsi hiba, semmi tanulság. A. Glassner példájában egyetlen tigrisképen tanított autoenkóder 400 000 súlyban „eltárolta” a 10 000 pixelt: utána <b>bármilyen</b> bemenetre (egy lépcsőre, egy csupa fekete képre is) tigrist rajzolt.</li>
+    <li><b>Kicsi tanítóhiba ≠ jó kód.</b> Mindig nézd meg a hibát <b>tesztképeken</b> és <b>idegen</b> bemeneteken is.</li>
+    <li><b>Az autoenkóder nem titkosít, és a kód nem „jelentés”.</b> A $z_1$, $z_2$ itt értelmezhető, de egy mély hálóban a kód koordinátái általában nem – csak együtt hordozzák a képet.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – szűk keresztmetszet</summary>
+  <ol>
+    <li>Mi a <code>1111</code> kódja, és mi lesz a visszarajzolt kép?
+      <details><summary>Megoldás</summary>$z_1 = \tfrac12(1 + 1 - 1 - 1) = 0$, $z_2 = 0$; a kép csupa $0{,}5$. A csupa feketét nem tudja ábrázolni (a hiba $4 \cdot 0{,}25 = 1$).</details></li>
+    <li>Mit rajzol a dekódoló a $(-1;\ 0)$ és a $(0{,}5;\ 0)$ kódból?
+      <details><summary>Megoldás</summary>$(-1;\ 0)$: $0{,}5 - (0{,}5;\ 0{,}5;\ -0{,}5;\ -0{,}5) = (0;\ 0;\ 1;\ 1)$, az alsó csík. $(0{,}5;\ 0)$: $(0{,}75;\ 0{,}75;\ 0{,}25;\ 0{,}25)$ – halvány felső csík.</details></li>
+    <li>Mekkora a rekonstrukciós hiba (négyzetösszeg) az átlón?
+      <details><summary>Megoldás</summary>$(1 - 0{,}5)^2 + (0 - 0{,}5)^2 + (0 - 0{,}5)^2 + (1 - 0{,}5)^2 = 1$.</details></li>
+    <li>Egy 28 × 28-as képből 20 számos kódot készítünk. Hányszoros a tömörítés?
+      <details><summary>Megoldás</summary>$784 / 20 = 39{,}2$-szeres.</details></li>
+    <li>(nehezebb) Adj meg egy harmadik kódszámot, $z_3$-at, amellyel az átló is átmegy! Mit rajzol ekkor a dekódoló a <code>0110</code>-ra?
+      <details><summary>Megoldás</summary>$z_3 = \tfrac12(x_1 - x_2 - x_3 + x_4)$, a dekódolóban $+\,z_3 \cdot (0{,}5;\ -0{,}5;\ -0{,}5;\ 0{,}5)$. Az átló kódja $(0;\ 0;\ 1)$ → $(1;\ 0;\ 0;\ 1)$ ✓. A <code>0110</code> kódja $(0;\ 0;\ -1)$ → $(0;\ 1;\ 1;\ 0)$ – azt is tökéletesen visszaadja, pedig sosem látta. Három számmal a 16 képből már többet tud, mint amennyit láttunk.</details></li>
+  </ol>
+</details>
+
+<h3 id="s143-b">2. lépés: mély autoenkóder és zajszűrés</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – 64 pixel $k$ számban</span>
+  A 8 × 8-as számjegyekre (szürkeárnyalat, 0–1 közé skálázva) egy kódoló hálót (64 → 128 → $k$) és egy dekódolót ($k$ → 128 → 64, szigmoid kimenettel) tanítottunk, és összevetettük a PCA-val. A számok a 450 tesztkép <b>pixelenkénti átlagos négyzetes hibái</b>:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>kód mérete $k$</th><th>1</th><th>2</th><th>4</th><th>8</th><th>16</th><th>32</th></tr>
+    <tr><td>PCA (lineáris)</td><td>0,063</td><td>0,053</td><td>0,038</td><td>0,025</td><td>0,012</td><td>0,003</td></tr>
+    <tr><td>mély autoenkóder</td><td>0,054</td><td>0,037</td><td>0,023</td><td>0,012</td><td>0,006</td><td>0,003</td></tr>
+  </table></div>
+  Kis kódnál a mély háló sokkal jobb: 2 számmal kb. annyit tud, mint a PCA 4-gyel, 8-cal annyit, mint a PCA 16-tal. Nagy kódnál ($k = 32$) már mindkettő szinte tökéletes – ott nincs mit „okosan” eldobni.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – mély és zajszűrő autoenkóder</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Mély autoenkóder:</b> a kódoló és a dekódoló több rétegű, nemlineáris háló. Nem egy síkra (alterre) vetít, mint a PCA, hanem <b>görbült felületre</b> – a számjegyek „felületére” a 64 dimenziós térben.</li>
+    <li><b>Zajszűrő autoenkóder</b> (<em>denoising autoencoder</em>): a bemenet egy <b>elrontott</b> kép (zajos, kitakart), a cél az <b>eredeti</b>. A háló megtanulja, mi a zaj és mi a kép. Itt a keresztmetszet nem is kell, hogy szűk legyen: a feladat maga kényszeríti a tanulásra.</li>
+  </ul>
+  <b>Miért szűri a zajt?</b> Mert a dekódoló csak „tanult” képeket tud rajzolni: a kép a tanult felületre kerül, a felületre merőleges zaj elvész. Ez az ötlet tér vissza a diffúziós modellekben (<a href="#s146">14.6</a>), ahol a zajszűrő maga lesz a generátor.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – zajszűrés a 2 × 2-es világban</span>
+    A felső csík zajosan: $(0{,}9;\ 1{,}1;\ 0{,}2;\ -0{,}1)$. A kód: $z_1 = 0{,}95$, $z_2 = 0{,}05$; visszarajzolva $(1;\ 0{,}95;\ 0{,}05;\ 0)$. A hiba négyzetösszege $0{,}07$-ről $0{,}005$-re csökkent: a zaj nagy része nem fért át a két számon.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – anomália a hibából</span>
+    A 8.5-ben (<a href="../08-felugyelet-nelkuli-tanulas/#s85-c">rekonstrukciós hiba</a>) a PCA hibája jelezte a furcsa vásárlót. Az autoenkóder ugyanígy működik: amit nem tud visszarajzolni (az átló, egy tigris a számjegyek közt), az <b>szokatlan</b>. Gyári hibakeresés, csalásfelderítés használja.
+  </div>
+</div>
+<div class="widget" data-widget="ae-bottleneck"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az autoenkóder csak a saját világát ismeri.</b> Egy számjegyeken tanult autoenkódernek adott tigris egy számjegyszerű pacaként jön vissza (Glassner hasonlatával: mintha egy ceruzahegyezőből próbálnál gitárt építeni).</li>
+    <li><b>Az átlagos hiba elfedi a homályt.</b> Négyzetes hibánál a dekódoló bizonytalan helyeken „középre” rajzol – szürke, elmosódott széleket. A hiba kicsi, a kép mégis életlen. Ez a VAE-nál is visszatér (<a href="#s144-c">14.4</a>).</li>
+    <li><b>Ne tanítsd a zajszűrőt ugyanarra a zajra, mint amit tesztelsz.</b> Ha csak egyféle zajt látott, másfélét (pl. karcolást a fehér zaj helyett) nem fog jól szűrni.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – mély és zajszűrő autoenkóder</summary>
+  <ol>
+    <li>A táblázat szerint hány számos PCA-kód kell ahhoz, hogy a hiba ne legyen rosszabb, mint a 4 számos autoenkóderé?
+      <details><summary>Megoldás</summary>A 4 számos autoenkóder hibája 0,023; a PCA 8-cal 0,025 (még rosszabb), 16-tal 0,012. Tehát a táblázat értékei közül 16 kell.</details></li>
+    <li>Kódold a zajos alsó csíkot, $(0{,}1;\ 0;\ 0{,}8;\ 1{,}1)$-et a lineáris autoenkóderrel! Mi a visszarajzolt kép?
+      <details><summary>Megoldás</summary>$z_1 = \tfrac12(0{,}1 + 0 - 0{,}8 - 1{,}1) = -0{,}9$, $z_2 = \tfrac12(0{,}1 - 0 + 0{,}8 - 1{,}1) = -0{,}1$. Kép: $0{,}5 - 0{,}9 \cdot (0{,}5;\ 0{,}5;\ -0{,}5;\ -0{,}5) - 0{,}1 \cdot (0{,}5;\ -0{,}5;\ 0{,}5;\ -0{,}5) = (0;\ 0{,}1;\ 0{,}9;\ 1)$.</details></li>
+    <li>Mennyi ott a hiba négyzetösszege a zajszűrés előtt és után (a tiszta <code>0011</code>-hez mérve)?
+      <details><summary>Megoldás</summary>Előtte: $0{,}01 + 0 + 0{,}04 + 0{,}01 = 0{,}06$. Utána: $0 + 0{,}01 + 0{,}01 + 0 = 0{,}02$.</details></li>
+    <li>Egy zajszűrő autoenkóder bemenete 784 pixel, a „keresztmetszete” 1568 szám. Miért tanul mégis valamit?
+      <details><summary>Megoldás</summary>Mert nem önmagát kell visszaadnia, hanem a zajos képből a tisztát. Ehhez meg kell tanulnia, hogyan néz ki egy tiszta kép – a másolás itt nem megoldás, mert a bemenet maga is rossz.</details></li>
+    <li>(nehezebb) Miért mondhatjuk, hogy a lineáris autoenkóder a <b>kódtérre merőleges</b> zajt szűri ki, a kódtérrel párhuzamosat nem?
+      <details><summary>Megoldás</summary>A kódoló a $\mathbf x - 0{,}5$ vektort két (egymásra merőleges, egységnyi hosszú) irányra vetíti, a dekódoló ebből a vetületet rakja össze. A zaj azon része, amely e két irány síkjában van, átmegy (a 2. példában $-0{,}05$ és $+0{,}05$ a két irányban), a merőleges része eltűnik. Ezért marad a zajszűrt képen $0{,}005$ hiba.</details></li>
+  </ol>
+</details>
+
+<h3 id="s143-c">3. lépés: a látens tér – rajzolhat-e a dekódoló új képet?</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – találomra választott kód</span>
+  A dekódoló bármilyen kódból rajzol valamit. Próbáljuk ki a 2 × 2-es világban:
+  <ul style="margin:.2rem 0">
+    <li>$(1;\ 0)$ → felső csík (egy tanult kód);</li>
+    <li>$(0{,}5;\ 0{,}5)$ → $(1;\ 0{,}5;\ 0{,}5;\ 0)$ – félig felső, félig bal csík: se nem rajz, se nem hülyeség;</li>
+    <li>$(1;\ 1)$ → $(1{,}5;\ 0{,}5;\ 0{,}5;\ -0{,}5)$ – a pixelek kilógnak a 0–1 tartományból: nem kép.</li>
+  </ul>
+  A 8 × 8-as számjegyeken ugyanez nagyban: egy 8 számos autoenkóder kódjait $\mathcal N(0, I)$-ből sorsolva a dekódolt képeknek csak 27%-át ismeri fel biztosan (90% felett) egy jó osztályozó; a valódi tesztképeknek 93%-át. A kódtér tele van <b>lyukakkal</b>, és nem tudjuk, hová essen a sorsolt kód.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – látens tér, interpoláció</span>
+  A <b>látens tér</b> a lehetséges kódok tere ($\mathbb R^k$). A tanítóképek kódjai benne egy <b>pontfelhőt</b> alkotnak; a dekódoló ezt a felhőt képezi vissza képekre.
+  <b>Interpoláció:</b> két kép, $\mathbf x_A$ és $\mathbf x_B$ között úgy „mozgunk”, hogy a kódjaik között lépkedünk: $\mathbf z(t) = (1 - t)\,\mathbf z_A + t\,\mathbf z_B$, és minden $t$-re dekódolunk.
+  <br><b>Miért nem generatív modell az autoenkóder?</b> Mert nem ad eloszlást a kódokra: a kódfelhő alakja, helye, mérete a tanítás mellékterméke. Ha nem tudod, <b>honnan sorsolj</b>, a dekódoló a lyukakból értelmetlen képet rajzol. A megoldás: kényszerítsük a kódfelhőt egy <b>ismert</b> eloszlásra – ez a VAE (<a href="#s144">14.4</a>).
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – keverés a pixelekben</span>
+    Egy tehén és egy zebra fényképét pixelenként átlagolva <b>két egymásra vetített kép</b> lesz, nem egy csíkos tehén. A pixelátlag a tartalmat keveri, nem a tulajdonságokat. (A. Glassner példája.)
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – keverés a kódban</span>
+    Két kör átlaga a <b>paramétereikben</b> (középpont, sugár, szín átlagolva) egy köztes kör. A jó látens tér ilyen: két számjegy kódjának felezőpontja egy köztes alakú <b>számjegyet</b> ad, nem két egymásra rajzolt számjegyet. (A lineáris autoenkóder még a pixelekben keverne: $(0{,}5;\ 0{,}5)$ = a felső és a bal csík pixelátlaga.)
+  </div>
+</div>
+<div class="widget" data-widget="latent-map"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>2 dimenzióban minden szépnek látszik.</b> Két számos kódnál a felhő kicsi, könnyű „belelőni”. 8–16 dimenzióban a felhő a térnek elenyésző része, a véletlen kód nagyrészt lyukba esik (a 8 számos kódnál a mintáknak csak 27%-a ismerhető fel biztosan).</li>
+    <li><b>A kódtér távolsága nem a képek távolsága.</b> Két közeli kód adhat nagyon különböző képet (egy „szakadék” két oldalán), két távoli kód hasonlót.</li>
+    <li><b>Az interpoláció közepe nem mindig értelmes.</b> „Félig 0, félig 1” – mit is kellene látni? A köztes képek gyakran nem számjegyek.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – látens tér</summary>
+  <ol>
+    <li>Mit rajzol a lineáris dekódoló a $(0;\ 0)$ kódból? Miért pont ezt?
+      <details><summary>Megoldás</summary>Csupa $0{,}5$-öt: a $(0;\ 0)$ a kódfelhő közepe, ami a négy csík átlagának felel meg – egy szürke „átlagkép”.</details></li>
+    <li>Interpolálj a felső csík $(1;\ 0)$ és az alsó csík $(-1;\ 0)$ kódja között $t = 0{,}25$-nél! Mi a kép?
+      <details><summary>Megoldás</summary>$\mathbf z = 0{,}75 \cdot (1;\ 0) + 0{,}25 \cdot (-1;\ 0) = (0{,}5;\ 0)$, a kép $(0{,}75;\ 0{,}75;\ 0{,}25;\ 0{,}25)$ – halványuló felső csík.</details></li>
+    <li>Mely $(z_1;\ z_2)$ kódokból kapunk a 0–1 tartományban maradó képet?
+      <details><summary>Megoldás</summary>A pixelek: $0{,}5 \pm 0{,}5 z_1 \pm 0{,}5 z_2$ (minden előjelpárral). Mind 0 és 1 között van, ha $|z_1| + |z_2| \le 1$ – egy 45°-kal elforgatott négyzet (rombusz). A $(1;\ 1)$ kívül esik.</details></li>
+    <li>Egy 8 számos autoenkóder kódjainak szórása koordinátánként 2,3–3,4. Miért rossz ötlet $\mathcal N(0, I)$-ből sorsolni?
+      <details><summary>Megoldás</summary>Mert a kódfelhő nem a 0 körül, egységnyi szórással helyezkedik el: a standard normális sorsolás a felhő egy kis, esetleg üres részére lő. (A felhőre illesztett normális eloszlás jobb, de a lyukakat az sem kerüli el: a mi kísérletünkben 27% helyett 67% lett a biztosan felismert minták aránya.)</details></li>
+    <li>(nehezebb) Javasolj módszert, amellyel egy már betanított autoenkóderből mégis lehet új képeket húzni! Mi a korlátja?
+      <details><summary>Megoldás</summary>Illessz egy eloszlást a tanítóképek kódjaira (pl. Gauss-keveréket), és abból sorsolj. Korlát: a kódfelhő alakja bonyolult lehet, az illesztett eloszlás lyukakba is sorsol; és a kódtér nem arra tanult, hogy a köztes pontok értelmesek legyenek. A VAE ezt fordítva oldja meg: a tanítás során kényszeríti a kódokat egy ismert eloszlásra. (A mai képgenerátorok is így dolgoznak: egy autoenkóder kódterében egy másik generatív modell – egy diffúziós modell – tanulja meg a kódok eloszlását, <a href="#s147-c">14.7</a>.)</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai14-143"></div>
+</section>
+
+<!-- ===================================================== 14.4 -->
+<section id="s144">
+<h2>14.4 Variációs autoenkóder (VAE) ★★★</h2>
+<p>Az autoenkóder kódfelhője lyukas, és nem tudjuk, hol van. Két kívánságunk van: (1) a kódok egy <b>ismert helyen</b> legyenek – mondjuk egy standard normális eloszlás körül –, hogy tudjuk, honnan sorsoljunk; (2) a felhőben <b>ne legyenek lyukak</b>: a kódok környéke is értelmes képet adjon. A <b>variációs autoenkóder</b> (D. Kingma és M. Welling, 2013) mindkettőt egy ötlettel éri el: a kódoló nem egy pontot ad, hanem egy <b>kis felhőt</b>.</p>
+
+<h3 id="s144-a">1. lépés: a kód mint eloszlás – a reparaméterezés</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a felső csík kódja egy kis felhő</span>
+  Egyszerűsítsünk egyetlen kódszámra: „fent vagy lent”. A dekódoló $d(z) = 0{,}5 + z \cdot (0{,}5;\ 0{,}5;\ -0{,}5;\ -0{,}5)$, 0 és 1 közé vágva. A sima autoenkóder a felső csíkhoz a $z = 1$ pontot rendelné. A VAE kódolója két számot ad: <b>középpontot</b> és <b>szórást</b>, pl. $\mu = 1$, $\sigma = 0{,}5$. A kódot ebből <b>sorsoljuk</b>: $z = \mu + \sigma\varepsilon$, ahol $\varepsilon$ standard normális.
+  <ul style="margin:.2rem 0">
+    <li>$\varepsilon = 0{,}4$: $z = 1{,}2$ → a vágott kép $(1;\ 1;\ 0;\ 0)$, a felső csík;</li>
+    <li>$\varepsilon = -1{,}2$: $z = 0{,}4$ → $(0{,}7;\ 0{,}7;\ 0{,}3;\ 0{,}3)$, halvány felső csík;</li>
+    <li>$\varepsilon = -2$: $z = 0$ → csupa szürke.</li>
+  </ul>
+  A dekódolónak most nem egyetlen pontból, hanem a pont <b>egész környékéből</b> kell felső csíkot rajzolnia. A tanítás így „kitölti” a felhőt: a kódok környéke is értelmes lesz.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – a VAE kódolója és a reparaméterezési trükk</span>
+  <ul style="margin:.2rem 0">
+    <li>A kódoló minden $\mathbf x$-hez egy normális eloszlást ad a kódtérben: $q(\mathbf z \mid \mathbf x) = \mathcal N\big(\boldsymbol\mu(\mathbf x),\ \operatorname{diag}\boldsymbol\sigma^2(\mathbf x)\big)$. A gyakorlatban a háló $\boldsymbol\mu$-t és $\ln \boldsymbol\sigma^2$-et adja ki (a logaritmus bármilyen előjelű lehet, a szórás mindig pozitív marad).</li>
+    <li>A kódot a <b>reparaméterezéssel</b> sorsoljuk: $\mathbf z = \boldsymbol\mu + \boldsymbol\sigma \odot \boldsymbol\varepsilon$, $\boldsymbol\varepsilon \sim \mathcal N(0, I)$ ($\odot$: elemenkénti szorzás).</li>
+    <li>A kódok <b>előzetes eloszlása</b> (<em>prior</em>): $p(\mathbf z) = \mathcal N(0, I)$. Generáláskor innen sorsolunk, és csak a dekódolót használjuk.</li>
+  </ul>
+  <b>Miért a trükk?</b> A visszaterjesztéshez (<a href="../10-halo-tanitasa/">10. fejezet</a>) deriválni kell a kódot $\boldsymbol\mu$ és $\boldsymbol\sigma$ szerint. Egy „húzz egy számot ebből az eloszlásból” lépés nem deriválható. A $\boldsymbol\mu + \boldsymbol\sigma\boldsymbol\varepsilon$ viszont igen: $\partial z / \partial \mu = 1$, $\partial z / \partial \sigma = \varepsilon$. A véletlen „kívülről” jön, a háló csak eltolja és nyújtja.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – két felhő átfed</span>
+    Az alsó csík kódja $\mu = -1$, $\sigma = 0{,}5$. A két felhő középpontja 2 egységre van, a szórásuk 0,5: a $z = 0$ környékét mindkettő ritkán, de eléri. Ott a dekódoló „átmenetet” tanul – egy szürkés képet, nem egy véletlen pacát.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – két dimenzióban</span>
+    Egy kép kódja $\boldsymbol\mu = (0{,}8;\ -0{,}3)$, $\boldsymbol\sigma = (0{,}2;\ 0{,}5)$, a húzott zaj $\boldsymbol\varepsilon = (1;\ -2)$. A kód: $(0{,}8 + 0{,}2;\ -0{,}3 - 1) = (1;\ -1{,}3)$. Minden koordinátát külön tolunk és nyújtunk.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Nem a dekódoló kimenetéhez adunk zajt</b>, hanem a kódhoz. A zaj a <b>látens</b> térben kényszeríti ki, hogy a szomszédos kódok hasonló képet adjanak.</li>
+    <li><b>Fordítva szokták magyarázni.</b> Egyes tankönyvek szerint a trükk az, hogy „zaj hozzáadása helyett az eloszlásból húzunk”. Épp fordítva: húzni nem tudunk deriválhatóan, ezért húzunk egy <b>rögzített</b> $\boldsymbol\varepsilon$-t, és azt alakítjuk.</li>
+    <li><b>Generáláskor nincs kódoló.</b> Új képhez $\mathbf z \sim \mathcal N(0, I)$, aztán dekódoló. A kódoló csak a tanításhoz (és meglévő képek kódolásához) kell.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – reparaméterezés</summary>
+  <ol>
+    <li>$\mu = -1$, $\sigma = 0{,}5$, $\varepsilon = 0{,}6$. Mennyi $z$, és mit rajzol az 1D dekódoló?
+      <details><summary>Megoldás</summary>$z = -1 + 0{,}3 = -0{,}7$. A kép $0{,}5 - 0{,}7 \cdot (0{,}5;\ 0{,}5;\ -0{,}5;\ -0{,}5) = (0{,}15;\ 0{,}15;\ 0{,}85;\ 0{,}85)$ – alsó csík, kicsit halványabban.</details></li>
+    <li>Mennyi $\partial z / \partial \mu$ és $\partial z / \partial \sigma$, ha $\varepsilon = -1{,}2$?
+      <details><summary>Megoldás</summary>$1$ és $-1{,}2$.</details></li>
+    <li>A háló $\ln \sigma^2 = -2$-t ad ki. Mennyi $\sigma$?
+      <details><summary>Megoldás</summary>$\sigma^2 = e^{-2} \approx 0{,}135$, $\sigma = e^{-1} \approx 0{,}368$.</details></li>
+    <li>Hány számot ad ki a VAE kódolója, ha a kód 8 dimenziós?
+      <details><summary>Megoldás</summary>16-ot: 8 középpontot és 8 (log-)varianciát.</details></li>
+    <li>(nehezebb) Mi történne, ha a kódoló minden képre $\sigma = 0$-t adna? Mi akadályozza ezt meg? (Előre: <a href="#s144-b">2. lépés</a>.)
+      <details><summary>Megoldás</summary>Visszakapnánk a sima autoenkódert: minden kép egyetlen pont, a lyukak visszatérnek. A rekonstrukciónak ez lenne a legjobb (nincs zaj), ezért a tanítás magától oda tartana. A veszteség második tagja, a KL-tag bünteti a kicsi szórást – lásd a következő lépést.</details></li>
+  </ol>
+</details>
+
+<h3 id="s144-b">2. lépés: a veszteség – rekonstrukció + KL</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – mennyire tér el a felhő a standard normálistól?</span>
+  A <a href="../02-matematikai-eszkoztar/#s26-d">2.6</a>-ban a <b>KL-divergencia</b> azt mérte, mennyi „többletköltség” jár, ha egy eloszlás helyett egy másikat használunk. Két normális eloszlásra, $\mathcal N(\mu, \sigma^2)$ és $\mathcal N(0, 1)$ között zárt képlete van:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>$\mu$</th><th>$\sigma$</th><th>$\tfrac12(\mu^2 + \sigma^2 - 1 - \ln\sigma^2)$</th><th>mit jelent?</th></tr>
+    <tr><td>0</td><td>1</td><td>0</td><td>pontosan a prior</td></tr>
+    <tr><td>1</td><td>0,5</td><td>0,82</td><td>a felső csík felhője</td></tr>
+    <tr><td>2</td><td>0,5</td><td>2,32</td><td>messzebb van a közepétől</td></tr>
+    <tr><td>0</td><td>0,1</td><td>1,81</td><td>a közepén van, de nagyon keskeny</td></tr>
+  </table></div>
+  A KL büntet, ha a felhő <b>messze van</b> a 0-tól, és akkor is, ha <b>túl keskeny</b>. Ez a két kívánságunk: ismert hely, kitöltött tér.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – a VAE vesztesége</span>
+  Egy $\mathbf x$ képre, egy sorsolt $\mathbf z$ kóddal:
+  $$\mathcal L(\mathbf x) = \underbrace{-\ln p(\mathbf x \mid \mathbf z)}_{\text{rekonstrukció}} \;+\; \underbrace{\sum_{j=1}^{k} \tfrac12\big(\mu_j^2 + \sigma_j^2 - 1 - \ln \sigma_j^2\big)}_{\mathrm{KL}\left(q(\mathbf z \mid \mathbf x)\,\|\,\mathcal N(0, I)\right)}.$$
+  A rekonstrukciós tag a dekódoló kimenetén mért keresztentrópia (fekete-fehér képnél) vagy négyzetes hiba (szürkeárnyalatnál). A KL-tag a kódoló felhőit húzza a standard normális felé.
+  <b>Miért ez a kettő?</b> Kötélhúzás: a rekonstrukció azt akarja, hogy minden kép kódja <b>külön, pontosan</b> legyen; a KL azt, hogy minden felhő <b>közel és szélesen</b> legyen. Az egyensúly egy olyan kódtér, amelyben a felhők sűrűn, átfedve töltik ki a standard normális környékét.
+</div>
+<details class="box">
+  <summary>📐 A matematika mögötte – miért pont ez a veszteség? (ELBO)</summary>
+  A generatív modell: $\mathbf z \sim \mathcal N(0, I)$, aztán $\mathbf x \sim p(\mathbf x \mid \mathbf z)$ (a dekódoló). Egy kép valószínűsége $p(\mathbf x) = \int p(\mathbf x \mid \mathbf z)\,p(\mathbf z)\,d\mathbf z$ – ezt nem tudjuk kiszámolni (minden lehetséges kódon kellene átlagolni). Bármely $q(\mathbf z \mid \mathbf x)$-re viszont igaz (Jensen-egyenlőtlenség):
+  $$\ln p(\mathbf x) \;\ge\; \mathbb E_{q}\big[\ln p(\mathbf x \mid \mathbf z)\big] - \mathrm{KL}\big(q(\mathbf z \mid \mathbf x)\,\|\,p(\mathbf z)\big).$$
+  A jobb oldal az <b>ELBO</b> (<em>evidence lower bound</em>, a „bizonyíték” alsó korlátja). A VAE vesztesége ennek ellentettje: ha a veszteséget csökkentjük, a $\ln p(\mathbf x)$ egy alsó korlátját növeljük. A különbség pontosan $\mathrm{KL}\big(q(\mathbf z \mid \mathbf x)\,\|\,p(\mathbf z \mid \mathbf x)\big) \ge 0$: annál kisebb, minél jobban közelíti a kódoló a „valódi” kódeloszlást. Innen a „variációs” név: egy közelítő eloszlást ($q$) igazítunk – a variációszámítás nyelvén.
+</details>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – két dimenzió KL-je</span>
+    $\boldsymbol\mu = (1;\ 0)$, $\boldsymbol\sigma = (1;\ 0{,}5)$. A koordinátánkénti tagok: $\tfrac12(1 + 1 - 1 - 0) = 0{,}5$ és $\tfrac12(0 + 0{,}25 - 1 - \ln 0{,}25) \approx 0{,}32$. Összesen kb. 0,82.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a számjegyeken</span>
+    A 2 dimenziós kódú VAE a tesztképeken átlagosan 20,0 nat rekonstrukciós és 3,2 nat KL-veszteséget ad (1 nat = $1/\ln 2 \approx 1{,}44$ bit). A kódok középpontjainak szórása koordinátánként kb. 1, az egyes felhők szórása kb. 0,2: a képek felhői sűrűn töltik ki a standard normális környékét.
+  </div>
+</div>
+<div class="widget" data-widget="kl-explorer"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A KL nem a kódoló és a dekódoló hasonlóságát méri.</b> Egy népszerű tankönyv így írja – tévesen. A KL a kódoló felhőit veti össze a <b>priorral</b>, $\mathcal N(0, I)$-vel.</li>
+    <li><b>Túl erős KL = semmitmondó kód.</b> Ha a KL nyer, minden kép felhője $\mathcal N(0, I)$ lesz, a kód nem hordoz információt, a dekódoló az átlagképet rajzolja („a látens tér összeomlása”). A KL-tag súlyozása (a <b>β-VAE</b> $\beta$ szorzója) ezt az egyensúlyt hangolja.</li>
+    <li><b>A VAE vesztesége nem a pontos NLL.</b> Csak egy felső korlátja (az ELBO ellentettje) – az autoregresszív modell pontos számával közvetlenül nem mérhető össze, csak óvatosan.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a VAE vesztesége</summary>
+  <ol>
+    <li>Mennyi a KL-tag, ha $\mu = 0{,}5$ és $\sigma = 0{,}5$?
+      <details><summary>Megoldás</summary>$\tfrac12(0{,}25 + 0{,}25 - 1 - \ln 0{,}25) = \tfrac12(-0{,}5 + 1{,}386) \approx 0{,}44$.</details></li>
+    <li>Mennyi a KL-tag, ha $\mu = 0$ és $\sigma = 2$? Miért nem 0?
+      <details><summary>Megoldás</summary>$\tfrac12(0 + 4 - 1 - \ln 4) \approx \tfrac12(3 - 1{,}386) \approx 0{,}81$. A túl <b>széles</b> felhőt is bünteti: a prior szórása 1.</details></li>
+    <li>Rendezd a KL-tag szerint növekvő sorrendbe: (a) $\mu = 1$, $\sigma = 1$; (b) $\mu = 0{,}3$, $\sigma = 0{,}9$; (c) $\mu = 1$, $\sigma = 0{,}2$!
+      <details><summary>Megoldás</summary>(b) $\approx 0{,}055$; (a) $= 0{,}5$; (c) $\approx 1{,}63$. Tehát b, a, c.</details></li>
+    <li>A 2D kódú VAE rekonstrukciós vesztesége 20,0 nat. Hány bit ez?
+      <details><summary>Megoldás</summary>$20{,}0 / \ln 2 \approx 28{,}8$ bit. (A KL-lel együtt kb. 33,5 bit – de ez szürkeárnyalatos képeken mért szám, nem vethető össze közvetlenül az autoregresszív modell fekete-fehér képeken mért 25,9 bitjével.)</details></li>
+    <li>(nehezebb) Mutasd meg, hogy $\sigma$ rögzített $\mu$ mellett a KL-tagot $\sigma = 1$-nél minimalizálja!
+      <details><summary>Megoldás</summary>$\sigma$ szerint deriválva: $\tfrac12(2\sigma - 2/\sigma) = \sigma - 1/\sigma$. Ez 0, ha $\sigma^2 = 1$, azaz $\sigma = 1$; kisebb $\sigma$-nál negatív, nagyobbnál pozitív, tehát minimum. A KL tehát a szórást 1 felé, a középpontot ($\mu^2/2$ tag) 0 felé húzza.</details></li>
+  </ol>
+</details>
+
+<h3 id="s144-c">3. lépés: mintavétel, interpoláció – és a homály</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – sorsolt kódok a számjegyeken</span>
+  Sorsoljunk kódokat $\mathcal N(0, I)$-ből, és dekódoljuk őket! Ugyanaz a jó osztályozó ítéli meg, felismerhető-e a kép (90% feletti biztonság):
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>honnan?</th><th>biztosan felismert</th></tr>
+    <tr><td>valódi tesztképek</td><td>93%</td></tr>
+    <tr><td>autoenkóder, 8 számos kód, $\mathcal N(0, I)$-ből</td><td>27%</td></tr>
+    <tr><td>VAE, 8 számos kód, $\mathcal N(0, I)$-ből</td><td>76%</td></tr>
+    <tr><td>VAE, 2 számos kód, $\mathcal N(0, I)$-ből</td><td>84%</td></tr>
+  </table></div>
+  A VAE dekódolója a prior szinte bármely pontjából számjegyet rajzol. A minták viszont <b>elmosódottak</b> – nézd meg a widgetben vagy a <a href="#s149">14.9</a>-ben!
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – generálás és interpoláció VAE-vel</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Új kép:</b> $\mathbf z \sim \mathcal N(0, I)$, $\hat{\mathbf x} = d(\mathbf z)$ (általában a dekódoló <b>várható</b> kimenetét rajzoljuk, nem húzunk még pixelenként is).</li>
+    <li><b>Változat egy meglévő képről:</b> kódold ($\boldsymbol\mu$), told el kicsit, dekódold.</li>
+    <li><b>Interpoláció:</b> két kép $\boldsymbol\mu_A$, $\boldsymbol\mu_B$ kódja között egyenes vonalon lépkedve – a köztes képek általában számjegyszerűek maradnak, mert a kitöltött kódtérben nincsenek lyukak.</li>
+  </ul>
+  <b>Miért homályos?</b> A dekódoló egy kódból <b>egy</b> képet ad, pedig egy kódhoz (a felhők átfedése miatt) több hasonló kép is tartozik. A rekonstrukciós hiba alapján a legjobb válasz ezek <b>átlaga</b> – és az átlagkép elmosódott. A VAE „óvatos”: inkább legyen mindenhol kicsit szürke, mint egy élesen rossz helyen fekete.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – az átlag homálya</span>
+    Ha egy kódhoz fele-fele arányban tartozik a <code>1100</code> és a <code>1010</code>, a négyzetes hibát az átlaguk, $(1;\ 0{,}5;\ 0{,}5;\ 0)$ minimalizálja – egy kép, amely egyik rajzra sem hasonlít, de mindkettőtől „csak” 0,5 hibányira van.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a VAE ma</span>
+    A VAE mint önálló képgenerátor ma ritka, de <b>kódolóként</b> mindenhol ott van: a Stable Diffusion egy VAE-vel tömöríti az $512 \times 512 \times 3$-as képet $64 \times 64 \times 4$-es kódba (48-szoros tömörítés), és a generálás ebben a kódtérben fut (<a href="#s147-c">14.7</a>). A <b>VQ-VAE</b> (2017) a kódot egy véges „kódkönyv” elemeire kerekíti – ebből lesznek a képek „tokenjei”, amelyeken autoregresszív modell is dolgozhat.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Homályos ≠ rosszul tanított.</b> A homály a négyzetes (vagy pixelenként független) rekonstrukciós veszteség következménye, nem hiba a kódban. Élesebb képhez más veszteség kell – pl. egy versengő detektív (<a href="#s145">14.5</a>).</li>
+    <li><b>A prior szélei.</b> Egy standard normális koordináta kb. 0,3% eséllyel esik 3-nál messzebb a 0-tól – sok koordinátánál ez már gyakori; ott (és a felhők közti ritka sávokban) a VAE is rajzolhat furcsaságot.</li>
+    <li><b>A kód koordinátái összefonódnak.</b> Egy koordináta ritkán jelent egyetlen tulajdonságot („dőlés”, „vastagság”); a változtatás általában több tulajdonságot is mozgat.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – mintavétel és homály</summary>
+  <ol>
+    <li>Melyik lépés hiányzik? „Generáláskor a képet kódoljuk, sorsolunk egy kódot $\mathcal N(\boldsymbol\mu, \boldsymbol\sigma^2)$-ből, és dekódoljuk.”
+      <details><summary>Megoldás</summary>Ez egy meglévő kép <b>változatának</b> előállítása. Új kép generálásához nincs kép és nincs kódolás: a kódot közvetlenül $\mathcal N(0, I)$-ből sorsoljuk.</details></li>
+    <li>Interpolálj a $\boldsymbol\mu_A = (1;\ -1)$ és a $\boldsymbol\mu_B = (-1;\ 0{,}5)$ kód között $t = 0{,}4$-nél!
+      <details><summary>Megoldás</summary>$0{,}6 \cdot (1;\ -1) + 0{,}4 \cdot (-1;\ 0{,}5) = (0{,}2;\ -0{,}4)$.</details></li>
+    <li>Egy kódhoz 70% eséllyel <code>1100</code>, 30% eséllyel <code>0011</code> tartozik. Mit rajzol egy négyzetes hibán tanult dekódoló?
+      <details><summary>Megoldás</summary>Az átlagot: $(0{,}7;\ 0{,}7;\ 0{,}3;\ 0{,}3)$ – halvány felső csík, egy kis alsóval.</details></li>
+    <li>Hányszoros a tömörítés, ha egy $256 \times 256 \times 3$-as képet $32 \times 32 \times 4$-es kódba kódolunk?
+      <details><summary>Megoldás</summary>$196\,608 / 4096 = 48$-szoros – ugyanannyi, mint a Stable Diffusion $512 \to 64$-es esetében (oldalanként 8-szoros felbontáscsökkenés, 3 helyett 4 csatorna).</details></li>
+    <li>(nehezebb) A 8 számos autoenkóder véletlen kódjainak 27%-a, a VAE-énak 76%-a ad biztosan felismert számjegyet. Mi okozza a különbséget, ha a dekódolók felépítése majdnem ugyanaz?
+      <details><summary>Megoldás</summary>A tanítás. Az autoenkóder kódjai valahol, valamekkora felhőben vannak (koordinátánként 2–3-as szórással, nem a 0 körül), és a felhőben lyukak vannak. A VAE KL-tagja a kódokat a $\mathcal N(0, I)$-re húzta, a kódzaj pedig kitöltötte a teret – így a sorsolás oda lő, ahol a dekódoló tanult.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai14-144"></div>
+</section>
+
+<!-- ===================================================== 14.5 -->
+<section id="s145">
+<h2>14.5 Generatív versengő hálók (GAN) ★★</h2>
+<p>A VAE minden kódhoz egy átlagos, ezért elmosódott képet rajzol, mert a veszteség pixelenként méri a hibát. Mi lenne, ha a „jó kép” mércéjét is megtanulnánk? I. Goodfellow és társai 2014-es ötlete: tanítsunk két hálót egymás ellen. A <b>generátor</b> (hamisító) képeket gyárt; a <b>diszkriminátor</b> (detektív) megpróbálja megkülönböztetni őket a valódiaktól. A hamisító abból tanul, mit vett észre a detektív.</p>
+
+<h3 id="s145-a">1. lépés: hamisító és detektív – mit tud a legjobb detektív?</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy kezdő hamisító a 2 × 2-es világban</span>
+  A gyerekrajzok eloszlása $p_{\text{adat}}$, a hamisítóé $p_G$. Egy kezdő hamisító túl sok felső csíkot rajzol, átlót egyet sem, és néha fordított átlót:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>kép</th><td><code>1100</code></td><td><code>0011</code></td><td><code>1010</code></td><td><code>0101</code></td><td><code>1001</code></td><td><code>0110</code></td></tr>
+    <tr><th>$p_{\text{adat}}$</th><td>0,3</td><td>0,2</td><td>0,2</td><td>0,2</td><td>0,1</td><td>0</td></tr>
+    <tr><th>$p_G$</th><td>0,5</td><td>0,1</td><td>0,1</td><td>0,1</td><td>0</td><td>0,2</td></tr>
+    <tr><th>$D^*$ = „valódi” esélye</th><td>0,375</td><td>0,667</td><td>0,667</td><td>0,667</td><td>1</td><td>0</td></tr>
+  </table></div>
+  Ha a detektív egy képet lát, és fele-fele eséllyel kap valódit vagy hamisat, a legjobb tippje: $D^* = p_{\text{adat}} / (p_{\text{adat}} + p_G)$. Az átló biztosan valódi (a hamisító sosem rajzol ilyet), a fordított átló biztosan hamis. A $D^*$ tehát <b>megmutatja a hamisítónak, hol téved</b>: kevesebb felső csík és fordított átló, több átló.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – generátor, diszkriminátor, optimális detektív</span>
+  <ul style="margin:.2rem 0">
+    <li>A <b>generátor</b> egy háló, amely zajból képet csinál: $\mathbf z \sim \mathcal N(0, I)$, $\mathbf x = G(\mathbf z)$. A generált képek eloszlása $p_G$. A generátor <b>sosem látja</b> a valódi képeket – csak a detektív ítéletén keresztül tanul.</li>
+    <li>A <b>diszkriminátor</b> egy osztályozó: $D(\mathbf x) \in (0;\ 1)$ annak a becsült valószínűsége, hogy $\mathbf x$ valódi.</li>
+    <li>Rögzített $G$ mellett a legjobb diszkriminátor: $D^*(\mathbf x) = \dfrac{p_{\text{adat}}(\mathbf x)}{p_{\text{adat}}(\mathbf x) + p_G(\mathbf x)}$.</li>
+  </ul>
+  <b>Miért ez?</b> Bayes-tétel (<a href="../02-matematikai-eszkoztar/#s25-b">2.5</a>) fele-fele előzetes eséllyel: a „valódi” címke utólagos valószínűsége a két sűrűség aránya. Ha $p_G = p_{\text{adat}}$, akkor mindenhol $D^* = 0{,}5$: a detektív csak találgatni tud – ez a játék <b>egyensúlya</b>.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy ügyesebb hamisító</span>
+    Most $p_G$: <code>1100</code> 0,6, <code>0011</code> 0,2, <code>1010</code> 0,2. Ekkor $D^*(\texttt{1100}) = 0{,}3 / 0{,}9 \approx 0{,}33$, $D^*(\texttt{0011}) = D^*(\texttt{1010}) = 0{,}5$ (itt már jó!), $D^*(\texttt{0101}) = D^*(\texttt{1001}) = 1$ – ezeket a hamisító még sosem rajzolja.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy egyszerű detektív egy egyenesen</span>
+    Valódi adatok 3 körül, hamisak 1 körül. Egy logisztikus detektív (<a href="../05-osztalyozas/#s53-b">5.3</a>): $D(x) = \sigma(2x - 4)$. $D(3) \approx 0{,}88$, $D(1) \approx 0{,}12$, $D(2) = 0{,}5$. A hamisítónak „jobbra” kell tolnia a mintáit: arra nő a $D$.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A GAN tanítási módszer, nem hálótípus.</b> A „GAN” a betanított generátort is jelenti, de a lényeg a kétszereplős tanítás. A generátor lehet MLP, konvolúciós vagy Transformer.</li>
+    <li><b>A detektív nem általános „igazi-e?” gép.</b> Csak a valódi képeket és <b>ennek</b> a hamisítónak a képeit tanulta megkülönböztetni. Egy deepfake-felismerőnek nem elég egy GAN diszkriminátora.</li>
+    <li><b>A $D^* = 0{,}5$ nem jelenti, hogy a detektív rossz.</b> Egyensúlyban épp ez a helyes válasz: a két eloszlás egyforma.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – az optimális detektív</summary>
+  <ol>
+    <li>$p_{\text{adat}}(\mathbf x) = 0{,}2$, $p_G(\mathbf x) = 0{,}05$. Mennyi $D^*(\mathbf x)$?
+      <details><summary>Megoldás</summary>$0{,}2 / 0{,}25 = 0{,}8$.</details></li>
+    <li>Egy kép $D^*$-a 0,25. Hányszor gyakoribb a hamisító képei között, mint a valódiak között?
+      <details><summary>Megoldás</summary>$p_{\text{adat}}/(p_{\text{adat}} + p_G) = 0{,}25$ → $p_G = 3\,p_{\text{adat}}$: háromszor gyakoribb.</details></li>
+    <li>A hamisító csak felső csíkot rajzol ($p_G(\texttt{1100}) = 1$). Mennyi $D^*$ a felső csíkon és a többi rajzon?
+      <details><summary>Megoldás</summary>$D^*(\texttt{1100}) = 0{,}3 / 1{,}3 \approx 0{,}23$; a többi négy rajzon 1 (ott $p_G = 0$).</details></li>
+    <li>$D(x) = \sigma(2x - 4)$. Mennyi $D(2{,}5)$ és $D(0)$?
+      <details><summary>Megoldás</summary>$\sigma(1) \approx 0{,}73$; $\sigma(-4) \approx 0{,}018$.</details></li>
+    <li>(nehezebb) Mutasd meg, hogy ha $p_G = p_{\text{adat}}$, akkor egy detektív sem érhet el 50%-nál jobb találati arányt (fele-fele valódi és hamis képek esetén)!
+      <details><summary>Megoldás</summary>Bármely $\mathbf x$-re a „valódi” utólagos valószínűsége $p_{\text{adat}}(\mathbf x) / (p_{\text{adat}}(\mathbf x) + p_G(\mathbf x)) = 0{,}5$. Bármit tippel a detektív, minden képen pontosan 50% eséllyel talál – az átlag is 50%.</details></li>
+  </ol>
+</details>
+
+<h3 id="s145-b">2. lépés: a tanítás – felváltva, két veszteséggel</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy kör a játékban</span>
+  A detektív két képet lát: egy valódira $D = 0{,}8$-at, egy hamisra $D = 0{,}3$-at mond. Veszteségként a bináris keresztentrópiát használja (<a href="../05-osztalyozas/#s53-e">5.3</a>), a valódi címkéje 1, a hamisé 0:
+  $$\mathcal L_D = -\ln 0{,}8 - \ln(1 - 0{,}3) \approx 0{,}22 + 0{,}36 = 0{,}58.$$
+  Egy detektívlépés után a hamisító jön: azt akarja, hogy a $D = 0{,}3$ nőjön. A detektív gradiense megmondja, <b>merre</b> kell a képet változtatni, hogy „valódibbnak” tűnjön; ezt a visszaterjesztés a hamisító súlyaira viszi át. A detektív súlyai közben <b>nem</b> változnak.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – a GAN tanítása</span>
+  Felváltva, mini-kötegekben:
+  <ol style="margin:.2rem 0">
+    <li><b>Detektívlépés:</b> valódi képek (címke 1) és $G(\mathbf z)$ hamisítványok (címke 0); a $D$ súlyait a $\mathcal L_D = -\ln D(\mathbf x) - \ln\big(1 - D(G(\mathbf z))\big)$ szerint frissítjük.</li>
+    <li><b>Hamisítólépés:</b> új $\mathbf z$-k; a $G$ súlyait frissítjük úgy, hogy a $D(G(\mathbf z))$ nőjön. Az eredeti (<b>minimax</b>) változatban $G$ a $\ln\big(1 - D(G(\mathbf z))\big)$-t csökkenti; a gyakorlatban a <b>nem telítődő</b> változat: $\mathcal L_G = -\ln D(G(\mathbf z))$ – a hamisítványokat „valódi” címkével adjuk a detektívnek.</li>
+  </ol>
+  <b>Miért a nem telítődő?</b> Az elején a detektív könnyen nyer: $D(G(\mathbf z)) \approx 0$. A minimax-veszteség ott szinte vízszintes, a gradiens eltűnik – a hamisító nem tanul. A $-\ln D$ épp ott meredek, ahol a hamisító rossz.
+</div>
+<div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:640px">
+  <tr><th>$D(G(\mathbf z))$</th><th>minimax: a gradiens nagysága (a $D$ logitja szerint)</th><th>nem telítődő: a gradiens nagysága</th></tr>
+  <tr><td>0,9 (jó hamisítvány)</td><td>0,9</td><td>0,1</td></tr>
+  <tr><td>0,5</td><td>0,5</td><td>0,5</td></tr>
+  <tr><td>0,1</td><td>0,1</td><td>0,9</td></tr>
+  <tr><td>0,01 (rossz hamisítvány)</td><td>0,01</td><td>0,99</td></tr>
+</table></div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – az egyensúly vesztesége</span>
+    Ha $D = 0{,}5$ mindenhol, a detektív vesztesége $-\ln 0{,}5 - \ln 0{,}5 = 2\ln 2 \approx 1{,}39$. A GAN-tanításban a veszteség <b>nem</b> megy 0-ra: ha a detektív vesztesége 0, az baj – a hamisító reménytelenül le van maradva.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy erős detektív</span>
+    $D(\text{valódi}) = 0{,}9$, $D(\text{hamis}) = 0{,}1$: $\mathcal L_D = -\ln 0{,}9 - \ln 0{,}9 \approx 0{,}21$. A hamisító nem telítődő vesztesége $-\ln 0{,}1 \approx 2{,}30$ – erős jelet kap. Minimaxszal csak $\ln 0{,}9 \approx -0{,}105$ lenne, és a gradiens (0,1) is kicsi.
+  </div>
+</div>
+<div class="widget" data-widget="gan-1d"></div>
+<p>A widget alapbeállításában (2 detektívlépés hamisítólépésenként) egycsúcsú adaton 12 magból 12-szer megtalálja a valódi eloszlást, a detektív vesztesége a 2 ln 2 ≈ 1,386 körül áll be. Ha bekapcsolod, hogy „a hamisító messziről indul”, a minimax-veszteséggel a 2. magnál a hamisító sosem indul el: $D(G(\mathbf z))$ 0,002 alá esik, a gradiens eltűnik – a nem telítődő veszteséggel ugyanez 250 lépés alatt célba ér. Kétcsúcsú adaton, 1 detektívlépéssel a 2. mag <b>tartósan összeomlik</b> (1000–5000 lépés között a minták 98–100%-a a bal csúcsnál van), három csúcsnál a 2. mag az alapbeállítással is kihagy egy csúcsot.</p>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A veszteség nem mutatja a minőséget.</b> Egy osztályozónál a csökkenő veszteség jó hír. GAN-nál a két veszteség egymás ellen dolgozik, ingadozik; a képek minőségét külön kell mérni (<a href="#s148-a">14.8</a>).</li>
+    <li><b>Ne tanítsd a detektívet a végtelenségig.</b> Ha tökéletes, a hamisító jele (minimaxnál) eltűnik. A két háló tempóját egyensúlyban kell tartani.</li>
+    <li><b>A hamisítólépésben a detektív „befagy”.</b> A gradiens átfolyik rajta, de csak a hamisító súlyai változnak – különben a detektív „segítene” a hamisítónak.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a GAN vesztesége</summary>
+  <ol>
+    <li>$D(\text{valódi}) = 0{,}6$, $D(\text{hamis}) = 0{,}6$. Mennyi a detektív vesztesége?
+      <details><summary>Megoldás</summary>$-\ln 0{,}6 - \ln 0{,}4 \approx 0{,}51 + 0{,}92 = 1{,}43$ – rosszabb, mint az egyensúlyi 1,39: a hamisat valódibbnak tartja, mint a valódit.</details></li>
+    <li>Mennyi a hamisító nem telítődő vesztesége, ha $D(G(\mathbf z)) = 0{,}5$, illetve $0{,}05$?
+      <details><summary>Megoldás</summary>$-\ln 0{,}5 \approx 0{,}69$; $-\ln 0{,}05 \approx 3{,}00$.</details></li>
+    <li>Melyik állítás igaz? (a) A hamisító lépésében a detektív súlyai is frissülnek. (b) A hamisító látja a valódi képeket. (c) A hamisító a detektív gradiensén keresztül tanul.
+      <details><summary>Megoldás</summary>Csak (c). A detektív befagy, és a hamisító sosem kap valódi képet – csak a detektív ítéletét.</details></li>
+    <li>Az elején $D(G(\mathbf z)) = 0{,}02$. Hányszor nagyobb gradienst ad a nem telítődő veszteség, mint a minimax (a táblázat szerinti mértékkel)?
+      <details><summary>Megoldás</summary>$0{,}98 / 0{,}02 = 49$-szer nagyobbat.</details></li>
+    <li>(nehezebb) Miért mondják, hogy a GAN-nak „nincs” veszteségfüggvénye úgy, mint egy osztályozónak?
+      <details><summary>Megoldás</summary>Mert a hamisító célja a <b>detektívtől</b> függ, a detektív pedig közben változik. Nem egy rögzített felület aljára lépkedünk, hanem egy kétszereplős játék egyensúlyát (nyeregpontját) keressük. Gradiensmódszerrel ez nem garantáltan konvergál: a két háló körbe is kergetheti egymást (<a href="#s145-c">3. lépés</a>).</details></li>
+  </ol>
+</details>
+
+<h3 id="s145-c">3. lépés: instabilitás és módusösszeomlás – és mire jó ma a GAN?</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a hamisító, aki csak felső csíkot rajzol</span>
+  Tegyük fel, hogy a hamisító rájött: a felső csíkot a detektív „elég valódinak” tartja. Ezentúl csak azt rajzolja. A legjobb detektív: $D^*(\texttt{1100}) = 0{,}3/1{,}3 \approx 0{,}23$ – most már gyanús. A hamisító erre átáll mondjuk az alsó csíkra; a detektív megtanulja, hogy az alsó csík gyanús; a hamisító átáll a bal csíkra… A két háló <b>körbe kergeti</b> egymást, és a hamisító sosem rajzol <b>egyszerre</b> többféle csíkot. Ez a <b>módusösszeomlás</b> (<em>mode collapse</em>).
+</div>
+<div class="box def">
+  <span class="box-title">Fogalom – módusösszeomlás és instabilitás</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Módusösszeomlás:</b> a generátor az adateloszlásnak csak egy vagy néhány „csúcsát” (módusát) rajzolja; sok különböző $\mathbf z$-ből ugyanaz vagy nagyon hasonló kép jön. <b>Teljes</b>: egyetlen kép; <b>részleges</b>: egyes fajták túl gyakoriak, mások hiányoznak. (Goodfellow és társai már 2014-ben leírták, „Helvetica-forgatókönyv” néven.)</li>
+    <li><b>Instabilitás:</b> a tanítás oszcillál, elszáll, vagy a detektív teljesen nyer. A GAN érzékeny a hálók méretére, a tanulási rátára, a két háló tempójára.</li>
+  </ul>
+  <b>Miért történik?</b> A hamisítót csak az érdekli, hogy <b>minden egyes</b> képe valódinak tűnjön – azt senki nem kéri tőle, hogy a képek <b>együtt</b> olyan változatosak legyenek, mint az adat. Egy jól sikerült kép ismételgetése rövid távon kifizetődik. (A VAE és a diffúziós modell veszteségében minden tanítókép szerepel, ezért ők ritkán „felejtenek ki” fajtákat.)
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – részleges összeomlás számjegyeken</span>
+    R. Kneusel egy MNIST-en tanított GAN 1000 mintáját osztályozta: az 1-es 21,4%, a 7-es 14,4%, a 2-es és a 8-as egyaránt csak 4,4% volt – a várható 10–10% helyett. A mi 8 × 8-as GAN-unk 450 mintájában a legritkább osztály (5-ös) 6,2%, a leggyakoribb (9-es) 13,3%: enyhe egyenetlenség.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – ugyanaz a 16 zajvektor, tanítás közben</span>
+    Az alábbi widget a 8 × 8-as GAN-unk képeit mutatja ugyanabból a 16 zajvektorból, különböző epochok után. Az 1. epochban pacák. Az 5–50. epochban <b>teljes módusösszeomlás</b>: mind a 16 zajvektorból ugyanaz a kép lesz (a 16 kép átlagos páronkénti távolsága 8–10, 16 valódi tesztképé 48,7). A 100. epochtól a generátor kiszabadul: a távolság 32-re, a 600. epochra 43-ra nő, a képek sokfélék és számjegyszerűek.
+  </div>
+</div>
+<div class="widget" data-widget="gan-epochs"></div>
+<div class="box tip">
+  <span class="box-title">📅 Állapot: 2026 – a GAN-ok szerepe</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Csúcspont, 2019–2021:</b> a <b>StyleGAN</b> (T. Karras és társai, NVIDIA, 2019) 70 000 arcképen tanulva fényképszerű, nem létező arcokat rajzolt – ez volt a fejezet első rejtvényének weboldala (Ph. Wang, 2019. február). A StyleGAN a zajvektort „stílusokra” bontja, és rétegenként adagolja (a stílusátvitel ötletéből, <a href="#s148-c">14.8</a>).</li>
+    <li><b>Ma:</b> önálló képgenerátorként a GAN-t 2021–2022 után a diffúziós modellek váltották le (stabilabb tanítás, jobb lefedettség, könnyű szöveges irányítás). A versengő veszteség viszont <b>alkatrészként</b> él tovább: a látens diffúzió autoenkóderét egy kis diszkriminátor élesíti (R. Rombach és társai, 2022), és a gyors, 1–4 lépéses diffúziós modelleket (pl. SDXL Turbo, 2023) versengő desztillációval tanítják. 2024-ben egy „modernizált GAN” (R3GAN, NeurIPS 2024) ismét versenyképes eredményt ért el – a kérdés nem zárult le.</li>
+  </ul>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Módusösszeomlás ≠ túlillesztés.</b> A túlillesztett modell a <b>tanítóképeket</b> jegyzi meg; az összeomlott GAN néhány (nem feltétlenül tanító-) képet ismételget. Az egyik a memorizálás, a másik a sokféleség hiánya.</li>
+    <li><b>Egy rácsnyi szép minta nem bizonyíték.</b> A kiválogatott minták elrejtik az összeomlást. Nézz sok véletlen mintát, és mérd az osztályok arányát vagy a felidézést (<a href="#s148-a">14.8</a>).</li>
+    <li><b>Nincs valószínűség.</b> A GAN nem ad $p(\mathbf x)$-et: NLL-t nem tudsz rá számolni, anomáliát sem tudsz vele közvetlenül mérni.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – instabilitás és módusösszeomlás</summary>
+  <ol>
+    <li>Egy GAN 1000 számjegy-mintájában az osztályok aránya: 0: 0%, 1: 30%, 7: 25%, a többi 7 osztály egyenként kb. 6,4%. Milyen típusú összeomlás ez?
+      <details><summary>Megoldás</summary>Részleges: a 0-s teljesen hiányzik, az 1-es és a 7-es túl gyakori ($30 + 25 + 7 \cdot 6{,}4 \approx 100$%).</details></li>
+    <li>A hamisító csak alsó csíkot rajzol. Mennyi $D^*$ az alsó csíkon?
+      <details><summary>Megoldás</summary>$0{,}2 / (0{,}2 + 1) \approx 0{,}17$.</details></li>
+    <li>Miért nem tudja egy GAN a <a href="#s141-c">14.1</a> értelmében megmondani, mennyire szokatlan egy kép?
+      <details><summary>Megoldás</summary>Mert nem ad $p(\mathbf x)$-et, csak mintát. A detektív valószínűsége sem a kép valószínűsége: csak azt méri, a jelenlegi hamisítóhoz képest mennyire „valódi”.</details></li>
+    <li>Hogyan vennéd észre a módusösszeomlást egy arcgenerátornál, címkék nélkül?
+      <details><summary>Megoldás</summary>Sok véletlen mintát nézel, és a mintákon belüli hasonlóságot méred: ha sok minta szinte azonos (kis páronkénti távolság), vagy egy jellemzőkinyerő terében a minták csak kis részét fedik le a valódi képek felhőjének (kicsi felidézés), összeomlás gyanús.</details></li>
+    <li>(nehezebb) A VAE-nek a homály, a GAN-nak a módusösszeomlás a jellemző hibája. Magyarázd meg egy mondatban mindkettőt a veszteségükből!
+      <details><summary>Megoldás</summary>A VAE pixelenkénti rekonstrukciós vesztesége minden tanítóképet le akar fedni, és bizonytalan helyen átlagol → homály, de jó lefedettség. A GAN vesztesége minden egyes mintát külön ítél meg élesség szerint, a lefedettséget nem kéri → éles képek, de kimaradhatnak fajták.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai14-145"></div>
+</section>
+
+<!-- ===================================================== 14.6 -->
+<section id="s146">
+<h2>14.6 Diffúziós modellek ★★★</h2>
+<p>A GAN éles képeket rajzol, de a tanítása kényes, és kihagyhat fajtákat. A VAE stabil, minden képet lefed, de homályos. A <b>diffúziós modell</b> mindkét előnyt megtartja egy meglepő ötlettel: nem a képrajzolást tanítjuk, hanem a <b>zajszűrést</b> (vö. a zajszűrő autoenkóderrel, <a href="#s143-b">14.3</a>). Ha egy háló bármilyen erősen zajos képből meg tudja tippelni a tisztát, akkor <b>tiszta zajból</b> indulva, sok kis lépésben „kiszűrhet” egy képet – olyat, amilyen sosem volt.</p>
+
+<h3 id="s146-a">1. lépés: előre – a kép lépésenkénti zajosítása</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy fekete pixel öt lépésben</span>
+  A képeket most $[-1;\ 1]$-re skálázzuk: $-1$ fehér, $+1$ tinta. Vegyünk egy tintapixelt, $x_0 = 1$, és öt lépésben keverjük zajjal: minden lépésben a jelből egy kicsit elveszünk, és zajt adunk hozzá. Ha a lépések zajerősségei $\beta = (0{,}1;\ 0{,}2;\ 0{,}3;\ 0{,}4;\ 0{,}5)$, akkor $t$ lépés után a jelből $\bar\alpha_t = (1 - \beta_1)\cdots(1 - \beta_t)$ „varianciányi” marad. Egyetlen, végig rögzített zajjal ($\varepsilon = -1$):
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>$t$</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+    <tr><th>$\bar\alpha_t$</th><td>1</td><td>0,9</td><td>0,72</td><td>0,504</td><td>0,302</td><td>0,151</td></tr>
+    <tr><th>$x_t = \sqrt{\bar\alpha_t}\,x_0 + \sqrt{1 - \bar\alpha_t}\,\varepsilon$</th><td>1</td><td>0,632</td><td>0,319</td><td>0,006</td><td>$-0{,}285$</td><td>$-0{,}532$</td></tr>
+  </table></div>
+  A pixel lassan „elfelejti”, hogy fekete volt. Elég sok lépés után $\bar\alpha_t \approx 0$, és $x_t$ egyszerűen egy standard normális zajszám – bármilyen képből indultunk.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – az előre irányú (zajosító) folyamat</span>
+  Egy $\beta_1, \dots, \beta_T$ <b>zajütemezés</b> mellett lépésenként $\mathbf x_t = \sqrt{1 - \beta_t}\,\mathbf x_{t-1} + \sqrt{\beta_t}\,\boldsymbol\varepsilon_t$. Zárt alakban, egyetlen zajjal:
+  $$\mathbf x_t = \sqrt{\bar\alpha_t}\,\mathbf x_0 + \sqrt{1 - \bar\alpha_t}\,\boldsymbol\varepsilon,\qquad \bar\alpha_t = \prod_{s=1}^{t}(1 - \beta_s),\quad \boldsymbol\varepsilon \sim \mathcal N(0, I).$$
+  <b>Miért ez a skálázás?</b> A $\sqrt{1 - \beta}$ szorzó miatt a teljes variancia nem nő: ha $\mathbf x_{t-1}$ varianciája 1, akkor $\mathbf x_t$-é $(1 - \beta_t) + \beta_t = 1$. A jel részaránya $\bar\alpha_t$, a zajé $1 - \bar\alpha_t$; a végén $\mathbf x_T \approx \mathcal N(0, I)$. Ebben a folyamatban <b>nincs semmi tanulnivaló</b> – ez csak a tanítóadat előállítása.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – két lépés = egy lépés</span>
+    $\beta_1 = 0{,}1$, $\beta_2 = 0{,}2$ után a zaj varianciája lépésenként: $(1 - 0{,}2) \cdot 0{,}1 + 0{,}2 = 0{,}28$. Ugyanez a zárt alakból: $1 - \bar\alpha_2 = 1 - 0{,}72 = 0{,}28$. Két független zaj összege is normális – ezért egyetlen $\boldsymbol\varepsilon$ elég.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy valódi ütemezés</span>
+    A DDPM-cikk (J. Ho és társai, 2020) 1000 lépést használ, $\beta$ 0,0001-ről 0,02-re nő. Ekkor $\bar\alpha_{100} \approx 0{,}90$, $\bar\alpha_{250} \approx 0{,}52$, $\bar\alpha_{500} \approx 0{,}079$, $\bar\alpha_{1000} \approx 0{,}000\,04$. A 14.9 számjegy-modellje is ezt használja.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az „előre” nem a tanítás.</b> Egyes könyvek a tanítást „előre”, a generálást „visszafelé” algoritmusnak hívják. A szakirodalomban az <b>előre irányú folyamat</b> a zajosítás, a <b>visszafelé</b> irányú a zajtalanítás (generálás) – a tanítás egy harmadik dolog (<a href="#s146-b">2. lépés</a>).</li>
+    <li><b>Nem kell a lépéseket egyenként végigjátszani.</b> A zárt alak bármelyik $t$-re azonnal ad $\mathbf x_t$-t – ez teszi olcsóvá a tanítást.</li>
+    <li><b>Az ütemezés számít.</b> Ha a zaj túl gyorsan nő, a lépések nagy része már „csak zaj”, és a háló keveset tanul a fontos tartományban; ezért használnak sokszor lassabban romboló (pl. koszinuszos) ütemezést.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – zajosítás</summary>
+  <ol>
+    <li>A futó példa ütemezésével mennyi $x_3$, ha $x_0 = -1$ (fehér pixel) és $\varepsilon = 0{,}5$?
+      <details><summary>Megoldás</summary>$\sqrt{0{,}504} \cdot (-1) + \sqrt{0{,}496} \cdot 0{,}5 \approx -0{,}710 + 0{,}352 = -0{,}358$.</details></li>
+    <li>Mennyi $\bar\alpha_2$, ha $\beta_1 = \beta_2 = 0{,}5$? Mekkora $\mathbf x_2$-ben a jel és a zaj aránya (a varianciákban)?
+      <details><summary>Megoldás</summary>$\bar\alpha_2 = 0{,}25$; a jel : zaj arány $0{,}25 : 0{,}75 = 1 : 3$.</details></li>
+    <li>Melyik $t$-nél lesz a futó példában a jel és a zaj varianciája körülbelül egyforma?
+      <details><summary>Megoldás</summary>$\bar\alpha_3 = 0{,}504 \approx 0{,}5$, tehát $t = 3$-nál.</details></li>
+    <li>Egy 8 × 8-as képet $t = 500$-ig zajosítunk a DDPM-ütemezéssel. Mennyi marad a jel varianciájából?
+      <details><summary>Megoldás</summary>$\bar\alpha_{500} \approx 0{,}079$, kb. 8%. (Szórásban $\sqrt{0{,}079} \approx 0{,}28$.)</details></li>
+    <li>(nehezebb) Igazold, hogy ha $\mathbf x_0$ varianciája 1, akkor $\mathbf x_t$-é is 1, bármely $t$-re!
+      <details><summary>Megoldás</summary>$\operatorname{Var}(\mathbf x_t) = \bar\alpha_t \operatorname{Var}(\mathbf x_0) + (1 - \bar\alpha_t)\operatorname{Var}(\boldsymbol\varepsilon) = \bar\alpha_t + 1 - \bar\alpha_t = 1$, mert $\mathbf x_0$ és $\boldsymbol\varepsilon$ független.</details></li>
+  </ol>
+</details>
+
+<h3 id="s146-b">2. lépés: a zajtalanító – mit tanul a háló?</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a zaj kitalálása</span>
+  A 3. lépésnél a zajos pixel $x_3 = 0{,}006$ volt. Ha valaki megsúgja a hozzáadott zajt ($\varepsilon = -1$), a tiszta pixel visszaszámolható:
+  $$\hat x_0 = \frac{x_3 - \sqrt{1 - \bar\alpha_3}\,\varepsilon}{\sqrt{\bar\alpha_3}} = \frac{0{,}006 + 0{,}704}{0{,}710} = 1.$$
+  Senki nem súgja meg – de egy háló <b>megtanulhatja tippelni</b>. A tanítóadat ingyen van: veszünk egy képet, egy véletlen $t$-t és egy véletlen zajt, zajosítunk, és a háló feladata kitalálni a zajt. Ha a tipp $\hat\varepsilon = -0{,}8$, a visszaszámolt pixel 0,80 – jó irány, de még nem tökéletes.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – a diffúziós modell tanítása</span>
+  Ismételd:
+  <ol style="margin:.2rem 0">
+    <li>vegyél egy tanítóképet $\mathbf x_0$, egy véletlen lépést $t \in \{1, \dots, T\}$ és egy zajt $\boldsymbol\varepsilon \sim \mathcal N(0, I)$;</li>
+    <li>számold ki $\mathbf x_t = \sqrt{\bar\alpha_t}\,\mathbf x_0 + \sqrt{1 - \bar\alpha_t}\,\boldsymbol\varepsilon$;</li>
+    <li>a háló kapja meg $\mathbf x_t$-t és $t$-t, és jósolja meg a zajt: $\hat{\boldsymbol\varepsilon} = \varepsilon_\theta(\mathbf x_t, t)$;</li>
+    <li>veszteség: $\lVert \boldsymbol\varepsilon - \hat{\boldsymbol\varepsilon} \rVert^2$, egy gradiensmódszer-lépés.</li>
+  </ol>
+  A zajtippből bármikor kapunk egy tippet a tiszta képre: $\hat{\mathbf x}_0 = (\mathbf x_t - \sqrt{1 - \bar\alpha_t}\,\hat{\boldsymbol\varepsilon}) / \sqrt{\bar\alpha_t}$.
+  <b>Miért ilyen stabil?</b> Mert ez egy közönséges regresszió, rögzített célponttal – nincs versengés, nincs kódeloszlás. Képeknél a háló tipikusan U-Net (kép be, ugyanakkora kép ki, <a href="../11-konvolucios-halok/">11. fejezet</a>) vagy Transformer, a $t$-t beágyazásként kapja.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – az ideális zajtalanító két pontra</span>
+    Legyen az „adathalmaz” két érték, $-1$ és $+1$, fele-fele eséllyel. Ekkor a legjobb tipp a tiszta értékre zárt alakú: $\hat x_0 = \tanh\big(\sqrt{\bar\alpha}\,x_t / (1 - \bar\alpha)\big)$. Erős zajnál ($\bar\alpha = 0{,}36$) $x_t = 0{,}5$-re $\hat x_0 \approx 0{,}44$ – óvatos, a két érték átlaga felé húz. Gyenge zajnál ($\bar\alpha = 0{,}81$) ugyanerre $0{,}98$ – szinte biztos, hogy $+1$.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a tökéletes tanuló csal</span>
+    Véges tanítóhalmazon az ideális zajtalanító $\hat{\mathbf x}_0$-ja <b>a tanítóképek súlyozott átlaga</b> (a súly annál nagyobb, minél közelebb van $\mathbf x_t$ az adott kép zajosított helyéhez). A mintavétel végén, kis zajnál, egyetlen tanítókép súlya lesz 1 – a „tökéletes” modell <b>csak tanítóképeket</b> tud rajzolni. A valódi háló tökéletlen: <b>simít</b>, és ez a simítás teszi lehetővé az újat (<a href="#s148-b">14.8</a>).
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabály – egy diffúziós modell csak zajszűrést tud</span>
+  A háló egyetlen kérdésre válaszol: „mennyi zaj van ezen a képen, és merre?”. Minden más – a generálás, a lépésszám, a szöveges irányítás – a háló <b>köré</b> épített eljárás. Ezért lehet egy betanított modellel többféleképpen (gyorsabban, irányítottan) mintát venni, újratanítás nélkül.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A háló nem egy lépésnyi zajt jósol, hanem az egészet</b> ($\boldsymbol\varepsilon$-t, amely $\mathbf x_0$-ból $\mathbf x_t$-t csinált). Ebből bármelyik korábbi lépésre vissza lehet számolni.</li>
+    <li><b>Erős zajnál a tipp homályos.</b> $\hat{\mathbf x}_0$ ott sok lehetséges kép átlaga – mint a VAE képe. Ez nem hiba: a mintavétel ezt a homályt lépésenként „élesíti”, mert minden lépés újra dönt (<a href="#s146-c">3. lépés</a>).</li>
+    <li><b>A $t$ is bemenet.</b> Ugyanaz a háló minden zajszinten dolgozik; ha nem tudná, mekkora a zaj, nem tudná, mennyit vegyen le.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a zajtalanító</summary>
+  <ol>
+    <li>$\bar\alpha_t = 0{,}64$, $x_t = 0{,}2$, a háló tippje $\hat\varepsilon = -1$. Mennyi $\hat x_0$?
+      <details><summary>Megoldás</summary>$\hat x_0 = (0{,}2 + 0{,}6 \cdot 1) / 0{,}8 = 1$.</details></li>
+    <li>Ugyanott a háló tippje $\hat\varepsilon = 0$. Mennyi $\hat x_0$, és mit jelent?
+      <details><summary>Megoldás</summary>$0{,}2 / 0{,}8 = 0{,}25$. Ha a háló szerint nincs zaj, a tiszta értéket csak „felnagyítja” a jel elhalványulása miatt.</details></li>
+    <li>A kétpontos adatnál mennyi az ideális tipp, ha $\bar\alpha = 0{,}36$ és $x_t = -1$?
+      <details><summary>Megoldás</summary>$\tanh(0{,}6 \cdot (-1) / 0{,}64) = \tanh(-0{,}9375) \approx -0{,}73$.</details></li>
+    <li>Egy tanítási lépésben $\boldsymbol\varepsilon = (0{,}5;\ -1)$, $\hat{\boldsymbol\varepsilon} = (0{,}3;\ -0{,}6)$. Mennyi a veszteség?
+      <details><summary>Megoldás</summary>$(0{,}2)^2 + (-0{,}4)^2 = 0{,}04 + 0{,}16 = 0{,}20$.</details></li>
+    <li>(nehezebb) Miért nem elég a hálót csak <b>egy</b> zajszinten (pl. $\bar\alpha = 0{,}5$) tanítani?
+      <details><summary>Megoldás</summary>Mert a mintavétel tiszta zajból ($\bar\alpha \approx 0$) indul, és lépésenként halad a tiszta kép ($\bar\alpha = 1$) felé: minden zajszinten tippelnie kell. Erős zajnál a durva alakot (milyen számjegy?), gyenge zajnál a finom részleteket (vonalvastagság) dönti el.</details></li>
+  </ol>
+</details>
+
+<h3 id="s146-c">3. lépés: visszafelé – mintavétel lépésről lépésre</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a kétpontos adat, három lépésben</span>
+  Induljunk egy majdnem tiszta zajból, $x = 0{,}4$, $\bar\alpha = 0{,}1$-nél, és lépjünk $\bar\alpha = 0{,}5$, $0{,}9$, végül $1$ felé. Minden lépésben: (1) az ideális zajtalanítóval tippelünk a tiszta értékre, (2) visszaszámoljuk a zajt, (3) a kettőből összerakjuk a <b>kevésbé zajos</b> következő értéket: $x_{\text{új}} = \sqrt{\bar\alpha_{\text{új}}}\,\hat x_0 + \sqrt{1 - \bar\alpha_{\text{új}}}\,\hat\varepsilon$.
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>$\bar\alpha$</th><th>$x$</th><th>tipp $\hat x_0$</th><th>$\hat\varepsilon$</th><th>következő $x$</th></tr>
+    <tr><td>0,1</td><td>0,400</td><td>0,140</td><td>0,375</td><td>0,364</td></tr>
+    <tr><td>0,5</td><td>0,364</td><td>0,474</td><td>0,041</td><td>0,462</td></tr>
+    <tr><td>0,9</td><td>0,462</td><td>1,000</td><td>$-1{,}537$</td><td>1,000</td></tr>
+  </table></div>
+  Az első tipp óvatos (0,14 – „inkább pozitív, de nem tudom”), a második már 0,47, a harmadik döntött: $+1$. Ha $x = -0{,}3$-ból indulunk, ugyanígy $-1$-hez érünk. A zajból <b>fokozatosan</b> lett adat.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – visszafelé mintavétel (DDIM és DDPM)</span>
+  $\mathbf x_T \sim \mathcal N(0, I)$; aztán $t = T, T-1, \dots, 1$:
+  <ol style="margin:.2rem 0">
+    <li>$\hat{\boldsymbol\varepsilon} = \varepsilon_\theta(\mathbf x_t, t)$, $\hat{\mathbf x}_0 = (\mathbf x_t - \sqrt{1 - \bar\alpha_t}\,\hat{\boldsymbol\varepsilon}) / \sqrt{\bar\alpha_t}$;</li>
+    <li><b>DDIM</b> (determinisztikus): $\mathbf x_{t-1} = \sqrt{\bar\alpha_{t-1}}\,\hat{\mathbf x}_0 + \sqrt{1 - \bar\alpha_{t-1}}\,\hat{\boldsymbol\varepsilon}$;<br>
+        <b>DDPM</b> (sztochasztikus): ugyanez, de a zaj egy részét <b>friss</b> véletlen zajra cseréljük.</li>
+  </ol>
+  <b>Miért működik?</b> Minden lépés „tippeld meg a tiszta képet, aztán zajosítsd vissza egy kicsit kevésbé”. Erős zajnál a tipp csak a durva alakot rögzíti, a következő lépések a részleteket. A tanítás 1000 lépéssel történik, de mintavételkor a lépések ritkíthatók: a DDIM 20–50 lépéssel is jó képet ad (a DDIM-cikk mérése szerint 10–50-szer gyorsabban), desztillált modellek 1–4 lépéssel.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a számjegyek, 1000 lépésben</span>
+    A 14.9 diffúziós modellje egy MLP, amely a zajos 8 × 8-as képből és $t$-ből jósolja a zajt (1347 képen, 60 000 tanítási lépés, 256-os kötegekkel). A mintavétel 1000 lépés. A widgetben látod: $t = 999$ és $800$ között a tipp ($\hat{\mathbf x}_0$) még zajos, szélsőséges pixelekkel – a jel varianciájának itt csak 0,004–0,15%-a maradt, és a háló kis hibáját is felnagyítja a visszaszámolás. $t \approx 500$ körül a nyolc sor egymáshoz hasonló, homályos alak; utána dől el, melyik számjegy lesz, és az utolsó 100 lépés a vonalakat élesíti.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a pontfelhő a síkon</span>
+    Az alábbi widgetben a „háló” helyén a pontos (ideális) zajtalanító dolgozik egy 60 pontos alakzaton, egy $h$ simítással. $h = 0$-nál, 1000 lépéssel a minták <b>mind</b> tanítópontokra esnek (50 lépéssel 43%-uk: ott az utolsó lépés előtt maradó zaj még összemérhető a pontok távolságával) – a tökéletes tanuló csal. Növeld $h$-t: $h = 0{,}05$-nél már csak 2–4% a másolat, a minták kitöltik az alakzatot, új pontok jönnek létre.
+  </div>
+</div>
+<div class="widget" data-widget="diffusion-2d"></div>
+<div class="widget" data-widget="diffusion-digits"></div>
+<details class="box">
+  <summary>📐 A matematika mögötte ★★★ – pontszám, folyam, „flow matching”</summary>
+  <ul style="margin:.2rem 0">
+    <li><b>Pontszám (score):</b> a zajjóslás arányos a zajos eloszlás logaritmusának gradiensével: $\nabla_{\mathbf x}\ln p_t(\mathbf x) \approx -\hat{\boldsymbol\varepsilon}/\sqrt{1 - \bar\alpha_t}$. A háló tehát egy „iránytű”, amely minden pontban a sűrűbb (valószínűbb) régió felé mutat; a mintavétel ezen a mezőn lépked (Y. Song és társai, 2021: a diffúzió mint sztochasztikus differenciálegyenlet).</li>
+    <li><b>Folyam (flow) és „flow matching”:</b> kössük össze a zajt és az adatot egyenes vonallal: $\mathbf x_t = (1 - t)\,\mathbf x_0 + t\,\boldsymbol\varepsilon$, $t \in [0;\ 1]$. A háló a <b>sebességet</b> tanulja, $\mathbf v = \boldsymbol\varepsilon - \mathbf x_0$ (ugyanilyen egyszerű regresszióval), a mintavétel pedig egy közönséges differenciálegyenlet megoldása $t = 1$-től $0$-ig (Y. Lipman és társai; X. Liu és társai, 2023: <em>rectified flow</em>). Az egyenesebb pályák kevesebb lépést igényelnek. 📅 A Stable Diffusion 3 (2024) és a FLUX-család (2024–2025) ezt a változatot használja.</li>
+    <li><b>DDPM vs. DDIM:</b> a DDPM-lépés egy sztochasztikus, a DDIM-lépés ugyanannak a folyamatnak egy determinisztikus (közönséges differenciálegyenlet-) változata: ugyanabból a kezdőzajból mindig ugyanaz a kép jön – ezért lehet két kép <b>kezdőzaja</b> között interpolálni.</li>
+  </ul>
+</details>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Lassú – de már nem annyira.</b> 1000 lépés = 1000 hálóhívás képenként. Egyes könyvek még „több száz lépésről” írnak; ma 20–50 lépés a szokásos, a desztillált modellek 1–4 lépéssel dolgoznak.</li>
+    <li><b>A kezdőzaj a „mag”.</b> DDIM-mel ugyanaz a kezdőzaj ugyanazt a képet adja – ezért kérhetsz egy képgenerátortól „ugyanezt, kicsit másképp”.</li>
+    <li><b>A diffúzió nem „összeragasztja” a tanítóképeket.</b> Nincs benne képtár, amelyből darabokat vágna: egy zajszűrő háló van benne. Hogy mégis visszaadhat tanítóképet, az a túl sokszor látott (duplikált) képek <b>memorizálása</b> (<a href="#s148-b">14.8</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – visszafelé mintavétel</summary>
+  <ol>
+    <li>$\bar\alpha_t = 0{,}5$, $\hat x_0 = 0{,}8$, $\hat\varepsilon = 0{,}2$, és $\bar\alpha_{t-1} = 0{,}9$. Mennyi a DDIM-lépés eredménye?
+      <details><summary>Megoldás</summary>$\sqrt{0{,}9} \cdot 0{,}8 + \sqrt{0{,}1} \cdot 0{,}2 \approx 0{,}759 + 0{,}063 = 0{,}822$.</details></li>
+    <li>Az utolsó lépésben $\bar\alpha_{t-1} = 1$. Mi lesz $\mathbf x_0$?
+      <details><summary>Megoldás</summary>$\sqrt{1}\,\hat{\mathbf x}_0 + 0 = \hat{\mathbf x}_0$: a háló utolsó tippje maga a kép.</details></li>
+    <li>A kétpontos példában $\bar\alpha = 0{,}1$, $x = -0{,}3$. Mennyi az ideális tipp?
+      <details><summary>Megoldás</summary>$\tanh(\sqrt{0{,}1} \cdot (-0{,}3) / 0{,}9) = \tanh(-0{,}105) \approx -0{,}105$ – az elején alig dönt.</details></li>
+    <li>Egy modell 1000 lépéssel 40 s alatt rajzol egy képet. Mennyi idő 50 DDIM-lépéssel, és mennyi 4 lépéssel (desztillálva), ha a hálóhívás ideje ugyanaz?
+      <details><summary>Megoldás</summary>Lépésenként 0,04 s: 50 lépés 2 s, 4 lépés 0,16 s.</details></li>
+    <li>(nehezebb) DDIM-mel két kezdőzaj, $\mathbf x_T^A$ és $\mathbf x_T^B$ két különböző képet ad. Mit vársz, ha a kettő „közötti” zajból indulsz? Miért nem egyszerű átlag a jó választás?
+      <details><summary>Megoldás</summary>A DDIM determinisztikus és sima leképezés, ezért a köztes zajból köztes (de értelmes) kép várható – mint a VAE kódjának interpolációjánál. A két zaj egyszerű átlagának viszont kisebb a hossza (két független normális vektor átlagának szórása $1/\sqrt2 \approx 0{,}71$), ezért nem „tipikus” kezdőzaj; gömbi (szögmenti) interpolációt használnak, amely a hosszt megtartja.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai14-146"></div>
+</section>
+
+<!-- ===================================================== 14.7 -->
+<section id="s147">
+<h2>14.7 Feltételes generálás: szövegből kép ★★–★★★</h2>
+<p>Eddig a modell azt rajzolt, amit akart: valamilyen számjegyet, valamilyen csíkot. A gyakorlatban <b>mi</b> akarjuk megmondani, mit rajzoljon: „egy hetest”, „egy vízszintes csíkot”, „egy vörös biciklit a Duna-parton, akvarellel”. Ehhez három dolog kell: a feltételt be kell adni a modellnek (1. lépés), erősíteni kell a hatását (2. lépés), és mindezt gyorsan, nagy képeken kell csinálni (3. lépés).</p>
+
+<h3 id="s147-a">1. lépés: a feltétel mint bemenet</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – „rajzolj egy vízszintes csíkot!”</span>
+  A 14.1-ben a címkés rajzokból $p(\mathbf x \mid y)$-t is megkaptuk. A „vízszintes” feltétellel a gép csak a vízszintes rajzok közül választ: felső csík 0,6, alsó csík 0,4 valószínűséggel. A „függőleges” feltétellel bal vagy jobb csík, 0,5–0,5. Ugyanaz a rajzológép – csak a feltétel szerint szűkített eloszlásból húz.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – feltételes generatív modell</span>
+  A <b>feltételes</b> modell $p(\mathbf x \mid \mathbf c)$-t tanulja, ahol $\mathbf c$ a <b>feltétel</b>: osztálycímke, szöveg, egy másik kép (vázlat, maszk, alacsony felbontású változat), hang… A gyakorlatban a feltétel egyszerűen <b>még egy bemenet</b>:
+  <ul style="margin:.2rem 0">
+    <li>autoregresszív modell: $p(x_i \mid \mathbf x_{\lt i}, \mathbf c)$ – a nyelvi modellnél a „feltétel” a prompt;</li>
+    <li>VAE, GAN: a dekódoló / generátor $\mathbf z$ mellett $\mathbf c$-t is kapja;</li>
+    <li>diffúzió: a zajtalanító $\varepsilon_\theta(\mathbf x_t, t, \mathbf c)$ – a szöveg egy <b>szövegkódoló</b> (pl. a CLIP vagy egy nyelvi modell) beágyazás-sorozata, amelyet a háló <b>kereszt-figyelemmel</b> (<a href="../12-beagyazasok-figyelem/#s124-b">12.4</a>) olvas.</li>
+  </ul>
+  <b>Miért elég ennyi?</b> A tanítás ugyanaz, csak párokon: (kép, felirat). A háló megtanulja, hogy a feltétel <b>mit árul el</b> a képről – és zajtalanításkor ezt az információt is felhasználja.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy szám mint feltétel</span>
+    A számjegyekhez a címkét egy 10 hosszú one-hot vektorként (<a href="../12-beagyazasok-figyelem/#s122-a">12.2</a>) adjuk a zajos kép mellé. Ha a „7” bit 1, a háló hetes felé zajtalanít – ugyanabból a kezdőzajból más címkével más számjegy lesz.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – szöveg a képhez</span>
+    A CLIP (A. Radford és társai, OpenAI, 2021) 400 millió kép–felirat páron tanult: egy kép- és egy szövegkódolót úgy tanított, hogy az összetartozó pár vektorai közel legyenek (koszinusz-hasonlóság, <a href="../02-matematikai-eszkoztar/#s23-c">2.3</a>). Az első Stable Diffusion ennek a szövegkódolóját használta feltételként.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A modell csak azt érti, ami a feliratokban volt.</b> Ha a tanítóképek feliratai nem írják le a tárgyak számát vagy egymáshoz viszonyított helyzetét, a modell ezekben gyenge lesz („három piros kocka egy kék gömb bal oldalán”).</li>
+    <li><b>A feltétel nem parancs.</b> Ha a feltétel ritka (kevés ilyen kép–felirat pár volt), a modell könnyen „átlagosabb” képet rajzol a kértnél. Ezért kell az irányítás erősítése (<a href="#s147-b">2. lépés</a>).</li>
+    <li><b>A feliratok torzításai is átjönnek.</b> Amit a tanítóadat egy szóhoz társít (pl. foglalkozás–nem), azt a modell is társítani fogja.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – feltétel</summary>
+  <ol>
+    <li>A 2 × 2-es világban mi $p(\mathbf x \mid \text{átló})$?
+      <details><summary>Megoldás</summary>Egyetlen átló-rajz van: $p(\texttt{1001} \mid \text{átló}) = 1$, minden más 0.</details></li>
+    <li>Melyik a feltétel egy nyelvi modellben, amikor azt írod: „Fordítsd le angolra: jó reggelt”?
+      <details><summary>Megoldás</summary>A teljes szöveg (prompt): a modell $p(\text{válasz tokenjei} \mid \text{prompt})$-ból húz, tokenenként.</details></li>
+    <li>Egy zajtalanító a zajos képet (64 szám), a $t$ beágyazását (32 szám) és egy one-hot címkét kap. Hány szám a bemenete?
+      <details><summary>Megoldás</summary>$64 + 32 + 10 = 106$.</details></li>
+    <li>Mi kell a feltételes modell tanításához, ami a feltétel nélkülihez nem?
+      <details><summary>Megoldás</summary>Párok: minden tanítóképhez a feltétele (címke, felirat). Szövegből képhez ezért gyűjtöttek százmilliós nagyságrendű kép–felirat párt a webről.</details></li>
+    <li>(nehezebb) Egy képgenerátor a „nővér” szóra 95%-ban nőt, a „mérnök” szóra 90%-ban férfit rajzol. Honnan jön ez, és mit tehetsz ellene?
+      <details><summary>Megoldás</summary>A tanítóadatból: a modell $p(\mathbf x \mid \mathbf c)$-t tanulja, és ha a webes képek/feliratok így oszlanak meg, ezt adja vissza (sőt, irányítással fel is erősítheti). Ellenszer: kiegyensúlyozottabb vagy kiegészített tanítóadat, a felirat bővítése, utólagos finomhangolás, illetve átláthatóság a felhasználó felé.</details></li>
+  </ol>
+</details>
+
+<h3 id="s147-b">2. lépés: osztályozómentes irányítás – a feltétel felerősítése</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két tipp, egy irány</span>
+  Egy pixelnél a zajtalanító kétszer tippel: feltétel nélkül $\hat\varepsilon_u = 0{,}2$, a „7” feltétellel $\hat\varepsilon_c = 0{,}6$. A különbség, $0{,}4$, azt mutatja, <b>mit tesz hozzá a feltétel</b>. Menjünk még tovább ebbe az irányba:
+  $$\tilde\varepsilon = \hat\varepsilon_u + s\,(\hat\varepsilon_c - \hat\varepsilon_u):\qquad s = 0 \to 0{,}2;\quad s = 1 \to 0{,}6;\quad s = 3 \to 1{,}4;\quad s = 7{,}5 \to 3{,}2.$$
+  $s = 0$: feltétel nélküli rajz; $s = 1$: a sima feltételes modell; $s \gt 1$: „még hetesebb, mint egy átlagos hetes”.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – osztályozómentes irányítás (classifier-free guidance, CFG)</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Tanításkor</b> a feltételt a példák egy részénél (pl. 10–20%) „üresre” cseréljük – így ugyanaz a háló feltétellel <b>és</b> feltétel nélkül is tud zajtalanítani.</li>
+    <li><b>Mintavételkor</b> minden lépésben kétszer hívjuk: $\hat{\boldsymbol\varepsilon}_c = \varepsilon_\theta(\mathbf x_t, t, \mathbf c)$ és $\hat{\boldsymbol\varepsilon}_u = \varepsilon_\theta(\mathbf x_t, t, \varnothing)$, és a $\tilde{\boldsymbol\varepsilon} = \hat{\boldsymbol\varepsilon}_u + s\,(\hat{\boldsymbol\varepsilon}_c - \hat{\boldsymbol\varepsilon}_u)$ irányított tippel lépünk.</li>
+  </ol>
+  <b>Miért „osztályozómentes”?</b> Korábban egy külön osztályozó gradiensével irányítottak („legyen a kép minél inkább hetes az osztályozó szerint”). Itt a feltételes és a feltétel nélküli tipp <b>különbsége</b> játssza az osztályozó szerepét (J. Ho és T. Salimans, 2021–2022). Bayes-tétellel: $\nabla \ln p(\mathbf x \mid \mathbf c) - \nabla \ln p(\mathbf x) = \nabla \ln p(\mathbf c \mid \mathbf x)$ – a különbség épp egy „beépített osztályozó” gradiense, és $s$ ezt erősíti.
+  <br><b>Az ára:</b> nagyobb $s$ → a kép jobban követi a feltételt, de kevésbé sokféle, és túl nagy $s$-nél túlszínezett, „égett” lesz. A Stable Diffusion népszerű programkönyvtárában (diffusers) az alapérték $s = 7{,}5$, 50 lépéssel.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – vektorokkal</span>
+    $\hat{\boldsymbol\varepsilon}_u = (0{,}1;\ -0{,}2)$, $\hat{\boldsymbol\varepsilon}_c = (0{,}3;\ 0{,}4)$. $s = 2$: $(0{,}1 + 0{,}4;\ -0{,}2 + 1{,}2) = (0{,}5;\ 1{,}0)$. $s = 5$: $(1{,}1;\ 2{,}8)$. Az irányított tipp a feltételes tippen <b>túl</b> van, ugyanazon az egyenesen.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a költség</span>
+    Az irányítás lépésenként <b>két</b> hálóhívás. 50 lépés CFG-vel 100 hívás. (A két hívást egy kötegben futtatják; és vannak modellek, amelyekbe „belesütötték” az irányítást – pl. a FLUX.1 [dev] ezt <em>guidance distillation</em>-nel teszi –, ezek lépésenként egyszer hívnak.)
+  </div>
+</div>
+<div class="widget" data-widget="cfg-2d"></div>
+<p>A widget alapbeállításában (A osztály, 25 lépés) a minták a „biztosan A” területre $s = 0$-nál 30%-ban, $s = 1$-nél 67%-ban esnek (a valódi feltételes eloszlásnál ez 66% – $s = 1$ tényleg a feltételes modell), $s = 3$-nál és $s = 7{,}5$-nél 100%-ban. Közben az A osztály átfedő, középső felhőjéből jövő minták aránya 23%-ról 0-ra esik: a minták „tipikusabbak”, a sokféleség elvész, nagy $s$-nél pedig a felhők középpontján is túllőnek.</p>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Nagyobb $s$ ≠ jobb kép.</b> A feltételhez való hűség nő, a változatosság és a természetesség csökken. A jó $s$ feladatfüggő; a felhasználói felületek „irányítás erőssége” csúszkája ez.</li>
+    <li><b>$s = 1$ nem „gyenge irányítás”</b>, hanem a modell saját feltételes eloszlása. Irányításról $s \gt 1$-nél beszélünk.</li>
+    <li><b>A negatív prompt</b> ugyanez a trükk: a feltétel nélküli tipp helyére egy „ne ilyen legyen” feltétel tippje kerül, és attól <b>távolodunk</b>.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – irányítás</summary>
+  <ol>
+    <li>$\hat\varepsilon_u = -0{,}5$, $\hat\varepsilon_c = 0{,}1$. Mennyi $\tilde\varepsilon$, ha $s = 1$, $s = 4$?
+      <details><summary>Megoldás</summary>$s = 1$: $0{,}1$. $s = 4$: $-0{,}5 + 4 \cdot 0{,}6 = 1{,}9$.</details></li>
+    <li>Melyik $s$ adja vissza a feltétel nélküli modellt?
+      <details><summary>Megoldás</summary>$s = 0$.</details></li>
+    <li>Hány hálóhívás kell egy képhez 30 lépéssel, irányítással?
+      <details><summary>Megoldás</summary>60 (lépésenként egy feltételes és egy feltétel nélküli).</details></li>
+    <li>Miért kell tanításkor néha üres feltételt adni?
+      <details><summary>Megoldás</summary>Hogy ugyanaz a háló a feltétel nélküli tippet ($\hat{\boldsymbol\varepsilon}_u$) is meg tudja adni – különben nem lenne mivel összevetni a feltételeset, és külön modellt kellene tanítani.</details></li>
+    <li>(nehezebb) Negatív prompt: $\hat{\boldsymbol\varepsilon}_n$ a „homályos, torz” feltétel tippje. Írd fel az irányított tippet, és magyarázd meg, mit csinál!
+      <details><summary>Megoldás</summary>$\tilde{\boldsymbol\varepsilon} = \hat{\boldsymbol\varepsilon}_n + s\,(\hat{\boldsymbol\varepsilon}_c - \hat{\boldsymbol\varepsilon}_n)$. A kiindulópont a „homályos, torz” tipp, és $s \gt 1$-nél a kért feltétel felé, attól <b>elfelé</b> extrapolálunk – a kép kevésbé lesz homályos és torz.</details></li>
+  </ol>
+</details>
+
+<h3 id="s147-c">3. lépés: látens diffúzió – és a mai rendszerek</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – hány számot kell zajtalanítani?</span>
+  Egy $512 \times 512$-es színes kép $786\,432$ szám. Egy zajtalanító háló minden lépésben mindegyikkel számol – 50 lépésen, irányítással kétszer. A legtöbb szám azonban apró, szemmel alig látható részletet hordoz. Ötlet: <b>először tömörítsük a képet</b> egy autoenkóderrel (<a href="#s143">14.3</a>, <a href="#s144-c">14.4</a>) egy $64 \times 64 \times 4$-es kódba – ez $16\,384$ szám, 48-szor kevesebb –, és a diffúzió <b>ebben a kódtérben</b> dolgozzon. A végén a dekódoló rajzolja vissza a képet.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – látens diffúzió</span>
+  <ol style="margin:.2rem 0">
+    <li>Egy <b>autoenkóder</b> (a Stable Diffusionban egy enyhén regularizált VAE, kis diszkriminátorral élesítve) a képeket kódokká tömöríti: $\mathbf z_0 = e(\mathbf x)$;</li>
+    <li>egy <b>diffúziós modell</b> a kódok eloszlását tanulja (zajosítás és zajtalanítás a $\mathbf z$-ken, szöveges feltétellel);</li>
+    <li>generáláskor: zaj → visszafelé mintavétel a kódtérben → $\hat{\mathbf x} = d(\mathbf z_0)$.</li>
+  </ol>
+  <b>Miért jó?</b> Munkamegosztás: az autoenkóder egyszer megtanulja a „látható részleteket” (textúra, élek), a diffúzió a „tartalmat” (mi hol van). A számítás töredékére csökken (R. Rombach és társai, 2022 – ebből lett a Stable Diffusion).
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy nagy kép</span>
+    $1024 \times 1024 \times 3 = 3\,145\,728$ szám; egy $128 \times 128 \times 16$-os kód $262\,144$ szám – 12-szer kevesebb. Az újabb modellek több csatornát (16) használnak, mert a kevesebb tömörítés élesebb részleteket enged.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a „recept” 2026-ban</span>
+    Szövegkódoló (CLIP, T5, egyre inkább egy teljes nyelvi modell) → zajtalanító <b>Transformer</b> a kód „foltjain” (<em>Diffusion Transformer</em>, DiT, W. Peebles és S. Xie, 2023) → <b>flow matching</b> célfüggvény → autoenkóder-dekódoló. A videómodellek ugyanezt térben és időben teszik.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">📅 Állapot: 2026 november – hol tart a generatív kép- és videómodellezés?</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Kép:</b> a nyílt modellek tipikusan „látens tér + Transformer + flow matching”: Stable Diffusion 3 (2024, legfeljebb 8 milliárd paraméter), FLUX.1 (2024, 12 milliárd), FLUX.2 (2025. november, 32 milliárd, egy 24 milliárdos látás–nyelvi modell a szövegkódoló), Qwen-Image (2025, 20 milliárd).</li>
+    <li><b>Videó:</b> a Google Veo 3 modellkártyája szerint közös hang- és videó-látenstérben futó látens diffúzió; a nyílt Wan (2025) DiT + flow matching saját 3D-s VAE-vel. Az OpenAI 2026 márciusában bejelentette a Sora alkalmazás leállítását (sajtóhírek szerint az alkalmazás áprilisban, az API szeptemberben szűnt meg).</li>
+    <li><b>Az autoregresszív modellek visszatértek:</b> az OpenAI 2025 márciusában a GPT-4o-ba épített képgenerálást „autoregresszív modellként” írta le, és a VAR („következő skála” jóslása pixel helyett, 2024) NeurIPS-legjobbcikk-díjat kapott. A határ elmosódik: sok rendszer képtokeneket jósol, aztán egy diffúziós dekódoló rajzol.</li>
+    <li><b>Diffúzió szövegre:</b> diffúziós nyelvi modellek (LLaDA, 2025; Mercury, 2025; Google Gemini Diffusion – kísérleti, kb. 1500 token/s; a nyílt DiffusionGemma, 2026. június) egyszerre sok tokent „zajtalanítanak”. Gyorsak, de 2026-ban még elmaradnak a legjobb autoregresszív modellektől – a gyorsaságot igénylő résben (kód, ágensek) terjednek.</li>
+    <li><b>Kevés lépés:</b> desztillációval és versengő veszteséggel (SDXL Turbo, 2023) 1–4 lépés is elég; ezért „azonnali” a kép a mai alkalmazásokban.</li>
+  </ul>
+  <small>Források: a modellek kártyái és cikkei (Esser és társai, 2024; Black Forest Labs, 2024–2025; Qwen-Image arXiv 2508.02324; Wan arXiv 2503.20314; Veo 3 modellkártya, 2026; OpenAI GPT-4o rendszerkártya-kiegészítés, 2025. március 25.; Tian és társai, 2024; Nie és társai, 2025; Google DeepMind, 2025–2026); a Sora leállításáról sajtóhírek (2026. március).</small>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A dekódoló korlátja a kép korlátja.</b> Amit az autoenkóder nem tud visszarajzolni (apró szöveg, finom minták), azt a diffúzió sem tudja előállítani – a korai modellek betűi, kezei részben ezért voltak rosszak.</li>
+    <li><b>Szövegből kép ≠ szöveg megértése.</b> A modell a feliratokban látott szó–kép együttállásokat tanulta; számolás, tagadás („ne legyen rajta kutya”), térbeli viszonyok sokáig gyengék voltak, és ma is hibázhatnak.</li>
+    <li><b>A konkrét modellek gyorsan változnak.</b> A fenti nevek 2026-os pillanatkép; a fejezet elvei (zajtalanítás, feltétel, irányítás, látens tér) tartósabbak.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – látens diffúzió</summary>
+  <ol>
+    <li>Hányszoros a tömörítés, ha egy $768 \times 768 \times 3$-as képet 8-szoros oldalarányú csökkentéssel, 4 csatornás kódba kódolunk?
+      <details><summary>Megoldás</summary>A kód $96 \times 96 \times 4 = 36\,864$ szám, a kép $1\,769\,472$ – 48-szoros (mindig 48, ha 8-szoros csökkentés és 3 → 4 csatorna).</details></li>
+    <li>Sorold a látens diffúzió három részét a generálás sorrendjében!
+      <details><summary>Megoldás</summary>(Szövegkódoló a feltételhez) → diffúziós modell a kódtérben (zajból kód) → autoenkóder-dekódoló (kódból kép). A kódolóra generáláskor nincs szükség – csak tanításkor, és ha meglévő képből indulunk (kép-ből-kép).</details></li>
+    <li>Miért gyorsabb a látens diffúzió, ha a háló mérete ugyanaz?
+      <details><summary>Megoldás</summary>Mert lépésenként sokkal kevesebb számmal (pl. 48-szor kevesebbel) kell dolgoznia, és a lépésszám is 50 körüli; a drága dekódolás csak egyszer, a végén fut.</details></li>
+    <li>Mi a DiT, és mit cserél le?
+      <details><summary>Megoldás</summary><em>Diffusion Transformer</em>: a zajtalanító háló Transformer, amely a kódot kis foltokra (tokenekre) bontja, és önfigyelemmel dolgozza fel (<a href="../12-beagyazasok-figyelem/#s125-a">12.5</a>). A korábbi U-Net (konvolúciós) zajtalanítót váltja; jobban skálázható.</details></li>
+    <li>(nehezebb) Egy kép-ből-kép funkció egy fényképet „akvarell stílusban” rajzol újra: a fényképet kódolja, $t = 0{,}6\,T$-ig zajosítja, aztán az „akvarell” feltétellel visszafelé mintavételez. Mi történik, ha $t$ kicsi, és mi, ha majdnem $T$?
+      <details><summary>Megoldás</summary>Kis $t$: kevés zaj, a kép alig változik (az eredeti uralkodik, kevés akvarell). Majdnem $T$: szinte tiszta zaj, az eredetiből alig marad valami – új kép, csak a felirat számít. A köztes $t$ (az „erősség” csúszka) a kettő közti egyensúly.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai14-147"></div>
+</section>
+
+<!-- ===================================================== 14.8 -->
+<section id="s148">
+<h2>14.8 Értékelés és kockázatok ★★</h2>
+<p>Egy osztályozónál egyszerű a mérés: hány címkét talált el. Egy generatív modellnél nincs „helyes” kép. Három kérdést kell külön feltenni: <b>jók-e</b> a minták (minőség), <b>elég sokfélék-e</b> (lefedettség), és <b>újak-e</b> (nem másolatok). Az utolsó kérdés már nem csak technikai: a másolás jogi kérdés, a hiteles hamisítvány pedig társadalmi.</p>
+
+<h3 id="s148-a">1. lépés: hogyan mérjük? – FID, pontosság, felidézés</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két rossz modell, ugyanaz a pontszám</span>
+  Tegyük fel, hogy minden képből egyetlen „jellemzőszámot” nyerünk ki (pl. egy osztályozó egy neuronjának értékét). A valódi képeken ez $\mathcal N(5;\ 2^2)$ eloszlású. Két modell:
+  <ul style="margin:.2rem 0">
+    <li><b>A modell:</b> $\mathcal N(5;\ 1^2)$ – jó helyen, de <b>túl szűk</b>: csak a „tipikus” képeket rajzolja, a szokatlanokat nem;</li>
+    <li><b>B modell:</b> $\mathcal N(6;\ 2^2)$ – elég sokféle, de <b>el van tolva</b>: minden képe kicsit „furcsa”.</li>
+  </ul>
+  Két normális eloszlás <b>Fréchet-távolsága</b> egy dimenzióban $(\mu_1 - \mu_2)^2 + (\sigma_1 - \sigma_2)^2$. Az A modellé: $0 + 1 = 1$, B modellé: $1 + 0 = 1$. Ugyanaz a szám, egészen más hiba: A-nak a <b>sokfélesége</b>, B-nek a <b>minősége</b> gyenge.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – a generatív modellek fő mérőszámai</span>
+  <ul style="margin:.2rem 0">
+    <li><b>NLL</b> (bit/adatpont, <a href="#s141-c">14.1</a>): ha a modell ad valószínűséget (autoregresszív; VAE-nél csak korlát; GAN-nál nincs). Tesztadaton mérjük.</li>
+    <li><b>FID</b> (<em>Fréchet Inception Distance</em>, M. Heusel és társai, 2017): a valódi és a generált képeket egy előtanított képosztályozó (Inception-v3) 2048 dimenziós jellemzőterébe képezzük, mindkét felhőre normális eloszlást illesztünk ($\boldsymbol\mu$, $\Sigma$), és a kettő távolsága:
+      $$\mathrm{FID} = \lVert \boldsymbol\mu_1 - \boldsymbol\mu_2 \rVert^2 + \operatorname{Tr}\big(\Sigma_1 + \Sigma_2 - 2(\Sigma_1\Sigma_2)^{1/2}\big).$$
+      Kisebb a jobb; 0, ha a két felhő átlaga és kovarianciája megegyezik.</li>
+    <li><b>Pontosság és felidézés</b> (<em>precision, recall</em>, T. Kynkäänniemi és társai, 2019): a jellemzőtérben minden pont köré gömböt rajzolunk a $k$-adik legközelebbi szomszédjáig ($k = 3$). <b>Pontosság</b>: a generált minták hányad része esik a valódi képek gömbjeibe (minőség). <b>Felidézés</b>: a valódi képek hányad része esik a generált minták gömbjeibe (lefedettség).</li>
+    <li><b>Emberi értékelés</b>: páros összevetés („melyik jobb?”), nyilvános rangsorok; szöveges feltételnél azt is, mennyire felel meg a kép a feliratnak (pl. CLIP-hasonlósággal).</li>
+  </ul>
+  <b>Miért ennyi?</b> Mert a minőség és a lefedettség két külön dolog (a kiinduló példa), és egyetlen szám vagy összemossa, vagy csak az egyiket látja.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a VAE a számjegyeken</span>
+    A 14.9 8 számos kódú VAE-je: pontosság 0,99, felidézés 0,08. Szinte minden mintája „valódi számjegyek környékén” van, de a valódi számjegyek változatosságának csak kis részét fedi le: a homályos átlagképek egy szűk, tipikus sávban vannak – mint az A modell.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a FID vaksága</span>
+    Egy „modell”, amely egyszerűen <b>tanítóképeket</b> ad vissza, a 450 tesztképhez mérve FID 23,3-at kap – jobbat, mint bármelyik valódi modellünk. A FID nem kérdezi, újak-e a minták. A másolást külön kell vizsgálni (<a href="#s148-b">2. lépés</a>).
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A FID csak ugyanazzal a beállítással vethető össze</b>: ugyanaz a jellemzőkinyerő, ugyanannyi minta (a cikkek általában 50 000-et használnak), ugyanaz a referenciahalmaz. Kevés mintánál torz.</li>
+    <li><b>A FID az Inception „szemével” lát.</b> Ami egy 2015-ös ImageNet-osztályozónak nem fontos, azt nem méri; a normális eloszlás feltevése sem igaz. 2024-ben a Google kutatói (S. Jayasumana és társai) kimutatták, hogy modern szövegből kép modelleknél a FID ellentmondhat az emberi ítéletnek, és CLIP-alapú mértéket (CMMD) javasoltak.</li>
+    <li><b>A kis NLL nem jelent szép mintát</b>, és fordítva. Egy modell lehet jó tömörítő, és mégis rajzolhat furcsa képeket.</li>
+    <li><b>A kiválogatott minták nem mérés.</b> A cikkek és hirdetések „legszebb” mintái semmit nem mondanak az átlagról.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – mérőszámok</summary>
+  <ol>
+    <li>Mennyi az egydimenziós Fréchet-távolság $\mathcal N(5;\ 2^2)$ és $\mathcal N(5{,}5;\ 1{,}5^2)$ között?
+      <details><summary>Megoldás</summary>$0{,}5^2 + 0{,}5^2 = 0{,}5$.</details></li>
+    <li>Egy modell pontossága 0,95, felidézése 0,2. Milyenek a mintái?
+      <details><summary>Megoldás</summary>Jó minőségűek (szinte mind valódinak látszik), de kevéssé sokfélék – a valódi képek nagy részéhez nincs hasonló minta. Módusösszeomlás vagy „óvatos” (VAE-szerű) modell gyanús.</details></li>
+    <li>És ha a pontosság 0,4, a felidézés 0,9?
+      <details><summary>Megoldás</summary>Sokféle, a valódi képek szinte mindegyikéhez van hasonló minta, de a minták többsége nem valószerű – zajos, „mindent rajzoló” modell (pl. a független pixelek modellje).</details></li>
+    <li>Miért nem elég a generált képeket egy osztályozóval „felismertetni”?
+      <details><summary>Megoldás</summary>Mert ez csak a minőséget (felismerhetőséget) méri. Egy modell, amely csak egyetlen, tökéletes hetest rajzol, 100%-ban felismert lenne. Az osztályok aránya (lefedettség) és a sokféleség külön kell.</details></li>
+    <li>(nehezebb) Egy cikk 1000 mintán mért FID-et közöl, egy másik 50 000-en. Összevetheted-e a két számot? Miért?
+      <details><summary>Megoldás</summary>Nem. A FID becslése kevés mintánál felfelé torzít (a kovariancia becslése zajos), ezért az 1000 mintás FID nagyobb lesz akkor is, ha a modell ugyanolyan jó. Ugyanannyi mintával, ugyanazzal a referenciahalmazzal és jellemzőkinyerővel kell mérni.</details></li>
+  </ol>
+</details>
+
+<h3 id="s148-b">2. lépés: másol-e a modell? – memorizálás és szerzői jog</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a legközelebbi szomszéd</span>
+  A legegyszerűbb próba: minden generált mintához keresd meg a <b>legközelebbi tanítóképet</b>, és nézd meg a távolságot. A 14.9 számjegyein a <b>valódi tesztképek</b> legközelebbi tanítóképe (medián) 16,7 egységre van (pixelenkénti eltérések négyzetösszegének gyöke, 0–16-os skálán). Egy jó modell mintái is ennyire legyenek – se sokkal közelebb (másolás), se sokkal távolabb (furcsaság). A diffúziós modellünk: 17,3; a „másoló”: 0.
+</div>
+<div class="box def">
+  <span class="box-title">Fogalom – memorizálás és kinyerés</span>
+  Egy generatív modell <b>memorizál</b>, ha (szinte) pontos másolatát tudja előállítani egyes tanítópéldáknak. A <b>kinyerési támadás</b> ezt célzottan keresi: sok mintát generál, és megnézi, melyik esik egy tanítókép közvetlen közelébe.
+  <ul style="margin:.2rem 0">
+    <li>N. Carlini és társai (2023) a Stable Diffusionnal a tanítóhalmaz 350 000 leggyakrabban ismétlődő képének feliratával 175 millió képet generáltak: <b>109</b> közel-másolatot találtak. A Google Imagen modelljénél az 1000 leggyakoribb feliratból <b>23</b>-hoz. A kinyert képek jellemzően <b>legalább százszor</b> szerepeltek a tanítóadatban.</li>
+    <li>G. Somepalli és társai (2023) véletlen feliratokból generált képeinek kb. 1,9%-ánál találtak jelentős (gyakran részleges: háttér, tárgy) egyezést egy tanítóképpel.</li>
+  </ul>
+  <b>Miért történik?</b> A 14.6-ban láttuk: véges tanítóhalmazon a <b>tökéletes</b> zajtalanító csak tanítóképeket rajzol. A valódi háló a sokszor látott képekre közel kerül ehhez az ideálhoz – a ritkán látottakra simít. Ezért a <b>duplikátumok kiszűrése</b> a tanítóadatból a fő védekezés.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – simítás a síkon</span>
+    A diffusion-2d widgetben a $h = 0$ (tökéletes zajtalanító) mintái 1000 lépéssel mind tanítópontok. $h$ növelésével a másolatok aránya gyorsan esik (1000 lépéssel $h = 0{,}02$: 16%, $h = 0{,}05$: 2,3%, $h = 0{,}1$: 1%), a minták kitöltik az alakzatot. Egy neurális háló tanítás közben valami ilyesmit tesz: a véges tanítási idő, a háló felépítése és mérete „simít”. Z. Kadkhodaie és társai (2024) kimutatták: kis tanítóhalmazon a diffúziós háló memorizál, nagy halmazon viszont két, <b>közös kép nélküli</b> fél-halmazon tanított háló ugyanabból a zajból <b>szinte ugyanazt</b> a képet rajzolja – vagyis az adatok általános szerkezetét tanulták meg.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – mekkora a kockázat?</span>
+    A 109 közel-másolat 175 millió generálásból kb. 1,6 millió képenként egy – de célzott kereséssel, a legtöbbször ismétlődő képekre. Egy átlagos kérés ritkán ad másolatot; egy ismert festmény, logó vagy sokszor posztolt fotó nevére viszont könnyebben.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">📅 Kiegészítés – szerzői jog, 2026 novemberi állapot (nem jogi tanács)</span>
+  A források (tankönyvek) erről nem írnak; a helyzet országonként eltér, és sok ügy folyamatban van.
+  <ul style="margin:.2rem 0">
+    <li><b>Getty Images v. Stability AI</b> (Egyesült Királyság, 2025. november 4.): a bíróság szerint a Stable Diffusion modell <b>nem tartalmaz</b> jogsértő másolatot a tanítóképekről, ezért a másodlagos szerzői jogsértési igény elbukott; a védjegy-igényben (Getty-vízjelek egyes régi modellek kimenetén) a Getty szűk részsikert ért el. 2025 decemberében fellebbezési engedélyt kapott.</li>
+    <li><b>Bartz v. Anthropic</b> (USA, szöveg): a bíró 2025-ben a megvásárolt könyvekkel való tanítást méltányos használatnak (<em>fair use</em>), a kalózkönyvtárakból letöltött könyvek tárolását nem annak ítélte; az ügy 1,5 milliárd dolláros egyezséggel zárult (kb. 3000 dollár/mű, végleges jóváhagyás 2026. július).</li>
+    <li><b>Thomson Reuters v. Ross</b> (USA): 2026 szeptemberében egy szövetségi fellebbviteli bíróság megerősítette, hogy egy (nem generatív) MI tanítása a Westlaw kivonataival nem méltányos használat – az első fellebbviteli döntés MI-tanításról. A generatív modellek kérdését nyitva hagyta.</li>
+    <li><b>GEMA v. OpenAI</b> (Németország, München, 2025. november): dalszövegek memorizálása és visszaadása miatt a bíróság nagyrészt a szerzői jogkezelőnek adott igazat.</li>
+    <li>Folyamatban: <b>New York Times v. OpenAI és Microsoft</b>, <b>Andersen v. Stability AI</b> (képzőművészek csoportos pere).</li>
+  </ul>
+  <small>Források: ítéletek és ügyvédi összefoglalók (AIPPI, CMS AI-ügykövető, Authors Guild, IPWatchdog), 2025–2026; Carlini és társai, USENIX Security 2023; Somepalli és társai, CVPR 2023; Kadkhodaie és társai, ICLR 2024.</small>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>„Nem másolatot rajzol” ≠ „sosem másol”.</b> A legtöbb minta új, de a sokszor ismétlődő tanítóképek kinyerhetők. Mindkét állítás igaz.</li>
+    <li><b>A stílus nem kép.</b> Egy festő <b>stílusában</b> rajzolni (vonalvezetés, színvilág) más kérdés, mint egy konkrét <b>képét</b> visszaadni. Jogilag a stílus általában nem védett, a konkrét mű igen – a határ vitatott.</li>
+    <li><b>A saját kimenetén tanuló modell romlik.</b> Ha a generált képek (szövegek) visszakerülnek a következő modell tanítóadatába, generációról generációra elvesznek a ritka esetek, a „farkak” (I. Shumailov és társai, <em>Nature</em>, 2024: <em>model collapse</em>). A generált adat nem pótolja a valódit.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – memorizálás</summary>
+  <ol>
+    <li>Egy modell 450 mintájából 30-nak a legközelebbi tanítóképtől mért távolsága 0. Mit jelent ez?
+      <details><summary>Megoldás</summary>30 minta (6,7%) pontos másolata egy tanítóképnek – a modell memorizál. Meg kell nézni, mely képek ezek (valószínűleg sokszor ismétlődők).</details></li>
+    <li>A tesztképek legközelebbi tanítóképe medián 16,7-re van. Egy modell mintáié 30. Másol-e? Jó-e?
+      <details><summary>Megoldás</summary>Nem másol, de a mintái távolabb vannak minden tanítóképtől, mint egy valódi új kép – valószínűleg zajosak vagy furcsák (gyenge minőség). (Vigyázat: fekete-fehér és szürke képek távolsága nem vethető össze közvetlenül.)</details></li>
+    <li>Miért csökkenti a duplikátumok kiszűrése a memorizálást?
+      <details><summary>Megoldás</summary>Mert a sokszor ismétlődő képre a zajtalanító sokszor tanul, és közel kerül az „ideális”, másoló viselkedéshez; ha egy kép egyszer szerepel, a háló inkább simít.</details></li>
+    <li>Carlini és társai 175 millió képből 109 közel-másolatot találtak. Ez képenként mekkora arány?
+      <details><summary>Megoldás</summary>$109 / 175\,000\,000 \approx 6{,}2 \cdot 10^{-7}$, kb. 1,6 millió képenként egy – de célzott keresésben, a leggyakoribb képek feliratával.</details></li>
+    <li>(nehezebb) Egy csapat a modellje mintáival bővíti a tanítóadatot, és újratanít, többször egymás után. Mire figyelmeztetnéd őket?
+      <details><summary>Megoldás</summary>A <em>model collapse</em>-ra: minden kör a modell saját eloszlásából húz, amely a ritka eseteket alulreprezentálja; ezek generációról generációra fogynak, a sokféleség csökken, a hibák pedig felhalmozódnak. Mindig maradjon valódi adat a keverékben, és mérjék a felidézést.</details></li>
+  </ol>
+</details>
+
+<h3 id="s148-c">3. lépés: alkotás és visszaélés – stílusátvitel, deepfake, eredetigazolás</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy rejtett jel a szövegben</span>
+  Egy egyszerű szöveges vízjel (J. Kirchenbauer és társai, 2023): a nyelvi modell minden lépésben a szótárat az előző token alapján, egy titkos kulccsal két félre osztja („zöld” és „piros” lista), és kicsit a zöld tokenek felé tolja a választást. Egy 200 tokenes szövegben vízjel nélkül kb. 100 zöld token várható (szórás $\sqrt{200 \cdot 0{,}25} \approx 7{,}1$). Ha 130-at találunk:
+  $$z = \frac{130 - 100}{7{,}1} \approx 4{,}2$$
+  – ennyi zöld token véletlenül szinte sosem jön össze (vö. a <a href="../../matematikai-statisztika/07-hipotezisvizsgalat/">hipotézisvizsgálattal</a>). A szöveg olvasója semmit nem vesz észre; aki ismeri a kulcsot, kimutatja.
+</div>
+<div class="box def">
+  <span class="box-title">Fogalom – deepfake, és a három védekezés</span>
+  <b>Deepfake</b>: generatív modellel készült, valódinak tűnő kép, hang vagy videó egy létező emberről (arccsere, hangklónozás, „beszélő fej”). Védekezés:
+  <ol style="margin:.2rem 0">
+    <li><b>Felismerés</b> utólag: osztályozó, amely a generált tartalom árulkodó jegyeit keresi. Fegyverkezési verseny: minden új generátor ellen újra kell tanítani, és tömörítés, átméretezés után megbízhatatlan.</li>
+    <li><b>Vízjel</b> a generáláskor: a modell a kimenetbe rejtett, statisztikailag kimutatható jelet tesz (pl. a Google DeepMind <b>SynthID</b>-je képben, hangban, videóban, szövegben; 2025-ig több mint 10 milliárd tartalmon). Csak a vízjelező rendszerek kimenetére működik, és átírással gyengíthető.</li>
+    <li><b>Eredetigazolás</b>: kriptográfiailag aláírt metaadat arról, ki, mivel, mikor készítette és szerkesztette a tartalmat (<b>C2PA</b> / <em>Content Credentials</em> szabvány; pl. az OpenAI a generált képeihez csatolja). A „valódi” fotó is igazolhatóvá válik – de a metaadat le is vágható.</li>
+  </ol>
+  <b>Szabályozás 📅:</b> az EU MI-rendelete (AI Act) 50. cikke szerint a generált tartalmat gépileg olvashatóan jelölni kell, a deepfake-et pedig a felhasználónak is fel kell tüntetnie. A kötelezettségek 2026. augusztus 2-tól alkalmazandók; a 2026 júliusi módosítás („Digital Omnibus”, (EU) 2026/1744) a már piacon lévő rendszereknek a gépi jelölésre 2026. december 2-ig haladékot adott, és ugyanettől a naptól megtiltja a hozzájárulás nélküli intim képeket gyártó („vetkőztető”) alkalmazásokat.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – stílusátvitel, az alkotó oldal</span>
+    L. Gatys és társai (2015) egy fényképet „Van Gogh stílusában” rajzoltak újra: egy előtanított CNN (<a href="../11-konvolucios-halok/">11. fejezet</a>) mély rétegeinek aktivációi írták le a <b>tartalmat</b>, a csatornák közti korrelációk (a Gram-mátrix) a <b>stílust</b>; a kép pixeleit gradiensmódszerrel addig változtatták, amíg a tartalma a fényképé, a stílusa a festményé lett. Ugyanez az ötlet él tovább a StyleGAN „stílusaiban” és a mai kép-ből-kép eszközökben.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy valódi csalás</span>
+    2024 januárjában az Arup mérnöki cég hongkongi irodájának egyik munkatársa egy videóhívásban a „pénzügyi igazgató” és több „kolléga” utasítására 15 utalásban kb. 200 millió hongkongi dollárt (kb. 25 millió USD) küldött el. A hívás többi résztvevője deepfake volt. (A cég 2024 májusában erősítette meg.)
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Nincs megbízható általános „MI-detektor”.</b> Sem képre, sem szövegre. Egy felismerő magabiztos „emberi” vagy „gépi” ítélete önmagában nem bizonyíték – a téves vád is kár.</li>
+    <li><b>A vízjel hiánya nem bizonyítja a valódiságot.</b> Csak annyit mond: ez a tartalom nem egy vízjelező rendszerből jött (vagy a jelet eltávolították).</li>
+    <li><b>A „hazug osztaléka”.</b> Ha bármi lehet hamis, a valódi felvételt is le lehet hamisítványnak tagadni. Ezért fontos, hogy a hiteles tartalom is igazolható legyen (eredetigazolás).</li>
+    <li><b>Hívd vissza.</b> Pénzt, jelszót kérő hang- vagy videóhívásnál egy előre ismert csatornán történő visszahívás erősebb védelem bármely detektornál.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – vízjel és eredet</summary>
+  <ol>
+    <li>Egy 50 tokenes szövegben 30 zöld token van (vízjel nélkül 25 várható, szórás $\sqrt{50 \cdot 0{,}25} \approx 3{,}54$). Mennyi a $z$? Meggyőző-e?
+      <details><summary>Megoldás</summary>$z = 5 / 3{,}54 \approx 1{,}41$ – nem meggyőző; ennyi véletlenül is gyakran előfordul. Rövid szövegen a vízjel gyenge.</details></li>
+    <li>200 tokenben 115 zöld. Mennyi $z$?
+      <details><summary>Megoldás</summary>$15 / 7{,}07 \approx 2{,}1$ – gyanús, de nem erős bizonyíték (egyoldalú $p \approx 0{,}02$).</details></li>
+    <li>Mi a különbség a vízjel és a C2PA-eredetigazolás között?
+      <details><summary>Megoldás</summary>A vízjel magában a tartalomban (pixelekben, tokenválasztásban) rejtett statisztikai jel; a C2PA a tartalomhoz csatolt, aláírt metaadat. A metaadat egy képernyőképpel elveszhet; a vízjel túlélheti, de átírással, erős szerkesztéssel gyengül.</details></li>
+    <li>Egy deepfake-felismerő 99%-os pontosságú egy teszthalmazon. Miért lehet mégis megbízhatatlan a gyakorlatban?
+      <details><summary>Megoldás</summary>Mert a teszthalmaz a régi generátorokból készült, az új generátorok másképp hibáznak; a tömörítés, átméretezés eltünteti a jegyeket; és ha a hamis tartalom ritka, a téves riasztások aránya nagy lehet (vö. a <a href="../06-modellertekeles/">6. fejezet</a> alapgyakoriság-csapdájával).</details></li>
+    <li>(nehezebb) Egy politikai kampányban egy hangfelvétel kering, amelyen egy jelölt botrányos dolgot mond. Milyen ellenőrzési lépéseket javasolnál?
+      <details><summary>Megoldás</summary>Az eredet ellenőrzése (ki tette közzé először, van-e C2PA-adat, vízjel); a körülmények (hol, mikor, kik hallották); az érintett és a tanúk megkérdezése; több független szakértői elemzés (egy detektor ítélete önmagában kevés); és óvatos közlés – sem a hamisnak bizonyulás, sem a „biztos hamis” nem jelenthető ki bizonyíték nélkül.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai14-148"></div>
+</section>
+
+<!-- ===================================================== 14.9 -->
+<section id="s149">
+<h2>14.9 Alkalmazás: négy gép, egy adathalmaz</h2>
+<p>Most minden eszköz megvan. Visszatérünk a második rejtvényhez: ugyanazon az 1347 kézzel írt, 8 × 8-as számjegyen tanítottunk négy generatív modellt, és mindegyik 450 mintát rajzolt. Mellettük három „viszonyítási pont”: a 450 <b>valódi tesztkép</b>, egy <b>másoló</b>, amely egyszerűen 450 tanítóképet ad vissza, és egy <b>Gauss-modell</b>, amely a 64 pixelre egyetlen többváltozós normális eloszlást illeszt (átlag + kovariancia), és abból húz.</p>
+<div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;max-width:760px">
+  <tr><th>forrás</th><th>felépítés</th><th>paraméterek</th><th>mintavétel</th></tr>
+  <tr><td>autoregresszív</td><td>pixelenként logisztikus regresszió (fekete-fehér képek, <a href="#s142-b">14.2</a>)</td><td>≤ 2080</td><td>64 egymás utáni lépés</td></tr>
+  <tr><td>VAE</td><td>MLP-kódoló és -dekódoló, 8 számos kód (<a href="#s144">14.4</a>)</td><td>kb. 26 000 (a dekódoló)</td><td>1 dekódolás</td></tr>
+  <tr><td>GAN</td><td>MLP-generátor (16 számos zaj) és -detektív, 600 epoch (<a href="#s145">14.5</a>)</td><td>kb. 27 000 (a generátor)</td><td>1 hálóhívás</td></tr>
+  <tr><td>diffúzió</td><td>MLP-zajtalanító, 1000 lépéses DDPM (<a href="#s146">14.6</a>)</td><td>kb. 624 000</td><td>1000 hálóhívás</td></tr>
+</table></div>
+<p>A minőséget és a sokféleséget egy külön tanított számjegy-osztályozó (egy rejtett rétegű MLP, 97,3% a tesztképeken) „szemével” mérjük: a FID-et és a pontosság/felidézést az ő 64 rejtett neuronjának terében számoljuk (egy „mini-FID”, nem az Inception-hálóé, ezért az értékek a szakirodalom számaival nem vethetők össze).</p>
+
+<h3 id="s149-a">A minták és a mérőszámok</h3>
+<div class="widget" data-widget="gen-compare"></div>
+<div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:760px">
+  <tr><th>forrás</th><th>FID ↓</th><th>biztosan felismert</th><th>pontosság</th><th>felidézés</th><th>a legritkább – leggyakoribb osztály (450-ből; várható 45)</th></tr>
+  <tr><td>valódi tesztképek</td><td>0</td><td>92,9%</td><td>1</td><td>1</td><td>38 – 49</td></tr>
+  <tr><td>másoló</td><td>23,3</td><td>99,6%</td><td>0,93</td><td>0,90</td><td>38 – 55</td></tr>
+  <tr><td>Gauss</td><td>77,0</td><td>48,7%</td><td>0,50</td><td>0,55</td><td>33 – 76</td></tr>
+  <tr><td>autoregresszív*</td><td>56,7*</td><td>63,8%</td><td>0,56*</td><td>0,88*</td><td>35 – 64</td></tr>
+  <tr><td>VAE</td><td>101,4</td><td>76,0%</td><td>0,99</td><td>0,08</td><td>32 – 59</td></tr>
+  <tr><td>GAN</td><td>70,1</td><td>78,0%</td><td>0,64</td><td>0,48</td><td>28 – 60</td></tr>
+  <tr><td>diffúzió</td><td><b>38,7</b></td><td>76,0%</td><td>0,96</td><td>0,64</td><td>37 – 57</td></tr>
+</table></div>
+<p><small>* Az autoregresszív modell fekete-fehér képeket rajzol; a FID-et, a pontosságot és a felidézést ezért a fekete-fehérré alakított tesztképekhez mértük – a többi sorral csak óvatosan vethető össze.</small></p>
+<div class="box example">
+  <span class="box-title">Mit olvasunk ki a táblázatból?</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A diffúziós modell a legjobb valódi modell:</b> legkisebb FID, magas pontosság (0,96) és a legjobb felidézés (0,64) a szürkeárnyalatos modellek közül, egyenletes osztályeloszlás. Az ára: 1000 hálóhívás mintánként és kb. 24-szer több paraméter, mint a VAE vagy a GAN.</li>
+    <li><b>A VAE „óvatos”:</b> pontossága 0,99 – a mintái a valódi számjegyek felhőjén belül vannak –, de felidézése 0,08: a homályos, tipikus alakok a valódi változatosság töredékét fedik le. A FID ezt bünteti a legjobban (101,4).</li>
+    <li><b>A GAN éles, de egyenetlen:</b> a legritkább osztálya (5-ös) 28, a leggyakoribb (9-es) 60 minta – enyhe részleges módusösszeomlás; pontossága és felidézése is közepes. Egy ilyen kis, MLP-alapú GAN-tól ez várható.</li>
+    <li><b>Az autoregresszív modell</b> felidézése magas (0,88): pixelenkénti véletlen döntéseivel sokféle alakot rajzol, de sok közülük zajos vagy szaggatott (pontosság 0,56). Cserébe ez az egyetlen, amely <b>pontos valószínűséget</b> ad (25,9 bit/kép, <a href="#s142-b">14.2</a>).</li>
+    <li><b>A Gauss-modell</b> alapvonal: a pixelek páronkénti együttállását ismeri, az alakot nem. A minták fele sem ismerhető fel biztosan.</li>
+    <li><b>És a másoló?</b> A FID szerint ő a legjobb (23,3), a felismerhetőségben is (99,6%). Ha csak ezeket néznénk, a „modell” nyerne, amely semmit nem tanult. Erről szól a következő rész.</li>
+  </ul>
+</div>
+
+<h3 id="s149-b">Másol-e a modell?</h3>
+<div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+  <tr><th>forrás</th><th>a legközelebbi tanítókép távolsága (medián)</th><th>pontos másolatok (450-ből)</th></tr>
+  <tr><td>valódi tesztképek</td><td>16,7</td><td>0</td></tr>
+  <tr><td>másoló</td><td>0</td><td>450</td></tr>
+  <tr><td>diffúzió</td><td>17,3</td><td>0</td></tr>
+  <tr><td>VAE</td><td>16,9</td><td>0</td></tr>
+  <tr><td>GAN</td><td>22,2</td><td>0</td></tr>
+  <tr><td>Gauss</td><td>26,0</td><td>0</td></tr>
+  <tr><td>autoregresszív (fekete-fehér; a fekete-fehér tesztképeké 27,7)</td><td>35,8</td><td>0</td></tr>
+</table></div>
+<div class="box example">
+  <span class="box-title">Mit olvasunk ki belőle?</span>
+  <ul style="margin:.2rem 0">
+    <li>A <b>másoló</b> lebukik: minden mintája 0 távolságra van egy tanítóképtől. A FID ezt nem vette észre, a legközelebbi szomszéd azonnal.</li>
+    <li>A <b>diffúziós modell</b> mintái ugyanolyan messze vannak a tanítóképektől (17,3), mint egy valódi, új tesztkép (16,7): újak, de „a helyükön” vannak. Pontos másolatot nem rajzolt. (1347 képen, 60 000 lépéssel tanítva a háló nem jutott el a memorizálásig; a <a href="#s146-c">diffusion-2d</a> widget $h = 0$-s „tökéletes” zajtalanítója igen.)</li>
+    <li>A <b>VAE</b> mintái is közel vannak – az átlagképek sok tanítóképhez közel esnek, de egyikhez sem nagyon.</li>
+    <li>A <b>GAN</b>, a <b>Gauss</b> és az <b>autoregresszív</b> modell mintái távolabb vannak, mint egy valódi új kép: ezek nem másolnak, viszont kevésbé valószerűek – ez egyezik a kisebb pontosságukkal.</li>
+  </ul>
+  A widgetben kattints egy mintára: melletted lesz a legközelebbi tanítókép. Próbáld ki a „Melyik az igazi?” játékot is!
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Mit nem bizonyít ez a kísérlet?</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Kis adat, kis hálók.</b> 8 × 8-as képeken, MLP-kkel a sorrend a nagy modellekét tükrözi (a diffúzió nyert), de a különbségek mértéke nem vihető át.</li>
+    <li><b>Egy tanítás, egy mag.</b> A GAN eredménye különösen érzékeny a véletlenre; egy másik maggal rosszabb vagy jobb lehet.</li>
+    <li><b>A mérőszám a „szemtől” függ.</b> Egy másik osztályozó jellemzőterében mások lennének a FID-értékek – a sorrend általában stabilabb, mint maguk a számok.</li>
+  </ul>
+</div>
+
+<h3 id="s149-c">Válaszok a fejezet kérdéseire</h3>
+<div class="box tip">
+  <span class="box-title">A négy kérdés</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Mit jelent eloszlást tanulni, és hogyan veszünk belőle mintát?</b> A modell minden lehetséges adathoz (képhez) valószínűséget rendel, vagy legalább tud olyan adatot előállítani, amilyen gyakorisággal a valódiak előfordulnak. A mintavétel egyenletes véletlen számokból indul (vagy normális zajból), és a modell alakítja őket a tanult eloszlássá: szakaszokra osztással (<a href="#s141-b">14.1</a>), pixelenkénti húzással (<a href="#s142-c">14.2</a>), dekódolással (<a href="#s144-c">14.4</a>), generátorral (<a href="#s145">14.5</a>) vagy lépésenkénti zajtalanítással (<a href="#s146-c">14.6</a>).</li>
+    <li><b>Hogyan számoljuk ki egy 64 pixeles kép valószínűségét?</b> A láncszabállyal: 64 egymás utáni, egyszerű jóslás szorzata (<a href="#s142-a">14.2</a>). Egy logisztikus modell 2080 paraméterrel 25,9 bitet ad egy tesztképre a független pixelek 36,3 és az egyenletes modell 64 bitje helyett. A VAE ennek csak egy korlátját, a GAN és a diffúzió (közvetlenül) semmit nem ad.</li>
+    <li><b>Mit tud a négy ötlet?</b>
+      <div class="tw" style="overflow-x:auto"><table style="font-size:.86rem;margin:.3rem 0">
+        <tr><th></th><th>pixelenként (AR)</th><th>tömörítve (VAE)</th><th>versenyeztetve (GAN)</th><th>zajtalanítva (diffúzió)</th></tr>
+        <tr><td>pontos valószínűség</td><td>✓</td><td>korlát</td><td>✗</td><td>közvetve</td></tr>
+        <tr><td>éles minták</td><td>közepes</td><td>✗ (homályos)</td><td>✓</td><td>✓</td></tr>
+        <tr><td>lefedettség</td><td>✓</td><td>✓ (de átlagol)</td><td>✗ (módusösszeomlás)</td><td>✓</td></tr>
+        <tr><td>stabil tanítás</td><td>✓</td><td>✓</td><td>✗</td><td>✓</td></tr>
+        <tr><td>gyors mintavétel</td><td>✗ (sorban)</td><td>✓</td><td>✓</td><td>✗ → ma 1–50 lépés</td></tr>
+        <tr><td>hol él ma?</td><td>nyelvi modellek, képtokenek</td><td>a látens diffúzió kódolója</td><td>alkatrész (élesítés, desztilláció)</td><td>kép, videó, hang</td></tr>
+      </table></div></li>
+    <li><b>Hogyan irányítjuk szöveggel, és hogyan mérjük?</b> A feltétel (szöveg-beágyazás) a zajtalanító bemenete; az osztályozómentes irányítás a feltételes és a feltétel nélküli tipp különbségét erősíti (<a href="#s147-b">14.7</a>). Méréshez külön kell nézni a minőséget (pontosság), a lefedettséget (felidézés, osztályarányok) – a FID ezeket összemossa –, és a másolást (legközelebbi tanítókép, kinyerési próbák, <a href="#s148-b">14.8</a>).</li>
+  </ol>
+</div>
+<div class="box tip">
+  <span class="box-title">A három rejtvény</span>
+  <ol style="margin:.2rem 0">
+    <li><b>A nem létező arc.</b> A StyleGAN generátora egy 512 számos zajvektort alakít arccá; 70 000 valódi arcképen, egy detektív ellen tanult. Az arc új, mert a zajvektor új, és a generátor egy <b>sima</b> leképezés: a zajtér pontjai között is arcokat rajzol, nem csak a tanítóképeket. Hogy mégsem csak „átlagarcokat” rajzol, azt a detektív kényszeríti ki – egy homályos arc azonnal lebukna.</li>
+    <li><b>Négy gép, egy füzet.</b> A „legjobb” attól függ, mit mérsz: a diffúzió nyert a FID-ben és (a szürkeárnyalatos modellek közül) a felidézésben, a VAE a pontosságban, az autoregresszív modell az egyetlen pontos valószínűségben – és a FID-et a semmit nem tanult másoló nyerte. Egyetlen szám nem elég.</li>
+    <li><b>A tökéletes tanuló csal.</b> Véges tanítóhalmazon a tökéletes zajtalanító a tanítóképek súlyozott átlaga, és a mintavétel végén mindig egy tanítóképre ugrik (<a href="#s146-b">14.6</a>, diffusion-2d widget, $h = 0$, 1000 lépés). Az újdonság a háló <b>tökéletlenségéből</b> – simításából, korlátozott méretéből, a sok adatból – jön. Ahol a tanítóadatban egy kép sokszor ismétlődik, ott a háló közel kerül a tökéleteshez, és másolhat: ezért kell a duplikátumokat kiszűrni, és a legközelebbi tanítóképet mindig megnézni.</li>
+  </ol>
+</div>
+<div class="quiz" data-quiz="ai14-149"></div>
+</section>
+
+<!-- ===================================================== Összefoglalás -->
+<section id="s-sum">
+<h2>Összefoglalás</h2>
+<div class="tw" style="overflow-x:auto"><table>
+  <tr><th>Fogalom</th><th>Lényeg</th></tr>
+  <tr><td>Generatív vs. diszkriminatív</td><td>$p(\mathbf x)$ vagy $p(\mathbf x, y)$ vs. $p(y \mid \mathbf x)$; a generatívból Bayes-tétellel döntés is lesz, fordítva nem</td></tr>
+  <tr><td>Empirikus eloszlás, mintavétel</td><td>relatív gyakoriságok táblázata – csak másol; mintavétel: a $[0; 1)$ szakasz felosztása, egyenletes $u$</td></tr>
+  <tr><td>NLL</td><td>$-\frac1N\sum \log_2 p(\mathbf x_i)$ bit; = keresztentrópia; tesztadaton mérjük; a tanítóadaton a memorizálás nyer</td></tr>
+  <tr><td>Láncszabály, autoregresszív modell</td><td>$p(\mathbf x) = \prod_i p(x_i \mid \mathbf x_{\lt i})$ – pontos; a feltételeket egy közös modell (logisztikus, PixelCNN, Transformer) adja; számjegyek: 64 → 36,3 → 25,9 bit</td></tr>
+  <tr><td>Hőmérséklet, kiegészítés</td><td>$p = \sigma(z/T)$ / softmax$(z/T)$; adott elejű kép vagy szöveg folytatása; a mintavétel sorban, lassan</td></tr>
+  <tr><td>Autoenkóder</td><td>kódoló → szűk keresztmetszet → dekódoló; rekonstrukciós hiba; lineárisan = PCA; zajszűrő változat; a kódtér lyukas, nem generatív</td></tr>
+  <tr><td>VAE</td><td>kód = $\mathcal N(\boldsymbol\mu, \boldsymbol\sigma^2)$, $\mathbf z = \boldsymbol\mu + \boldsymbol\sigma\boldsymbol\varepsilon$; veszteség = rekonstrukció + KL a $\mathcal N(0, I)$ priorhoz (ELBO); mintavétel a priorból; homályos</td></tr>
+  <tr><td>KL két normális között</td><td>$\tfrac12(\mu^2 + \sigma^2 - 1 - \ln\sigma^2)$ koordinátánként: a helyet és a szélességet bünteti</td></tr>
+  <tr><td>GAN</td><td>generátor vs. diszkriminátor; $D^* = p_{\text{adat}}/(p_{\text{adat}} + p_G)$; egyensúlyban 0,5; nem telítődő veszteség $-\ln D(G(\mathbf z))$</td></tr>
+  <tr><td>Módusösszeomlás</td><td>a generátor csak néhány fajtát rajzol; részleges / teljes; a GAN veszteségéből következik</td></tr>
+  <tr><td>Diffúzió – előre</td><td>$\mathbf x_t = \sqrt{\bar\alpha_t}\,\mathbf x_0 + \sqrt{1 - \bar\alpha_t}\,\boldsymbol\varepsilon$; zajütemezés; a végén tiszta zaj</td></tr>
+  <tr><td>Diffúzió – tanítás</td><td>a háló a zajt jósolja: $\lVert\boldsymbol\varepsilon - \varepsilon_\theta(\mathbf x_t, t)\rVert^2$; $\hat{\mathbf x}_0$ visszaszámolható; az ideális zajtalanító memorizál</td></tr>
+  <tr><td>Diffúzió – mintavétel</td><td>„tippeld meg a tiszta képet, zajosítsd vissza kevésbé”: DDIM (determinisztikus), DDPM (sztochasztikus); 1000 → 20–50 → 1–4 lépés; flow matching</td></tr>
+  <tr><td>Feltétel, CFG</td><td>a feltétel bemenet (kereszt-figyelem); $\tilde{\boldsymbol\varepsilon} = \hat{\boldsymbol\varepsilon}_u + s(\hat{\boldsymbol\varepsilon}_c - \hat{\boldsymbol\varepsilon}_u)$; nagyobb $s$: hűbb, kevésbé sokféle</td></tr>
+  <tr><td>Látens diffúzió</td><td>autoenkóder-kódtérben fut ($512^2 \times 3 \to 64^2 \times 4$, 48×); 📅 2026: látens tér + Transformer (DiT) + flow matching</td></tr>
+  <tr><td>Értékelés</td><td>FID (Fréchet-távolság a jellemzőtérben), pontosság (minőség), felidézés (lefedettség), emberi értékelés; a FID nem látja a másolást</td></tr>
+  <tr><td>Memorizálás</td><td>legközelebbi tanítókép; kinyerés (Carlini és társai: 109 közel-másolat 175 millióból); duplikátumok szűrése; <em>model collapse</em></td></tr>
+  <tr><td>Deepfake, eredet</td><td>felismerés (megbízhatatlan), vízjel (SynthID, statisztikai próba), eredetigazolás (C2PA); EU AI Act 50. cikk</td></tr>
+</table></div>
+
+<div class="box tip">
+  <span class="box-title">Melyik módszer mikor? – döntési táblázat</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>Ha a feladatban ez áll…</th><th>…akkor ezt használd</th></tr>
+    <tr><td>pontos valószínűség kell (tömörítés, anomália, modellek összevetése bitekben)</td><td>autoregresszív modell (vagy normalizáló folyam)</td></tr>
+    <tr><td>szöveg, kód, bármilyen sorozat generálása</td><td>autoregresszív Transformer (nyelvi modell, 16. fejezet)</td></tr>
+    <tr><td>tömör kód, zajszűrés, anomália a rekonstrukciós hibából</td><td>autoenkóder (zajszűrő változat)</td></tr>
+    <tr><td>rendezett, mintavételezhető kódtér; egy nagy modell kódolója</td><td>VAE (a látens diffúzió első lépcsője)</td></tr>
+    <tr><td>valós idejű, egylépéses generálás szűk témában</td><td>GAN vagy desztillált (1–4 lépéses) diffúzió</td></tr>
+    <tr><td>a legjobb kép- / videóminőség, szöveges irányítással</td><td>látens diffúzió / flow matching, osztályozómentes irányítással</td></tr>
+    <tr><td>„mennyire jó?”</td><td>pontosság + felidézés + FID ugyanazon a beállításon, és emberi értékelés</td></tr>
+    <tr><td>„nem másol?”</td><td>legközelebbi tanítókép, duplikátumszűrés, célzott kinyerési próba</td></tr>
+    <tr><td>„valódi ez a kép / hang?”</td><td>eredetigazolás (C2PA), vízjel; a felismerő ítélete önmagában nem bizonyíték</td></tr>
+  </table></div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabályok</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Generálni = eloszlásból mintát venni.</b> A véletlen kívülről jön, a modell alakítja.</li>
+    <li><b>A táblázat másol, a független pixelek szétszednek</b> – a jó modell köztük van.</li>
+    <li><b>Az autoregresszív modell = a láncszabály + egy osztályozó minden lépésre.</b></li>
+    <li><b>A homály átlag.</b> Ha a veszteség pixelenként méri a hibát, a bizonytalan kép elmosódik.</li>
+    <li><b>A GAN éles, de felejt; a VAE lefed, de homályos; a diffúzió mindkettőt tudja, de lassabb.</b></li>
+    <li><b>A diffúziós háló csak zajszűrést tud</b> – a generálás a köré épített eljárás.</li>
+    <li><b>Egy szám nem elég:</b> minőség, lefedettség és újdonság külön mérendő.</li>
+    <li><b>Nézd meg a legközelebbi tanítóképet.</b></li>
+  </ul>
+</div>
+</section>
+
+<!-- ===================================================== Ellenőrző kérdések -->
+<section id="s-check">
+<h2>Ellenőrző kérdések</h2>
+<p>Gondold végig a választ, aztán kattints a kártyára a megfordításhoz!</p>
+<div class="flashcards">
+  <div class="flash"><div class="inner"><div class="face front">Mi a különbség a generatív és a diszkriminatív modell között?</div>
+    <div class="face back">A diszkriminatív $p(y \mid \mathbf x)$-et tanul (döntés), a generatív $p(\mathbf x)$-et vagy $p(\mathbf x, y)$-t (milyenek az adatok). A generatívból mintát lehet venni, és Bayes-tétellel döntést is kapunk belőle.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért nem jó generatív modell az empirikus eloszlás (a táblázat)?</div>
+    <div class="face back">Mert csak a tanítóadatokat adja vissza (memorizál), nem látott adatra 0 valószínűséget (végtelen meglepetést) ad, és nagy adatnál ($2^{64}$ kép) a táblázat kezelhetetlenül nagy.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit mér az NLL, és miért bitben?</div>
+    <div class="face back">Az adatok átlagos meglepetését a modell szerint, $-\log_2 p$. Ennyi bitbe lehetne tömöríteni egy adatpontot a modell segítségével; tesztadaton mérve a modell általánosítását mutatja.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit mond ki a láncszabály?</div>
+    <div class="face back">$p(\mathbf x) = \prod_i p(x_i \mid \mathbf x_{\lt i})$ – közelítés nélkül. Az autoregresszív modell ezeket a feltételes valószínűségeket tanulja meg, minden elemet az előzőkből jósolva.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit csinál a hőmérséklet a mintavételben?</div>
+    <div class="face back">A logitot osztja ($z/T$): $T \lt 1$ óvatosabb, egyhangúbb, $T \gt 1$ merészebb, hibásabb minták; $T \to 0$ mindig a legvalószínűbbet választja.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi az autoenkóder, és mi köze a PCA-hoz?</div>
+    <div class="face back">Kódoló + szűk keresztmetszet + dekódoló, a rekonstrukciós hibát minimalizálva. Lineáris kódolóval és négyzetes hibával ugyanazt a teret találja meg, mint a PCA; a mély (nemlineáris) változat kis kódnál sokkal jobb.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért nem tud az autoenkóder megbízhatóan új képet rajzolni?</div>
+    <div class="face back">Mert nem ad eloszlást a kódokra: nem tudjuk, honnan sorsoljunk, és a kódfelhőben lyukak vannak – a véletlen kódokból értelmetlen kép jön (8 számos kódnál a minták 27%-a felismerhető biztosan, a VAE-nél 76%).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a reparaméterezési trükk?</div>
+    <div class="face back">$\mathbf z = \boldsymbol\mu + \boldsymbol\sigma \odot \boldsymbol\varepsilon$, $\boldsymbol\varepsilon \sim \mathcal N(0, I)$: a véletlen kívülről jön, így a kód $\boldsymbol\mu$ és $\boldsymbol\sigma$ szerint deriválható, és a VAE visszaterjesztéssel tanítható.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Milyen két tagból áll a VAE vesztesége, és mit csinál a KL-tag?</div>
+    <div class="face back">Rekonstrukciós hiba + $\mathrm{KL}(q(\mathbf z \mid \mathbf x) \,\|\, \mathcal N(0, I))$. A KL a kódfelhőket a 0 közelébe húzza, és nem engedi túl keskenyre zsugorodni őket – így a kódtér kitöltött és mintavételezhető.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért homályosak a VAE képei?</div>
+    <div class="face back">Mert egy kódhoz több hasonló kép tartozik, és a pixelenkénti rekonstrukciós hibát ezek átlaga minimalizálja – az átlagkép elmosódott.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a legjobb diszkriminátor egy rögzített generátor mellett?</div>
+    <div class="face back">$D^*(\mathbf x) = p_{\text{adat}}(\mathbf x) / (p_{\text{adat}}(\mathbf x) + p_G(\mathbf x))$. Ha a két eloszlás egyforma, mindenhol 0,5 – ez az egyensúly.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért használják a nem telítődő generátorveszteséget?</div>
+    <div class="face back">Mert az elején a detektív könnyen nyer ($D(G(\mathbf z)) \approx 0$), és ott a minimax-veszteség gradiense eltűnik. A $-\ln D(G(\mathbf z))$ épp ott meredek, ahol a generátor rossz.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a módusösszeomlás?</div>
+    <div class="face back">Amikor a GAN generátora az adatoknak csak néhány fajtáját rajzolja (sok zajvektorból ugyanaz a kép). Oka: minden mintát külön ítélnek meg, a sokféleséget semmi nem kéri.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Hogyan zajosít az előre irányú diffúziós folyamat?</div>
+    <div class="face back">$\mathbf x_t = \sqrt{\bar\alpha_t}\,\mathbf x_0 + \sqrt{1 - \bar\alpha_t}\,\boldsymbol\varepsilon$, ahol $\bar\alpha_t$ a zajütemezésből jön; a variancia 1 marad, a végén tiszta zaj. Nincs benne tanulnivaló.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit tanul a diffúziós modell hálója?</div>
+    <div class="face back">A zajos képből (és $t$-ből) a hozzáadott zajt: $\lVert\boldsymbol\varepsilon - \varepsilon_\theta(\mathbf x_t, t)\rVert^2$. Ebből a tiszta képre vonatkozó tipp, $\hat{\mathbf x}_0$ is visszaszámolható.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Hogyan vesz mintát egy diffúziós modell?</div>
+    <div class="face back">Tiszta zajból indul, és lépésenként: megtippeli a tiszta képet, majd egy kicsit kevésbé zajos szintre „visszazajosítja” (DDIM: determinisztikusan, DDPM: friss zajjal). Tanításkor 1000 lépés, mintavételkor ma 20–50, desztillálva 1–4.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért memorizál a tökéletes zajtalanító?</div>
+    <div class="face back">Véges tanítóhalmazon a legjobb tipp a tanítóképek súlyozott átlaga, és kis zajnál egyetlen tanítókép súlya lesz 1 – a mintavétel tanítóképre ugrik. A valódi háló simít, és ettől lesz új a minta.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi az osztályozómentes irányítás?</div>
+    <div class="face back">A feltételes és a feltétel nélküli zajtipp különbségének felerősítése: $\tilde{\boldsymbol\varepsilon} = \hat{\boldsymbol\varepsilon}_u + s(\hat{\boldsymbol\varepsilon}_c - \hat{\boldsymbol\varepsilon}_u)$. Nagyobb $s$: hűbb a feltételhez, kevésbé sokféle.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a látens diffúzió?</div>
+    <div class="face back">Diffúzió egy autoenkóder kódterében: a kép tömörített kódján zajosítunk és zajtalanítunk, a végén a dekódoló rajzol. A Stable Diffusionban $512 \times 512 \times 3 \to 64 \times 64 \times 4$, 48-szor kevesebb szám.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit mér a pontosság és a felidézés egy generatív modellnél?</div>
+    <div class="face back">Pontosság: a minták hányad része esik a valódi adatok környezetébe (minőség). Felidézés: a valódi adatok hányad részéhez van hasonló minta (lefedettség). A VAE-nk: 0,99 és 0,08.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért nem elég a FID?</div>
+    <div class="face back">Egyetlen számba mossa a minőséget és a lefedettséget, egy régi osztályozó jellemzőin és normális közelítéssel számol, és nem látja a másolást: a tanítóképeket visszaadó „modell” FID-je a legjobb volt.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a három védekezés a deepfake ellen?</div>
+    <div class="face back">Utólagos felismerés (megbízhatatlan), vízjel a generáláskor (statisztikai jel, csak a vízjelező rendszerekre), eredetigazolás (C2PA: aláírt metaadat a tartalom útjáról).</div></div></div>
+</div>
+</section>
+
+<!-- ===================================================== Vegyes gyakorló feladatok -->
+<section id="s-ex">
+<h2>Vegyes gyakorló feladatok</h2>
+<p>Itt már nincs megmondva, melyik szakaszhoz tartozik a feladat: neked kell eldönteni, melyik eszköz kell.</p>
+<details class="box practice">
+  <summary>✏️ Vegyes gyakorló feladatok – kattints a kinyitáshoz</summary>
+  <ol>
+    <li>A 2 × 2-es világban számold ki a jobb csík (<code>0101</code>) valószínűségét a láncszabállyal és a független pixelek modelljével! Hány bit a meglepetés az elsőben?
+      <details><summary>Tipp</summary>Láncszabály: $p(x_1 = 0)\,p(x_2 = 1 \mid 0) \cdots$; független: a négy pixel valószínűségének szorzata.</details>
+      <details><summary>Megoldás</summary>Láncszabály: $0{,}4 \cdot 0{,}5 \cdot 1 \cdot 1 = 0{,}2$ (a <code>01</code>-gyel kezdődő rajzok mind <code>0101</code>-ek), meglepetés $-\log_2 0{,}2 \approx 2{,}32$ bit. Független: $0{,}4 \cdot 0{,}5 \cdot 0{,}6 \cdot 0{,}5 = 0{,}06$.</details></li>
+    <li>Egy logisztikus autoregresszív modellben $p(x_7 = 1 \mid \mathbf x_{\lt 7}) = \sigma(z)$, $z = 2$. Mennyi a fekete valószínűsége $T = 0{,}5$ és $T = 2$ hőmérsékleten?
+      <details><summary>Tipp</summary>$\sigma(z/T)$.</details>
+      <details><summary>Megoldás</summary>$\sigma(4) \approx 0{,}98$; $\sigma(1) \approx 0{,}73$.</details></li>
+    <li>Egy VAE kódolója egy képre $\boldsymbol\mu = (0{,}5;\ -1)$, $\boldsymbol\sigma = (1;\ 0{,}5)$-öt ad. Mennyi a KL-tag? Mi lesz a kód, ha $\boldsymbol\varepsilon = (-0{,}4;\ 2)$?
+      <details><summary>Tipp</summary>Koordinátánként $\tfrac12(\mu^2 + \sigma^2 - 1 - \ln\sigma^2)$; $\mathbf z = \boldsymbol\mu + \boldsymbol\sigma\boldsymbol\varepsilon$.</details>
+      <details><summary>Megoldás</summary>KL: $0{,}125 + 0{,}818 \approx 0{,}94$. Kód: $(0{,}5 - 0{,}4;\ -1 + 1) = (0{,}1;\ 0)$.</details></li>
+    <li>Egy kép a valódi adatok közt 0,1, a generátor képei közt 0,4 valószínűségű. Mennyi az optimális detektív ítélete, és mekkora a generátor nem telítődő vesztesége ezen a képen?
+      <details><summary>Tipp</summary>$D^* = p_{\text{adat}}/(p_{\text{adat}} + p_G)$; $-\ln D$.</details>
+      <details><summary>Megoldás</summary>$D^* = 0{,}1/0{,}5 = 0{,}2$; $-\ln 0{,}2 \approx 1{,}61$. A generátor ezt a képet túl gyakran rajzolja.</details></li>
+    <li>$\bar\alpha_t = 0{,}36$, $x_0 = -1$, $\varepsilon = 1{,}5$. Mennyi $x_t$? Ha a háló pontosan eltalálja a zajt, mennyi $\hat x_0$?
+      <details><summary>Tipp</summary>Zárt alak, aztán visszaszámolás.</details>
+      <details><summary>Megoldás</summary>$x_t = 0{,}6 \cdot (-1) + 0{,}8 \cdot 1{,}5 = 0{,}6$ – a zaj „átbillentette” a pixelt pozitívba. $\hat x_0 = (0{,}6 - 0{,}8 \cdot 1{,}5)/0{,}6 = -1$ ✓.</details></li>
+    <li>Irányított mintavételnél $\hat\varepsilon_u = 0{,}1$, $\hat\varepsilon_c = -0{,}1$, $s = 5$. Mennyi $\tilde\varepsilon$? Hány hálóhívás kell 40 lépéshez?
+      <details><summary>Tipp</summary>$\hat\varepsilon_u + s(\hat\varepsilon_c - \hat\varepsilon_u)$.</details>
+      <details><summary>Megoldás</summary>$0{,}1 + 5 \cdot (-0{,}2) = -0{,}9$. 80 hívás (lépésenként kettő).</details></li>
+    <li>Két egydimenziós jellemző-eloszlás: valódi $\mathcal N(0;\ 1)$, generált $\mathcal N(1;\ 0{,}5^2)$. Mennyi a Fréchet-távolság? Melyik hibát mutatja a szórás eltérése?
+      <details><summary>Tipp</summary>$(\mu_1 - \mu_2)^2 + (\sigma_1 - \sigma_2)^2$.</details>
+      <details><summary>Megoldás</summary>$1 + 0{,}25 = 1{,}25$. A kisebb szórás a sokféleség hiánya (kicsi felidézés), az eltolt átlag a minőség hibája.</details></li>
+    <li>Melyik modellt választanád? (a) Egy gyártósoron a hibás alkatrészek kiszűrése „szokatlanság” alapján, címkék nélkül. (b) Egy játék valós időben, képkockánként generáljon textúrát egy szűk témában. (c) Egy reklámügynökség szöveges leírásból készítsen nagy felbontású képeket. (d) Egy telefon hangfelismerője számára kell egy tömör hangkód.
+      <details><summary>Tipp</summary>Döntési táblázat: valószínűség, sebesség, minőség, tömörítés.</details>
+      <details><summary>Megoldás</summary>(a) Autoenkóder rekonstrukciós hibával vagy egy pontos valószínűséget adó (autoregresszív) modell NLL-je. (b) GAN vagy desztillált, 1–4 lépéses diffúzió. (c) Látens diffúzió / flow matching szöveges feltétellel és irányítással. (d) Autoenkóder / VAE kódolója.</details></li>
+    <li>Egy GAN 2000 számjegy-mintájában a 0-s 2, az 1-es 480 alkalommal szerepel. Mit gyanítasz, és mit mérnél még?
+      <details><summary>Tipp</summary>Várható érték: 200 osztályonként.</details>
+      <details><summary>Megoldás</summary>Részleges módusösszeomlást: a 0-s szinte hiányzik, az 1-es 2,4-szer túl gyakori. Érdemes mérni a felidézést (a valódi képek hányadához van hasonló minta) és az osztályokon belüli sokféleséget is.</details></li>
+    <li>Egy 400 tokenes szövegben 230 „zöld” token van (vízjel nélkül 200 várható, szórás $\sqrt{400 \cdot 0{,}25} = 10$). Mennyi a $z$? Mit mondasz, ha egy tanár ez alapján plágiummal vádol egy diákot?
+      <details><summary>Tipp</summary>$z = (\text{megfigyelt} - \text{várható}) / \text{szórás}$.</details>
+      <details><summary>Megoldás</summary>$z = 3$: erős jel arra, hogy a szöveg egy ilyen vízjelet használó modellből jött (egyoldalú $p \approx 0{,}001$). De: csak annak a modellnek a vízjelét mutatja ki, a diák átírhatta, idézhetett, és a gépi segítség nem azonos a plágiummal – egyetlen statisztikai próba nem elég egy vádhoz.</details></li>
+  </ol>
+</details>
+</section>
+
+<!-- ===================================================== Fejezetzáró -->
+<section id="s-final">
+<h2>Fejezetzáró teszt</h2>
+<p>Vegyes feladatok az egész fejezetből. Ha legalább 80%-ot elérsz, nyugodtan továbbléphetsz.</p>
+<div class="quiz" data-quiz="ai14-final"></div>
+</section>
+
+<!-- ===================================================== Szómagyarázó -->
+<section id="s-gloss">
+<h2>Szómagyarázó</h2>
+<p>A fejezetben előforduló idegen vagy kevésbé ismert szakkifejezések, betűrendben.</p>
+<dl class="glossary">
+  <dt id="g-autoenkoder">autoenkóder <span class="etym">gör. <em>autosz</em> „ön-” + ang. <em>encoder</em> „kódoló”</span></dt>
+  <dd><p>Kódolóból és dekódolóból álló háló, amely a bemenetét egy szűk keresztmetszeten át adja vissza; a tanításhoz nem kell címke.</p></dd>
+
+  <dt id="g-autoregresszív">autoregresszív <span class="etym">gör. <em>autosz</em> „ön-” + lat. <em>regressus</em> „visszatérés”</span></dt>
+  <dd><p>Olyan modell, amely minden elemet a sorozat korábbi elemeiből jósol; a láncszabállyal pontos valószínűséget ad.</p></dd>
+
+  <dt id="g-c2pa">C2PA <span class="etym">ang. <em>Coalition for Content Provenance and Authenticity</em></span></dt>
+  <dd><p>Nyílt szabvány a digitális tartalom eredetének (készítő, eszköz, szerkesztések) aláírt metaadatban történő rögzítésére (<em>Content Credentials</em>).</p></dd>
+
+  <dt id="g-cfg">osztályozómentes irányítás <span class="etym">ang. <em>classifier-free guidance</em>, CFG (J. Ho, T. Salimans)</span></dt>
+  <dd><p>A feltételes és a feltétel nélküli zajtipp különbségének $s$-szeres felerősítése a diffúziós mintavételben.</p></dd>
+
+  <dt id="g-deepfake">deepfake <span class="etym">ang. <em>deep</em> (learning) „mély(tanulás)” + <em>fake</em> „hamisítvány”</span></dt>
+  <dd><p>Generatív modellel készített, valódinak tűnő kép, hang vagy videó egy létező emberről.</p></dd>
+
+  <dt id="g-diffuzio">diffúziós modell <span class="etym">lat. <em>diffundere</em> „szétönt, szétterjed”</span></dt>
+  <dd><p>Generatív modell, amely a zajosítás (diffúzió) megfordítását tanulja: egy háló lépésenként zajtalanít, tiszta zajból indulva.</p></dd>
+
+  <dt id="g-diszkriminator">diszkriminátor <span class="etym">lat. <em>discriminare</em> „elválaszt, megkülönböztet”</span></dt>
+  <dd><p>A GAN „detektívje”: osztályozó, amely megkülönbözteti a valódi adatokat a generátor mintáitól.</p></dd>
+
+  <dt id="g-elbo">ELBO <span class="etym">ang. <em>evidence lower bound</em> „a bizonyíték alsó korlátja”</span></dt>
+  <dd><p>A $\ln p(\mathbf x)$ alsó korlátja: rekonstrukciós tag mínusz KL-tag; a VAE ennek a növelésével tanul.</p></dd>
+
+  <dt id="g-empirikus">empirikus eloszlás <span class="etym">gör. <em>empeiria</em> „tapasztalat”</span></dt>
+  <dd><p>Az adatok relatív gyakoriságaiból álló eloszlás; generatív modellként csak a tanítóadatokat adja vissza.</p></dd>
+
+  <dt id="g-fid">FID <span class="etym">ang. <em>Fréchet Inception Distance</em>; M. Fréchet francia matematikusról és a Google Inception hálójáról (M. Heusel és társai, 2017)</span></dt>
+  <dd><p>A valódi és a generált képek jellemzőfelhőire illesztett normális eloszlások távolsága; kisebb a jobb.</p></dd>
+
+  <dt id="g-flow">flow matching <span class="etym">ang. „folyam-illesztés” (Y. Lipman és társai, 2023)</span></dt>
+  <dd><p>A diffúzió rokona: a háló a zajt és az adatot összekötő (egyenes) pálya sebességét tanulja; a mintavétel egy differenciálegyenlet megoldása.</p></dd>
+
+  <dt id="g-gan">GAN <span class="etym">ang. <em>generative adversarial network</em> „generatív versengő háló” (I. Goodfellow és társai, 2014)</span></dt>
+  <dd><p>Egy generátor és egy diszkriminátor egymás elleni tanítása; a generátor zajból állít elő mintát.</p></dd>
+
+  <dt id="g-generativ">generatív <span class="etym">lat. <em>generare</em> „nemz, létrehoz”</span></dt>
+  <dd><p>Az adatok eloszlását tanuló modell, amelyből új adat vehető mintaként.</p></dd>
+
+  <dt id="g-latens">látens <span class="etym">lat. <em>latens</em> „rejtőző”</span></dt>
+  <dd><p>Közvetlenül nem megfigyelt, a modell által tanult rejtett kód; a látens tér a lehetséges kódok tere.</p></dd>
+
+  <dt id="g-memorizalas">memorizálás <span class="etym">lat. <em>memoria</em> „emlékezet”</span></dt>
+  <dd><p>Ha a modell egyes tanítópéldák (közel) pontos másolatát tudja előállítani; a sokszor ismétlődő tanítópéldáknál a leggyakoribb.</p></dd>
+
+  <dt id="g-modus">módusösszeomlás <span class="etym">lat. <em>modus</em> „mérték, mód”; ang. <em>mode collapse</em></span></dt>
+  <dd><p>A GAN tipikus hibája: a generátor az eloszlásnak csak néhány csúcsát (fajtáját) rajzolja.</p></dd>
+
+  <dt id="g-nll">NLL <span class="etym">ang. <em>negative log-likelihood</em> „negatív log-valószínűség”</span></dt>
+  <dd><p>Az adatok átlagos meglepetése a modell szerint, bitben vagy natban; a keresztentrópia.</p></dd>
+
+  <dt id="g-prior">prior <span class="etym">lat. <em>prior</em> „előbbi”</span></dt>
+  <dd><p>Előzetes eloszlás; a VAE-ben a kódok eloszlása, $\mathcal N(0, I)$, amelyből generáláskor sorsolunk.</p></dd>
+
+  <dt id="g-reparam">reparaméterezés <span class="etym">gör. <em>para</em> „mellett” + <em>metron</em> „mérték”</span></dt>
+  <dd><p>A véletlen mintavétel átírása determinisztikus függvénnyé egy külső zajból: $\mathbf z = \boldsymbol\mu + \boldsymbol\sigma\boldsymbol\varepsilon$ – így deriválható.</p></dd>
+
+  <dt id="g-stilus">stílusátvitel <span class="etym">ang. <em>neural style transfer</em> (L. Gatys és társai, 2015)</span></dt>
+  <dd><p>Egy kép tartalmának újrarajzolása egy másik kép stílusában, egy CNN jellemzőivel (tartalom: aktivációk, stílus: Gram-mátrixok).</p></dd>
+
+  <dt id="g-vae">VAE <span class="etym">ang. <em>variational autoencoder</em> „variációs autoenkóder” (D. Kingma, M. Welling, 2013)</span></dt>
+  <dd><p>Autoenkóder, amelynek kódolója eloszlást ad, a veszteségében KL-tag húzza a kódokat a priorhoz; a dekódolója generátor.</p></dd>
+
+  <dt id="g-vizjel">vízjel <span class="etym">ang. <em>watermark</em></span></dt>
+  <dd><p>A generált tartalomba rejtett, emberi szemmel nem látható, statisztikai próbával kimutatható jel (pl. SynthID).</p></dd>
+</dl>
+</section>
+
+<nav class="pager">
+  <a href="../13-graf-neuralis-halok/">← 13. Gráf neurális hálók</a>
+  <span class="next muted">15. Megerősítéses tanulás (hamarosan) →</span>
+</nav>
+
+</main>
+</div>
+
+<footer class="site">
+  Fő források: A. Glassner: <em>Deep Learning – A Visual Approach</em> (No Starch, 2021; 18., 22–23. fejezet) · R. T. Kneusel: <em>How AI Works</em> (No Starch, 2023; 6. fejezet) · S. Raschka: <em>Machine Learning and AI Beyond the Basics</em> (No Starch, 2024; 9–10. fejezet) · M. Lanham: <em>Evolutionary Deep Learning</em> (Manning, 2023; 8–9. fejezet) · T. Xiao, J. Zhu: <em>Foundations of Large Language Models</em> (arXiv 2501.09223, 2025; 2. fejezet) ·
+  Alapcikkek: D. Kingma – M. Welling (2013, VAE) · I. Goodfellow és társai (2014, GAN) · L. Gatys – A. Ecker – M. Bethge (2015) · A. van den Oord és társai (2016, PixelRNN/PixelCNN, WaveNet; 2017, VQ-VAE) · M. Heusel és társai (2017, FID) · T. Karras – S. Laine – T. Aila (2019, StyleGAN) · T. Kynkäänniemi és társai (2019) · J. Ho – A. Jain – P. Abbeel (2020, DDPM) · J. Song – C. Meng – S. Ermon (2021, DDIM) · Y. Song és társai (2021) · A. Radford és társai (2021, CLIP) · J. Ho – T. Salimans (2022, CFG) · R. Rombach és társai (2022, látens diffúzió) · W. Peebles – S. Xie (2023, DiT) · Y. Lipman és társai (2023) · X. Liu – C. Gong – Q. Liu (2023) · J. Kirchenbauer és társai (2023) · N. Carlini és társai (2023) · G. Somepalli és társai (2023) · A. Sauer és társai (2023, ADD) ·
+  📅 2024–2026: P. Esser és társai (2024, SD3) · K. Tian és társai (2024, VAR) · Z. Kadkhodaie és társai (2024) · S. Jayasumana és társai (2024) · I. Shumailov és társai (2024) · Y. Huang és társai (2024, R3GAN) · S. Nie és társai (2025, LLaDA) · Inception Labs (2025, Mercury) · Black Forest Labs (2024–2025, FLUX) · Qwen-Image (2025) · Wan (2025) · OpenAI (2025, GPT-4o képgenerálás) · Google DeepMind (Veo 3, SynthID, Gemini Diffusion, DiffusionGemma, 2025–2026) · (EU) 2026/1744 rendelet · ítéletek: Getty v. Stability AI (2025), Bartz v. Anthropic (2025–2026), Thomson Reuters v. Ross (2026), GEMA v. OpenAI (2025) ·
+  Adatok: scikit-learn <em>digits</em> (8 × 8, 1347 tanító / 450 teszt kép); a kísérletek saját futtatások PyTorch-csal és scikit-learnnel. Az irodalomkutatás a Consensus keresővel és az eredeti forrásokkal készült (2026. november).
+</footer>
+</body>
+</html>

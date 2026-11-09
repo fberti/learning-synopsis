@@ -973,6 +973,17 @@ A `Topics/AI/resources` könyvei közül csak az MLSYS érinti (hardveres és re
 ### Kvízek
 `ai14-141`, `ai14-142`, `ai14-144`, `ai14-145`, `ai14-final`.
 
+> ✅ **Elkészült** (`14-generativ-modellek/`, 2026-11-09). Eltérések a tervtől: a sorrend az egyszerűtől a bonyolultig, a korlátokból
+> kiindulva (14.1 mit jelent generálni → 14.2 autoregresszív → 14.3 AE → 14.4 VAE → 14.5 GAN → 14.6 diffúzió → 14.7 feltételes generálás,
+> CFG, látens diffúzió 📅 → 14.8 értékelés, memorizálás, szerzői jog, deepfake (a TERV 14.7-e itt) → 14.9 Alkalmazás); kvíz minden szakaszhoz
+> (`ai14-141` … `ai14-149`, `ai14-final`); 11 widget (`sample-machine`, `pixel-ar`, `ae-bottleneck`, `kl-explorer`, `latent-map`, `gan-1d`,
+> `gan-epochs`, `diffusion-2d`, `diffusion-digits`, `cfg-2d`, `gen-compare`); adat: `gen-data.js` (`_parts/calc/c14_export.py`).
+> Futó példa: 2 × 2-es képek, tíz rajz (1100 ×3, 0011 ×2, 1010 ×2, 0101 ×2, 1001 ×1); NLL: táblázat 2,25, Markov 3,33, független 3,94 bit.
+> Számjegyek (1347/450): AR 25,9 bit (független 36,3); AE vs PCA MSE k = 2: 0,037 / 0,053; VAE-8 / AE-8 véletlen kód biztosan felismert 76% / 27%;
+> mini-FID: másoló 23,3, diffúzió 38,7, AR* 56,7, GAN 70,1, Gauss 77,0, VAE 101,4; pontosság/felidézés: VAE 0,99/0,08, diffúzió 0,96/0,64, GAN 0,64/0,48.
+> Forrás-digest: `_parts/ch14/digest.md`; 📅-kutatás: `_parts/ch14/research.md` (Consensus + web, 2026-11-09). A források a társadalmi részről
+> (memorizálás, szerzői jog, deepfake) szinte semmit nem írnak – ez „Kiegészítés”.
+
 ### Csapdák
 A generált kép nem másolat, de a modell memorizálhat · a GAN-tanítás instabil · a VAE képei homályosak ·
 generatív modell ≠ LLM (az LLM csak egy fajtája).
