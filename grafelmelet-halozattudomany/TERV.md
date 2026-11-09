@@ -549,6 +549,12 @@ két gyakran említett szereplőnél véletlenül is várható?*
 **Cél:** véletlen gráfmodellek mint (1) a valós hálózatok magyarázatai és (2) **nullmodellek**, amelyekhez mérünk.
 Erdős–Rényi, kisvilág, skálafüggetlen modellek, konfigurációs modell, z-pontszám és permutációs gondolkodás.
 
+> **Megvalósítás (2026-11-09):** a rögzített Árvízhét-adatban a Kormány és a Vízügy csak 2 cikkben szerepel együtt (nem 5-ben), ezért a
+> nagy kérdés három pár összevetése lett: $\mathrm{Ko}$–$\mathrm{Vi}$ (2), $\mathrm{Sz}$–$\mathrm{Kl}$ (2), $\mathrm{La}$–$\text{Ön}$ (3), a cikk–szereplő páros
+> nullmodellel (pontos p: 0,20 / 0,016 / 0,018). A „5 közös cikk, null 2,1 ± 1,0 → z = 2,9” kidolgozott példa általános (nem Árvízhét-) példaként szerepel.
+> Új szakasz: **7.6 Alkalmazás** (kvíz `gh7-76`); a 7.3 kapott egy 4. lépést (barátság-paradoxon) a konfigurációs modell előkészítéseként.
+> Widgetek: a terv négy widgetje mellett `degree-tail` (hisztogram / CCDF / ML-illesztés) és `stub-matching` (félélek, élcsere).
+
 ### Felépítés
 1. **7.1 Erdős–Rényi-gráf** ★★ – $G(n, p)$; várható élszám $p\binom n2$, fokszám binomiális → Poisson (Valószínűségszámítás
    4. fejezet); az óriáskomponens megjelenése $\langle k \rangle = 1$-nél (fázisátalakulás); `box history`: Erdős Pál és
@@ -581,7 +587,7 @@ Erdős–Rényi, kisvilág, skálafüggetlen modellek, konfigurációs modell, z
   megfigyelt érték és a z-pontszám; nullmodell-választó (ER / konfigurációs / cikkenkénti permutáció).
 
 ### Kvízek
-`gh7-71` … `gh7-75`, `gh7-final`.
+`gh7-71` … `gh7-76`, `gh7-final` (a 7.6 alkalmazás külön kvízzel).
 
 ### Csapdák
 Log–log ábrán „egyenes” ≠ hatványfüggvény · az ER nem jó nullmodell erősen heterogén fokszámú hálózathoz · egyetlen
