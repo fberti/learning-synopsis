@@ -407,6 +407,12 @@ OB II.3. (bevezető); J-PM 4–6.; OI 5.3; PSDS 3. (A/B Testing, Hypothesis Test
 
 ## 8. fejezet – Paraméteres próbák: u-, t- és F-próba ★★
 
+> **Megvalósítás (2026-11-09):** `08-parameteres-probak/`, 9 szakasz: 8.1–8.8 a terv szerint (a 8.6 kiegészült az egy szórás χ²-próbájával, NGA 10.3.4.3), 8.9 = alkalmazás
+> (a fejezet három kérdése, ncbirths-esettanulmány, döntési fa + `test-wizard`). Futó példák: cukorzacskók ($\sigma = 10$, 25 zacskó, $\bar x = 496$, $z = -2$), új gép 5 zacskója ($t = -3{,}83$),
+> 6 dolgozó előtte–utána (páros $p = 0{,}023$, függetlenként $0{,}68$), 3+3 és 8+8 dolgozó (a 7.6 permutációs adatai), két gép szórása ($F = 2{,}25$), A/B 20/200 vs 34/200.
+> Az NGA selejtarány-példájának módszerét ($\hat p$ és $n-1$ az SE-ben, $np_0 = 1{,}4$) az oldalon javítjuk. Kvízek `ms8-81…88` + `ms8-final`.
+> 8 widget: `qq-plot`, `paired-vs-indep`, `t-test-lab`, `test-wizard`, `welch-sim`, `f-test-sim`, `ab-test`, `power-planner`. OB nem volt elérhető (a források közt nincs).
+
 **Nagy kérdés:** *Tényleg 500 grammos a zacskó? Jobb-e az új tanítási módszer? Egyformán pontos-e a két gép?*
 
 ### Felépítés
