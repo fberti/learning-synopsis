@@ -1,0 +1,264 @@
+ https://github.com/NiuTrans/NLPBook
+https://niutrans.github.io/NLPBook
+C HAPTER 2
+Generative Models
+One of the most significant advances in NLP in recent years might be the development of large
+language models (LLMs). This has helped create systems that can understand and generate nat-
+ural languages like humans. These systems have even been found to be able to reason, which
+is considered a very challenging AI problem. With these achievements, NLP made big strides
+and entered a new era of research in which difficult problems are being solved, such as building
+conversational systems that can communicate with humans smoothly.
+The concept of language modeling or probabilistic language modeling dates back to early ex-
+periments conducted by Shannon [1951]. In his work, a language model was designed to estimate
+the predictability of English — how well can the next letter of a text be predicted when the pre-
+ceding N letters are known. Although Shannon’s experiments were preliminary, the fundamental
+goals and methods of language modeling have remained largely unchanged over the decades since
+then. For quite a long period, particularly before 2010, the dominant approach to language mod-
+eling was the n-gram approach [Jurafsky and Martin, 2008]. In n-gram language modeling, we
+estimate the probability of a word given its preceding n − 1 words, and thus the probability of a
+sequence can be approximated by the product of a series of n-gram probabilities. These proba-
+bilities are typically estimated by collecting smoothed relative counts of n-grams in text. While
+such an approach is straightforward and simple, it has been extensively used in NLP. For example,
+the success of modern statistical speech recognition and machine translation systems has largely
+depended on the utilization of n-gram language models [Jelinek, 1998; Koehn, 2010].
+Applying neural networks to language modeling has long been attractive, but a real break-
+through appeared as deep learning techniques advanced. A widely cited study is Bengio et al.
+[2003]’s work where n-gram probabilities are modeled via a feed-forward network and learned
+by training the network in an end-to-end fashion. A by-product of this neural language model
+is the distributed representations of words, known as word embeddings. Rather than represent-
+ing words as discrete variables, word embeddings map words into low-dimensional real-valued
+vectors, making it possible to compute the meanings of words and word n-grams in a continu-
+ous representation space. As a result, language models are no longer burdened with the curse of
+dimensionality, but can represent exponentially many n-grams via a compact and dense neural
+model.
+The idea of learning word representations through neural language models inspired subsequent
+research in representation learning in NLP. However, this approach did not attract significant in-
+terest in developing NLP systems in the first few years after its proposal. Starting in about 2012,
+though, advances were made in learning word embeddings from large-scale text via simple word
+prediction tasks. Several methods, such as Word2Vec, were proposed to effectively learn such
+embeddings, which were then successfully applied in a variety of NLP systems [Mikolov et al.,
+2013a;b]. As a result of these advances, researchers began to think of learning representations of
+sequences using more powerful language models, such as LSTM-based models [Sutskever et al.,
+2014; Peters et al., 2018]. And further progress and interest in sequence representation exploded
+after Transformer was proposed. Alongside the rise of Transformer, the concept of language mod-
+eling was generalized to encompass models that learn to predict words in various ways. Many
+2.1 A Brief Introduction to LLMs 37
+powerful Transformer-based models were pre-trained using these word prediction tasks, and suc-
+cessfully applied to a variety of downstream tasks [Devlin et al., 2019].
+Indeed, training language models on large-scale data has led NLP research to exciting times.
+While language modeling has long been seen as a foundational technique with no direct link to
+the goals of artificial intelligence that researchers had hoped for, it helps us see the emergence of
+intelligent systems that can learn a certain degree of general knowledge from repeatedly predicting
+words in text. Recent research demonstrates that a single, well-trained LLM can handle a large
+number of tasks and generalize to perform new tasks with a small adaptation effort [Bubeck et al.,
+2023]. This suggests a step towards more advanced forms of artificial intelligence, and inspires
+further exploration into developing more powerful language models as foundation models.
+In this chapter, we consider the basic concepts of generative LLMs. For simplicity, we use the
+terms large language models or LLMs to refer to generative models like GPT, though this term
+can broadly cover other types of models like BERT. We begin by giving a general introduction
+to LLMs, including the key steps of building such models. We then discuss two scaling issues of
+LLMs: how LLMs are trained at scale, and how LLMs can be improved to handle very long texts.
+Finally, we give a summary of these discussions.
+2.1 A Brief Introduction to LLMs
+In this section we give an introduction to the basic ideas of LLMs as required for the rest of this
+chapter and the following chapters. We will use terms word and token interchangeably. Both
+of them refer to the basic units used in language modeling, though their original meanings are
+different.
+Before presenting details, let us first consider how language models work. The goal of lan-
+guage modeling is to predict the probability of a sequence of tokens occurring. Let {x0 , x1 , ..., xm }
+be a sequence of tokens, where x0 is the start symbol ⟨s⟩ (or ⟨SOS⟩)1 . The probability of this se-
+quence can be defined using the chain rule
+Pr(x0 , ..., xm ) = Pr(x0 ) · Pr(x1 |x0 ) · Pr(x2 |x0 , x1 ) · · · Pr(xm |x0 , ..., xm−1 )
+m
+Y
+= Pr(xi |x0 , ..., xi−1 ) (2.1)
+i=0
+or alternatively in a logarithmic form
+m
+X
+log Pr(x0 , ..., xm ) = log Pr(xi |x0 , ..., xi−1 ) (2.2)
+i=0
+Here Pr(xi |x0 , ..., xi−1 ) is the probability of the token xi given all its previous tokens {x0 , ..., xi−1 }
+2 . In the era of deep learning, a typical approach to language modeling is to estimate this
+1
+The start symbol can also be [CLS] following BERT models.
+2
+We assume that when i = 0, Pr(xi |x0 , ..., xi−1 ) = Pr(x0 ) = 1. Hence Pr(x0 , ..., xm ) =
+Pr(x0 ) Pr(x1 , ..., xm |x0 ) = Pr(x1 , ..., xm |x0 ).
+38 Generative Models
+Context Predict Decision Rule Sequence Probability
+⟨s⟩ a b arg maxx2 ∈V Pr(x2 |⟨s⟩ a) Pr(⟨s⟩) · Pr(a|⟨s⟩)· Pr(b|⟨s⟩ a)
+⟨s⟩ a b c arg maxx3 ∈V Pr(x3 |⟨s⟩ a b) Pr(⟨s⟩) · Pr(a|⟨s⟩) · Pr(b|⟨s⟩ a)·
+Pr(c|⟨s⟩ a b)
+⟨s⟩ a b c d arg maxx4 ∈V Pr(x4 |⟨s⟩ a b c) Pr(⟨s⟩) · Pr(a|⟨s⟩) · Pr(b|⟨s⟩ a)·
+Pr(c|⟨s⟩ a b)· Pr(d|⟨s⟩ a b c)
+Table 2.1: Illustration of generating the three tokens b c d given the prefix ⟨s⟩ a via a language model. In each step,
+the model picks a token xi from V so that Pr(xi |x0 , ..., xi−1 ) is maximized. This token is then appended to the end
+of the context sequence. In the next step, we repeat the same process, but based on the new context.
+probability using a deep neural network. Neural networks trained to accomplish this task re-
+ceive a sequence of tokens x0 , ..., xi−1 and produce a distribution over the vocabulary V (de-
+noted by Pr(·|x0 , ..., xi−1 )). The probability Pr(xi |x0 , ..., xi−1 ) is the value of the i-th entry of
+Pr(·|x0 , ..., xi−1 ).
+When applying a trained language model, a common task is to find the most likely token given
+its previous context tokens. This token prediction task can be described as
+x̂i = arg max Pr(xi |x0 , ..., xi−1 ) (2.3)
+xi ∈V
+We can perform word prediction multiple times to generate a continuous text: each time we
+predict the best token x̂i , and then add this predicted token to the context for predicting the next
+token x̂i+1 . This results in a left-to-right generation process implementing Eqs. (2.1) and (2.2). To
+illustrate, consider the generation of the following three words given the prefix ‘⟨s⟩ a’, as shown
+in Table 2.1. Now we discuss how LLMs are constructed, trained, and applied.
+2.1.1 Decoder-only Transformers
+As is standard practice, the input of a language model is a sequence of tokens (denoted by
+{x0 , ..., xm−1 }). For each step, an output token is generated, shifting the sequence one po-
+sition forward for the next prediction. To do this, the language model outputs a distribution
+Pr(·|x0 , ..., xi−1 ) at each position i, and the token xi is selected according to this distribution.
+This model is trained by maximizing the log likelihood m 3
+i=1 log Pr(xi |x0 , ..., xi−1 ) .
+P
+Here, we focus on the decoder-only Transformer architecture, as it is one of the most popular
+model architectures used in LLMs. The input sequence of tokens is represented by a sequence
+of de -dimensional vectors {e0 , ..., em−1 }. ei is the sum of the token embedding of xi and the
+positional embedding of i. The major body of the model is a stack of Transformer blocks (or
+layers). Each Transformer block has two stacked sub-layers, one for self-attention modeling and
+one for FFN modeling. These sub-layers can be defined using the post-norm architecture
+output = LNorm(F (input) + input) (2.4)
+3
+Pm Pm
+Note that i=1
+log Pr(xi |x0 , ..., xi−1 ) = i=0
+log Pr(xi |x0 , ..., xi−1 ) since log Pr(x0 ) = 0.
+2.1 A Brief Introduction to LLMs 39
+or the pre-norm architecture
+output = LNorm(F (input)) + input (2.5)
+where input and output denote the input and output, both being an m × d matrix. The i-th rows
+of input and output can be seen as contextual representations of the i-th token in the sequence.
+F (·) is the core function of a sub-layer. For FFN sub-layers, F (·) is a multi-layer FFN. For
+self-attention sub-layers, F (·) is a multi-head self-attention function. In general, self-attention is
+expressed in a form of QKV attention
+QKT
+Attqkv (Q, K, V) = Softmax( √ + Mask)V (2.6)
+d
+where Q, K and V ∈ Rm×d are the queries, keys, and values, respectively. It is important to
+note that only previous tokens are considered when predicting a token. So a masking variable
+Mask ∈ Rm×m is incorporated into self-attention to achieve this. The entry (i, k) of Mask has
+a value of 0 if i ≤ k, and a value of − inf otherwise.
+Given a representation H ∈ Rm×d , the multi-head self-attention function can be defined as
+F (H) = Merge(head1 , ..., headτ )Whead (2.7)
+where Merge(·) representees a concatenation of its inputs, and Whead ∈ Rd×d represents a pa-
+rameter matrix. headj is the output of QKV attention on a sub-space of representation
+headj = Attqkv (Q[j] , K[j] , V[j] ) (2.8)
+Q[j] ,K[j] ,and V[j] are the queries, keys, and values projected onto the j-th sub-space via linear
+transformations
+Q[j] = HWjq (2.9)
+K [j]
+= HWjk (2.10)
+V [j]
+= HWjv (2.11)
+d
+where Wjq , Wjk , and Wjv ∈ Rd× τ are the parameter matrices of the transformations.
+Suppose we have L Transformer blocks. A Softmax layer is built on top of the output of the
+last block. The Softmax layer outputs a sequence of m distributions over the vocabulary, like this
+ 
+Pr(·|x0 , ..., xm−1 )
+ .. 
+
+ . 
+ = Softmax(HL Wo ) (2.12)
+Pr(·|x0 , x1 )
+ 
+ 
+Pr(·|x0 )
+where HL is the output of the last Transformer block, and Wo ∈ Rd×|V | is the parameter matrix.
+Figure 2.1 shows the Transformer architecture for language modeling. Applying this language
+40 Generative Models
+Post-norm or Pre-norm
+FFN
+x1 x2 ... xm
+L Blocks
+Pr(xm |x0 x1 ...xm−1 )
+Pr(x2 |x0 x1 )
+Pr(x1 |x0 )
+Post-norm or Pre-norm
+...
+Self-attention
+h0L h1L ... L
+hm−1
+Language Model
+e0 e1 ... em−1
+x0 x1 ... xm−1 z0 z1 ... zm−1
+Fig. 2.1: The Transformer-decoder architecture for language modeling. The central components are L stacked Trans-
+former blocks, each comprising a self-attention sub-layer and an FFN sub-layer. To prevent the model from accessing
+the right-context, a masking variable is incorporated into self-attention. The output layer uses a Softmax function to
+generate a probability distribution for the next token, given the sequence of previous tokens. During inference, the
+model takes the previously predicted token to predict the next one, repeating this process until the end of the sequence
+is reached. {z0 , ..., zm−1 } denote the inputs of a Transformer block, and {h0L , ..., hm−1
+L
+} denote the outputs of the
+last Transformer block.
+model follows an autoregressive process. Each time the language model takes a token xi−1 as
+input and predicts a token xi that maximizes the probability Pr(xi |x0 , ..., xi−1 ). It is important
+to note that, despite different implementation details, many LLMs share the same architecture
+described above. These models are called large because both their depth and width are significant.
+Table 2.2 shows the model sizes for a few LLMs, as well as their model setups.
+2.1.2 Training LLMs
+Now suppose that we are given a training set D comprising K sequences. The log-likelihood of
+each sequence x = x0 ...xm in D can be calculated using a language model
+m
+X
+Lθ (x) = log Prθ (xi |x0 , ..., xi−1 ) (2.13)
+i=1
+Here the subscript θ affixed to L(·) and Pr(·) denotes the parameters of the language model. Then,
+the objective of maximum likelihood training is defined as
+X
+θ̂ = arg max Lθ (x) (2.14)
+θ x∈D
+Training Transformer-based language models with the above objective is commonly viewed
+as a standard optimization process for neural networks. This can be achieved using gradient
+descent algorithms, which are widely supported by off-the-shelf deep learning toolkits. Somewhat
+2.1 A Brief Introduction to LLMs 41
+LLM # of Parameters Depth L Width d # of Heads
+(Q/KV)
+GPT-1 [Radford et al., 2018] 0.117B 12 768 12/12
+GPT-2 [Radford et al., 2019] 1.5B 48 1,600 25/25
+GPT-3 [Brown et al., 2020] 175B 96 12,288 96/96
+7B 32 4,096 32/32
+LLaMA2 [Touvron et al., 2023b] 13B 40 5,120 40/40
+70B 80 8,192 64/64
+8B 32 4,096 32/8
+LLaMA3/3.1 [Dubey et al., 2024] 70B 80 8,192 64/8
+405B 126 16,384 128/8
+2B 26 2,304 8/4
+Gemma2 [Team et al., 2024] 9B 42 3,584 16/8
+37B 46 4,608 32/16
+0.5B 24 896 14/2
+Qwen2.5 [Yang et al., 2024] 7B 28 3,584 28/4
+72B 80 8,192 64/8
+DeepSeek-V3 [Liu et al., 2024a] 671B 61 7,168 128/128
+7B 32 4,544 71/71
+Falcon [Penedo et al., 2023] 40B 60 8,192 128/128
+180B 80 14,848 232/232
+Mistral [Jiang et al., 2023a] 7B 32 4,096 32/32
+Table 2.2: Comparison of some LLMs in terms of model size, model depth, model width, and number of heads (a/b
+means a heads for queries and b heads for both keys and values).
+surprisingly, better results were continuously yielded as language models were evolved into more
+computationally intensive models and trained on larger datasets [Kaplan et al., 2020]. These
+successes have led NLP researchers to continue increasing both the training data and model size
+in order to build more powerful language models.
+However, as language models become larger, we confront new training challenges, which
+significantly change the problem compared to training relatively small models. One of these
+challenges arises from the need for large-scale distributed systems to manage the data, model
+parameters, training routines, and so on. Developing and maintaining such systems requires a
+significant amount of work in both software and hardware engineering, as well as expertise in deep
+learning. A related issue is that when the training is scaled up, we need more computing resources
+to ensure the training process can be completed in an acceptable time. For example, it generally
+requires hundreds or thousands of GPUs to train an LLM with tens of billions of parameters
+from scratch. This requirement drastically increases the cost of training such models, especially
+considering that many training runs are needed as these models are developed. Also, from the
+perspective of deep learning, the training process can become unstable if the neural networks are
+very deep and/or the model size is very large. In response, we typically need to modify the model
+architecture to adapt LLMs to large-scale training. In Section 2.2 we will present more discussions
+on these issues.
+42 Generative Models
+2.1.3 Fine-tuning LLMs
+Once we have pre-trained an LLM, we can then apply it to perform various NLP tasks. Tradi-

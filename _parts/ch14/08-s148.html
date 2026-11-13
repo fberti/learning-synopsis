@@ -1,0 +1,176 @@
+
+<!-- ===================================================== 14.8 -->
+<section id="s148">
+<h2>14.8 Értékelés és kockázatok ★★</h2>
+<p>Egy osztályozónál egyszerű a mérés: hány címkét talált el. Egy generatív modellnél nincs „helyes” kép. Három kérdést kell külön feltenni: <b>jók-e</b> a minták (minőség), <b>elég sokfélék-e</b> (lefedettség), és <b>újak-e</b> (nem másolatok). Az utolsó kérdés már nem csak technikai: a másolás jogi kérdés, a hiteles hamisítvány pedig társadalmi.</p>
+
+<h3 id="s148-a">1. lépés: hogyan mérjük? – FID, pontosság, felidézés</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két rossz modell, ugyanaz a pontszám</span>
+  Tegyük fel, hogy minden képből egyetlen „jellemzőszámot” nyerünk ki (pl. egy osztályozó egy neuronjának értékét). A valódi képeken ez $\mathcal N(5;\ 2^2)$ eloszlású. Két modell:
+  <ul style="margin:.2rem 0">
+    <li><b>A modell:</b> $\mathcal N(5;\ 1^2)$ – jó helyen, de <b>túl szűk</b>: csak a „tipikus” képeket rajzolja, a szokatlanokat nem;</li>
+    <li><b>B modell:</b> $\mathcal N(6;\ 2^2)$ – elég sokféle, de <b>el van tolva</b>: minden képe kicsit „furcsa”.</li>
+  </ul>
+  Két normális eloszlás <b>Fréchet-távolsága</b> egy dimenzióban $(\mu_1 - \mu_2)^2 + (\sigma_1 - \sigma_2)^2$. Az A modellé: $0 + 1 = 1$, B modellé: $1 + 0 = 1$. Ugyanaz a szám, egészen más hiba: A-nak a <b>sokfélesége</b>, B-nek a <b>minősége</b> gyenge.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – a generatív modellek fő mérőszámai</span>
+  <ul style="margin:.2rem 0">
+    <li><b>NLL</b> (bit/adatpont, <a href="#s141-c">14.1</a>): ha a modell ad valószínűséget (autoregresszív; VAE-nél csak korlát; GAN-nál nincs). Tesztadaton mérjük.</li>
+    <li><b>FID</b> (<em>Fréchet Inception Distance</em>, M. Heusel és társai, 2017): a valódi és a generált képeket egy előtanított képosztályozó (Inception-v3) 2048 dimenziós jellemzőterébe képezzük, mindkét felhőre normális eloszlást illesztünk ($\boldsymbol\mu$, $\Sigma$), és a kettő távolsága:
+      $$\mathrm{FID} = \lVert \boldsymbol\mu_1 - \boldsymbol\mu_2 \rVert^2 + \operatorname{Tr}\big(\Sigma_1 + \Sigma_2 - 2(\Sigma_1\Sigma_2)^{1/2}\big).$$
+      Kisebb a jobb; 0, ha a két felhő átlaga és kovarianciája megegyezik.</li>
+    <li><b>Pontosság és felidézés</b> (<em>precision, recall</em>, T. Kynkäänniemi és társai, 2019): a jellemzőtérben minden pont köré gömböt rajzolunk a $k$-adik legközelebbi szomszédjáig ($k = 3$). <b>Pontosság</b>: a generált minták hányad része esik a valódi képek gömbjeibe (minőség). <b>Felidézés</b>: a valódi képek hányad része esik a generált minták gömbjeibe (lefedettség).</li>
+    <li><b>Emberi értékelés</b>: páros összevetés („melyik jobb?”), nyilvános rangsorok; szöveges feltételnél azt is, mennyire felel meg a kép a feliratnak (pl. CLIP-hasonlósággal).</li>
+  </ul>
+  <b>Miért ennyi?</b> Mert a minőség és a lefedettség két külön dolog (a kiinduló példa), és egyetlen szám vagy összemossa, vagy csak az egyiket látja.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a VAE a számjegyeken</span>
+    A 14.9 8 számos kódú VAE-je: pontosság 0,99, felidézés 0,08. Szinte minden mintája „valódi számjegyek környékén” van, de a valódi számjegyek változatosságának csak kis részét fedi le: a homályos átlagképek egy szűk, tipikus sávban vannak – mint az A modell.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a FID vaksága</span>
+    Egy „modell”, amely egyszerűen <b>tanítóképeket</b> ad vissza, a 450 tesztképhez mérve FID 23,3-at kap – jobbat, mint bármelyik valódi modellünk. A FID nem kérdezi, újak-e a minták. A másolást külön kell vizsgálni (<a href="#s148-b">2. lépés</a>).
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A FID csak ugyanazzal a beállítással vethető össze</b>: ugyanaz a jellemzőkinyerő, ugyanannyi minta (a cikkek általában 50 000-et használnak), ugyanaz a referenciahalmaz. Kevés mintánál torz.</li>
+    <li><b>A FID az Inception „szemével” lát.</b> Ami egy 2015-ös ImageNet-osztályozónak nem fontos, azt nem méri; a normális eloszlás feltevése sem igaz. 2024-ben a Google kutatói (S. Jayasumana és társai) kimutatták, hogy modern szövegből kép modelleknél a FID ellentmondhat az emberi ítéletnek, és CLIP-alapú mértéket (CMMD) javasoltak.</li>
+    <li><b>A kis NLL nem jelent szép mintát</b>, és fordítva. Egy modell lehet jó tömörítő, és mégis rajzolhat furcsa képeket.</li>
+    <li><b>A kiválogatott minták nem mérés.</b> A cikkek és hirdetések „legszebb” mintái semmit nem mondanak az átlagról.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – mérőszámok</summary>
+  <ol>
+    <li>Mennyi az egydimenziós Fréchet-távolság $\mathcal N(5;\ 2^2)$ és $\mathcal N(5{,}5;\ 1{,}5^2)$ között?
+      <details><summary>Megoldás</summary>$0{,}5^2 + 0{,}5^2 = 0{,}5$.</details></li>
+    <li>Egy modell pontossága 0,95, felidézése 0,2. Milyenek a mintái?
+      <details><summary>Megoldás</summary>Jó minőségűek (szinte mind valódinak látszik), de kevéssé sokfélék – a valódi képek nagy részéhez nincs hasonló minta. Módusösszeomlás vagy „óvatos” (VAE-szerű) modell gyanús.</details></li>
+    <li>És ha a pontosság 0,4, a felidézés 0,9?
+      <details><summary>Megoldás</summary>Sokféle, a valódi képek szinte mindegyikéhez van hasonló minta, de a minták többsége nem valószerű – zajos, „mindent rajzoló” modell (pl. a független pixelek modellje).</details></li>
+    <li>Miért nem elég a generált képeket egy osztályozóval „felismertetni”?
+      <details><summary>Megoldás</summary>Mert ez csak a minőséget (felismerhetőséget) méri. Egy modell, amely csak egyetlen, tökéletes hetest rajzol, 100%-ban felismert lenne. Az osztályok aránya (lefedettség) és a sokféleség külön kell.</details></li>
+    <li>(nehezebb) Egy cikk 1000 mintán mért FID-et közöl, egy másik 50 000-en. Összevetheted-e a két számot? Miért?
+      <details><summary>Megoldás</summary>Nem. A FID becslése kevés mintánál felfelé torzít (a kovariancia becslése zajos), ezért az 1000 mintás FID nagyobb lesz akkor is, ha a modell ugyanolyan jó. Ugyanannyi mintával, ugyanazzal a referenciahalmazzal és jellemzőkinyerővel kell mérni.</details></li>
+  </ol>
+</details>
+
+<h3 id="s148-b">2. lépés: másol-e a modell? – memorizálás és szerzői jog</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a legközelebbi szomszéd</span>
+  A legegyszerűbb próba: minden generált mintához keresd meg a <b>legközelebbi tanítóképet</b>, és nézd meg a távolságot. A 14.9 számjegyein a <b>valódi tesztképek</b> legközelebbi tanítóképe (medián) 16,7 egységre van (pixelenkénti eltérések négyzetösszegének gyöke, 0–16-os skálán). Egy jó modell mintái is ennyire legyenek – se sokkal közelebb (másolás), se sokkal távolabb (furcsaság). A diffúziós modellünk: 17,3; a „másoló”: 0.
+</div>
+<div class="box def">
+  <span class="box-title">Fogalom – memorizálás és kinyerés</span>
+  Egy generatív modell <b>memorizál</b>, ha (szinte) pontos másolatát tudja előállítani egyes tanítópéldáknak. A <b>kinyerési támadás</b> ezt célzottan keresi: sok mintát generál, és megnézi, melyik esik egy tanítókép közvetlen közelébe.
+  <ul style="margin:.2rem 0">
+    <li>N. Carlini és társai (2023) a Stable Diffusionnal a tanítóhalmaz 350 000 leggyakrabban ismétlődő képének feliratával 175 millió képet generáltak: <b>109</b> közel-másolatot találtak. A Google Imagen modelljénél az 1000 leggyakoribb feliratból <b>23</b>-hoz. A kinyert képek jellemzően <b>legalább százszor</b> szerepeltek a tanítóadatban.</li>
+    <li>G. Somepalli és társai (2023) véletlen feliratokból generált képeinek kb. 1,9%-ánál találtak jelentős (gyakran részleges: háttér, tárgy) egyezést egy tanítóképpel.</li>
+  </ul>
+  <b>Miért történik?</b> A 14.6-ban láttuk: véges tanítóhalmazon a <b>tökéletes</b> zajtalanító csak tanítóképeket rajzol. A valódi háló a sokszor látott képekre közel kerül ehhez az ideálhoz – a ritkán látottakra simít. Ezért a <b>duplikátumok kiszűrése</b> a tanítóadatból a fő védekezés.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – simítás a síkon</span>
+    A diffusion-2d widgetben a $h = 0$ (tökéletes zajtalanító) mintái 1000 lépéssel mind tanítópontok. $h$ növelésével a másolatok aránya gyorsan esik (1000 lépéssel $h = 0{,}02$: 16%, $h = 0{,}05$: 2,3%, $h = 0{,}1$: 1%), a minták kitöltik az alakzatot. Egy neurális háló tanítás közben valami ilyesmit tesz: a véges tanítási idő, a háló felépítése és mérete „simít”. Z. Kadkhodaie és társai (2024) kimutatták: kis tanítóhalmazon a diffúziós háló memorizál, nagy halmazon viszont két, <b>közös kép nélküli</b> fél-halmazon tanított háló ugyanabból a zajból <b>szinte ugyanazt</b> a képet rajzolja – vagyis az adatok általános szerkezetét tanulták meg.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – mekkora a kockázat?</span>
+    A 109 közel-másolat 175 millió generálásból kb. 1,6 millió képenként egy – de célzott kereséssel, a legtöbbször ismétlődő képekre. Egy átlagos kérés ritkán ad másolatot; egy ismert festmény, logó vagy sokszor posztolt fotó nevére viszont könnyebben.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">📅 Kiegészítés – szerzői jog, 2026 novemberi állapot (nem jogi tanács)</span>
+  A források (tankönyvek) erről nem írnak; a helyzet országonként eltér, és sok ügy folyamatban van.
+  <ul style="margin:.2rem 0">
+    <li><b>Getty Images v. Stability AI</b> (Egyesült Királyság, 2025. november 4.): a bíróság szerint a Stable Diffusion modell <b>nem tartalmaz</b> jogsértő másolatot a tanítóképekről, ezért a másodlagos szerzői jogsértési igény elbukott; a védjegy-igényben (Getty-vízjelek egyes régi modellek kimenetén) a Getty szűk részsikert ért el. 2025 decemberében fellebbezési engedélyt kapott.</li>
+    <li><b>Bartz v. Anthropic</b> (USA, szöveg): a bíró 2025-ben a megvásárolt könyvekkel való tanítást méltányos használatnak (<em>fair use</em>), a kalózkönyvtárakból letöltött könyvek tárolását nem annak ítélte; az ügy 1,5 milliárd dolláros egyezséggel zárult (kb. 3000 dollár/mű, végleges jóváhagyás 2026. július).</li>
+    <li><b>Thomson Reuters v. Ross</b> (USA): 2026 szeptemberében egy szövetségi fellebbviteli bíróság megerősítette, hogy egy (nem generatív) MI tanítása a Westlaw kivonataival nem méltányos használat – az első fellebbviteli döntés MI-tanításról. A generatív modellek kérdését nyitva hagyta.</li>
+    <li><b>GEMA v. OpenAI</b> (Németország, München, 2025. november): dalszövegek memorizálása és visszaadása miatt a bíróság nagyrészt a szerzői jogkezelőnek adott igazat.</li>
+    <li>Folyamatban: <b>New York Times v. OpenAI és Microsoft</b>, <b>Andersen v. Stability AI</b> (képzőművészek csoportos pere).</li>
+  </ul>
+  <small>Források: ítéletek és ügyvédi összefoglalók (AIPPI, CMS AI-ügykövető, Authors Guild, IPWatchdog), 2025–2026; Carlini és társai, USENIX Security 2023; Somepalli és társai, CVPR 2023; Kadkhodaie és társai, ICLR 2024.</small>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>„Nem másolatot rajzol” ≠ „sosem másol”.</b> A legtöbb minta új, de a sokszor ismétlődő tanítóképek kinyerhetők. Mindkét állítás igaz.</li>
+    <li><b>A stílus nem kép.</b> Egy festő <b>stílusában</b> rajzolni (vonalvezetés, színvilág) más kérdés, mint egy konkrét <b>képét</b> visszaadni. Jogilag a stílus általában nem védett, a konkrét mű igen – a határ vitatott.</li>
+    <li><b>A saját kimenetén tanuló modell romlik.</b> Ha a generált képek (szövegek) visszakerülnek a következő modell tanítóadatába, generációról generációra elvesznek a ritka esetek, a „farkak” (I. Shumailov és társai, <em>Nature</em>, 2024: <em>model collapse</em>). A generált adat nem pótolja a valódit.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – memorizálás</summary>
+  <ol>
+    <li>Egy modell 450 mintájából 30-nak a legközelebbi tanítóképtől mért távolsága 0. Mit jelent ez?
+      <details><summary>Megoldás</summary>30 minta (6,7%) pontos másolata egy tanítóképnek – a modell memorizál. Meg kell nézni, mely képek ezek (valószínűleg sokszor ismétlődők).</details></li>
+    <li>A tesztképek legközelebbi tanítóképe medián 16,7-re van. Egy modell mintáié 30. Másol-e? Jó-e?
+      <details><summary>Megoldás</summary>Nem másol, de a mintái távolabb vannak minden tanítóképtől, mint egy valódi új kép – valószínűleg zajosak vagy furcsák (gyenge minőség). (Vigyázat: fekete-fehér és szürke képek távolsága nem vethető össze közvetlenül.)</details></li>
+    <li>Miért csökkenti a duplikátumok kiszűrése a memorizálást?
+      <details><summary>Megoldás</summary>Mert a sokszor ismétlődő képre a zajtalanító sokszor tanul, és közel kerül az „ideális”, másoló viselkedéshez; ha egy kép egyszer szerepel, a háló inkább simít.</details></li>
+    <li>Carlini és társai 175 millió képből 109 közel-másolatot találtak. Ez képenként mekkora arány?
+      <details><summary>Megoldás</summary>$109 / 175\,000\,000 \approx 6{,}2 \cdot 10^{-7}$, kb. 1,6 millió képenként egy – de célzott keresésben, a leggyakoribb képek feliratával.</details></li>
+    <li>(nehezebb) Egy csapat a modellje mintáival bővíti a tanítóadatot, és újratanít, többször egymás után. Mire figyelmeztetnéd őket?
+      <details><summary>Megoldás</summary>A <em>model collapse</em>-ra: minden kör a modell saját eloszlásából húz, amely a ritka eseteket alulreprezentálja; ezek generációról generációra fogynak, a sokféleség csökken, a hibák pedig felhalmozódnak. Mindig maradjon valódi adat a keverékben, és mérjék a felidézést.</details></li>
+  </ol>
+</details>
+
+<h3 id="s148-c">3. lépés: alkotás és visszaélés – stílusátvitel, deepfake, eredetigazolás</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy rejtett jel a szövegben</span>
+  Egy egyszerű szöveges vízjel (J. Kirchenbauer és társai, 2023): a nyelvi modell minden lépésben a szótárat az előző token alapján, egy titkos kulccsal két félre osztja („zöld” és „piros” lista), és kicsit a zöld tokenek felé tolja a választást. Egy 200 tokenes szövegben vízjel nélkül kb. 100 zöld token várható (szórás $\sqrt{200 \cdot 0{,}25} \approx 7{,}1$). Ha 130-at találunk:
+  $$z = \frac{130 - 100}{7{,}1} \approx 4{,}2$$
+  – ennyi zöld token véletlenül szinte sosem jön össze (vö. a <a href="../../matematikai-statisztika/07-hipotezisvizsgalat/">hipotézisvizsgálattal</a>). A szöveg olvasója semmit nem vesz észre; aki ismeri a kulcsot, kimutatja.
+</div>
+<div class="box def">
+  <span class="box-title">Fogalom – deepfake, és a három védekezés</span>
+  <b>Deepfake</b>: generatív modellel készült, valódinak tűnő kép, hang vagy videó egy létező emberről (arccsere, hangklónozás, „beszélő fej”). Védekezés:
+  <ol style="margin:.2rem 0">
+    <li><b>Felismerés</b> utólag: osztályozó, amely a generált tartalom árulkodó jegyeit keresi. Fegyverkezési verseny: minden új generátor ellen újra kell tanítani, és tömörítés, átméretezés után megbízhatatlan.</li>
+    <li><b>Vízjel</b> a generáláskor: a modell a kimenetbe rejtett, statisztikailag kimutatható jelet tesz (pl. a Google DeepMind <b>SynthID</b>-je képben, hangban, videóban, szövegben; 2025-ig több mint 10 milliárd tartalmon). Csak a vízjelező rendszerek kimenetére működik, és átírással gyengíthető.</li>
+    <li><b>Eredetigazolás</b>: kriptográfiailag aláírt metaadat arról, ki, mivel, mikor készítette és szerkesztette a tartalmat (<b>C2PA</b> / <em>Content Credentials</em> szabvány; pl. az OpenAI a generált képeihez csatolja). A „valódi” fotó is igazolhatóvá válik – de a metaadat le is vágható.</li>
+  </ol>
+  <b>Szabályozás 📅:</b> az EU MI-rendelete (AI Act) 50. cikke szerint a generált tartalmat gépileg olvashatóan jelölni kell, a deepfake-et pedig a felhasználónak is fel kell tüntetnie. A kötelezettségek 2026. augusztus 2-tól alkalmazandók; a 2026 júliusi módosítás („Digital Omnibus”, (EU) 2026/1744) a már piacon lévő rendszereknek a gépi jelölésre 2026. december 2-ig haladékot adott, és ugyanettől a naptól megtiltja a hozzájárulás nélküli intim képeket gyártó („vetkőztető”) alkalmazásokat.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – stílusátvitel, az alkotó oldal</span>
+    L. Gatys és társai (2015) egy fényképet „Van Gogh stílusában” rajzoltak újra: egy előtanított CNN (<a href="../11-konvolucios-halok/">11. fejezet</a>) mély rétegeinek aktivációi írták le a <b>tartalmat</b>, a csatornák közti korrelációk (a Gram-mátrix) a <b>stílust</b>; a kép pixeleit gradiensmódszerrel addig változtatták, amíg a tartalma a fényképé, a stílusa a festményé lett. Ugyanez az ötlet él tovább a StyleGAN „stílusaiban” és a mai kép-ből-kép eszközökben.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy valódi csalás</span>
+    2024 januárjában az Arup mérnöki cég hongkongi irodájának egyik munkatársa egy videóhívásban a „pénzügyi igazgató” és több „kolléga” utasítására 15 utalásban kb. 200 millió hongkongi dollárt (kb. 25 millió USD) küldött el. A hívás többi résztvevője deepfake volt. (A cég 2024 májusában erősítette meg.)
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Nincs megbízható általános „MI-detektor”.</b> Sem képre, sem szövegre. Egy felismerő magabiztos „emberi” vagy „gépi” ítélete önmagában nem bizonyíték – a téves vád is kár.</li>
+    <li><b>A vízjel hiánya nem bizonyítja a valódiságot.</b> Csak annyit mond: ez a tartalom nem egy vízjelező rendszerből jött (vagy a jelet eltávolították).</li>
+    <li><b>A „hazug osztaléka”.</b> Ha bármi lehet hamis, a valódi felvételt is le lehet hamisítványnak tagadni. Ezért fontos, hogy a hiteles tartalom is igazolható legyen (eredetigazolás).</li>
+    <li><b>Hívd vissza.</b> Pénzt, jelszót kérő hang- vagy videóhívásnál egy előre ismert csatornán történő visszahívás erősebb védelem bármely detektornál.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – vízjel és eredet</summary>
+  <ol>
+    <li>Egy 50 tokenes szövegben 30 zöld token van (vízjel nélkül 25 várható, szórás $\sqrt{50 \cdot 0{,}25} \approx 3{,}54$). Mennyi a $z$? Meggyőző-e?
+      <details><summary>Megoldás</summary>$z = 5 / 3{,}54 \approx 1{,}41$ – nem meggyőző; ennyi véletlenül is gyakran előfordul. Rövid szövegen a vízjel gyenge.</details></li>
+    <li>200 tokenben 115 zöld. Mennyi $z$?
+      <details><summary>Megoldás</summary>$15 / 7{,}07 \approx 2{,}1$ – gyanús, de nem erős bizonyíték (egyoldalú $p \approx 0{,}02$).</details></li>
+    <li>Mi a különbség a vízjel és a C2PA-eredetigazolás között?
+      <details><summary>Megoldás</summary>A vízjel magában a tartalomban (pixelekben, tokenválasztásban) rejtett statisztikai jel; a C2PA a tartalomhoz csatolt, aláírt metaadat. A metaadat egy képernyőképpel elveszhet; a vízjel túlélheti, de átírással, erős szerkesztéssel gyengül.</details></li>
+    <li>Egy deepfake-felismerő 99%-os pontosságú egy teszthalmazon. Miért lehet mégis megbízhatatlan a gyakorlatban?
+      <details><summary>Megoldás</summary>Mert a teszthalmaz a régi generátorokból készült, az új generátorok másképp hibáznak; a tömörítés, átméretezés eltünteti a jegyeket; és ha a hamis tartalom ritka, a téves riasztások aránya nagy lehet (vö. a <a href="../06-modellertekeles/">6. fejezet</a> alapgyakoriság-csapdájával).</details></li>
+    <li>(nehezebb) Egy politikai kampányban egy hangfelvétel kering, amelyen egy jelölt botrányos dolgot mond. Milyen ellenőrzési lépéseket javasolnál?
+      <details><summary>Megoldás</summary>Az eredet ellenőrzése (ki tette közzé először, van-e C2PA-adat, vízjel); a körülmények (hol, mikor, kik hallották); az érintett és a tanúk megkérdezése; több független szakértői elemzés (egy detektor ítélete önmagában kevés); és óvatos közlés – sem a hamisnak bizonyulás, sem a „biztos hamis” nem jelenthető ki bizonyíték nélkül.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai14-148"></div>
+</section>

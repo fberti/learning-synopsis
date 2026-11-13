@@ -1,0 +1,176 @@
+
+<!-- ===================================================== 14.5 -->
+<section id="s145">
+<h2>14.5 Generatív versengő hálók (GAN) ★★</h2>
+<p>A VAE minden kódhoz egy átlagos, ezért elmosódott képet rajzol, mert a veszteség pixelenként méri a hibát. Mi lenne, ha a „jó kép” mércéjét is megtanulnánk? I. Goodfellow és társai 2014-es ötlete: tanítsunk két hálót egymás ellen. A <b>generátor</b> (hamisító) képeket gyárt; a <b>diszkriminátor</b> (detektív) megpróbálja megkülönböztetni őket a valódiaktól. A hamisító abból tanul, mit vett észre a detektív.</p>
+
+<h3 id="s145-a">1. lépés: hamisító és detektív – mit tud a legjobb detektív?</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy kezdő hamisító a 2 × 2-es világban</span>
+  A gyerekrajzok eloszlása $p_{\text{adat}}$, a hamisítóé $p_G$. Egy kezdő hamisító túl sok felső csíkot rajzol, átlót egyet sem, és néha fordított átlót:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>kép</th><td><code>1100</code></td><td><code>0011</code></td><td><code>1010</code></td><td><code>0101</code></td><td><code>1001</code></td><td><code>0110</code></td></tr>
+    <tr><th>$p_{\text{adat}}$</th><td>0,3</td><td>0,2</td><td>0,2</td><td>0,2</td><td>0,1</td><td>0</td></tr>
+    <tr><th>$p_G$</th><td>0,5</td><td>0,1</td><td>0,1</td><td>0,1</td><td>0</td><td>0,2</td></tr>
+    <tr><th>$D^*$ = „valódi” esélye</th><td>0,375</td><td>0,667</td><td>0,667</td><td>0,667</td><td>1</td><td>0</td></tr>
+  </table></div>
+  Ha a detektív egy képet lát, és fele-fele eséllyel kap valódit vagy hamisat, a legjobb tippje: $D^* = p_{\text{adat}} / (p_{\text{adat}} + p_G)$. Az átló biztosan valódi (a hamisító sosem rajzol ilyet), a fordított átló biztosan hamis. A $D^*$ tehát <b>megmutatja a hamisítónak, hol téved</b>: kevesebb felső csík és fordított átló, több átló.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – generátor, diszkriminátor, optimális detektív</span>
+  <ul style="margin:.2rem 0">
+    <li>A <b>generátor</b> egy háló, amely zajból képet csinál: $\mathbf z \sim \mathcal N(0, I)$, $\mathbf x = G(\mathbf z)$. A generált képek eloszlása $p_G$. A generátor <b>sosem látja</b> a valódi képeket – csak a detektív ítéletén keresztül tanul.</li>
+    <li>A <b>diszkriminátor</b> egy osztályozó: $D(\mathbf x) \in (0;\ 1)$ annak a becsült valószínűsége, hogy $\mathbf x$ valódi.</li>
+    <li>Rögzített $G$ mellett a legjobb diszkriminátor: $D^*(\mathbf x) = \dfrac{p_{\text{adat}}(\mathbf x)}{p_{\text{adat}}(\mathbf x) + p_G(\mathbf x)}$.</li>
+  </ul>
+  <b>Miért ez?</b> Bayes-tétel (<a href="../02-matematikai-eszkoztar/#s25-b">2.5</a>) fele-fele előzetes eséllyel: a „valódi” címke utólagos valószínűsége a két sűrűség aránya. Ha $p_G = p_{\text{adat}}$, akkor mindenhol $D^* = 0{,}5$: a detektív csak találgatni tud – ez a játék <b>egyensúlya</b>.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy ügyesebb hamisító</span>
+    Most $p_G$: <code>1100</code> 0,6, <code>0011</code> 0,2, <code>1010</code> 0,2. Ekkor $D^*(\texttt{1100}) = 0{,}3 / 0{,}9 \approx 0{,}33$, $D^*(\texttt{0011}) = D^*(\texttt{1010}) = 0{,}5$ (itt már jó!), $D^*(\texttt{0101}) = D^*(\texttt{1001}) = 1$ – ezeket a hamisító még sosem rajzolja.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy egyszerű detektív egy egyenesen</span>
+    Valódi adatok 3 körül, hamisak 1 körül. Egy logisztikus detektív (<a href="../05-osztalyozas/#s53-b">5.3</a>): $D(x) = \sigma(2x - 4)$. $D(3) \approx 0{,}88$, $D(1) \approx 0{,}12$, $D(2) = 0{,}5$. A hamisítónak „jobbra” kell tolnia a mintáit: arra nő a $D$.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A GAN tanítási módszer, nem hálótípus.</b> A „GAN” a betanított generátort is jelenti, de a lényeg a kétszereplős tanítás. A generátor lehet MLP, konvolúciós vagy Transformer.</li>
+    <li><b>A detektív nem általános „igazi-e?” gép.</b> Csak a valódi képeket és <b>ennek</b> a hamisítónak a képeit tanulta megkülönböztetni. Egy deepfake-felismerőnek nem elég egy GAN diszkriminátora.</li>
+    <li><b>A $D^* = 0{,}5$ nem jelenti, hogy a detektív rossz.</b> Egyensúlyban épp ez a helyes válasz: a két eloszlás egyforma.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – az optimális detektív</summary>
+  <ol>
+    <li>$p_{\text{adat}}(\mathbf x) = 0{,}2$, $p_G(\mathbf x) = 0{,}05$. Mennyi $D^*(\mathbf x)$?
+      <details><summary>Megoldás</summary>$0{,}2 / 0{,}25 = 0{,}8$.</details></li>
+    <li>Egy kép $D^*$-a 0,25. Hányszor gyakoribb a hamisító képei között, mint a valódiak között?
+      <details><summary>Megoldás</summary>$p_{\text{adat}}/(p_{\text{adat}} + p_G) = 0{,}25$ → $p_G = 3\,p_{\text{adat}}$: háromszor gyakoribb.</details></li>
+    <li>A hamisító csak felső csíkot rajzol ($p_G(\texttt{1100}) = 1$). Mennyi $D^*$ a felső csíkon és a többi rajzon?
+      <details><summary>Megoldás</summary>$D^*(\texttt{1100}) = 0{,}3 / 1{,}3 \approx 0{,}23$; a többi négy rajzon 1 (ott $p_G = 0$).</details></li>
+    <li>$D(x) = \sigma(2x - 4)$. Mennyi $D(2{,}5)$ és $D(0)$?
+      <details><summary>Megoldás</summary>$\sigma(1) \approx 0{,}73$; $\sigma(-4) \approx 0{,}018$.</details></li>
+    <li>(nehezebb) Mutasd meg, hogy ha $p_G = p_{\text{adat}}$, akkor egy detektív sem érhet el 50%-nál jobb találati arányt (fele-fele valódi és hamis képek esetén)!
+      <details><summary>Megoldás</summary>Bármely $\mathbf x$-re a „valódi” utólagos valószínűsége $p_{\text{adat}}(\mathbf x) / (p_{\text{adat}}(\mathbf x) + p_G(\mathbf x)) = 0{,}5$. Bármit tippel a detektív, minden képen pontosan 50% eséllyel talál – az átlag is 50%.</details></li>
+  </ol>
+</details>
+
+<h3 id="s145-b">2. lépés: a tanítás – felváltva, két veszteséggel</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy kör a játékban</span>
+  A detektív két képet lát: egy valódira $D = 0{,}8$-at, egy hamisra $D = 0{,}3$-at mond. Veszteségként a bináris keresztentrópiát használja (<a href="../05-osztalyozas/#s53-e">5.3</a>), a valódi címkéje 1, a hamisé 0:
+  $$\mathcal L_D = -\ln 0{,}8 - \ln(1 - 0{,}3) \approx 0{,}22 + 0{,}36 = 0{,}58.$$
+  Egy detektívlépés után a hamisító jön: azt akarja, hogy a $D = 0{,}3$ nőjön. A detektív gradiense megmondja, <b>merre</b> kell a képet változtatni, hogy „valódibbnak” tűnjön; ezt a visszaterjesztés a hamisító súlyaira viszi át. A detektív súlyai közben <b>nem</b> változnak.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – a GAN tanítása</span>
+  Felváltva, mini-kötegekben:
+  <ol style="margin:.2rem 0">
+    <li><b>Detektívlépés:</b> valódi képek (címke 1) és $G(\mathbf z)$ hamisítványok (címke 0); a $D$ súlyait a $\mathcal L_D = -\ln D(\mathbf x) - \ln\big(1 - D(G(\mathbf z))\big)$ szerint frissítjük.</li>
+    <li><b>Hamisítólépés:</b> új $\mathbf z$-k; a $G$ súlyait frissítjük úgy, hogy a $D(G(\mathbf z))$ nőjön. Az eredeti (<b>minimax</b>) változatban $G$ a $\ln\big(1 - D(G(\mathbf z))\big)$-t csökkenti; a gyakorlatban a <b>nem telítődő</b> változat: $\mathcal L_G = -\ln D(G(\mathbf z))$ – a hamisítványokat „valódi” címkével adjuk a detektívnek.</li>
+  </ol>
+  <b>Miért a nem telítődő?</b> Az elején a detektív könnyen nyer: $D(G(\mathbf z)) \approx 0$. A minimax-veszteség ott szinte vízszintes, a gradiens eltűnik – a hamisító nem tanul. A $-\ln D$ épp ott meredek, ahol a hamisító rossz.
+</div>
+<div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:640px">
+  <tr><th>$D(G(\mathbf z))$</th><th>minimax: a gradiens nagysága (a $D$ logitja szerint)</th><th>nem telítődő: a gradiens nagysága</th></tr>
+  <tr><td>0,9 (jó hamisítvány)</td><td>0,9</td><td>0,1</td></tr>
+  <tr><td>0,5</td><td>0,5</td><td>0,5</td></tr>
+  <tr><td>0,1</td><td>0,1</td><td>0,9</td></tr>
+  <tr><td>0,01 (rossz hamisítvány)</td><td>0,01</td><td>0,99</td></tr>
+</table></div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – az egyensúly vesztesége</span>
+    Ha $D = 0{,}5$ mindenhol, a detektív vesztesége $-\ln 0{,}5 - \ln 0{,}5 = 2\ln 2 \approx 1{,}39$. A GAN-tanításban a veszteség <b>nem</b> megy 0-ra: ha a detektív vesztesége 0, az baj – a hamisító reménytelenül le van maradva.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy erős detektív</span>
+    $D(\text{valódi}) = 0{,}9$, $D(\text{hamis}) = 0{,}1$: $\mathcal L_D = -\ln 0{,}9 - \ln 0{,}9 \approx 0{,}21$. A hamisító nem telítődő vesztesége $-\ln 0{,}1 \approx 2{,}30$ – erős jelet kap. Minimaxszal csak $\ln 0{,}9 \approx -0{,}105$ lenne, és a gradiens (0,1) is kicsi.
+  </div>
+</div>
+<div class="widget" data-widget="gan-1d"></div>
+<p>A widget alapbeállításában (2 detektívlépés hamisítólépésenként) egycsúcsú adaton 12 magból 12-szer megtalálja a valódi eloszlást, a detektív vesztesége a 2 ln 2 ≈ 1,386 körül áll be. Ha bekapcsolod, hogy „a hamisító messziről indul”, a minimax-veszteséggel a 2. magnál a hamisító sosem indul el: $D(G(\mathbf z))$ 0,002 alá esik, a gradiens eltűnik – a nem telítődő veszteséggel ugyanez 250 lépés alatt célba ér. Kétcsúcsú adaton, 1 detektívlépéssel a 2. mag <b>tartósan összeomlik</b> (1000–5000 lépés között a minták 98–100%-a a bal csúcsnál van), három csúcsnál a 2. mag az alapbeállítással is kihagy egy csúcsot.</p>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A veszteség nem mutatja a minőséget.</b> Egy osztályozónál a csökkenő veszteség jó hír. GAN-nál a két veszteség egymás ellen dolgozik, ingadozik; a képek minőségét külön kell mérni (<a href="#s148-a">14.8</a>).</li>
+    <li><b>Ne tanítsd a detektívet a végtelenségig.</b> Ha tökéletes, a hamisító jele (minimaxnál) eltűnik. A két háló tempóját egyensúlyban kell tartani.</li>
+    <li><b>A hamisítólépésben a detektív „befagy”.</b> A gradiens átfolyik rajta, de csak a hamisító súlyai változnak – különben a detektív „segítene” a hamisítónak.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a GAN vesztesége</summary>
+  <ol>
+    <li>$D(\text{valódi}) = 0{,}6$, $D(\text{hamis}) = 0{,}6$. Mennyi a detektív vesztesége?
+      <details><summary>Megoldás</summary>$-\ln 0{,}6 - \ln 0{,}4 \approx 0{,}51 + 0{,}92 = 1{,}43$ – rosszabb, mint az egyensúlyi 1,39: a hamisat valódibbnak tartja, mint a valódit.</details></li>
+    <li>Mennyi a hamisító nem telítődő vesztesége, ha $D(G(\mathbf z)) = 0{,}5$, illetve $0{,}05$?
+      <details><summary>Megoldás</summary>$-\ln 0{,}5 \approx 0{,}69$; $-\ln 0{,}05 \approx 3{,}00$.</details></li>
+    <li>Melyik állítás igaz? (a) A hamisító lépésében a detektív súlyai is frissülnek. (b) A hamisító látja a valódi képeket. (c) A hamisító a detektív gradiensén keresztül tanul.
+      <details><summary>Megoldás</summary>Csak (c). A detektív befagy, és a hamisító sosem kap valódi képet – csak a detektív ítéletét.</details></li>
+    <li>Az elején $D(G(\mathbf z)) = 0{,}02$. Hányszor nagyobb gradienst ad a nem telítődő veszteség, mint a minimax (a táblázat szerinti mértékkel)?
+      <details><summary>Megoldás</summary>$0{,}98 / 0{,}02 = 49$-szer nagyobbat.</details></li>
+    <li>(nehezebb) Miért mondják, hogy a GAN-nak „nincs” veszteségfüggvénye úgy, mint egy osztályozónak?
+      <details><summary>Megoldás</summary>Mert a hamisító célja a <b>detektívtől</b> függ, a detektív pedig közben változik. Nem egy rögzített felület aljára lépkedünk, hanem egy kétszereplős játék egyensúlyát (nyeregpontját) keressük. Gradiensmódszerrel ez nem garantáltan konvergál: a két háló körbe is kergetheti egymást (<a href="#s145-c">3. lépés</a>).</details></li>
+  </ol>
+</details>
+
+<h3 id="s145-c">3. lépés: instabilitás és módusösszeomlás – és mire jó ma a GAN?</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a hamisító, aki csak felső csíkot rajzol</span>
+  Tegyük fel, hogy a hamisító rájött: a felső csíkot a detektív „elég valódinak” tartja. Ezentúl csak azt rajzolja. A legjobb detektív: $D^*(\texttt{1100}) = 0{,}3/1{,}3 \approx 0{,}23$ – most már gyanús. A hamisító erre átáll mondjuk az alsó csíkra; a detektív megtanulja, hogy az alsó csík gyanús; a hamisító átáll a bal csíkra… A két háló <b>körbe kergeti</b> egymást, és a hamisító sosem rajzol <b>egyszerre</b> többféle csíkot. Ez a <b>módusösszeomlás</b> (<em>mode collapse</em>).
+</div>
+<div class="box def">
+  <span class="box-title">Fogalom – módusösszeomlás és instabilitás</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Módusösszeomlás:</b> a generátor az adateloszlásnak csak egy vagy néhány „csúcsát” (módusát) rajzolja; sok különböző $\mathbf z$-ből ugyanaz vagy nagyon hasonló kép jön. <b>Teljes</b>: egyetlen kép; <b>részleges</b>: egyes fajták túl gyakoriak, mások hiányoznak. (Goodfellow és társai már 2014-ben leírták, „Helvetica-forgatókönyv” néven.)</li>
+    <li><b>Instabilitás:</b> a tanítás oszcillál, elszáll, vagy a detektív teljesen nyer. A GAN érzékeny a hálók méretére, a tanulási rátára, a két háló tempójára.</li>
+  </ul>
+  <b>Miért történik?</b> A hamisítót csak az érdekli, hogy <b>minden egyes</b> képe valódinak tűnjön – azt senki nem kéri tőle, hogy a képek <b>együtt</b> olyan változatosak legyenek, mint az adat. Egy jól sikerült kép ismételgetése rövid távon kifizetődik. (A VAE és a diffúziós modell veszteségében minden tanítókép szerepel, ezért ők ritkán „felejtenek ki” fajtákat.)
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – részleges összeomlás számjegyeken</span>
+    R. Kneusel egy MNIST-en tanított GAN 1000 mintáját osztályozta: az 1-es 21,4%, a 7-es 14,4%, a 2-es és a 8-as egyaránt csak 4,4% volt – a várható 10–10% helyett. A mi 8 × 8-as GAN-unk 450 mintájában a legritkább osztály (5-ös) 6,2%, a leggyakoribb (9-es) 13,3%: enyhe egyenetlenség.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – ugyanaz a 16 zajvektor, tanítás közben</span>
+    Az alábbi widget a 8 × 8-as GAN-unk képeit mutatja ugyanabból a 16 zajvektorból, különböző epochok után. Az 1. epochban pacák. Az 5–50. epochban <b>teljes módusösszeomlás</b>: mind a 16 zajvektorból ugyanaz a kép lesz (a 16 kép átlagos páronkénti távolsága 8–10, 16 valódi tesztképé 48,7). A 100. epochtól a generátor kiszabadul: a távolság 32-re, a 600. epochra 43-ra nő, a képek sokfélék és számjegyszerűek.
+  </div>
+</div>
+<div class="widget" data-widget="gan-epochs"></div>
+<div class="box tip">
+  <span class="box-title">📅 Állapot: 2026 – a GAN-ok szerepe</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Csúcspont, 2019–2021:</b> a <b>StyleGAN</b> (T. Karras és társai, NVIDIA, 2019) 70 000 arcképen tanulva fényképszerű, nem létező arcokat rajzolt – ez volt a fejezet első rejtvényének weboldala (Ph. Wang, 2019. február). A StyleGAN a zajvektort „stílusokra” bontja, és rétegenként adagolja (a stílusátvitel ötletéből, <a href="#s148-c">14.8</a>).</li>
+    <li><b>Ma:</b> önálló képgenerátorként a GAN-t 2021–2022 után a diffúziós modellek váltották le (stabilabb tanítás, jobb lefedettség, könnyű szöveges irányítás). A versengő veszteség viszont <b>alkatrészként</b> él tovább: a látens diffúzió autoenkóderét egy kis diszkriminátor élesíti (R. Rombach és társai, 2022), és a gyors, 1–4 lépéses diffúziós modelleket (pl. SDXL Turbo, 2023) versengő desztillációval tanítják. 2024-ben egy „modernizált GAN” (R3GAN, NeurIPS 2024) ismét versenyképes eredményt ért el – a kérdés nem zárult le.</li>
+  </ul>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Módusösszeomlás ≠ túlillesztés.</b> A túlillesztett modell a <b>tanítóképeket</b> jegyzi meg; az összeomlott GAN néhány (nem feltétlenül tanító-) képet ismételget. Az egyik a memorizálás, a másik a sokféleség hiánya.</li>
+    <li><b>Egy rácsnyi szép minta nem bizonyíték.</b> A kiválogatott minták elrejtik az összeomlást. Nézz sok véletlen mintát, és mérd az osztályok arányát vagy a felidézést (<a href="#s148-a">14.8</a>).</li>
+    <li><b>Nincs valószínűség.</b> A GAN nem ad $p(\mathbf x)$-et: NLL-t nem tudsz rá számolni, anomáliát sem tudsz vele közvetlenül mérni.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – instabilitás és módusösszeomlás</summary>
+  <ol>
+    <li>Egy GAN 1000 számjegy-mintájában az osztályok aránya: 0: 0%, 1: 30%, 7: 25%, a többi 7 osztály egyenként kb. 6,4%. Milyen típusú összeomlás ez?
+      <details><summary>Megoldás</summary>Részleges: a 0-s teljesen hiányzik, az 1-es és a 7-es túl gyakori ($30 + 25 + 7 \cdot 6{,}4 \approx 100$%).</details></li>
+    <li>A hamisító csak alsó csíkot rajzol. Mennyi $D^*$ az alsó csíkon?
+      <details><summary>Megoldás</summary>$0{,}2 / (0{,}2 + 1) \approx 0{,}17$.</details></li>
+    <li>Miért nem tudja egy GAN a <a href="#s141-c">14.1</a> értelmében megmondani, mennyire szokatlan egy kép?
+      <details><summary>Megoldás</summary>Mert nem ad $p(\mathbf x)$-et, csak mintát. A detektív valószínűsége sem a kép valószínűsége: csak azt méri, a jelenlegi hamisítóhoz képest mennyire „valódi”.</details></li>
+    <li>Hogyan vennéd észre a módusösszeomlást egy arcgenerátornál, címkék nélkül?
+      <details><summary>Megoldás</summary>Sok véletlen mintát nézel, és a mintákon belüli hasonlóságot méred: ha sok minta szinte azonos (kis páronkénti távolság), vagy egy jellemzőkinyerő terében a minták csak kis részét fedik le a valódi képek felhőjének (kicsi felidézés), összeomlás gyanús.</details></li>
+    <li>(nehezebb) A VAE-nek a homály, a GAN-nak a módusösszeomlás a jellemző hibája. Magyarázd meg egy mondatban mindkettőt a veszteségükből!
+      <details><summary>Megoldás</summary>A VAE pixelenkénti rekonstrukciós vesztesége minden tanítóképet le akar fedni, és bizonytalan helyen átlagol → homály, de jó lefedettség. A GAN vesztesége minden egyes mintát külön ítél meg élesség szerint, a lefedettséget nem kéri → éles képek, de kimaradhatnak fajták.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai14-145"></div>
+</section>

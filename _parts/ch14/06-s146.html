@@ -1,0 +1,181 @@
+
+<!-- ===================================================== 14.6 -->
+<section id="s146">
+<h2>14.6 Diffúziós modellek ★★★</h2>
+<p>A GAN éles képeket rajzol, de a tanítása kényes, és kihagyhat fajtákat. A VAE stabil, minden képet lefed, de homályos. A <b>diffúziós modell</b> mindkét előnyt megtartja egy meglepő ötlettel: nem a képrajzolást tanítjuk, hanem a <b>zajszűrést</b> (vö. a zajszűrő autoenkóderrel, <a href="#s143-b">14.3</a>). Ha egy háló bármilyen erősen zajos képből meg tudja tippelni a tisztát, akkor <b>tiszta zajból</b> indulva, sok kis lépésben „kiszűrhet” egy képet – olyat, amilyen sosem volt.</p>
+
+<h3 id="s146-a">1. lépés: előre – a kép lépésenkénti zajosítása</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy fekete pixel öt lépésben</span>
+  A képeket most $[-1;\ 1]$-re skálázzuk: $-1$ fehér, $+1$ tinta. Vegyünk egy tintapixelt, $x_0 = 1$, és öt lépésben keverjük zajjal: minden lépésben a jelből egy kicsit elveszünk, és zajt adunk hozzá. Ha a lépések zajerősségei $\beta = (0{,}1;\ 0{,}2;\ 0{,}3;\ 0{,}4;\ 0{,}5)$, akkor $t$ lépés után a jelből $\bar\alpha_t = (1 - \beta_1)\cdots(1 - \beta_t)$ „varianciányi” marad. Egyetlen, végig rögzített zajjal ($\varepsilon = -1$):
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>$t$</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+    <tr><th>$\bar\alpha_t$</th><td>1</td><td>0,9</td><td>0,72</td><td>0,504</td><td>0,302</td><td>0,151</td></tr>
+    <tr><th>$x_t = \sqrt{\bar\alpha_t}\,x_0 + \sqrt{1 - \bar\alpha_t}\,\varepsilon$</th><td>1</td><td>0,632</td><td>0,319</td><td>0,006</td><td>$-0{,}285$</td><td>$-0{,}532$</td></tr>
+  </table></div>
+  A pixel lassan „elfelejti”, hogy fekete volt. Elég sok lépés után $\bar\alpha_t \approx 0$, és $x_t$ egyszerűen egy standard normális zajszám – bármilyen képből indultunk.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – az előre irányú (zajosító) folyamat</span>
+  Egy $\beta_1, \dots, \beta_T$ <b>zajütemezés</b> mellett lépésenként $\mathbf x_t = \sqrt{1 - \beta_t}\,\mathbf x_{t-1} + \sqrt{\beta_t}\,\boldsymbol\varepsilon_t$. Zárt alakban, egyetlen zajjal:
+  $$\mathbf x_t = \sqrt{\bar\alpha_t}\,\mathbf x_0 + \sqrt{1 - \bar\alpha_t}\,\boldsymbol\varepsilon,\qquad \bar\alpha_t = \prod_{s=1}^{t}(1 - \beta_s),\quad \boldsymbol\varepsilon \sim \mathcal N(0, I).$$
+  <b>Miért ez a skálázás?</b> A $\sqrt{1 - \beta}$ szorzó miatt a teljes variancia nem nő: ha $\mathbf x_{t-1}$ varianciája 1, akkor $\mathbf x_t$-é $(1 - \beta_t) + \beta_t = 1$. A jel részaránya $\bar\alpha_t$, a zajé $1 - \bar\alpha_t$; a végén $\mathbf x_T \approx \mathcal N(0, I)$. Ebben a folyamatban <b>nincs semmi tanulnivaló</b> – ez csak a tanítóadat előállítása.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – két lépés = egy lépés</span>
+    $\beta_1 = 0{,}1$, $\beta_2 = 0{,}2$ után a zaj varianciája lépésenként: $(1 - 0{,}2) \cdot 0{,}1 + 0{,}2 = 0{,}28$. Ugyanez a zárt alakból: $1 - \bar\alpha_2 = 1 - 0{,}72 = 0{,}28$. Két független zaj összege is normális – ezért egyetlen $\boldsymbol\varepsilon$ elég.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy valódi ütemezés</span>
+    A DDPM-cikk (J. Ho és társai, 2020) 1000 lépést használ, $\beta$ 0,0001-ről 0,02-re nő. Ekkor $\bar\alpha_{100} \approx 0{,}90$, $\bar\alpha_{250} \approx 0{,}52$, $\bar\alpha_{500} \approx 0{,}079$, $\bar\alpha_{1000} \approx 0{,}000\,04$. A 14.9 számjegy-modellje is ezt használja.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az „előre” nem a tanítás.</b> Egyes könyvek a tanítást „előre”, a generálást „visszafelé” algoritmusnak hívják. A szakirodalomban az <b>előre irányú folyamat</b> a zajosítás, a <b>visszafelé</b> irányú a zajtalanítás (generálás) – a tanítás egy harmadik dolog (<a href="#s146-b">2. lépés</a>).</li>
+    <li><b>Nem kell a lépéseket egyenként végigjátszani.</b> A zárt alak bármelyik $t$-re azonnal ad $\mathbf x_t$-t – ez teszi olcsóvá a tanítást.</li>
+    <li><b>Az ütemezés számít.</b> Ha a zaj túl gyorsan nő, a lépések nagy része már „csak zaj”, és a háló keveset tanul a fontos tartományban; ezért használnak sokszor lassabban romboló (pl. koszinuszos) ütemezést.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – zajosítás</summary>
+  <ol>
+    <li>A futó példa ütemezésével mennyi $x_3$, ha $x_0 = -1$ (fehér pixel) és $\varepsilon = 0{,}5$?
+      <details><summary>Megoldás</summary>$\sqrt{0{,}504} \cdot (-1) + \sqrt{0{,}496} \cdot 0{,}5 \approx -0{,}710 + 0{,}352 = -0{,}358$.</details></li>
+    <li>Mennyi $\bar\alpha_2$, ha $\beta_1 = \beta_2 = 0{,}5$? Mekkora $\mathbf x_2$-ben a jel és a zaj aránya (a varianciákban)?
+      <details><summary>Megoldás</summary>$\bar\alpha_2 = 0{,}25$; a jel : zaj arány $0{,}25 : 0{,}75 = 1 : 3$.</details></li>
+    <li>Melyik $t$-nél lesz a futó példában a jel és a zaj varianciája körülbelül egyforma?
+      <details><summary>Megoldás</summary>$\bar\alpha_3 = 0{,}504 \approx 0{,}5$, tehát $t = 3$-nál.</details></li>
+    <li>Egy 8 × 8-as képet $t = 500$-ig zajosítunk a DDPM-ütemezéssel. Mennyi marad a jel varianciájából?
+      <details><summary>Megoldás</summary>$\bar\alpha_{500} \approx 0{,}079$, kb. 8%. (Szórásban $\sqrt{0{,}079} \approx 0{,}28$.)</details></li>
+    <li>(nehezebb) Igazold, hogy ha $\mathbf x_0$ varianciája 1, akkor $\mathbf x_t$-é is 1, bármely $t$-re!
+      <details><summary>Megoldás</summary>$\operatorname{Var}(\mathbf x_t) = \bar\alpha_t \operatorname{Var}(\mathbf x_0) + (1 - \bar\alpha_t)\operatorname{Var}(\boldsymbol\varepsilon) = \bar\alpha_t + 1 - \bar\alpha_t = 1$, mert $\mathbf x_0$ és $\boldsymbol\varepsilon$ független.</details></li>
+  </ol>
+</details>
+
+<h3 id="s146-b">2. lépés: a zajtalanító – mit tanul a háló?</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a zaj kitalálása</span>
+  A 3. lépésnél a zajos pixel $x_3 = 0{,}006$ volt. Ha valaki megsúgja a hozzáadott zajt ($\varepsilon = -1$), a tiszta pixel visszaszámolható:
+  $$\hat x_0 = \frac{x_3 - \sqrt{1 - \bar\alpha_3}\,\varepsilon}{\sqrt{\bar\alpha_3}} = \frac{0{,}006 + 0{,}704}{0{,}710} = 1.$$
+  Senki nem súgja meg – de egy háló <b>megtanulhatja tippelni</b>. A tanítóadat ingyen van: veszünk egy képet, egy véletlen $t$-t és egy véletlen zajt, zajosítunk, és a háló feladata kitalálni a zajt. Ha a tipp $\hat\varepsilon = -0{,}8$, a visszaszámolt pixel 0,80 – jó irány, de még nem tökéletes.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – a diffúziós modell tanítása</span>
+  Ismételd:
+  <ol style="margin:.2rem 0">
+    <li>vegyél egy tanítóképet $\mathbf x_0$, egy véletlen lépést $t \in \{1, \dots, T\}$ és egy zajt $\boldsymbol\varepsilon \sim \mathcal N(0, I)$;</li>
+    <li>számold ki $\mathbf x_t = \sqrt{\bar\alpha_t}\,\mathbf x_0 + \sqrt{1 - \bar\alpha_t}\,\boldsymbol\varepsilon$;</li>
+    <li>a háló kapja meg $\mathbf x_t$-t és $t$-t, és jósolja meg a zajt: $\hat{\boldsymbol\varepsilon} = \varepsilon_\theta(\mathbf x_t, t)$;</li>
+    <li>veszteség: $\lVert \boldsymbol\varepsilon - \hat{\boldsymbol\varepsilon} \rVert^2$, egy gradiensmódszer-lépés.</li>
+  </ol>
+  A zajtippből bármikor kapunk egy tippet a tiszta képre: $\hat{\mathbf x}_0 = (\mathbf x_t - \sqrt{1 - \bar\alpha_t}\,\hat{\boldsymbol\varepsilon}) / \sqrt{\bar\alpha_t}$.
+  <b>Miért ilyen stabil?</b> Mert ez egy közönséges regresszió, rögzített célponttal – nincs versengés, nincs kódeloszlás. Képeknél a háló tipikusan U-Net (kép be, ugyanakkora kép ki, <a href="../11-konvolucios-halok/">11. fejezet</a>) vagy Transformer, a $t$-t beágyazásként kapja.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – az ideális zajtalanító két pontra</span>
+    Legyen az „adathalmaz” két érték, $-1$ és $+1$, fele-fele eséllyel. Ekkor a legjobb tipp a tiszta értékre zárt alakú: $\hat x_0 = \tanh\big(\sqrt{\bar\alpha}\,x_t / (1 - \bar\alpha)\big)$. Erős zajnál ($\bar\alpha = 0{,}36$) $x_t = 0{,}5$-re $\hat x_0 \approx 0{,}44$ – óvatos, a két érték átlaga felé húz. Gyenge zajnál ($\bar\alpha = 0{,}81$) ugyanerre $0{,}98$ – szinte biztos, hogy $+1$.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a tökéletes tanuló csal</span>
+    Véges tanítóhalmazon az ideális zajtalanító $\hat{\mathbf x}_0$-ja <b>a tanítóképek súlyozott átlaga</b> (a súly annál nagyobb, minél közelebb van $\mathbf x_t$ az adott kép zajosított helyéhez). A mintavétel végén, kis zajnál, egyetlen tanítókép súlya lesz 1 – a „tökéletes” modell <b>csak tanítóképeket</b> tud rajzolni. A valódi háló tökéletlen: <b>simít</b>, és ez a simítás teszi lehetővé az újat (<a href="#s148-b">14.8</a>).
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabály – egy diffúziós modell csak zajszűrést tud</span>
+  A háló egyetlen kérdésre válaszol: „mennyi zaj van ezen a képen, és merre?”. Minden más – a generálás, a lépésszám, a szöveges irányítás – a háló <b>köré</b> épített eljárás. Ezért lehet egy betanított modellel többféleképpen (gyorsabban, irányítottan) mintát venni, újratanítás nélkül.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A háló nem egy lépésnyi zajt jósol, hanem az egészet</b> ($\boldsymbol\varepsilon$-t, amely $\mathbf x_0$-ból $\mathbf x_t$-t csinált). Ebből bármelyik korábbi lépésre vissza lehet számolni.</li>
+    <li><b>Erős zajnál a tipp homályos.</b> $\hat{\mathbf x}_0$ ott sok lehetséges kép átlaga – mint a VAE képe. Ez nem hiba: a mintavétel ezt a homályt lépésenként „élesíti”, mert minden lépés újra dönt (<a href="#s146-c">3. lépés</a>).</li>
+    <li><b>A $t$ is bemenet.</b> Ugyanaz a háló minden zajszinten dolgozik; ha nem tudná, mekkora a zaj, nem tudná, mennyit vegyen le.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a zajtalanító</summary>
+  <ol>
+    <li>$\bar\alpha_t = 0{,}64$, $x_t = 0{,}2$, a háló tippje $\hat\varepsilon = -1$. Mennyi $\hat x_0$?
+      <details><summary>Megoldás</summary>$\hat x_0 = (0{,}2 + 0{,}6 \cdot 1) / 0{,}8 = 1$.</details></li>
+    <li>Ugyanott a háló tippje $\hat\varepsilon = 0$. Mennyi $\hat x_0$, és mit jelent?
+      <details><summary>Megoldás</summary>$0{,}2 / 0{,}8 = 0{,}25$. Ha a háló szerint nincs zaj, a tiszta értéket csak „felnagyítja” a jel elhalványulása miatt.</details></li>
+    <li>A kétpontos adatnál mennyi az ideális tipp, ha $\bar\alpha = 0{,}36$ és $x_t = -1$?
+      <details><summary>Megoldás</summary>$\tanh(0{,}6 \cdot (-1) / 0{,}64) = \tanh(-0{,}9375) \approx -0{,}73$.</details></li>
+    <li>Egy tanítási lépésben $\boldsymbol\varepsilon = (0{,}5;\ -1)$, $\hat{\boldsymbol\varepsilon} = (0{,}3;\ -0{,}6)$. Mennyi a veszteség?
+      <details><summary>Megoldás</summary>$(0{,}2)^2 + (-0{,}4)^2 = 0{,}04 + 0{,}16 = 0{,}20$.</details></li>
+    <li>(nehezebb) Miért nem elég a hálót csak <b>egy</b> zajszinten (pl. $\bar\alpha = 0{,}5$) tanítani?
+      <details><summary>Megoldás</summary>Mert a mintavétel tiszta zajból ($\bar\alpha \approx 0$) indul, és lépésenként halad a tiszta kép ($\bar\alpha = 1$) felé: minden zajszinten tippelnie kell. Erős zajnál a durva alakot (milyen számjegy?), gyenge zajnál a finom részleteket (vonalvastagság) dönti el.</details></li>
+  </ol>
+</details>
+
+<h3 id="s146-c">3. lépés: visszafelé – mintavétel lépésről lépésre</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a kétpontos adat, három lépésben</span>
+  Induljunk egy majdnem tiszta zajból, $x = 0{,}4$, $\bar\alpha = 0{,}1$-nél, és lépjünk $\bar\alpha = 0{,}5$, $0{,}9$, végül $1$ felé. Minden lépésben: (1) az ideális zajtalanítóval tippelünk a tiszta értékre, (2) visszaszámoljuk a zajt, (3) a kettőből összerakjuk a <b>kevésbé zajos</b> következő értéket: $x_{\text{új}} = \sqrt{\bar\alpha_{\text{új}}}\,\hat x_0 + \sqrt{1 - \bar\alpha_{\text{új}}}\,\hat\varepsilon$.
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>$\bar\alpha$</th><th>$x$</th><th>tipp $\hat x_0$</th><th>$\hat\varepsilon$</th><th>következő $x$</th></tr>
+    <tr><td>0,1</td><td>0,400</td><td>0,140</td><td>0,375</td><td>0,364</td></tr>
+    <tr><td>0,5</td><td>0,364</td><td>0,474</td><td>0,041</td><td>0,462</td></tr>
+    <tr><td>0,9</td><td>0,462</td><td>1,000</td><td>$-1{,}537$</td><td>1,000</td></tr>
+  </table></div>
+  Az első tipp óvatos (0,14 – „inkább pozitív, de nem tudom”), a második már 0,47, a harmadik döntött: $+1$. Ha $x = -0{,}3$-ból indulunk, ugyanígy $-1$-hez érünk. A zajból <b>fokozatosan</b> lett adat.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – visszafelé mintavétel (DDIM és DDPM)</span>
+  $\mathbf x_T \sim \mathcal N(0, I)$; aztán $t = T, T-1, \dots, 1$:
+  <ol style="margin:.2rem 0">
+    <li>$\hat{\boldsymbol\varepsilon} = \varepsilon_\theta(\mathbf x_t, t)$, $\hat{\mathbf x}_0 = (\mathbf x_t - \sqrt{1 - \bar\alpha_t}\,\hat{\boldsymbol\varepsilon}) / \sqrt{\bar\alpha_t}$;</li>
+    <li><b>DDIM</b> (determinisztikus): $\mathbf x_{t-1} = \sqrt{\bar\alpha_{t-1}}\,\hat{\mathbf x}_0 + \sqrt{1 - \bar\alpha_{t-1}}\,\hat{\boldsymbol\varepsilon}$;<br>
+        <b>DDPM</b> (sztochasztikus): ugyanez, de a zaj egy részét <b>friss</b> véletlen zajra cseréljük.</li>
+  </ol>
+  <b>Miért működik?</b> Minden lépés „tippeld meg a tiszta képet, aztán zajosítsd vissza egy kicsit kevésbé”. Erős zajnál a tipp csak a durva alakot rögzíti, a következő lépések a részleteket. A tanítás 1000 lépéssel történik, de mintavételkor a lépések ritkíthatók: a DDIM 20–50 lépéssel is jó képet ad (a DDIM-cikk mérése szerint 10–50-szer gyorsabban), desztillált modellek 1–4 lépéssel.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a számjegyek, 1000 lépésben</span>
+    A 14.9 diffúziós modellje egy MLP, amely a zajos 8 × 8-as képből és $t$-ből jósolja a zajt (1347 képen, 60 000 tanítási lépés, 256-os kötegekkel). A mintavétel 1000 lépés. A widgetben látod: $t = 999$ és $800$ között a tipp ($\hat{\mathbf x}_0$) még zajos, szélsőséges pixelekkel – a jel varianciájának itt csak 0,004–0,15%-a maradt, és a háló kis hibáját is felnagyítja a visszaszámolás. $t \approx 500$ körül a nyolc sor egymáshoz hasonló, homályos alak; utána dől el, melyik számjegy lesz, és az utolsó 100 lépés a vonalakat élesíti.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a pontfelhő a síkon</span>
+    Az alábbi widgetben a „háló” helyén a pontos (ideális) zajtalanító dolgozik egy 60 pontos alakzaton, egy $h$ simítással. $h = 0$-nál, 1000 lépéssel a minták <b>mind</b> tanítópontokra esnek (50 lépéssel 43%-uk: ott az utolsó lépés előtt maradó zaj még összemérhető a pontok távolságával) – a tökéletes tanuló csal. Növeld $h$-t: $h = 0{,}05$-nél már csak 2–4% a másolat, a minták kitöltik az alakzatot, új pontok jönnek létre.
+  </div>
+</div>
+<div class="widget" data-widget="diffusion-2d"></div>
+<div class="widget" data-widget="diffusion-digits"></div>
+<details class="box">
+  <summary>📐 A matematika mögötte ★★★ – pontszám, folyam, „flow matching”</summary>
+  <ul style="margin:.2rem 0">
+    <li><b>Pontszám (score):</b> a zajjóslás arányos a zajos eloszlás logaritmusának gradiensével: $\nabla_{\mathbf x}\ln p_t(\mathbf x) \approx -\hat{\boldsymbol\varepsilon}/\sqrt{1 - \bar\alpha_t}$. A háló tehát egy „iránytű”, amely minden pontban a sűrűbb (valószínűbb) régió felé mutat; a mintavétel ezen a mezőn lépked (Y. Song és társai, 2021: a diffúzió mint sztochasztikus differenciálegyenlet).</li>
+    <li><b>Folyam (flow) és „flow matching”:</b> kössük össze a zajt és az adatot egyenes vonallal: $\mathbf x_t = (1 - t)\,\mathbf x_0 + t\,\boldsymbol\varepsilon$, $t \in [0;\ 1]$. A háló a <b>sebességet</b> tanulja, $\mathbf v = \boldsymbol\varepsilon - \mathbf x_0$ (ugyanilyen egyszerű regresszióval), a mintavétel pedig egy közönséges differenciálegyenlet megoldása $t = 1$-től $0$-ig (Y. Lipman és társai; X. Liu és társai, 2023: <em>rectified flow</em>). Az egyenesebb pályák kevesebb lépést igényelnek. 📅 A Stable Diffusion 3 (2024) és a FLUX-család (2024–2025) ezt a változatot használja.</li>
+    <li><b>DDPM vs. DDIM:</b> a DDPM-lépés egy sztochasztikus, a DDIM-lépés ugyanannak a folyamatnak egy determinisztikus (közönséges differenciálegyenlet-) változata: ugyanabból a kezdőzajból mindig ugyanaz a kép jön – ezért lehet két kép <b>kezdőzaja</b> között interpolálni.</li>
+  </ul>
+</details>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Lassú – de már nem annyira.</b> 1000 lépés = 1000 hálóhívás képenként. Egyes könyvek még „több száz lépésről” írnak; ma 20–50 lépés a szokásos, a desztillált modellek 1–4 lépéssel dolgoznak.</li>
+    <li><b>A kezdőzaj a „mag”.</b> DDIM-mel ugyanaz a kezdőzaj ugyanazt a képet adja – ezért kérhetsz egy képgenerátortól „ugyanezt, kicsit másképp”.</li>
+    <li><b>A diffúzió nem „összeragasztja” a tanítóképeket.</b> Nincs benne képtár, amelyből darabokat vágna: egy zajszűrő háló van benne. Hogy mégis visszaadhat tanítóképet, az a túl sokszor látott (duplikált) képek <b>memorizálása</b> (<a href="#s148-b">14.8</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – visszafelé mintavétel</summary>
+  <ol>
+    <li>$\bar\alpha_t = 0{,}5$, $\hat x_0 = 0{,}8$, $\hat\varepsilon = 0{,}2$, és $\bar\alpha_{t-1} = 0{,}9$. Mennyi a DDIM-lépés eredménye?
+      <details><summary>Megoldás</summary>$\sqrt{0{,}9} \cdot 0{,}8 + \sqrt{0{,}1} \cdot 0{,}2 \approx 0{,}759 + 0{,}063 = 0{,}822$.</details></li>
+    <li>Az utolsó lépésben $\bar\alpha_{t-1} = 1$. Mi lesz $\mathbf x_0$?
+      <details><summary>Megoldás</summary>$\sqrt{1}\,\hat{\mathbf x}_0 + 0 = \hat{\mathbf x}_0$: a háló utolsó tippje maga a kép.</details></li>
+    <li>A kétpontos példában $\bar\alpha = 0{,}1$, $x = -0{,}3$. Mennyi az ideális tipp?
+      <details><summary>Megoldás</summary>$\tanh(\sqrt{0{,}1} \cdot (-0{,}3) / 0{,}9) = \tanh(-0{,}105) \approx -0{,}105$ – az elején alig dönt.</details></li>
+    <li>Egy modell 1000 lépéssel 40 s alatt rajzol egy képet. Mennyi idő 50 DDIM-lépéssel, és mennyi 4 lépéssel (desztillálva), ha a hálóhívás ideje ugyanaz?
+      <details><summary>Megoldás</summary>Lépésenként 0,04 s: 50 lépés 2 s, 4 lépés 0,16 s.</details></li>
+    <li>(nehezebb) DDIM-mel két kezdőzaj, $\mathbf x_T^A$ és $\mathbf x_T^B$ két különböző képet ad. Mit vársz, ha a kettő „közötti” zajból indulsz? Miért nem egyszerű átlag a jó választás?
+      <details><summary>Megoldás</summary>A DDIM determinisztikus és sima leképezés, ezért a köztes zajból köztes (de értelmes) kép várható – mint a VAE kódjának interpolációjánál. A két zaj egyszerű átlagának viszont kisebb a hossza (két független normális vektor átlagának szórása $1/\sqrt2 \approx 0{,}71$), ezért nem „tipikus” kezdőzaj; gömbi (szögmenti) interpolációt használnak, amely a hosszt megtartja.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai14-146"></div>
+</section>

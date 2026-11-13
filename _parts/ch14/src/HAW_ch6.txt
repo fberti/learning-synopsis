@@ -1,0 +1,726 @@
+6
+GENERATIVE AI: AI GETS CREATIVE
+Generative AI is an umbrella term for models that create
+novel output, either independently (randomly) or based on
+a prompt supplied by the user. Generative models do not
+produce labels but text, images, or even video. Under the
+hood, generative models are neural networks built from the
+same essential components.
+We’ll focus on three kinds of generative AI models:
+generative adversarial networks, diffusion models, and large
+language models. This chapter covers the ﬁrst two. Large
+language models have recently turned the world of AI on
+its head. They are the subject of Chapter 7.
+****
+Generative adversarial networks (GANs) consist of two
+separate neural networks trained together. The ﬁrst
+network is the generator. Its task is to learn how to create
+fake inputs for the discriminator. The discriminator’s task is
+to learn how to differentiate between fake and real inputs.
+The goal of training the two networks together is that the
+generator becomes better at faking out the discriminator
+while the discriminator tries its best to differentiate real
+from fake.
+ At ﬁrst, the generator is terrible. It outputs noise, and
+the discriminator has no difﬁculty distinguishing between
+real and fake. However, the generator improves over time,
+making the discriminator’s job increasingly harder; this in
+turn pushes the discriminator to become a better real
+versus fake detector. When training is declared complete,
+the discriminator is usually discarded, and the now-trained
+generator is used to produce new output sampled randomly
+from the learned space of the training data.
+I haven’t speciﬁed what the training data is, because all
+we need to know for now is that a GAN is constructed
+from two competing (adversarial) networks. For most
+applications, it’s the generator we want when all is said and
+done.
+Structurally, we can imagine a GAN like the blocks in
+Figure 6-1. (I’ll explain the random vector part in time.)
+Conceptually, we see that the discriminator accepts two
+kinds of inputs: real data and the output of the generator.
+The discriminator’s output is a label: “Real” or “Fake.”
+Standard neural network training using backpropagation
+and gradient descent trains the generator and discriminator
+together, but not simultaneously.
+Figure 6-1: Conceptualizing the architecture of a generative adversarial
+network
+For example, training with a minibatch of real data—a
+small subset of the available real training data—follows
+these steps:
+1. Use the generator as it currently is to create a
+minibatch’s worth of fake data.
+2. Grab a minibatch’s worth of real data from the training
+set.
+3. Unfreeze the discriminator’s weights so gradient
+descent can update them.
+4. Pass the fake and real samples through the
+discriminator with labels 0 and 1, respectively.
+5. Use backpropagation to take a gradient descent step to
+update the discriminator’s weights.
+6. Freeze the discriminator so the generator can be
+updated without altering the discriminator.
+7. Create a minibatch’s worth of generator inputs (the
+random vector in Figure 6-1).
+8. Pass the generator inputs through the combined
+model to update the generator’s weights. Mark each of
+the generator inputs as being real.
+9. Repeat from step 1 until the full model is trained.
+The algorithm ﬁrst updates the discriminator’s weights
+using the generator as it currently is (step 5), then freezes
+them (step 6) so the generator’s weights can be updated
+without altering the discriminator. This approach is
+necessary because we want the output of the discriminator
+—the “Real” or “Fake” labels—to update the generator
+portion. Notice that the generator update marks all the
+fake images as real. Doing this scores the generator by how
+real the fake inputs appear to the discriminator.
+Let’s examine the random vector used as input to the
+generator. The point of a GAN is to learn a representation
+of the training set that we can think of as a data generator,
+like the data-generating process that produced the real
+training set. However, in this case, the data generator can
+be viewed as a function that takes a random collection of
+numbers, the random vector, and transforms them into an
+output that might plausibly have come from the training
+set. In other words, the generator acts like a data
+augmentation device. The random input to the generator
+becomes an example of the training set. In effect, the
+generator is a proxy for the actual data-generating process
+that created the real training set in the ﬁrst place.
+The random vector of numbers is drawn from a
+probability distribution. Sampling from a probability
+distribution is akin to rolling two dice and asking how
+likely it is that their sum is a seven versus a two. It’s more
+likely that the sum is a seven because there are more ways
+to add the two numbers and get seven. There’s only one
+way to get two: snake eyes. Sampling from a normal
+distribution is similar. The most common sample returned
+is the average value of the distribution. Values on either
+side of the average are less likely the further away from the
+average they are, though still possible.
+For example, Figure 6-2 shows a bar plot of the
+distribution of human heights in inches. The original
+dataset contained the heights of 25,000 people, which were
+then ﬁt into the 30 bins of the ﬁgure. The higher the bar,
+the more people fell into that bin.
+Figure 6-2: The distribution of human height
+Note the shape of the histogram, which looks like a bell
+—hence its somewhat old-fashioned name, the bell curve.
+Its modern name, the normal distribution, is due to it
+showing up so often in nature that it’s the distribution
+normally encountered, especially for data generated by a
+physical process. From the distribution, we see that the
+height of a randomly selected person will most often be
+around 68 inches: more than 10 percent of the sampled
+population fell into that bin.
+The random vector used by a GAN, also known as the
+noise vector, works the same way. The average, in this case, is
+zero, with most samples in the range –3 to 3. Also, each of
+the n elements in the vector follows this range, meaning the
+vector itself is a sample from an n-dimensional space, not
+the one-dimensional space of Figure 6-2.
+The need for labeled datasets is a bane of machine
+learning. GANs have no such restriction. We don’t care
+what a training sample’s class is, only that it’s an instance of
+real data, regardless of the class label. Of course, we still
+require that the training set reﬂect the kind of data we want
+to generate, but the training set need not be labeled.
+****
+Let’s build a generative adversarial network using our
+old friend, the MNIST digits dataset. The generator will
+learn to transform a random set of 10 numbers (meaning n
+is 10) into a digit image. Once trained, we can give the
+generator any collection of 10 values around zero, and the
+generator will produce a new digit image as output, thereby
+mimicking the process that created the MNIST dataset:
+people writing digits on paper by hand. A trained GAN
+generator produces an inﬁnite supply of the target output.
+We’ll use a simple GAN based on traditional neural
+networks to create a generator for an inﬁnite supply of
+MNIST-style digit images. First, we’ll unravel the existing
+MNIST training set so each sample is a 784-dimensional
+vector, just as we did in Chapter 5. This gives us the real
+data. To create fake data, we need 10-element random
+vectors that we’ll build by drawing 10 samples from a
+normal distribution with an average value of zero.
+The generator portion of the model accepts a 10-
+element noise vector as input and produces a 784-element
+output vector representing the synthesized digit image.
+Recall that the 784 numbers can be rearranged into a
+28×28-pixel image. The generator model has three hidden
+layers, with 256, 512, and 1,024 nodes, and an output layer
+of 784 nodes to produce the image. The hidden layer nodes
+use a modiﬁed version of the rectiﬁed linear unit called a
+leaky ReLU. Leaky ReLU activations output the input if the
+input is positive, but if the input is negative, the output is a
+small positive value multiplied by the negative input. In
+other words, they leak a bit. The output layer uses a
+hyperbolic tangent activation function, meaning every one
+of the 784 output elements will be in the range –1 to +1.
+That’s acceptable. We can scale the values to 0 to 255 when
+writing an image to disk.
+ The generator must map between the random noise
+vector input and an output image. The discriminator must
+take an image as input, implying a 784-dimensional vector.
+The discriminator has three hidden layers, like the
+generator, but in reverse: 1,024 nodes, then 512 nodes,
+followed by 256 nodes. The discriminator’s output layer has
+one node with a sigmoid activation function. The sigmoid
+produces values from 0 to 1, which we can interpret as the
+discriminator’s belief that the input is real (output near 1)
+or fake (output near 0). Notice that the network uses
+nothing more than standard fully connected layers.
+Advanced GANs use convolutional layers, but exploring
+the details of those networks is outside our scope.
+Figure 6-3 shows the generator (top) and discriminator
+(bottom). The symmetry between the two is evident in the
+numbers of nodes in the hidden layers, though notice that
+the order is reversed in the discriminator.
+Figure 6-3: GAN generator (top) and discriminator (bottom)
+ The generator accepts a 10-element random vector as
+input and produces a 784-element fake image output
+vector. The discriminator accepts an image vector, real or
+fake, and outputs a prediction, a number from 0 to 1. Fake
+images should produce values close to 0 and real images
+values close to 1. If the generator is well trained, the
+discriminator will be fooled most of the time, meaning the
+discriminator’s output will be close to 0.5 for all inputs.
+The entire network is trained for 200 epochs of 468
+minibatches each, for a total of 93,600 gradient descent
+steps. We can display samples from the generator after each
+epoch to observe the network as it learns. Figure 6-4 shows
+samples after epochs 1, 60, and 200, from left to right.
+Figure 6-4: Generator output after epochs 1, 60, and 200
+As we’d expect, the generator performs poorly after a
+single pass through the training data, but perhaps not as
+poorly as we might have thought. Most of the generated
+images look like ones; other digit shapes, like zeros and
+twos, are also present, though noisy.
+After 60 epochs, the generator produces a full range of
+digits. Some are spot on, while others are still confused or
+only partially drawn. After 200 epochs, most of the digits
+are distinct and sharply deﬁned. The generator is trained
+and now available to produce digit images on demand.
+****
+Our digit generator will happily create 10,000 new digit
+images for us, but what if we want all those digits to be
+fours? A random input vector produces a random digit, but
+we don’t get to choose which one. If we select input vectors
+randomly, we can be excused for believing that the mix of
+output digits will be similarly random. I tested that
+assumption by using the trained generator to create 1,000
+digit images. I then passed those digit images to a
+convolutional network trained on the MNIST dataset. The
+convolutional network has a test set accuracy above 99
+percent, giving us conﬁdence in its predictions, assuming
+the input is a digit image. The GAN generator produces
+realistic digit images, so we’re on solid ground.
+Assuming the generator is acting as we expect, the
+percentage of each digit should, naively, be the same. There
+are 10 possible digits, so we expect each to appear about 10
+percent of the time. That’s not what happened. Table 6-1
+shows the actual distribution of occurrences of each digit.
+Table 6-1: The Actual Digit Distribution
+Digit Percentage
+0 10.3
+1 21.4
+2 4.4
+3 7.6
+4 9.5
+5 6.0
+6 9.1
+7 14.4
+8 4.4
+Digit Percentage
+9 12.9
+The generator favors ones, followed by sevens, nines,
+and zeros; eights and twos are the least likely outputs. So,
+not only does the GAN not allow us to select the desired
+digit type, it has deﬁnite favorites. Review the leftmost
+image in Figure 6-4, showing the epoch 1 samples. Most of
+those digits are ones, so the GAN’s predilection for ones
+was evident from the beginning of training. The GAN
+learned, but the preponderance of ones is a symptom of a
+problem that sometimes plagues GAN training: namely
+mode collapse, where the generator learns early on how to
+create a particularly good example or set of examples that
+fool the discriminator and gets trapped into producing only
+that output and not the desired diversity of images.
+We need not throw ourselves on the mercy of a ﬁnicky,
+uncontrollable GAN. Instead, we can condition the
+network during training by passing in an indication of the
+type of digit we want the generator to create. GANs that
+take this approach are known as conditional GANs. Unlike
+unconditional GANs, they require training sets with labels.
+In a conditional GAN, the input to the generator is still
+a random noise vector, but attached to it is another vector
+specifying the desired output class. For example, the
+MNIST dataset has 10 classes, the digits 0 through 9, so
+the conditional vector has 10 elements. If the desired class
+is the digit 3, the conditional vector is all zeros except for
+element 3, which is set to one. This method of representing
+class information is known as one-hot encoding because all
+the elements of the vector are zero except for the element
+corresponding to the desired class label, which is one.
+The discriminator also needs the class label. If the input
+to the discriminator is an image, how do we include the
+class label? One way is to expand the concept of one-hot
+encoding to images. We know that a color image is
+represented by three image matrices, one for the red
+channel, one for the green channel, and one for the blue
+channel. Grayscale images have only one channel. We can
+include the class label as a set of additional input channels
+where all the channels are zero except for the channel
+corresponding to the class label, which is one.
+Including the class label when generating and
+discriminating between real and fake inputs forces each
+part of the entire network to learn how to produce and
+interpret class-speciﬁc output and input. If the class label is
+4 and the digit produced by the generator looks more like a
+zero, the discriminator will know there’s a class mismatch
+because it knows about true zeros from the labeled training
+set.
+The beneﬁt of a conditional GAN comes when using
+the trained generator. The user supplies the desired class as
+a one-hot vector, along with the random noise vector used
+by an unconditional GAN. The generator then outputs a
+sample based on the noise vector, but conditioned on the
+desired class label. We can think of a conditional GAN as a
+set of unconditional GANs, each trained on a single class of
+images.
+I trained a conditional GAN on the MNIST dataset.
+For this example, the GAN used convolutional layers
+instead of the fully connected layers used earlier in the
+chapter. I then asked the fully trained generator to produce
+10 samples of each digit, as shown in Figure 6-5.
+Figure 6-5: The conditional GAN output showing samples for each digit
+Conditional GANs let us select the desired output class,
+which unconditional GANs cannot do, but what if we want
+to adjust speciﬁc features of the output image? For that, we
+need a controllable GAN.
+****
+Uncontrollable GANs generate images willy-nilly
+without regard for the class label. Conditional GANs
+introduce class-speciﬁc image generation, which is helpful
+if we want to use a GAN to generate synthetic imagery for
+training other models, perhaps to account for a class for
+which we have relatively few examples. Controllable GANs,
+on the other hand, allow us to control the appearance of
+speciﬁc features in the generated images. When the
+generator network learns, it learns an abstract space that
+can be mapped to the output images. The random noise
+vector is a point in this space where the number of
+dimensions is the number of elements in the noise vector.
+Each point becomes an image. Put the same point, the
+same noise vector, into the generator, and the same image
+will be output.
+Moving through the abstract space represented by the
+noise vector produces output image after output image.
+Might there be directions in the abstract noise space that
+have meaning for the features in the output image? Here,
+feature means something in the image. For example, if the
+generator produces images of human faces, a feature might
+be whether the face is wearing glasses, has a beard, or has
+red hair.
+Controllable GANs uncover meaningful directions in
+the noise space. Moving along one of those directions alters
+the feature related to the direction. Of course, the reality is
+more complex because a single direction might affect
+multiple features, depending on the dimensionality of the
+noise space and the data learned by the generator. In
+general, smaller noise vectors are more likely to be
+entangled, meaning single noise vector dimensions affect
+multiple output features, making it difﬁcult to discern
+interesting directions. Some training techniques and larger
+noise vectors, perhaps with 100 elements instead of the 10
+we used earlier, improve the model’s chance of assigning
+interesting feature adjustments to a single direction. Ideally,
+there would be a meaningful feature adjustment for a single
+noise vector element.
+Let’s walk through a two-dimensional example to drive
+the idea home. Learning a generator using a two-
+dimensional noise vector might be difﬁcult, but the concept
+applies to all dimensionalities and is straightforward to
+illustrate in two dimensions. Figure 6-6 has what we need.
+Figure 6-6: Moving through a two-dimensional noise space and interpolated
+MNIST digits
+The top part of the ﬁgure shows a two-dimensional
+noise space for a generator with two inputs, the x-
+coordinate and the y-coordinate. Therefore, each point in
+the ﬁgure represents an image generated by the GAN. The
+ﬁrst image is produced from the point at (2, 5) (the circle).
+A second image comes from the point at (6, 1) (the square).
+The arrow shows a direction through the noise space that
+we somehow learned controls a feature in the output
+image. If the GAN generates faces, it might be that the
+arrow points in a direction that affects the person’s hair
+color. Moving from the point at (2, 5) to the point at (6, 1)
+maintains most of the output image but changes the hair
+color from, say, black at (2, 5) to red at (6, 1). Points along
+the arrow represent hair colors intermediate between black
+and red.
+ The bottom of Figure 6-6 shows interpolation along the
+third dimension of the GAN we trained to generate digit
+images. From left to right, a three morphs brieﬂy into a
+nine before becoming a four, as the third element of the
+10-element noise vector is varied while keeping all the
+others ﬁxed at their initial random values. The noise vector
+is of relatively low dimensionality, implying that it’s
+unlikely any one dimension is associated with only a single
+digit trait, which is why the whole image changes from an
+initial three through a nine to a four.
+Sophisticated GANs can produce realistic yet fake
+images of human faces. Controllable versions learn
+directions linked to speciﬁc facial features. For example,
+consider Figure 6-7, which shows two generated fake faces
+on the left and adjusted faces on the right (from Yujun Shen
+et al., “Interpreting the Latent Space of GANs for
+Semantic Face Editing,” 2019). The adjustments
+correspond to movement through the noise space from the
+original image position along learned directions
+representing age, glasses, gender, and pose.
+Figure 6-7: Controlling face attributes
+The power of controllable GANs is genuinely
+remarkable, and that the generator learns meaningful
+directions through the noise space is impressive. However,
+GANs are not the only way to create realistic and
+controllable images. Diffusion models likewise generate
+realistic imagery; moreover, imagery conditioned by user-
+deﬁned text prompts.
+****
+Generative adversarial networks rely on competition
+between the generator and the discriminator to learn to
+create fake outputs similar to the training data. Diffusion
+models represent a competition-free approach to the same
+end.
+In a nutshell, training a diffusion model involves
+teaching it to predict noise added to a training image.
+Inference in a diffusion model involves the opposite,
+turning noise into an image. Great! But what is “noise”
+when it comes to images?
+Noise implies randomness, something without structure.
+You’re in the ballpark if you’re thinking of static on a radio
+or hiss in an audio signal. For a digital image, noise means
+random values added to the pixels. For example, if the pixel
+value should be 127, noise adds or subtracts a small amount
+so that the value becomes, say, 124 or 129. Random noise
+added to an image often looks like snow. Diffusion models
+learn how to predict the amount of normally distributed
+noise added to a training image.
+We must have several things in place before we train the
+network. First, we need a training dataset. Diffusion
+models learn from data, like all neural networks. As with
+GANs, labels are not required until we want some say in
+what the trained model will generate.
+Once we have the training data, we need a neural
+network architecture. Diffusion models are not picky here,
+but the selected architecture must accept an image as input
+and produce a same-sized image as output. The U-Net
+architecture mentioned brieﬂy in Chapter 5 is a frequent
+choice.
+ We have data and an architecture; next, we need some
+way to get the network to learn. But learn what? As it
+happens, forcing the network to learn the noise added to an
+image is all that is required. The math behind this
+realization isn’t trivial. It involves probability theory, but in
+practice, it boils down to taking a training image, adding
+some known level of normally distributed noise, and
+comparing that known noise to what the model predicts. If
+the model learns to predict the noise successfully, we can
+later use the model to turn pure noise into an image similar
+to the training data.
+The important part of the previous paragraph is the
+phrase “known level of normally distributed noise.”
+Normally distributed noise can be characterized by a single
+parameter, a number specifying the level of the noise.
+Training consists of selecting an image from the training
+set and a level of noise, both at random, and passing them
+as inputs to the network. The output from the network is
+the model’s estimate of the amount of noise. The smaller
+the difference between the output noise (itself an image)
+and the added noise, the better. Standard backpropagation
+and gradient descent are applied to minimize this
+difference over minibatches until the model is declared
+trained.
+How noise is added to training images affects how well
+and how quickly models learn. Noise generally follows a
+ﬁxed schedule. The schedule is such that moving from a
+current noise level, say noise level 3, to the next, level 4,
+adds a speciﬁed amount of noise to the image, where the
+amount of noise depends on a function. If the same amount
+of noise is added between each step, the schedule is linear.
+However, if the amount of noise added between steps
+depends on the step itself, it is nonlinear and follows some
+other function.
+Consider Figure 6-8, which shows a possible training
+image on the left. Each row shows successive levels of noise
+added to the training image. The top row follows a linear
+schedule, where moving left to right adds the same noise
+level between each step until the image is almost destroyed.
+The bottom row follows what is known as a cosine
+schedule, which destroys the image less rapidly. This helps
+diffusion models learn a bit better. For the curious, the
+dapper gentleman in the image is my great-grandfather,
+Emil Kneusel, circa 1895.
+Figure 6-8: Two ways to turn an image into noise: linear (top) and cosine
+(bottom)
+Figure 6-8 presents only nine steps. In practice,
+diffusion models use hundreds of steps, the critical point
+being that the original image is destroyed at the end of the
+process, leaving only noise. This matters because sampling
+from the diffusion model reverses the process to turn a
+random noise image into a noise-free image. In effect,
+sampling from the diffusion model moves from right to left
+using the trained network to predict noise that is then
+subtracted to produce the previous image. Repeating this
+process for all the steps in the schedule completes the
+noise-to-image generation process.
+****
+The description in the previous section can be
+summarized in two algorithms. I encourage you to read
+through them, but as they are a bit technical, skipping
+ahead to the next section is always an option.
+The forward algorithm trains the diffusion model, and
+the reverse algorithm samples from a trained model during
+inference to produce output images. Let’s begin with the
+forward algorithm. We repeat the following until we
+declare the model trained:
+ 1. Pick a training image, x0, at random.
+2. Pick a random time step, t, in the range 1 through T,
+the maximum number of steps.
+3. Sample a noise image, e, from a standard normal
+distribution.
+4. Deﬁne a noisy image, xt, using x0, t, and e.
+5. Pass xt through the model and compare the output
+noise estimate to e.
+6. Apply standard backpropagation and gradient descent
+to update the model’s weights.
+The forward algorithm works because there is a
+straightforward way to get xt from x0, the image in the
+training set, and a randomly selected time step, t. Here, T is
+the maximum possible time step, at which the training
+image has been turned into pure noise. Typically, T is
+several hundred steps. Recall that the diffusion model is
+trying to learn how to predict the noise in e. The act of
+repeatedly forcing the model to get better and better at
+predicting the noise used to corrupt the training image is
+what lets the reverse step work.
+The reverse algorithm samples from the diffusion model
+trained by the forward algorithm to generate a novel output
+image, beginning with a pure noise image in xT (think the
+rightmost images in Figure 6-8). The diffusion model is
+used for T steps to turn noise into an image by repeating
+the following:
+1. If this isn’t the last step from x1 to x0, sample a noise
+image, z, from a standard normal distribution.
+2. Create xt−1 from xt by subtracting the output of the
+diffusion model from xt and adding z.
+The reverse algorithm moves from right to left, if
+thinking in terms of Figure 6-8. Each step to the left is
+found by subtracting the output of the diffusion model
+using the current image as input, thereby moving from
+time step t to the previous time step, t – 1. The standard
+noise image, z, ensures that xt−1 is a valid sample from the
+probability distribution supplying xt−1 from xt. As
+mentioned, we’re skipping a lot of probability theory.
+The sampling algorithm works because the diffusion
+model estimates the noise in its input. That estimate leads
+to an estimate of the image that, plausibly, created xt from
+xt–1. Iterating for all T steps brings us, ultimately, to x0, the
+output of the network. Notice that unlike our previous
+networks, which had an input and produced an output,
+diffusion models are run repeatedly, each time producing
+less and less noisy images, until ﬁnally they produce an
+image similar to the training data.
+****
+Diffusion models are like standard GANs:
+unconditional. The image generated is not controllable.
+You might suspect that if a GAN can be conditioned in
+some way to guide the generation process, then a diffusion
+model might be similarly directable. If so, you’re right.
+The GAN we used to generate MNIST-like digit
+images was conditioned by extending the input to the
+generator with a one-hot vector selecting the desired class
+label. Conditioning a diffusion model isn’t quite that
+simple, but it is possible to supply the network with a signal
+related to the image during training. Typically, that signal is
+an embedding vector representing a text description of the
+training image’s contents. We brieﬂy encountered
+embeddings in Chapter 5 and will do so again in Chapter 7
+when discussing large language models.
+All we need to know for now is that a text embedding
+takes a string like “A big red dog” and turns it into a large
+vector, which we think of as a point in a high-dimensional
+space: a space that has captured meaning and concepts. The
+association of such a text embedding during training while
+the network is learning to predict noise in images
+conditions the network in much the same way that the one-
+hot class vector conditions a GAN generator.
+After training, the presence of a text embedding when
+sampling provides a similar signal to guide the output
+image so that it contains elements related to the text. At
+sampling time, the text becomes a prompt, describing the
+image we want the diffusion process to generate.
+Diffusion models typically begin with a random noise
+image. They need not. If we want the output to be similar
+to an existing image, we can use that image as the initial
+image, with some level of noise added. Samples from that
+image will be, depending on the degree of added noise,
+more or less similar to it. Now, let’s take a tour of
+conditional diffusion models.
+****
+Commercial diffusion models, such as DALL-E 2 by
+OpenAI or Stable Diffusion by Stability AI, use the text or
+image supplied by the user to guide the diffusion process
+toward an output image satisfying the prompt’s
+requirements. The examples shown in this section were
+generated by Stable Diffusion using the DreamStudio
+online environment. Figure 6-9 presents to us Leonardo da
+Vinci’s Mona Lisa (upper left) along with ﬁve variations of
+it.
+Figure 6-9: The Mona Lisa as imagined by Stable Diffusion
+The variations are the products of Stable Diffusion in
+response to the original image and a text prompt:
+Portrait of a woman wearing a brown dress in the style of DaVinci, soft,
+earthen colors
+The DreamStudio interface lets the user supply an
+initial image, using a slider to set the amount of noise to
+add, from 0 percent for a pure noise image to 100 percent
+for no noise added. (Yes, that seems backward to me, too.)
+The noisy version of the image initializes the diffusion
+process. The higher the percentage, the less noise is added,
+and the more the initial image inﬂuences the ﬁnal output.
+For the Mona Lisa, I used 33 percent. That noise level,
+along with the prompt and a user-selectable style, produced
+the ﬁve variations in Figure 6-9. The only difference
+between the variations is the chosen style (top row: anime
+and fantasy art; bottom row: isometric, line art, and
+photographic).
+The results are impressive. The images were neither
+painted nor drawn, but diffused from a noisy version of the
+Mona Lisa and a text prompt used as a guide to direct the
+diffusion process. It isn’t difﬁcult to appreciate that the
+ability to generate novel images in response to prompts will
+impact the commercial art world.
+However, AI image generation isn’t perfect. Errors
+happen, as demonstrated in Figure 6-10. I promise I didn’t
+ask for a ﬁve-legged border collie, a multi-mouthed T. rex,
+or a picture of a woman like the Mona Lisa with horribly
+mutated hands. Diffusion models seem to have particular
+difﬁculty rendering hands, much like human artists.
+Figure 6-10: Diffusion model errors
+Writing effective prompts has become an art form, one
+that has already created a new kind of job: prompt
+engineer. The exact form of the text prompt strongly
+inﬂuences the image generation process, as does the
+random noise image initially selected. The DreamStudio
+interface allows users to ﬁx the pseudorandom number
+generator seed, meaning the diffusion process starts with
+the same noise image each time. Fixing the seed while
+slightly altering the text prompt lets us experiment to learn
+how sensitive the diffusion process can be.
+ The images in Figure 6-11 were generated by
+permutations of the words ornate, green, and vase. (These
+images are shown in black and white in the book, but all are
+similar shades of green.) The initial noise image was the
+same each time; only the order of the three words varied.
+Three of the vases are similar, but the fourth is quite
+different. Nonetheless, all four are valid exemplars of
+ornate, green vases.
+Figure 6-11: Vases generated by a diffusion model
+Prompt order and phrasing matter because the
+embedding vector formed from the text prompt differs,
+even if the prompt words or their meanings are similar.
+The prompts for the ﬁrst three vases likely landed close to
+each other in the text embedding space, explaining why
+they look much the same. The last prompt, for whatever
+reason, landed elsewhere, leading to the different qualities
+of the generated image. Interestingly, the prompt for the
+last image was “ornate, green, vase,” the form following
+grammatical convention.
+Curious, I altered the prompt “ornate, green, vase,”
+changing “green” to other colors and using the same initial
+noise image as before. The results are in Figure 6-12. From
+left to right, the colors speciﬁed were red, mauve, yellow,
+and blue. The ﬁrst three images are similar to the last vase
+in Figure 6-11; only the blue vase differs signiﬁcantly.
+Figure 6-12: Generated vases of many colors
+I noticed another property of diffusion models during
+my experiments, namely, that the generated images have
+less noise than the originals. Suppose an input image is low
+resolution and grainy. In that case, the diffusion model’s
+output is higher resolution and clear because the output is
+not the result of an operation applied to the original image
+but a reimagining of the image using the prompt for
+guidance. Might it be possible to use diffusion models to
+remove image artifacts if absolute ﬁdelity to the original
+image isn’t strictly required?
+Figure 6-13 tries to answer this question. The original
+195×256-pixel image upscaled to 586×768 pixels (a factor of
+3) is on the left. The image was upscaled using a standard
+image processing program and cubic interpolation. The
+diffusion model output, also 586×768 pixels, is on the right.
+The diffusion model output used the 195×256-pixel
+original image with 25 percent added noise, a photographic
+style, and the prompt “detailed, original.” The diffusion
+image is better. It’s not identical to the original, but a close
+copy. I don’t believe this approach competes with deep
+learning–based super-resolution networks, but regardless of
+ultimate utility, it was an interesting application of diffusion
+models.
+Figure 6-13: Diffusion model image enhancement
+As another example, consider Figure 6-14, which shows
+an image of a Western Meadowlark taken at a distance of
+about 100 meters through poor, smoky Colorado air (left).
+The center image represents a best effort at improving the
+image using a standard image manipulation program
+(Gimp). The version on the right is the output of Stable
+Diffusion when given the center image with a small amount
+of noise added (about 12 percent) and the following text
+prompt:
+western meadowlark, highly detailed, high resolution, noise free
+Figure 6-14: A diffusion model image enhancement experiment attempting
+to improve a smoke-obscured image of a Western Meadowlark: original (left),
+best effort with a standard image manipulation program (center), enhanced
+with Stable Diffusion (right)
+Stable Diffusion didn’t work a miracle, but the output is
+deﬁnitely better than the original image.
+****
+This chapter explored two kinds of generative networks:
+generative adversarial networks and diffusion models. Both
+create images from random inputs.
+GANs jointly train generator and discriminator
+networks to teach the generator to produce output that
+fools the discriminator. Conditional GANs use class labels
+during training and generation to direct the generator
+toward outputs that are members of a user-speciﬁed class.
+Controllable GANs learn directions through the noise
+vector space related to essential features of the generated
+output, such that movement along those directions
+predictably alters the output image.
+Diffusion models learn to predict the amount of noise in
+an image. Training a diffusion model involves feeding it
+clean training images that are intentionally made noisy by a
+known amount. The model’s prediction and the known
+added noise are used to update the model’s weights.
+Conditional diffusion models associate an embedding,
+usually from a text description of the training image
+content, with the noise so that at generation time, the
+model is directed to images containing elements associated
+with the user’s text prompt. Variations are generated if an
+existing image, with some level of noise added, is used in
+place of the pure random initial image.
+The introduction mentioned three kinds of generative
+AI models. The last one, large language models, is
+presently threatening to profoundly alter the world at a
+level equal to the industrial revolution, if not the wheel and
+ﬁre, as some AI practitioners claim. Such consequential
+claims require us to pay attention. Therefore, let’s move on
+to what might very well be true AI at last.
+ KEY TERMS
+conditional GAN, controllable GAN, diffusion
+model, discriminator, entangled, generative
+adversarial network (GAN), generative AI, generator,
+leaky ReLU, mode collapse, noise vector, one-hot
+encoding, schedule

@@ -1,0 +1,183 @@
+
+<!-- ===================================================== 14.1 -->
+<section id="s141">
+<h2>14.1 Mit jelent generálni? ★★</h2>
+<p>Kezdjük egy olyan kicsi világgal, amelyben minden kiszámolható. A képek <b>2 × 2 pixelesek</b>, minden pixel fekete (1) vagy fehér (0). A pixeleket soronként olvassuk: bal fent, jobb fent, bal lent, jobb lent. Így egy kép egy négyjegyű kód, pl. <code>1100</code> = a felső sor fekete. Összesen $2^4 = 16$ kép lehetséges.</p>
+<div class="box example">
+  <span class="box-title">A fejezet futó példája – tíz gyerekrajz</span>
+  Tíz gyerek rajzolt egy-egy „csíkot” a 2 × 2-es négyzetbe:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>kép</th><th><code>1100</code></th><th><code>0011</code></th><th><code>1010</code></th><th><code>0101</code></th><th><code>1001</code></th></tr>
+    <tr><td>mit ábrázol</td><td>felső csík</td><td>alsó csík</td><td>bal csík</td><td>jobb csík</td><td>átló</td></tr>
+    <tr><td>címke</td><td colspan="2">vízszintes</td><td colspan="2">függőleges</td><td>átló</td></tr>
+    <tr><td>hányan rajzolták</td><td>3</td><td>2</td><td>2</td><td>2</td><td>1</td></tr>
+  </table></div>
+  A másik 11 kép (pl. a fordított átló, <code>0110</code>, vagy a csupa fekete <code>1111</code>) egyszer sem fordult elő. Ezen a tíz rajzon építjük fel a fejezet minden ötletét, aztán áttérünk a 8 × 8-as számjegyekre.
+</div>
+
+<h3 id="s141-a">1. lépés: döntés vagy rajz? – diszkriminatív és generatív modell</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két feladat ugyanazon az adaton</span>
+  <b>1. feladat:</b> egy új rajzról mondd meg, vízszintes, függőleges vagy átló! Ehhez elég egy szabály: „ha a felső két pixel egyforma, vízszintes; ha a bal oldali kettő egyforma, függőleges; különben átló”. A szabály <b>nem tudja</b>, melyik rajz gyakori – csak a határt húzza meg.<br>
+  <b>2. feladat:</b> rajzolj egy új csíkot, olyat, amilyet a gyerekek rajzolnának! Ehhez azt kell tudni, <b>melyik kép milyen gyakori</b>: a felső csíkot 10-ből 3-an rajzolták, az átlót 1, a csupa feketét senki. Ez már nem egy határ, hanem az egész eloszlás:
+  $$p(\texttt{1100}) = 0{,}3,\quad p(\texttt{0011}) = p(\texttt{1010}) = p(\texttt{0101}) = 0{,}2,\quad p(\texttt{1001}) = 0{,}1,\quad \text{a többi } 0.$$
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – diszkriminatív és generatív modell</span>
+  <ul style="margin:.2rem 0">
+    <li>A <b>diszkriminatív</b> modell a címke feltételes eloszlását tanulja: $p(y \mid \mathbf x)$ – „ha ezt látom, mi a címke?”. Ilyen volt a logisztikus regresszió, a döntési fa, a 9–11. fejezet osztályozó hálói.</li>
+    <li>A <b>generatív</b> modell magának az adatnak az eloszlását tanulja: $p(\mathbf x)$, vagy címkével együtt $p(\mathbf x, y) = p(\mathbf x \mid y)\,p(y)$ – „milyenek az adatok?”.</li>
+  </ul>
+  <b>Miért erősebb a generatív?</b> Mert a Bayes-tétellel (<a href="../02-matematikai-eszkoztar/#s25-b">2.5</a>) belőle a döntés is kijön: $p(y \mid \mathbf x) = p(\mathbf x \mid y)\,p(y) / p(\mathbf x)$. Fordítva nem megy: a $p(y \mid \mathbf x)$ semmit nem mond arról, melyik $\mathbf x$ milyen gyakori. Az ár: a generatív modellnek sokkal többet kell megtanulnia – minden részletet, nem csak a határt.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a naiv Bayes generatív volt</span>
+    Az <a href="../05-osztalyozas/#s55-b">5.5</a> spamszűrője a $p(\text{szavak} \mid \text{spam})$ és a $p(\text{spam})$ valószínűségeket tanulta. Ebből elvben <b>spamet is írhatott volna</b>: húz egy osztályt, aztán szavanként eldönti, szerepel-e a szó. A logisztikus regresszió (<a href="../05-osztalyozas/#s53-b">5.3</a>) ugyanerre a kérdésre diszkriminatív választ adott: csak a $p(\text{spam} \mid \text{szavak})$-at.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a rajzok címkével</span>
+    $p(y)$: vízszintes 0,5, függőleges 0,4, átló 0,1. $p(\mathbf x \mid \text{vízszintes})$: <code>1100</code> 0,6, <code>0011</code> 0,4. Egy <b>vízszintes</b> csíkot úgy rajzolsz, hogy 60% eséllyel a felsőt, 40% eséllyel az alsót választod. A szorzat visszaadja a táblázatot: $p(\texttt{1100}, \text{vízszintes}) = 0{,}6 \cdot 0{,}5 = 0{,}3$.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Mire jó még az eloszlás?</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Mintavétel:</b> új adat előállítása – a fejezet fő témája.</li>
+    <li><b>Furcsaság mérése:</b> ha $p(\mathbf x)$ kicsi, az adat szokatlan – anomália (vö. <a href="../08-felugyelet-nelkuli-tanulas/#s85-c">8.5</a>).</li>
+    <li><b>Kiegészítés:</b> ha a kép egy része hiányzik, a modell megmondja, mi illik oda (<a href="#s142-c">14.2</a>).</li>
+    <li><b>Tömörítés:</b> ami valószínű, azt rövid kóddal lehet leírni (a <a href="#s141-c">3. lépésben</a> bitben mérjük).</li>
+  </ul>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Generatív modell ≠ nagy nyelvi modell.</b> Az LLM a generatív modellek egyik fajtája (szöveg, <a href="#s142">14.2</a>); a naiv Bayes, a Gauss-keverék, a diffúziós képmodell is generatív.</li>
+    <li><b>A „generatív MI” köznapi szóhasználat.</b> A sajtóban azt jelenti: „szöveget, képet gyárt”. A szakmában a megkülönböztetés a tanult eloszláson múlik: $p(\mathbf x)$ vagy $p(y \mid \mathbf x)$.</li>
+    <li><b>A generatív nem mindig jobb osztályozó.</b> Ha csak döntés kell, a diszkriminatív modell gyakran pontosabb, mert minden erejét a határra fordítja.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – diszkriminatív vagy generatív?</summary>
+  <ol>
+    <li>Diszkriminatív vagy generatív: (a) logisztikus regresszió, (b) naiv Bayes, (c) döntési fa, (d) egy modell, amely a mondat következő szavának eloszlását adja meg?
+      <details><summary>Megoldás</summary>(a) diszkriminatív, (b) generatív, (c) diszkriminatív, (d) generatív: a következő szó eloszlásából mintát véve szöveget ír (<a href="#s142">14.2</a>).</details></li>
+    <li>A futó példában mennyi $p(\mathbf x \mid \text{függőleges})$ a két függőleges képre?
+      <details><summary>Megoldás</summary>4 függőleges rajz van, 2–2: $p(\texttt{1010} \mid \text{függ.}) = p(\texttt{0101} \mid \text{függ.}) = 0{,}5$.</details></li>
+    <li>Ellenőrizd a Bayes-tétellel: mennyi $p(\text{függőleges} \mid \texttt{1010})$?
+      <details><summary>Megoldás</summary>$p(\texttt{1010} \mid \text{függ.})\,p(\text{függ.}) / p(\texttt{1010}) = 0{,}5 \cdot 0{,}4 / 0{,}2 = 1$. Itt a címke egyértelmű – a döntés könnyű, a rajzolás a nehéz.</details></li>
+    <li>Melyik a futó példa legszokatlanabb rajza a <b>tanítóadatok közül</b>? És melyik kép a legszokatlanabb az összes közül?
+      <details><summary>Megoldás</summary>A tanítóadatokból az átló, $p = 0{,}1$. Az összes képből a 11 soha nem látott kép, $p = 0$ – a modell szerint ezek „lehetetlenek”. (Ez gond lesz: <a href="#s141-c">3. lépés</a>.)</details></li>
+    <li>(nehezebb) Adj meg két különböző $p(\mathbf x)$ eloszlást a négy csíkon, amelyekben a $p(y \mid \mathbf x)$ ugyanaz! Mit mutat ez?
+      <details><summary>Megoldás</summary>Pl. a futó példa (0,3; 0,2; 0,2; 0,2 a csíkokra, 0,1 az átlóra) és egy egyenletes eloszlás (mind az öt képre 0,2). Mindkettőben $p(\text{vízszintes} \mid \texttt{1100}) = 1$ stb. A diszkriminatív modell tehát nem tudja megkülönböztetni a két világot – a generatív igen. A $p(y \mid \mathbf x)$-ből nem lehet rajzolni.</details></li>
+  </ol>
+</details>
+
+<h3 id="s141-b">2. lépés: eloszlás számlálással – és mintavétel</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy „rajzológép” egyetlen véletlen számmal</span>
+  Rakd egymás után a képek valószínűségét egy 0-tól 1-ig tartó szakaszon:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>kép</th><td><code>1100</code></td><td><code>0011</code></td><td><code>1010</code></td><td><code>0101</code></td><td><code>1001</code></td></tr>
+    <tr><th>$p$</th><td>0,3</td><td>0,2</td><td>0,2</td><td>0,2</td><td>0,1</td></tr>
+    <tr><th>szakasz</th><td>$[0;\ 0{,}3)$</td><td>$[0{,}3;\ 0{,}5)$</td><td>$[0{,}5;\ 0{,}7)$</td><td>$[0{,}7;\ 0{,}9)$</td><td>$[0{,}9;\ 1)$</td></tr>
+  </table></div>
+  Húzz egy egyenletes véletlen számot 0 és 1 között, pl. $u = 0{,}62$! Ez a <code>1010</code> szakaszába esik: a gép egy bal csíkot rajzol. Ha sokszor húzol, a felső csík a húzások kb. 30%-a lesz – pontosan úgy, ahogy a gyerekeknél.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – empirikus eloszlás és mintavétel</span>
+  <ul style="margin:.2rem 0">
+    <li>Az <b>empirikus eloszlás</b>: minden adatpont valószínűsége a relatív gyakorisága, $\hat p(\mathbf x) = (\text{hányszor fordult elő}) / N$. Ez a legegyszerűbb generatív „modell”: egy táblázat.</li>
+    <li><b>Mintavétel</b> véges sok értékből: rakd sorba az értékeket, és osszd fel a $[0; 1)$ szakaszt a valószínűségeik szerint. Egy egyenletes $u$ azt az értéket választja, amelynek a szakaszába esik (vagyis az első olyat, ahol a <b>halmozott</b> valószínűség már nagyobb $u$-nál).</li>
+  </ul>
+  <b>Miért működik?</b> Egy $[a; b)$ szakaszba az egyenletes $u$ pontosan $b - a$ valószínűséggel esik – ennyi a kép valószínűsége. Minden generatív modell végül ilyen mintavételre vezet vissza: a véletlen az <b>egyenletes számokból</b> jön, a modell <b>alakítja</b> a kívánt eloszlássá.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy másik modell: független pixelek</span>
+    Egy egyszerűbb modell csak azt tanulja meg, melyik pixel milyen gyakran fekete: $p_1 = 0{,}6$, $p_2 = 0{,}5$, $p_3 = 0{,}4$, $p_4 = 0{,}5$ (pl. a bal felső pixel 10 rajzból 6-on fekete). Rajzoláskor <b>pixelenként</b> külön pénzfeldobás dönt. Így bármelyik kép kijöhet: $p(\texttt{1111}) = 0{,}6 \cdot 0{,}5 \cdot 0{,}4 \cdot 0{,}5 = 0{,}06$ – a gép olyat is rajzol, amit egy gyerek sem.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – sok minta</span>
+    1000 húzásból a táblázatos modell várhatóan 300 felső, 200 alsó, 200 bal, 200 jobb csíkot és 100 átlót rajzol. Ugyanaz a gép más húzásokkal kicsit más darabszámokat ad (pl. 312, 191, …) – de <b>sosem</b> rajzol olyat, ami nincs a táblázatban.
+  </div>
+</div>
+<div class="widget" data-widget="sample-machine"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A táblázat csak másol.</b> Az empirikus eloszlás pontosan a tanítóadatokat adja vissza – ez a <b>memorizálás</b> legtisztább formája. Új rajz nincs benne. A jó generatív modell valahol a „csak másol” (táblázat) és a „mindent összekever” (független pixelek) között van.</li>
+    <li><b>A független pixelek modellje szétszedi a képet.</b> Nem tudja, hogy a felső csíkban a két felső pixel <b>együtt</b> fekete. Ezért csupa feketét és csupa fehéret is rajzol. A pixelek közötti összefüggés a lényeg – erről szól a <a href="#s142">14.2</a>.</li>
+    <li><b>A véletlen reprodukálható.</b> A számítógép álvéletlen számokat használ egy <b>mag</b>ból (seed). Ugyanaz a mag ugyanazt a képet adja – ezért tud egy képgenerátor „ugyanazt a képet még egyszer, kicsit másképp” előállítani.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – mintavétel</summary>
+  <ol>
+    <li>Melyik képet rajzolja a táblázatos modell, ha $u = 0{,}25$, $u = 0{,}30$, illetve $u = 0{,}89$?
+      <details><summary>Megoldás</summary>0,25 → <code>1100</code> ($[0; 0{,}3)$); 0,30 → <code>0011</code> (a szakasz bal vége a <code>0011</code>-hoz tartozik: $[0{,}3; 0{,}5)$); 0,89 → <code>0101</code> ($[0{,}7; 0{,}9)$).</details></li>
+    <li>500 mintából várhatóan hány átló lesz? És hány fordított átló (<code>0110</code>)?
+      <details><summary>Megoldás</summary>$500 \cdot 0{,}1 = 50$ átló, és 0 fordított átló – a táblázatban nincs.</details></li>
+    <li>A független pixelek modelljében mennyi $p(\texttt{0000})$?
+      <details><summary>Megoldás</summary>Minden pixel fehér: $(1 - 0{,}6)(1 - 0{,}5)(1 - 0{,}4)(1 - 0{,}5) = 0{,}4 \cdot 0{,}5 \cdot 0{,}6 \cdot 0{,}5 = 0{,}06$.</details></li>
+    <li>A független pixelek modellje négy egyenletes számot húz: $u = (0{,}2;\allowbreak\ 0{,}7;\allowbreak\ 0{,}3;\allowbreak\ 0{,}55)$. A pixel fekete, ha $u_i \lt p_i$. Melyik kép lesz?
+      <details><summary>Megoldás</summary>$0{,}2 \lt 0{,}6$ → 1; $0{,}7 \lt 0{,}5$ nem → 0; $0{,}3 \lt 0{,}4$ → 1; $0{,}55 \lt 0{,}5$ nem → 0. A kép <code>1010</code>, egy bal csík.</details></li>
+    <li>(nehezebb) A 16 kép közül hányat rajzolhat a táblázatos modell, és hányat a független pixeleké? Melyik „kreatívabb”, és melyik rajzol több hülyeséget?
+      <details><summary>Megoldás</summary>A táblázat 5-öt (csak a látottakat), a független pixeleké mind a 16-ot (minden $p_i$ 0 és 1 között van). A független modell „kreatívabb”, de pl. 6% eséllyel csupa feketét rajzol, ami nem csík. A felső csíkot viszont csak $0{,}6 \cdot 0{,}5 \cdot 0{,}6 \cdot 0{,}5 = 0{,}09$ eséllyel – a valódi 0,3 helyett.</details></li>
+  </ol>
+</details>
+
+<h3 id="s141-c">3. lépés: mennyire jó egy modell? – meglepetés bitekben, és a méret átka</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – mennyire lepődik meg a modell a rajzokon?</span>
+  A <a href="../02-matematikai-eszkoztar/#s26-a">2.6</a>-ban a $p$ valószínűségű esemény <b>meglepetése</b> $-\log_2 p$ bit volt. Nézzük meg, mennyire lepődik meg három modell a tíz rajzon, átlagosan:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>modell</th><th>$p(\texttt{1100})$</th><th>$p(\texttt{1001})$</th><th>átlagos meglepetés a 10 rajzon</th></tr>
+    <tr><td>egyenletes (minden kép $1/16$)</td><td>0,0625</td><td>0,0625</td><td>4 bit</td></tr>
+    <tr><td>független pixelek</td><td>0,09</td><td>0,09</td><td>3,94 bit</td></tr>
+    <tr><td>táblázat (empirikus)</td><td>0,3</td><td>0,1</td><td>2,25 bit</td></tr>
+  </table></div>
+  Minél kisebb a szám, annál jobban „ismeri” a modell az adatokat. A táblázat 2,25 bitje pontosan az adatok <b>entrópiája</b> (<a href="../02-matematikai-eszkoztar/#s26-b">2.6</a>): ennél jobbat a tanítóadatokon egyetlen modell sem érhet el.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – negatív log-likelihood (NLL)</span>
+  Egy $p$ modell <b>negatív log-likelihoodja</b> az $\mathbf x_1, \dots, \mathbf x_N$ adatokon az átlagos meglepetés:
+  $$\text{NLL} = -\frac1N \sum_{i=1}^N \log_2 p(\mathbf x_i)\quad\text{bit / adatpont}.$$
+  Ez a <b>keresztentrópia</b> az adatok és a modell között (<a href="../02-matematikai-eszkoztar/#s26-c">2.6</a>). A tanítás célja: minél kisebb NLL – vagyis a <b>legnagyobb valószínűség</b> (maximum likelihood) elve. <b>Miért bit?</b> Mert ennyi bitbe lehetne <b>tömöríteni</b> egy adatpontot, ha a tömörítő ezt a modellt használná: a jó generatív modell jó tömörítő.
+  <br>A valódi mérce a <b>tesztadatokon</b> mért NLL – ugyanúgy, mint az osztályozóknál (<a href="../06-modellertekeles/">6. fejezet</a>).
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy új rajz: a nulla csapdája</span>
+    Egy tizenegyedik gyerek a fordított átlót rajzolja: <code>0110</code>. A táblázat szerint $p = 0$, a meglepetés $-\log_2 0 = \infty$. Egyetlen új rajz végtelen rossz NLL-t ad. A megoldás ugyanaz, mint a naiv Bayesnél (<a href="../05-osztalyozas/#s55-c">5.5</a>): <b>Laplace-simítás</b>. Minden képhez +1-et adunk: $p(\texttt{0110}) = 1/26 \approx 0{,}038$, a meglepetés 4,70 bit.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a méret átka</span>
+    A 2 × 2-es táblázatnak $2^4 - 1 = 15$ szabad száma van (a 16. a többiből jön, mert az összeg 1). Egy 8 × 8-as fekete-fehér képnél $2^{64} - 1 \approx 1{,}8 \cdot 10^{19}$ – több, mint ahány homokszem a Földön. Egy 256 × 256-os színes képnél a lehetséges képek száma kb. $10^{473\,000}$. Táblázattal ez reménytelen: a modellnek <b>kevés paraméterből</b> kell eloszlást adnia, és olyan képekre is értelmes valószínűséget, amilyet sosem látott.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A tanítóadaton mért NLL a memorizálást jutalmazza.</b> A táblázat a legjobb a tanítóadaton (2,25 bit), és a legrosszabb egy új rajzon ($\infty$). Mindig tesztadaton mérj.</li>
+    <li><b>Kis NLL ≠ szép minták.</b> Egy modell lehet jó átlagos valószínűségben, és mégis rajzolhat csúnya képeket – és fordítva (<a href="#s148-a">14.8</a>). Több modell (GAN) NLL-t ki sem tud számolni.</li>
+    <li><b>Folytonos adatnál sűrűség van, nem valószínűség.</b> Egy szürkeárnyalatos pixel 0,37-es értékének „valószínűsége” 0; ott $p(\mathbf x)$ sűrűségfüggvény, és lehet 1-nél nagyobb is. Az összevetéshez ugyanazt a felbontást kell használni.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – NLL</summary>
+  <ol>
+    <li>Mennyi az egyenletes modell NLL-je bármilyen adaton 2 × 2-es, illetve 8 × 8-as fekete-fehér képeknél?
+      <details><summary>Megoldás</summary>$-\log_2(1/16) = 4$ bit, illetve $-\log_2(2^{-64}) = 64$ bit – pixelenként 1 bit. Ez a „semmit sem tudok” alapvonal.</details></li>
+    <li>Mekkora a független pixelek modelljének meglepetése az alsó csíkon (<code>0011</code>)?
+      <details><summary>Megoldás</summary>$p = 0{,}4 \cdot 0{,}5 \cdot 0{,}4 \cdot 0{,}5 = 0{,}04$, a meglepetés $-\log_2 0{,}04 \approx 4{,}64$ bit – rosszabb, mint az egyenletes modell 4 bitje ezen a képen.</details></li>
+    <li>Mekkora a táblázatos modell meglepetése az átlón?
+      <details><summary>Megoldás</summary>$-\log_2 0{,}1 \approx 3{,}32$ bit.</details></li>
+    <li>A Laplace-simított modell (minden darabszám + 1, a nevező $10 + 16 = 26$) mennyit ad a felső csíkra? Hány bit a meglepetés?
+      <details><summary>Megoldás</summary>$p = (3 + 1)/26 \approx 0{,}154$, a meglepetés $\approx 2{,}70$ bit (a simítás nélküli 1,74 bit helyett). A simítás valószínűséget vesz el a látott képektől, és szétosztja a nem látottak között.</details></li>
+    <li>(nehezebb) A simított modell NLL-je a tíz tanítórajzon 3,05 bit, a simítás nélkülié 2,25. Melyiket választanád, és miért?
+      <details><summary>Megoldás</summary>A simítottat. A tanítóadaton rosszabb, de minden új rajzra véges meglepetést ad; a simítás nélküli egyetlen nem látott rajzon is végtelen NLL-t kap. Ugyanaz a tanulság, mint a 6. fejezetben: a tanítóhibán mért győztes túlilleszthet.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai14-141"></div>
+</section>

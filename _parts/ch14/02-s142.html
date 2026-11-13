@@ -1,0 +1,169 @@
+
+<!-- ===================================================== 14.2 -->
+<section id="s142">
+<h2>14.2 Autoregresszív modellek ★★</h2>
+<p>A 14.1 két véglete: a táblázat mindent tud a pixelek együttállásáról, de csak másol, és nagyobb képre reménytelenül nagy. A független pixelek modellje kicsi, de szétszedi a képet. Kell egy köztes út, amely <b>kevés paraméterrel</b> is tudja, mely pixelek járnak együtt. Az első ötlet: <b>rajzoljuk a képet pixelenként</b>, és minden pixelnél nézzük meg, mi van már a lapon.</p>
+
+<h3 id="s142-a">1. lépés: a láncszabály – egy kép valószínűsége pixelenként</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a felső csík négy kérdésben</span>
+  Rajzold meg a felső csíkot (<code>1100</code>) pixelenként, és minden lépésnél kérdezd meg a tíz rajzot, mi következik:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>lépés</th><th>kérdés</th><th>a rajzok közül</th><th>valószínűség</th></tr>
+    <tr><td>1.</td><td>fekete-e a bal felső?</td><td>10-ből 6</td><td>0,6</td></tr>
+    <tr><td>2.</td><td>fekete-e a jobb felső, ha a bal felső fekete?</td><td>6-ból 3</td><td>0,5</td></tr>
+    <tr><td>3.</td><td>fehér-e a bal alsó, ha fent <code>11</code>?</td><td>3-ból 3</td><td>1</td></tr>
+    <tr><td>4.</td><td>fehér-e a jobb alsó, ha eddig <code>110</code>?</td><td>3-ból 3</td><td>1</td></tr>
+  </table></div>
+  A szorzat: $0{,}6 \cdot 0{,}5 \cdot 1 \cdot 1 = 0{,}3$ – pontosan a táblázat értéke. A kép valószínűségét felbontottuk négy kisebb jóslásra: <b>mi a következő pixel, ha ismerem az eddigieket?</b>
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – a valószínűség láncszabálya</span>
+  Bármely $\mathbf x = (x_1, x_2, \dots, x_D)$-re, <b>közelítés nélkül</b>:
+  $$p(\mathbf x) = p(x_1)\, p(x_2 \mid x_1)\, p(x_3 \mid x_1, x_2) \cdots p(x_D \mid x_1, \dots, x_{D-1}) = \prod_{i=1}^{D} p(x_i \mid \mathbf x_{\lt i}).$$
+  Az <b>autoregresszív</b> modell ezeket a feltételes valószínűségeket tanulja meg: minden elemet az <b>előtte lévőkből</b> jósol. (<em>Auto-</em> „ön-”: a modell a saját korábbi kimenetéből „regresszál”.)
+  <b>Miért igaz?</b> A feltételes valószínűség definíciója (<a href="../02-matematikai-eszkoztar/#s25-a">2.5</a>) szerint $p(a, b) = p(a)\,p(b \mid a)$; ezt ismételjük. Bármely sorrend jó – képeknél általában soronként, balról jobbra (mint az olvasás).
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – az átló</span>
+    $p(x_1 = 1) = 0{,}6$; $p(x_2 = 0 \mid 1) = 3/6 = 0{,}5$; a <code>10</code>-val kezdődő rajzok: <code>1010</code> ×2, <code>1001</code> ×1, ezért $p(x_3 = 0 \mid 10) = 1/3$; végül $p(x_4 = 1 \mid 100) = 1$. A szorzat $0{,}6 \cdot 0{,}5 \cdot \tfrac13 \cdot 1 = 0{,}1$. ✓
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – más sorrendben</span>
+    Olvassuk a képet <b>oszloponként</b> (bal fent, bal lent, jobb fent, jobb lent)! A felső csíknál: $p(\text{bal fent} = 1) = 0{,}6$, $p(\text{bal lent} = 0 \mid 1) = 4/6$, $p(\text{jobb fent} = 1 \mid 10) = 3/4$, $p(\text{jobb lent} = 0 \mid 101) = 1$. A szorzat $0{,}6 \cdot \tfrac46 \cdot \tfrac34 \cdot 1 = 0{,}3$ – ugyanaz.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A láncszabály önmagában nem tanul semmit.</b> Ha minden feltételes valószínűséget teljes táblázatban tárolunk, $1 + 2 + 4 + 8 = 15$ szám kell – ugyanannyi, mint a táblázatnak, és ugyanúgy csak másol. Az erő abból jön, hogy a feltételeket <b>egyszerű, közös modellel</b> közelítjük (<a href="#s142-b">2. lépés</a>).</li>
+    <li><b>Csak az előzőkre feltételezünk.</b> $p(x_3 \mid x_1, x_2)$ – nem $p(x_3 \mid x_1, x_2, x_4)$. Ha a később jövő pixeleket is látná a modell, a szorzat nem a kép valószínűsége lenne. Ugyanezért kellett a GPT-ben a <b>maszkolt figyelem</b> (<a href="../12-beagyazasok-figyelem/#s126-b">12.6</a>).</li>
+    <li><b>Nulla egy tényezőben = nulla az egészben.</b> Ha egyetlen feltételes valószínűség 0, a kép valószínűsége 0, a meglepetés végtelen. A simítás itt is kell.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – láncszabály</summary>
+  <ol>
+    <li>Számold ki a láncszabállyal $p(\texttt{0011})$-et soronkénti sorrendben!
+      <details><summary>Megoldás</summary>$p(x_1 = 0) = 0{,}4$; a <code>0</code>-val kezdődők: <code>0011</code> ×2, <code>0101</code> ×2, így $p(x_2 = 0 \mid 0) = 0{,}5$; a <code>00</code>-val kezdődők csak <code>0011</code>: $p(x_3 = 1 \mid 00) = 1$, $p(x_4 = 1 \mid 001) = 1$. Szorzat: $0{,}4 \cdot 0{,}5 = 0{,}2$. ✓</details></li>
+    <li>Mennyi $p(x_2 = 1 \mid x_1 = 0)$ a rajzokon?
+      <details><summary>Megoldás</summary>A 4 db <code>0</code>-val kezdődő rajz közül 2-nél (<code>0101</code>) fekete a jobb felső: 0,5.</details></li>
+    <li>Mennyi a láncszabály szerint $p(\texttt{0110})$? Melyik tényező nullázza ki?
+      <details><summary>Megoldás</summary>$p(x_1 = 0) = 0{,}4$, $p(x_2 = 1 \mid 0) = 0{,}5$, de a <code>01</code>-gyel kezdődő rajzok (<code>0101</code> ×2) mind fehér bal alsóval folytatódnak: $p(x_3 = 1 \mid 01) = 0$. Az egész szorzat 0.</details></li>
+    <li>Egy 3 × 3-as fekete-fehér képnél hány szám kell, ha minden feltételes valószínűséget teljes táblázatban tárolunk?
+      <details><summary>Megoldás</summary>$1 + 2 + 4 + \dots + 2^8 = 2^9 - 1 = 511$ – ugyanannyi, mint a $2^9 = 512$ képet felsoroló táblázatnak (mínusz 1).</details></li>
+    <li>(nehezebb) Egy nyelvi modell szerint az első szó 0,1 valószínűséggel „a”; ha az első szó „a”, a második 0,02 valószínűséggel „macska”; ha az eleje „a macska”, a harmadik szó 0,3 valószínűséggel „alszik”. Mennyi „a macska alszik” valószínűsége, és hány bit a meglepetése?
+      <details><summary>Megoldás</summary>$0{,}1 \cdot 0{,}02 \cdot 0{,}3 = 0{,}000\,6$; $-\log_2 0{,}000\,6 \approx 10{,}7$ bit. Ez ugyanaz a láncszabály, csak a „pixel” itt szó (token) – így számol egy nyelvi modell (<a href="#s142-c">3. lépés</a>, 16. fejezet).</details></li>
+  </ol>
+</details>
+
+<h3 id="s142-b">2. lépés: kevesebb paraméter – egyszerűsített feltételek</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – csak az előző pixelt nézzük</span>
+  Egyszerűsítsünk: minden pixel csak az <b>előtte lévő egy</b> pixeltől függjön (<b>Markov-feltevés</b>). A tíz rajzból:
+  $p(x_1 = 1) = 0{,}6$; $p(x_2 = 1 \mid x_1) = 0{,}5$ bármely $x_1$-re; $p(x_3 = 1 \mid x_2 = 1) = 0$, $p(x_3 = 1 \mid x_2 = 0) = 0{,}8$; $p(x_4 = 1 \mid x_3) = 0{,}5$. Ez $1 + 2 + 2 + 2 = 7$ szám. A felső csík: $0{,}6 \cdot 0{,}5 \cdot 1 \cdot 0{,}5 = 0{,}15$. Három modell egymás mellett:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>modell</th><th>paraméterek</th><th>NLL a 10 rajzon</th><th>hány képet rajzolhat a 16-ból?</th></tr>
+    <tr><td>független pixelek</td><td>4</td><td>3,94 bit</td><td>16</td></tr>
+    <tr><td>Markov (előző pixel)</td><td>7</td><td>3,33 bit</td><td>12</td></tr>
+    <tr><td>teljes láncszabály (= táblázat)</td><td>15</td><td>2,25 bit</td><td>5</td></tr>
+  </table></div>
+  A Markov-modell pl. a <code>1011</code> képet 0,12 valószínűséggel rajzolja, pedig egyik gyerek sem rajzolta: <b>összerak</b> egy újat a látott darabokból.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – paraméteres autoregresszív modell</span>
+  A feltételes valószínűségeket <b>egy közös, tanulható függvény</b> adja:
+  $$p(x_i = 1 \mid \mathbf x_{\lt i}) = f_\theta(\mathbf x_{\lt i}).$$
+  A legegyszerűbb $f$ pixelenként egy <b>logisztikus regresszió</b> (<a href="../05-osztalyozas/#s53-b">5.3</a>): $p(x_i = 1 \mid \mathbf x_{\lt i}) = \sigma\big(\sum_{j \lt i} w_{ij} x_j + b_i\big)$. Egy 8 × 8-as képhez ez legfeljebb $2016 + 64 = 2080$ paraméter – a táblázat $1{,}8 \cdot 10^{19}$-je helyett.
+  A tanítás: a tanítóképeken a <b>keresztentrópia</b> minimalizálása – minden pixel egy bináris osztályozási feladat, a „címke” maga a pixel. Nincs szükség emberi címkére: az adat önmagát felügyeli (<b>önfelügyelt tanulás</b>, <a href="../12-beagyazasok-figyelem/#s127-b">12.7</a>).
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy pixel logisztikus jóslása</span>
+    Legyen $p(x_2 = 1 \mid x_1) = \sigma(-1 + 2x_1)$. Ha a bal felső fekete, $\sigma(1) \approx 0{,}73$; ha fehér, $\sigma(-1) \approx 0{,}27$. A modell megtanulta: „ha az előző fekete, ez is valószínűleg az” – két paraméterrel.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a 8 × 8-as számjegyek</span>
+    1347 számjegyet fekete-fehérre alakítottunk (a pixel fekete, ha az intenzitása legalább a fele). A 450 tesztképen mért NLL: egyenletes modell 64 bit, független pixelek 36,3 bit, logisztikus autoregresszív modell <b>25,9 bit</b>. A pixelek közti összefüggés 10,4 bitet ér képenként – a tesztképek átlagosan kb. $2^{10{,}4} \approx 1350$-szer valószínűbbek az autoregresszív modellben.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Neurális autoregresszív modellek – és a GPT</span>
+  A logisztikus regresszió helyére tetszőleges háló kerülhet, ha <b>csak az előző elemeket látja</b>. Képekre: <b>PixelRNN, PixelCNN</b> (A. van den Oord és társai, 2016 – maszkolt konvolúcióval). Hangra: <b>WaveNet</b> (2016). Szövegre: a <b>GPT</b>-család – egy maszkolt figyelmű Transformer (<a href="../12-beagyazasok-figyelem/#s126-c">12.6</a>), amely a következő <b>token</b> eloszlását adja. A nagy nyelvi modell tehát egy autoregresszív generatív modell; a 16. fejezet ezt bontja ki.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az egyszerűsítés a tanítóadaton mindig rosszabb.</b> A Markov-modell NLL-je 3,33 bit (a táblázaté 2,25). Ez nem hiba: cserébe új képekre is értelmes valószínűséget ad. A kérdés a <b>teszt</b>-NLL.</li>
+    <li><b>Az új kép nem feltétlenül jó kép.</b> A Markov-modell a <code>1101</code>-et is 0,15 valószínűséggel rajzolja – ez nem csík. A túl egyszerű feltétel (csak az előző pixel) nem látja a teljes alakot.</li>
+    <li><b>Folytonos pixelérték.</b> Szürkeárnyalatnál a következő pixel eloszlása nem két érték. A PixelCNN 256 kategóriára (softmax, <a href="../05-osztalyozas/#s54-b">5.4</a>) jósol – a nyelvi modell ugyanígy a szótár minden tokenjére.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – egyszerűsített feltételek</summary>
+  <ol>
+    <li>Mennyi a Markov-modellben $p(\texttt{1010})$?
+      <details><summary>Megoldás</summary>$p(x_1 = 1) = 0{,}6$, $p(x_2 = 0 \mid 1) = 0{,}5$, $p(x_3 = 1 \mid x_2 = 0) = 0{,}8$, $p(x_4 = 0 \mid x_3 = 1) = 0{,}5$. Szorzat: $0{,}6 \cdot 0{,}5 \cdot 0{,}8 \cdot 0{,}5 = 0{,}12$ (a táblázatban 0,2).</details></li>
+    <li>Miért 0 a Markov-modellben $p(\texttt{1111})$?
+      <details><summary>Megoldás</summary>Mert $p(x_3 = 1 \mid x_2 = 1) = 0$: a tíz rajzban ahol a jobb felső fekete (<code>1100</code>, <code>0101</code>), ott a bal alsó mindig fehér.</details></li>
+    <li>Hány paramétere van egy logisztikus autoregresszív modellnek 3 × 3-as képre?
+      <details><summary>Megoldás</summary>A $i$-edik pixelnek $i - 1$ súlya és 1 torzítása van: $\sum_{i=1}^{9} i = 45$. (Általában $D(D+1)/2$.)</details></li>
+    <li>$p(x_5 = 1 \mid \mathbf x_{\lt 5}) = \sigma(2x_1 - x_3 + 3x_4 - 2)$. Mennyi, ha $\mathbf x_{\lt 5} = (1, 0, 1, 1)$?
+      <details><summary>Megoldás</summary>$z = 2 - 1 + 3 - 2 = 2$, $\sigma(2) \approx 0{,}88$.</details></li>
+    <li>(nehezebb) A számjegyeken a független modell 36,3, az autoregresszív 25,9 bitet ad képenként. Átlagosan hány bit jut egy pixelre, és mit jelent, hogy ez jóval 1 alatt van?
+      <details><summary>Megoldás</summary>$36{,}3 / 64 \approx 0{,}57$ és $25{,}9 / 64 \approx 0{,}40$ bit/pixel. Az egyenletes modell 1 bit/pixel. Mivel a számjegyek nagy része fehér háttér, és a vonalak összefüggők, egy pixel átlagosan sokkal kevesebb „újdonságot” hordoz, mint egy pénzfeldobás – a jó modellel a kép kb. 40%-ára tömöríthető.</details></li>
+  </ol>
+</details>
+
+<h3 id="s142-c">3. lépés: mintavétel pixelenként – hőmérséklet és kiegészítés</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – rajzolj egy képet négy pénzfeldobással</span>
+  A teljes láncszabályos modellből: (1) bal felső: $p = 0{,}6$, húzás $u = 0{,}4$ → fekete. (2) jobb felső: $p(1 \mid 1) = 0{,}5$, $u = 0{,}8$ → fehér. (3) bal alsó: $p(1 \mid 10) = 2/3$, $u = 0{,}5$ → fekete. (4) jobb alsó: $p(1 \mid 101) = 0$ → fehér. A kép <code>1010</code>. Minden pixel egy húzás, és <b>minden húzás látja az eddigieket</b> – ezért lesz a végén egy egész csík, nem összevissza pixelek.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – autoregresszív mintavétel</span>
+  <ol style="margin:.2rem 0">
+    <li>$i = 1, 2, \dots, D$ sorban: számold ki $p(x_i \mid \mathbf x_{\lt i})$-t a <b>már kihúzott</b> értékekkel;</li>
+    <li>húzz belőle egy értéket (<a href="#s141-b">14.1</a>), és írd a helyére.</li>
+  </ol>
+  <b>Hőmérséklet</b> ($T$): a logitot osztjuk vele húzás előtt, $p = \sigma(z / T)$ (több kategóriánál softmax, <a href="../02-matematikai-eszkoztar/#s25-d">2.5</a>). $T \lt 1$: a valószínű érték még valószínűbb (óvatos, egyhangú minták); $T \gt 1$: kiegyenlítettebb, merészebb, hibásabb minták; $T \to 0$: mindig a legvalószínűbb (mohó választás).
+  <br><b>Kiegészítés:</b> ha a kép eleje adott (pl. a felső sorok), a mintavételt onnan folytatjuk – a modell a <b>hiányzó részt</b> rajzolja meg hozzá illően.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a hőmérséklet hatása</span>
+    Egy pixel logitja $z = 1$. $T = 1$: $\sigma(1) \approx 0{,}73$. $T = 0{,}5$: $\sigma(2) \approx 0{,}88$. $T = 2$: $\sigma(0{,}5) \approx 0{,}62$. Az alacsony hőmérséklet „határozottabb”, a magas „bizonytalanabb” modellt csinál ugyanabból a hálóból.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – kiegészítés</span>
+    Adott a felső sor: <code>10</code>. A teljes modell szerint a folytatás <code>10</code> (bal csík) $2/3$, <code>01</code> (átló) $1/3$ valószínűséggel. Ha a felső sor <code>11</code>, a folytatás biztosan <code>00</code>. Egy nyelvi modell ugyanígy fejezi be a mondatot, amit elkezdtél.
+  </div>
+</div>
+<div class="widget" data-widget="pixel-ar"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Lassú.</b> $D$ pixelhez $D$ egymás utáni lépés kell, mert minden lépés az előzőre vár. Egy 1024 × 1024-es színes kép kb. 3,1 millió lépés. A nyelvi modell is tokenenként ír – ezért „gépel” a válasz a képernyőn.</li>
+    <li><b>A hiba továbbgyűrűzik.</b> Ha egy korai húzás rossz (egy fura pixel), a modell onnantól ehhez igazodik, és nem tudja „kiradírozni”.</li>
+    <li><b>A sorrend korlátoz.</b> Soronkénti sorrendben a kép <b>végét</b> könnyű kiegészíteni, az <b>elejét</b> nem: a felső sorhoz a modell nem tudja figyelembe venni az alsót.</li>
+    <li><b>Hőmérséklet ≠ kreativitás.</b> A magas $T$ csak a véletlent növeli, nem a minőséget. A nagyon alacsony $T$ pedig ismétlődő, egyforma mintákat ad.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – mintavétel és kiegészítés</summary>
+  <ol>
+    <li>A teljes láncszabályos modell húzásai $u = (0{,}7;\allowbreak\ 0{,}2;\allowbreak\ 0{,}9;\allowbreak\ 0{,}1)$; a pixel fekete, ha $u \lt p$. Melyik kép lesz?
+      <details><summary>Megoldás</summary>(1) $0{,}7 \lt 0{,}6$? nem → 0. (2) $p(x_2 = 1 \mid 0) = 0{,}5$, $0{,}2 \lt 0{,}5$ → 1. (3) $p(x_3 = 1 \mid 01) = 0$ → 0. (4) $p(x_4 = 1 \mid 010) = 1$, $0{,}1 \lt 1$ → 1. A kép <code>0101</code>.</details></li>
+    <li>Mennyi $\sigma(z/T)$, ha $z = -2$ és $T = 0{,}5$, illetve $T = 4$?
+      <details><summary>Megoldás</summary>$\sigma(-4) \approx 0{,}018$; $\sigma(-0{,}5) \approx 0{,}38$.</details></li>
+    <li>Mit rajzol a modell $T \to 0$ mellett minden alkalommal (a teljes láncszabályos modellnél, ahol $p = 0{,}5$ esetén a feketét választjuk)?
+      <details><summary>Megoldás</summary>(1) $0{,}6 \gt 0{,}5$ → 1. (2) $0{,}5$ → 1 (a megállapodás szerint). (3) $p(1 \mid 11) = 0$ → 0. (4) → 0. Mindig <code>1100</code>, a felső csíkot – a legvalószínűbbet, sokféleség nélkül.</details></li>
+    <li>A felső sor <code>01</code>. Mit egészít ki a teljes modell?
+      <details><summary>Megoldás</summary>A <code>01</code>-gyel kezdődő rajzok mind <code>0101</code>-ek: a folytatás biztosan <code>01</code>, jobb csík.</details></li>
+    <li>(nehezebb) Egy nyelvi modell 500 tokenes választ ír, és tokenenként 20 ms kell. Mennyi ideig tart a válasz? Miért nem lehet egyszerűen 500 tokent párhuzamosan kiszámolni?
+      <details><summary>Megoldás</summary>$500 \cdot 0{,}02 = 10$ s. Párhuzamosan nem megy, mert az $i$-edik tokent az előző $i - 1$ <b>kihúzott</b> tokenre feltételezve kell kiszámolni – amíg azok nincsenek meg, nincs mire feltételezni. (Tanításkor viszont párhuzamos, mert ott a teljes szöveg ismert: <a href="../12-beagyazasok-figyelem/#s127-a">12.7</a>.)</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai14-142"></div>
+</section>

@@ -1,0 +1,178 @@
+
+<!-- ===================================================== 14.4 -->
+<section id="s144">
+<h2>14.4 Variációs autoenkóder (VAE) ★★★</h2>
+<p>Az autoenkóder kódfelhője lyukas, és nem tudjuk, hol van. Két kívánságunk van: (1) a kódok egy <b>ismert helyen</b> legyenek – mondjuk egy standard normális eloszlás körül –, hogy tudjuk, honnan sorsoljunk; (2) a felhőben <b>ne legyenek lyukak</b>: a kódok környéke is értelmes képet adjon. A <b>variációs autoenkóder</b> (D. Kingma és M. Welling, 2013) mindkettőt egy ötlettel éri el: a kódoló nem egy pontot ad, hanem egy <b>kis felhőt</b>.</p>
+
+<h3 id="s144-a">1. lépés: a kód mint eloszlás – a reparaméterezés</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a felső csík kódja egy kis felhő</span>
+  Egyszerűsítsünk egyetlen kódszámra: „fent vagy lent”. A dekódoló $d(z) = 0{,}5 + z \cdot (0{,}5;\ 0{,}5;\ -0{,}5;\ -0{,}5)$, 0 és 1 közé vágva. A sima autoenkóder a felső csíkhoz a $z = 1$ pontot rendelné. A VAE kódolója két számot ad: <b>középpontot</b> és <b>szórást</b>, pl. $\mu = 1$, $\sigma = 0{,}5$. A kódot ebből <b>sorsoljuk</b>: $z = \mu + \sigma\varepsilon$, ahol $\varepsilon$ standard normális.
+  <ul style="margin:.2rem 0">
+    <li>$\varepsilon = 0{,}4$: $z = 1{,}2$ → a vágott kép $(1;\ 1;\ 0;\ 0)$, a felső csík;</li>
+    <li>$\varepsilon = -1{,}2$: $z = 0{,}4$ → $(0{,}7;\ 0{,}7;\ 0{,}3;\ 0{,}3)$, halvány felső csík;</li>
+    <li>$\varepsilon = -2$: $z = 0$ → csupa szürke.</li>
+  </ul>
+  A dekódolónak most nem egyetlen pontból, hanem a pont <b>egész környékéből</b> kell felső csíkot rajzolnia. A tanítás így „kitölti” a felhőt: a kódok környéke is értelmes lesz.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – a VAE kódolója és a reparaméterezési trükk</span>
+  <ul style="margin:.2rem 0">
+    <li>A kódoló minden $\mathbf x$-hez egy normális eloszlást ad a kódtérben: $q(\mathbf z \mid \mathbf x) = \mathcal N\big(\boldsymbol\mu(\mathbf x),\ \operatorname{diag}\boldsymbol\sigma^2(\mathbf x)\big)$. A gyakorlatban a háló $\boldsymbol\mu$-t és $\ln \boldsymbol\sigma^2$-et adja ki (a logaritmus bármilyen előjelű lehet, a szórás mindig pozitív marad).</li>
+    <li>A kódot a <b>reparaméterezéssel</b> sorsoljuk: $\mathbf z = \boldsymbol\mu + \boldsymbol\sigma \odot \boldsymbol\varepsilon$, $\boldsymbol\varepsilon \sim \mathcal N(0, I)$ ($\odot$: elemenkénti szorzás).</li>
+    <li>A kódok <b>előzetes eloszlása</b> (<em>prior</em>): $p(\mathbf z) = \mathcal N(0, I)$. Generáláskor innen sorsolunk, és csak a dekódolót használjuk.</li>
+  </ul>
+  <b>Miért a trükk?</b> A visszaterjesztéshez (<a href="../10-halo-tanitasa/">10. fejezet</a>) deriválni kell a kódot $\boldsymbol\mu$ és $\boldsymbol\sigma$ szerint. Egy „húzz egy számot ebből az eloszlásból” lépés nem deriválható. A $\boldsymbol\mu + \boldsymbol\sigma\boldsymbol\varepsilon$ viszont igen: $\partial z / \partial \mu = 1$, $\partial z / \partial \sigma = \varepsilon$. A véletlen „kívülről” jön, a háló csak eltolja és nyújtja.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – két felhő átfed</span>
+    Az alsó csík kódja $\mu = -1$, $\sigma = 0{,}5$. A két felhő középpontja 2 egységre van, a szórásuk 0,5: a $z = 0$ környékét mindkettő ritkán, de eléri. Ott a dekódoló „átmenetet” tanul – egy szürkés képet, nem egy véletlen pacát.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – két dimenzióban</span>
+    Egy kép kódja $\boldsymbol\mu = (0{,}8;\ -0{,}3)$, $\boldsymbol\sigma = (0{,}2;\ 0{,}5)$, a húzott zaj $\boldsymbol\varepsilon = (1;\ -2)$. A kód: $(0{,}8 + 0{,}2;\ -0{,}3 - 1) = (1;\ -1{,}3)$. Minden koordinátát külön tolunk és nyújtunk.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Nem a dekódoló kimenetéhez adunk zajt</b>, hanem a kódhoz. A zaj a <b>látens</b> térben kényszeríti ki, hogy a szomszédos kódok hasonló képet adjanak.</li>
+    <li><b>Fordítva szokták magyarázni.</b> Egyes tankönyvek szerint a trükk az, hogy „zaj hozzáadása helyett az eloszlásból húzunk”. Épp fordítva: húzni nem tudunk deriválhatóan, ezért húzunk egy <b>rögzített</b> $\boldsymbol\varepsilon$-t, és azt alakítjuk.</li>
+    <li><b>Generáláskor nincs kódoló.</b> Új képhez $\mathbf z \sim \mathcal N(0, I)$, aztán dekódoló. A kódoló csak a tanításhoz (és meglévő képek kódolásához) kell.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – reparaméterezés</summary>
+  <ol>
+    <li>$\mu = -1$, $\sigma = 0{,}5$, $\varepsilon = 0{,}6$. Mennyi $z$, és mit rajzol az 1D dekódoló?
+      <details><summary>Megoldás</summary>$z = -1 + 0{,}3 = -0{,}7$. A kép $0{,}5 - 0{,}7 \cdot (0{,}5;\ 0{,}5;\ -0{,}5;\ -0{,}5) = (0{,}15;\ 0{,}15;\ 0{,}85;\ 0{,}85)$ – alsó csík, kicsit halványabban.</details></li>
+    <li>Mennyi $\partial z / \partial \mu$ és $\partial z / \partial \sigma$, ha $\varepsilon = -1{,}2$?
+      <details><summary>Megoldás</summary>$1$ és $-1{,}2$.</details></li>
+    <li>A háló $\ln \sigma^2 = -2$-t ad ki. Mennyi $\sigma$?
+      <details><summary>Megoldás</summary>$\sigma^2 = e^{-2} \approx 0{,}135$, $\sigma = e^{-1} \approx 0{,}368$.</details></li>
+    <li>Hány számot ad ki a VAE kódolója, ha a kód 8 dimenziós?
+      <details><summary>Megoldás</summary>16-ot: 8 középpontot és 8 (log-)varianciát.</details></li>
+    <li>(nehezebb) Mi történne, ha a kódoló minden képre $\sigma = 0$-t adna? Mi akadályozza ezt meg? (Előre: <a href="#s144-b">2. lépés</a>.)
+      <details><summary>Megoldás</summary>Visszakapnánk a sima autoenkódert: minden kép egyetlen pont, a lyukak visszatérnek. A rekonstrukciónak ez lenne a legjobb (nincs zaj), ezért a tanítás magától oda tartana. A veszteség második tagja, a KL-tag bünteti a kicsi szórást – lásd a következő lépést.</details></li>
+  </ol>
+</details>
+
+<h3 id="s144-b">2. lépés: a veszteség – rekonstrukció + KL</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – mennyire tér el a felhő a standard normálistól?</span>
+  A <a href="../02-matematikai-eszkoztar/#s26-d">2.6</a>-ban a <b>KL-divergencia</b> azt mérte, mennyi „többletköltség” jár, ha egy eloszlás helyett egy másikat használunk. Két normális eloszlásra, $\mathcal N(\mu, \sigma^2)$ és $\mathcal N(0, 1)$ között zárt képlete van:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>$\mu$</th><th>$\sigma$</th><th>$\tfrac12(\mu^2 + \sigma^2 - 1 - \ln\sigma^2)$</th><th>mit jelent?</th></tr>
+    <tr><td>0</td><td>1</td><td>0</td><td>pontosan a prior</td></tr>
+    <tr><td>1</td><td>0,5</td><td>0,82</td><td>a felső csík felhője</td></tr>
+    <tr><td>2</td><td>0,5</td><td>2,32</td><td>messzebb van a közepétől</td></tr>
+    <tr><td>0</td><td>0,1</td><td>1,81</td><td>a közepén van, de nagyon keskeny</td></tr>
+  </table></div>
+  A KL büntet, ha a felhő <b>messze van</b> a 0-tól, és akkor is, ha <b>túl keskeny</b>. Ez a két kívánságunk: ismert hely, kitöltött tér.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – a VAE vesztesége</span>
+  Egy $\mathbf x$ képre, egy sorsolt $\mathbf z$ kóddal:
+  $$\mathcal L(\mathbf x) = \underbrace{-\ln p(\mathbf x \mid \mathbf z)}_{\text{rekonstrukció}} \;+\; \underbrace{\sum_{j=1}^{k} \tfrac12\big(\mu_j^2 + \sigma_j^2 - 1 - \ln \sigma_j^2\big)}_{\mathrm{KL}\left(q(\mathbf z \mid \mathbf x)\,\|\,\mathcal N(0, I)\right)}.$$
+  A rekonstrukciós tag a dekódoló kimenetén mért keresztentrópia (fekete-fehér képnél) vagy négyzetes hiba (szürkeárnyalatnál). A KL-tag a kódoló felhőit húzza a standard normális felé.
+  <b>Miért ez a kettő?</b> Kötélhúzás: a rekonstrukció azt akarja, hogy minden kép kódja <b>külön, pontosan</b> legyen; a KL azt, hogy minden felhő <b>közel és szélesen</b> legyen. Az egyensúly egy olyan kódtér, amelyben a felhők sűrűn, átfedve töltik ki a standard normális környékét.
+</div>
+<details class="box">
+  <summary>📐 A matematika mögötte – miért pont ez a veszteség? (ELBO)</summary>
+  A generatív modell: $\mathbf z \sim \mathcal N(0, I)$, aztán $\mathbf x \sim p(\mathbf x \mid \mathbf z)$ (a dekódoló). Egy kép valószínűsége $p(\mathbf x) = \int p(\mathbf x \mid \mathbf z)\,p(\mathbf z)\,d\mathbf z$ – ezt nem tudjuk kiszámolni (minden lehetséges kódon kellene átlagolni). Bármely $q(\mathbf z \mid \mathbf x)$-re viszont igaz (Jensen-egyenlőtlenség):
+  $$\ln p(\mathbf x) \;\ge\; \mathbb E_{q}\big[\ln p(\mathbf x \mid \mathbf z)\big] - \mathrm{KL}\big(q(\mathbf z \mid \mathbf x)\,\|\,p(\mathbf z)\big).$$
+  A jobb oldal az <b>ELBO</b> (<em>evidence lower bound</em>, a „bizonyíték” alsó korlátja). A VAE vesztesége ennek ellentettje: ha a veszteséget csökkentjük, a $\ln p(\mathbf x)$ egy alsó korlátját növeljük. A különbség pontosan $\mathrm{KL}\big(q(\mathbf z \mid \mathbf x)\,\|\,p(\mathbf z \mid \mathbf x)\big) \ge 0$: annál kisebb, minél jobban közelíti a kódoló a „valódi” kódeloszlást. Innen a „variációs” név: egy közelítő eloszlást ($q$) igazítunk – a variációszámítás nyelvén.
+</details>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – két dimenzió KL-je</span>
+    $\boldsymbol\mu = (1;\ 0)$, $\boldsymbol\sigma = (1;\ 0{,}5)$. A koordinátánkénti tagok: $\tfrac12(1 + 1 - 1 - 0) = 0{,}5$ és $\tfrac12(0 + 0{,}25 - 1 - \ln 0{,}25) \approx 0{,}32$. Összesen kb. 0,82.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a számjegyeken</span>
+    A 2 dimenziós kódú VAE a tesztképeken átlagosan 20,0 nat rekonstrukciós és 3,2 nat KL-veszteséget ad (1 nat = $1/\ln 2 \approx 1{,}44$ bit). A kódok középpontjainak szórása koordinátánként kb. 1, az egyes felhők szórása kb. 0,2: a képek felhői sűrűn töltik ki a standard normális környékét.
+  </div>
+</div>
+<div class="widget" data-widget="kl-explorer"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A KL nem a kódoló és a dekódoló hasonlóságát méri.</b> Egy népszerű tankönyv így írja – tévesen. A KL a kódoló felhőit veti össze a <b>priorral</b>, $\mathcal N(0, I)$-vel.</li>
+    <li><b>Túl erős KL = semmitmondó kód.</b> Ha a KL nyer, minden kép felhője $\mathcal N(0, I)$ lesz, a kód nem hordoz információt, a dekódoló az átlagképet rajzolja („a látens tér összeomlása”). A KL-tag súlyozása (a <b>β-VAE</b> $\beta$ szorzója) ezt az egyensúlyt hangolja.</li>
+    <li><b>A VAE vesztesége nem a pontos NLL.</b> Csak egy felső korlátja (az ELBO ellentettje) – az autoregresszív modell pontos számával közvetlenül nem mérhető össze, csak óvatosan.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a VAE vesztesége</summary>
+  <ol>
+    <li>Mennyi a KL-tag, ha $\mu = 0{,}5$ és $\sigma = 0{,}5$?
+      <details><summary>Megoldás</summary>$\tfrac12(0{,}25 + 0{,}25 - 1 - \ln 0{,}25) = \tfrac12(-0{,}5 + 1{,}386) \approx 0{,}44$.</details></li>
+    <li>Mennyi a KL-tag, ha $\mu = 0$ és $\sigma = 2$? Miért nem 0?
+      <details><summary>Megoldás</summary>$\tfrac12(0 + 4 - 1 - \ln 4) \approx \tfrac12(3 - 1{,}386) \approx 0{,}81$. A túl <b>széles</b> felhőt is bünteti: a prior szórása 1.</details></li>
+    <li>Rendezd a KL-tag szerint növekvő sorrendbe: (a) $\mu = 1$, $\sigma = 1$; (b) $\mu = 0{,}3$, $\sigma = 0{,}9$; (c) $\mu = 1$, $\sigma = 0{,}2$!
+      <details><summary>Megoldás</summary>(b) $\approx 0{,}055$; (a) $= 0{,}5$; (c) $\approx 1{,}63$. Tehát b, a, c.</details></li>
+    <li>A 2D kódú VAE rekonstrukciós vesztesége 20,0 nat. Hány bit ez?
+      <details><summary>Megoldás</summary>$20{,}0 / \ln 2 \approx 28{,}8$ bit. (A KL-lel együtt kb. 33,5 bit – de ez szürkeárnyalatos képeken mért szám, nem vethető össze közvetlenül az autoregresszív modell fekete-fehér képeken mért 25,9 bitjével.)</details></li>
+    <li>(nehezebb) Mutasd meg, hogy $\sigma$ rögzített $\mu$ mellett a KL-tagot $\sigma = 1$-nél minimalizálja!
+      <details><summary>Megoldás</summary>$\sigma$ szerint deriválva: $\tfrac12(2\sigma - 2/\sigma) = \sigma - 1/\sigma$. Ez 0, ha $\sigma^2 = 1$, azaz $\sigma = 1$; kisebb $\sigma$-nál negatív, nagyobbnál pozitív, tehát minimum. A KL tehát a szórást 1 felé, a középpontot ($\mu^2/2$ tag) 0 felé húzza.</details></li>
+  </ol>
+</details>
+
+<h3 id="s144-c">3. lépés: mintavétel, interpoláció – és a homály</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – sorsolt kódok a számjegyeken</span>
+  Sorsoljunk kódokat $\mathcal N(0, I)$-ből, és dekódoljuk őket! Ugyanaz a jó osztályozó ítéli meg, felismerhető-e a kép (90% feletti biztonság):
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>honnan?</th><th>biztosan felismert</th></tr>
+    <tr><td>valódi tesztképek</td><td>93%</td></tr>
+    <tr><td>autoenkóder, 8 számos kód, $\mathcal N(0, I)$-ből</td><td>27%</td></tr>
+    <tr><td>VAE, 8 számos kód, $\mathcal N(0, I)$-ből</td><td>76%</td></tr>
+    <tr><td>VAE, 2 számos kód, $\mathcal N(0, I)$-ből</td><td>84%</td></tr>
+  </table></div>
+  A VAE dekódolója a prior szinte bármely pontjából számjegyet rajzol. A minták viszont <b>elmosódottak</b> – nézd meg a widgetben vagy a <a href="#s149">14.9</a>-ben!
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – generálás és interpoláció VAE-vel</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Új kép:</b> $\mathbf z \sim \mathcal N(0, I)$, $\hat{\mathbf x} = d(\mathbf z)$ (általában a dekódoló <b>várható</b> kimenetét rajzoljuk, nem húzunk még pixelenként is).</li>
+    <li><b>Változat egy meglévő képről:</b> kódold ($\boldsymbol\mu$), told el kicsit, dekódold.</li>
+    <li><b>Interpoláció:</b> két kép $\boldsymbol\mu_A$, $\boldsymbol\mu_B$ kódja között egyenes vonalon lépkedve – a köztes képek általában számjegyszerűek maradnak, mert a kitöltött kódtérben nincsenek lyukak.</li>
+  </ul>
+  <b>Miért homályos?</b> A dekódoló egy kódból <b>egy</b> képet ad, pedig egy kódhoz (a felhők átfedése miatt) több hasonló kép is tartozik. A rekonstrukciós hiba alapján a legjobb válasz ezek <b>átlaga</b> – és az átlagkép elmosódott. A VAE „óvatos”: inkább legyen mindenhol kicsit szürke, mint egy élesen rossz helyen fekete.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – az átlag homálya</span>
+    Ha egy kódhoz fele-fele arányban tartozik a <code>1100</code> és a <code>1010</code>, a négyzetes hibát az átlaguk, $(1;\ 0{,}5;\ 0{,}5;\ 0)$ minimalizálja – egy kép, amely egyik rajzra sem hasonlít, de mindkettőtől „csak” 0,5 hibányira van.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a VAE ma</span>
+    A VAE mint önálló képgenerátor ma ritka, de <b>kódolóként</b> mindenhol ott van: a Stable Diffusion egy VAE-vel tömöríti az $512 \times 512 \times 3$-as képet $64 \times 64 \times 4$-es kódba (48-szoros tömörítés), és a generálás ebben a kódtérben fut (<a href="#s147-c">14.7</a>). A <b>VQ-VAE</b> (2017) a kódot egy véges „kódkönyv” elemeire kerekíti – ebből lesznek a képek „tokenjei”, amelyeken autoregresszív modell is dolgozhat.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Homályos ≠ rosszul tanított.</b> A homály a négyzetes (vagy pixelenként független) rekonstrukciós veszteség következménye, nem hiba a kódban. Élesebb képhez más veszteség kell – pl. egy versengő detektív (<a href="#s145">14.5</a>).</li>
+    <li><b>A prior szélei.</b> Egy standard normális koordináta kb. 0,3% eséllyel esik 3-nál messzebb a 0-tól – sok koordinátánál ez már gyakori; ott (és a felhők közti ritka sávokban) a VAE is rajzolhat furcsaságot.</li>
+    <li><b>A kód koordinátái összefonódnak.</b> Egy koordináta ritkán jelent egyetlen tulajdonságot („dőlés”, „vastagság”); a változtatás általában több tulajdonságot is mozgat.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – mintavétel és homály</summary>
+  <ol>
+    <li>Melyik lépés hiányzik? „Generáláskor a képet kódoljuk, sorsolunk egy kódot $\mathcal N(\boldsymbol\mu, \boldsymbol\sigma^2)$-ből, és dekódoljuk.”
+      <details><summary>Megoldás</summary>Ez egy meglévő kép <b>változatának</b> előállítása. Új kép generálásához nincs kép és nincs kódolás: a kódot közvetlenül $\mathcal N(0, I)$-ből sorsoljuk.</details></li>
+    <li>Interpolálj a $\boldsymbol\mu_A = (1;\ -1)$ és a $\boldsymbol\mu_B = (-1;\ 0{,}5)$ kód között $t = 0{,}4$-nél!
+      <details><summary>Megoldás</summary>$0{,}6 \cdot (1;\ -1) + 0{,}4 \cdot (-1;\ 0{,}5) = (0{,}2;\ -0{,}4)$.</details></li>
+    <li>Egy kódhoz 70% eséllyel <code>1100</code>, 30% eséllyel <code>0011</code> tartozik. Mit rajzol egy négyzetes hibán tanult dekódoló?
+      <details><summary>Megoldás</summary>Az átlagot: $(0{,}7;\ 0{,}7;\ 0{,}3;\ 0{,}3)$ – halvány felső csík, egy kis alsóval.</details></li>
+    <li>Hányszoros a tömörítés, ha egy $256 \times 256 \times 3$-as képet $32 \times 32 \times 4$-es kódba kódolunk?
+      <details><summary>Megoldás</summary>$196\,608 / 4096 = 48$-szoros – ugyanannyi, mint a Stable Diffusion $512 \to 64$-es esetében (oldalanként 8-szoros felbontáscsökkenés, 3 helyett 4 csatorna).</details></li>
+    <li>(nehezebb) A 8 számos autoenkóder véletlen kódjainak 27%-a, a VAE-énak 76%-a ad biztosan felismert számjegyet. Mi okozza a különbséget, ha a dekódolók felépítése majdnem ugyanaz?
+      <details><summary>Megoldás</summary>A tanítás. Az autoenkóder kódjai valahol, valamekkora felhőben vannak (koordinátánként 2–3-as szórással, nem a 0 körül), és a felhőben lyukak vannak. A VAE KL-tagja a kódokat a $\mathcal N(0, I)$-re húzta, a kódzaj pedig kitöltötte a teret – így a sorsolás oda lő, ahol a dekódoló tanult.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai14-144"></div>
+</section>

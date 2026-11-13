@@ -1,0 +1,900 @@
+ 22
+G E N E R AT I V E A D V E R S A R I A L
+NET WORKS
+Generating data is exciting. It lets us pro-
+duce new paintings, songs, and sculptures
+that have a resemblance to their inputs. In
+Chapter 18 we saw how to use autoencoders to
+generate new data that was like the training data. In
+this chapter we explore a completely different approach
+to data generation. The type of system we look at is called a Generative
+Adversarial Network, or GAN. It’s based on a clever strategy where two different
+deep networks are pitted against one another, with the goal of getting one
+network to create new samples that are not from the training data, but are so
+much like the training data that the other network can’t tell the difference.
+The GAN method is actually a technique for training a network that gen-
+erates new data. That trained generator is just a neural network like any other,
+and the method we used to train it isn’t relevant anymore. But the language
+of the field frequently refers to a generator trained with the GAN method as a
+GAN itself. It’s a bit weird to name something not for what it does, but for how
+it learned to do its job, but we do. Thus we use the GAN technique to train a
+generator, which is often called a generator, but also often called a GAN.
+ Let’s begin our discussion of the GAN method by looking at how a two-
+person team can learn to forge money by helping each other learn. Then
+we can replace the two people with neural networks. One of these networks
+becomes better and better at spotting forgeries, and the other becomes better
+and better at making forgeries. When the training process is over, the forger
+is able to make as many new and different bills as we like, and the detector
+can’t reliably distinguish counterfeits from real bills. The process works for
+any kind of data, from pictures of dogs to the sound of someone speaking.
+We’ll see how to build, train, and use these coupled networks to synthe-
+size new data, using different kinds of layers. We wrap up the chapter by dis-
+cussing issues to look out for when training and using the data-generating
+part of these networks.
+Forging Money
+The usual way to introduce a GAN is by analogy to a counterfeiting opera-
+tion. We will present a variation on the typical presentation to better
+expose the key ideas.
+The story begins with two conspirators, Glenn and Dawn. Glenn’s name
+starts with G because he plays the role of the generator, in this case forging
+new money. Dawn’s name begins with D because she plays the role of the
+discriminator, in this case tasked with determining whether any given bill is
+real or one of Glenn’s forgeries. Glenn and Dawn are going to both improve
+over time, thereby pushing the other to improve as well.
+As the generator, Glenn sits in a back room all day, meticulously creat-
+ing metal plates and printing false currency. Dawn is the quality-control
+half of the operation. It’s her job to take a mixed-up pile of real bills along
+with Glenn’s forgeries, and decide which is which. The penalty for forger-
+ies in their country is life in prison, so they’re both highly motivated to
+produce bills that nobody can tell from the real thing. Let’s say that the
+currency of their country is called the Solar, and they want to counterfeit
+the 10,000 Solar bill.
+An important thing to note is that all 10,000 Solar bills are not the
+same. At the very least, each bill has a unique serial number. But real bills
+are also scuffed, folded, drawn on, torn, dirtied, and otherwise handled.
+Since new, crisp bills stand out, Glenn and Dawn want to produce currency
+that looks just like all the other, worn currency in circulation so that it
+blends in and doesn’t catch anyone’s eye. And like real bills, every counter-
+feit bill should look unique.
+In a real situation, Glenn and Dawn would surely start off with a huge
+stack of real bills, and pore over every detail, learning everything they could.
+But we’re just using their operation as a metaphor, so we’re going to put in
+some restrictions to make this situation better match the algorithms this
+chapter is dedicated to. First, let’s simplify things a little and say that we only
+care about one side of the bill. Second, we’re not going to give Glenn and
+Dawn each a stack of bills to study before they begin. In fact, let’s assume
+that neither Dawn nor Glenn has any idea what a real 10,000 Solar bill looks
+650 Chapter 22
+like. Clearly this is going to make things a lot harder. We’ll justify this in a
+moment. The one thing we do give them goes to Glenn: a big stack of blank
+rectangles of paper that match the shape and size of a 10,000 Solar bill.
+They each follow a daily routine. Every morning, Glenn sits down and
+makes a few forgeries using all the information he has so far. In the begin-
+ning, he doesn’t know anything, so he may just splash different colors of inks
+around on the paper. Or maybe he draws some faces or numbers. He basi-
+cally just draws random stuff. At the same time, Dawn goes to the bank and
+withdraws a stack of real 10,000 Solar notes. Very lightly, she writes the word
+Real on the back of each one in pencil. Then, when Glenn is done, she col-
+lects Glenn’s forgeries for the day and writes the word Fake lightly on the back
+of each. She then shuffles the two piles together. Figure 22-1 shows the idea.
+Glenn’s
+Bank workshop
+Real bills Counterfeit bills
+Stack of labeled
+bills to be classified
+Classified Classified
+as “real” as “fake”
+Figure 22-1: Dawn gets real bills from the bank and forgeries from Glenn, shuffles them
+together (the pile in the middle), and sorts them into real and fake.
+Now Dawn does her main job. One by one, she goes through the bills,
+and without looking at the backs, she categorizes each one as real or fake.
+Let’s say she asks herself, “Is this bill real?” We call an answer of “yes” a positive
+response to that bill and an answer of “no” a negative response to that bill.
+Dawn carefully sorts her starting stack into two piles: the reals and the
+fakes. Since each bill can be real or fake, there are four possibilities, sum-
+marized in Figure 22-2.
+Generative Adversarial Networks 651
+ Actual
+status
+Real False
+True Positive False Positive
+A successful forgery.
+Real A real bill that was Dawn studies it to
+correctly recognized. find any errors.
+Dawn’s
+decision
+False Negative True Negative
+False An unrecognized real A failed forgery. Glenn
+bill. Dawn studies it to studies it to discover
+learn about real bills. his mistake.
+Figure 22-2: When Dawn examines a bill, it might be real or fake, and she might declare
+it to be real or fake. This gives us four combinations.
+When Dawn looks at a bill, if it’s real and she says it’s real, then her
+“positive” decision is accurate, and we have a true positive (TP). If the bill
+is real but her decision is “negative” (she thinks it’s fake), then it’s a false
+negative (FN). If the bill is fake but she thinks it’s real, that’s a false positive
+(FP). Finally, if it’s fake and she correctly identifies it as fake, that’s a true
+negative (TN). In all cases but true positive, either Dawn or Glenn uses that
+example to improve their work.
+Learning from Experience
+We’ve mentioned that Dawn and Glenn are just human stand-ins for the
+neural networks called the discriminator and generator, respectively.
+The discriminator is a classifier. It places each input into one of two
+classes: real or fake. When the prediction is wrong, that network’s error
+function has a large value. We then train the discriminator in the usual way
+with backprop and optimization, so that the class is more likely to be right
+the next time.
+The generator’s job is quite different. It never sees the training data
+at all. Instead, we give it a random input (like a list of a few hundred num-
+bers), and from that it produces an output. That’s all it does. If the dis-
+criminator thinks that output is real (that is, from the training set), then
+the generator got away with this forgery and doesn’t need to improve. But
+if the discriminator catches the output as fake (that is, synthetic, or from
+the generator), then the generator gets an error signal and we use backprop
+and optimization so that it moves away from results like this one that get
+caught by the discriminator. Each time we run the generator, we give it new,
+random, starting values. The generator has a daunting task: turn this small
+list of numbers into an output that fools the discriminator. For example, the
+intended output could be a song that sounds like it was written by Bach, a
+652 Chapter 22
+ piece of speech that sounds like a person, a face that looks like a person, or
+a used piece of currency that’s worth 10,000 Solars.
+How can we possibly train such a system? The generator never sees the
+data it’s trying to emulate, so it can’t learn from it. It only knows when it’s
+wrong.
+The approach that works surprisingly well is trial and error. We start
+out, as described earlier, with a generator and a discriminator that are both
+entirely untrained. When we give the discriminator some data, it basically
+just assigns each piece of data to a random class. At the same time, the gen-
+erator is making random output. They’re both flailing and essentially pro-
+ducing meaningless outputs.
+Slowly, though, the discriminator starts to learn, because we’re giving it
+the proper labels for the data it’s classifying. And as the discriminator gets
+a little better, the generator tries a bunch of different variations on its out-
+put until something gets past the discriminator (that is, the discriminator
+thinks it was real data, and not from the generator). The generator hangs
+onto that as its best work so far. Then the discriminator gets a little bet-
+ter, and in turn, the generator gets a little better. As time goes on, the tiny
+improvements in each network accumulate, until the discriminator is very
+sensitive to the differences between real and generated data, and the gen-
+erator is very skilled at making those differences as small as possible.
+Forging with Neural Networks
+Figure 22-2 showed the four possible situations that can arise after Dawn
+makes a decision for each bill. Let’s look more closely at how we train the
+discriminator and generator in such a way that they each force the other to
+improve. Note that this discussion is meant to cover the concepts, so we will
+proceed one sample at a time. In practice, we often implement these ideas
+in ways that are more complex, but more efficient (for example, by train-
+ing in mini-batches rather than one sample at a time).
+Let’s look more closely at the four possibilities in Figure 22-2 in flow-
+chart form.
+Starting with the true positive case, the discriminator correctly reports
+that the image of a real bill at its input is, indeed, a real bill. Since this is
+just what we want the discriminator to do in this case, there’s no learning to
+be done. Figure 22-3 shows this process graphically.
+Label: Real
+Prediction Yes No action
+Image of D Prediction: Real matches label? needed
+a real bill
+No
+Figure 22-3: In the true positive (TP) case, the discriminator (D) receives a real bill and correctly predicts it to
+be real. Nothing needs to happen as a result.
+Generative Adversarial Networks 653
+ Next, we have the false negative, when the discriminator incorrectly
+declares a real bill to be a fake. As a result, the discriminator needs to learn
+more about real bills so it doesn’t repeat this error. Figure 22-4 shows the
+situation.
+Label: Real
+Prediction Yes
+Image of D Prediction: Fake matches label?
+a real bill
+No
+D learns more about
+real bills
+Figure 22-4: We get a false negative (FN) when the bill is real but the discriminator says
+it’s a fake. The discriminator needs to learn more about real bills so it doesn’t repeat this
+mistake.
+The false positive case comes when the discriminator gets fooled by the
+generator and declares a forged bill to be real. In this case, the discrimina-
+tor needs to study the bill more carefully and find any errors or inaccura-
+cies so that it won’t get fooled again. Figure 22-5 shows how this goes.
+Label: Fake
+Prediction Yes
+G D Prediction: Real
+matches label?
+Image of
+Random a fake bill No
+numbers
+D learns the errors
+in the forgery
+Figure 22-5: In the false positive (FP) situation, the discriminator receives a fake bill from the generator but
+classifies it as real. To force the generator to get even better, the discriminator learns from its mistake so that
+this particular forgery won’t sneak through again.
+Finally, the true negative case is when the discriminator correctly iden-
+tifies a forgery. In this case, shown in Figure 22-6, the generator needs to
+learn how to improve its output.
+Note that out of these four possibilities, one of them (TP) has no
+effect on either network, two of them (FN and FP) cause the discriminator
+to improve its ability to recognize real and fake bills, and only one (TN)
+causes the generator to learn and avoid repeating mistakes.
+654 Chapter 22
+ Label: Fake
+Prediction Yes
+G D Prediction: Fake
+matches label?
+Image of
+Random a fake bill No
+numbers
+G improves its forgery
+Figure 22-6: In the true negative (TN) scenario, we give the discriminator a fake bill from the generator, and
+the discriminator correctly identifies it as fake. In this case, the generator learns that its output was not good
+enough, and it has to improve its forging skills.
+A Learning Round
+Let’s now assemble the feedback loops from the last section into a single
+step of training for both the discriminator and the generator. Generally, we
+repeat a set of four steps over and over. In each step, we give the discrimina-
+tor either a real or fake bill, and then based on its response, follow one of
+the four flowcharts we just saw.
+First we train the discriminator, then the generator, then the discrimi-
+nator again, and then the generator again. The idea is to test for each of
+the three situations in which one or the other network needs to learn. The
+true negative case, where the generator learns, is repeated twice for reasons
+we’ll get to in a moment. Figure 22-7 summarizes the four steps.
+Error Error Error Error
+Function Function Function Function
+“Fake” “Fake” “Fake” “Fake”
+“Real” “Real” “Real” “Real”
+Discriminator Discriminator Discriminator Discriminator
+Real Fake Fake Fake
+bill bill bill bill
+Database Generator Generator Generator
+of real
+bills
+Random Random Random
+numbers numbers numbers
+(a) (b) (c) (d)
+Figure 22-7: The four steps of a learning round
+First, in part (a), we try to learn from false negatives. We give the dis-
+criminator a random bill from the dataset of real bills. If it misclassifies it as
+a forgery, we tell the discriminator to learn from that mistake.
+Second, in part (b), we look for true negatives. We give some random
+numbers to the generator, produce a fake bill, and hand that to the dis-
+criminator. If the discriminator catches the forgery, we tell the generator,
+which attempts to learn to produce a better forgery.
+Generative Adversarial Networks 655
+ Third, in part (c), we look for false positives. We give a new batch of
+random values to the generator and have it produce a new, fake bill, which
+we hand to the discriminator. If the discriminator is fooled and says the bill
+is real, the discriminator learns from its mistake.
+Finally, in part (d), we repeat the true negative test from the second
+step. We give new random numbers to the generator, make a new fake bill,
+and if the discriminator catches the forgery, the generator learns.
+The reason for repeating the generator’s learning step twice is that
+practice has shown that in many cases, the most efficient learning schedule
+is to update both networks at roughly the same rate. Since the discrimina-
+tor learns from two types of errors, while the generator learns from only
+one, we double the number of learning opportunities for the generator,
+allowing both to learn at about the same pace.
+Through this process, the discriminator gets better and better at identi-
+fying real bills and spotting the errors in the counterfeits, and the generator,
+in turn, gets better and better at finding out how to create a counterfeit that
+cannot be spotted. This pair of networks, taken together, make up a single
+GAN. We can picture the two networks in a “learning battle” (Geitgey 2017).
+As the discriminator gets better and better at spotting fakes, the generator
+must get correspondingly better to get one through, causing the discrimina-
+tor to get better at finding the forgery, causing the generator to get even bet-
+ter at making fakes, and so on.
+The ultimate goal is to have a discriminator that is as good as it can be,
+with deep and broad knowledge of every aspect of the real data, and yet also
+have a generator that can still get forgeries past the discriminator. That tells
+us that the counterfeits, despite being different from the real examples, are
+statistically indistinguishable from them, which was our goal all along.
+Why Adversarial?
+The name Generative Adversarial Network (GAN) may seem strange in light of
+the preceding description. The two networks we just described seem to be
+cooperative, not adversarial. The choice of adversarial comes from looking
+at the situation in a slightly different way. Instead of the cooperation we
+described between Dawn and Glenn, we can imagine that Dawn is a detec-
+tive with the police, and Glenn is working alone. To make the metaphor
+work, we have to also imagine that there’s some way for Glenn to discover
+which of his forged bills were detected (perhaps he has an accomplice in
+Dawn’s office who forwards this information to him).
+If we picture the forger and the detective as opposed to one another,
+then indeed they are adversarial. This was how the subject of GANs was
+phrased in the original paper on the subject (Goodfellow et al. 2014). The
+adversarial view doesn’t change anything about how we set up or train the
+networks, but it offers a different way to think about them (Goodfellow 2016).
+The word adversarial comes from a branch of mathematics called game
+theory (Watson 2013), in which we view the discriminator and generator as
+opponents in a game of deception and detection.
+The field of game theory is devoted to studying how competitors can
+maximize their advantages (Chen, Lu, and Vekhter 2016; Myers 2002).
+656 Chapter 22
+ Our goal with GAN training is to develop each network to its peak ability,
+despite the other network’s abilities to thwart it. Game theorists call this
+state a Nash equilibrium (Goodfellow 2016).
+Now that we know the general technique for training, let’s see how to
+actually build a discriminator and a generator.
+Implementing GANs
+When we talk about GANs, we’re discussing three distinct networks: the
+discriminator, the generator, and the generator and the discriminator
+together. We saw two of these structures in Figure 22-7. In part (a) we had
+just the discriminator. In parts (b) through (d) we had the generator and
+discriminator combined. As we’ll see later, when training is done and we
+want to make new data, we discard the discriminator and use just the gen-
+erator by itself.
+It’s usually clear from context which of these networks is being dis-
+cussed. As mentioned earlier, when someone speaks of a GAN, they usually
+mean only the trained generator, after it’s been taught by the adversarial
+process. The word GAN is used flexibly in the field. It can refer to the train-
+ing method we just described, or the combined generator-discriminator net-
+work used during training, or the standalone generator that we end up with
+after training. Often people say that they will “train a GAN,” meaning that
+they will use the GAN method to train a generator that might then itself be
+called a GAN. It’s not as confusing as it sounds, as the right interpretation is
+usually clear from context.
+Enough background! Let’s build and train a GAN.
+The Discriminator
+The discriminator is the simplest of the three models, as shown in
+Figure 22-8. It takes a sample as input, and its output is a single value that
+reports the network’s confidence that the input is from the training set
+rather than an attempted forgery.
+Confidence that
+sample is real
+Discriminator
+Sample
+Figure 22-8: The block diagram of a discriminator
+Generative Adversarial Networks 657
+ There aren’t any other restrictions on how we make the discriminator.
+It can be shallow or deep and use any kinds of layers: fully connected layers,
+convolutional layers, recurrent layers, transformers, and so on. In our cur-
+rency forging example, the input is an image of a bill, and the output is a
+real number reflecting the network’s decision. A value of 1 means that the
+discriminator is sure that the input is a real bill, and a value of 0 means that
+the discriminator is sure that it’s a fake. A value of 0.5 means that the dis-
+criminator just can’t tell either way.
+The Generator
+The generator takes a bunch of random numbers as input. The output
+of the generator is a synthetic sample. The block diagram is in Figure 22-9.
+Sample
+Generator
+Noise
+Figure 22-9: The block diagram for a generator
+As with the discriminator, there aren’t any constraints on how we build
+the generator. It can be shallow or deep, and use any kinds of layers we like.
+In our example of forging currency, the output would be an image.
+The loss function for the generator of Figure 22-9 all by itself is irrele-
+vant, and in some implementations, we never even define one. As we’ll see in
+the next section, we train the generator by hooking it up to the discriminator,
+so the generator learns from the loss function for the combined network.
+Once our GAN is fully trained, we often discard the discriminator and
+keep the generator. After all, the discriminator’s purpose was to train the
+generator so that we could use it to make new data. When the generator
+has been disconnected from the discriminator, we can use the generator to
+make an unlimited amount of new data for us to use any way we like.
+Now that we have the block diagrams of the generator and discrimi-
+nator, we can look more closely at the actual training process. With that
+in place, we’ll look at implementations of both networks. Then we’ll train
+them and see how they do.
+Training the GAN
+Let’s now look at how to train our GAN. We’ll expand the four steps in the
+learning round shown in Figure 22-7 to show where the updates get applied.
+658 Chapter 22
+ Our first step is to look for false negatives, so we feed real bills to the
+discriminator, as in Figure 22-10. In this step, we don’t involve the generator
+at all. The error function here is designed to punish the discriminator if it
+reports a real bill as a fake. If that happens, the error drives a backpropaga-
+tion step through the discriminator, updating its weights, so that it gets bet-
+ter at recognizing real bills.
+Error
+Function
+Update
+“Fake”
+“Real”
+Discriminator
+Real
+bill
+Database
+of real
+bills
+Figure 22-10: In the false negative step, the discriminator is hooked up
+to an error function that punishes it for categorizing a real bill as a fake.
+The second step looks for true negatives. In this step, we hook up the
+output of the generator directly to the input of the discriminator to create
+one big model. We start with random numbers going into the generator, as
+shown in Figure 22-11. The generator’s output is a fake bill, which is then
+fed to the discriminator. The error function is designed to have a large
+value if this fake bill is correctly identified as fake, meaning that the genera-
+tor got caught making a forgery.
+Error
+Function
+Update
+“Fake” Discriminator
+“Real”
+Discriminator is frozen, and
+cannot be
+Fake updated
+bill
+Generator Updated
+Random
+numbers
+Figure 22-11: In the true negative step, random numbers feed the generator, which pro-
+duces a fake bill. If the discriminator labels it as fake, we push gradients through the dis-
+criminator, but only update the generator.
+In Figure 22-11 we’ve grayed-out the update step for the discriminator,
+yet the arrow labeled Update is apparently going through the discrimina-
+tor. What’s going on here is that our Update arrow combines backprop and
+Generative Adversarial Networks 659
+ optimization. Recall that backprop computes the gradient for each weight
+but doesn’t actually change anything. It’s the optimization step that updates
+the weights, based on their gradients. In Figure 22-11, we want to apply opti-
+mization to the generator, which means we need to find its gradients. But
+because backprop computes the gradients from the end of the network to
+the start, the only way to find the gradients in the generator is to first com-
+pute them for the discriminator. Although we find the gradients in both
+networks, we only change the weights in the generator. We say that the dis-
+criminator is frozen, meaning that its weights are not changed, even though
+we computed their gradients. This insures that at any given time, we’re train-
+ing only the generator or only the discriminator.
+Improving the generator’s weights lets it learn to better fool the
+discriminator.
+Now we look for false positives. We generate a fake bill and punish the
+discriminator if it classifies it as real, as in Figure 22-12.
+Error
+Function
+Update
+“Fake”
+“Real”
+Discriminator
+Fake
+bill
+Generator
+Random
+numbers
+Figure 22-12: In the false positive step, we give the discriminator a fake bill. If it classifies
+it as real, then we update the discriminator to better spot the fakes.
+Finally, we repeat the true negative step of Figure 22-11, so that both
+the discriminator and generator have two opportunities to get updated in
+each round of training.
+GANs in Action
+Enough theory! Let’s build a GAN system and train it. We’ll pick something
+very simple so that we can draw meaningful illustrations of the process in 2D.
+Let’s picture all the samples in our training set as a cloud of points in
+some abstract space. After all, each sample is ultimately a list of numbers, and
+we can treat those as coordinates in a space that has as many dimensions as
+there are numbers. Our set of “real” samples will be points that belong to a 2D
+cloud that has a Gaussian distribution. Recall from Chapter 2 that a Gaussian
+curve has a big bump in the center, so we expect most of our points to be near
+the bump, with fewer and fewer points as we move outward. Each sample is a
+single point from that distribution. Let’s center the 2D blob at (5,5), and give it
+a standard deviation of 1. Figure 22-13 shows this distribution.
+660 Chapter 22
+Figure 22-13: Our starting distribution is a Gaussian bump centered at (5,5) with a standard deviation of 1.
+Left: The blob in 3D. Right: A circle showing the location of one standard deviation of the blob in 2D, and
+some representative points randomly drawn from this distribution.
+Our generator will try to learn how to turn the random numbers that it’s
+given into points that seem to belong to this distribution. The goal is to do
+that so well that the discriminator can’t tell real points from synthetic ones
+created by the generator. In other words, we want the generator to take in
+random numbers and produce output points that could have been the result of
+drawing random points from our original Gaussian bump centered at (5,5).
+Given only a single point, as in Figure 22-14, it’s a challenge for the
+discriminator to say with any certainty if it’s an original sample drawn from
+our Gaussian distribution or a synthetic sample created by the generator.
+Figure 22-14: We have a single sample and we want to determine
+if it was drawn from the Gaussian distribution.
+Generative Adversarial Networks 661
+ We can make things easier on the discriminator by using an old friend
+from Chapter 15: the mini-batch (or often just the batch). Rather than run
+one sample at a time through the system, we can run through a lot of them,
+often a power of two in the range 32 to 128. Given a whole bunch of points,
+it’s easier to decide if they were plucked from our Gaussian cloud or not.
+Figure 22-15 shows a few sets of points that the generator might produce.
+We hope that the distributor will be able to easily realize that these points
+are unlikely to have been drawn from our original distribution.
+Figure 22-15: Some sets of points that are unlikely to have been the result of picking random values from our
+starting Gaussian
+We want our generator to produce points more like the those on the
+right of Figure 22-13 than any of those in Figure 22-15. And we want the
+discriminator to classify the sets of points in Figure 22-15 as fakes, since
+they’re so unlikely to have been part of the original Gaussian data.
+Building a Discriminator and Generator
+Let’s build discriminator and generator networks for this problem. Because
+our original distribution (the 2D Gaussian bump) is so simple, our networks
+can be simple also.
+A word of warning before we dig into the mechanics, though. GANs are
+famous for being finicky and sensitive. They are notoriously hard to train
+(Achlioptas et al. 2018). Minor changes in the architecture of the generator
+or discriminator, or even small changes to some of the hyperparameters
+(such as learning rates or dropout rates) can turn a practically useless GAN
+into a star performer, and vice versa. Worse, we have to train not one net-
+work but two, and get them to work together, so the number of choices of
+hyperparameters to search through and fine-tune can become overwhelm-
+ing (Bojanowski et al. 2019). So, while we develop a GAN, it’s essential to
+experiment using the specific data we want to learn from and try to home
+in on a good design and good hyperparameters as quickly as we can. This
+often means trying lots of little experiments with small excerpts from the
+training data, as we hunt for good networks and hyperparameters.
+662 Chapter 22
+ In the following discussion, we skip the many dead-ends and badly per-
+forming models that we tried. Instead, we’ll jump right to models that we
+found work well for this dataset. It’s very possible that with further changes,
+or perhaps even just small tweaks in the right places, we could significantly
+improve the architectures we show (that is, enable them to learn faster and
+more accurately).
+Let’s start with a simple generator, shown in Figure 22-16.
+Generator
+4 2
+16 2
+Leaky No AF
+ReLU 0.1
+Figure 22-16: A simple generator. It takes in four
+random numbers and computes an (x,y) pair.
+The model takes in four random values, uniformly selected from the
+range 0 to 1. We start with a fully connected layer with 16 neurons and a
+leaky ReLU activation (recall from Chapter 13 that a leaky ReLU is like a
+normal ReLU, but instead of returning 0 for negative values it scales them
+by a small number, here 0.1).
+This is followed by another fully connected layer with just two neurons
+and no activation function. And that’s it for the generator. The two values
+that are produced are the x and y coordinates of a point.
+We’re asking quite a lot of these two layers with only 18 neurons and
+54 weights. We want them to learn how to convert a set of four uniformly
+distributed random numbers into a 2D point that could have been drawn
+from a Gaussian cloud with a center at (5,5) and a standard deviation of 1,
+but we’ll never tell it anything about that goal. We only tell it when a mini-
+batch of its points isn’t a credible match to what we want, and leave it to the
+neurons to figure out where they went wrong and how to make it right.
+Our discriminator is in Figure 22-17.
+Discriminator
+2 1
+16 16 1
+Leaky Leaky sigmoid
+ReLU 0.1 ReLU 0.1
+Figure 22-17: A simple discriminator. It takes in an (x,y) point
+and tells us if it’s real or fake.
+Generative Adversarial Networks 663
+ This starts with two layers of the same form as the start of the genera-
+tor. Each is a fully connected layer of 16 neurons with a leaky ReLU activa-
+tion. At the end is a fully connected layer with just 1 neuron and a sigmoid
+activation function. The output is a single number with the network’s confi-
+dence that the input is from the same dataset as the training data.
+Finally, we put the generator and discriminator together to make
+the combined model, which is sometimes referred to as the generator-­
+discriminator. Figure 22-18 shows this combination.
+Generator Discriminator
+2 1
+4 noise
+16 2 16 16 1
+Leaky No AF Leaky Leaky sigmoid
+ReLU 0.1 ReLU 0.1 ReLU 0.1
+Figure 22-18: Putting the generator and discriminator together.
+Since the generator presents an (x,y) pair at its output, and the discrim-
+inator takes an (x,y) pair at its input, the two networks go together perfectly.
+The generator’s input is a set of four random numbers, and the discrimina-
+tor’s output tells us how likely it is that the point created by the generator is
+from the training set’s distribution.
+It’s important to keep in mind that the models marked “generator” and
+“discriminator” in Figure 22-18 are not copies of the models in Figure 22-16
+and Figure 22-17, but they are in fact the very same models, just connected
+together one after the other to make one big model. In other words, there’s
+just one generator model and one discriminator model. When we make the
+combined model of Figure 22-18, we just chain together those two existing
+models. Modern deep-learning libraries let us make multiple models out of
+shared components for just this kind of application. Using the same models
+in these different configurations makes sense, since the combined model
+needs to use the most up-to-date versions of the generator and discriminator.
+Training Our Network
+When we train the generator using the combined model of Figure 22-18, we
+don’t want to train the discriminator as well. We saw this in Figure 22-11 where
+we grayed out the discriminator during the update step. We need to run
+backprop through the discriminator, since it’s part of the network, and
+helps create the gradients for the generator, but we only apply the update
+step to the weights in the generator.
+Remember that we want to train the discriminator and generator in
+alternating passes. If we were to apply backprop to the entire network of
+Figure 22-18, then we’d update the weights in the discriminator as well as
+the generator. Because we want to train both models at about the same rate,
+and we know we’re going to train the discriminator separately (since it also
+664 Chapter 22
+ needs to be trained on real data), we want to tell our library to update the
+weights in the generator only.
+The mechanics for controlling whether or not a layer should have its
+weights updated are library specific, but generally speaking, they use terms
+like freeze, lock, or disable to prevent updates on a given layer. Then we can
+unfreeze, unlock, or enable updates later when we train the discriminator, and
+we want those layers to be able to learn.
+To summarize the training process, we start with a mini-batch of points
+from the training set. We then follow the four-stage process in Figure 22-7,
+training the discriminator and generator alternately.
+Testing Our Network
+Let’s look at some results. To train our GAN, we made a training set by
+drawing 10,000 random points from our starting Gaussian distribution.
+Then we trained the networks using mini-batches of 32 points. Running all
+10,000 points through the system makes up one epoch.
+Results for epochs 1 through 13 are shown in Figure 22-19.
+Figure 22-19: Our simple GAN in action. The blue points are the original dataset. The orange points were
+produced by the generator. Read the plots left to right, top to bottom. Epoch 0 refers to results after the first
+epoch of training.
+Generative Adversarial Networks 665
+ Our starting Gaussian is shown with blue points, and a blue circle show-
+ing its mean and standard variation. The distribution that is being learned
+by the GAN is shown in orange, with an ellipse showing the center and stan-
+dard deviation of the mini-batch of points that were generated. The plots
+show the results after 0 to 10 epochs of training, and then epoch 13. To
+keep the plots legible, we only show a randomly selected subset of the origi-
+nal and generated data in each plot.
+We can see that after one epoch, the GAN’s generated points form a
+smudgy line in the southwest-northeast direction, roughly centered around
+(1,1). With each epoch of training, they move closer to the original data’s cen-
+ter and shape. Around epoch 4 the generated samples overshoot the center,
+and become increasingly elliptical rather than circular. But they come back
+and correct both qualities, until the match is looking very good by epoch 13.
+Figure 22-20 shows the loss curves for the discriminator and generator.
+Figure 22-20: The loss for our GAN. They seem to meet and remain at a value a little
+above the ideal of 0.5.
+Ideally the discriminator would plateau at about 0.5, meaning that it
+was never sure whether an input was from the real dataset or produced by
+the generator. In this tiny example, it got pretty close.
+DCGANs
+We said that we could build our discriminator and generator using any
+kind of architecture we like. Up to this point, our simple models have been
+666 Chapter 22
+ made of dense layers that performed nicely for our little 2D dataset. But
+if we want to work with images, then we’d probably prefer to use convolu-
+tional layers since, as we saw in Chapter 16, they’re well suited to processing
+images. A GAN that’s built from multiple convolution layers has its own
+acronym, DCGAN, standing for Deep Convolutional Generative Adversarial
+Network.
+Let’s train a DCGAN on the MNIST data we’ve seen in previous chap-
+ters. We’ll use a model proposed by Gildenblat (2020). The generator and
+discriminator are shown in Figure 22-21.
+Discriminator
+28 x 28 x 1 1
+64x(5x5) 2x2 128x(5x5) 2x2 1024 1 sigmoid
+same, tanh same, tanh tanh
+Generator
+100 tanh 28 x 28 x 1
+1024 6272 7x7x128 2x2 64x(5x5) 2x2 1x(5x5)
+tanh No AF same, tanh same, tanh
+Figure 22-21: Top: The discriminator of a DCGAN for MNIST. Bottom: The generator.
+In this network, we’re using explicit downsampling (or pooling) layers
+in the discriminator and upsampling (or expanding) layers in the generator
+rather than making them part of the convolution steps because that’s how
+the network was originally proposed. The circle with a dot inside it in the
+generator is a batchnorm layer, which helps to prevent overfitting. The little
+3D box after the tanh activation function is a reshaping layer that converts
+the 1D tensor coming out of the second fully connected layer into a 3D ten-
+sor, appropriate for the following upsampling and convolution layers. We
+trained with a standard binary cross entropy loss function and a Nesterov
+SGD optimizer set to a learning rate of 0.0005 and a momentum of 0.9.
+The second dense layer in the generator uses 6,272 neurons. This
+number might seem mysterious, but it gives the generator and discrimi-
+nator equal amounts of data to work with. The output of the second
+downsampling layer in the discriminator has a shape of 7 × 7 × 128, or
+6,272 elements. By giving the second fully connected layer in the genera-
+tor 6,272 values, we can provide a tensor of the same shape to its first
+upsampling layer. In other words, the end of the convolution stage of the
+discriminator is a tensor of shape 7 × 7 × 128, so we provide a tensor of
+shape 7 × 7 × 128 to the start of the convolution stages of the generator.
+Generative Adversarial Networks 667
+ The discriminator and the generator both follow roughly the same
+steps, but in opposite order.
+The results of the generator after one epoch of training are pretty
+unintelligible, as we might expect. Figure 22-22 shows what they look like.
+Figure 22-22: The blotches from the generator after one epoch of training
+After 100 epochs of training, the generator produced the results of
+Figure 22-23. We could have trained longer since the discriminator was still
+sometimes identifying the generator’s output, but this seemed a good place
+to stop because it shows the generator’s progress.
+When we step back to consider the process, this is a startling result.
+Remember that the generator has never seen the dataset. It has no idea
+what the MNIST data looks like. All it’s ever done is create 3D tensors of
+real numbers, and then receive feedback that told it how good or bad the
+values in those tensors were. Over time, it produced tensors that look like
+digits. Somehow, the generator managed to find a way to turn random
+numbers into recognizable digits. Amazing. There are some misfires, but
+most of the digits are easily recognizable.
+This wraps up our basic discussion of GANs.
+668 Chapter 22
+ Figure 22-23: The output of the deep convolutional GAN of Figure 22-21 after 100
+epochs of training on the MNIST dataset
+Before we move on, it’s worth reviewing a bit of practical advice. We
+mentioned earlier that GANs are very sensitive to their specific architecture
+and training variables. A famous paper investigated DCGANs, and found
+a few rules of thumb that seem to lead to good results (Radford, Metz,
+and Chintala 2016). As always, experimentation is the key to success. Small
+changes often make the difference between a GAN that learns efficiently
+and one that learns slowly, or not at all.
+Challenges
+Perhaps the biggest challenge to using GANs in practice is their sensitivity
+to both structure and hyperparameters. Playing a game of cat and mouse
+requires both parties to be closely matched at all times. If either the dis-
+criminator or generator gets better than the other too quickly, the other
+will never be able to catch up. As we mentioned earlier, getting the right
+combination of all of these values is essential to getting good performance
+out of a GAN, but finding that combination can be challenging (Arjovsky
+Generative Adversarial Networks 669
+ and Bottou 2017; Achlioptas et al. 2017). Following the rules of thumb given
+earlier is generally recommended for giving us a good starting point when
+training a new DCGAN.
+A theoretical issue with GANs is that we currently have no proof that they
+will converge. Recall our lone perceptron of Chapter 13, which finds the divid-
+ing line between two linearly separable sets of data. We can prove that the per-
+ceptron will, given enough training time, always find that dividing line. But
+for GANs, such proofs are nowhere to be found. All we can say is that many
+people have found ways to make at least some of their GANs train properly,
+but there’s no guarantee beyond that.
+Using Big Samples
+The basic structure of a GAN can run into trouble when we try to train
+a generator to produce large images, such as 1,000 by 1,000 pixels. The
+computational problem is that with all that data, it’s easy for the discrimina-
+tor to tell the generated fakes from the real images. Trying to fix all these
+pixels simultaneously can lead to error gradients that cause the generator’s
+output to move in almost random directions, rather than getting closer to
+matching the inputs (Karras et al. 2018). On top of that, there’s the practi-
+cal problem of finding enough compute power, memory, and time to pro-
+cess large numbers of these big samples. Recall that every pixel is a feature,
+so every image that’s 1,000 pixels on a side has one million features (or
+three million if it’s a color photo).
+Because we want our final, high-resolution images to stand up to scru-
+tiny, we’re going to want to use a large training set. The time required to
+crunch through big collections of giant images is going to add up fast. Even
+fast hardware might not be able to do the job in the time we have available.
+A practical approach to building big images is called the Progressive
+GAN or ProGAN (Karras et al. 2018). To start with this technique, resize the
+images in the training set into a variety of smaller sizes, for example 512
+pixels on a side, then 128, then 64, and so on, down to 4 pixels on a side.
+Then build a small generator and discriminator, each with just a few layers
+of convolution. Train these small networks with the 4 by 4 images. When
+they are doing a great job, add a few more convolution layers to the end of
+each network, and gradually blend in their contribution until the networks
+are doing well with 8 by 8 images. Then add some more convolution layers
+to the end of each network and train them on 16 by 16 images, and so on.
+In this way, the generator and discriminator are able to build on their
+training as they grow. This means that by the time we work our way up to
+full size images that are 1,024 pixels on a side, we already have a GAN that
+can do a great job at generating and discriminating images that are 512
+pixels on a side. We won’t have to do too much additional training with the
+larger images until the system performs well with them, too. This process
+takes much less time to complete than if we’d trained with only the full-
+sized images from the start.
+670 Chapter 22
+Modal Collapse
+GANs have an interesting way to exploit a loophole in our training. Recall
+that we want the generator to learn to fool the discriminator. It can succeed
+at this task in a way that is almost useless to us.
+Let’s suppose that we’re trying to train our GAN to produce pictures of
+cats. Suppose that the generator manages to create one cat image that the
+discriminator accepts as real. A sneaky generator could then just produce
+that image every time. No matter what values we use for the noise inputs,
+we always get back that one image. The discriminator tells us that every
+image it gets is plausibly real, so the generator has accomplished its goal
+and stops learning.
+This is another example of neural networks finding sneaky solutions to
+doing what we ask for, but not necessarily what we want. The generator has
+accomplished exactly what we requested, since it is turning random num-
+bers into brand-new samples that the discriminator cannot tell apart from
+real samples. The problem is that every sample made by the generator is
+identical. A very sneaky kind of success.
+This problem of producing just one successful output over and over is
+called modal collapse (note that the first word is modal, pronounced “mode′-
+ull,” referring to a mode, or a way of working, and not “model”). If the gen-
+erator settles into just a single sample (in this case, a single picture of a cat),
+the situation is described as full modal collapse. Much more common is when
+the system produces the same few outputs, or minor variations of them.
+This situation is called partial modal collapse.
+Figure 22-24 shows one run of our DCGAN after three epochs of train-
+ing using some poorly chosen hyperparameters. It’s pretty clear that the
+system is collapsing toward a mode where it’s going to output some kind of
+1 a lot more than anything else.
+There are schemes for addressing this problem. Perhaps the best rec-
+ommendation begins with using mini-batches of data, as we did earlier.
+Then we can extend the discriminator’s loss function with some additional
+terms to measure the diversity of the outputs produced in that mini-batch.
+If the outputs fall into a few groups where they’re all the same, or nearly
+the same, the discriminator can assign a larger error to the result. The
+generator then diversifies because that action reduces the error (Arjovsky,
+Chintala, and Bottou 2017).
+Training with Generated Data
+The most common use of GANs is to train a generator that fools the discrim-
+inator. Then we discard the discriminator, leaving us with a generator capa-
+ble of creating as much new data as we like, all of it seeming to come from
+the original dataset. Thus, we can make an unlimited number of new images
+of cats or sailboats, or spoken phrases, or puffs of smoke from a wood fire.
+Generative Adversarial Networks 671
+ Figure 22-24: After only three epochs of training, this DCGAN is showing clear signs of
+modal collapse.
+It may be tempting to use that generated, or synthetic, data to train
+another neural network. After all, huge datasets are just what we need to
+train neural networks. But this is a very risky practice, because our trained
+generators are rarely perfect. One problem is that it’s very hard to make a
+discriminator that is robust enough to notice every possible detail in the
+generator’s output. The output from the generator might always be slightly
+skewed in some way that the discriminator was unable to notice, or to which
+it assigned a very low penalty. Another problem is that the generator’s out-
+put can be incomplete. As we saw in our example of modal collapse, the
+generator’s results might not span the whole range of the inputs. For exam-
+ple, tasked with generating new paintings in a given artist’s style, a genera-
+tor might always produce landscapes, or portraits, or still lifes, even when
+the artist’s body of work has a much wider range of subjects.
+It’s very difficult to completely catch every issue that can come up. As
+hard as we might try to build a perfect generator, it always seems to be able
+to find another sneaky way to satisfy our desired criteria (as expressed by
+the discriminator) while still producing data that isn’t quite as diverse or
+realistic as we were hoping for. Another problem is that our criteria them-
+selves often aren’t as clear or as broad as we think they are.
+672 Chapter 22
+ In short, the generator’s output can contain errors and biases that get
+past the discriminator. If we train a new system with that data, it inherits
+those errors and biases, which we may be completely unaware of. The dif-
+ferences may be subtle, but they can still influence the results in practice.
+This can create a dangerous situation in which we believe we have trained
+a robust neural network capable of making important decisions, without
+realizing that it has blind spots and biases. When we use trained networks
+for critical safety or medical applications, or we use them in social situa-
+tions like hiring interviews, school admissions, or granting bank loans, we
+may get back seriously flawed or unfair decisions due to perpetuated errors
+we’re not aware of. The biases, errors, prejudices, misjudgments, and other
+common problems with databases become the baked-in basis on which the
+generator creates new data. The result is a self-perpetuating, self-fulfilling,
+but erroneous system. We can summarize this with a simple credo: bias in,
+bias out.
+In short, training neural networks on excellent data can still produce
+flawed results. Training networks on flawed data can produce much more
+deeply flawed results. As a general rule, it’s usually a good idea to resist the
+temptation to train a network on synthetic, or generated data.
+Summary
+In this chapter, we saw how to build a generative adversarial network, or
+GAN, out of two smaller pieces. The generator learns how to create new
+data that is plausibly like data from a given data set, and the discriminator
+learns how to distinguish the generator’s output from real data in the given
+set. They both learn from the other as they train, improving their respec-
+tive skills. When a successful training is complete, the discriminator is
+unable to reliably distinguish between the synthetic data and the real data.
+At that point, we usually throw away the discriminator and use the genera-
+tor for any application where we want arbitrary amounts of new data.
+We saw that training takes place in alternating steps so that the genera-
+tor and discriminator learn at roughly the same pace. We then looked at
+building a simple GAN with fully connected layers to learn how to make
+data points in 2D and then a convolutional GAN that learned to generate
+new image data from MNIST.
+Because GANs are notoriously hard to train, we discussed some rules
+of thumb for convolutional GANs that usually give us a good start. We saw
+that we can generate large outputs by working our way up in size during
+training, and we saw that we can use mini-batches to avoid modal collapse,
+where the generator always produces the same output (or a small number of
+outputs).
+We closed with a brief consideration of the perils of training with syn-
+thetic data.
+Generative Adversarial Networks 673
+ 23
+C R E AT I V E A P P L I C AT I O N S
+We’ve reached the end of the book. Before
+we go, let’s relax and have some fun. In
+this chapter we look at some creative ways to
+use neural networks to create art. We explore
+two image-based applications: deep dreaming, which
+turns images into wild, psychedelic art, and neural style
+t­ransfer, which allows us to transform photographs
+into what appear to be paintings in the styles of different artists. At the
+very end, we take a quick dip into text generation and use deep learning to
+generate even more of this book.
+Deep Dreaming
+In deep dreaming, we use some ideas that were invented to help us visualize
+filters in convolutional networks, but we use them to make art. The result
+is that we modify images to excite different filters, causing those images to
+explode in psychedelic patterns.
+ Stimulating Filters
+In Chapter 17, we made images, or visualizations, of the filters in a convo-
+lutional neural network. Both deep dreaming and style transfer build on
+that visualization technique, so let’s look at it a little more closely. We can
+make our discussion specific by again using VGG16 as we did in Chapter 17
+(Simonyan and Zisserman 2020), though we could substitute just about any
+CNN image classifier. Our only interest here is in the convolution stages,
+so although we will use the whole network as described in Chapter 17, the
+drawings in this chapter show just the convolution and pooling layers, as
+shown in Figure 23-1.
+Repeat 2x Repeat 2x Repeat 3x Repeat 3x Repeat 3x Repeat 3x
+Block 1 Block 2 Block 3 Block 4 Block 5 Block 6
+64 64 128 128 256 256 256 512 512 512 512 512 512 512 512 512

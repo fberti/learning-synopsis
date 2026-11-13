@@ -1,0 +1,167 @@
+
+<!-- ===================================================== 14.7 -->
+<section id="s147">
+<h2>14.7 Feltételes generálás: szövegből kép ★★–★★★</h2>
+<p>Eddig a modell azt rajzolt, amit akart: valamilyen számjegyet, valamilyen csíkot. A gyakorlatban <b>mi</b> akarjuk megmondani, mit rajzoljon: „egy hetest”, „egy vízszintes csíkot”, „egy vörös biciklit a Duna-parton, akvarellel”. Ehhez három dolog kell: a feltételt be kell adni a modellnek (1. lépés), erősíteni kell a hatását (2. lépés), és mindezt gyorsan, nagy képeken kell csinálni (3. lépés).</p>
+
+<h3 id="s147-a">1. lépés: a feltétel mint bemenet</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – „rajzolj egy vízszintes csíkot!”</span>
+  A 14.1-ben a címkés rajzokból $p(\mathbf x \mid y)$-t is megkaptuk. A „vízszintes” feltétellel a gép csak a vízszintes rajzok közül választ: felső csík 0,6, alsó csík 0,4 valószínűséggel. A „függőleges” feltétellel bal vagy jobb csík, 0,5–0,5. Ugyanaz a rajzológép – csak a feltétel szerint szűkített eloszlásból húz.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – feltételes generatív modell</span>
+  A <b>feltételes</b> modell $p(\mathbf x \mid \mathbf c)$-t tanulja, ahol $\mathbf c$ a <b>feltétel</b>: osztálycímke, szöveg, egy másik kép (vázlat, maszk, alacsony felbontású változat), hang… A gyakorlatban a feltétel egyszerűen <b>még egy bemenet</b>:
+  <ul style="margin:.2rem 0">
+    <li>autoregresszív modell: $p(x_i \mid \mathbf x_{\lt i}, \mathbf c)$ – a nyelvi modellnél a „feltétel” a prompt;</li>
+    <li>VAE, GAN: a dekódoló / generátor $\mathbf z$ mellett $\mathbf c$-t is kapja;</li>
+    <li>diffúzió: a zajtalanító $\varepsilon_\theta(\mathbf x_t, t, \mathbf c)$ – a szöveg egy <b>szövegkódoló</b> (pl. a CLIP vagy egy nyelvi modell) beágyazás-sorozata, amelyet a háló <b>kereszt-figyelemmel</b> (<a href="../12-beagyazasok-figyelem/#s124-b">12.4</a>) olvas.</li>
+  </ul>
+  <b>Miért elég ennyi?</b> A tanítás ugyanaz, csak párokon: (kép, felirat). A háló megtanulja, hogy a feltétel <b>mit árul el</b> a képről – és zajtalanításkor ezt az információt is felhasználja.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy szám mint feltétel</span>
+    A számjegyekhez a címkét egy 10 hosszú one-hot vektorként (<a href="../12-beagyazasok-figyelem/#s122-a">12.2</a>) adjuk a zajos kép mellé. Ha a „7” bit 1, a háló hetes felé zajtalanít – ugyanabból a kezdőzajból más címkével más számjegy lesz.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – szöveg a képhez</span>
+    A CLIP (A. Radford és társai, OpenAI, 2021) 400 millió kép–felirat páron tanult: egy kép- és egy szövegkódolót úgy tanított, hogy az összetartozó pár vektorai közel legyenek (koszinusz-hasonlóság, <a href="../02-matematikai-eszkoztar/#s23-c">2.3</a>). Az első Stable Diffusion ennek a szövegkódolóját használta feltételként.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A modell csak azt érti, ami a feliratokban volt.</b> Ha a tanítóképek feliratai nem írják le a tárgyak számát vagy egymáshoz viszonyított helyzetét, a modell ezekben gyenge lesz („három piros kocka egy kék gömb bal oldalán”).</li>
+    <li><b>A feltétel nem parancs.</b> Ha a feltétel ritka (kevés ilyen kép–felirat pár volt), a modell könnyen „átlagosabb” képet rajzol a kértnél. Ezért kell az irányítás erősítése (<a href="#s147-b">2. lépés</a>).</li>
+    <li><b>A feliratok torzításai is átjönnek.</b> Amit a tanítóadat egy szóhoz társít (pl. foglalkozás–nem), azt a modell is társítani fogja.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – feltétel</summary>
+  <ol>
+    <li>A 2 × 2-es világban mi $p(\mathbf x \mid \text{átló})$?
+      <details><summary>Megoldás</summary>Egyetlen átló-rajz van: $p(\texttt{1001} \mid \text{átló}) = 1$, minden más 0.</details></li>
+    <li>Melyik a feltétel egy nyelvi modellben, amikor azt írod: „Fordítsd le angolra: jó reggelt”?
+      <details><summary>Megoldás</summary>A teljes szöveg (prompt): a modell $p(\text{válasz tokenjei} \mid \text{prompt})$-ból húz, tokenenként.</details></li>
+    <li>Egy zajtalanító a zajos képet (64 szám), a $t$ beágyazását (32 szám) és egy one-hot címkét kap. Hány szám a bemenete?
+      <details><summary>Megoldás</summary>$64 + 32 + 10 = 106$.</details></li>
+    <li>Mi kell a feltételes modell tanításához, ami a feltétel nélkülihez nem?
+      <details><summary>Megoldás</summary>Párok: minden tanítóképhez a feltétele (címke, felirat). Szövegből képhez ezért gyűjtöttek százmilliós nagyságrendű kép–felirat párt a webről.</details></li>
+    <li>(nehezebb) Egy képgenerátor a „nővér” szóra 95%-ban nőt, a „mérnök” szóra 90%-ban férfit rajzol. Honnan jön ez, és mit tehetsz ellene?
+      <details><summary>Megoldás</summary>A tanítóadatból: a modell $p(\mathbf x \mid \mathbf c)$-t tanulja, és ha a webes képek/feliratok így oszlanak meg, ezt adja vissza (sőt, irányítással fel is erősítheti). Ellenszer: kiegyensúlyozottabb vagy kiegészített tanítóadat, a felirat bővítése, utólagos finomhangolás, illetve átláthatóság a felhasználó felé.</details></li>
+  </ol>
+</details>
+
+<h3 id="s147-b">2. lépés: osztályozómentes irányítás – a feltétel felerősítése</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két tipp, egy irány</span>
+  Egy pixelnél a zajtalanító kétszer tippel: feltétel nélkül $\hat\varepsilon_u = 0{,}2$, a „7” feltétellel $\hat\varepsilon_c = 0{,}6$. A különbség, $0{,}4$, azt mutatja, <b>mit tesz hozzá a feltétel</b>. Menjünk még tovább ebbe az irányba:
+  $$\tilde\varepsilon = \hat\varepsilon_u + s\,(\hat\varepsilon_c - \hat\varepsilon_u):\qquad s = 0 \to 0{,}2;\quad s = 1 \to 0{,}6;\quad s = 3 \to 1{,}4;\quad s = 7{,}5 \to 3{,}2.$$
+  $s = 0$: feltétel nélküli rajz; $s = 1$: a sima feltételes modell; $s \gt 1$: „még hetesebb, mint egy átlagos hetes”.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – osztályozómentes irányítás (classifier-free guidance, CFG)</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Tanításkor</b> a feltételt a példák egy részénél (pl. 10–20%) „üresre” cseréljük – így ugyanaz a háló feltétellel <b>és</b> feltétel nélkül is tud zajtalanítani.</li>
+    <li><b>Mintavételkor</b> minden lépésben kétszer hívjuk: $\hat{\boldsymbol\varepsilon}_c = \varepsilon_\theta(\mathbf x_t, t, \mathbf c)$ és $\hat{\boldsymbol\varepsilon}_u = \varepsilon_\theta(\mathbf x_t, t, \varnothing)$, és a $\tilde{\boldsymbol\varepsilon} = \hat{\boldsymbol\varepsilon}_u + s\,(\hat{\boldsymbol\varepsilon}_c - \hat{\boldsymbol\varepsilon}_u)$ irányított tippel lépünk.</li>
+  </ol>
+  <b>Miért „osztályozómentes”?</b> Korábban egy külön osztályozó gradiensével irányítottak („legyen a kép minél inkább hetes az osztályozó szerint”). Itt a feltételes és a feltétel nélküli tipp <b>különbsége</b> játssza az osztályozó szerepét (J. Ho és T. Salimans, 2021–2022). Bayes-tétellel: $\nabla \ln p(\mathbf x \mid \mathbf c) - \nabla \ln p(\mathbf x) = \nabla \ln p(\mathbf c \mid \mathbf x)$ – a különbség épp egy „beépített osztályozó” gradiense, és $s$ ezt erősíti.
+  <br><b>Az ára:</b> nagyobb $s$ → a kép jobban követi a feltételt, de kevésbé sokféle, és túl nagy $s$-nél túlszínezett, „égett” lesz. A Stable Diffusion népszerű programkönyvtárában (diffusers) az alapérték $s = 7{,}5$, 50 lépéssel.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – vektorokkal</span>
+    $\hat{\boldsymbol\varepsilon}_u = (0{,}1;\ -0{,}2)$, $\hat{\boldsymbol\varepsilon}_c = (0{,}3;\ 0{,}4)$. $s = 2$: $(0{,}1 + 0{,}4;\ -0{,}2 + 1{,}2) = (0{,}5;\ 1{,}0)$. $s = 5$: $(1{,}1;\ 2{,}8)$. Az irányított tipp a feltételes tippen <b>túl</b> van, ugyanazon az egyenesen.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a költség</span>
+    Az irányítás lépésenként <b>két</b> hálóhívás. 50 lépés CFG-vel 100 hívás. (A két hívást egy kötegben futtatják; és vannak modellek, amelyekbe „belesütötték” az irányítást – pl. a FLUX.1 [dev] ezt <em>guidance distillation</em>-nel teszi –, ezek lépésenként egyszer hívnak.)
+  </div>
+</div>
+<div class="widget" data-widget="cfg-2d"></div>
+<p>A widget alapbeállításában (A osztály, 25 lépés) a minták a „biztosan A” területre $s = 0$-nál 30%-ban, $s = 1$-nél 67%-ban esnek (a valódi feltételes eloszlásnál ez 66% – $s = 1$ tényleg a feltételes modell), $s = 3$-nál és $s = 7{,}5$-nél 100%-ban. Közben az A osztály átfedő, középső felhőjéből jövő minták aránya 23%-ról 0-ra esik: a minták „tipikusabbak”, a sokféleség elvész, nagy $s$-nél pedig a felhők középpontján is túllőnek.</p>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Nagyobb $s$ ≠ jobb kép.</b> A feltételhez való hűség nő, a változatosság és a természetesség csökken. A jó $s$ feladatfüggő; a felhasználói felületek „irányítás erőssége” csúszkája ez.</li>
+    <li><b>$s = 1$ nem „gyenge irányítás”</b>, hanem a modell saját feltételes eloszlása. Irányításról $s \gt 1$-nél beszélünk.</li>
+    <li><b>A negatív prompt</b> ugyanez a trükk: a feltétel nélküli tipp helyére egy „ne ilyen legyen” feltétel tippje kerül, és attól <b>távolodunk</b>.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – irányítás</summary>
+  <ol>
+    <li>$\hat\varepsilon_u = -0{,}5$, $\hat\varepsilon_c = 0{,}1$. Mennyi $\tilde\varepsilon$, ha $s = 1$, $s = 4$?
+      <details><summary>Megoldás</summary>$s = 1$: $0{,}1$. $s = 4$: $-0{,}5 + 4 \cdot 0{,}6 = 1{,}9$.</details></li>
+    <li>Melyik $s$ adja vissza a feltétel nélküli modellt?
+      <details><summary>Megoldás</summary>$s = 0$.</details></li>
+    <li>Hány hálóhívás kell egy képhez 30 lépéssel, irányítással?
+      <details><summary>Megoldás</summary>60 (lépésenként egy feltételes és egy feltétel nélküli).</details></li>
+    <li>Miért kell tanításkor néha üres feltételt adni?
+      <details><summary>Megoldás</summary>Hogy ugyanaz a háló a feltétel nélküli tippet ($\hat{\boldsymbol\varepsilon}_u$) is meg tudja adni – különben nem lenne mivel összevetni a feltételeset, és külön modellt kellene tanítani.</details></li>
+    <li>(nehezebb) Negatív prompt: $\hat{\boldsymbol\varepsilon}_n$ a „homályos, torz” feltétel tippje. Írd fel az irányított tippet, és magyarázd meg, mit csinál!
+      <details><summary>Megoldás</summary>$\tilde{\boldsymbol\varepsilon} = \hat{\boldsymbol\varepsilon}_n + s\,(\hat{\boldsymbol\varepsilon}_c - \hat{\boldsymbol\varepsilon}_n)$. A kiindulópont a „homályos, torz” tipp, és $s \gt 1$-nél a kért feltétel felé, attól <b>elfelé</b> extrapolálunk – a kép kevésbé lesz homályos és torz.</details></li>
+  </ol>
+</details>
+
+<h3 id="s147-c">3. lépés: látens diffúzió – és a mai rendszerek</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – hány számot kell zajtalanítani?</span>
+  Egy $512 \times 512$-es színes kép $786\,432$ szám. Egy zajtalanító háló minden lépésben mindegyikkel számol – 50 lépésen, irányítással kétszer. A legtöbb szám azonban apró, szemmel alig látható részletet hordoz. Ötlet: <b>először tömörítsük a képet</b> egy autoenkóderrel (<a href="#s143">14.3</a>, <a href="#s144-c">14.4</a>) egy $64 \times 64 \times 4$-es kódba – ez $16\,384$ szám, 48-szor kevesebb –, és a diffúzió <b>ebben a kódtérben</b> dolgozzon. A végén a dekódoló rajzolja vissza a képet.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – látens diffúzió</span>
+  <ol style="margin:.2rem 0">
+    <li>Egy <b>autoenkóder</b> (a Stable Diffusionban egy enyhén regularizált VAE, kis diszkriminátorral élesítve) a képeket kódokká tömöríti: $\mathbf z_0 = e(\mathbf x)$;</li>
+    <li>egy <b>diffúziós modell</b> a kódok eloszlását tanulja (zajosítás és zajtalanítás a $\mathbf z$-ken, szöveges feltétellel);</li>
+    <li>generáláskor: zaj → visszafelé mintavétel a kódtérben → $\hat{\mathbf x} = d(\mathbf z_0)$.</li>
+  </ol>
+  <b>Miért jó?</b> Munkamegosztás: az autoenkóder egyszer megtanulja a „látható részleteket” (textúra, élek), a diffúzió a „tartalmat” (mi hol van). A számítás töredékére csökken (R. Rombach és társai, 2022 – ebből lett a Stable Diffusion).
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy nagy kép</span>
+    $1024 \times 1024 \times 3 = 3\,145\,728$ szám; egy $128 \times 128 \times 16$-os kód $262\,144$ szám – 12-szer kevesebb. Az újabb modellek több csatornát (16) használnak, mert a kevesebb tömörítés élesebb részleteket enged.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a „recept” 2026-ban</span>
+    Szövegkódoló (CLIP, T5, egyre inkább egy teljes nyelvi modell) → zajtalanító <b>Transformer</b> a kód „foltjain” (<em>Diffusion Transformer</em>, DiT, W. Peebles és S. Xie, 2023) → <b>flow matching</b> célfüggvény → autoenkóder-dekódoló. A videómodellek ugyanezt térben és időben teszik.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">📅 Állapot: 2026 november – hol tart a generatív kép- és videómodellezés?</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Kép:</b> a nyílt modellek tipikusan „látens tér + Transformer + flow matching”: Stable Diffusion 3 (2024, legfeljebb 8 milliárd paraméter), FLUX.1 (2024, 12 milliárd), FLUX.2 (2025. november, 32 milliárd, egy 24 milliárdos látás–nyelvi modell a szövegkódoló), Qwen-Image (2025, 20 milliárd).</li>
+    <li><b>Videó:</b> a Google Veo 3 modellkártyája szerint közös hang- és videó-látenstérben futó látens diffúzió; a nyílt Wan (2025) DiT + flow matching saját 3D-s VAE-vel. Az OpenAI 2026 márciusában bejelentette a Sora alkalmazás leállítását (sajtóhírek szerint az alkalmazás áprilisban, az API szeptemberben szűnt meg).</li>
+    <li><b>Az autoregresszív modellek visszatértek:</b> az OpenAI 2025 márciusában a GPT-4o-ba épített képgenerálást „autoregresszív modellként” írta le, és a VAR („következő skála” jóslása pixel helyett, 2024) NeurIPS-legjobbcikk-díjat kapott. A határ elmosódik: sok rendszer képtokeneket jósol, aztán egy diffúziós dekódoló rajzol.</li>
+    <li><b>Diffúzió szövegre:</b> diffúziós nyelvi modellek (LLaDA, 2025; Mercury, 2025; Google Gemini Diffusion – kísérleti, kb. 1500 token/s; a nyílt DiffusionGemma, 2026. június) egyszerre sok tokent „zajtalanítanak”. Gyorsak, de 2026-ban még elmaradnak a legjobb autoregresszív modellektől – a gyorsaságot igénylő résben (kód, ágensek) terjednek.</li>
+    <li><b>Kevés lépés:</b> desztillációval és versengő veszteséggel (SDXL Turbo, 2023) 1–4 lépés is elég; ezért „azonnali” a kép a mai alkalmazásokban.</li>
+  </ul>
+  <small>Források: a modellek kártyái és cikkei (Esser és társai, 2024; Black Forest Labs, 2024–2025; Qwen-Image arXiv 2508.02324; Wan arXiv 2503.20314; Veo 3 modellkártya, 2026; OpenAI GPT-4o rendszerkártya-kiegészítés, 2025. március 25.; Tian és társai, 2024; Nie és társai, 2025; Google DeepMind, 2025–2026); a Sora leállításáról sajtóhírek (2026. március).</small>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A dekódoló korlátja a kép korlátja.</b> Amit az autoenkóder nem tud visszarajzolni (apró szöveg, finom minták), azt a diffúzió sem tudja előállítani – a korai modellek betűi, kezei részben ezért voltak rosszak.</li>
+    <li><b>Szövegből kép ≠ szöveg megértése.</b> A modell a feliratokban látott szó–kép együttállásokat tanulta; számolás, tagadás („ne legyen rajta kutya”), térbeli viszonyok sokáig gyengék voltak, és ma is hibázhatnak.</li>
+    <li><b>A konkrét modellek gyorsan változnak.</b> A fenti nevek 2026-os pillanatkép; a fejezet elvei (zajtalanítás, feltétel, irányítás, látens tér) tartósabbak.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – látens diffúzió</summary>
+  <ol>
+    <li>Hányszoros a tömörítés, ha egy $768 \times 768 \times 3$-as képet 8-szoros oldalarányú csökkentéssel, 4 csatornás kódba kódolunk?
+      <details><summary>Megoldás</summary>A kód $96 \times 96 \times 4 = 36\,864$ szám, a kép $1\,769\,472$ – 48-szoros (mindig 48, ha 8-szoros csökkentés és 3 → 4 csatorna).</details></li>
+    <li>Sorold a látens diffúzió három részét a generálás sorrendjében!
+      <details><summary>Megoldás</summary>(Szövegkódoló a feltételhez) → diffúziós modell a kódtérben (zajból kód) → autoenkóder-dekódoló (kódból kép). A kódolóra generáláskor nincs szükség – csak tanításkor, és ha meglévő képből indulunk (kép-ből-kép).</details></li>
+    <li>Miért gyorsabb a látens diffúzió, ha a háló mérete ugyanaz?
+      <details><summary>Megoldás</summary>Mert lépésenként sokkal kevesebb számmal (pl. 48-szor kevesebbel) kell dolgoznia, és a lépésszám is 50 körüli; a drága dekódolás csak egyszer, a végén fut.</details></li>
+    <li>Mi a DiT, és mit cserél le?
+      <details><summary>Megoldás</summary><em>Diffusion Transformer</em>: a zajtalanító háló Transformer, amely a kódot kis foltokra (tokenekre) bontja, és önfigyelemmel dolgozza fel (<a href="../12-beagyazasok-figyelem/#s125-a">12.5</a>). A korábbi U-Net (konvolúciós) zajtalanítót váltja; jobban skálázható.</details></li>
+    <li>(nehezebb) Egy kép-ből-kép funkció egy fényképet „akvarell stílusban” rajzol újra: a fényképet kódolja, $t = 0{,}6\,T$-ig zajosítja, aztán az „akvarell” feltétellel visszafelé mintavételez. Mi történik, ha $t$ kicsi, és mi, ha majdnem $T$?
+      <details><summary>Megoldás</summary>Kis $t$: kevés zaj, a kép alig változik (az eredeti uralkodik, kevés akvarell). Majdnem $T$: szinte tiszta zaj, az eredetiből alig marad valami – új kép, csak a felirat számít. A köztes $t$ (az „erősség” csúszka) a kettő közti egyensúly.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai14-147"></div>
+</section>

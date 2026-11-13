@@ -1,0 +1,2040 @@
+Evolving autoencoders
+This chapter covers
+ Introducing convolutional autoencoders
+ Discussing genetic encoding in a convolutional
+autoencoder network
+ Applying mutation and mating to develop an
+evolutionary autoencoder
+ Building and evolving autoencoder architecture
+ Introducing a convolutional variational
+autoencoder
+In the last chapter, we covered how convolutional neural network (CNN) architec-
+ture could be adapted using evolutionary algorithms. We used genetic algorithms to
+encode a gene sequence defining a CNN model for image classification. The out-
+come was successfully building more optimized networks for image recognition tasks.
+In this chapter, we continue to extend the fundamentals and explore evolving
+autoencoders (AEs). We take some of our experience from building evolving CNN
+architecture in the last chapter and apply it to convolutional AEs. Then, we move on
+to more advanced variational AEs and explore novel ways of evolving model loss.
+183
+184 CHAPTER 8 Evolving autoencoders
+AEs are a foundation to DL that introduces unsupervised and representation
+learning. Chances are if you have spent any time studying DL, you have encountered
+AEs and variational AEs. From the perspective of EDL, they introduce some novel
+applications we explore in this chapter.
+AEs come in several variations, from under complete or standard to deep and con-
+volutional. The deep convolutional AE is a great one to begin with, since it extends
+many ideas from previous chapters, and it’s where we start this chapter.
+8.1 The convolution autoencoder
+In this section, we explore and review a convolutional AE written in Keras. This is the
+same code we use for building an evolutionary, or evo, AE later in the chapter. For
+those new to AEs, the next section reviews the main principles of training, building,
+and retraining.
+8.1.1 Introducing autoencoders
+AEs are often used to introduce the concepts of unsupervised and representative learn-
+ing. Unsupervised learning is the process of training models using no labels. Representative
+learning is when we train models to understand the differences between input features.
+Figure 8.1 shows a simple convolutional AE that is comprised of convolutional,
+MaxPool, and UpSampling layers. Aside from the addition of convolution, this model
+architecture is standard for an AE.
+Encoded
+Generated
+feature
+Input Image output image
+representation
+T-shirt/top T-shirt/top
+2D convolution Max pooling Upsampling
+Figure 8.1 A convolutional AE
+An AE works by funneling the input through a narrow channel called the latent or fea-
+ture representation view—the middle part. This middle part is also known as the latent or
+hidden encoding of the image.
+ 8.1 The convolution autoencoder 185
+The latent encoding of an image is learned through iterations of passing images
+into the encoder and then measuring the difference in the output. Typically, we mea-
+sure this difference or loss using mean squared error or pixel-wise loss of the input
+and output images. Through iterating, the middle part learns to encapsulate the fea-
+tures of the input image.
+Figure 8.2 shows an example of plotting the learned encoding from an AE trained on
+the MNIST Handwritten Digits dataset. In the figure, the encoding/latent space is
+converted to two dimensions using t-distributed stochastic neighbor embedding (t-SNE).
+By visualizing this plot, you can clearly see how the model learns to differentiate between
+the various classes of digits.
+Latent space
+Figure 8.2 A mapping of AE latent
+space, showing a clustering of classes
+An AE uses unsupervised learning to train, which means none of the data fed into the
+model needs to be labeled. Essentially, the model learns through self-training by com-
+paring how well the input and generated output can represent the encoded features.
+This simplifies the training of the model and, at the same time, creates a powerful fea-
+ture encoding extractor.
+Representation learning, or what may also be referred to as generative deep learning, is a
+relatively new field. We take a close look at GDL in the next chapter, but for now, let’s
+jump back into the code and see how an AE works.
+8.1.2 Building a convolutional autoencoder
+The AE we look at in the next notebook incorporates convolutional layers to better
+extract features in images. Applying convolution to an AE model introduces addi-
+tional complexity in the network architecture. In future sections, this example also
+demonstrates how applying evolution to optimize these networks is advantageous.
+Open the EDL_8_1_Autoencoders.ipynb notebook in Colab. Refer to the appen-
+dix if you need a review of opening notebooks in Colab.
+186 CHAPTER 8 Evolving autoencoders
+Scroll down, and then select the Stage 1: AEs cell. From the menu, select Runtime
+> Run Before. This runs the notebook, loading the data and displaying an example
+plot, as shown in Figure 8.3. Several sections of code have been covered in past chap-
+ters and won’t be reviewed again here.
+Figure 8.3 Fashion-MNIST standard training dataset
+Next, we come to the first block of code of interest, shown in listing 8.1: building the
+AE. The first layer set up is the input layer, defined by image shape (28×28 and 1 chan-
+nel). Next, a convolutional layer is added with 64 filters, using a kernel size of 3×3.
+Then, after each CNN layer, a MaxPool layer reduces/aggregates the input into the
+ 8.1 The convolution autoencoder 187
+next layer. The final layer added is a MaxPool layer that represents the latent or hid-
+den view of the input.
+Listing 8.1 EDL_8_1_AE.ipynb: The encoder
+input_layer = Input(shape=(28, 28, 1)) Defines the input layer
+encoded_layer1 = layers.Conv2D(64, (3, 3),
+➥ activation=’relu’, padding=’same’)(input_layer)
+encoded_layer1 = layers.MaxPool2D( (2, 2),
+➥ padding=’same’)(encoded_layer1)
+encoded_layer2 = layers.Conv2D(32, (3, 3),
+➥ activation=’relu’, padding=’same’)(encoded_layer1) The 2D
+encoded_layer2 = layers.MaxPool2D( (2, 2), convolution layer
+➥ padding='same')(encoded_layer2)
+encoded_layer3 = layers.Conv2D(16, (3, 3),
+➥ activation='relu', padding='same')(encoded_layer2)
+latent_view = layers.MaxPool2D( (2, 2),
+➥ padding='same')(encoded_layer3) The MaxPool layer
+Now that we have built the encoder model to output the latent or encoded view, we
+need to rebuild the image using further convolutional layers and a special layer called
+UpSampling. UpSampling layers can be thought of as the opposite of pooling layers.
+Their effect is converting the latent view generated by the encoder back into a full
+image. This is done by successively convolving the input and UpSampling to successive
+layers. At the end of this output chain, we add a final CNN layer that converts the con-
+volved output to a single channel. If we were using color images, we would instead
+convert the output to three channels, as shown in the following listing.
+Listing 8.2 EDL_8_1_AE.ipynb: The decoder
+decoded_layer1 = layers.Conv2D(16, (3, 3), activation='relu',
+➥ padding='same')(latent_view)
+decoded_layer1 = layers.UpSampling2D((2, 2)) The 2D
+➥ (decoded_layer1) convolutional layer
+decoded_layer2 = layers.Conv2D(32, (3, 3),
+➥ activation='relu', padding='same')(decoded_layer1)
+decoded_layer2 = layers.UpSampling2D((2, 2))
+➥ (decoded_layer2)
+decoded_layer3 = layers.Conv2D(64, (3, 3), activation='relu')(decoded_layer2)
+decoded_layer3 = layers.UpSampling2D((2, 2))
+➥ (decoded_layer3)
+output_layer = layers.Conv2D(1, (3, 3), The final CNN layer for
+➥ padding='same')(decoded_layer3) output to 1 channel
+The 2D UpSampling layer
+We combine the models by feeding the corresponding input and output layers into a
+Keras model. Then, we compile the model using an Adam optimizer and MSE for loss.
+188 CHAPTER 8 Evolving autoencoders
+After that, we plot a model summary and use plot_model to output a nice visual of the
+completed model, as shown in the following listing.
+Listing 8.3 EDL_8_1_AE.ipynb: Building the model
+model = Model(input_layer, output_layer) Builds from input and output layers
+model.compile(optimizer='adam', loss='mse')
+model.summary() Compiles with Adam and MSE
+plot_model(model) Outputs the model summary
+Generates a plot of the model
+Run the cells that build the encoder and decoder and build the model. Figure 8.4
+shows the summary output of building the model. By looking at each successive layer,
+you can visualize how the model shrinks the input space in the latent encoding and
+then rebuilds it. It is important to note the size of the respective CNN layers and how
+they reduce and then increase in size.
+The input layer starts at 28, 28, 1.
+The pooling layer narrows to 14, 14
+14, 64.
+Encoder
+It further
+ther narrows to 7, 7, 32.
+laten view of 4, 4, 16.
+It narrows to a to latent
+Latent view
+es tto 8, 8, 16.
+It upsamples
+samples to 16, 1
+It upsamples 16, 32.
+Decoder
+It upsamples to 28, 28, 64.
+It converts back to 28, 28 ,1.
+Figure 8.4 AE model summary explained
+ 8.1 The convolution autoencoder 189
+The next couple of cells set up output code for training the model. Go ahead and run
+those cells, including the training code. Having reviewed this code previously, we
+won’t revisit it here, other than to look at example output after 10 epochs of training
+shown in figure 8.5.
+Ankle boot Pullover Trouser Trouser Shirt
+loss
+0.07 val_loss
+Trouser Coat Shirt Sandal Sneaker 0.06
+0.05 Decreasing loss for both training and
+validation datasets
+0.04
+Coat Sandal Sneaker Dress Coat 0.03
+0.02
+0 2 4 6 8
+Trouser Pullover Coat Bag T-shirt/top
+Pullover Sandal Sneaker Ankle boot Trouser
+Figure 8.5 Training an AE example cell output
+As the model trains, the output, as shown in figure 8.5, goes from showing fuzzy repre-
+sentations to clear features. AEs can require extensive training, and this simple exam-
+ple will likely never be able to accurately depict finer-grained features. However, it
+does do a good job differentiating between the various classes effectively. A good indi-
+cator of how well the model is training is to compare sandal class images to the origi-
+nal or against sneakers.
+8.1.3 Learning exercises
+Use the following exercises to improve your understanding of AEs:
+1 Try using a different dataset, like the MNIST Handwritten Digits dataset.
+2 Alter the model hyperparameters, like learning rate and batch size, to see what
+effect this has on training.
+3 Add or remove convolutional layers from both the encoder and decoder. Be
+sure to keep both sides of the AE balanced.
+While this simple AE works reasonably well, we want to improve on the model’s ability
+to generalize the learning of the representations. In the next section, we advance to
+add generalization features, like dropout and batch normalization layers.
+190 CHAPTER 8 Evolving autoencoders
+8.1.4 Generalizing a convolutional AE
+In chapter 7, we covered, in some depth, how convolutional layers function by extract-
+ing features. We also learned that CNN models can do too good of a job of identifying
+features. To compensate for this, we often add a layer called Dropout, which can help
+generalize feature extraction.
+Figure 8.6 shows how dropout layers work by randomly disabling network nodes
+for each training iteration, not each epoch. Disabling random neurons through each
+training iteration causes the model to better generalize and reduce memorization.
+This results in training loss and validation loss remaining consistent.
+Original network Network with some nodes dropped out
+Figure 8.6 A demonstration of Dropout
+Vanishing and exploding gradients are other factors that come into play when train-
+ing CNN and, in particular, networks with several layers. This happens because the
+weights/parameters in the network may need to become very large or small because
+of inputs passing through multiple layers. To compensate for this, we introduce a nor-
+malization step between layers, called BatchNormalization.
+Figure 8.7 shows how BatchNormalization is calculated over a convolutional fea-
+ture map. In the figure, the mean and variance are calculated for each feature map,
+and this is used to normalize the values of the feature map as inputs to the next layer.
+This results in data being kept centered at about 0, also significantly reducing prob-
+lems with vanishing or exploding gradients.
+Normalization occurs using the following equation. Each input value is subtracted
+from the mean and then divided by the square root of the variance, or standard devia-
+tion, σ.
+x-μ
+xnew = σ
+Now that we understand how we create more generalized models and avoid exploding
+and vanishing gradients, we can move on to incorporating these features into the AE.
+ 8.1 The convolution autoencoder 191
+The ith feature map Calculation of batch mean and variance
+generated by the last
+input data in the
+current mini-batch Mean across all
+μi (m × h × w) cells
+xi Variance across all
+σi (m × h × w) cells
+h
+feature map
+height m
+# of examples in the
+current mini batch
+The ith feature map
+generated by the first w All the ith feature maps generated
+input data in the feature map width by respective input data in the
+current mini-batch current mini-batch
+Figure 8.7 The BatchNormalization process
+8.1.5 Improving the autoencoder
+By adding BatchNormalization and Dropout layers, we can improve the simple AE we
+looked at previously. We continue with the same notebook but now look at adding
+these new layer types in the following walkthrough.
+Reopen the EDL_8_1_Autoencoder.ipynb notebook in Colab. Refer to the
+appendix if you need assistance. Go ahead and run all the cells in the notebook via
+Runtime > Run All from the menu. Scroll down to the section starting with Improving
+the Autoencoder.
+We start by looking at the updated encoder section of the model in listing 8.4. Most
+of the code is the same as the code we last looked at, but notice the inclusion of the batch
+normalization and dropout layers. The parameter passed into the dropout layers is the
+amount or percentage of neurons that will be disabled over each training iteration.
+Listing 8.4 EDL_8_1_AE.ipynb: An improved encoder
+inputs = layers.Input(shape=(28, 28 ,1))
+x = layers.Conv2D(32, 3, activation='relu', padding='same')(inputs)
+x = layers.BatchNormalization()(x)
+x = layers.MaxPool2D()(x) The BatchNormalization
+x = layers.Dropout(0.5)(x) layer
+x = layers.BatchNormalization()(x)
+x = layers.MaxPool2D()(x)
+x = layers.Dropout(0.5)(x)
+x = layers.Conv2D(64, 3, activation='relu', padding='same')(x)
+x = layers.BatchNormalization()(x)
+encoded = layers.MaxPool2D()(x)
+The Dropout layer
+192 CHAPTER 8 Evolving autoencoders
+Following this, we, of course, look at the improved decoder section, as shown in the
+following listing. Again, the only difference is the inclusion of BatchNormalization
+and Dropout layers in the decoder section.
+Listing 8.5 EDL_8_1_AE.ipynb: An improved decoder
+x = layers.Conv2DTranspose(64, 3,activation='relu',strides=(2,2))(encoded)
+x = layers.BatchNormalization()(x)
+x = layers.Dropout(0.5)(x) The BatchNormalization layer
+x = layers.Conv2DTranspose(32, 3, activation='relu',strides=(2,2),
+➥ padding='same')(x)
+x = layers.BatchNormalization()(x)
+x = layers.Dropout(0.5)(x)
+x = layers.Conv2DTranspose(32, 3, padding='same')(x)
+x = layers.LeakyReLU()(x)
+x = layers.BatchNormalization()(x)
+decoded = layers.Conv2DTranspose(1, 3, activation='sigmoid',strides=(2,2),
+➥ padding='same')(x)
+The Dropout layer
+Figure 8.8 shows the output of training this “improved” model over 10 epochs. If you
+compare this figure to figure 8.5, you can clearly see these “improvements” are not as
+effective as the original model.
+Ankle boot Pullover Trouser Trouser Shirt
+loss
+0.10 val_loss
+Trouser Coat Shirt Sandal Sneaker 0.08
+Validation loss trailing
+behind training
+0.06
+0.04
+Coat Sandal Sneaker Dress Coat
+0 2 4 6 8
+Trouser Pullover Coat Bag T-shirt/top
+Pullover Sandal Sneaker Ankle boot Trouser
+Figure 8.8 Training the improved AE example cell output
+So if these layer types are about improving model performance, why are we getting
+such poor results? The answer, in this case, is simple: we are overusing the features of
+ 8.2 Evolutionary AE optimization 193
+BatchNormalization and Dropout. This generally means we need to tune the network
+architecture in a manual fashion to improve model performance. Instead, we look at
+how to optimize AE model development with EC next.
+8.2 Evolutionary AE optimization
+We have already seen how we can automatically optimize a CNN model using GAs
+called EvoCNN. In the following walkthrough, we take the same approach as we did
+previously but introduce the added complexity of AEs. This means our model archi-
+tecture needs to adhere to stricter guidelines.
+8.2.1 Building the AE gene sequence
+Our first step in building a GA AE optimizer is to build a pattern to encode the archi-
+tecture into a gene sequence. We build off previous examples but this time introduce
+the constraints of an AE. Likewise, this model also improves on the EvoCNN project
+by allowing BatchNormalization and Dropout to be added.
+Open the EDL_8_2_Evo_Autoencoder_Encoding.ipynb notebook in Colab. Please
+refer to the appendix for instructions if needed. Go ahead and run all the cells in the
+notebook via Runtime > Run All. Scroll down to the section titled Encoding the Auto-
+encoder. We reviewed most of the following code in chapter 7, so we only review the
+highlights here.
+Start by looking at the create_offspring function. If you recall, this was the main
+function for creating the entire gene sequence, but this version differs. This time, the
+function is broken into two loops: one for the encoder section and the other for the
+decoder section. The encoder section loops over the layers and randomly checks if
+another convolution layer should be added. If a layer is added, then it continues to
+randomly check if a BN and/or dropout layer should also be added. Notice in this
+example, we automatically add a MaxPool layer to account for the funnel or reduction
+architecture of the AE.
+The second loop for the decoder is set up to mirror the architecture of the
+encoder. It, therefore, loops through the same number of iterations as the encoder.
+This time, it adds up convolutional layer codes to represent the combination of
+UpSampling and convolution layers. After that, a chance check is applied to add
+BatchNormalization and/or Dropout layers, as shown in the following listing.
+Listing 8.6 EDL_8_2_Evo_AE_Encoding.ipynb: Creating the gene sequence
+def create_offspring():
+ind = []
+layers = 0
+The first layer is
+for i in range(max_layers):
+always convolution.
+if i==0:
+ind.extend(generate_conv_layer())
+layers += 1 Chance to add another
+elif random.uniform(0,1)<.5: convolution layer
+194 CHAPTER 8 Evolving autoencoders
+ind.extend(generate_conv_layer())
+layers += 1 Chance to add a
+if random.uniform(0,1)<.5: BatchNormalization layer
+ind.extend(generate_bn_layer())
+if random.uniform(0,1) < .5: Chance to add a Dropout layer
+ind.extend(generate_dropout_layer())
+for i in range(layers):
+Loop through encoder
+ind.extend(generate_upconv_layer())
+layers to create a decoder.
+if random.uniform(0,1)<.5:
+ind.extend(generate_bn_layer())
+if random.uniform(0,1) < .5:
+ind.extend(generate_dropout_layer())
+return ind
+Notice that we change the encoding pattern of the gene sequence to account for
+convolutional/MaxPool layers and UpSampling/convolutional layers. You can see this
+minor change in the tokens we have set in the code cell. Now, the encoding tokens
+representing the encoder convolutional layers are defined as CONV_LAYER, and the
+decoder UpSampling or convolution layers are UPCONV_LAYER, as shown in the following
+listing.
+Listing 8.7 EDL_8_2_Evo_AE_Encoding.ipynb: The gene sequence tokens
+CONV_LAYER = -1
+The encoder
+CONV_LAYER_LEN = 4
+convolution/pooling layer
+BN_LAYER = -3
+BN_LAYER_LEN = 1
+DROPOUT_LAYER = -4
+DROPOUT_LAYER_LEN = 2 The decoder
+UPCONV_LAYER = -2 UpSampling/convolution layer
+UPCONV_LAYER_LEN = 4
+Likewise, the functions to generate the encoder layers (CONV_LAYER) and decoder lay-
+ers (UPCONV_LAYER) become simplified, as shown in the following listing.
+Listing 8.8 EDL_8_2_Evo_AE_Encoding.ipynb: Generating layers
+def generate_conv_layer():
+The encoder
+part = [CONV_LAYER]
+convolution/pooling layer
+part.append(generate_neurons())
+part.extend(generate_kernel())
+return part
+The decoder
+def generate_upconv_layer(): UpSampling/convolution
+part = [UPCONV_LAYER]
+part.append(generate_neurons())
+part.extend(generate_kernel())
+return part
+ 8.2 Evolutionary AE optimization 195
+Similarly, the functions to add the BN and dropout layers are simplified, as shown in
+the following listing.
+Listing 8.9 EDL_8_2_Evo_AE_Encoding.ipynb: Generating special layers
+def generate_bn_layer(): Generates the BN layer
+part = [BN_LAYER]
+return part
+def generate_dropout_layer(): Generates the Dropout layer
+part = [DROPOUT_LAYER]
+part.append(random.uniform(0,.5))
+return part
+Next, we look at building the model by parsing the gene sequence. This code is quite
+long, so we break it into the relevant sections, starting with the initial parsing in listing
+8.10. We start by looping over each gene and checking if it matches a layer token. If it
+does, we add the respective layer and options to the model. In the case of the encoder
+convolutional layers (CONV_LAYER), if the input shape is greater than (7, 7), we add a
+MaxPool layer. This ensures our model maintains a fixed latent view.
+Listing 8.10 EDL_8_2_Evo_AE_Encoding.ipynb: Building the model—Parsing
+def build_model(individual): The input_layer is
+input_layer = Input(shape=(28, 28, 1)) always the same.
+il = len(individual)
+i = 0
+x = input_layer Loops over genes
+while i < il: The encoder
+if individual[i] == CONV_LAYER: convolutional layer
+pad="same"
+n = individual[i+1]
+If the shape k = (individual[i+2], individual[i+3])
+is greater i += CONV_LAYER_LEN
+than 7, 7, x = layers.Conv2D(n, k, activation='relu', padding=pad)(x)
+add pooling.
+if x.shape[1] > 7:
+x = layers.MaxPool2D( (2, 2), padding='same')(x)
+Moving down a little, we can see the continuation of adding layers from inspecting the
+tokens, as shown in the following listing. This time, though, for the UPCONV_LAYER
+decoder layers, we check if the model is the same as the input size. After all, we don’t
+want the resulting images to be too big or too small.
+Listing 8.11 EDL_8_2_Evo_AE_Encoding.ipynb: Building the model—Layers
+elif individual[i] == BN_LAYER: Adds a BN layer
+x = layers.BatchNormalization()(x)
+i += BN_LAYER_LEN
+elif individual[i] == DROPOUT_LAYER: Adds a Dropout layer
+196 CHAPTER 8 Evolving autoencoders
+x = layers.Dropout(individual[i+1])(x)
+i += DROPOUT_LAYER_LEN Adds a decoder
+elif individual[i] == UPCONV_LAYER: UpSampling/convolution layer
+pad="same"
+n = individual[i+1]
+k = (individual[i+2], individual[i+3])
+x = layers.Conv2D(n, k, activation='relu', padding=pad)(x)
+x = layers.UpSampling2D((2, 2))(x)
+i += CONV_LAYER_LEN
+if x.shape[1] == (28): Checks if the model is complete
+break #model is complete
+else:
+break
+The function completes by building the model, compiling it, and returning it. Before
+doing that, though, we confirm the model is not too small by checking the shape of
+the last decoder layer, as shown in the following listing. If the output is too small, we
+add another UpSampling layer to double the size from 14, 14 to 28, 28.
+Listing 8.12 EDL_8_2_Evo_AE_Encoding.ipynb: Building the model—Compile
+if x.shape[1] == 14:
+Makes sure the final
+x = layers.UpSampling2D((2, 2))(x)
+model is not too small
+output_layer = layers.Conv2D(1, (3, 3),
+➥ padding='same')(x) Converts back to a single channel
+model = Model(input_layer, output_layer)
+model.compile(optimizer='adam', loss='mse') Combines the input/output layers
+return model
+To test the build_model function, the next block of code, shown in listing 8.13, cre-
+ates 100 random offspring and evaluates the size of the models. This code generates
+random individual gene sequences and then builds corresponding models from
+those sequences. Along the way, the code tracks the minimum and maximum models
+generated.
+Listing 8.13 EDL_8_2_Evo_AE_Encoding.ipynb: Evaluating build_model
+max_model = None
+min_model = None
+maxp = 0
+minp = 10000000
+for i in range(100): Creates a random gene sequence
+individual = create_offspring()
+model = build_model(individual) Builds the model from the sequence
+p = model.count_params()
+if p > maxp: Counts the model parameters
+maxp = p
+max_model = model
+if p < minp:
+ 8.2 Evolutionary AE optimization 197
+minp = p
+min_model = model
+max_model.summary()
+min_model.summary()
+Scrolling down further shows the output, as summarized in figure 8.9. In the figure, a
+minimum size parameter model is used to train the model over 10 epochs.
+Figure 8.9 The output of the minimum size model built from randomly generated offspring
+This randomly generated model using create_offspring and build_model appears
+to be better than our last “improved” AE, which is promising, since it is also an
+approximate minimum size model. Be sure to check the code and test the training for
+a maximum size model as well. Keep in mind that the sample size in this example only
+uses 100 variations.
+8.2.2 Learning exercises
+Use the following exercises to improve your understanding:
+1 Create a list of individuals by calling create_offspring in a loop and then
+print and compare the various models.
+2 Change the base probability from 0.5 in listing 8.6 to another value. See what
+effect this has on the generated models using exercise 1.
+We now have a way to create a gene sequence that, in turn, can be used to build an AE
+model. As we learned in chapter 6, our next stage is to build the custom functions to
+mate and mutate these gene sequences. This is where we continue this project in the
+next section.
+198 CHAPTER 8 Evolving autoencoders
+8.3 Mating and mutating the autoencoder gene sequence
+Just like we did for the EvoCNN project in chapter 7, we also need to create custom
+mutation and mating/crossover operators. These custom operators are quite like
+what we used previously, so again, we only review some highlights here. After adding
+the genetic operators, we test the EvoAE.
+Open the EDL_8_3_EvoAutoencoder.ipynb notebook in Colab. Refer to the
+appendix if you need assistance. Scroll down to the Creating Mating/Mutation Opera-
+tors section, and then select the next code cell. From the menu, select Runtime > Run
+Before to execute all the previous cells in the notebook. Be patient, and wait for the
+sample training to finish.
+Figure 8.10 demonstrates the crossover process—this time with the modified
+gene sequences that represent the AE architecture. Notice that the number of
+encoder convolutional layers and decoder convolutional layers are always equal. This
+is required to achieve the funnel effect of AE.
+Gene sequence (chromosome A) Gene sequence (chromosome B)
+C1 BN1 C2 D2 U1 U2 C1 D1 C2 U1 BN1 U2
+Convolutional UpConvolution Batch Convolutional UpConvolution Batch
+list list normalization list list list Normalization list
+C1 U1 BN1 C1 U1 BN1
+C2 U2 Dropout list C2 U2 Dense list
+D2 D1
+Collect and group by layer type
+Convolution crossover UpConvolution crossover Batch normalization Dense crossover
+crossover
+C1 C1 U1 P1 BN1 BN1 D1 D2
+C2 C2 U2 P3
+C3
+C Convolutional U UpConvolution
+BN Batch normalization D Dropout
+Figure 8.10 Evolutionary AE crossover
+Fortunately, most of the crossover/mating code written in chapter 7 works on our
+updated gene sequence, and we won’t need to revisit it here. DEAP calls the crossover
+function/operator, passing in the two parent individuals during evolution. Inside this
+function, the core of the work happens in the swap_layers function we covered
+previously. As shown in the following listing, the only difference in this function is the
+ 8.3 Mating and mutating the autoencoder gene sequence 199
+modification of the main layer structures we wanted to support: Convolution
+(encoder), UpConvolution (decoder), BatchNormalization, and Dropout.
+Listing 8.14 EDL_8_3_EvoAE.ipynb: Performing crossover
+def crossover(ind1, ind2):
+Swaps encoder convolution layers
+ind1, ind2 = swap_layers(ind1, ind2, CONV_LAYER,
+➥ CONV_LAYER_LEN)
+ind1, ind2 = swap_layers(ind1, ind2, UPCONV_LAYER, Swaps decoder
+➥ UPCONV_LAYER_LEN) upconvolutional layers
+ind1, ind2 = swap_layers(ind1, ind2, BN_LAYER,
+➥ BN_LAYER_LEN) Swaps BN
+ind1, ind2 = swap_layers(ind1, ind2, DROPOUT_LAYER,
+➥ DROPOUT_LAYER_LEN)
+return ind1, ind2 Swaps Dropout
+Performing mutation requires a bit more attention to perform modifications to the
+various layer types in the architecture. We start by looking at the main mutation func-
+tion, which is called by DEAP evolution and takes a single individual. This function
+heavily uses the mutate_layers function and applies it to only layers that can be mod-
+ified. Notice we omit BN layers, since they don’t require additional parameters, as
+shown in the following listing.
+Listing 8.15 EDL_8_3_EvoAE.ipynb: The mutation function
+def mutation(ind):
+ind = mutate_layers(ind, CONV_LAYER, Mutates encoder
+➥ CONV_LAYER_LEN) convolution layers
+ind = mutate_layers(ind, DROPOUT_LAYER,
+➥ DROPOUT_LAYER_LEN) Mutates dropout layers
+ind = mutate_layers(ind, UPCONV_LAYER,
+➥ UPCONV_LAYER_LEN)
+return ind, Mutates decoder upconvolution layers
+The mutate_layers function highlights how each layer is selected for mutation. The
+layers are gathered by type and checked for a chance of mutation. Notice that, cur-
+rently, the chance is always 100%. If a layer is chosen for mutation, its sequence is
+passed into the mutate function to be mutated, as shown in the following listing.
+Listing 8.16 EDL_8_3_EvoAE.ipynb: The mutate_layers function
+def mutate_layers(ind, layer_type, layer_len):
+layers = get_layers(ind1, layer_type) Gets layers of type
+for layer in layers:
+if random.random() < 1: Checks for chance mutation
+try:
+Catches ind[layer:layer+layer_len] = mutate( Mutates the layer
+exceptions ind[layer:layer+layer_len], layer_type)
+except:
+print(layers)
+return ind
+200 CHAPTER 8 Evolving autoencoders
+The mutate function performs the specific mutation of the respective layer types, as
+shown in listing 8.17. Each layer type has a slightly different form of mutation applied
+relevant to the layer type. If an unknown layer type is passed into mutate, an error is
+thrown, meaning the gene sequence is likely corrupt or broken. This, as in nature,
+results in an unviable offspring that is terminated from further execution.
+Listing 8.17 EDL_8_3_EvoAE.ipynb: The mutate function
+def mutate(part, layer_type):
+if layer_type == CONV_LAYER and
+Mutates encoder CNN layers
+➥ len(part)==CONV_LAYER_LEN:
+part[1] = int(part[1] * random.uniform(.9, 1.1))
+part[2] = random.randint(min_kernel, max_kernel)
+part[3] = random.randint(min_kernel, max_kernel)
+elif layer_type == UPCONV_LAYER and
+➥ len(part)==UPCONV_LAYER_LEN: Mutates decoder CNN layers
+part[1] = random.randint(min_kernel, max_kernel)
+part[2] = random.randint(min_kernel, max_kernel)
+elif layer_type == DROPOUT_LAYER and
+➥ len(part)==DROPOUT_LAYER_LEN: Mutates dropout layers
+part[1] = random.uniform(0, .5)
+else:
+error = f"mutate ERROR {part}"
+The layer code does not
+raise Exception(error)
+match, so throw an error.
+return part
+At the end of the mating/mutation cells, there is code to test the respective operators
+by creating new offspring and passing them through the crossover or mutation func-
+tions. With the mating/mutation operators constructed, we can move on to evolving
+an AE architecture in the next section.
+8.4 Evolving an autoencoder
+Evolving the AE is now a relatively simple matter of just adding DEAP. Again, a lot of
+the code here is the same as in previous examples. This means we refer here to just
+the highlights, changes, and points of interest.
+Open the EDL_8_4_EvoAutoencoder.ipynb notebook in Colab. Run the whole
+notebook via Runtime > Run All from the menu. This notebook can take a long time
+to run, so it’s best to start as soon as possible.
+The AE architecture can take a considerable amount of time to evolve. As such, we
+use a previously covered data reduction trick to make evolving less time-consuming.
+Referring to the data loading cell, notice how we reduce the size of the training and
+validation sets by simply taking slices of the original dataset, as shown in the following
+listing. This is just for the purposes of demonstrating how the code runs and operates.
+Obviously, if the goal was to create an optimized model, we would be better off using
+the full dataset.
+ 8.4 Evolving an autoencoder 201
+Listing 8.18 EDL_8_4_EvoAE.ipynb: Reducing the dataset size
+train_images = train_images[1000:] Reduces the training size
+test_images = test_images[100:]
+Reduces the testing/validation size
+Next, we review all the base DEAP set up code to create the GA solver for performing
+the architecture optimization, shown in listing 8.19. We register the main fitness
+function as FunctionMin, since our goal is to minimize fitness. Next, the create_
+offspring function is registered for creating new individuals. Then, the code com-
+pletes with the registration of the custom crossover and mutation functions.
+Listing 8.19 EDL_8_4_EvoAE.ipynb: Setting up DEAP
+creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
+creator.create("Individual", list,
+Registers the target function
+➥ fitness=creator.FitnessMin) and minimum fitness
+toolbox = base.Toolbox()
+Registers the initial AE function
+toolbox.register("AE", create_offspring)
+toolbox.register("individual", tools.initIterate, creator.Individual,
+➥ toolbox.AE)
+toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+toolbox.register("select", tools.selTournament, tournsize=5)
+Registers the custom crossover
+toolbox.register("mate", crossover)
+toolbox.register("mutate", mutation) Registers the custom mutate
+As shown in listing 8.20, the evaluate function is up next. This is where each network
+model architecture is evaluated. Previously, we registered a list called fitness to hold
+all the evaluated fitness. We did this to better track the maximum observed fitness.
+Inside the function, we first call build_model to create a model based on the
+individual gene sequence. After this, we call the train function to train the model
+and return the model plus history. From the history function, we extract the last
+validation history value and observe that as the model’s fitness. If no errors occur
+generating the model and training, then the fitness is returned, clamped between 0
+and maximum fitness. We use the np.nanman function to avoid returning nan values.
+If an error is encountered, we return the maximum observed fitness.
+Listing 8.20 EDL_8_4_EvoAE.ipynb: The evaluate function
+fits = [] The global variable to track fitness
+def evaluate(individual):
+global fits The build_model from
+try: the gene sequence
+model = build_model(individual)
+model, history = train(model) Trains the model
+fitness = history.history["val_loss"]
+fits.append(fitness)
+print(".", end='')
+202 CHAPTER 8 Evolving autoencoders
+return clamp(fitness, 0, np.nanmax(fits)), Returns the clamped fitness value
+except:
+If there is an error, return the
+return np.nanmax(fits),
+maximum observed fitness.
+toolbox.register("evaluate", evaluate)
+Figure 8.11 shows the results of evolving the architecture with an initial population of
+100 individuals run over 3 generations. From these initial results, you can see this
+presents an interesting approach to self-optimizing model architectures.
+Ankle boot Pullover Trouser Trouser Shirt
+loss
+0.14 Decreasing validation val_loss
+0.12 loss
+Trouser Coat Shirt Sandal Sneaker 0.10
+0.08
+0.06
+0.04
+Coat Sandal Sneaker Dress Coat
+0.02
+0 2 4 6 8
+Trouser Pullover Coat Bag T-shirt/top
+Pullover Sandal Sneaker Ankle boot Trouser
+Figure 8.11 The results of evolving AE architecture
+It is quite likely your results may vary, and this sample runs better with greater initial
+populations, which, again, can be time-consuming to run. Compare figure 8.11 to
+figures 8.5 and 8.8. Are the results better or worse than you expected?
+Training AEs and other RL networks can be time-consuming, and we often need
+more than 3 epochs, as in the last notebook. The evolutionary output from this note-
+book demonstrates the possibilities stemming from evolving architecture for AEs.
+8.4.1 Learning exercises
+Continue exploring the evolutionary AE by working through these exercises:
+1 Increase or decrease the number of training samples in listing 8.18.
+2 Change the target dataset. A good option is the MNIST Handwritten Digits
+dataset.
+3 Try tuning the hyperparameters of learning rate and batch size to see what
+effect this has on evolving a model.
+ 8.5 Building variational autoencoders 203
+To wrap this chapter up, we continue looking at AEs—but with a twist. Instead of
+straight mapping of the encoding to decoding, we try adding a sampling layer to
+implement a variational AE in the next section.
+8.5 Building variational autoencoders
+Variational AEs are an extension to AEs that learn by understanding the differences in
+learned representations by understanding sampling loss. This is an important concept
+we need to cover before jumping into the next chapter on evolutionary generative DL.
+For the next notebook project, we look at building a variational AE to perform the
+same analysis as the previous notebooks. Experienced practitioners of DL are likely
+familiar with this pattern, but we review it further in the next section, just in case.
+8.5.1 Variational autoencoders: A review
+Architecturally, variational autoencoders (VAEs) are nearly identical, except for one
+key difference within the middle encoding layer: in a VAE, the middle layer becomes a
+sampling layer that learns to represent the encoding input and translate that learned
+representation back to an original image. By learning the representation of inputs,
+the VAE is then able to generate new outputs based on this understanding.
+Figure 8.12 shows how a VAE differs from the traditional AE architecture shown in
+figure 8.1. We can see in the figure the latent encoding vector is replaced by two
+learned parameters: mean (µ) and variance (σ). These learned parameters are then
+used to sample or generate a new latent encoding vector, called Z, that is then pushed
+into the decoder.
+Learned
+distribution
+parameters
+Generated
+Input Image output image
+μz
+Sample
+Z
+σz
+T-shirt/top T-shirt/top
+Sampling generates a new Z and latent
+encoding view to pass into decoder
+2D convolution Max pooling Upsampling
+Figure 8.12 Variational AE
+Instead of learning to compress and extract relevant features, as is done in the AE, the
+VAE learns how an input is represented by training the network to output the mean
+204 CHAPTER 8 Evolving autoencoders
+and variance of the input. Then based on this learned representation, a sampling
+layer generates a new latent encoding vector, called Z, that is fed back through the
+decoder.
+Since the VAE learns representations across a known space, we can generate values
+from this space by walking over the range of mean and variance learned by the model.
+Figure 8.13 demonstrates the results of a VAE by iterating over the range of mean and
+variance to output what the model is learning. Now that we have an overview of a VAE,
+we can move on to building it in the next section.
+Variance
+Mean
+Figure 8.13 Sample learned output of VAE, showing the learned 2D manifold
+8.5.2 Implementing a VAE
+A VAE is simply an AE that swaps out the middle encoding for a sampling mechanism.
+Structurally, a VAE and AE are identical, but in this notebook, we introduce another
+ 8.5 Building variational autoencoders 205
+pattern for implementing this architecture. Not only does this simplify the architec-
+ture, but it sets the stage for other innovations in later chapters.
+Open the EDL_8_5_VAE.ipynb notebook in Colab. Refer to the appendix if you
+need assistance. Go ahead and run all the cells of the notebook by selecting Runtime
+> Run All from the menu.
+Scroll down to the cell labeled Network Hyperparameters. We start by looking at
+the notebook’s hyperparameters in detail, shown in listing 8.21, since a couple of new
+inputs are introduced. The code starts by setting the input_shape using the extracted
+image_size from the dataset loaded in the previous cell. Then, a base kernel size and
+the number of filters are set; we see later how these are used. After that, latent_dim is
+set to 2, representing the number of middle dimensions the encoder outputs. In this
+case, the latent dimensions, 2, are representative of the input mean and variance.
+Listing 8.21 EDL_8_5_VAE.ipynb: VAE hyperparameters
+input_shape = (image_size, image_size, 1)
+The input_shape is defined by
+batch_size = 128
+The kernel size for the image_size and channels.
+kernel_size = 3
+filters = 16 convolutional layers
+latent_dim = 2
+The base number filters for CNN
+epochs = 5
+The size of the latent/middle dimension
+The next cell showing the construction of the convolutional layers of the encoder is
+quite different from the AE, as shown in listing 8.22. The VAE is constructed in a loop
+that adds successive CNN layers. At each iteration, the next layer doubles the number
+of filters. One thing to note is the omission of pooling layers to create the reduction of
+the funnel effect of an AE. Instead, we increase the strides from 1 to 2, which
+reduces the output dimensions by two. Thus, an image of 28×28 would reduce to
+14×14 in the output.
+Listing 8.22 EDL_8_5_VAE.ipynb: Building an encoder CNN
+inputs = Input(shape=input_shape, name='encoder_input')
+Sets up the initial
+x = inputs
+Doubles the number of input layer
+for i in range(2):
+filters for each step of CNN
+filters *= 2
+x = Conv2D(filters=filters,
+kernel_size=kernel_size,
+activation='relu',
+strides=2,
+Captures the Replaces pooling by
+final shape padding='same')(x)
+increasing stride
+shape = K.int_shape(x)
+Moving down to the next cell, we can see how the output from the encoder CNN lay-
+ers reduces to the latent dimension and outputs the mean and variance, as shown in
+206 CHAPTER 8 Evolving autoencoders
+listing 8.23. To do this, a Flatten layer is added to squash the output of the encoder
+to a Dense layer. After that, two more Dense layers are added that produce the sample
+mean z_mean and variance z_log_var. These values are then passed into the sampling
+layer z, a custom layer constructed using lambda that takes as input the sampling
+function, the desired output shape, and the mean and variance as inputs. Pay special
+attention to how the latent_space hyperparameter is used to define the input and
+output shapes of the sampling layer.
+Listing 8.23 EDL_8_5_VAE.ipynb: Building latent sampling
+x = Flatten()(x) Flattens the output from the encoder
+x = Dense(16, activation='relu')(x)
+z_mean = Dense(latent_dim, name='z_mean')(x)
+z_log_var = Dense(latent_dim, name='z_log_var')(x) Reduces to latent_dim to
+produce the mean and variance
+z = Lambda(
+sampling,
+output_shape=(latent_dim,),
+name='z')([z_mean, z_log_var]) Generates the sampling layer
+encoder = Model(inputs, [z_mean, z_log_var, z],
+➥ name='encoder')
+encoder.summary() Instantiates the encoder model
+Figure 8.14 shows the model.summary of the encoder model, annotated with the layer
+structure on the side. Notice how the model flattens the convolutional layers of the
+encoder and then pushes the input into a Dense layer of size 16. This is further broken
+apart into two parallel layers—one for mean and the other for variance. That is later
+combined in the sampling layer that then outputs a vector of a size of latent dimen-
+sions to be consumed by the decoder.
+Input (28,28,1)
+Conv2d (14,14,32)
+Conv2_d
+(7,7,64)
+Flatten (3136)
+Dense (16)
+z_mean (2) z_log_var (2)
+z (2)
+Figure 8.14 An annotated summary of the encoder model
+ 8.5 Building variational autoencoders 207
+Before we get to the decoder, let’s review the sampling function, shown in the code
+cell at the top of the file and listing 8.24, that takes as input the mean and variance.
+Inside the function, the values for mean and variance are unpacked from args. Then,
+we extract two shape values from the mean input, first using K.shape to return the
+tensor shape and the second K.int_shape to return a tuple. Simply put, this sets up
+the size of output of the sampled vector. We then create a random sample tensor of
+size (batch, dim) called epsilon, which becomes the base randomized vector. After
+this, we scale the vector by applying the mean and variance to determine a final out-
+put, vector z.
+Listing 8.24 EDL_8_5_VAE.ipynb: The sampling function
+def sampling(args):
+z_mean, z_log_var = args Extracts the tensor size for
+batch = K.shape(z_mean)[0] the batch parameter
+Extracts a dim = K.int_shape(z_mean)[1]
+Samples from the
+tuple for the
+epsilon = K.random_normal(shape=(batch, dim)) normal distribution
+dimensions
+return z_mean + K.exp(0.5 * z_log_var) * epsilon
+Returns the sampled vector, offset by epsilon
+The architecture of the decoder model has also been simplified, but we still need to
+handle the z sampling layer output from the encoder. This time, we construct an
+Input layer of size latent_dim that matches the final sampling output from the
+encoder, z, as shown in listing 8.25. Next, a new Dense layer is expanded to match the
+size of the final decoder output, which is then reshaped with a Reshape layer to match
+the original encoder output. A simple way to think about this is the new middle sam-
+pling function is just swapping the middle latent encoding we built with an AE. How-
+ever, we still need to keep the dimensions of the data consistent.
+Listing 8.25 EDL_8_5_VAE.ipynb: Unpacking the decoder inputs
+latent_inputs = Input(shape=(latent_dim,), The input layer constructed
+➥ name='z_sampling')
+x = Dense(shape[1] * shape[2] * shape[3], Adds a dense layer to
+➥ activation='relu')(latent_inputs) rebuild the shape
+x = Reshape((shape[1], shape[2], shape[3]))(x)
+Reshapes the output to match the decoder input
+After that, we can see the remainder of the decoder being constructed, as shown in
+listing 8.26. The first thing to note is the use of Conv2DTranspose layers instead of
+Conv2D and UpSampling, as used previously. Put simply, this layer type is a more
+explicit reverse of the convolution process. Again, the layers are added in a loop, but
+this time, the number of filters is reduced after each iteration, with the remaining
+filters left after building the encoder. After that, a single Conv2DTranspose layer is
+used to reduce the output to a single channel.
+208 CHAPTER 8 Evolving autoencoders
+Listing 8.26 EDL_8_5_VAE.ipynb: Building the decoder
+for i in range(2):
+x = Conv2DTranspose(filters=filters, Uses Conv2DTranspose layers
+kernel_size=kernel_size,
+activation='relu', The strides value is set
+Decreases the filters
+strides=2, to 2 for expansion.
+after each layer
+padding='same')(x)
+filters //= 2
+Adds a final transpose layer
+outputs = Conv2DTranspose(filters=1, for single-channel output
+kernel_size=kernel_size,
+activation='sigmoid',
+padding='same',
+name='decoder_output')(x)
+Instantiates
+decoder = Model(latent_inputs, outputs, name='decoder') the model
+decoder.summary()
+Figure 8.15 shows an annotated view of the decoder model summary. As you can see,
+this part is simpler and more modular than an AE. Notice how the input in the model
+is now just two inputs generated from the encoder sampling layer. This, however, allows
+us to walk or sample through the space that the decoder learns to generate from.
+Input (2)
+Dense_1 (3136)
+reshape
+(7,7,64)
+Conv2d_transpose
+(14,14,64)
+Conv2d_transpose_1 (28,28,32)
+Decoder_output (28,28,1)
+Figure 8.15 Annotated view of the decoder model
+The other major difference between a VAE and AE is the way loss is calculated. Recall
+in an AE, we calculated loss using pixel-wise loss calculated with MSE. This was simple
+and worked well. However, if we calculated loss in this manner for a VAE, we would
+miss the nuance of learning the input distribution. Instead, with a VAE, we measure
+the distributional loss between the input and output using a measure of divergence.
+ 8.5 Building variational autoencoders 209
+This requires us to add a specialized loss determination to the Keras model. We
+start by first calculating the base reconstruction loss—the loss calculated by compar-
+ing the input image against the output image. After that, we calculate the kl_loss, or
+Kullback-Leibler divergence, which is the statistical distance between two probability
+distributions. The calculation to determine this amount of divergence from the input
+and learned representation is shown in the following listing. We cover statistical dis-
+tance and loss calculations like this in greater depth in chapter 9. Finally, the mean of
+the kl_loss and reconstruction_loss is added as a new loss metric to the model
+with the add_loss function.
+Listing 8.27 EDL_8_5_VAE.ipynb: Building the VAE model
+use_mse = False
+if use_mse:
+reconstruction_loss = mse(
+K.flatten(inputs), K.flatten(outputs))
+else: Builds the base
+reconstruction_loss = binary_crossentropy( reconstruction_loss
+K.flatten(inputs), K.flatten(outputs))
+reconstruction_loss *= image_size * image_size Expands the base
+kl_loss = 1 + z_log_var - K.square(z_mean) – reconstruction_loss
+by the image size
+➥ K.exp(z_log_var)
+kl_loss = K.sum(kl_loss, axis=-1) Calculates the kl_loss
+kl_loss *= -0.5
+vae_loss = K.mean(tf.math.add(reconstruction_loss,
+➥ kl_loss))
+vae.add_loss(vae_loss) Takes the mean of the
+reconstruction_loss and kl_loss
+vae.compile(optimizer='adam')
+vae.summary()
+Adds the loss measure to the model
+Scroll down a little further to examine the training output shown in figure 8.16. In
+this example, we use a normalized loss metric, the loss divided by maximum observed
+loss, to track the training of the model. By tracking a normalized loss, we can switch
+between other forms of reconstruction and statistical distance/divergence measures.
+Go ahead and try switching the flag on the reconstruction loss from MSE to binary
+cross entropy to observe training differences. Both these measures generate output on
+different scales, but by normalizing the loss, we can compare measures.
+Finally, we can observe output like figure 8.13, which shows the generation of sam-
+pled images by cycling through sample mean and variance parameters. This code cre-
+ates a large grid image of size 10×10, which is just a NumPy array. Then, linear spaces
+or lists of values are generated for a range of values of mean and variance, as shown in
+listing 8.28. After that, the code loops through these values, mean/variance, and uses
+them as inputs into the decoder model. The decoder model then uses the predict
+210 CHAPTER 8 Evolving autoencoders
+Ankle boot Pullover Trouser Trouser Shirt
+Normalized loss over one
+1.000 Normalized loss
+Normalized val_loss
+0.975
+Trouser Coat Shirt Sandal Sneaker 0.950
+0.925
+0.900
+0.875
+0.850
+Coat Sandal Sneaker Dress Coat
+0.825
+0.800
+0.0 0.5 1.0 1.5 2.0 2.5 3.0 3.5 4.0
+Trouser Pullover Coat Bag T-shirt/top
+Pullover Sandal Sneaker Ankle boot Trouser
+Figure 8.16 An example VAE output
+function to generate an image based on the mean/variance values. This predicted or
+generated image is then plotted into the grid, as shown in the results of figure 8.13.
+Listing 8.28 EDL_8_5_VAE.ipynb: Generating manifold images
+n = 10
+digit_size = 28
+figure = np.zeros((digit_size * n, digit_size * n))
+grid_x = np.linspace(-4, 4, n)
+grid_y = np.linspace(-1, 1, n)[::-1] Creates linear space values
+for i, yi in enumerate(grid_y):
+for j, xi in enumerate(grid_x): Loops through values
+Creates a
+sample z_sample = np.array([[xi, yi]])
+parameters x_decoded = decoder.predict(z_sample)
+The decoder generates
+tensor digit = x_decoded[0].reshape
+an output image.
+➥ (digit_size, digit_size)
+Plots the figure[i * digit_size: (i + 1) * digit_size,
+figure into the j * digit_size: (j + 1) * digit_size] = digit
+image grid
+The results produced by a VAE can be quite good in a short time. On top of that, we
+have more control over the model and can easily identify what the model is learning.
+This, in turn, makes it easier to optimize the model, given several options.
+ Summary 211
+8.5.3 Learning exercises
+Use the following exercises to help improve your understanding of VAE:
+1 Alter various hyperparameters in listing 8.21 and then rerun the notebook. See
+what effect each of the hyperparameters has on the generated results.
+2 Increase or decrease the number encoder and decoder model layers in listings
+8.22 and 8.26 and then rerun the notebook.
+3 Adjust and tune the VAE model, so it produces the best version of figure 8.13.
+Reviewing and understanding how a VAE works is essential background for chapter 9.
+Take an opportunity to understand the basics of what we just covered, especially
+understanding how images can be generated from the learned representation space.
+This information is fundamental to the next chapter’s journey into evolutionary gen-
+erative DL.
+Summary
+ AEs are the foundation of generative modeling/learning and use unsupervised
+learning to train the model.
+ AEs function by encoding data down to a latent/middle representation and
+then rebuilding or decoding the data back to its original form.
+ The internal middle/latent representation requires a middle bottleneck to
+reduce or compress the data. The process of compression allows the model to
+learn a latent representation of data.
+ Complex AEs that use convolutional (CNN) layers can be complicated to build.
+Neuroevolution can be used to build a layered architecture that defines encoder
+and decoder sections. The use of convolutional layers in the encoder and decoder
+requires additional UpSampling layers and matching layer configurations. These
+specialized configurations can be encoded into custom genetic sequences.
+ Custom mutation and crossover operators can be developed to handle the
+custom genetic encoding needed for building an evolutionary AE.
+ Training an evolutionary AE that builds an evolved architecture may take some
+time to explore multiple architectures.
+ The learned latent representation in a variational AE can be used to visualize what
+the internal representation looks like. Variational AEs are an extension to AE that
+uses a middle sampling layer to disconnect the encoder from the decoder. Dis-
+connecting the encoder or decoder provides for better performance.
+ Generative deep
+learning and evolution
+This chapter covers
+ Overviewing generative adversarial networks
+ Understanding problems in generative adversarial
+network optimization
+ Fixing generative adversarial network problems by
+applying Wasserstein loss
+ Creating a generative adversarial network
+encoder for evolutionary optimization
+ Evolving a deep convolutional generative
+adversarial network with genetic algorithms
+In the last chapter, we were introduced to autoencoders (AEs) and learned how
+features could be extracted. We learned how to apply evolution to the network
+architecture optimization of an AE, and then we covered the variational AE that
+introduced the concept of generative deep learning, or representative learning.
+In this chapter, we continue exploring representation learning, this time by
+looking at generative adversarial networks (GANs). GANs are a fascinating topic
+worthy of several books, but for our purposes, we only need to explore the basics.
+212
+ 9.1 Generative adversarial networks 213
+So in this chapter, we look at the fundamentals of the GAN and how it may be opti-
+mized with evolution.
+GANs are notoriously difficult to train, so being able to optimize this process with
+evolution will be beneficial. We start by introducing the basic, or what is often referred
+to as the “vanilla,” GAN in the next section.
+9.1 Generative adversarial networks
+The GAN is the artist of DL, and while it can create beautiful representations, it also
+has nefarious uses. While we don’t explore those extremes in this section, we do look
+at how the basic GAN works. Before we jump into the code though, we’ll quickly intro-
+duce or review how a GAN works.
+9.1.1 Introducing GANs
+We often romanticize the explanation of GANs using the analogy of the art forger and
+art discriminator, detective, or critic. Art forgery being a lucrative business, the art
+forger tries to generate fakes that can fool the art critic or detective. Likewise, the
+detective uses their knowledge base to determine the validity of the generated art and
+prevent fakes from being sold.
+Figure 9.1 is a classic representation of this adversarial battle between the art gen-
+erator and the art discriminator or detective. The discriminator learns by evaluating
+real art and generated fakes from the forger. The generator or forger is blind to the
+real art and only learns from feedback from the detective or discriminator.
+D
+Detective
+R G I
+Real data Generator (forger) Input for generator
+Figure 9.1 Classic explanation of a GAN
+Figure 9.2 depicts the process from figure 9.1 as a DL system. The generator (G)
+receives as input a randomized latent space with a little noise added. This represents the
+random thoughts an art forger takes as input (I) from figure 9.1. From these random
+214 CHAPTER 9 Generative deep learning and evolution
+Real
+samples
+Learn how to tell fake
+Latent data apart from true data
+space
+Learn data
+distribution D Is D
+correct?
+Discriminator
+G Generator
+Generator fake
+samples
+Fine-tune training
+Noise
+Figure 9.2 A generative adversarial network
+thoughts, generated images are sent to the discriminator (D) to verify the art’s valid-
+ity—whether it is real or fake.
+Likewise, D takes as input samples of real images and the fake generated images
+from G. D learns to detect real versus fakes by getting feedback on its predictions—
+negative feedback if D predicts a real as fake and positive feedback for successfully
+detecting real images.
+Conversely, G learns from feedback from D. Again, this feedback is positive if the
+generator can fool D and negative if it fails. D, in turn, receives negative feedback if it
+authenticates a fake as real and positive if it detects a fake as fake.
+On the surface, the simple elegance of the adversarial training process is overshad-
+owed by the difficulty of its training. GANs work best when G and D learn at the same
+rate. If either learns more quickly or slowly, then the system breaks down and neither
+benefit from this symbiotic relationship.
+GAN training and optimization, as discussed in this chapter, makes an excellent
+candidate to apply evolutionary optimization against. However, before we get to there,
+it is helpful to review the technical implementation of how a GAN works and how it is
+built in the next section.
+9.1.2 Building a convolutional generative adversarial network in Keras
+In this section, we look at the basic, “vanilla” GAN that uses convolution and which we
+typically refer to as a dual convolution GAN of DCGAN. The addition of the DC sim-
+ply signifies the GAN is more specialized with the addition of convolution. A lot of
+what we cover here is a review of previous chapters on convolution and autoencoders.
+As such, we don’t cover those details here but simply investigate how to build and
+train a GAN.
+ 9.1 Generative adversarial networks 215
+Open the EDL_9_1_GAN.ipynb notebook in Google Colab. Refer to the appendix
+if you need assistance. Run all the cells in the notebook by selecting Runtime > Run
+All form the menu.
+We use the MNIST Handwritten Digits and Fashion-MNIST datasets in this chap-
+ter. However, to reduce training times, we extract a single class of images from the
+dataset with the extract function, as shown in listing 9.1. The extract function takes
+as input the batch of images and labels and the class number to extract. The first line
+extracts the indexes that match the labels equal to the class number. Then, the list of
+indexes is used to isolate the subset of images from the original dataset that match the
+class. The result is a dataset with just one class of images: train_images. We can see
+from the call to the extract function, using a class of 5 represents the digit 5 in the
+dataset, as shown in the plot output.
+Listing 9.1 EDL_9_1_GAN.ipynb: The extract function
+Extracts indexes of
+def extract(images, labels, class_):
+images matching class
+idx = labels == class_
+print(idx) Extracts images matching indexes
+imgs = images[idx]
+print(imgs.shape)
+Prints out the shape/size
+return imgs
+of a new image dataset
+train_images = extract(train_images, train_labels, 5)
+Next, we look at setting some base hyperparameters and optimizers for the generator
+and discriminator. The first parameter is a hyperparameter that defines the size of the
+latent space or random thoughts that are input into the generator. Next, we create a
+different optimizer for G and D to attempt to balance the training, as shown in listing
+9.2. After that, we calculate a convolutional constant we will use to build the networks
+as well as extract the number of channels and image shape. This notebook was devel-
+oped to support various other sample datasets, including CIFAR.
+Listing 9.2 EDL_9_1_GAN.ipynb: Optimizers and hyperparameters
+latent_dim = 100 Defines the latent space input size
+g_optimizer = Adam(0.0002, 0.5) Creates optimizers
+d_optimizer = RMSprop(.00001) for G and D
+cs = int(train_images.shape[1] / 4) Calculates the convolution space constant
+print(train_images.shape)
+channels = train_images.shape[3]
+Extracts image
+img_shape = (train_images.shape[1],
+channels and size
+➥ train_images.shape[2], channels), 5)
+As shown in listing 9.3, a GAN is built by breaking up the discriminator and generator
+into separate models and combining them, not unlike building an AE. The generator
+ 216 CHAPTER 9 Generative deep learning and evolution
+architecture resembles a decoder in an AE, where the build_generator function cre-
+ates a convolutional network to generate images from a random and noisy latent space.
+Listing 9.3 EDL_9_1_GAN.ipynb: Building the generator
+def build_generator():
+model = Sequential()
+Reshapes model.add(Dense(128 * cs * cs, activation="relu", The first layer inputs
+output for ➥ input_dim=latent_dim)) latent space.
+convolution model.add(Reshape((cs, cs, 128)))
+Uses UpSampling to increase resolution
+model.add(UpSampling2D())
+model.add(Conv2D(128, kernel_size=3, padding="same"))
+model.add(BatchNormalization(momentum=0.8))
+model.add(Activation("relu"))
+model.add(UpSampling2D())
+model.add(Conv2D(64, kernel_size=3, padding="same"))
+model.add(BatchNormalization(momentum=0.8))
+model.add(Activation("relu"))
+model.add(Conv2D(channels, kernel_size=3,
+➥ padding="same")) Flattens the channels to
+model.add(Activation("tanh"))
+match the image output
+model.summary()
+noise = Input(shape=(latent_dim,))
+Adds random noise as
+img = model(noise)
+input to the model
+return Model(noise, img)
+Figure 9.3 shows the model summary after running the build_generator function.
+Notice that this is only the summary of the internal model and that we add another
+model wrapper around the base generator to add the noise inputs.
+dense (6272)
+reshape
+(7,7,128)
+up_sample (14,14,128)
+conv2d (14,14,128)
+Up_sample (28,28,128)
+conv2d (28,28,128)
+conv2d (28,28,1) output
+Figure 9.3 Summary of the output of the generator model
+ 9.1 Generative adversarial networks 217
+The discriminator is constructed in a similar fashion, but this time, we add a validation
+input, as shown in listing 9.4. The model starts with a convolutional layer taking the
+image as input, using a stride of size 2 to reduce or pool the image for the next layer.
+Increasing the strides here works similarly at reducing image size as pooling. The out-
+put from the discriminator is a single value that classifies the input image as fake or real.
+Listing 9.4 EDL_9_1_GAN.ipynb: Building the discriminator
+def build_discriminator():
+model = Sequential()
+model.add(Conv2D(32, kernel_size=3, strides=2,
+➥ input_shape=img_shape, padding="same"))
+model.add(LeakyReLU(alpha=0.2))
+model.add(Dropout(0.25))
+model.add(Conv2D(64, kernel_size=3, strides=2,
+➥ padding="same"))
+model.add(ZeroPadding2D(padding=((0,1),(0,1))))
+model.add(BatchNormalization(momentum=0.8))
+model.add(LeakyReLU(alpha=0.2))
+model.add(Dropout(0.25))
+model.add(Conv2D(128, kernel_size=3, strides=2,
+➥ padding="same")) The first layer of
+model.add(BatchNormalization(momentum=0.8))
+convolution takes
+model.add(LeakyReLU(alpha=0.2))
+the image as input.
+model.add(Dropout(0.25))
+model.add(Conv2D(256, kernel_size=3, strides=1,
+➥ padding="same"))
+model.add(BatchNormalization(momentum=0.8))
+model.add(LeakyReLU(alpha=0.2))
+model.add(Dropout(0.25)) The final output
+model.add(Flatten()) is a single value.
+model.add(Dense(1, activation='sigmoid'))
+The convolution layers use strides=2
+model.summary() to reduce the pool image.
+img = Input(shape=img_shape)
+validity = model(img)
+return Model(img, validity)) Adds validity (real or fake)
+as input to the model
+Returns the combined model
+Since we train the discriminator separately from the generator, we also compile the
+created model with d_optimizer, a loss of binary cross entropy, and accuracy for met-
+rics, as shown in the following listing.
+Listing 9.5 EDL_9_1_GAN.ipynb: Compiling the discriminator
+d = build_discriminator()
+d.compile(loss='binary_crossentropy', Compiles the model
+optimizer=d_optimizer, with the optimizer
+metrics=['accuracy'])
+218 CHAPTER 9 Generative deep learning and evolution
+Now, we can construct the combined GAN model with the D and G models we built
+earlier. Inside the cell, we create an input representing the latent space input for the
+generator, as shown in listing 9.6. Then, we create an output from G, called img, for
+the generated image. After that, we turn off training for the discriminator model that
+will be used in the combined GAN. We don’t train the discriminator within the com-
+bined GAN. Rather, the generator is trained separately, within the combined GAN,
+using a separate optimizer: the g_optimizer. The validity of an image output from the
+discriminator, d, is used to train the generator in the combined model.
+Listing 9.6 EDL_9_1_GAN.ipynb: Compiling the discriminator
+z = Input(shape=(latent_dim,))
+img = g(z) Generates an image from latent space
+d.trainable = False Turns off discriminator training in the GAN
+valid = d(img) Introduces adversarial ground truths
+gan = Model(z, valid) Builds a combined model
+gan.compile(loss='binary_crossentropy',
+➥ optimizer=g_optimizer)]) Compiles with loss and optimizer
+Since we have separate training flows, we can’t simply use the Keras model.fit func-
+tion. Instead, we must train the discriminator and generator separately. The code,
+shown in listing 9.7, starts by creating the adversarial ground truths for real and fake
+image sets, making a tensor of 1s for valid images and 0s for fake images. Training is
+done within two loops: the outer, controlled by the number of epochs, and the inner,
+the calculated number of batches. Inside the loop, we sample a random set of real
+images, imgs, and then generate a fake set of images, gen_images, using random
+noise. Then, we train and calculate the loss of the real and fake images on the discrim-
+inator. Notice for each set of training how we pass the respective ground truths. A
+final combined discriminator loss is calculated by taking the average of the real and
+fake loss. Finally, we train the combined GAN or just the generator by passing in the
+valid ground truth against the generated fake images.
+Listing 9.7 EDL_9_1_GAN.ipynb: Training the GAN
+batches = int(train_images.shape[0] / BATCH_SIZE)
+# Adversarial ground truths
+valid = np.ones((BATCH_SIZE, 1)) Generates adversarial
+fake = np.zeros((BATCH_SIZE, 1)) ground truths
+for e in range(EPOCHS):
+for i in tqdm(range(batches)):
+idx = np.random.randint(0, train_images.shape[0],
+➥ BATCH_SIZE) A sample random batch
+imgs = train_images[idx] of real images
+ 9.1 Generative adversarial networks 219
+noise = np.random.normal(0, 1, (BATCH_SIZE,
+➥ latent_dim)) Creates noise and
+gen_imgs = g.predict(noise) generates fake images
+Trains the
+generator d_loss_real = d.train_on_batch(imgs, valid) Trains the discriminator
+using a d_loss_fake = d.train_on_batch(gen_imgs, fake) and calculates loss on
+valid d_loss = 0.5 * np.add(d_loss_real, d_loss_fake) real and fake images
+ground
+truth g_loss = gan.train_on_batch(noise, valid)
+Figure 9.4 shows the results of training the GAN on 10 epochs over one class of data:
+the digit 5. You can just start to see the generator creating images that resemble a
+hand-drawn 5. Combined with the generated images, we also see results of the loss
+training for the discriminator broken out by real and fake as well as the generator.
+Without getting deep into the mathematics, the goal of training a “vanilla” GAN is to
+maximize the loss of the fake images and minimize the loss of the real images. In
+essence, D needs to become better at identifying real images but also needs to get
+Discriminator Generator
+Minimize generator loss.
+Minimize real loss.
+Maximize fake loss.
+Epoch Epoch
+Figure 9.4 Training a GAN for 10 epochs
+220 CHAPTER 9 Generative deep learning and evolution
+worse at identifying the fakes. Reciprocal to this, the generator must minimize the loss
+of creating fake images. In the figure, it appears to be the opposite, but this is because
+it is still in the early stages of training.
+Go ahead and increase the number of EPOCHS for training the GAN, and then run
+the notebook again via Runtime > Run All from the menu. You will see how the vari-
+ous real and fake losses maximize and minimize, respectively.
+9.1.3 Learning exercises
+Use the following exercises to help improve your understanding of the basic GAN:
+1 Increase or decrease the BATCH_SIZE and then rerun the notebook. What effect
+does changing this hyperparameter have on GAN training?
+2 Increase or decrease the learning rate for the g_optimizer and d_optimizer in
+listing 9.2. What effect does changing either optimizer have on GAN training?
+3 Don’t use the extract function to limit the dataset to one class in listing 9.1.
+How does that affect training the GAN?
+Now, we have a working GAN that can learn to generate realistic and accurate digits of
+a given class. While the concept is simple, hopefully you can also appreciate, at this
+point, the subtle complexity and nuances of the code we just quickly covered. We
+explore those technical nuances and attempt to understand the difficulty of training a
+GAN in the next section.
+9.2 The challenges of training a GAN
+A GAN can best be described as a balancing act between the discriminator and gener-
+ator, where if either model surpasses the other, then the whole system fails. Since the
+discriminator is trained separately, it may still produce valid models, but this is rarely
+useful in broader applications.
+Discriminator repurposing
+While the goal of building and training a GAN is being able to generate realistic fakes,
+another benefit is a robust discriminator that can distinguish between real images and
+fakes. Discriminators essentially become classifiers that can identify the difference
+between real or fake images for a given dataset, allowing the model to be reused as
+a simple classifier of the entire dataset. For example, if you trained a GAN on faces,
+the resulting discriminator could be used to classify any image as being a face or not
+a face.
+Building and training a GAN that can perform this balancing act and produce excellent
+results is notoriously difficult. In this section, we explore some obvious and not so obvi-
+ous points of failure when training GANs. Then, of course, as we progress through the
+chapter, we look at various strategies to resolve these problems manually and with evo-
+lution. Before we do that, however, let’s review why GAN optimization is a problem.
+ 9.2 The challenges of training a GAN 221
+9.2.1 The GAN optimization problem
+Often, the main problem of GAN training is getting the generator and discriminator
+to converge at a solution effectively and in tandem. Fortunately, when these problems
+manifest themselves, they often become obvious in the form of various artifacts. The
+following is a summary of some of the most common and identifiable problems you
+may face training a GAN:
+ Vanishing gradients—If the discriminator becomes strong at identifying fakes,
+this often reduces the amount of loss fed back to the generator. In turn, that
+reduced loss diminishes the training gradients applied to the generator and
+results in vanishing gradients.
+ Mode collapse or overfitting—A generator can get stuck continually generating the
+same output with little variation. This happens because the model becomes too
+specialized and essentially overfits the generated output.
+ Failure to converge—If the generator improves too quickly during training, the
+discriminator becomes overwhelmed and confused. This causes the discrimina-
+tor to break down and, essentially, make random 50/50 guesses between
+observed real or fake images.
+Observing each of these problems and being able to identify when they occur is useful
+for understanding and training GANs. In the next few subsections, we look at modify-
+ing the original notebook to replicate and observe these artifacts.
+9.2.2 Observing vanishing gradients
+To replicate vanishing gradients in the generator, we often just need to adjust the opti-
+mizer used for the discriminator. Network architecture may also play into the vanish-
+ing gradient problem, but we showcase a couple elements we already put in place to
+address that. Open your browser, and let’s jump into the next notebook.
+Open the EDL_9_2_GAN_Optimization.ipynb notebook in Colab. Hold off on run-
+ning the entire notebook until we review some sections of the code. Scroll down a cou-
+ple cells to where the optimizer setup is, and then look for the comment vanishing
+gradients, as shown in the following listing. Uncomment the following line that sets
+the discriminator optimizer, disc_optimizer. Comment out the original discriminator
+optimizer, and then uncomment the optimizer labelled vanishing gradients.
+Listing 9.8 EDL_9_2_GAN_Optimization.ipynb: Setting the optimizer
+gen_optimizer = Adam(0.0002, 0.5)
+#disc_optimizer = RMSprop(.00001) Comments out the original optimizer
+# vanishing gradients
+disc_optimizer = Adam(.00000001, .5) Uncomments the Adam optimizer
+The result of swapping out the optimizer for the discriminator is, effectively, making it
+better or very good at identifying fakes and real images. Consequently, we should see
+222 CHAPTER 9 Generative deep learning and evolution
+loss for the generator minimize as training progresses, with no appreciable improve-
+ment in output.
+After you make the change, run all the cells in the notebook by selecting Runtime >
+Run All from the menu. Scroll down to the training output; you should see similar
+output to that shown in figure 9.5. The results show the classic indication that the
+generator is in trouble because of vanishing gradients. The two strong indicators a GAN
+may be undergoing this problem are generator loss and discriminator loss on the fakes.
+As we can see in the figure, the discriminator fake loss remains fixed within a small range
+for the entire training session. For the generator, this results in smaller observed
+changes in loss over time, producing vanishing gradients.
+Discriminator Generator
+2.5
+0.08
+2.0 Discriminator loss may
+increase/decrease
+0.06
+1.5
+Real
+Fake Gen
+0.04
+1.0
+Overall loss approaches 0, and
+0.02 gradient loss begins to vanish
+0.5 Fake loss converges to a fixed number.
+0.0 2.5 5.0 7.5 10.0 12.5 15.0 17.5 0.0 2.5 5.0 7.5 10.0 12.5 15.0 17.5
+Epoch Epoch
+No improvement in output
+Figure 9.5 GAN training output showing vanishing gradients
+Normally, when we observe vanishing gradients in a DL model, we review the model
+architecture and look for areas that may result in VG. If you refer to where the
+generator model is built, you may notice we are using ReLU activation functions. We
+ 9.2 The challenges of training a GAN 223
+can change this by swapping out the comments on the code, as shown in the follow-
+ing listing.
+Listing 9.9 EDL_9_2_GAN_Optimization.ipynb: Trying LeakyReLU
+model.add(Dense(128 * cs * cs, activation="relu", input_dim=latent_dim))
+model.add(Reshape((cs, cs, 128)))
+model.add(UpSampling2D())
+model.add(Conv2D(128, kernel_size=3, padding="same"))
+model.add(BatchNormalization(momentum=0.8))
+#model.add(Activation("relu"))
+model.add(LeakyReLU(alpha=0.2))
+model.add(UpSampling2D()) Uncomments
+model.add(Conv2D(64, kernel_size=3, padding="same")) the LeakyReLU
+model.add(BatchNormalization(momentum=0.8)) activation
+#model.add(Activation("relu")) function
+model.add(LeakyReLU(alpha=0.2))
+model.add(Conv2D(channels, kernel_size=3, padding="same"))
+model.add(Activation("tanh"))
+Comments out the original activation function
+Run all the cells in the notebook Runtime > Run All from the menu. Unfortunately,
+we observe very little improvement. This is because swapping the activation function
+of the generator has little effect, since the problem is the discriminator. If you want to
+observe how this GAN should work, go ahead and swap the code back by commenting
+and uncommenting and then rerunning the notebook.
+The typical way to address vanishing gradients in a GAN is to either adjust the opti-
+mizer or resolve the manner of loss calculation. We attempt to understand and
+improve the loss calculation later in this chapter, but before that, let’s jump back to
+observing other forms of GAN failure in the next section.
+9.2.3 Observing mode collapse in GANs
+Mode collapse occurs when a GAN struggles to produce variation in its output. This
+happens when the generator finds only a single or small set of outputs that can fool
+the critic. Then, as the critic improves, the generator becomes stuck producing a
+small range of variation in output.
+Open the EDL_9_2_GAN_Optimization.ipynb notebook in Colab. Make sure to
+load a fresh copy from the repository if you made any modifications in the last section.
+Scroll down again to the optimizer set up section, and then uncomment the code
+below the comment mode collapse, as shown in the following listing.
+Listing 9.10 EDL_9_2_GAN_Optimization.ipynb: Setting the optimizer again
+gen_optimizer = Adam(0.0002, 0.5)
+#disc_optimizer = RMSprop(.00001) Comments out the original optimizer
+# mode collapse
+disc_optimizer = Adam(.002, .9))) Uncomments the Adam optimizer
+224 CHAPTER 9 Generative deep learning and evolution
+After you make the changes, run all the cells in the notebook via Runtime > Run All
+from the menu. Figure 9.6 shows the output of training the GAN over 25 epochs. Your
+results may vary slightly, but you should observe mode collapse of the output images,
+as shown in the figure.
+Discriminator Generator
+1.0 14
+Fake loss quickly miximizes.
+12
+0.8
+10
+0.6
+8
+Fake
+Real Gen
+0.4 6
+4 Generator loss may still appear
+to converge.
+0.2
+Real loss quickly minimizes.
+2
+0.0
+0
+0.0 2.5 5.0 7.5 10.0 12.5 15.0 17.5 0.0 2.5 5.0 7.5 10.0 12.5 15.0 17.5
+Epoch Epoch
+Output images all appear to be
+the same, with little variation.
+Figure 9.6 Observing mode collapse on a GAN
+The simple fix to overcome mode collapse is, of course, to find the right optimizer.
+There are other approaches that also can help minimize this problem, including
+adjusting the loss function and unrolling the GAN.
+Unrolling GANs
+The idea behind unrolling GANs is to train the generator on current and future states
+of the discriminator. This allows the generator to look ahead and account for future
+incarnations of the discriminator in a form of time travel. While the concept is not com-
+plex, the code to implement this management of current and future states is.
+ 9.2 The challenges of training a GAN 225
+We cover swapping the GAN loss function later, and unrolling the GAN is too complex
+for our simple needs. Instead, we choose a very simple method to alleviate mode col-
+lapse: using noise.
+Scroll down to the training function; notice the addition of a new ADD_NOISE Bool-
+ean form constant, as shown in the following listing. You can use the Colab form to
+switch this variable between True and False. Switch it to True, and then run all the
+cells in the notebook via Runtime > Run All.
+Listing 9.11 EDL_9_2_GAN_Optimization.ipynb: Adding noise to adversarial ground truths
+The fake ground truth is
+if ADD_NOISE:
+now between 0 and 0.2.
+fake_d = np.random.sample(BATCH_SIZE) * 0.2
+valid_d = np.random.sample(BATCH_SIZE) * 0.2 + 0.8
+valid_g = np.ones((BATCH_SIZE, 1)) The valid ground truth is
+else: now between 0.8 and 1.0.
+valid_d = np.ones((BATCH_SIZE, 1))
+fake_d = np.zeros((BATCH_SIZE, 1)) Keeps the same valid ground
+valid_g = np.ones((BATCH_SIZE, 1)) truth for the generator
+Figure 9.7 shows the result of training the GAN over 25 epochs with the addition of
+noise. While the results are still not exceptional due to the discrepancy in optimizers,
+we can see an improvement in output variation.
+Generated images increase in variation.
+Figure 9.7 An example output showing increased variation in model outpu
+As you can see from the changes in the last notebook, we were able to correct the
+mode collapse problem by simply adding noise to the adversarial ground truths. In
+the next section, we address one more problem area of GANs.
+9.2.4 Observing convergence failures in GANs
+Convergence is an underlying problem in GANs and can be a consequence of mode
+collapse, vanishing gradients, or badly balanced optimization. Thus, we can replicate
+convergence failures relatively easily. However, in this observation, we want to look at
+an example in which just the generator or discriminator fails to converge.
+Open the EDL_9_2_GAN_Optimization.ipynb notebook in Colab. Be sure to start
+with a new copy from the repository if you modified it. Scroll down to the optimizers
+set up cell and uncomment/comment the appropriate lines marked convergence, as
+shown in the following listing.
+226 CHAPTER 9 Generative deep learning and evolution
+Listing 9.12 EDL_9_2_GAN_Optimization.ipynb: Setting the optimizer
+# original optimizers
+#gen_optimizer = Adam(0.0002, 0.5)
+Comments out the original
+disc_optimizer = RMSprop(.00001)
+generator optimizer
+# convergence
+gen_optimizer = RMSprop(.00001) Uncomments the optimizer
+Run all the cells in the notebook via Runtime > Run All from the menu. Figure 9.8
+shows the convergence failure of the GAN generator. While the discriminator looks to
+be converging well, we can see the increasing loss of the generator has resulted in an
+inability to converge.
+Discriminator Generator
+1.0
+5
+0.8
+4
+The discriminator may exhibit
+0.6 optimum behavior, maximizing
+fake loss and minimizing real loss.
+Real
+Fake Gen
+3
+0.4
+Loss continues to increase,
+and there is no convergence.
+2
+0.2
+0.0 1
+0.0 2.5 5.0 7.5 10.0 12.5 15.0 17.5 0.0 2.5 5.0 7.5 10.0 12.5 15.0 17.5
+Epoch Epoch
+Figure 9.8 GAN failure to converge on the generator
+As in our previous examples, there is a relatively simple fix to correct convergence prob-
+lems. One solution is to break the tight loop between the generator and discriminator
+ 9.2 The challenges of training a GAN 227
+training. We can do this by allowing the D and G training to cycle independently of
+one another.
+To support this independent iteration scheme, we have added more code and
+additional inputs to control it, as shown in listing 9.13. The code in the listing only
+shows the essential parts of the training loop, during which we add two inner loops—
+one to train the discriminator and the other the generator. How often these respective
+loops run can be controlled from Colab using the variables CRITIC_ITS, to control
+discriminator iterations, and GEN_ITS, to control generator iterations.
+Listing 9.13 EDL_9_2_GAN_Optimization.ipynb: Breaking the training loop
+CRITIC_ITS = 5 #@param {type:"slider", min:1,
+The variable to control the
+➥ max:10, step:1} number of iterations on the
+GEN_ITS = 10 #@param {type:"slider", min:1,
+discriminator/generator
+➥ max:10, step:1}
+for e in range(EPOCHS):
+for i in tqdm(range(batches)):
+The loop for the discriminator
+for _ in range(CRITIC_ITS):
+idx = np.random.randint(0, train_images.shape[0], BATCH_SIZE)
+imgs = train_images[idx]
+noise = np.random.normal(0, 1, (BATCH_SIZE, latent_dim))
+gen_imgs = g.predict(noise)
+d_loss_real = d.train_on_batch(imgs, valid_d)
+d_loss_fake = d.train_on_batch(gen_imgs, fake_d)
+d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
+for _ in range(GEN_ITS):
+The loop for the generator
+g_loss = gan.train_on_batch(noise, valid_g)
+Set the CRITIC_ITS value to 5 and the GEN_ITS to 10, and then rerun all the notebook
+cells. via Runtime > Run All. Figure 9.9 shows the results of breaking the tight depen-
+dency between generator and discriminator as well as the GAN converging.
+9.2.5 Learning exercises
+Use the following exercises to improve your understanding of GAN training:
+1 How can you reduce the possibility of mode collapse while training the genera-
+tor in a GAN?
+2 What is the primary cause of convergence failure in generators?
+3 How can you reduce the vanishing gradient problem in GANs (generators)?
+Getting the right number of iterations between the generator and discriminator
+becomes a matter of rerunning the model with different values. This, of course, can
+be done manually or, you guessed it, with some form of evolutionary optimization.
+While this GAN is working better, we can add another improvement by updating the
+loss function we use in the next section.
+228 CHAPTER 9 Generative deep learning and evolution
+Discriminator Generator
+4.5
+1.0
+4.0
+0.8
+3.5
+0.6
+The discriminator balances
+real/fake loss. Real
+Fake Gen
+3.0
+0.4
+2.5
+The generator now
+0.2 converges.
+2.0
+0.0
+0.0 2.5 5.0 7.5 10.0 12.5 15.0 17.5 0.0 2.5 5.0 7.5 10.0 12.5 15.0 17.5
+Epoch Epoch
+Decent variation in output
+images
+Figure 9.9 The GAN converges after breaking tight coupling
+9.3 Fixing GAN problems with Wasserstein loss
+In the next notebook, we look at improving the GAN performance and fixing prob-
+lems by reducing or eliminating convergence failures, vanishing gradients, and mode
+collapse. We do this by introducing an alternate method of measuring loss or distance,
+called Wasserstein loss, within a GAN. Before jumping into the notebook, let’s review
+what Wasserstein loss is in the next section.
+9.3.1 Understanding Wasserstein loss
+One of the key problems we face when training GANs is resolving and balancing the
+loss between the generator and discriminator. In a standard GAN, the discriminator
+measures loss in terms of probability, or the probability an image is fake or real. Math-
+ematically measuring the difference in probabilities, a measure of uncertainty,
+becomes less accurate over consecutive iterations of training.
+ 9.3 Fixing GAN problems with Wasserstein loss 229
+In 2017, Martin Arjovsky et al. proposed a revised method of loss in their paper titled
+“Wasserstein GAN”: swapping out the discriminator for a critic. In their method, the
+critic, instead of measuring probabilities, predicts a value representing how real or fake
+an image is. Thus, a generated image could be measured on a scale of real to fake.
+Fundamentally, when we train a GAN, our goal is to narrow or optimize the dis-
+tance between what is real and fake. When we measure this distance in terms of prob-
+abilities, we are fixed to using a measure of uncertainty. By introducing a scaled
+distance for loss, we introduce an alternate measure of distance optimization.
+Figure 9.10 shows a comparison between measuring variational, or probabilistic,
+distance and Wasserstein distance. Wasserstein distance is nicknamed earthmover dis-
+tance, as it better describes how the two distributions are measured. Where Kullback-
+Lieber and Jensen Shannon distance measure the horizontal distance, earthmover
+distance accounts for vertical differences as well.
+Variational distribution Wasserstein or earthmover
+distance distance
+Figure 9.10 The difference between variational distance and Wasserstein distance
+The benefit of using earthmover distance is that the loss or measure of distance
+between a real or fake image is better quantified and results in a more robust and less
+sensitive model. Using Wasserstein distance also eliminates or reduces the possibility
+of the GAN encountering mode collapse, failure to converge, and vanishing gradi-
+ents, as we see in the next section, when we implement Wasserstein loss in a GAN.
+9.3.2 Improving the DCGAN with Wasserstein loss
+Now, we can jump in and review how to implement Wasserstein, or earthmover, loss
+within a GAN. This notebook is the same as the DCGAN we just built with the exten-
+sion of Wasserstein loss.
+Open the EDL_9_3_WGAN.ipynb notebook in Colab. Go ahead and run all the
+cells in the notebook via Runtime > Run All from the menu.
+Scroll down to where the optimizers are instantiated. The first thing you may
+notice is that we switch the name of the discriminator model to critic, as shown in
+the following listing. This is because the critic predicts the measure of realness or
+230 CHAPTER 9 Generative deep learning and evolution
+fakeness rather than the probability of it being real or fake. Also, notice how we are
+now using the same optimizer for the generator and critic. We can also do this
+because the scale of real versus fake normalizes the differences between the measures.
+Listing 9.14 EDL_9_3_WGAN.ipynb: Optimizer set up
+gen_optimizer = RMSprop(lr=0.00005) The generator optimizer
+critic_optimizer = RMSprop(lr=0.00005)
+The discriminator
+swapped to the critic
+Move down to the next cell, shown in listing 9.15; we can see the calculation of Wasser-
+stein loss in a function called wasserstein_loss. From the single line of code, you
+can see how the average of the true or real inputs is multiplied across the predictions.
+The output of this is the earthmover distance between both distributions.
+Listing 9.15 EDL_9_3_WGAN.ipynb: The Wasserstein loss function
+def wasserstein_loss(y_true, y_pred): Computes the average
+return K.mean(y_true * y_pred) across real and predicted
+We can then see how the wasserstein_loss function is used by looking at the critic
+construction code, shown in the following listing. Notice again how we updated the
+name of the discriminator to critic and employed the wasserstein_loss function
+when compiling the model.
+Listing 9.16 EDL_9_3_WGAN.ipynb: Building the critic
+critic = build_critic()
+critic.compile(loss=wasserstein_loss, Use Wasserstein loss.
+optimizer=critic_optimizer,
+metrics=['accuracy']) Uses the selected optimizer
+The last major change we need to look at is updating the critic training code. Calculat-
+ing loss with the critic is the same as the discriminator—nothing changes aside
+from the naming. Implementing Wasserstein loss introduces a possibility of exploding
+gradients; to overcome this, we add a clipping step, shown in listing 9.17. For every
+training iteration of the critic, we now make sure to clip each of the model weights
+to within the clip_value hyperparameter. This clipping of weights eliminates any
+possibility of exploding gradients and reduces the convergence model space.
+Listing 9.17 EDL_9_3_WGAN.ipynb: Training the critic
+c_loss_real = critic.train_on_batch(imgs, valid)
+c_loss_fake = critic.train_on_batch(gen_imgs, fake)
+c_loss = 0.5 * np.add(c_loss_real, c_loss_fake) The average of real and fake loss
+ 9.3 Fixing GAN problems with Wasserstein loss 231
+for l in critic.layers: Loops through the critic layers
+weights = l.get_weights()
+weights = [np.clip(w, -clip_value, clip_value)
+➥ for w in weights]
+l.set_weights(weights)) The clip layer weights with range
+Figure 9.11 shows the results of training this GAN over 80 epochs on a single extracted
+class of the MNIST Handwritten Digits dataset. If you want to see how this dataset per-
+forms on the Fashion-MNIST dataset, rerun the entire notebook with the code
+change in listing 9.18. You can also remove the call to the extract function to see how
+well the model works across all classes in the datasets.
+Critic Generator
+0.0000
+0.0001
+–0.0005
+0.0000
+–0.0010
+–0.0001 –0.0015
+Real Gen
+Fake
+–0.0020
+–0.0002
+–0.0025
+–0.0003
+–0.0030
+0 10 20 30 40 50 60 70 0 10 20 30 40 50 60 70
+epoch epoch
+Figure 9.11 Training a Wasserstein GAN on extracted digits
+Listing 9.18 EDL_9_3_WGAN.ipynb: Switching to the Fashion-MNIST dataset
+from tensorflow.keras.datasets import mnist as data Comments out the line
+#from tensorflow.keras.datasets import fashion_mnist
+➥ as data Uncomments the line
+232 CHAPTER 9 Generative deep learning and evolution
+Introducing Wasserstein loss to the DCGAN, making it a WGAN or WDCGAN, allevi-
+ates several shortcomings of the standard GAN. Reducing these additional complica-
+tions makes it easier for us to build an evolutionary optimizer to find our best possible
+GAN. Before we do that, we need to wrap our WDCGAN up, so it can become an
+encoded model usable in evolutionary optimization in the next section.
+9.4 Encoding the Wasserstein DCGAN for evolution
+We have already undergone the process of encoding the hyperparameters or architec-
+ture of various models in previous chapters. For our next notebook, we look to do the
+same thing but limit the encoding to just hyperparameters. This allows for a more
+concise optimization space for the evolutionary optimizer to explore.
+Evolutionary optimizing complex models
+As the models we attempt to optimize become more complex, we are faced with iter-
+ating through more intense training operations. We can no longer rely on a model just
+being trained for 3 epochs to give us reasonable results; instead, some models may
+require training for hundreds of epochs. GAN optimization is one of those problem sets
+that can be expensive to train. Because of this, if you want to see interesting or good
+results, expect to train some of these optimizations for hours or even days.
+The next notebook is an extension and consolidation of the GAN code we have been
+developing in this chapter into a single class. This class is instantiated by passing an
+individual gene sequence to populate the various model hyperparameters. The gene
+sequence is a simple array of floats we have seen many times before when employing
+genetic algorithms.
+Open the EDL_9_4_WDCGAN_encoder.ipynb notebook in Colab. Go ahead and
+run all the cells by selecting Runtime > Run All from the menu.
+In this notebook, a single class encapsulates the entire model and variation of each
+class is controlled by an input gene sequence: an array of floats, where each element
+in the array has a corresponding controlled hyperparameter defined by the index to
+the sequence. The code to define these indexes and min/max limits of the hyperpa-
+rameter values is shown in the following listing.
+Listing 9.19 EDL_9_4_WDCGAN_encoder.ipynb: gene encoding parameters
+FILTERS = 0 Base number of filters used in convolution
+MIN_FILTERS = 16
+MAX_FILTERS = 128
+ALPHA = 1 Alpha parameter used in LeakyReLU
+MIN_ALPHA = .05
+MAX_ALPHA = .5
+CRITICS = 2 Number of critic iterations per generator
+MIN_CRITICS = 1
+MAX_CRITICS = 10
+ 9.4 Encoding the Wasserstein DCGAN for evolution 233
+CLIP = 3 The clipping range to clip critic weights
+MIN_CLIP = .005
+MAX_CLIP = .1
+LR = 4 The optimizer learning rate
+MIN_LR = .00000001
+MAX_LR = .0001
+We can next look at the __init__ function of the DCGAN class to see how the gene
+sequence i defines each of the hyperparameters used in the model, as shown in listing
+9.20. First, we make sure the image_shape is divisible by four and can fit within the
+model’s convolutional architecture. Next, each of the hyperparameter values is gener-
+ated by mapping the float to the corresponding space. The code also initiates the
+weights around the value zero to better align the weights with the clipping function.
+Finally, the code creates a single optimizer and then constructs the various models.
+Listing 9.20 EDL_9_4_DCGAN_encoder.ipynb: Initializing the model
+class DCGAN:
+def __init__(self, i):
+assert image_shape[0] % 4 == 0, "Image shape must
+➥ be divisible by 4."
+Confirms the image size is divisible by 4
+self.image_shape = image_shape
+self.z_size = (1, 1, latent_dim)
+self.n_filters = linespace_int(i[FILTERS],
+➥ MIN_FILTERS, MAX_FILTERS)
+self.alpha = linespace_int(i[ALPHA], MIN_ALPHA,
+➥ MAX_ALPHA)
+self.lr = linespace(i[LR], MIN_LR, MAX_LR)
+self.clip_lower = -linespace(i[CLIP], MIN_CLIP, Converts float to a
+➥ MAX_CLIP) hyperparameter
+self.clip_upper = linespace(i[CLIP], MIN_CLIP,
+➥ MAX_CLIP)
+self.critic_iters = linespace_int(i[CRITICS],
+Initializes ➥ MAX_CRITICS, MIN_CRITICS)
+the starting self.weight_init = RandomNormal(mean=0.,
+weights ➥ stddev=0.02)
+self.optimizer = RMSprop(self.lr) Creates a single optimizer
+self.critic = self.build_critic()
+Builds the
+self.g = self.build_generator()
+models
+self.gan = self.build_gan()
+Much of the remaining code we have seen before, but we should highlight an updated
+section in the training function, shown in listing 9.21. Comparing loss between mod-
+els in GANs is complicated by variations in loss functions and model performance. To
+compare losses between one GAN and another, we normalize the loss. We do this by
+tracking the min and max losses for the critic and generator, and then we output
+this value on a linear space between 0 and 1, using the reverse_space function.
+234 CHAPTER 9 Generative deep learning and evolution
+Listing 9.21 EDL_9_4_DCGAN_encoder.ipynb: Normalizing the output loss
+min_g_loss = min(min_g_loss, g_loss)
+Tracks the
+min_fake_loss = min(min_fake_loss, c_loss[1])
+minimum loss
+min_real_loss = min(min_real_loss, c_loss[0])
+max_g_loss = max(max_g_loss, g_loss)
+Tracks the
+max_fake_loss = max(max_fake_loss, c_loss[1])
+maximum loss
+max_real_loss = max(max_real_loss, c_loss[0])
+loss = dict(
+Real = reverse_space(c_loss[0],min_real_loss,
+➥ max_real_loss), Normalizes the
+Fake = reverse_space(c_loss[1],min_fake_loss,
+values to 0–1
+➥ max_fake_loss),
+Gen = reverse_space(g_loss, min_g_loss, max_g_loss) )
+By encapsulating everything into a class, including the training function, we can
+quickly instantiate a GAN with a known gene sequence to test the results. To do this, as
+shown in listing 9.22, we use the reverse_space function to convert known hyperpa-
+rameter values to the appropriate float values embedded in the sequence, called an
+individual. This individual is then passed into the DCGAN construction to create the
+model. After that, the class’s train function is called, using the verbose=1 option to
+display the training results.
+Listing 9.22 EDL_9_4_DCGAN_encoder.ipynb: Testing the encoding and GAN training
+Creates a random individual
+individual = np.random.random((5))
+individual[FILTERS] = reverse_space(128, MIN_FILTERS, MAX_FILTERS)
+individual[ALPHA] = reverse_space(.2, MIN_ALPHA, MAX_ALPHA)
+Converts values
+individual[CLIP] = reverse_space(.01, MIN_CLIP, MAX_CLIP)
+to 0–1 space
+individual[CRITICS] = reverse_space(5, MIN_CRITICS, MAX_CRITICS)
+individual[LR] = reverse_space(.00005, MIN_LR, MAX_LR)
+print(individual)
+Creates the model
+with the individual Trains the model, and
+dcgan = DCGAN(individual)
+history = dcgan.train(train_images, verbose=1) shows the results
+Figure 9.12 shows the results of training the model over 10 epochs on an extracted
+class from the MNIST Handwritten Digits dataset. By normalizing the loss, we can
+clearly see what the model is working to optimize. If you compare these results to fig-
+ure 9.11, you can clearly see how easy it is to identify the target of optimization within
+a known range. This is a critical piece to optimizing the model when using genetic
+algorithms, as discussed later in this chapter.
+Go ahead and try other hyperparameter values to see how these affect model train-
+ing. You may want to try using completely random gene sequences to see what the
+model generates as well.
+ 9.4 Encoding the Wasserstein DCGAN for evolution 235
+Critic Generator
+1.0
+0.8
+0.8
+0.6
+Maximize normalized real loss
+Maximize normalized generated
+0.6 loss
+Fake
+Real Gen
+0.4
+0.4
+0.2
+Minimize normalized fake loss 0.2
+0.0 0.0
+0 2 4 6 8 0 2 4 6 8
+Epoch Epoch
+Figure 9.12 The output of training DCGAN over 10 epochs
+9.4.1 Learning exercises
+Use the following exercise to improve your understanding of the WGAN:
+1 Increase or decrease the gene encoding hyperparameters in listing 9.19 and
+then rerun the notebook.
+2 Don’t use the extract function to limit the dataset to a single class and then
+rerun the notebook with all the data.
+3 Use a different dataset, like Fashion-MNIST and then rerun the notebook.
+Now that we have an encapsulated class that represents the GAN and the ability to
+pass a representative gene sequence to initialize the model, we can move on to optimi-
+zation. In the next section, we add the genetic algorithm code to optimize this
+DCGAN model.
+236 CHAPTER 9 Generative deep learning and evolution
+9.5 Optimizing the DCGAN with genetic algorithms
+Now that we have the genetic encoder built for replicating a DCGAN, we can pull every-
+thing together. At this point, optimizing the encapsulated DCGAN class is a matter of
+simply adding DEAP and defining the GA parameters we require for evolution. Again,
+adding evolutionary search provides us the ability to self-optimize GAN networks—
+which is exactly what we do in the next notebook.
+Open the EDL_9_5_EVO_DCGAN.ipynb notebook in Colab. Run the entire note-
+book by selecting Runtime > Run All from the menu.
+As you may notice, this notebook installs DEAP and adds the required tools and
+operators for performing GA evolution. Code cells that are not relevant are hidden,
+but if you want to review their contents, just click the Show Code link or double-click
+on the cell. We have seen most of this code before, and as always, we just refer to the
+relevant code sections here.
+We first look at the evaluate function, shown in listing 9.23, where we evaluate the
+fitness of the model. At the start of the function, we convert the individual to a
+string for use as an index in the trained dictionary. Notice how we are rounding the
+values to a single decimal point. Thus, a starting value of [.2345868] becomes [.2],
+which simplifies or discretizes the number of entries in the dictionary. This is done to
+simplify the training from an infinite exploration space to a finite one. To be precise,
+by rounding off the values to a single digit and knowing the gene sequence length is 5,
+we can determine that there are 10 × 10 × 10 × 10 × 10 = 100,000 possible models to
+test. The real benefit of doing this is that it allows greater populations to be evolved,
+without having to reevaluate similar individuals. As shown in this section, evaluating
+each model takes a significant amount of time.
+Listing 9.23 EDL_9_5_EVO_DCGAN_encoder.ipynb: The evaluate function
+trained = {}
+The dictionary to hold
+generation = 0
+the evaluation history
+def evaluate(individual): Rounds off the values
+ind = str([round(i, 1) for i in individual])
+if ind in trained: The trained dictionary
+return trained[ind], of history
+print(f"Generarion {generation} individual {ind}")
+dcgan = DCGAN(individual)
+history = dcgan.train(train_images, verbose=0)
+min_loss_real = 1/loss(history, "Real")
+Calculates the
+min_loss_gen = 1/loss(history, "Gen")
+optimized loss
+min_loss_fake = loss(history, "Fake")
+total = (min_loss_real + min_loss_gen + The average of calculated losses
+➥ min_loss_fake)/3
+print(f"Min Fitness {min_loss_real}/{min_loss_gen}:{total}")
+trained[ind] = total
+return total, The trained dictionary of history
+toolbox.register("evaluate", evaluate)
+ Summary 237
+Optimizing a DCGAN is not a simple matter of comparing accuracy. We need to
+account for three output values or losses from the model: the real, fake, and gener-
+ated losses. Each of these losses need to be optimized—in this case, minimized—in
+different ways. If you refer to listing 9.23, you can see how each loss is extracted and,
+in the case of the real and generated losses, which are inverted to produce a partial
+fitness. The total fitness is calculated as an average of the three derived loss or
+fitness values.
+The output in the notebook shows the partial results of evolving an optimal solu-
+tion for the DCGAN. We leave it up to you to run this example further and explore
+the best potential GAN you can produce.
+The last notebook can take a significant amount of time to evolve, but it is auto-
+mated and will eventually produce good results. As AutoML solutions go, GANs, or
+other complex models, are not typically high on the list of those requiring automated
+optimization. Over time and as the field of AI/ML evolves, methods like the one we
+introduced here will likely become more mainstream.
+9.5.1 Learning exercises
+Use the following exercises to continue exploring this version of an Evo DCGAN:
+1 Take the time to evolve a GAN model. Then, use this model to continue train-
+ing on a dataset to see how well you can generate new output.
+2 Take an evolved model developed on one dataset and reuse it to train a GAN on
+a new dataset. This works best on datasets with similar sizes, like the Fashion-
+MNIST and MNIST Handwritten Digits datasets.
+3 Adapt this notebook to use evolutionary strategies and/or differential evolu-
+tion. Evaluate how well this may or may not improve the evolution of the GAN
+training hyperparameters.
+Summary
+ Generative adversarial networks are a form of generative modeling that
+employs dual networks—one for data discrimination and the other for data
+generation:
+– GANs work by feeding real samples to the discriminator while, at the same
+time, allowing the generator to generate fake samples.
+– The generator learns to generate better output by getting feedback from the
+discriminator, which is also learning to better classify data as real or fake.
+– Building a GAN can be done simply with Python and Keras.
+ GANs are notoriously difficult to train effectively:
+– The core problem in training GANs is attaining a balance between how
+quickly the discriminator and generator learn.
+– Both networks need to learn at the same rate to balance their adversarial
+relationship.
+238 CHAPTER 9 Generative deep learning and evolution
+– When GANs fall out of balance, many common problems can occur, such as
+the inability to converge, mode collapse, and vanishing gradients.
+– Solving this problem of training can be tackled by using evolutionary
+algorithms.
+ Wasserstein loss, or earthmover distance, is a measure of loss that can help a
+GAN resolve or minimize common training problems.
+ Balancing the training hyperparameters of a GAN can be assisted by encapsulat-
+ing a GAN (DCGAN) into a class that accepts a genetic encoded genome repre-
+sentation for evolutionary optimization.
+ Genetic algorithms can be used to balance the training of a discriminator and
+generator within a GAN.

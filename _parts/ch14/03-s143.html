@@ -1,0 +1,171 @@
+
+<!-- ===================================================== 14.3 -->
+<section id="s143">
+<h2>14.3 Autoenkóderek ★★</h2>
+<p>Az autoregresszív modell pontos valószínűséget ad, de pixelenként, lassan rajzol, és sehol nincs benne egy „összefoglaló” a képről. Egy ember nem pixelenként gondol a felső csíkra, hanem úgy: „vízszintes, fent”. A második ötlet: tanuljunk meg <b>néhány számot</b>, amely egy képet összefoglal – egy <b>kódot</b> –, és egy gépet, amely a kódból visszarajzolja a képet. Ha ez megvan, talán új kódokból új képeket is rajzolhatunk.</p>
+
+<h3 id="s143-a">1. lépés: a szűk keresztmetszet – négy pixel két számban</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a csíkok két kérdésben</span>
+  A négy csík két kérdéssel leírható: „fent vagy lent?” és „bal vagy jobb?”. Számoljuk ki ezt két számmal:
+  $$z_1 = \tfrac12(x_1 + x_2 - x_3 - x_4)\ \ (\text{fent mínusz lent}),\qquad z_2 = \tfrac12(x_1 - x_2 + x_3 - x_4)\ \ (\text{bal mínusz jobb}).$$
+  Visszafelé minden pixel $0{,}5$ plusz a két kód hatása:
+  $$\hat{\mathbf x} = 0{,}5 + z_1 \cdot (0{,}5;\ 0{,}5;\ -0{,}5;\ -0{,}5) + z_2 \cdot (0{,}5;\ -0{,}5;\ 0{,}5;\ -0{,}5).$$
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>kép</th><td><code>1100</code></td><td><code>0011</code></td><td><code>1010</code></td><td><code>0101</code></td><td><code>1001</code> (átló)</td></tr>
+    <tr><th>kód $(z_1;\ z_2)$</th><td>$(1;\ 0)$</td><td>$(-1;\ 0)$</td><td>$(0;\ 1)$</td><td>$(0;\ -1)$</td><td>$(0;\ 0)$</td></tr>
+    <tr><th>visszarajzolva</th><td><code>1100</code> ✓</td><td><code>0011</code> ✓</td><td><code>1010</code> ✓</td><td><code>0101</code> ✓</td><td>$(0{,}5;\ 0{,}5;\ 0{,}5;\ 0{,}5)$ ✗</td></tr>
+  </table></div>
+  A négy csík <b>tökéletesen</b> átmegy a két számon. Az átló nem: a kódja $(0;\ 0)$, és csupa szürke lesz belőle. A két szám a csíkok nyelvét tanulta meg – az átlóra nincs szava.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – autoenkóder</span>
+  Az <b>autoenkóder</b> két hálóból áll:
+  <ul style="margin:.2rem 0">
+    <li>a <b>kódoló</b> (enkóder) a $D$ dimenziós $\mathbf x$-ből $k$ dimenziós <b>látens kódot</b> készít: $\mathbf z = e(\mathbf x)$, ahol $k \lt D$ – ez a <b>szűk keresztmetszet</b> (bottleneck);</li>
+    <li>a <b>dekódoló</b> (dekóder) a kódból visszarajzolja a bemenetet: $\hat{\mathbf x} = d(\mathbf z)$.</li>
+  </ul>
+  A tanítás célja a <b>rekonstrukciós hiba</b> minimalizálása, pl. $\lVert \mathbf x - d(e(\mathbf x)) \rVert^2$ (vagy pixelenkénti keresztentrópia). A cél maga a bemenet – címke nem kell: <b>önfelügyelt</b> tanulás.
+  <b>Miért tanul valamit?</b> Mert a szűk keresztmetszeten nem fér át minden: a hálónak azt kell megtartania, ami az adatokban <b>közös és ismétlődő</b>, és el kell dobnia, ami nem.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a lineáris autoenkóder a PCA</span>
+    A fenti kódoló és dekódoló lineáris (csak szoroz és összead). Ha egy lineáris autoenkódert négyzetes hibával tanítunk, ugyanazt a teret találja meg, mint a <b>PCA</b> (<a href="../08-felugyelet-nelkuli-tanulas/#s83-b">8.3</a>): az első $k$ főkomponenst. A $(0{,}5;\ 0{,}5;\ -0{,}5;\ -0{,}5)$ és a $(0{,}5;\ -0{,}5;\ 0{,}5;\ -0{,}5)$ irány itt a két főirány.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – idegen bemenet</span>
+    Kódold a <code>1000</code>-t (csak a bal felső fekete): $z = (0{,}5;\ 0{,}5)$, a visszarajzolt kép $(1;\ 0{,}5;\ 0{,}5;\ 0)$. A hiba $0{,}5$ – a kódoló a látott csíkok „nyelvére” fordította: kicsit felső csík, kicsit bal csík.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Túl tág keresztmetszet = másolás.</b> Ha $k \ge D$, a háló megtanulhatja egyszerűen továbbadni a pixeleket – kicsi hiba, semmi tanulság. A. Glassner példájában egyetlen tigrisképen tanított autoenkóder 400 000 súlyban „eltárolta” a 10 000 pixelt: utána <b>bármilyen</b> bemenetre (egy lépcsőre, egy csupa fekete képre is) tigrist rajzolt.</li>
+    <li><b>Kicsi tanítóhiba ≠ jó kód.</b> Mindig nézd meg a hibát <b>tesztképeken</b> és <b>idegen</b> bemeneteken is.</li>
+    <li><b>Az autoenkóder nem titkosít, és a kód nem „jelentés”.</b> A $z_1$, $z_2$ itt értelmezhető, de egy mély hálóban a kód koordinátái általában nem – csak együtt hordozzák a képet.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – szűk keresztmetszet</summary>
+  <ol>
+    <li>Mi a <code>1111</code> kódja, és mi lesz a visszarajzolt kép?
+      <details><summary>Megoldás</summary>$z_1 = \tfrac12(1 + 1 - 1 - 1) = 0$, $z_2 = 0$; a kép csupa $0{,}5$. A csupa feketét nem tudja ábrázolni (a hiba $4 \cdot 0{,}25 = 1$).</details></li>
+    <li>Mit rajzol a dekódoló a $(-1;\ 0)$ és a $(0{,}5;\ 0)$ kódból?
+      <details><summary>Megoldás</summary>$(-1;\ 0)$: $0{,}5 - (0{,}5;\ 0{,}5;\ -0{,}5;\ -0{,}5) = (0;\ 0;\ 1;\ 1)$, az alsó csík. $(0{,}5;\ 0)$: $(0{,}75;\ 0{,}75;\ 0{,}25;\ 0{,}25)$ – halvány felső csík.</details></li>
+    <li>Mekkora a rekonstrukciós hiba (négyzetösszeg) az átlón?
+      <details><summary>Megoldás</summary>$(1 - 0{,}5)^2 + (0 - 0{,}5)^2 + (0 - 0{,}5)^2 + (1 - 0{,}5)^2 = 1$.</details></li>
+    <li>Egy 28 × 28-as képből 20 számos kódot készítünk. Hányszoros a tömörítés?
+      <details><summary>Megoldás</summary>$784 / 20 = 39{,}2$-szeres.</details></li>
+    <li>(nehezebb) Adj meg egy harmadik kódszámot, $z_3$-at, amellyel az átló is átmegy! Mit rajzol ekkor a dekódoló a <code>0110</code>-ra?
+      <details><summary>Megoldás</summary>$z_3 = \tfrac12(x_1 - x_2 - x_3 + x_4)$, a dekódolóban $+\,z_3 \cdot (0{,}5;\ -0{,}5;\ -0{,}5;\ 0{,}5)$. Az átló kódja $(0;\ 0;\ 1)$ → $(1;\ 0;\ 0;\ 1)$ ✓. A <code>0110</code> kódja $(0;\ 0;\ -1)$ → $(0;\ 1;\ 1;\ 0)$ – azt is tökéletesen visszaadja, pedig sosem látta. Három számmal a 16 képből már többet tud, mint amennyit láttunk.</details></li>
+  </ol>
+</details>
+
+<h3 id="s143-b">2. lépés: mély autoenkóder és zajszűrés</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – 64 pixel $k$ számban</span>
+  A 8 × 8-as számjegyekre (szürkeárnyalat, 0–1 közé skálázva) egy kódoló hálót (64 → 128 → $k$) és egy dekódolót ($k$ → 128 → 64, szigmoid kimenettel) tanítottunk, és összevetettük a PCA-val. A számok a 450 tesztkép <b>pixelenkénti átlagos négyzetes hibái</b>:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>kód mérete $k$</th><th>1</th><th>2</th><th>4</th><th>8</th><th>16</th><th>32</th></tr>
+    <tr><td>PCA (lineáris)</td><td>0,063</td><td>0,053</td><td>0,038</td><td>0,025</td><td>0,012</td><td>0,003</td></tr>
+    <tr><td>mély autoenkóder</td><td>0,054</td><td>0,037</td><td>0,023</td><td>0,012</td><td>0,006</td><td>0,003</td></tr>
+  </table></div>
+  Kis kódnál a mély háló sokkal jobb: 2 számmal kb. annyit tud, mint a PCA 4-gyel, 8-cal annyit, mint a PCA 16-tal. Nagy kódnál ($k = 32$) már mindkettő szinte tökéletes – ott nincs mit „okosan” eldobni.
+</div>
+<div class="box def">
+  <span class="box-title">Szabály – mély és zajszűrő autoenkóder</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Mély autoenkóder:</b> a kódoló és a dekódoló több rétegű, nemlineáris háló. Nem egy síkra (alterre) vetít, mint a PCA, hanem <b>görbült felületre</b> – a számjegyek „felületére” a 64 dimenziós térben.</li>
+    <li><b>Zajszűrő autoenkóder</b> (<em>denoising autoencoder</em>): a bemenet egy <b>elrontott</b> kép (zajos, kitakart), a cél az <b>eredeti</b>. A háló megtanulja, mi a zaj és mi a kép. Itt a keresztmetszet nem is kell, hogy szűk legyen: a feladat maga kényszeríti a tanulásra.</li>
+  </ul>
+  <b>Miért szűri a zajt?</b> Mert a dekódoló csak „tanult” képeket tud rajzolni: a kép a tanult felületre kerül, a felületre merőleges zaj elvész. Ez az ötlet tér vissza a diffúziós modellekben (<a href="#s146">14.6</a>), ahol a zajszűrő maga lesz a generátor.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – zajszűrés a 2 × 2-es világban</span>
+    A felső csík zajosan: $(0{,}9;\ 1{,}1;\ 0{,}2;\ -0{,}1)$. A kód: $z_1 = 0{,}95$, $z_2 = 0{,}05$; visszarajzolva $(1;\ 0{,}95;\ 0{,}05;\ 0)$. A hiba négyzetösszege $0{,}07$-ről $0{,}005$-re csökkent: a zaj nagy része nem fért át a két számon.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – anomália a hibából</span>
+    A 8.5-ben (<a href="../08-felugyelet-nelkuli-tanulas/#s85-c">rekonstrukciós hiba</a>) a PCA hibája jelezte a furcsa vásárlót. Az autoenkóder ugyanígy működik: amit nem tud visszarajzolni (az átló, egy tigris a számjegyek közt), az <b>szokatlan</b>. Gyári hibakeresés, csalásfelderítés használja.
+  </div>
+</div>
+<div class="widget" data-widget="ae-bottleneck"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az autoenkóder csak a saját világát ismeri.</b> Egy számjegyeken tanult autoenkódernek adott tigris egy számjegyszerű pacaként jön vissza (Glassner hasonlatával: mintha egy ceruzahegyezőből próbálnál gitárt építeni).</li>
+    <li><b>Az átlagos hiba elfedi a homályt.</b> Négyzetes hibánál a dekódoló bizonytalan helyeken „középre” rajzol – szürke, elmosódott széleket. A hiba kicsi, a kép mégis életlen. Ez a VAE-nál is visszatér (<a href="#s144-c">14.4</a>).</li>
+    <li><b>Ne tanítsd a zajszűrőt ugyanarra a zajra, mint amit tesztelsz.</b> Ha csak egyféle zajt látott, másfélét (pl. karcolást a fehér zaj helyett) nem fog jól szűrni.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – mély és zajszűrő autoenkóder</summary>
+  <ol>
+    <li>A táblázat szerint hány számos PCA-kód kell ahhoz, hogy a hiba ne legyen rosszabb, mint a 4 számos autoenkóderé?
+      <details><summary>Megoldás</summary>A 4 számos autoenkóder hibája 0,023; a PCA 8-cal 0,025 (még rosszabb), 16-tal 0,012. Tehát a táblázat értékei közül 16 kell.</details></li>
+    <li>Kódold a zajos alsó csíkot, $(0{,}1;\ 0;\ 0{,}8;\ 1{,}1)$-et a lineáris autoenkóderrel! Mi a visszarajzolt kép?
+      <details><summary>Megoldás</summary>$z_1 = \tfrac12(0{,}1 + 0 - 0{,}8 - 1{,}1) = -0{,}9$, $z_2 = \tfrac12(0{,}1 - 0 + 0{,}8 - 1{,}1) = -0{,}1$. Kép: $0{,}5 - 0{,}9 \cdot (0{,}5;\ 0{,}5;\ -0{,}5;\ -0{,}5) - 0{,}1 \cdot (0{,}5;\ -0{,}5;\ 0{,}5;\ -0{,}5) = (0;\ 0{,}1;\ 0{,}9;\ 1)$.</details></li>
+    <li>Mennyi ott a hiba négyzetösszege a zajszűrés előtt és után (a tiszta <code>0011</code>-hez mérve)?
+      <details><summary>Megoldás</summary>Előtte: $0{,}01 + 0 + 0{,}04 + 0{,}01 = 0{,}06$. Utána: $0 + 0{,}01 + 0{,}01 + 0 = 0{,}02$.</details></li>
+    <li>Egy zajszűrő autoenkóder bemenete 784 pixel, a „keresztmetszete” 1568 szám. Miért tanul mégis valamit?
+      <details><summary>Megoldás</summary>Mert nem önmagát kell visszaadnia, hanem a zajos képből a tisztát. Ehhez meg kell tanulnia, hogyan néz ki egy tiszta kép – a másolás itt nem megoldás, mert a bemenet maga is rossz.</details></li>
+    <li>(nehezebb) Miért mondhatjuk, hogy a lineáris autoenkóder a <b>kódtérre merőleges</b> zajt szűri ki, a kódtérrel párhuzamosat nem?
+      <details><summary>Megoldás</summary>A kódoló a $\mathbf x - 0{,}5$ vektort két (egymásra merőleges, egységnyi hosszú) irányra vetíti, a dekódoló ebből a vetületet rakja össze. A zaj azon része, amely e két irány síkjában van, átmegy (a 2. példában $-0{,}05$ és $+0{,}05$ a két irányban), a merőleges része eltűnik. Ezért marad a zajszűrt képen $0{,}005$ hiba.</details></li>
+  </ol>
+</details>
+
+<h3 id="s143-c">3. lépés: a látens tér – rajzolhat-e a dekódoló új képet?</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – találomra választott kód</span>
+  A dekódoló bármilyen kódból rajzol valamit. Próbáljuk ki a 2 × 2-es világban:
+  <ul style="margin:.2rem 0">
+    <li>$(1;\ 0)$ → felső csík (egy tanult kód);</li>
+    <li>$(0{,}5;\ 0{,}5)$ → $(1;\ 0{,}5;\ 0{,}5;\ 0)$ – félig felső, félig bal csík: se nem rajz, se nem hülyeség;</li>
+    <li>$(1;\ 1)$ → $(1{,}5;\ 0{,}5;\ 0{,}5;\ -0{,}5)$ – a pixelek kilógnak a 0–1 tartományból: nem kép.</li>
+  </ul>
+  A 8 × 8-as számjegyeken ugyanez nagyban: egy 8 számos autoenkóder kódjait $\mathcal N(0, I)$-ből sorsolva a dekódolt képeknek csak 27%-át ismeri fel biztosan (90% felett) egy jó osztályozó; a valódi tesztképeknek 93%-át. A kódtér tele van <b>lyukakkal</b>, és nem tudjuk, hová essen a sorsolt kód.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – látens tér, interpoláció</span>
+  A <b>látens tér</b> a lehetséges kódok tere ($\mathbb R^k$). A tanítóképek kódjai benne egy <b>pontfelhőt</b> alkotnak; a dekódoló ezt a felhőt képezi vissza képekre.
+  <b>Interpoláció:</b> két kép, $\mathbf x_A$ és $\mathbf x_B$ között úgy „mozgunk”, hogy a kódjaik között lépkedünk: $\mathbf z(t) = (1 - t)\,\mathbf z_A + t\,\mathbf z_B$, és minden $t$-re dekódolunk.
+  <br><b>Miért nem generatív modell az autoenkóder?</b> Mert nem ad eloszlást a kódokra: a kódfelhő alakja, helye, mérete a tanítás mellékterméke. Ha nem tudod, <b>honnan sorsolj</b>, a dekódoló a lyukakból értelmetlen képet rajzol. A megoldás: kényszerítsük a kódfelhőt egy <b>ismert</b> eloszlásra – ez a VAE (<a href="#s144">14.4</a>).
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – keverés a pixelekben</span>
+    Egy tehén és egy zebra fényképét pixelenként átlagolva <b>két egymásra vetített kép</b> lesz, nem egy csíkos tehén. A pixelátlag a tartalmat keveri, nem a tulajdonságokat. (A. Glassner példája.)
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – keverés a kódban</span>
+    Két kör átlaga a <b>paramétereikben</b> (középpont, sugár, szín átlagolva) egy köztes kör. A jó látens tér ilyen: két számjegy kódjának felezőpontja egy köztes alakú <b>számjegyet</b> ad, nem két egymásra rajzolt számjegyet. (A lineáris autoenkóder még a pixelekben keverne: $(0{,}5;\ 0{,}5)$ = a felső és a bal csík pixelátlaga.)
+  </div>
+</div>
+<div class="widget" data-widget="latent-map"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>2 dimenzióban minden szépnek látszik.</b> Két számos kódnál a felhő kicsi, könnyű „belelőni”. 8–16 dimenzióban a felhő a térnek elenyésző része, a véletlen kód nagyrészt lyukba esik (a 8 számos kódnál a mintáknak csak 27%-a ismerhető fel biztosan).</li>
+    <li><b>A kódtér távolsága nem a képek távolsága.</b> Két közeli kód adhat nagyon különböző képet (egy „szakadék” két oldalán), két távoli kód hasonlót.</li>
+    <li><b>Az interpoláció közepe nem mindig értelmes.</b> „Félig 0, félig 1” – mit is kellene látni? A köztes képek gyakran nem számjegyek.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – látens tér</summary>
+  <ol>
+    <li>Mit rajzol a lineáris dekódoló a $(0;\ 0)$ kódból? Miért pont ezt?
+      <details><summary>Megoldás</summary>Csupa $0{,}5$-öt: a $(0;\ 0)$ a kódfelhő közepe, ami a négy csík átlagának felel meg – egy szürke „átlagkép”.</details></li>
+    <li>Interpolálj a felső csík $(1;\ 0)$ és az alsó csík $(-1;\ 0)$ kódja között $t = 0{,}25$-nél! Mi a kép?
+      <details><summary>Megoldás</summary>$\mathbf z = 0{,}75 \cdot (1;\ 0) + 0{,}25 \cdot (-1;\ 0) = (0{,}5;\ 0)$, a kép $(0{,}75;\ 0{,}75;\ 0{,}25;\ 0{,}25)$ – halványuló felső csík.</details></li>
+    <li>Mely $(z_1;\ z_2)$ kódokból kapunk a 0–1 tartományban maradó képet?
+      <details><summary>Megoldás</summary>A pixelek: $0{,}5 \pm 0{,}5 z_1 \pm 0{,}5 z_2$ (minden előjelpárral). Mind 0 és 1 között van, ha $|z_1| + |z_2| \le 1$ – egy 45°-kal elforgatott négyzet (rombusz). A $(1;\ 1)$ kívül esik.</details></li>
+    <li>Egy 8 számos autoenkóder kódjainak szórása koordinátánként 2,3–3,4. Miért rossz ötlet $\mathcal N(0, I)$-ből sorsolni?
+      <details><summary>Megoldás</summary>Mert a kódfelhő nem a 0 körül, egységnyi szórással helyezkedik el: a standard normális sorsolás a felhő egy kis, esetleg üres részére lő. (A felhőre illesztett normális eloszlás jobb, de a lyukakat az sem kerüli el: a mi kísérletünkben 27% helyett 67% lett a biztosan felismert minták aránya.)</details></li>
+    <li>(nehezebb) Javasolj módszert, amellyel egy már betanított autoenkóderből mégis lehet új képeket húzni! Mi a korlátja?
+      <details><summary>Megoldás</summary>Illessz egy eloszlást a tanítóképek kódjaira (pl. Gauss-keveréket), és abból sorsolj. Korlát: a kódfelhő alakja bonyolult lehet, az illesztett eloszlás lyukakba is sorsol; és a kódtér nem arra tanult, hogy a köztes pontok értelmesek legyenek. A VAE ezt fordítva oldja meg: a tanítás során kényszeríti a kódokat egy ismert eloszlásra. (A mai képgenerátorok is így dolgoznak: egy autoenkóder kódterében egy másik generatív modell – egy diffúziós modell – tanulja meg a kódok eloszlását, <a href="#s147-c">14.7</a>.)</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai14-143"></div>
+</section>

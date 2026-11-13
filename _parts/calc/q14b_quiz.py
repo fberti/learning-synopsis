@@ -1,0 +1,38 @@
+# q2.js (ai14-146 ... ai14-149, ai14-final) – helyes és rossz válaszok ellenőrzése
+from math import sqrt, tanh, log, log2, exp, prod
+sig=lambda z:1/(1+exp(-z))
+r=lambda x,d=2: round(x,d)
+print("== 146")
+b=[.1,.2,.3]
+print("Q1 abar3", prod(1-x for x in b), "1-sum", 1-sum(b), "abar2", .9*.8, "prod beta", prod(b))
+a=.64; print("Q2 x_t", sqrt(a)*1+sqrt(1-a)*-.5, "no sqrt", a+(1-a)*-.5, "noise no sqrt", sqrt(a)-(1-a)*.5, "swap", sqrt(1-a)*1+sqrt(a)*-.5)
+a=.36; xt=.2; e=-.5
+print("Q3 x0hat", (xt-sqrt(1-a)*e)/sqrt(a), "sign", (xt+sqrt(1-a)*e)/sqrt(a), "nodiv", xt-sqrt(1-a)*e, "div abar", (xt-sqrt(1-a)*e)/a)
+a=.36; x=-1
+print("Q6 ideal", tanh(sqrt(a)*x/(1-a)), "no tanh", sqrt(a)*x/(1-a), "no sqrt", tanh(a*x/(1-a)), "sqrt denom", tanh(sqrt(a)*x/sqrt(1-a)))
+print("Q8 DDIM", sqrt(.81)*.5+sqrt(.19)*1, "abar_t used", sqrt(.36)*.5+sqrt(.64)*1, "no sqrt", .81*.5+.19*1, "no noise", sqrt(.81)*.5)
+print("== 147")
+cfg=lambda u,c,s:u+s*(c-u)
+print("Q1", cfg(.3,.5,4), "s*c", 4*.5, "swap", cfg(.5,.3,4), "diff only", 4*(.5-.3))
+print("Q4", 512*512*3/(64*64*16), "4ch", 512*512*3/(64*64*4), "side^2", 64, "64/16", 64/16)
+print("Q8 p(1100|v)", .3/.5, "joint", .3)
+print("== 148")
+fr=lambda m1,s1,m2,s2:(m1-m2)**2+(s1-s2)**2
+print("Q1", fr(5,2,3.5,1), "var", (5-3.5)**2+(4-1)**2, "nosq", 1.5+1, "mean only", 1.5**2)
+N,g=100,62; sd=sqrt(N*.25); print("Q5 z", (g-N/2)/sd, "var", (g-N/2)/(N*.25), "sd .5", (g-N/2)/sqrt(N*.5), "rel", (g-N/2)/(N/2))
+print("Q7", 175e6/109)
+print("== 149")
+print("Q4 calls", 450*1000, 450*1)
+print("Q6", 60/28, 60/45, 28/60, 60-28)
+print("== final")
+print("Q1 lap 1001", -log2(2/26), "unsm", -log2(.1), "unseen", -log2(1/26), "ln", -log(2/26))
+pM=.4*.5*1*.5; print("Q2 markov 0101", pM, "full", .4*.5*1*1, "ind", .4*.5*.6*.5, "wrong cond", .4*.5*.2*.5)
+print("Q3", sig(-1/.5), sig(-1*.5), sig(-1), sig(2))
+v1=(.5,.5,-.5,-.5); v2=(.5,-.5,.5,-.5)
+print("Q4", [r(.5+0*a_-0.5*b_) for a_,b_ in zip(v1,v2)], "sign", [r(.5+.5*b_) for b_ in v2], "z1", [r(.5-.5*a_) for a_ in v1])
+kl=lambda m,s:.5*(m*m+s*s-1-log(s*s))
+print("Q5", kl(0,.5)+kl(1,1), "no ln", .5*(0+.25-1)+.5*(1+1-1), "ln s", .5*(.25-1-log(.5))+.5*(1+1-1-log(1)), "no half", 2*(kl(0,.5)+kl(1,1)))
+D=.3/.4; print("Q7 D*", D, "-lnD", -log(D), "-ln(1-D)", -log(1-D), "log10", -log(D,10))
+ab=.8**3; print("Q9", sqrt(ab), ab, 1-.6, 1-ab)
+print("Q11", .4+3*(.1-.4), "swap", .1+3*(.4-.1), "nobase", 3*(.1-.4), "s*c", 3*.1)
+N,g=300,180; sd=sqrt(N*.25); print("Q12", (g-N/2)/sd, (g-N/2)/(N*.25), (g-N/2)/sqrt(N/2), (g-N/2)/(N/2))
