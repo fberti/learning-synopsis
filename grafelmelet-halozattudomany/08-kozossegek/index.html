@@ -1,0 +1,1707 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>8. Közösségek keresése – Gráfelmélet és hálózattudomány – Synopsis</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="../../assets/common.js"></script>
+  <script defer src="../../assets/quiz.js"></script>
+  <script defer src="../../assets/graph.js"></script>
+  <script defer src="../arvizhet-data.js"></script>
+  <script defer src="../../mesterseges-intelligencia/13-graf-neuralis-halok/graph-data.js"></script>
+  <script defer src="lesmis-data.js"></script>
+  <script defer src="widgets.js"></script>
+  <script defer src="quizzes.js"></script>
+</head>
+<body>
+<div class="progressbar"></div>
+<header class="topbar">
+  <a class="brand" href="../../">📚 Synopsis</a>
+  <span class="crumbs"><a href="../../">Tartalomjegyzék</a> › <a href="../">Gráfelmélet és hálózattudomány</a> › 8. fejezet</span>
+  <button class="icon-btn" data-theme-toggle title="Téma váltása">🌙</button>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <div class="toc-title">8. fejezet</div>
+  <ol>
+    <li><a href="#s81">8.1 Mi a közösség?</a></li>
+    <li><a href="#s82">8.2 Girvan–Newman</a></li>
+    <li><a href="#s83">8.3 Modularitás</a></li>
+    <li><a href="#s84">8.4 Louvain és Leiden</a></li>
+    <li><a href="#s85">8.5 Címketerjesztés, spektrális vágás</a></li>
+    <li><a href="#s86">8.6 Sztochasztikus blokkmodell</a></li>
+    <li><a href="#s87">8.7 Megbízhatóság</a></li>
+    <li><a href="#s88">8.8 Alkalmazás</a></li>
+    <li><a href="#s-sum">Összefoglalás</a></li>
+    <li><a href="#s-check">Ellenőrző kérdések</a></li>
+    <li><a href="#s-ex">Vegyes gyakorló feladatok</a></li>
+    <li><a href="#s-final">Fejezetzáró teszt</a></li>
+    <li><a href="#s-gloss">Szómagyarázó</a></li>
+  </ol>
+</nav>
+
+<main class="content">
+
+<section class="hero" style="padding-top:.5rem">
+  <div class="kicker">Gráfelmélet és hálózattudomány · 8. fejezet · ★★–★★★</div>
+  <h1>Közösségek keresése</h1>
+  <p class="lead">Ha ránézel egy hálózat rajzára, a szemed rögtön csoportokat lát: sűrű csomókat, amelyeket csak néhány él köt össze. Ezek a <b>közösségek</b>.
+  A hírekben ilyen csomó lehet egy keret, egy tábor vagy egy téma. De a szem könnyen becsap. Ebben a fejezetben megnézzük, hogyan talál csoportokat egy algoritmus,
+  mit jelent az, hogy egy felbontás „jó”, és mennyire bízhatunk abban, amit kapunk.</p>
+</section>
+
+<div class="box tip">
+  <span class="box-title">Mit fogsz megtanulni?</span>
+  <ul style="margin:.2rem 0">
+    <li>megfogalmazni, mi a <b>közösség</b>, és leírni egy <b>felbontást</b> (partíciót): belső élek, kifelé futó élek, fokszámösszeg;</li>
+    <li>lefuttatni kézzel a <b>Girvan–Newman-algoritmust</b>: mindig a legnagyobb köztességű élt töröljük;</li>
+    <li>kiszámolni a <b>modularitást</b> ($Q$) kézzel, és megérteni, miért a <b>konfigurációs nullmodell</b> (<a href="../07-halozatmodellek/#s74">7.4</a>) a mérce benne – és mi a <b>felbontási határ</b>;</li>
+    <li>követni a <b>Louvain-algoritmus</b> két fázisát, használni a <b>felbontási paramétert</b> ($\gamma$), és tudni, mit javít a <b>Leiden</b>;</li>
+    <li>megismerni két másik ötletet: a <b>címketerjesztést</b> és a <b>spektrális kettévágást</b>;</li>
+    <li>érteni a <b>sztochasztikus blokkmodellt</b> (SBM), amely nemcsak „sűrű belül” szerkezetet talál;</li>
+    <li>két felbontást összevetni (<b>NMI</b>, <b>ARI</b>), ellenőrizni a <b>stabilitást</b>, és nullmodellhez mérni a modularitást.</li>
+  </ul>
+</div>
+
+<div class="box">
+  <span class="box-title">🔁 Amit használni fogunk</span>
+  Az <a href="../02-setak-utak-fak/">2. fejezetből</a>: <b>komponens</b>, legrövidebb út. Az <a href="../04-grafok-es-matrixok/">4. fejezetből</a>: a <b>vágás</b>, a kiegyensúlyozás és a <b>Fiedler-vektor</b> (<a href="../04-grafok-es-matrixok/#s45">4.5</a>).
+  Az <a href="../05-centralitas/">5. fejezetből</a>: a <b>köztesség</b> (<a href="../05-centralitas/#s53">5.3</a>). A <a href="../06-helyi-szerkezet/">6. fejezetből</a>: a csoporton belüli élek aránya és a <b>véletlen szint</b>, $\sum_g e_{gg}$ és $\sum_g a_g^2$ (<a href="../06-helyi-szerkezet/#s62-a">6.2</a>).
+  A <a href="../07-halozatmodellek/">7. fejezetből</a>: a <b>konfigurációs modell</b>, $k_i k_j/2m$ (<a href="../07-halozatmodellek/#s74-b">7.4</a>), a $G(n, m)$ és a z-érték.
+</div>
+
+<div class="box example">
+  <span class="box-title">🎯 A fejezet kérdése</span>
+  Az Árvízhét három kerettel dolgozott: <b>védekezés</b>, <b>felkészülési hiány</b> és <b>lakossági veszteség</b>. Ha minden szereplőt a „saját” keretéhez sorolunk, három csoport adódik:
+  {Kormány, Vízügy}, {Lakók, Önkéntesek, Polgármester} és {Szakértő, Klímaváltozás}.
+  <b>Megtalálja-e ezt a három csoportot egy közösségkereső algoritmus a szereplőgráfból?</b> Ha nem, mit talál helyette, és mit tanulunk ebből a „közösség = keret” feltevésről? A válasz a <a href="#s88">8.8</a>-ban.
+</div>
+
+<div class="two-col">
+  <div><div class="gfig" data-edges="Ko-Vi,Ko-Po,Vi-Po,Vi-Sz,Sz-Kl,Sz-Ko,Kl-Ko,La-Ön,La-Po,Po-Ön" data-weights="2,2,2,1,2,1,1,3,2,2" data-show-weights
+    data-color="Ko:--setA Vi:--setA Po:--setB La:--setB Ön:--setB Sz:--setC Kl:--setC"
+    data-pos="Kl:.6,0 Sz:0,.5 Ko:1.3,.5 Vi:.65,1 Po:1.6,1.3 La:2.4,1 Ön:2.3,1.9" data-w="300" data-h="200" data-r="16"
+    data-caption="Az Árvízhét szereplőgráfja (a szám: hány közös cikk), a szereplők a „saját” keretük színével"></div></div>
+  <div>
+    <div class="tw" style="overflow-x:auto"><table>
+      <tr><th>keret</th><th>cikkek</th><th>szereplők</th></tr>
+      <tr><td>védekezés</td><td>1, 2, 3, 10</td><td>$\mathrm{Ko}$, $\mathrm{Vi}$, ($\mathrm{Po}$)</td></tr>
+      <tr><td>felkészülési hiány</td><td>4, 5, 6</td><td>$\mathrm{Sz}$, $\mathrm{Kl}$ (+ $\mathrm{Vi}$, $\mathrm{Ko}$)</td></tr>
+      <tr><td>lakossági veszteség</td><td>7, 8, 9, 11, 12</td><td>$\mathrm{La}$, $\text{Ön}$, ($\mathrm{Po}$)</td></tr>
+    </table></div>
+    <p class="muted" style="font-size:.92rem">A Polgármester 3 védekezés- és 3 veszteség-keretes cikkben szerepel – őt most a lakókhoz soroltuk. A Kormány és a Vízügy egy-egy „hiány”-cikkben is feltűnik.</p>
+  </div>
+</div>
+
+<p><b>Útiterv</b> – a szemmel látott csoportoktól a megbízható felbontásig:</p>
+<ol>
+  <li><a href="#s81">Mi a közösség?</a> – sűrű belül, ritka kívül. Hogyan írjuk le, és miért nem elég „kevés élt vágni”?</li>
+  <li><a href="#s82">Girvan–Newman</a> – az első algoritmus: a hidakat bontjuk le, egyenként. De hol álljunk meg?</li>
+  <li><a href="#s83">Modularitás</a> – egy szám, amely megmondja, mennyivel sűrűbbek a csoportok a véletlennél. Mire képes, és hol vak?</li>
+  <li><a href="#s84">Louvain és Leiden</a> – a modularitást mohón, gyorsan növeljük. Mi lesz a sorrenddel és a felbontással?</li>
+  <li><a href="#s85">Címketerjesztés és spektrális vágás</a> – két másik ötlet: szavazás a szomszédok közt, és sajátvektorok.</li>
+  <li><a href="#s86">Sztochasztikus blokkmodell</a> – ha a „közösség” nem csak sűrű csomót jelenthet: generatív modell.</li>
+  <li><a href="#s87">Megbízhatóság</a> – két felbontás összevetése, stabilitás, és a véletlen gráf modularitása.</li>
+  <li><a href="#s88">Alkalmazás</a> – a karateklub, a Les Misérables és az Árvízhét kereteinek kérdése.</li>
+</ol>
+
+<div class="box tip">
+  <span class="box-title">📐 Jelölések ebben a fejezetben</span>
+  $n$ csúcs, $m$ él, $k_i$ az $i$ csúcs fokszáma. Egy <b>felbontás</b> (partíció) minden csúcsnak megad egy közösséget: $c_i$ az $i$ csúcs közössége.
+  Egy $c$ közösségre: $L_c$ a <b>belső élek</b> száma, $K_c$ a <b>kifelé futó</b> (vágott) élek száma, $d_c = \sum_{i \in c} k_i$ a <b>fokszámösszeg</b>.
+  $Q$ a modularitás, $\gamma$ a felbontási paraméter. Súlyozott gráfban az élszám helyett a súlyösszeg, a fokszám helyett az erősség szerepel.
+  A <code>networkx</code>-ben: <code>community.girvan_newman</code>, <code>community.modularity</code>, <code>community.louvain_communities</code>, <code>community.asyn_lpa_communities</code>, <code>community.k_clique_communities</code>.
+</div>
+
+<!-- ===================================================== 8.1 -->
+<section id="s81">
+<h2>8.1 Mi a közösség? ★</h2>
+<p>Nincs egyetlen, mindenki által elfogadott definíció. Az alapötlet viszont egyszerű: <b>a közösség olyan csúcshalmaz, amelyen belül sok az él, kifelé pedig kevés.</b>
+Ebben a szakaszban ezt az ötletet számokká alakítjuk, és megnézzük, miért nem elég önmagában.</p>
+
+<h3 id="s81-a">1. lépés: sűrű belül, ritka kívül – a felbontás leírása</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két háromszög egy híddal</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="1-2,1-3,2-3,3-4,4-5,4-6,5-6" data-color="1:--setA 2:--setA 3:--setA 4:--setB 5:--setB 6:--setB" data-hl="3-4"
+      data-pos="1:0,0 2:0,1.2 3:1,.6 4:2.2,.6 5:3.2,0 6:3.2,1.2" data-w="280" data-h="150" data-caption="I. felbontás: $\{1, 2, 3\}$ és $\{4, 5, 6\}$; kiemelve a híd"></div></div>
+    <div><div class="gfig" data-edges="1-2,1-3,2-3,3-4,4-5,4-6,5-6" data-color="1:--setA 2:--setA 3:--setB 4:--setB 5:--setB 6:--setB" data-hl="1-3,2-3"
+      data-pos="1:0,0 2:0,1.2 3:1,.6 4:2.2,.6 5:3.2,0 6:3.2,1.2" data-w="280" data-h="150" data-caption="II. felbontás: $\{1, 2\}$ és $\{3, 4, 5, 6\}$; kiemelve a vágott élek"></div></div>
+  </div>
+  Számoljuk meg mindkét felbontásban, hány él fut a csoportokon <b>belül</b>, és hány <b>köztük</b>! A fokszámok: $k_1 = k_2 = k_5 = k_6 = 2$, $k_3 = k_4 = 3$; $m = 7$.
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>felbontás</th><th>közösség</th><th>belső élek $L_c$</th><th>kifelé futó élek $K_c$</th><th>fokszámösszeg $d_c$</th></tr>
+    <tr><td rowspan="2">I.</td><td>$\{1, 2, 3\}$</td><td>3</td><td>1</td><td>$2 + 2 + 3 = 7$</td></tr>
+    <tr><td>$\{4, 5, 6\}$</td><td>3</td><td>1</td><td>7</td></tr>
+    <tr><td rowspan="2">II.</td><td>$\{1, 2\}$</td><td>1</td><td>2</td><td>4</td></tr>
+    <tr><td>$\{3, 4, 5, 6\}$</td><td>4</td><td>2</td><td>10</td></tr>
+  </table></div>
+  Az I. felbontásban 6 él belül fut, 1 vágott; a II.-ban 5 belül, 2 vágott. A szem az I.-et választja – és a számok is.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – felbontás és közösségi mennyiségek</span>
+  A csúcsok <b>felbontása</b> (partíciója) diszjunkt, nem üres csoportokra – <b>közösségekre</b> – osztja a csúcsokat, mindenki pontosan egy csoportba kerül. Egy $c$ közösségre:
+  <ul style="margin:.2rem 0">
+    <li>$L_c$ = a <b>belső élek</b> száma (mindkét végük $c$-ben van);</li>
+    <li>$K_c$ = a <b>kifelé futó élek</b> száma (pontosan az egyik végük van $c$-ben);</li>
+    <li>$d_c = \sum_{i \in c} k_i$ = a <b>fokszámösszeg</b>.</li>
+  </ul>
+  $$d_c = 2L_c + K_c.$$
+  <small>Miért? Ez a kézfogás-lemma egy csoportra. A $c$ csúcsainak fokszámait összeadva minden belső élt kétszer számolunk (mindkét végénél), minden kifelé futót egyszer (csak a belső végénél).</small>
+  <br><b>Közösség (szemléletesen):</b> olyan csoport, amelyben $L_c$ „nagy”, $K_c$ „kicsi”. Hogy mihez képest nagy, azt a <a href="#s81-b">2. lépés</a> és a <a href="#s83">8.3</a> teszi pontossá.
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – az Árvízhét két csoportja</span>
+    Bontsd a szereplőket két csoportra: $\{\mathrm{Ko}, \mathrm{Vi}, \mathrm{Sz}, \mathrm{Kl}\}$ és $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$ (súly nélkül, $m = 10$). Mennyi a két csoport $L_c$, $K_c$ és $d_c$ értéke?
+    <details><summary>Megoldás</summary>Első csoport: belső élek $\mathrm{Ko}$–$\mathrm{Vi}$, $\mathrm{Vi}$–$\mathrm{Sz}$, $\mathrm{Sz}$–$\mathrm{Kl}$, $\mathrm{Ko}$–$\mathrm{Sz}$, $\mathrm{Ko}$–$\mathrm{Kl}$: $L = 5$. Kifelé: $\mathrm{Ko}$–$\mathrm{Po}$, $\mathrm{Vi}$–$\mathrm{Po}$: $K = 2$. $d = 4 + 3 + 3 + 2 = 12 = 2 \cdot 5 + 2$.
+      Második: $L = 3$ (a $\mathrm{Po}$, $\mathrm{La}$, $\text{Ön}$ háromszög), $K = 2$ (ugyanaz a két él), $d = 4 + 2 + 2 = 8$.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a keretek szerinti csoport</span>
+    Mennyi a $\{\mathrm{Ko}, \mathrm{Vi}\}$ csoport $L_c$, $K_c$ és $d_c$ értéke?
+    <details><summary>Megoldás</summary>Belül csak $\mathrm{Ko}$–$\mathrm{Vi}$: $L = 1$. Kifelé: $\mathrm{Ko}$–$\mathrm{Po}$, $\mathrm{Ko}$–$\mathrm{Sz}$, $\mathrm{Ko}$–$\mathrm{Kl}$, $\mathrm{Vi}$–$\mathrm{Po}$, $\mathrm{Vi}$–$\mathrm{Sz}$: $K = 5$. $d = 4 + 3 = 7 = 2 + 5$.
+      Ez a csoport <b>kifelé</b> sokkal több éllel kötődik, mint befelé – a szerkezet szerint gyenge közösség, akárhogy is szól a keret.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A vágott élt kétszer számolni az élszámban.</b> Egy él, amely két közösség között fut, mindkét közösség $K_c$-jében megjelenik, de a gráfban egy él. Ezért $\sum_c K_c = 2 \cdot (\text{vágott élek})$, és $\sum_c L_c + \text{vágott élek} = m$.</li>
+    <li><b>A fokszámösszeget a belső élekkel keverni.</b> $d_c$ a csúcsok <em>teljes</em> fokszámának összege, a kifelé futó élekkel együtt – nem $2L_c$.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – belső és kifelé futó élek</summary>
+  <ol>
+    <li>A két háromszög + híd gráfban vedd a $\{1, 2, 3, 4\}$ és $\{5, 6\}$ felbontást. Mennyi $L_c$, $K_c$, $d_c$?
+      <details><summary>Megoldás</summary>$\{1, 2, 3, 4\}$: belül 1–2, 1–3, 2–3, 3–4: $L = 4$; kifelé 4–5, 4–6: $K = 2$; $d = 2 + 2 + 3 + 3 = 10$. $\{5, 6\}$: $L = 1$, $K = 2$, $d = 4$. Ellenőrzés: $10 = 8 + 2$, $4 = 2 + 2$.</details></li>
+    <li>Az Árvízhéten mennyi a $\{\mathrm{Ko}, \mathrm{Vi}, \mathrm{Po}\}$ csoport $L_c$, $K_c$ és $d_c$ értéke?
+      <details><summary>Megoldás</summary>Belül: $\mathrm{Ko}$–$\mathrm{Vi}$, $\mathrm{Ko}$–$\mathrm{Po}$, $\mathrm{Vi}$–$\mathrm{Po}$: $L = 3$. Kifelé: $\mathrm{Ko}$–$\mathrm{Sz}$, $\mathrm{Ko}$–$\mathrm{Kl}$, $\mathrm{Vi}$–$\mathrm{Sz}$, $\mathrm{Po}$–$\mathrm{La}$, $\mathrm{Po}$–$\text{Ön}$: $K = 5$. $d = 4 + 3 + 4 = 11 = 6 + 5$.</details></li>
+    <li>Egy közösség fokszámösszege 12, és 4 él fut ki belőle. Hány belső éle van?
+      <details><summary>Megoldás</summary>$L_c = (d_c - K_c)/2 = (12 - 4)/2 = 4$.</details></li>
+    <li>Egy három közösségre bontott gráfban a $K_c$ értékek 3, 2 és 5. Hány él fut közösségek között?
+      <details><summary>Megoldás</summary>Minden vágott él két $K_c$-ben szerepel: $(3 + 2 + 5)/2 = 5$.</details></li>
+    <li>(nehezebb) Egy 10 élű gráf felbontásában a belső élek összesen 6-an vannak. Hány vágott él van, és mennyi $\sum_c d_c$?
+      <details><summary>Megoldás</summary>Vágott: $10 - 6 = 4$. $\sum_c d_c = 2m = 20$ (minden csúcs pontosan egy közösségben van). Ellenőrzés: $\sum_c (2L_c + K_c) = 2 \cdot 6 + 2 \cdot 4 = 20$.</details></li>
+  </ol>
+</details>
+
+<h3 id="s81-b">2. lépés: miért nem elég kevés élt vágni? – a mérce kérdése</h3>
+<p>Az első ötlet: keressük azt a felbontást, ahol a <b>legkevesebb</b> él fut közösségek között. A <a href="../04-grafok-es-matrixok/#s45-b">4.5</a>-ben már láttuk, miért kevés ez:
+a győztes a „mindenki egy csoportban” (0 vágott él), vagy egy magányos, gyengén kötődő csúcs levágása. Az Árvízhéten ez még szemléletesebb.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – öt egyformán „jó” vágás</span>
+  Az Árvízhét gráfjában nincs olyan él, amelynek elhagyása szétvágná a gráfot. A legkisebb vágás 2 él. Ilyen vágásból viszont öt is van:
+  <ul style="margin:.2rem 0">
+    <li>$\{\mathrm{Kl}\}$ levágása ($\mathrm{Sz}$–$\mathrm{Kl}$, $\mathrm{Ko}$–$\mathrm{Kl}$), $\{\mathrm{La}\}$ levágása, $\{\text{Ön}\}$ levágása – egyetlen csúcs;</li>
+    <li>$\{\mathrm{La}, \text{Ön}\}$ ($\mathrm{Po}$–$\mathrm{La}$, $\mathrm{Po}$–$\text{Ön}$);</li>
+    <li>$\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$ ($\mathrm{Ko}$–$\mathrm{Po}$, $\mathrm{Vi}$–$\mathrm{Po}$).</li>
+  </ul>
+  A vágott élek száma nem tud különbséget tenni köztük. Pedig a $\{\mathrm{Kl}\}$ egyedül nem közösség.
+</div>
+
+<p>Mit hiányolunk? Azt, hogy egy nagy csoportban <b>magától is</b> több belső él van. A <a href="../06-helyi-szerkezet/#s62-a">6.2</a>-ben erre már volt mércénk: a <b>véletlen szint</b>.
+Ha az élek vakon kötnék össze az élvégeket, egy él mindkét vége $a_c = d_c/2m$ eséllyel esne a $c$ csoportba, vagyis az élek kb. $a_c^2$ része futna $c$-n belül.</p>
+
+<div class="box def">
+  <span class="box-title">Hüvelykujjszabály – a közösség mércéje</span>
+  Egy csoport akkor közösség, ha a belső élek aránya, $L_c/m$, <b>nagyobb, mint a véletlen szint</b>, $(d_c/2m)^2$.
+  <small>A 6.2-ben a jelölés $e_{gg}$ és $a_g^2$ volt; itt $e_{cc} = L_c/m$ és $a_c = d_c/2m$. A <a href="#s83">8.3</a>-ban ebből lesz a modularitás.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a két Árvízhét-csoport a mércén</span>
+    Mennyivel van a véletlen szint fölött a $\{\mathrm{Ko}, \mathrm{Vi}, \mathrm{Sz}, \mathrm{Kl}\}$ és a $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$?
+    <details><summary>Megoldás</summary>Első: $5/10 = 0{,}5$ belül, véletlen szint $(12/20)^2 = 0{,}36$ – a többlet $0{,}14$. Második: $3/10 = 0{,}3$, véletlen szint $(8/20)^2 = 0{,}16$ – a többlet szintén $0{,}14$.
+      A nagyobb csoportnak több a belső éle, de neki „jár” is több. A többletük egyforma.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a levágott Klímaváltozás</span>
+    Mennyi a $\{\mathrm{Kl}\}$ „közösség” többlete?
+    <details><summary>Megoldás</summary>Belső éle nincs: $0$. Véletlen szint $(2/20)^2 = 0{,}01$. A többlet $-0{,}01$: egy magányos csúcs <b>soha</b> nem jobb a véletlennél. A legkisebb vágás egyik „győztese” tehát a mércén megbukik.</details>
+  </div>
+</div>
+
+<p>Van egy második gond is: <b>túl sok a felbontás</b>. Hét csúcsot 877-féleképpen lehet csoportokra bontani, 34-et már kb. $2 \cdot 10^{28}$-féleképpen (ezek a <b>Bell-számok</b>).
+Kis gráfon mind kipróbálható – az Árvízhétet a fejezetben így is ellenőrizzük –, nagyobbon nem. Ezért kellenek a következő szakaszok <b>algoritmusai</b>.</p>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>„Kevés vágott él = jó felbontás.”</b> A vágott élek száma a méretet nem veszi figyelembe; a legjobb „vágás” gyakran semmit sem vág, vagy egy csúcsot csíp le.</li>
+    <li><b>A belső élek számát a méret nélkül összevetni.</b> 5 belső él egy 4 fős csoportban nem feltétlenül jobb, mint 3 egy 3 fősben – a véletlen szinthez kell mérni.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – vágás és véletlen szint</summary>
+  <ol>
+    <li>Sorold fel a három csúcs ($A$, $B$, $C$) összes felbontását! Hány van?
+      <details><summary>Megoldás</summary>5: $\{A, B, C\}$; $\{A, B\}\{C\}$; $\{A, C\}\{B\}$; $\{B, C\}\{A\}$; $\{A\}\{B\}\{C\}$.</details></li>
+    <li>A két háromszög + híd gráfban mennyi a $\{1, 2, 3\}$ többlete a véletlen szint fölött?
+      <details><summary>Megoldás</summary>$L/m = 3/7 \approx 0{,}429$; véletlen szint $(7/14)^2 = 0{,}25$; többlet $\approx 0{,}179$.</details></li>
+    <li>Ugyanitt mennyi a $\{1, 2\}$ többlete?
+      <details><summary>Megoldás</summary>$1/7 \approx 0{,}143$; véletlen szint $(4/14)^2 \approx 0{,}082$; többlet $\approx 0{,}061$. Pozitív, de sokkal kisebb, mint a teljes háromszögé.</details></li>
+    <li>Mennyi a „mindenki egy csoportban” felbontás többlete?
+      <details><summary>Megoldás</summary>$L/m = 1$, véletlen szint $(2m/2m)^2 = 1$: a többlet 0. Ezért nem nyer – de nem is veszít.</details></li>
+    <li>(nehezebb) Az Árvízhéten a $\{\mathrm{Ko}, \mathrm{Vi}\}$ csoport többlete pozitív vagy negatív?
+      <details><summary>Megoldás</summary>$L/m = 1/10 = 0{,}1$, véletlen szint $(7/20)^2 = 0{,}1225$: a többlet $-0{,}0225$, negatív. Két ennyire „népszerű” szereplőtől véletlenül is kb. ennyi közös él várható.</details></li>
+  </ol>
+</details>
+
+<h3 id="s81-c">3. lépés: egy klub, amely tényleg kettévált – Zachary karateklubja</h3>
+<p>Honnan tudjuk, hogy egy algoritmus jól dolgozik? Legjobb, ha olyan hálózaton próbáljuk ki, ahol a csoportokat <b>máshonnan</b> ismerjük. A hálózattudomány leghíresebb ilyen példája egy egyetemi karateklub.</p>
+
+<div class="two-col">
+  <div><div class="gfig" data-edges="1-2,1-3,1-4,1-5,1-6,1-7,1-8,1-9,1-11,1-12,1-13,1-14,1-18,1-20,1-22,1-32,2-3,2-4,2-8,2-14,2-18,2-20,2-22,2-31,3-4,3-8,3-9,3-10,3-14,3-28,3-29,3-33,4-8,4-13,4-14,5-7,5-11,6-7,6-11,6-17,7-17,9-31,9-33,9-34,10-34,14-34,15-33,15-34,16-33,16-34,19-33,19-34,20-34,21-33,21-34,23-33,23-34,24-26,24-28,24-30,24-33,24-34,25-26,25-28,25-32,26-32,27-30,27-34,28-34,29-32,29-34,30-33,30-34,31-33,31-34,32-33,32-34,33-34" data-pos="1:0.813,0.620 2:1.083,0.574 3:0.744,0.429 4:0.626,0.563 5:0.563,0.758 6:0.568,0.817 7:0.859,0.825 8:0.429,0.551 9:1.115,0.426 10:0.747,0.267 11:0.285,0.734 12:1.133,0.791 13:0.203,0.647 14:0.979,0.461 15:1.600,0.253 16:1.549,0.187 17:0.614,1.000 18:1.270,0.724 19:1.445,0.127 20:1.264,0.471 21:1.291,0.081 22:1.410,0.679 23:1.090,0.065 24:0.499,0.138 25:0.000,0.262 26:0.032,0.336 27:0.923,0.000 28:0.427,0.266 29:0.574,0.265 30:0.750,0.078 31:1.422,0.380 32:0.557,0.390 33:1.110,0.254 34:1.003,0.238" data-color="1:--setA 2:--setA 3:--setA 4:--setA 5:--setA 6:--setA 7:--setA 8:--setA 9:--setA 10:--setB 11:--setA 12:--setA 13:--setA 14:--setA 15:--setB 16:--setB 17:--setA 18:--setA 19:--setB 20:--setA 21:--setB 22:--setA 23:--setB 24:--setB 25:--setB 26:--setB 27:--setB 28:--setB 29:--setB 30:--setB 31:--setB 32:--setB 33:--setB 34:--setB" data-w="330" data-h="230" data-r="9"
+    data-caption="A karateklub 34 tagja és 78 barátsága; a szín a kettéválás utáni tábor (1 = az edző, 34 = az elnök)"></div></div>
+  <div>
+    <div class="box history">
+      <span class="box-title">📜 Zachary karateklubja (1977)</span>
+      Wayne Zachary antropológus 1970 és 1972 között egy amerikai egyetemi karateklubot figyelt meg. Feljegyezte, kik találkoznak a klubon kívül is: 34 tag, 78 barátság.
+      Közben vita tört ki az edző (az ábrán 1-es) és a klub elnöke (34-es) között a tandíjakon. A klub végül <b>kettévált</b>: az edző hívei új klubot alapítottak.
+      Zachary a vita előtti barátsági hálózatból, egy legkisebb vágást kereső módszerrel (maximális folyam) megjósolta, ki melyik oldalra áll – és <b>egyetlen tag</b> kivételével eltalálta.
+      Girvan és Newman (2002) óta ez a közösségkeresés első próbája.
+    </div>
+  </div>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa – a valódi kettéválás a számokban</span>
+  A két tábor 17–17 tag. A 78 élből 11 fut a táborok között. A táborok fokszámösszege 81 és 75. Mennyi a belső élek aránya, mennyi a véletlen szint, és mennyi a többlet?
+  <details><summary>Megoldás</summary>Belül $67/78 \approx 0{,}859$. A véletlen szint $(81/156)^2 + (75/156)^2 \approx 0{,}270 + 0{,}231 = 0{,}501$. A többlet $\approx 0{,}358$ – bőven a véletlen fölött.
+    (A 6.2-ben ugyanebből $r = 0{,}72$ jött ki: ott a többletet még $1 - 0{,}501$-gyel osztottuk.)</details>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Módszertani józanság – a „valódi” csoport nem a tökéletes mérce</span>
+  A klub kettéválása egy <b>társadalmi esemény</b>, nem a hálózat tulajdonsága. Lehet, hogy valaki barátai ellenére állt át (Zachary szerint a 9-es tag éppen így: barátai inkább az elnök körében voltak, de három hétre állt a fekete öves vizsgájától, ezért az edzővel tartott).
+  Ha egy algoritmus nem a kettéválást adja vissza, az nem feltétlenül hiba – lehet, hogy más, szintén valódi szerkezetet talál (Peel, Larremore és Clauset, 2017).
+  Ugyanez áll a hírekre: egy közösség és egy keret nem ugyanaz. Ezt a <a href="#s88">8.8</a>-ban az Árvízhéten is látjuk.
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a karateklub</summary>
+  <ol>
+    <li>Hány csúcspár van a karateklubban, és ezek hány százaléka barátság?
+      <details><summary>Megoldás</summary>$\binom{34}{2} = 561$ pár; $78/561 \approx 13{,}9\%$.</details></li>
+    <li>A 78 élből 11 fut a táborok között. Hány százalékuk fut táboron belül?
+      <details><summary>Megoldás</summary>$67/78 \approx 85{,}9\%$.</details></li>
+    <li>Ha a két tábor fokszámösszege pontosan egyenlő lenne, mennyi lenne a véletlen szint?
+      <details><summary>Megoldás</summary>$a_1 = a_2 = 1/2$, így $1/4 + 1/4 = 1/2$.</details></li>
+    <li>Miért nem baj, ha egy algoritmus a 9-es tagot „rossz” táborba sorolja?
+      <details><summary>Megoldás</summary>Mert a barátai többsége az elnök táborában van – a hálózat szerkezete szerint oda illik. A döntése a barátságokon kívüli okból született. Az algoritmus a hálózatot látja, nem az okot.</details></li>
+    <li>(nehezebb) Egy kutató a karateklubon két algoritmust hasonlít össze: az A a kettéválást 33/34 pontossággal adja vissza, a B négy csoportot talál, magasabb modularitással. Melyik a jobb?
+      <details><summary>Megoldás</summary>A kérdéstől függ. Ha a kettéválást akarjuk megjósolni, az A. Ha a barátsági hálózat szerkezetét akarjuk leírni, a négy csoport is valódi lehet (a táborokon belüli kisebb körök). A „valódi” címke egy lehetséges mérce, nem az egyetlen.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh8-81"></div>
+</section>
+
+<!-- ===================================================== 8.2 -->
+<section id="s82">
+<h2>8.2 Élek eltávolítása: a Girvan–Newman-algoritmus ★★</h2>
+<p>Az első ötlet fordított irányú: ne a csoportokat keressük, hanem a köztük futó <b>hidakat</b>. Ha a közösségeket kevés él köti össze, akkor a csoportok közti forgalom – a legrövidebb utak – ezeken a kevés élen torlódik.
+Töröljük a legforgalmasabb élt, és nézzük, mi esik szét.</p>
+
+<h3 id="s82-a">1. lépés: élköztesség – melyik élen torlódnak az utak?</h3>
+<p>Az <a href="../05-centralitas/#s53">5.3</a>-ban a <b>csúcsok</b> köztességét számoltuk: hány legrövidebb út halad át egy csúcson. Ugyanez megy élekre is.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két háromszög + híd, teljes felsorolással</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="1-2,1-3,2-3,3-4,4-5,4-6,5-6" data-hl="3-4" data-weights="1,4,4,9,4,4,1" data-show-weights
+      data-pos="1:0,0 2:0,1.2 3:1,.6 4:2.2,.6 5:3.2,0 6:3.2,1.2" data-w="280" data-h="150" data-caption="A szám az élen: hány csúcspár legrövidebb útja halad át rajta"></div></div>
+    <div>
+      A 6 csúcs $\binom62 = 15$ párjának mindegyikét egyetlen legrövidebb út köti össze. Nézzük élenként:
+      <ul style="margin:.2rem 0">
+        <li><b>3–4 (a híd):</b> minden pár, amelynek egyik tagja $\{1, 2, 3\}$-ban, a másik $\{4, 5, 6\}$-ban van: $3 \cdot 3 = 9$ pár.</li>
+        <li><b>1–3:</b> az 1-es útja a 3-hoz, 4-hez, 5-höz és 6-hoz: 4 pár.</li>
+        <li><b>1–2:</b> csak az $(1, 2)$ pár: 1.</li>
+      </ul>
+    </div>
+  </div>
+  A híd köztessége messze a legnagyobb. Ha töröljük, a gráf pontosan a két háromszögre esik szét.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – élköztesség</span>
+  Az $e$ él köztessége (<em>edge betweenness</em>):
+  $$b(e) = \sum_{s \lt t} \frac{\sigma_{st}(e)}{\sigma_{st}},$$
+  ahol $\sigma_{st}$ az $s$ és $t$ közötti legrövidebb utak száma, $\sigma_{st}(e)$ pedig azoké, amelyek átmennek az $e$ élen. Ha egy párt több legrövidebb út köt össze, a pár „egy szavazata” egyenlően oszlik el köztük (törtek, mint az 5.3-ban).
+  <small>Miért jó ez híd-detektornak? Két sűrű csoport között kevés él fut, de minden csoportközi párnak ezek valamelyikén kell átmennie. A csoporton belüli éleken viszont sok kerülőút van, a forgalom szétoszlik.
+  Hasznos ellenőrzés: $\sum_e b(e) = \sum_{s \lt t} d(s, t)$, mert minden legrövidebb út annyi élen megy át, amilyen hosszú. A két háromszögnél $1 + 4 + 4 + 9 + 4 + 4 + 1 = 27$.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – négycsúcsú út</span>
+    Mennyi az élköztesség az $1$–$2$–$3$–$4$ úton?
+    <details><summary>Megoldás</summary>A középső él (2–3) minden olyan páron rajta van, amely átér a közepén: $2 \cdot 2 = 4$. A szélső élek: 3–3 (az 1-es mindhárom társához, illetve a 4-esé). A középső él „hídabb” – az út közepén vágnánk.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – az Árvízhét</span>
+    A Pythonnal számolt élköztességek (súly nélkül): $\mathrm{Ko}$–$\mathrm{Po}$ 7,5 · $\mathrm{Po}$–$\mathrm{La}$ és $\mathrm{Po}$–$\text{Ön}$ 5 · $\mathrm{Ko}$–$\mathrm{Kl}$ és $\mathrm{Vi}$–$\mathrm{Po}$ 4,5 · $\mathrm{Vi}$–$\mathrm{Sz}$ 3 · $\mathrm{Ko}$–$\mathrm{Sz}$ 2,5 · $\mathrm{Ko}$–$\mathrm{Vi}$ és $\mathrm{Sz}$–$\mathrm{Kl}$ 1,5 · $\mathrm{La}$–$\text{Ön}$ 1. Miért a $\mathrm{Ko}$–$\mathrm{Po}$ vezet?
+    <details><summary>Megoldás</summary>A „hivatalos” oldal négy szereplőjének ($\mathrm{Ko}$, $\mathrm{Vi}$, $\mathrm{Sz}$, $\mathrm{Kl}$) és a „helyi” oldal háromnak ($\mathrm{Po}$, $\mathrm{La}$, $\text{Ön}$) $4 \cdot 3 = 12$ párja van, és mindegyik útja a $\mathrm{Ko}$–$\mathrm{Po}$ vagy a $\mathrm{Vi}$–$\mathrm{Po}$ élen megy át. A $\mathrm{Kl}$ és az $\mathrm{Sz}$ felől a $\mathrm{Ko}$-n át rövidebb, ezért a $\mathrm{Ko}$–$\mathrm{Po}$ kapja a nagyobb részt: $7{,}5 + 4{,}5 = 12$.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A csúcsköztességet használni.</b> A legnagyobb köztességű <em>csúcs</em> (az Árvízhéten a $\mathrm{Po}$) nem törölhető úgy, hogy a közösségek megmaradjanak – őt is el kellene veszíteni. Élt törlünk, nem csúcsot.</li>
+    <li><b>Párokat kétszer számolni.</b> Irányítatlan gráfban az $(s, t)$ és $(t, s)$ ugyanaz a pár. (A <code>networkx</code> <code>edge_betweenness_centrality(G, normalized=False)</code> is így számol.)</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – élköztesség</summary>
+  <ol>
+    <li>Mennyi az élköztesség egy 3 levelű csillag minden élén?
+      <details><summary>Megoldás</summary>Egy levél–középpont él: a levél útja a középponthoz (1) és a másik két levélhez (2): 3.</details></li>
+    <li>A „csokornyakkendőben” (két háromszög egy közös $C$ csúccsal: $AB$, $AC$, $BC$, $CD$, $CE$, $DE$) mennyi az $A$–$B$ és az $A$–$C$ él köztessége?
+      <details><summary>Megoldás</summary>$A$–$B$: csak az $(A, B)$ pár: 1. $A$–$C$: $(A, C)$, $(A, D)$, $(A, E)$: 3. Itt nincs kiugró él – a két háromszöget csúcs köti össze, nem él.</details></li>
+    <li>Ellenőrizd a négycsúcsú úton, hogy az élköztességek összege a távolságok összege!
+      <details><summary>Megoldás</summary>$3 + 4 + 3 = 10$. Távolságok: 1, 2, 3, 1, 2, 1 → 10. ✓</details></li>
+    <li>Két háromszög ($\{1, 2, 3\}$, $\{4, 5, 6\}$) a 3–4 híddal, és egy 7-es csúcs, amely csak az 1-eshez kapcsolódik. Mennyi a 3–4 híd köztessége?
+      <details><summary>Megoldás</summary>Az egyik oldalon most 4 csúcs van ($1, 2, 3, 7$), a másikon 3: $4 \cdot 3 = 12$.</details></li>
+    <li>(nehezebb) Ugyanebben a gráfban mennyi az 1–7 él köztessége? Nagyobb vagy kisebb, mint a hídé?
+      <details><summary>Megoldás</summary>A 7-es mind a 6 társának útja ezen megy át: 6. Kisebb, mint a hídé (12), és kisebb az 1–3 élénél is (8: rajta megy át a $\{1, 7\} \times \{3, 4, 5, 6\}$ párok útja), de nagyobb, mint a 2–3 élé (4). Egy lógó csúcs éle is „híd” – a Girvan–Newman ezt is levágja, csak később.</details></li>
+  </ol>
+</details>
+
+<h3 id="s82-b">2. lépés: töröld a legforgalmasabbat, és számolj újra</h3>
+<div class="box def">
+  <span class="box-title">Algoritmus – Girvan–Newman (2002)</span>
+  <ol style="margin:.2rem 0">
+    <li>Számold ki minden él köztességét.</li>
+    <li>Töröld a legnagyobb köztességű élt.</li>
+    <li><b>Számold újra</b> a köztességeket a megmaradt gráfban.</li>
+    <li>Ismételd, amíg van él. Valahányszor egy komponens kettéesik, jegyezd fel: ez a <b>dendrogram</b> (elágazási fa) egy szintje.</li>
+  </ol>
+  <small>Miért kell újraszámolni? Mert a törlés átrendezi a forgalmat. Ha két csoportot két híd köt össze, kezdetben mindkettő csak a forgalom egy részét viszi. Az egyik törlése után a másikon torlódik minden – és ő lesz a következő.</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa – az Árvízhét lépésről lépésre</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>lépés</th><th>legnagyobb köztesség</th><th>törölt él</th><th>komponensek utána</th></tr>
+    <tr><td>1.</td><td>7,5</td><td>$\mathrm{Ko}$–$\mathrm{Po}$</td><td>1 (még egyben)</td></tr>
+    <tr><td>2.</td><td><b>12</b></td><td>$\mathrm{Vi}$–$\mathrm{Po}$</td><td>2: $\{\mathrm{Ko}, \mathrm{Vi}, \mathrm{Sz}, \mathrm{Kl}\}$, $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$</td></tr>
+    <tr><td>3.</td><td>1,5 (holtverseny)</td><td>$\mathrm{Ko}$–$\mathrm{Vi}$</td><td>2</td></tr>
+    <tr><td>4.</td><td>3</td><td>$\mathrm{Vi}$–$\mathrm{Sz}$</td><td>3: a $\mathrm{Vi}$ leválik</td></tr>
+    <tr><td>…</td><td colspan="3">a többi él már 1 köztességű; végül mindenki egyedül marad</td></tr>
+  </table></div>
+  A $\mathrm{Ko}$–$\mathrm{Po}$ törlése után a $\mathrm{Vi}$–$\mathrm{Po}$ köztessége 4,5-ről 12-re ugrik: most már minden „hivatalos–helyi” út rajta megy át. Holtversenynél (3. lépés) a sorrend önkényes – a <code>networkx</code> az elsőként talált élt veszi.
+</div>
+
+<div class="widget" data-widget="girvan-newman"></div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a karateklub első vágása</span>
+    A karateklubban az első törölt él az $1$–$32$ (köztessége 71,4). Hány törlés kell, amíg a gráf először kettéesik?
+    <details><summary>Megoldás</summary>11 törlés (Pythonból). A két rész 15 és 19 tagú. A valódi kettéváláshoz képest csak két tag van „rossz” oldalon: a 3-as és a 9-es – 32/34 egyezés.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a dendrogram olvasása</span>
+    Az Árvízhét dendrogramjában a komponensszám a kiinduló állapotban és a 10 törlés után (a widget sorrendjében; holtversenynél más sorrend is lehet): 1 | 1, 2, 2, 3, 3, 4, 5, 5, 6, 7. Hány szintje van a fának, ahol valóban szétesés történik?
+    <details><summary>Megoldás</summary>Ahol a szám nő: a 2., 4., 6., 7., 9. és 10. törlésnél – 6 elágazás, mert 7 csúcsot 6 lépésben lehet teljesen szétszedni. A többi törlés csak „ritkít”, nem vág.</details>
+  </div>
+</div>
+
+<div class="box history">
+  <span class="box-title">📜 Girvan és Newman (2002)</span>
+  Michelle Girvan és Mark Newman 2002-es cikke (<em>PNAS</em>) indította el a közösségkeresés modern korszakát. A korábbi hierarchikus klaszterezés (a szociológiában a CONCOR, a statisztikában az összevonó módszerek) a <b>hasonló</b> csúcsokat vonta össze;
+  ők megfordították: a <b>legkevésbé „belső”</b> éleket bontották le. Példáik között ott volt a karateklub és egy amerikai főiskolai futballbajnokság – ahol az algoritmus a konferenciákat (csoportokat) is visszaadta.
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Egyszer kiszámolni, aztán sorban törölni.</b> Az első köztességi sorrend szerint törölve a 2. lépésben a $\mathrm{Po}$–$\mathrm{La}$ jönne (5), nem a $\mathrm{Vi}$–$\mathrm{Po}$ – és rossz helyen vágnánk.</li>
+    <li><b>Lassú nagy gráfon.</b> Minden lépés egy teljes köztességszámítás ($O(nm)$), és $m$ lépés van: összesen $O(m^2 n)$. Néhány ezer élnél már percek. Nagy hálózatra a 8.4 módszerei kellenek.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a Girvan–Newman lépései</summary>
+  <ol>
+    <li>A két háromszög + híd gráfban mi az első törölt él, és mi lesz utána?
+      <details><summary>Megoldás</summary>A 3–4 híd (köztesség 9). Utána két komponens: $\{1, 2, 3\}$ és $\{4, 5, 6\}$.</details></li>
+    <li>Ugyanitt a híd törlése után mennyi minden él köztessége?
+      <details><summary>Megoldás</summary>Egy háromszögben minden pár szomszédos: minden él köztessége 1. Innentől holtverseny – a háromszögek szétszedése önkényes sorrendben megy.</details></li>
+    <li>A négycsúcsú úton ($1$–$2$–$3$–$4$) mi az első két törlés eredménye?
+      <details><summary>Megoldás</summary>Először a 2–3 (köztesség 4): $\{1, 2\}$ és $\{3, 4\}$. Utána minden él köztessége 1, a következő törlés egy párt bont szét.</details></li>
+    <li>Az Árvízhéten a $\mathrm{Ko}$–$\mathrm{Po}$ törlése után miért ugrik a $\mathrm{Vi}$–$\mathrm{Po}$ köztessége 12-re?
+      <details><summary>Megoldás</summary>Ő maradt az egyetlen él a két oldal között. A $4 \cdot 3 = 12$ csoportközi pár mindegyikének rajta kell átmennie.</details></li>
+    <li>(nehezebb) Egy gráf két 10 csúcsú klikkből áll, amelyeket <b>két</b> él köt össze (különböző csúcspárok között). Mekkora a két híd köztessége, és mi történik az első törlés után?
+      <details><summary>Megoldás</summary>A $10 \cdot 10 = 100$ csoportközi pár útjai a két híd között oszlanak meg. A helyzet szimmetrikus, ezért pontosan fele-fele: mindkét híd köztessége 50 (Pythonnal ellenőrizve; a klikkeken belüli élek legfeljebb 6-ot kapnak). Az egyik törlése után a másikon megy mind a 100: ő jön következőnek, és a gráf a két klikkre esik szét.</details></li>
+  </ol>
+</details>
+
+<h3 id="s82-c">3. lépés: de hol álljunk meg?</h3>
+<p>A Girvan–Newman nem egy felbontást ad, hanem egy egész <b>sorozatot</b>: 1, 2, 3, … csoportot. Az Árvízhéten a 2 csoportos szint tetszetős. De melyik szintet válasszuk egy 1000 csúcsú gráfon, ahol nem tudunk ránézni?
+Ehhez egy <b>számra</b> van szükség, amely minden felbontást pontoz. Girvan és Newman erre vezette be a <b>modularitást</b> – a 8.1 „többletét”, minden közösségre összeadva.</p>
+
+<div class="box tip">
+  <span class="box-title">Előretekintés</span>
+  Az Árvízhét Girvan–Newman-szintjein a modularitás (a 8.3-ban számoljuk): 1 csoport: 0 · 2 csoport: <b>0,28</b> · 3 csoport: 0,215 · 4 csoport: 0,105 (vagy 0,115 – a holtversenyek feloldásától függ) · … · 7 csoport: $-0{,}155$.
+  A legjobb szint a két csoportos. A karateklubon a csúcs 5 csoportnál van ($Q = 0{,}401$), nem a kettéválásnál.
+</div>
+
+<div class="quiz" data-quiz="gh8-82"></div>
+</section>
+
+<!-- ===================================================== 8.3 -->
+<section id="s83">
+<h2>8.3 Modularitás ★★</h2>
+<p>A 8.1-ben minden közösségre kiszámoltuk, mennyivel van a belső élek aránya a véletlen szint fölött. Ha ezeket a többleteket összeadjuk, egyetlen számot kapunk az egész felbontásra.
+Ez a <b>modularitás</b> – a közösségkeresés legtöbbet használt (és legtöbbet vitatott) mérőszáma.</p>
+
+<h3 id="s83-a">1. lépés: a képlet – megfigyelt mínusz várható</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a két háromszög, három felbontás</span>
+  $m = 7$, a fokszámok $2, 2, 3, 3, 2, 2$. Minden közösségre: belső arány $L_c/m$ mínusz véletlen szint $(d_c/2m)^2$, majd összeg.
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>felbontás</th><th>közösségenként</th><th>összeg</th></tr>
+    <tr><td>$\{1, 2, 3\}$, $\{4, 5, 6\}$</td><td>$2 \cdot \big(\tfrac37 - (\tfrac{7}{14})^2\big) = 2 \cdot (0{,}429 - 0{,}25)$</td><td><b>0,357</b></td></tr>
+    <tr><td>$\{1, 2\}$, $\{3, 4, 5, 6\}$</td><td>$\big(\tfrac17 - (\tfrac{4}{14})^2\big) + \big(\tfrac47 - (\tfrac{10}{14})^2\big) = 0{,}061 + 0{,}061$</td><td>0,122</td></tr>
+    <tr><td>mindenki egy csoportban</td><td>$\tfrac77 - (\tfrac{14}{14})^2$</td><td>0</td></tr>
+    <tr><td>mindenki külön</td><td>$-\big[4 \cdot (\tfrac{2}{14})^2 + 2 \cdot (\tfrac{3}{14})^2\big] = -\tfrac{34}{196}$</td><td>$-0{,}173$</td></tr>
+  </table></div>
+  A természetes felbontás nyer. A „semmit sem vágunk” 0-t ér, a „mindent szétvágunk” negatívat.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – modularitás (Newman–Girvan, 2004)</span>
+  $$Q = \sum_c \left[\frac{L_c}{m} - \left(\frac{d_c}{2m}\right)^{2}\right]$$
+  Ugyanez csúcspárokra kiírva:
+  $$Q = \frac{1}{2m}\sum_{i, j}\left(A_{ij} - \frac{k_i k_j}{2m}\right)\delta(c_i, c_j),$$
+  ahol $\delta(c_i, c_j) = 1$, ha $i$ és $j$ egy közösségben van, különben 0.
+  <small>Miért ez a mérce? A <a href="../07-halozatmodellek/#s74-b">7.4</a> konfigurációs modelljében két csúcs között $k_i k_j/2m$ él várható. Egy közösség minden párjára (a sorrendet is számolva) összeadva:
+  $\sum_{i, j \in c} k_i k_j/2m = d_c^2/2m$, ami $d_c^2/4m$ élt jelent, vagyis az élek $(d_c/2m)^2$ részét. A modularitás tehát: <b>a közösségeken belül futó élek aránya, mínusz ugyanez egy olyan véletlen gráfban, amelyben mindenki fokszáma ugyanaz.</b>
+  A 6.2 jelöléseivel $Q = \sum_c e_{cc} - \sum_c a_c^2$ – a kategóriás asszortativitás számlálója.</small>
+</div>
+
+<details class="box">
+  <summary>📐 A két alak egyenlősége</summary>
+  A páros alakban az $i, j$ összegzés minden rendezett párt számol, a $j = i$-t is. Egy $c$ közösségen belül $\sum_{i, j \in c} A_{ij} = 2L_c$ (minden belső él kétszer, mindkét irányból),
+  és $\sum_{i, j \in c} k_i k_j = \big(\sum_{i \in c} k_i\big)^2 = d_c^2$. Így
+  $$\frac{1}{2m}\sum_c\left(2L_c - \frac{d_c^2}{2m}\right) = \sum_c\left(\frac{L_c}{m} - \frac{d_c^2}{4m^2}\right).$$
+</details>
+
+<div class="box thm">
+  <span class="box-title">Tulajdonságok</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Egyetlen közösség:</b> $Q = 0$ (minden él belül, és a véletlen szint is 1).</li>
+    <li><b>Minden csúcs külön:</b> $Q = -\sum_i (k_i/2m)^2 \lt 0$.</li>
+    <li><b>Felső korlát:</b> $Q \lt 1$. Sok, egymástól elszigetelt, egyforma közösségnél közelít 1-hez. A valódi hálózatok legjobb felbontásai jellemzően $0{,}3$ és $0{,}7$ közé esnek.</li>
+    <li><b>Alsó korlát:</b> $Q \ge -\tfrac12$. Ezt két csoport éri el, ha minden él köztük fut (páros gráf a két oldalával – lásd 8.6).</li>
+  </ul>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy közösség kézzel</span>
+    Egy 20 élű gráfban egy közösségnek 6 belső éle van, a fokszámösszege 16. Mennyivel járul hozzá a $Q$-hoz?
+    <details><summary>Megoldás</summary>$6/20 - (16/40)^2 = 0{,}3 - 0{,}16 = 0{,}14$.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a karateklub kettéválása</span>
+    A valódi két tábor: 67 belső él (a 78-ból), fokszámösszegek 81 és 75. Mennyi a $Q$?
+    <details><summary>Megoldás</summary>$67/78 - (81/156)^2 - (75/156)^2 = 0{,}859 - 0{,}270 - 0{,}231 \approx 0{,}358$. A belső élek közösségenként: a 8.1-ben már kiszámolt többlet ugyanez.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>$d_c/m$ a $d_c/2m$ helyett.</b> A véletlen szint az <em>élvégek</em> aránya, és élvégből $2m$ van. A két háromszögnél $d_c/m = 1$ lenne – értelmetlen.</li>
+    <li><b>A négyzetet elhagyni.</b> Egy él <em>mindkét</em> végének a közösségbe kell esnie: $a_c \cdot a_c$.</li>
+    <li><b>A belső élt kétszer osztani.</b> Az első alakban $L_c/m$ (nem $2L_c/m$); a páros alakban viszont $\tfrac{1}{2m}$ előtt áll a dupla számolás miatt. Ne keverd a kettőt.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – modularitás kézzel</summary>
+  <ol>
+    <li>A két háromszög + híd gráfban mennyi a $Q$ a $\{1, 2\}$, $\{3, 4\}$, $\{5, 6\}$ felbontásra?
+      <details><summary>Megoldás</summary>Belső élek: 1–2, 3–4, 5–6 – mindegyik 1. Fokszámösszegek: 4, 6, 4. $Q = 3/7 - (16 + 36 + 16)/196 = 0{,}4286 - 0{,}3469 \approx 0{,}082$.</details></li>
+    <li>Egy négyzet ($1$–$2$–$3$–$4$–$1$, $m = 4$, minden fok 2): mennyi a $Q$ az $\{1, 2\}$, $\{3, 4\}$ felbontásra?
+      <details><summary>Megoldás</summary>Mindkét csoport: 1 belső él, $d = 4$. $2 \cdot (1/4 - (4/8)^2) = 2 \cdot (0{,}25 - 0{,}25) = 0$. A négyzetnek nincs közösségszerkezete: ez a felbontás csak a véletlen szintet hozza.</details></li>
+    <li>Ugyanitt az $\{1, 3\}$, $\{2, 4\}$ felbontás?
+      <details><summary>Megoldás</summary>Belső él nincs (az 1–3 és 2–4 nem él). $2 \cdot (0 - 1/4) = -0{,}5$: minden él a csoportok között fut – ez a lehető legrosszabb.</details></li>
+    <li>Egy közösség fokszámösszege a teljes $2m$ fele. Legalább hány százalék belső él kell, hogy pozitívan járuljon hozzá?
+      <details><summary>Megoldás</summary>$(1/2)^2 = 0{,}25$: az élek több mint 25%-ának kell benne futnia.</details></li>
+    <li>(nehezebb) Mutasd meg, hogy két közösség <b>összevonása</b> pontosan akkor növeli $Q$-t, ha a köztük futó élek száma $\ell_{12}$ nagyobb, mint $d_1 d_2/2m$!
+      <details><summary>Megoldás</summary>Összevonás után $L = L_1 + L_2 + \ell_{12}$, $d = d_1 + d_2$. A változás: $\ell_{12}/m - [(d_1 + d_2)^2 - d_1^2 - d_2^2]/4m^2 = \ell_{12}/m - d_1 d_2/2m^2 = \tfrac1m(\ell_{12} - d_1 d_2/2m)$.
+        Ez akkor pozitív, ha a két csoport között több él fut, mint a konfigurációs modellben várható. Ezt használja a 8.4 Louvain-algoritmusa.</details></li>
+  </ol>
+</details>
+
+<h3 id="s83-b">2. lépés: az Árvízhét felbontásai – melyik nyer?</h3>
+<p>Hét csúcsnak 877 felbontása van: kipróbálhatjuk mindet. A legjobbak és néhány érdekes másik (súly nélkül, $m = 10$, fokszámok $\mathrm{Ko}$ 4, $\mathrm{Vi}$ 3, $\mathrm{Po}$ 4, $\mathrm{La}$ 2, $\text{Ön}$ 2, $\mathrm{Sz}$ 3, $\mathrm{Kl}$ 2):</p>
+<div class="tw" style="overflow-x:auto"><table>
+  <tr><th>felbontás</th><th>$Q$</th><th>helyezés a 877-ből</th></tr>
+  <tr><td>$\{\mathrm{Ko}, \mathrm{Vi}, \mathrm{Sz}, \mathrm{Kl}\}$ · $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$</td><td><b>0,280</b></td><td>1.</td></tr>
+  <tr><td>$\{\mathrm{Ko}, \mathrm{Sz}, \mathrm{Kl}\}$ · $\{\mathrm{Vi}\}$ · $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$</td><td>0,215</td><td>2.</td></tr>
+  <tr><td>$\{\mathrm{Ko}, \mathrm{Sz}, \mathrm{Kl}\}$ · $\{\mathrm{Vi}, \mathrm{Po}, \mathrm{La}, \text{Ön}\}$</td><td>0,195</td><td>3.</td></tr>
+  <tr><td>keretek: $\{\mathrm{Ko}, \mathrm{Vi}\}$ · $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$ · $\{\mathrm{Sz}, \mathrm{Kl}\}$</td><td>0,155</td><td>7.</td></tr>
+  <tr><td>keretek, a $\mathrm{Po}$ a védekezésnél: $\{\mathrm{Ko}, \mathrm{Vi}, \mathrm{Po}\}$ · $\{\mathrm{La}, \text{Ön}\}$ · $\{\mathrm{Sz}, \mathrm{Kl}\}$</td><td>0,095</td><td>–</td></tr>
+  <tr><td>mindenki egy csoportban / mindenki külön</td><td>0 / $-0{,}155$</td><td>–</td></tr>
+</table></div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a győztes kézzel</span>
+    Számold ki a két csoportos felbontás $Q$-ját!
+    <details><summary>Megoldás</summary>8.1-ből: $L = 5$, $d = 12$ és $L = 3$, $d = 8$. $Q = (0{,}5 - 0{,}36) + (0{,}3 - 0{,}16) = 0{,}14 + 0{,}14 = 0{,}28$.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a keretek kézzel</span>
+    Számold ki a keretek szerinti háromcsoportos felbontás $Q$-ját!
+    <details><summary>Megoldás</summary>$\{\mathrm{Ko}, \mathrm{Vi}\}$: $1/10 - (7/20)^2 = 0{,}1 - 0{,}1225 = -0{,}0225$. $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$: $0{,}14$. $\{\mathrm{Sz}, \mathrm{Kl}\}$: $1/10 - (5/20)^2 = 0{,}0375$. Összesen $0{,}155$.
+      A $\{\mathrm{Ko}, \mathrm{Vi}\}$ <b>negatív</b>: két ennyire „népszerű” szereplő egyetlen közös éle kevesebb a vártnál. Ez húzza le a keretfelbontást.</details>
+  </div>
+</div>
+
+<div class="widget" data-widget="modularity-painter"></div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – felbontások összevetése</summary>
+  <ol>
+    <li>Számold ki a $\{\mathrm{Ko}, \mathrm{Sz}, \mathrm{Kl}\}$ · $\{\mathrm{Vi}\}$ · $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$ felbontás $Q$-ját!
+      <details><summary>Megoldás</summary>$\{\mathrm{Ko}, \mathrm{Sz}, \mathrm{Kl}\}$: 3 belső él, $d = 9$: $0{,}3 - 0{,}2025 = 0{,}0975$. $\{\mathrm{Vi}\}$: $-(3/20)^2 = -0{,}0225$. $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$: $0{,}14$. Összesen $0{,}215$.</details></li>
+    <li>Miért rosszabb ez a győztesnél, ha a $\mathrm{Vi}$ csak két éllel kötődik a $\{\mathrm{Ko}, \mathrm{Sz}, \mathrm{Kl}\}$-hez?
+      <details><summary>Megoldás</summary>Mert a két él több, mint ami várható: $d_1 d_2/2m = 9 \cdot 3/20 = 1{,}35 \lt 2$. Az összevonás $\tfrac{1}{10}(2 - 1{,}35) = 0{,}065$-tel növeli $Q$-t: $0{,}215 + 0{,}065 = 0{,}28$.</details></li>
+    <li>Mennyi a „mindenki külön” felbontás $Q$-ja az Árvízhéten?
+      <details><summary>Megoldás</summary>$-(16 + 9 + 16 + 4 + 4 + 9 + 4)/400 = -62/400 = -0{,}155$.</details></li>
+    <li>Ha a $\mathrm{Po}$-t a győztes felbontásban átteszed a másik csoportba ($\{\mathrm{Ko}, \mathrm{Vi}, \mathrm{Sz}, \mathrm{Kl}, \mathrm{Po}\}$ · $\{\mathrm{La}, \text{Ön}\}$), mennyi lesz a $Q$?
+      <details><summary>Megoldás</summary>Első: 7 belső él, $d = 16$: $0{,}7 - 0{,}64 = 0{,}06$. Második: 1 él, $d = 4$: $0{,}1 - 0{,}04 = 0{,}06$. $Q = 0{,}12$ – sokkal rosszabb.</details></li>
+    <li>(nehezebb) Lehet-e egy felbontás $Q$-ja pozitív, ha valamelyik közösségének hozzájárulása negatív? Keress példát a fenti táblázatban!
+      <details><summary>Megoldás</summary>Igen. A 2. helyezett felbontásban a $\{\mathrm{Vi}\}$ hozzájárulása $-0{,}0225$ (egy magányos csúcs mindig negatív), mégis $Q = 0{,}215$, mert a másik kettő bőven pozitív.
+        A negatív tag viszont jelzés: ha a $\mathrm{Vi}$-t egy szomszédos közösséghez vonod, $Q$ nő (0,28 lesz). A jó algoritmus az ilyen tagokat „bedolgozza”.</details></li>
+  </ol>
+</details>
+
+<h3 id="s83-c">3. lépés: súlyozott gráf – számít, hányszor szerepelnek együtt</h3>
+<p>Az Árvízhét élein súly is van: a közös cikkek száma. A modularitás súlyozott változatában minden „élszám” helyére a <b>súlyösszeg</b> kerül.</p>
+<div class="box def">
+  <span class="box-title">Definíció – súlyozott modularitás</span>
+  $$Q^w = \sum_c\left[\frac{W_c}{W} - \left(\frac{s_c}{2W}\right)^{2}\right],$$
+  ahol $W$ az összes élsúly, $W_c$ a $c$-n belüli élek súlyösszege, $s_c$ a $c$ csúcsainak erősségösszege (erősség: a csúcs éleinek súlyösszege, <a href="../05-centralitas/#s51-b">5.1</a>).
+  <small>Miért ugyanaz a logika? A súly „hány párhuzamos él” – ha a 3-as súlyt 3 élnek gondolod, a súlyozatlan képletet kapod vissza.</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa – súlyozva más a sorrend</span>
+  Az Árvízhét összsúlya $W = 18$, az erősségek: $\mathrm{Ko}$ 6, $\mathrm{Vi}$ 5, $\mathrm{Po}$ 8, $\mathrm{La}$ 5, $\text{Ön}$ 5, $\mathrm{Sz}$ 4, $\mathrm{Kl}$ 3. Mennyi a győztes kétcsoportos és a keretek szerinti felbontás $Q^w$-je?
+  <details><summary>Megoldás</summary>Kétcsoportos: $\{\mathrm{Ko}, \mathrm{Vi}, \mathrm{Sz}, \mathrm{Kl}\}$ belső súlya 7, erőssége 18; $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$ belső súlya 7, erőssége 18. $Q^w = 2 \cdot (7/18 - 1/4) \approx 0{,}278$.
+    Keretek: $\{\mathrm{Ko}, \mathrm{Vi}\}$: $2/18 - (11/36)^2 \approx 0{,}018$; $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$: $7/18 - 1/4 \approx 0{,}139$; $\{\mathrm{Sz}, \mathrm{Kl}\}$: $2/18 - (7/36)^2 \approx 0{,}073$. $Q^w \approx 0{,}230$.
+    A kétcsoportos még mindig nyer, de a keretfelbontás a súlyokkal a <b>2. helyre</b> lép elő (súly nélkül a 7. volt): a $\mathrm{Ko}$–$\mathrm{Vi}$ és az $\mathrm{Sz}$–$\mathrm{Kl}$ kétszer is együtt szerepel.</details>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Súlyozott belső élhez súlyozatlan fokszámot párosítani.</b> Ha $W_c$ súlyösszeg, a véletlen szinthez is erősség kell, és a nevező $2W$, nem $2m$.</li>
+    <li><b>Azt hinni, hogy a súly csak finomít.</b> A súlyozás átrendezheti a felbontások sorrendjét – és ezzel a „talált” közösségeket is. Közöld, melyiket használtad.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – súlyozott modularitás</summary>
+  <ol>
+    <li>Egy háromszögben az élsúlyok 3, 1, 1. Mennyi az egyes csúcsok erőssége, és $W$?
+      <details><summary>Megoldás</summary>A 3-as él két végpontja: $3 + 1 = 4$; a harmadik csúcs: $1 + 1 = 2$. $W = 5$ (erősségösszeg $10 = 2W$).</details></li>
+    <li>Mennyi a súlyozott $Q$ a $\{\mathrm{Ko}, \mathrm{Vi}, \mathrm{Po}\}$ · $\{\mathrm{La}, \text{Ön}\}$ · $\{\mathrm{Sz}, \mathrm{Kl}\}$ felbontásban?
+      <details><summary>Megoldás</summary>$\{\mathrm{Ko}, \mathrm{Vi}, \mathrm{Po}\}$: belső súly $2 + 2 + 2 = 6$, erősség $6 + 5 + 8 = 19$: $6/18 - (19/36)^2 \approx 0{,}333 - 0{,}279 = 0{,}055$. $\{\mathrm{La}, \text{Ön}\}$: $3/18 - (10/36)^2 \approx 0{,}167 - 0{,}077 = 0{,}089$. $\{\mathrm{Sz}, \mathrm{Kl}\}$: $0{,}073$. $Q^w \approx 0{,}218$ (súly nélkül csak 0,095 volt).</details></li>
+    <li>Az $\{\mathrm{Sz}, \mathrm{Kl}\}$ csoport hozzájárulása súly nélkül 0,0375, súlyozva 0,073. Miért nőtt?
+      <details><summary>Megoldás</summary>Súly nélkül 1 belső él a 10-ből; súlyozva 2 a 18-ból (11%). Az erősségük ($4 + 3 = 7$ a 36-ból) kicsi, a véletlen szint csak $0{,}038$. A kétszeres együttszereplés „erősebb” közösséggé teszi őket.</details></li>
+    <li>A $\{\mathrm{Ko}, \mathrm{Vi}\}$ hozzájárulása súly nélkül negatív, súlyozva pozitív. Mi változott?
+      <details><summary>Megoldás</summary>Súly nélkül $0{,}1 - 0{,}1225 \lt 0$. Súlyozva $2/18 \approx 0{,}111$ belül, a véletlen szint $(11/36)^2 \approx 0{,}093$: kis pozitív többlet. A két közös cikk többet nyom, mint egy sima él.</details></li>
+    <li>(nehezebb) Ha minden élsúlyt megduplázol, hogyan változik $Q^w$?
+      <details><summary>Megoldás</summary>Sehogy: $W_c/W$ és $s_c/2W$ is arány, a kétszeres szorzó kiesik. A modularitás csak a súlyok <em>arányára</em> érzékeny.</details></li>
+  </ol>
+</details>
+
+<h3 id="s83-d">4. lépés: a felbontási határ – amikor a kis közösségek összeolvadnak</h3>
+<p>A modularitás véletlen szintje az <b>egész</b> gráf méretétől függ ($2m$ a nevezőben). Ezért egy nagy gráfban két kis csoport közti egyetlen él is „meglepőnek” számít – és a modularitás összevonja őket.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – tíz háromszög gyűrűben</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="a1-a2,a1-a3,a2-a3,a3-b1,b1-b2,b1-b3,b2-b3,b3-c1,c1-c2,c1-c3,c2-c3,c3-d1,d1-d2,d1-d3,d2-d3,d3-e1,e1-e2,e1-e3,e2-e3,e3-a1"
+      data-color="a1:--setA a2:--setA a3:--setA b1:--setA b2:--setA b3:--setA c1:--setB c2:--setB c3:--setB d1:--setB d2:--setB d3:--setB e1:--setC e2:--setC e3:--setC"
+      data-w="250" data-h="200" data-r="9" data-caption="Kicsiben: 5 háromszög gyűrűben. A színek egy „páros” összevonást mutatnak."></div></div>
+    <div>
+      Tíz háromszöget fűzz gyűrűbe, a szomszédosakat egy-egy éllel összekötve: 30 csúcs, $10 \cdot 3 + 10 = 40$ él. Minden háromszög fokszámösszege $3 \cdot 2 + 2 = 8$.
+      <ul style="margin:.2rem 0">
+        <li><b>Minden háromszög külön:</b> $Q = 10 \cdot \big(3/40 - (8/80)^2\big) = 10 \cdot 0{,}065 = 0{,}650$.</li>
+        <li><b>Szomszédos párok összevonva</b> (5 közösség, mindegyik 7 belső éllel, $d = 16$): $Q = 5 \cdot \big(7/40 - (16/80)^2\big) = 5 \cdot 0{,}135 = 0{,}675$.</li>
+      </ul>
+      A párok <b>nyernek</b> – pedig a szemnek nyilvánvaló, hogy a háromszögek a közösségek.
+    </div>
+  </div>
+</div>
+
+<div class="box thm">
+  <span class="box-title">Tétel – felbontási határ (Fortunato–Barthélemy, 2007)</span>
+  Két, egyetlen éllel összekötött közösség összevonása akkor növeli a modularitást, ha a köztük futó él több, mint a várható: $1 \gt d_1 d_2/2m$, vagyis $d_1 d_2 \lt 2m$.
+  Ha a gráf elég nagy ($2m$ nő), ez <b>bármilyen sűrű</b> kis közösségre teljesül. Durván: a $\sqrt{2m}$-nél kisebb fokszámösszegű közösségeket a modularitás nem tudja megkülönböztetni a szomszédjuktól.
+  <small>A gyűrűben $d_1 = d_2 = l(l - 1) + 2$ ($l$ csúcsú klikkek), $2m = n_c \cdot d$, így az összevonás nyer, ha $n_c \gt l(l - 1) + 2$. Háromszögeknél ez 8: 8 háromszögnél holtverseny ($0{,}625$ mindkettő), 6-nál a külön háromszögek nyernek, 10-nél a párok.</small>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>„A modularitás-maximum a valódi közösségeket adja.”</b> Nagy hálózatban a kis, de nagyon sűrű csoportok (pl. egy kis lapcsoport, egy szűk szakértői kör) beleolvadhatnak egy nagyobba. A 8.4 felbontási paramétere ezen segít.</li>
+    <li><b>Két hálózat $Q$-ját összevetni.</b> Egy 30 és egy 3000 csúcsú gráf modularitása nem összemérhető: a véletlen szint és a felbontási határ is a mérettől függ.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – felbontási határ</summary>
+  <ol>
+    <li>Mennyi a $Q$ 6 háromszög gyűrűjén, ha minden háromszög külön közösség? És ha páronként összevonjuk őket?
+      <details><summary>Megoldás</summary>$m = 24$. Külön: $6 \cdot (3/24 - (8/48)^2) = 6 \cdot (0{,}125 - 0{,}0278) \approx 0{,}583$. Párok: $3 \cdot (7/24 - (16/48)^2) = 3 \cdot (0{,}2917 - 0{,}1111) \approx 0{,}542$. Itt még a háromszögek nyernek.</details></li>
+    <li>Hány háromszögnél van holtverseny? Ellenőrizd 8-ra!
+      <details><summary>Megoldás</summary>$n_c = 3 \cdot 2 + 2 = 8$. $m = 32$: külön $8 \cdot (3/32 - (8/64)^2) = 0{,}625$; párok $4 \cdot (7/32 - (16/64)^2) = 0{,}625$. ✓</details></li>
+    <li>Ötös klikkekből ($K_5$) álló gyűrűnél hány klikktől olvadnak össze a szomszédok?
+      <details><summary>Megoldás</summary>$l(l - 1) + 2 = 22$: 22-nél több klikknél (pl. 24-nél: külön 0,867, párok 0,871).</details></li>
+    <li>Egy 10 000 élű hálózatban két közösség fokszámösszege 50 és 60, és egyetlen él köti össze őket. Összevonja-e őket a modularitás?
+      <details><summary>Megoldás</summary>$d_1 d_2/2m = 3000/20\,000 = 0{,}15 \lt 1$: igen, az egy él „meglepően sok”, az összevonás növeli $Q$-t.</details></li>
+    <li>(nehezebb) Miért függ a felbontási határ a gráf <em>egészétől</em>, és mit jelent ez, ha egy hírkorpuszt kibővítesz egy új témával?
+      <details><summary>Megoldás</summary>A véletlen szint nevezőjében $2m$ áll. Ha új témát (sok új élt) adsz a korpuszhoz, $2m$ nő, és a régi kis közösségek közti egy-egy él „meglepőbbé” válik – a régi rész felbontása is megváltozhat, pedig ott semmi sem változott. A közösségek tehát nem „helyi” tulajdonságok.</details></li>
+  </ol>
+</details>
+
+<div class="box history">
+  <span class="box-title">📜 A modularitás sikere és kritikája</span>
+  Newman és Girvan 2004-ben javasolta a modularitást a dendrogram vágására; Newman (2006) már közvetlenül maximalizálta. Két évtizedig a terület alapmércéje lett.
+  A kritikák is gyorsan jöttek: a maximum megtalálása NP-nehéz (Brandes és mtsai, 2008), van felbontási határ (Fortunato–Barthélemy, 2007), a közel optimális felbontások nagyon különbözhetnek (Good, de Montjoye és Clauset, 2010), és véletlen gráfban is nagy lehet (Guimerà és mtsai, 2004 – lásd 8.7).
+  Mindezek ellenére ma is a leggyakrabban jelentett szám – a 8.7 mutatja, hogyan érdemes használni.
+</div>
+
+<div class="quiz" data-quiz="gh8-83"></div>
+</section>
+
+<!-- ===================================================== 8.4 -->
+<section id="s84">
+<h2>8.4 Louvain és Leiden ★★</h2>
+<p>Most már van egy számunk ($Q$), amelyet maximalizálni szeretnénk. Az összes felbontást nem próbálhatjuk ki, és a pontos maximum megtalálása NP-nehéz.
+A gyakorlatban egy <b>mohó</b> eljárás győzött: a <b>Louvain-algoritmus</b> (Blondel és mtsai, 2008; a nevét a szerzők belgiumi egyeteméről kapta). Másodpercek alatt fut millió csúcsú gráfon is.</p>
+
+<h3 id="s84-a">1. lépés: helyi áthelyezés – minden csúcs oda megy, ahol a legjobb</h3>
+<p>Kezdetben minden csúcs külön közösség. Sorra vesszük a csúcsokat, és mindegyiket átrakjuk abba a <b>szomszédos</b> közösségbe, ahol a $Q$ a legtöbbet nő. Ha egyik sem javít, marad.
+Ehhez a 8.3 utolsó gyakorlófeladatának képlete kell, egyetlen csúcsra.</p>
+
+<div class="box def">
+  <span class="box-title">A Louvain lépésének képlete</span>
+  Ha az $i$ csúcsot (amely most egyedül áll) a $C$ közösségbe tesszük, a modularitás változása
+  $$\Delta Q = \frac{k_{i,C}}{m} - \frac{\Sigma_C\, k_i}{2m^2},$$
+  ahol $k_{i,C}$ az $i$-ből $C$-be futó élek száma, $\Sigma_C$ pedig a $C$ csúcsainak fokszámösszege.
+  <small>Miért? Ez két közösség összevonása (8.3): az egyik maga az $i$ ($d_1 = k_i$), a másik $C$ ($d_2 = \Sigma_C$), köztük $\ell_{12} = k_{i,C}$ él. Az első tag a megnyert belső élek, a második a megnövő véletlen szint.
+  Ha $i$ egy közösségben van, először „kivesszük” (gondolatban egyedül marad), és a saját régi közösségét is jelöltként kezeljük – így a „marad” is egy lehetőség.</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a két háromszög, sorrendben 1, 2, …, 6</span>
+  $m = 7$, így $\Delta Q = k_{i,C}/7 - \Sigma_C k_i/98$. Holtversenynél a kisebb sorszámú közösséget választjuk.
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>csúcs ($k_i$)</th><th>jelöltek: $\Delta Q$</th><th>döntés</th><th>állapot</th></tr>
+    <tr><td>1 (2)</td><td>$\{2\}$: $1/7 - 2 \cdot 2/98 = 0{,}102$ · $\{3\}$: $1/7 - 3 \cdot 2/98 = 0{,}082$</td><td>→ $\{2\}$</td><td>$\{1, 2\}$</td></tr>
+    <tr><td>2 (2)</td><td>$\{1\}$: 0,102 · $\{3\}$: 0,082</td><td>marad</td><td>$\{1, 2\}$</td></tr>
+    <tr><td>3 (3)</td><td>$\{1, 2\}$: $2/7 - 4 \cdot 3/98 = 0{,}163$ · $\{4\}$: $1/7 - 3 \cdot 3/98 = 0{,}051$</td><td>→ $\{1, 2\}$</td><td>$\{1, 2, 3\}$</td></tr>
+    <tr><td>4 (3)</td><td>$\{1, 2, 3\}$: $1/7 - 7 \cdot 3/98 = -0{,}071$ · $\{5\}$: 0,082 · $\{6\}$: 0,082</td><td>→ $\{5\}$</td><td>$\{4, 5\}$</td></tr>
+    <tr><td>5 (2)</td><td>$\{4\}$: $1/7 - 3 \cdot 2/98 = 0{,}082$ · $\{6\}$: $1/7 - 2 \cdot 2/98 = 0{,}102$</td><td>→ $\{6\}$</td><td>$\{4\}$, $\{5, 6\}$</td></tr>
+    <tr><td>6 (2)</td><td>$\{5\}$: 0,102 · $\{4\}$: 0,082</td><td>marad</td><td>$\{5, 6\}$</td></tr>
+  </table></div>
+  Az első kör után: $\{1, 2, 3\}$, $\{4\}$, $\{5, 6\}$. A második körben a 4-es: $\{5, 6\}$-hoz $2/7 - 4 \cdot 3/98 = 0{,}163$ – átmegy. Utána senki sem mozdul: <b>$\{1, 2, 3\}$, $\{4, 5, 6\}$</b>, $Q = 0{,}357$.
+  Figyeld meg az 5-ös lépését: elhagyta a 4-est, mert a 6-os „olcsóbb” társ volt (kisebb a fokszáma). Mohó döntés – a következő kör javította ki.
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – negatív $\Delta Q$</span>
+    Miért nem megy a 4-es az $\{1, 2, 3\}$-hoz, pedig van vele közös éle?
+    <details><summary>Megoldás</summary>Egyetlen él köti össze ($k_{i,C} = 1$), de a közösség fokszámösszege már 7, és a 4-es fokszáma 3: a véletlen szint $7 \cdot 3/98 \approx 0{,}214$-gyel nőne, a nyereség csak $1/7 \approx 0{,}143$. $\Delta Q = -0{,}071 \lt 0$.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – az Árvízhét Vízügye</span>
+    Tegyük fel, hogy már kialakult a $\{\mathrm{Ko}, \mathrm{Sz}, \mathrm{Kl}\}$ ($\Sigma = 9$) és a $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$ ($\Sigma = 8$), a $\mathrm{Vi}$ ($k = 3$) egyedül áll. Hova megy?
+    <details><summary>Megoldás</summary>$m = 10$. Az első csoportba 2 éle fut ($\mathrm{Ko}$, $\mathrm{Sz}$): $2/10 - 9 \cdot 3/200 = 0{,}2 - 0{,}135 = 0{,}065$. A másodikba 1 ($\mathrm{Po}$): $0{,}1 - 8 \cdot 3/200 = -0{,}02$. Az elsőbe megy, $Q$: $0{,}215 \to 0{,}28$.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A csúcsot nem venni ki a saját közösségéből.</b> Ha a $\Sigma_C$-be a saját fokszáma is beleszámít, a „marad” lehetőség hamis értéket kap.</li>
+    <li><b>Nem szomszédos közösséget is vizsgálni.</b> Felesleges: ha $k_{i,C} = 0$, a $\Delta Q$ biztosan negatív. Ettől gyors az algoritmus – csak a szomszédokat nézi.</li>
+    <li><b>Egy kör után megállni.</b> A kör addig ismétlődik, amíg van javító lépés – a két háromszögnél is kellett a második.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – $\Delta Q$ kézzel</summary>
+  <ol>
+    <li>Egy 20 élű gráfban az $i$ csúcs fokszáma 4, és 3 éle fut a $C$ közösségbe, amelynek fokszámösszege 10. Mennyi a $\Delta Q$?
+      <details><summary>Megoldás</summary>$3/20 - 10 \cdot 4/800 = 0{,}15 - 0{,}05 = 0{,}10$.</details></li>
+    <li>Ugyanez az $i$ egy másik, $D$ közösségbe 2 éllel kötődik, $\Sigma_D = 4$. Hová megy?
+      <details><summary>Megoldás</summary>$2/20 - 4 \cdot 4/800 = 0{,}1 - 0{,}02 = 0{,}08 \lt 0{,}10$: a $C$-be.</details></li>
+    <li>Mekkora $\Sigma_C$ mellett lenne negatív az 1. feladat $\Delta Q$-ja?
+      <details><summary>Megoldás</summary>$3/20 \lt \Sigma_C \cdot 4/800 \iff \Sigma_C \gt 30$.</details></li>
+    <li>A két háromszögben a 3-as csúcs a második körben $\{1, 2\}$-ben van. Mennyi a „marad” $\Delta Q$-ja, és mennyi az $\{4, 5, 6\}$-ba lépésé?
+      <details><summary>Megoldás</summary>Kivéve: $\{1, 2\}$ ($\Sigma = 4$), 2 él: $2/7 - 4 \cdot 3/98 = 0{,}163$. $\{4, 5, 6\}$ ($\Sigma = 7$), 1 él: $1/7 - 21/98 = -0{,}071$. Marad.</details></li>
+    <li>(nehezebb) Indulj a két háromszögben a 4, 5, 6, 3, 2, 1 sorrenddel! Mi lesz az első kör után?
+      <details><summary>Megoldás</summary>4: $\{3\}$: $1/7 - 9/98 = 0{,}051$; $\{5\}$, $\{6\}$: 0,082 → $\{4, 5\}$. 5: $\{4\}$: 0,082; $\{6\}$: 0,102 → $\{5, 6\}$, a 4-es egyedül. 6: marad. 3: $\{1\}$, $\{2\}$: $1/7 - 6/98 = 0{,}082$; $\{4\}$: 0,051 → $\{1, 3\}$. 2: $\{1, 3\}$: $2/7 - 5 \cdot 2/98 = 0{,}184$ → $\{1, 2, 3\}$. 1: marad.
+        Az első kör után ugyanaz, mint az 1, …, 6 sorrendnél: $\{1, 2, 3\}$, $\{4\}$, $\{5, 6\}$ – és a második kör itt is helyre teszi a 4-est.</details></li>
+  </ol>
+</details>
+
+<h3 id="s84-b">2. lépés: összevonás – a közösségekből szuperpontok</h3>
+<p>Ha az első fázis megállt, a közösségeket egy-egy <b>szuperponttá</b> húzzuk össze. A belső élekből <b>hurok</b> lesz (a súlya a belső élek száma), a közösségek közötti élekből egy súlyozott él.
+Ezen az új, kisebb gráfon újra lefut az első fázis – most már egész közösségek vándorolnak. Ez a két fázis váltakozik, amíg semmi sem változik.</p>
+
+<div class="box example">
+  <span class="box-title">Példa – a két háromszög összevonva</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="A-B" data-weights="1" data-show-weights data-color="A:--setA B:--setB" data-pos="A:0,0 B:1,0" data-w="220" data-h="90" data-r="18"
+      data-caption="Két szuperpont; mindkettőn egy 3-as súlyú hurok (a belső élek)"></div></div>
+    <div>Az $A = \{1, 2, 3\}$ és a $B = \{4, 5, 6\}$ közt 1 él fut, mindkettő „fokszáma” 7. Megéri-e összevonni őket?
+      <details><summary>Megoldás</summary>$\Delta Q = 1/7 - 7 \cdot 7/98 = 0{,}143 - 0{,}5 = -0{,}357$. Nem – az algoritmus megáll. ($-0{,}357$: éppen a $Q$ elvesztése, hiszen egy közösség $Q$-ja 0.)</details></div>
+  </div>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa – a karateklub szintjei</span>
+  Egy futásban (a widget 1-es magjával) az első fázis után 9 közösség marad ($Q = 0{,}311$). Az összevonás után a 9 szuperponton még 5 áthelyezés történik: 4 közösség, $Q = 0{,}419$. A harmadik szinten már senki sem mozdul.
+  Miért gyorsabb ez, mint a Girvan–Newman?
+  <details><summary>Megoldás</summary>Az első fázis minden csúcsnál csak a szomszédos közösségeket nézi – egy kör kb. $m$ művelet. A második szinttől a gráf már kicsi. A Girvan–Newman minden törlés után a teljes köztességet újraszámolja ($O(nm)$, $m$-szer).</details>
+</div>
+
+<div class="widget" data-widget="louvain-steps"></div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A hurkot elfelejteni.</b> A szuperpont fokszámában a belső élek kétszer szerepelnek (hurok); nélkülük a véletlen szint rossz.</li>
+    <li><b>„A Louvain a maximumot adja.”</b> Mohó: helyi optimumban áll meg. A karateklubon 100 futásból a $Q$ nagyjából 0,38 és 0,42 között szóródik (Python; a pontos tartomány a magoktól és a programverziótól függ), és a közösségek száma 3 vagy 4.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – összevonás</summary>
+  <ol>
+    <li>Három szuperpont: $A$ ($\Sigma = 10$), $B$ ($\Sigma = 6$), $C$ ($\Sigma = 4$); $m = 10$; $A$–$B$ között 3 él, $B$–$C$ között 1. Megéri-e $B$-t $A$-hoz vonni?
+      <details><summary>Megoldás</summary>$3/10 - 10 \cdot 6/200 = 0{,}3 - 0{,}3 = 0$. Pontosan semleges: a Louvain (szigorú javítást kérve) nem mozdítja.</details></li>
+    <li>És $C$-t $B$-hez?
+      <details><summary>Megoldás</summary>$1/10 - 6 \cdot 4/200 = 0{,}1 - 0{,}12 = -0{,}02$. Nem.</details></li>
+    <li>Egy szuperpont 4 csúcsból áll, köztük 5 él, és 3 él fut ki belőle. Mennyi a hurok súlya és a szuperpont fokszáma?
+      <details><summary>Megoldás</summary>A hurok súlya 5 (a belső élek); a fokszám $2 \cdot 5 + 3 = 13$ (= $d_c$, a 8.1 képlete).</details></li>
+    <li>Miért nem változik a $Q$, amikor a közösségeket szuperpontokká húzzuk össze?
+      <details><summary>Megoldás</summary>Az összevont gráfban minden szuperpont egy külön közösség; a belső élek a hurokban, a fokszámösszeg a szuperpont fokszámában van megőrizve – a $Q$ képletének minden tagja ugyanaz.</details></li>
+    <li>(nehezebb) A gyűrűbe fűzött 10 háromszögön (8.3) mit ad a Louvain?
+      <details><summary>Megoldás</summary>Az első fázis a háromszögeket találja meg (a 10 háromszög a helyi optimum). Az összevonás után viszont két szomszédos háromszög egyesítése $\Delta Q = 1/40 - 8 \cdot 8/3200 = 0{,}025 - 0{,}02 = 0{,}005 \gt 0$: párok lesznek – a felbontási határ itt is működik. (A w0 Louvain-ja 3 magból kétszer 5, egyszer 6 közösséget adott: a párosítás a sorrendtől függ, és páratlan maradék is lehet.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s84-c">3. lépés: a felbontási paraméter – nagyító a közösségekhez</h3>
+<p>A felbontási határ ellen egy egyszerű módosítás segít: a véletlen szintet egy $\gamma$ számmal szorozzuk. Nagy $\gamma$: a véletlen szint „drága”, csak a nagyon sűrű, kis csoportok érik meg – sok kis közösség.
+Kis $\gamma$: kevés, nagy közösség.</p>
+
+<div class="box def">
+  <span class="box-title">Definíció – modularitás felbontási paraméterrel (Reichardt–Bornholdt, 2006)</span>
+  $$Q_\gamma = \sum_c\left[\frac{L_c}{m} - \gamma\left(\frac{d_c}{2m}\right)^{2}\right], \qquad \Delta Q_\gamma = \frac{k_{i,C}}{m} - \gamma\,\frac{\Sigma_C\, k_i}{2m^2}.$$
+  $\gamma = 1$ a szokásos modularitás. Két közösség összevonása akkor éri meg, ha $\ell_{12} \gt \gamma\, d_1 d_2/2m$.
+  <small>Miért segít? A felbontási határnál az összevonás feltétele $d_1 d_2 \lt 2m$ volt; most $d_1 d_2 \lt 2m/\gamma$. Nagyobb $\gamma$-val a határ lejjebb csúszik, a kis csoportok külön maradhatnak.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a gyűrű $\gamma$-val</span>
+    A 10 háromszögnél ($m = 40$, $d = 8$) mekkora $\gamma$-tól maradnak külön a háromszögek?
+    <details><summary>Megoldás</summary>$Q_\gamma(\text{külön}) = 10 \cdot (3/40 - \gamma \cdot 0{,}01) = 0{,}75 - 0{,}1\gamma$; $Q_\gamma(\text{párok}) = 5 \cdot (7/40 - \gamma \cdot 0{,}04) = 0{,}875 - 0{,}2\gamma$. Egyenlők, ha $\gamma = 1{,}25$; efölött a háromszögek nyernek.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a karateklub három nagyítással</span>
+    A Louvain a karateklubon: $\gamma = 0{,}5$: 2 közösség · $\gamma = 1$: 4 · $\gamma = 2$: 7. Melyik a „helyes”?
+    <details><summary>Megoldás</summary>Mindegyik egy-egy nagyítás. A $\gamma = 0{,}5$ felbontás szinte a valódi kettéválás (két tag, a 9-es és a 10-es a „rossz” oldalon), a $\gamma = 1$ a táborokon belüli köröket is szétválasztja. A kérdés dönti el, melyik kell.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A $\gamma$-t addig hangolni, amíg „szép” nem lesz.</b> Ha a $\gamma$-t az eredmény alapján választod, a felbontás a te elvárásodat tükrözi. Közöld a $\gamma$-t, és nézd meg több értékre (8.7).</li>
+    <li><b>Különböző $\gamma$-k $Q_\gamma$-it összevetni.</b> A $Q_\gamma$ értéke a $\gamma$-val együtt változik; a különböző nagyítások <em>felbontásait</em> érdemes összevetni (pl. a szokásos $Q$-val vagy NMI-vel), nem a $Q_\gamma$-kat.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – felbontási paraméter</summary>
+  <ol>
+    <li>A két háromszögnél mennyi a $Q_\gamma$ a természetes felbontásra $\gamma = 2$-nél?
+      <details><summary>Megoldás</summary>$2 \cdot (3/7 - 2 \cdot 0{,}25) = 2 \cdot (0{,}429 - 0{,}5) = -0{,}143$. Negatív – de a $Q_\gamma$-t a többi felbontáshoz kell mérni, nem a nullához.</details></li>
+    <li>Ugyanitt mennyi a „mindenki egy csoportban” $Q_\gamma$-ja $\gamma = 2$-nél?
+      <details><summary>Megoldás</summary>$1 - 2 \cdot 1 = -1$. A két háromszög még mindig jobb nála.</details></li>
+    <li>Két közösség között 2 él fut, $d_1 = 8$, $d_2 = 10$, $m = 30$. Mely $\gamma$-kra éri meg összevonni őket?
+      <details><summary>Megoldás</summary>$2 \gt \gamma \cdot 80/60 \iff \gamma \lt 1{,}5$.</details></li>
+    <li>Kis vagy nagy $\gamma$ kell, ha egy hírhálózatban a néhány cikkes alcsoportokat is látni szeretnéd?
+      <details><summary>Megoldás</summary>Nagy $\gamma$ (pl. 1,5–3): a véletlen szint „drágább”, a kis csoportok külön maradnak.</details></li>
+    <li>(nehezebb) $\gamma = 0$-nál mi a $Q_\gamma$-t maximalizáló felbontás?
+      <details><summary>Megoldás</summary>$Q_0 = \sum_c L_c/m$: a belső élek aránya. Ezt a „mindenki egy csoportban” maximalizálja ($Q_0 = 1$). Nagyon nagy $\gamma$-nál fordítva: mindenki külön.</details></li>
+  </ol>
+</details>
+
+<h3 id="s84-d">4. lépés: a Louvain hibája és a Leiden-javítás ★★★</h3>
+<p>A Louvain egy kellemetlen hibája: egy közösség <b>szétszakadhat</b>. Ha egy csúcs, amely két részt összetartott, átvándorol egy másik közösségbe, a régi közössége két, egymással nem összekötött darabra esik – de az algoritmus ezt nem veszi észre, mert a szétesett közösséget már egyetlen szuperpontként kezeli.</p>
+
+<div class="two-col">
+  <div><div class="gfig" data-edges="h-a1,h-a2,a1-a2,h-b1,h-b2,b1-b2,h-x1,h-x2,h-x3,x1-x2,x2-x3,x1-x3"
+    data-color="h:--setA a1:--setA a2:--setA b1:--setA b2:--setA x1:--setB x2:--setB x3:--setB"
+    data-pos="a1:0,0 a2:0,1 h:1,.5 b1:.5,1.6 b2:1.5,1.6 x1:2,0 x2:2.6,.5 x3:2,1" data-w="250" data-h="170" data-r="11"
+    data-caption="Előtte: a $\mathrm{h}$ összetartja az első közösséget"></div></div>
+  <div><div class="gfig" data-edges="h-a1,h-a2,a1-a2,h-b1,h-b2,b1-b2,h-x1,h-x2,h-x3,x1-x2,x2-x3,x1-x3"
+    data-color="h:--setB a1:--setA a2:--setA b1:--setA b2:--setA x1:--setB x2:--setB x3:--setB" data-hl="h-a1,h-a2,h-b1,h-b2" data-dim-others
+    data-pos="a1:0,0 a2:0,1 h:1,.5 b1:.5,1.6 b2:1.5,1.6 x1:2,0 x2:2.6,.5 x3:2,1" data-w="250" data-h="170" data-r="11"
+    data-caption="Utána: a $\mathrm{h}$ átment; az első „közösség” két szigetre esett"></div></div>
+</div>
+
+<div class="box def">
+  <span class="box-title">A Leiden-algoritmus (Traag, Waltman és van Eck, 2019)</span>
+  A Louvain két fázisa közé egy harmadikat iktat: a <b>finomítást</b>. Az első fázis után minden közösséget külön megvizsgál, és csak a jól összekötött részeit vonja össze szuperponttá.
+  Így a szétesett vagy rosszul összekötött közösségek darabjai külön szuperpontként folytatják. Garancia: <b>minden közösség összefüggő</b> (sőt, $\gamma$-szerint jól összekötött).
+  <small>A szerzők tesztjeiben a Louvain közösségeinek akár negyede rosszul összekötött, akár 16%-a szétesett volt. A Leiden emellett gyorsabb is, mert csak a szomszédságukban változott csúcsokat vizsgálja újra.
+  Ma a Leiden a javasolt alapértelmezés (Python: <code>leidenalg</code> az <code>igraph</code>-fal; a <code>networkx</code> újabb változataiban <code>community.leiden_communities</code>).</small>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>„A Leiden jobb, tehát a felbontása az igazi.”</b> A Leiden is a modularitást (vagy hasonló célfüggvényt) optimalizálja: a felbontási határ, a $\gamma$-függés és a sok közel optimális felbontás nála is megvan. A kapcsolatosság egy hibát javít, nem mindet.</li>
+    <li><b>Közösségként jelenteni egy szétesett csoportot.</b> Ha Louvaint használsz, ellenőrizd, hogy minden közösség összefüggő-e (a <code>louvain-steps</code> widget is mutatja).</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – Louvain és Leiden</summary>
+  <ol>
+    <li>Az ábra „utána” állapotában hány komponensből áll az első közösség a saját élein?
+      <details><summary>Megoldás</summary>Kettőből: $\{\mathrm{a1}, \mathrm{a2}\}$ és $\{\mathrm{b1}, \mathrm{b2}\}$ – a köztük futó utak mind a $\mathrm{h}$-n át mentek.</details></li>
+    <li>Miért nem veszi észre a Louvain a szétesést a következő szinten?
+      <details><summary>Megoldás</summary>Mert az összevonás után a közösség egyetlen szuperpont – a belsejét többé nem vizsgálja.</details></li>
+    <li>Mit tesz ugyanebben a helyzetben a Leiden?
+      <details><summary>Megoldás</summary>A finomításban észreveszi, hogy a közösség két nem összekötött részből áll, és két külön szuperpontot csinál belőlük.</details></li>
+    <li>Ha a Louvain két futása eltérő $Q$-t ad, melyiket közlöd?
+      <details><summary>Megoldás</summary>Általában a nagyobb $Q$-jút, de <b>jelezve, hogy több futás volt</b>, és mennyire szórtak az eredmények. A 8.7 mutatja, hogyan lehet a futásokból konszenzust építeni.</details></li>
+    <li>(nehezebb) Igaz-e, hogy a Leiden mindig nagyobb $Q$-t ad, mint a Louvain?
+      <details><summary>Megoldás</summary>Nem garantáltan – mindkettő heurisztika. A gyakorlatban a Leiden többnyire legalább olyan jó $Q$-t ér el, gyorsabban, és összefüggő közösségekkel. Egy-egy futáson a Louvain véletlenül jobb is lehet.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh8-84"></div>
+</section>
+
+<!-- ===================================================== 8.5 -->
+<section id="s85">
+<h2>8.5 Címketerjesztés és spektrális kettévágás ★★</h2>
+<p>A modularitás nem az egyetlen út. Két egészen más ötlet: (1) a csúcsok <b>szavaznak</b> – mindenki átveszi a szomszédai közt legelterjedtebb címkét; (2) a gráf mátrixának <b>sajátvektora</b> rajzolja ki a csoportokat (ezt a 4.5-ből már ismered).</p>
+
+<h3 id="s85-a">1. lépés: címketerjesztés – a többség dönt</h3>
+<div class="box def">
+  <span class="box-title">Algoritmus – címketerjesztés (Raghavan, Albert és Kumara, 2007)</span>
+  <ol style="margin:.2rem 0">
+    <li>Minden csúcs kap egy saját címkét.</li>
+    <li>Véletlen sorrendben minden csúcs átveszi azt a címkét, amely a <b>szomszédai közt a leggyakoribb</b>. Holtversenynél véletlenül választ (ha a saját címkéje is a legjobbak közt van, megtartja).</li>
+    <li>Ismételd, amíg minden csúcs címkéje a szomszédai közt (holtversennyel együtt) leggyakoribb. Az egyforma címkék a közösségek.</li>
+  </ol>
+  <small>Miért működik? Egy sűrű csoportban egy címke gyorsan elterjed (sok belső szomszéd „szavaz” rá), de a csoport határán megreked, mert kívülről kevés él jön. Nincs célfüggvény és nincs paraméter; egy kör $O(m)$ – nagyon gyors.</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a két háromszög</span>
+  Kezdetben a címkék $a, b, c, d, e, f$ (az 1–6 csúcson). A sorrend legyen 1, 2, 3, 4, 5, 6.
+  <ul style="margin:.2rem 0">
+    <li><b>1:</b> szomszédai 2 ($b$) és 3 ($c$) – holtverseny, véletlenül pl. $b$. Címkék: $b, b, c, d, e, f$.</li>
+    <li><b>2:</b> szomszédai 1 ($b$) és 3 ($c$) – holtverseny, a saját ($b$) is a legjobbak közt: marad $b$.</li>
+    <li><b>3:</b> szomszédai 1 ($b$), 2 ($b$), 4 ($d$) – a $b$ nyer: $b, b, b, d, e, f$.</li>
+    <li><b>4:</b> szomszédai 3 ($b$), 5 ($e$), 6 ($f$) – hármas holtverseny, pl. $e$: $b, b, b, e, e, f$.</li>
+    <li><b>5:</b> 4 ($e$), 6 ($f$) – marad $e$. <b>6:</b> 4 ($e$), 5 ($e$) → $e$.</li>
+  </ul>
+  Eredmény: $\{1, 2, 3\}$, $\{4, 5, 6\}$. De ha a 4-es a $b$-t választja (1/3 esély), a $b$ átcsúszhat a másik háromszögbe is: 1000 futásból (Python) 959-szer két közösség, 41-szer <b>egyetlen</b> közösség lett.
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a karateklub 100-szor</span>
+    100 futás közösségszámai (a widgetek motorjával): 1: 3-szor · 2: 20 · 3: 32 · 4: 29 · 5: 15 · 6: 1. A <code>networkx</code> 100 futása: 1: 1 · 2: 27 · 3: 28 · 4: 36 · 5: 8. Mit mond ez?
+    <details><summary>Megoldás</summary>Ugyanaz a gráf, ugyanaz az algoritmus – csak a sorrend és a holtversenyek döntései mások. Egyetlen futás alapján bármelyik „eredményt” közölhetnénk. A címketerjesztés gyors, de <b>instabil</b>; csak több futás összesítésével (8.7) érdemes használni.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy út</span>
+    Egy 4 csúcsú úton ($1$–$2$–$3$–$4$) mi lehet a végeredmény?
+    <details><summary>Megoldás</summary>Mivel minden csúcsnak legfeljebb 2 szomszédja van, sok a holtverseny; a kimenet lehet $\{1, 2\}\{3, 4\}$ vagy egyetlen közösség is (ha egy címke végigfut). Egy útnak nincs igazi közösségszerkezete – a címketerjesztés ezt nem tudja „megmondani”, csak valamit visszaad.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Egy futás eredményét közölni.</b> A címketerjesztés kimenete a véletlen sorrendtől függ, és sűrű hálózatban egyetlen címke „mindent elönthet”.</li>
+    <li><b>Szinkron frissítés páros gráfon.</b> Ha minden csúcs egyszerre frissít, egy páros gráfban (pl. egy csillagon) a címkék örökké oda-vissza váltakozhatnak. Ezért aszinkron (egyenként, véletlen sorrendben) frissítünk.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – címketerjesztés</summary>
+  <ol>
+    <li>A két háromszögben az első lépésnél (1-es csúcs) mekkora eséllyel veszi át a 2-es címkéjét?
+      <details><summary>Megoldás</summary>Két szomszéd, két különböző címke, a saját nincs köztük: 1/2.</details></li>
+    <li>Egy csúcs szomszédainak címkéi: $a, a, b, c$. Mit vesz át?
+      <details><summary>Megoldás</summary>Az $a$-t (2 szavazat).</details></li>
+    <li>Egy csúcs címkéje $b$, a szomszédaié $a, b, c$. Változik-e?
+      <details><summary>Megoldás</summary>Nem: hármas holtverseny, és a saját címkéje a legjobbak közt van – megtartja.</details></li>
+    <li>Súlyozott változatban a szomszédok címkéi és élsúlyai: $a$ (3), $b$ (1), $b$ (1). Mit vesz át?
+      <details><summary>Megoldás</summary>Az $a$-t: $3 \gt 1 + 1$. Súlyozva nem a szomszédok száma, hanem a súlyösszeg szavaz.</details></li>
+    <li>(nehezebb) Egy csillagon (középpont $K$, 4 levél) aszinkron frissítéssel mi lesz a végeredmény?
+      <details><summary>Megoldás</summary>Amint a $K$ átvesz egy levélcímkét, a többi levél (egyetlen szomszédjuk a $K$) mind azt veszi át: egyetlen közösség. Ez itt helyes is – a csillagnak nincs közösségszerkezete.</details></li>
+  </ol>
+</details>
+
+<h3 id="s85-b">2. lépés: spektrális kettévágás – a Fiedler-vektor és a modularitásmátrix</h3>
+<p>A <a href="../04-grafok-es-matrixok/#s45-c">4.5</a>-ben a Laplace-mátrix második sajátvektorának (Fiedler-vektor) előjele vágta ketté a gráfot. A modularitásnak is van ilyen spektrális alakja.</p>
+
+<div class="box def">
+  <span class="box-title">A modularitásmátrix (Newman, 2006)</span>
+  $$B_{ij} = A_{ij} - \frac{k_i k_j}{2m}, \qquad Q = \frac{1}{4m}\,\mathbf s^\top B\,\mathbf s \quad \text{két csoportra}, \ s_i = \pm 1.$$
+  Lazítsuk a $\pm 1$ feltételt (mint a 4.5-ben): a $\mathbf s^\top B\mathbf s$ maximumát a $B$ <b>legnagyobb</b> sajátértékéhez tartozó sajátvektor adja. Az előjelei a kettévágás.
+  <small>Miért $1/4m$? A $\delta(c_i, c_j) = (1 + s_i s_j)/2$, és $\sum_{ij} B_{ij} = 0$, így a 8.3 páros alakjából $Q = \tfrac{1}{4m}\sum_{ij} B_{ij} s_i s_j$.
+  A különbség a Fiedler-vektorhoz képest: a Laplace-vágás a vágott éleket minimalizálja (méretkorlát mellett), a modularitásmátrix a nullmodellhez mér – és ha a $B$ legnagyobb sajátértéke 0 (nincs pozitív), a gráfot <b>nem</b> érdemes kettévágni.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a két háromszög</span>
+    A $B$ legnagyobb sajátértéke $\approx 1{,}73$, a sajátvektora (0,44; 0,44; 0,33; −0,33; −0,44; −0,44). Mi a kettévágás és a $Q$?
+    <details><summary>Megoldás</summary>Előjel szerint $\{1, 2, 3\}$ és $\{4, 5, 6\}$, $\mathbf s = (1, 1, 1, -1, -1, -1)$. $\mathbf s^\top B\mathbf s/(4 \cdot 7) = 0{,}357$ – ugyanaz, mint kézzel.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a karateklub</span>
+    A Fiedler-vektor előjele 32 tagot, a modularitásmátrix vezető sajátvektora 33-at sorol a valódi táborába. Ki a „rossz” oldalon?
+    <details><summary>Megoldás</summary>A Fiedler-vágásnál a 3-as és a 9-es, a modularitásmátrixnál csak a 9-es – a 8.1 története szerint ő a barátai ellenére állt át. A modularitásmátrix vágásának $Q = 0{,}371$, a valódi kettéválásé $0{,}358$.</details>
+  </div>
+</div>
+
+<div class="box tip">
+  <span class="box-title">Több csoport? – spektrális klaszterezés</span>
+  Kettőnél több csoporthoz két út van: (1) <b>ismételt kettévágás</b> – minden részt újra kettévágunk, amíg a $Q$ nő (Newman, 2006); (2) <b>spektrális klaszterezés</b> – az első $k$ sajátvektorból minden csúcsnak $k$ koordinátát adunk, és a pontokat a $k$-közép módszerrel csoportosítjuk.
+  Ez utóbbi a gépi tanulás egyik alapeszköze (<code>sklearn.cluster.SpectralClustering</code>); a csoportok számát ($k$) neked kell megadni. Jiang és mtsai (2025) hírkeretezési vizsgálata (8.8) is spektrális klaszterezést használt.
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A Laplace- és a modularitásmátrix sajátvektorait összekeverni.</b> Laplace-nál a <em>második legkisebb</em> sajátértékhez tartozó vektor (a legkisebb a konstans), a modularitásmátrixnál a <em>legnagyobb</em>.</li>
+    <li><b>Mindig kettévágni.</b> A Fiedler-vektor akkor is két részt ad, ha nincs két csoport. A modularitásmátrix legalább jelez: nem pozitív legnagyobb sajátértéknél nincs értelmes vágás.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – spektrális kettévágás</summary>
+  <ol>
+    <li>A két háromszögben mennyi a $B_{12}$ és a $B_{34}$ elem?
+      <details><summary>Megoldás</summary>$B_{12} = 1 - 2 \cdot 2/14 \approx 0{,}714$; $B_{34} = 1 - 3 \cdot 3/14 \approx 0{,}357$. A híd kevésbé „meglepő” él, mert két nagyobb fokszámú csúcsot köt.</details></li>
+    <li>És a $B_{15}$ (nem él)?
+      <details><summary>Megoldás</summary>$0 - 2 \cdot 2/14 \approx -0{,}286$: hiányzó él, amelyet a nullmodell várna – negatív.</details></li>
+    <li>Miért 0 a $B$ minden sorösszege?
+      <details><summary>Megoldás</summary>$\sum_j A_{ij} = k_i$ és $\sum_j k_i k_j/2m = k_i \cdot 2m/2m = k_i$. A különbség 0. Ezért a konstans vektor sajátvektor 0 sajátértékkel (az „egy közösség” felbontás, $Q = 0$).</details></li>
+    <li>Ha a Fiedler-vektor a karateklubon 32/34-et talál el, a modularitásmátrix 33/34-et, melyik a „jobb”?
+      <details><summary>Megoldás</summary>Ezen a gráfon a modularitásmátrix egyezik jobban a kettéválással. De ez egy gráf és egy mérce; általános rangsor nem következik belőle.</details></li>
+    <li>(nehezebb) Egy 4 csúcsú négyzetben ($m = 4$, minden fok 2) mennyi a $B$ legnagyobb sajátértéke? Érdemes-e kettévágni?
+      <details><summary>Megoldás</summary>$B = A - \tfrac12 J$ ($J$: csupa 1). Az $A$ sajátértékei 2, 0, 0, −2; a csupa 1 vektorra $B$ sajátértéke $2 - 2 = 0$, a többire az $A$-é marad: 0, 0, −2. A legnagyobb 0: nincs pozitív – a négyzetet nem érdemes kettévágni (a 8.3 gyakorlójában is $Q = 0$ jött ki).</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh8-85"></div>
+</section>
+
+<!-- ===================================================== 8.6 -->
+<section id="s86">
+<h2>8.6 Sztochasztikus blokkmodell ★★★</h2>
+<p>Eddig a közösség „sűrű belül, ritka kívül” csoport volt. De vannak más csoportok is. Egy hálózatban lehet <b>mag és periféria</b> (a mag tagjai egymással és a perifériával is kapcsolódnak, a periféria tagjai egymással alig),
+vagy <b>kétrészes</b> szerkezet (az élek szinte csak a csoportok <em>között</em> futnak – pl. vásárlók és termékek). A modularitás ezeket nem látja. A <b>sztochasztikus blokkmodell</b> (SBM) igen: ő nem azt kérdezi, hol sűrű a gráf, hanem azt, <b>kik viselkednek egyformán</b>.</p>
+
+<h3 id="s86-a">1. lépés: a modell – blokkok és élvalószínűségek</h3>
+<p>Az SBM a <a href="../07-halozatmodellek/#s71">7.1</a> Erdős–Rényi-gráfjának általánosítása: ott minden pár ugyanakkora eséllyel kapcsolódott, itt az esély attól függ, melyik <b>blokkba</b> tartozik a két csúcs.</p>
+
+<div class="box def">
+  <span class="box-title">Definíció – sztochasztikus blokkmodell (Holland, Laskey és Leinhardt, 1983)</span>
+  Minden $i$ csúcsnak van egy blokkja, $g_i \in \{1, \dots, B\}$, és adott egy $B \times B$-s szimmetrikus <b>blokkmátrix</b> $p_{rs}$. Minden $i, j$ pár egymástól függetlenül
+  $$P(A_{ij} = 1) = p_{g_i g_j}$$
+  valószínűséggel kapcsolódik. Várható élszám: egy $r$ blokkon belül $p_{rr}\binom{n_r}{2}$, két blokk között $p_{rs}\, n_r n_s$.
+  <small>Miért „generatív”? Egy recept, amely gráfokat gyárt. A közösségkeresés ennek a megfordítása: adott a gráf, melyik blokkbeosztás (és blokkmátrix) gyárthatta a legvalószínűbben?
+  Egyetlen blokkal ($B = 1$) éppen a $G(n, p)$-t kapjuk vissza.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – két közösség</span>
+    Két 10 csúcsú blokk, $p_{\text{be}} = 0{,}5$, $p_{\text{ki}} = 0{,}05$. Hány él várható belül és a blokkok között? Mennyi az átlagos fokszám?
+    <details><summary>Megoldás</summary>Blokkonként $0{,}5 \cdot \binom{10}{2} = 22{,}5$, összesen 45 belül; között $0{,}05 \cdot 10 \cdot 10 = 5$. Egy csúcs: $9 \cdot 0{,}5 + 10 \cdot 0{,}05 = 5$.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – három blokk</span>
+    Három 8 csúcsú blokk, $p_{\text{be}} = 0{,}6$, minden blokkpár között $p_{\text{ki}} = 0{,}1$. Hány él várható egy blokkban, és egy blokkpár között?
+    <details><summary>Megoldás</summary>Egy blokkban $0{,}6 \cdot 28 = 16{,}8$; egy blokkpár között $0{,}1 \cdot 64 = 6{,}4$. Összesen $3 \cdot 16{,}8 + 3 \cdot 6{,}4 = 69{,}6$.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Blokkon belül $n_r^2$ vagy $n_r(n_r - 1)$ párral számolni.</b> Belül $\binom{n_r}{2}$ pár van; két blokk között viszont $n_r n_s$ (itt nincs dupla számolás).</li>
+    <li><b>Azt hinni, hogy az SBM blokkjai „sűrű csomók”.</b> A blokkmátrix bármilyen lehet – a $p_{\text{ki}} \gt p_{\text{be}}$ is megengedett.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – várható élszámok</summary>
+  <ol>
+    <li>Két 5 csúcsú blokk, $p_{\text{be}} = 0{,}8$, $p_{\text{ki}} = 0{,}1$. Hány él várható összesen?
+      <details><summary>Megoldás</summary>Belül $2 \cdot 0{,}8 \cdot 10 = 16$, között $0{,}1 \cdot 25 = 2{,}5$: 18,5.</details></li>
+    <li>Ugyanitt mekkora egy csúcs várható fokszáma?
+      <details><summary>Megoldás</summary>$4 \cdot 0{,}8 + 5 \cdot 0{,}1 = 3{,}7$. (Ellenőrzés: $2 \cdot 18{,}5/10 = 3{,}7$.)</details></li>
+    <li>Mi lesz az SBM-ből, ha $p_{\text{be}} = p_{\text{ki}}$?
+      <details><summary>Megoldás</summary>Erdős–Rényi-gráf, $G(n, p)$: a blokkoknak nincs szerepük.</details></li>
+    <li>Egy 100 csúcsú gráf két 50-es blokkal: hány csúcspár van blokkon belül és hány között?
+      <details><summary>Megoldás</summary>Belül $2 \cdot \binom{50}{2} = 2450$, között $50 \cdot 50 = 2500$. (Összesen $\binom{100}{2} = 4950$ ✓.)</details></li>
+    <li>(nehezebb) Ha az előző gráfban az átlagos fokszám 6 legyen, és $p_{\text{ki}} = p_{\text{be}}/2$, mennyi a $p_{\text{be}}$?
+      <details><summary>Megoldás</summary>$\langle k\rangle = 49\,p_{\text{be}} + 50\,p_{\text{ki}} = 49p + 25p = 74p = 6$, így $p_{\text{be}} \approx 0{,}081$, $p_{\text{ki}} \approx 0{,}041$.</details></li>
+  </ol>
+</details>
+
+<h3 id="s86-b">2. lépés: nem csak sűrű belül – mag–periféria és kétrészes szerkezet</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két gráf, amelyen a modularitás csődöt mond</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="K-1,K-2,K-3,K-4" data-color="K:--setA 1:--setB 2:--setB 3:--setB 4:--setB" data-pos="K:1,1 1:0,0 2:2,0 3:0,2 4:2,2" data-w="200" data-h="150"
+      data-caption="Csillag: mag ($K$) és periféria"></div></div>
+    <div><div class="gfig" data-edges="a-x,a-y,a-z,b-x,b-y,b-z,c-x,c-y,c-z" data-color="a:--setA b:--setA c:--setA x:--setB y:--setB z:--setB" data-pos="a:0,0 b:0,1 c:0,2 x:1.6,0 y:1.6,1 z:1.6,2" data-w="200" data-h="150"
+      data-caption="$K_{3,3}$: kétrészes szerkezet"></div></div>
+  </div>
+  A két szín mindkét gráfon „értelmes” csoportokat jelöl: a csillagon a középpont és a levelek, a $K_{3,3}$-on a két oldal. A modularitásuk viszont: mindkettőn $Q = -0{,}5$ – a lehető legrosszabb (minden él a csoportok között fut).
+  Az SBM-nek ez tökéletes illeszkedés: a csillagon $p_{\text{mag,per}} = 1$, $p_{\text{per,per}} = 0$; a $K_{3,3}$-on $p_{\text{be}} = 0$, $p_{\text{ki}} = 1$.
+</div>
+
+<div class="box def">
+  <span class="box-title">Hüvelykujjszabály – milyen szerkezetet keresel?</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Asszortatív</b> ($p_{\text{be}} \gt p_{\text{ki}}$): klasszikus közösségek – a modularitás és az SBM is megtalálja.</li>
+    <li><b>Mag–periféria</b> ($p_{\text{mag,mag}} \gt p_{\text{mag,per}} \gt p_{\text{per,per}}$): a modularitás nem látja, az SBM igen.</li>
+    <li><b>Diszasszortatív / kétrészes</b> ($p_{\text{ki}} \gt p_{\text{be}}$): a modularitás nem látja, az SBM igen.</li>
+  </ul>
+  <small>Ezért mondják: a modularitás egy <em>feltevést</em> visz be (a közösség sűrű csomó). Az SBM általánosabb: azokat teszi egy blokkba, akiknek <b>hasonló a kapcsolódási mintázatuk</b> – ez a szociológia régi „strukturális ekvivalencia” fogalma (Lorrain és White, 1971).</small>
+</div>
+
+<div class="widget" data-widget="sbm-generator"></div>
+
+<div class="box history">
+  <span class="box-title">📜 Médiarendszerek blokkjai</span>
+  A hírmédia hiperlink- és közönségátfedési hálózataiban gyakori a mag–periféria szerkezet: néhány nagy, mindenhonnan hivatkozott hírportál és sok, egymással alig kapcsolódó kisebb oldal.
+  Cointet és mtsai (2021) a francia médiarendszert SBM-mel bontották fel; az „ellen-információs” oldalak külön, periferikus blokkba kerültek, nem egy sűrű ellentáborba. A 18. fejezet erre épít.
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – szerkezettípusok</summary>
+  <ol>
+    <li>Mennyi a csillag (4 levél) modularitása a mag / periféria felbontásban?
+      <details><summary>Megoldás</summary>$m = 4$. Mag: 0 belső él, $d = 4$: $0 - (4/8)^2 = -0{,}25$. Periféria: 0 belső él, $d = 4$: $-0{,}25$. $Q = -0{,}5$.</details></li>
+    <li>Melyik típus (asszortatív, mag–periféria, kétrészes) az a blokkmátrix, ahol $p_{11} = 0{,}02$, $p_{12} = 0{,}4$, $p_{22} = 0{,}03$?
+      <details><summary>Megoldás</summary>Kétrészes (diszasszortatív): a blokkok között sokkal valószínűbb az él.</details></li>
+    <li>És ahol $p_{11} = 0{,}7$, $p_{12} = 0{,}3$, $p_{22} = 0{,}02$?
+      <details><summary>Megoldás</summary>Mag–periféria: az 1-es blokk a mag.</details></li>
+    <li>Egy vásárló–termék hálózatban (él: vásárolt) milyen szerkezetet várnál két blokkal?
+      <details><summary>Megoldás</summary>Kétrészeset: vásárló–vásárló és termék–termék él nincs. (Ez páros gráf – a 3.4-ben láttuk.)</details></li>
+    <li>(nehezebb) Egy hírportál-hálózatban a Louvain „nem talál” közösséget (alacsony $Q$), az SBM viszont két blokkot talál. Mire gyanakszol?
+      <details><summary>Megoldás</summary>Nem asszortatív szerkezetre – valószínűleg mag–periféria (néhány központi portál, amelyre mindenki hivatkozik). A modularitás a magot és a perifériát nem választja szét, mert köztük több él fut, mint a perifériában.</details></li>
+  </ol>
+</details>
+
+<h3 id="s86-c">3. lépés: illesztés – melyik blokkbeosztás gyárthatta a gráfot?</h3>
+<p>Ha a blokkbeosztás adott, a legjobb blokkmátrix egyszerű: minden $p_{rs}$ a <b>megfigyelt arány</b>, $\hat p_{rs} = e_{rs}/N_{rs}$ (élek / lehetséges párok). Ezzel a gráf <b>valószínűsége</b> (likelihoodja):</p>
+<div class="box def">
+  <span class="box-title">Definíció – az SBM log-likelihoodja</span>
+  $$\ln \mathcal L = \sum_{r \le s}\Big[e_{rs}\ln \hat p_{rs} + (N_{rs} - e_{rs})\ln(1 - \hat p_{rs})\Big].$$
+  Minél nagyobb (kevésbé negatív), annál jobban „magyarázza” a beosztás a gráfot. (A $0 \ln 0$ tag 0.)
+  <small>Miért? Minden pár egy független pénzfeldobás: él $\hat p$, nem-él $1 - \hat p$ eséllyel. A szorzat logaritmusa összeg.</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa – a két háromszög négy beosztása</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>beosztás</th><th>$\hat p$ értékek</th><th>$\ln\mathcal L$</th></tr>
+    <tr><td>egy blokk</td><td>$7/15$</td><td>$-10{,}36$</td></tr>
+    <tr><td>$\{1, 2\}$, $\{3, 4, 5, 6\}$</td><td>$1/1$, $4/6$, között $2/8$</td><td>$-8{,}32$</td></tr>
+    <tr><td>$\{1, 2, 3\}$, $\{4, 5, 6\}$</td><td>belül $3/3$, $3/3$, között $1/9$</td><td><b>$-3{,}14$</b></td></tr>
+    <tr><td>mindenki külön (6 blokk)</td><td>minden pár 0 vagy 1</td><td>$0$</td></tr>
+  </table></div>
+  A természetes beosztás sokkal jobb az egy blokknál. De a „mindenki külön” még jobb: tökéletesen leír mindent – mert minden párnak saját paramétert adtunk. Ez <b>túlillesztés</b>.
+</div>
+
+<div class="box tip">
+  <span class="box-title">Hogyan dől el a blokkok száma? – és két fontos változat</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Modellválasztás.</b> A több blokk mindig jobb likelihoodot ad, ezért a blokkok számát büntetni kell. A mai standard Peixoto bayesi / minimális leíráshossz (MDL) módszere (Python: <code>graph-tool</code>): a legrövidebb „tömörítést” keresi. Előnye: <b>véletlen gráfban nem talál</b> közösséget (egy blokkot ad), ellentétben a modularitással (8.7).</li>
+    <li><b>Fokszám-korrigált SBM</b> (Karrer–Newman, 2011). A sima SBM-ben egy blokkon belül mindenki várható fokszáma azonos. A karateklubon emiatt a hubokat (1, 33, 34) teszi egy blokkba, a kis fokszámúakat egy másikba. A fokszám-korrigált változat minden csúcsnak saját „aktivitást” ad – és a két tábort találja meg.</li>
+    <li><b>Kapcsolat a modularitással.</b> Newman (2016) megmutatta: a $Q_\gamma$ maximalizálása egy speciális fokszám-korrigált SBM (egyforma $p_{\text{be}}$ és $p_{\text{ki}}$ minden blokkra) likelihoodjának maximalizálásával egyenértékű. A modularitás tehát egy rejtett, nagyon egyszerű generatív modell – ebből látszik, mit feltételez.</li>
+    <li><b>Kimutathatósági határ</b> (Decelle és mtsai, 2011). Két egyforma blokkal, ritka gráfban ($c_{\text{be}} = n\,p_{\text{be}}$, $c_{\text{ki}} = n\,p_{\text{ki}}$, $\langle k\rangle = (c_{\text{be}} + c_{\text{ki}})/2$) a blokkokat <em>semmilyen</em> módszer nem találhatja meg jobban a véletlennél, ha $|c_{\text{be}} - c_{\text{ki}}| \lt 2\sqrt{\langle k\rangle}$.
+      $\langle k\rangle = 6$-nál ez $p_{\text{ki}}/p_{\text{be}} \gt 0{,}42$-t jelent – a blokkok még jóval különbözőbbek, mint egy véletlen gráfban, mégis láthatatlanok (próbáld ki a widgetben).</li>
+  </ul>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A legnagyobb likelihoodú beosztást választani a blokkok számának rögzítése nélkül.</b> Az mindig a „mindenki külön” – túlillesztés. Rögzített $B$ mellett, vagy büntetéssel (MDL / bayesi) kell dönteni.</li>
+    <li><b>Sima SBM-et használni erősen eltérő fokszámú hálózaton.</b> A blokkok a fokszámot fogják követni, nem a közösségeket. Ilyenkor a fokszám-korrigált változat kell.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – illesztés</summary>
+  <ol>
+    <li>Két blokk között 4 él fut, a lehetséges párok száma 20. Mennyi a $\hat p_{rs}$?
+      <details><summary>Megoldás</summary>$4/20 = 0{,}2$.</details></li>
+    <li>Mennyi ennek a blokkpárnak a hozzájárulása a $\ln\mathcal L$-hez?
+      <details><summary>Megoldás</summary>$4\ln 0{,}2 + 16\ln 0{,}8 \approx -6{,}44 - 3{,}57 = -10{,}01$.</details></li>
+    <li>Számold ki a két háromszög természetes beosztásának $\ln\mathcal L$-jét!
+      <details><summary>Megoldás</summary>A két blokkon belül $\hat p = 1$: 0 a hozzájárulás. Között $1/9$: $\ln(1/9) + 8\ln(8/9) \approx -2{,}197 - 0{,}942 = -3{,}14$.</details></li>
+    <li>Miért 0 a „mindenki külön” beosztás log-likelihoodja?
+      <details><summary>Megoldás</summary>Minden blokkpárban egyetlen csúcspár van, így $\hat p$ 0 vagy 1 – minden pár „biztosan” úgy van, ahogy van. $\ln 1 = 0$.</details></li>
+    <li>(nehezebb) $\langle k\rangle = 6$, két 50-es blokk ($n = 100$). Számold ki a kimutathatósági határon a $c_{\text{be}}$-t és a $c_{\text{ki}}$-t!
+      <details><summary>Megoldás</summary>$c_{\text{be}} + c_{\text{ki}} = 12$ és $c_{\text{be}} - c_{\text{ki}} = 2\sqrt6 \approx 4{,}90$. Így $c_{\text{be}} \approx 8{,}45$, $c_{\text{ki}} \approx 3{,}55$, az arány $\approx 0{,}42$.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh8-86"></div>
+</section>
+
+<!-- ===================================================== 8.7 -->
+<section id="s87">
+<h2>8.7 Megbízhatóság: összevetés, stabilitás, nullmodell ★★</h2>
+<p>Láttuk: a Louvain eredménye a sorrendtől, a címketerjesztésé a véletlentől, mindegyiké a $\gamma$-tól függ. Három kérdés marad. <b>Mennyire hasonlít</b> két felbontás? <b>Mennyire stabil</b> egy felbontás, ha újrafuttatjuk? És <b>több-e</b> a talált szerkezet annál, ami egy véletlen gráfban is kijönne?</p>
+
+<h3 id="s87-a">1. lépés: két felbontás összevetése – NMI és ARI</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy csúcs „átcsúszik”</span>
+  Hat csúcs; az A felbontás $\{1, 2, 3\}$, $\{4, 5, 6\}$, a B felbontás $\{1, 2\}$, $\{3, 4, 5, 6\}$. Mennyire egyeznek?
+  Nézzük a $\binom62 = 15$ csúcspárt! Egy pár „egyetértés”, ha mindkét felbontás egy csoportba teszi, vagy mindkettő külön.
+  <ul style="margin:.2rem 0">
+    <li>Mindkettőben együtt: $(1, 2)$, $(4, 5)$, $(4, 6)$, $(5, 6)$ – 4 pár.</li>
+    <li>Mindkettőben külön: az $\{1, 2\}$ és a $\{4, 5, 6\}$ közti 6 pár – 6 pár.</li>
+    <li>Vita: $(1, 3)$, $(2, 3)$ (A-ban együtt, B-ben külön) és $(3, 4)$, $(3, 5)$, $(3, 6)$ (fordítva) – 5 pár.</li>
+  </ul>
+  Az egyetértés $10/15 \approx 0{,}67$ (ez a <b>Rand-index</b>). Ez soknak tűnik – de két teljesen véletlen felbontás is sok párban „egyetért” (a legtöbb pár mindkettőben külön van). Ezért kell korrekció.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – korrigált Rand-index (ARI) és normalizált kölcsönös információ (NMI)</span>
+  <b>ARI</b> (Hubert–Arabie, 1985): a páronkénti egyezést a véletlen várható értékéhez méri:
+  $$\mathrm{ARI} = \frac{\text{egyezés} - \text{várható egyezés}}{\text{lehetséges legnagyobb} - \text{várható}},$$
+  az „együtt” párok számával: $\sum_{ij}\binom{n_{ij}}{2}$ a megfigyelt, $\big[\sum_i\binom{a_i}{2}\sum_j\binom{b_j}{2}\big]\big/\binom n2$ a várható, $\tfrac12\big[\sum_i\binom{a_i}{2} + \sum_j\binom{b_j}{2}\big]$ a legnagyobb ($n_{ij}$: hány csúcs van A $i$-edik és B $j$-edik csoportjában is; $a_i$, $b_j$ a csoportméretek).
+  Azonos felbontásra 1, véletlen egyezésnél kb. 0, lehet negatív is.
+  <br><b>NMI</b>: mennyit árul el az egyik felbontás a másikról, az információelmélet nyelvén:
+  $$\mathrm{NMI} = \frac{I(A; B)}{\tfrac12\big[H(A) + H(B)\big]},$$
+  ahol $H$ a csoportméretek entrópiája, $I$ a kölcsönös információ. Azonos felbontásra 1, független felbontásokra 0.
+  <small>Mindkettő <b>címkefüggetlen</b>: ha a csoportokat átszámozod (az „1-es” és „2-es” csoport helyet cserél), az érték nem változik. A „hány csúcs van jó helyen” típusú pontosság erre nem képes.</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa – a kiinduló pár kézzel</span>
+  <details><summary>Megoldás (ARI és NMI)</summary>
+    Csoportméretek: A: 3, 3; B: 2, 4. Közös csoportok ($n_{ij}$): $\{1, 2\}$: 2, $\{3\}$: 1, $\{4, 5, 6\}$: 3.<br>
+    <b>ARI:</b> megfigyelt $\binom22 + \binom32 = 1 + 3 = 4$; $\sum\binom{a_i}{2} = 3 + 3 = 6$, $\sum\binom{b_j}{2} = 1 + 6 = 7$; várható $6 \cdot 7/15 = 2{,}8$; legnagyobb $(6 + 7)/2 = 6{,}5$. $\mathrm{ARI} = (4 - 2{,}8)/(6{,}5 - 2{,}8) = 1{,}2/3{,}7 \approx 0{,}32$.<br>
+    <b>NMI:</b> $H(A) = \ln 2 \approx 0{,}693$, $H(B) = -\tfrac13\ln\tfrac13 - \tfrac23\ln\tfrac23 \approx 0{,}637$, $I(A; B) \approx 0{,}318$ (Pythonból). $\mathrm{NMI} \approx 0{,}318/0{,}665 \approx 0{,}48$.<br>
+    Egyetlen csúcs elmozdulása hat csúcson nagy változás – mindkét mérőszám jócskán 1 alá esik.
+  </details>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – mindenki külön</span>
+    Mennyi az NMI és az ARI az A ($\{1, 2, 3\}$, $\{4, 5, 6\}$) és a „mindenki külön” felbontás között?
+    <details><summary>Megoldás</summary>ARI = 0: a „mindenki külön” egyetlen párt sem tesz együvé, ez a véletlen szintje. Az NMI viszont $\approx 0{,}56$ (Python)! A sok kis csoport „sok információt” hordoz – az NMI ezt jutalmazza. Ezért sok csoportnál az NMI félrevezető lehet; ilyenkor az ARI megbízhatóbb.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a karateklub felbontásai a kettéváláshoz mérve</span>
+    Girvan–Newman, 2 csoport: NMI 0,73, ARI 0,77. Louvain, 4 csoport: NMI 0,59, ARI 0,47 (Python). Rosszabb-e a Louvain?
+    <details><summary>Megoldás</summary>Nem feltétlenül. A 4 csoport a két táboron belüli köröket is szétválasztja; a kétcsoportos „igazsághoz” mérve ez eltérésnek számít. A mérce dönti el az ítéletet (8.1).</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>„Pontosságot” számolni címkék alapján.</b> Ha az egyik algoritmus a 0-s, a másik az 1-es címkét adja ugyanannak a csoportnak, a pontosság 0 lesz, pedig a felbontás azonos. NMI vagy ARI kell.</li>
+    <li><b>A Rand-indexet korrekció nélkül használni.</b> Sok csoportnál két véletlen felbontás Rand-indexe is közel 1.</li>
+    <li><b>Az NMI-t sok kis csoportnál túlértékelni.</b> Lásd a „mindenki külön” példát.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – NMI és ARI</summary>
+  <ol>
+    <li>Mennyi az NMI és az ARI, ha B ugyanaz, mint A, csak a csoportok sorszáma fordított?
+      <details><summary>Megoldás</summary>Mindkettő 1: címkefüggetlenek.</details></li>
+    <li>Mennyi az NMI és az ARI az A és a „mindenki egy csoportban” között?
+      <details><summary>Megoldás</summary>Mindkettő 0: az egy csoport semmit sem árul el, és a páregyezése a véletlen szintje.</details></li>
+    <li>Hány „egyetértő” pár van az A ($\{1, 2, 3\}$, $\{4, 5, 6\}$) és a „mindenki külön” között?
+      <details><summary>Megoldás</summary>Az A-ban külön lévő 9 pár; az A-ban együtt lévő 6 pár vita. Rand-index $9/15 = 0{,}6$ – pedig az ARI 0.</details></li>
+    <li>Számold ki az ARI-t az A és a $\{1, 2, 3, 4\}$, $\{5, 6\}$ felbontás között!
+      <details><summary>Megoldás</summary>Ez ugyanaz a helyzet, mint a kiinduló példa (a 4-es csúszott át): ARI $\approx 0{,}32$.</details></li>
+    <li>(nehezebb) Egy kutató két Louvain-futást hasonlít össze: NMI = 0,95. Jelenti-e ez, hogy a csúcsok 95%-a ugyanott van?
+      <details><summary>Megoldás</summary>Nem. Az NMI információs mérték, nem a „jó helyen lévő” csúcsok aránya. Magas NMI mellett is lehet néhány csúcs, amely futásról futásra vándorol – ezt a 2. lépés csúcsonkénti stabilitása mutatja meg.</details></li>
+  </ol>
+</details>
+
+<h3 id="s87-b">2. lépés: stabilitás – futtasd sokszor, és nézd, mi marad együtt</h3>
+<p>Egy futás egy vélemény. A józan eljárás: futtasd az algoritmust sokszor (más magokkal, esetleg más $\gamma$-kkal), és számold meg, két csúcs a futások <b>hány százalékában</b> került egy közösségbe.</p>
+
+<div class="box def">
+  <span class="box-title">Definíció – együttes besorolási mátrix és konszenzus</span>
+  $N$ futás után $C_{ij}$ = azoknak a futásoknak az aránya, amelyekben $i$ és $j$ egy közösségben van.
+  <ul style="margin:.2rem 0">
+    <li>$C_{ij} \approx 1$: mindig együtt – erre lehet építeni;</li>
+    <li>$C_{ij} \approx 0$: soha;</li>
+    <li>köztes érték: a pár a határon áll.</li>
+  </ul>
+  <b>Konszenzus-klaszterezés</b> (Lancichinetti–Fortunato, 2012): a $C$-t súlyozott gráfként kezeljük (a kis értékeket levágva), és azon futtatjuk újra a közösségkeresést, amíg a futások egyeznek.
+  Egy csúcs <b>stabilitása</b> pl. az, hogy a futások hány százalékában van együtt a konszenzus-társaival.
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – öt futás, egy csúcs</span>
+    Öt Louvain-futásban a 9-es tag 3-szor van együtt a 34-essel, 2-szer az 1-essel. Mennyi a $C_{9,34}$ és a $C_{9,1}$?
+    <details><summary>Megoldás</summary>$3/5 = 0{,}6$ és $2/5 = 0{,}4$ (ha az 1-es és a 34-es sosincs együtt). A 9-es határcsúcs – ahogy a 8.1 története is mondja.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – Louvain vs. címketerjesztés a karateklubon</span>
+    20 futás (widget): a Louvain mindig 4 közösséget ad, a futások páronkénti átlagos NMI-je 0,90. A címketerjesztés 50 futásból 1 és 6 közötti számú közösséget. Mit közölsz?
+    <details><summary>Megoldás</summary>A Louvain-eredmény stabil – közölheted, a stabilitással együtt. A címketerjesztés egy futásának eredményét nem; legfeljebb a konszenzusát, és azt is jelezve, hogy a futások mennyire szórnak.</details>
+  </div>
+</div>
+
+<div class="widget" data-widget="stability-check"></div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – stabilitás</summary>
+  <ol>
+    <li>10 futásból két csúcs 7-szer volt együtt. Mennyi a $C_{ij}$?
+      <details><summary>Megoldás</summary>$0{,}7$.</details></li>
+    <li>Ha minden $C_{ij}$ vagy 0, vagy 1, mit tudsz a futásokról?
+      <details><summary>Megoldás</summary>Mind ugyanazt a felbontást adták (legfeljebb a címkék sorszáma más). Tökéletesen stabil.</details></li>
+    <li>A Les Misérables-on a legkevésbé stabil szereplők Perpetue, Simplice és Magnon (widget). Mi lehet az oka?
+      <details><summary>Megoldás</summary>Kevés (1–3) kapcsolatuk van, és azok két közösség felé is futnak – a sorrend dönti el, hová kerülnek. A mellékszereplők gyakran ilyen határcsúcsok.</details></li>
+    <li>Miért nem elég a futások közül a legnagyobb $Q$-jút közölni?
+      <details><summary>Megoldás</summary>Mert a közel azonos $Q$-jú felbontások nagyon különbözhetnek (Good, de Montjoye és Clauset, 2010). Ha nem mutatod meg, mennyire egyeznek a futások, az olvasó nem tudja, melyik csoport „biztos”.</details></li>
+    <li>(nehezebb) Egy hírkorpusz entitáshálózatán a Louvain 20 futása közt az átlagos NMI 0,6. Mit teszel?
+      <details><summary>Megoldás</summary>Konszenzus-klaszterezést, és csak a stabil magokat értelmezed. Megnézed több $\gamma$-ra és egy másik módszerrel (pl. Leiden, SBM). Ha a szerkezet így sem stabil, lehet, hogy a hálózatban nincs erős közösségszerkezet – ezt a 3. lépés nullmodellje dönti el.</details></li>
+  </ol>
+</details>
+
+<h3 id="s87-c">3. lépés: a véletlen gráf is moduláris – mihez mérjük a $Q$-t?</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy véletlen gráf a karateklub méretében</span>
+  Sorsolj 200 $G(34, 78)$ gráfot (7.1), és mindegyiken keresd meg a Louvain-nal a legjobb felbontást (5 futásból a legjobbat). Az eredmény (Python):
+  $$Q_{\text{véletlen}} = 0{,}354 \pm 0{,}019 \qquad (\text{legnagyobb: } 0{,}402).$$
+  A karateklub <b>valódi kettéválásának</b> modularitása $0{,}358$ – gyakorlatilag ugyanennyi! Egy szerkezet nélküli véletlen gráfban is található olyan felbontás, amely ennyit ér.
+</div>
+
+<div class="box thm">
+  <span class="box-title">Guimerà, Sales-Pardo és Amaral (2004)</span>
+  Ritka véletlen gráfokban a <b>legnagyobb</b> modularitás jóval 0 fölött van, mert a sok lehetséges felbontás közül mindig akad egy, amely véletlenül „szerencsés”. Minél ritkább a gráf, annál nagyobb ez a $Q$.
+  <b>Következmény:</b> a megtalált $Q$-t nem a 0-hoz, hanem egy <b>nullmodell legjobb $Q$-jához</b> kell mérni – ugyanazzal az algoritmussal optimalizálva (7.4: z-érték, empirikus p).
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa – a karateklub két nullmodellel</span>
+  A karateklub legjobb $Q$-ja $0{,}420$. A fokszámtartó nullmodellben (élcsere, 7.4) 200 sorsolás legjobb $Q$-ja $0{,}298 \pm 0{,}015$. Mennyi a $z$ a két nullmodellhez képest?
+  <details><summary>Megoldás</summary>$G(34, 78)$-hez: $(0{,}420 - 0{,}354)/0{,}019 \approx 3{,}5$. Fokszámtartóhoz: $(0{,}420 - 0{,}298)/0{,}015 \approx 8{,}1$ (a kerekítetlen Python-értékekkel 7,85 – ekkora $z$-nél ez a különbség mindegy).
+    Mindkét mérce szerint van szerkezet. Érdekes, hogy a fokszámtartó null <em>kisebb</em> $Q$-t ad: a hubok sok élt kötnek össze, ezért egy ilyen véletlen gráf nehezebben bontható „szerencsés” csoportokra. A két null tehát más-más mércét ad; a fokszámtartó illik a modularitáshoz, mert a $Q$ képlete is a fokszámtartó (konfigurációs) modellhez mér.</details>
+</div>
+
+<div class="box def">
+  <span class="box-title">Hüvelykujjszabály</span>
+  <b>„Egy közösségfelbontás hipotézis, nem eredmény.”</b> Közöld: a módszert és a paramétereit ($\gamma$, súlyok), a futások számát és egyezését (NMI / ARI, konszenzus), a $Q$-t a nullmodell $Q$-jához mérve – és ha van, egy külső mércét (pl. ismert csoportokat).
+  A szakirodalom gyakorlati minimuma: <b>több módszer, több futás, a robusztusság jelentése</b>.
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>„$Q = 0{,}4$, tehát erős a közösségszerkezet.”</b> Ritka gráfban a véletlen is adhat ennyit. Nullmodell nélkül a $Q$ nem értelmezhető.</li>
+    <li><b>A nullmodellben más algoritmust (vagy kevesebb futást) használni.</b> A null $Q$-ját ugyanazzal az optimalizálóval kell keresni, különben a két szám nem összemérhető.</li>
+    <li><b>Egyetlen véletlen gráffal összevetni.</b> Ahogy a 7.4-ben: sok sorsolás kell (átlag, szórás, empirikus p).</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – nullmodell a modularitáshoz</summary>
+  <ol>
+    <li>Megfigyelt $Q = 0{,}52$, a nullmodell 500 sorsolásának legjobb $Q$-ja $0{,}41 \pm 0{,}02$. Mennyi a $z$?
+      <details><summary>Megoldás</summary>$(0{,}52 - 0{,}41)/0{,}02 = 5{,}5$.</details></li>
+    <li>Ugyanitt a sorsolások egyikében sem volt $Q \ge 0{,}52$. Mennyi az empirikus p?
+      <details><summary>Megoldás</summary>$\hat p = 1/501 \approx 0{,}002$ (7.4).</details></li>
+    <li>Egy 40 csúcsú, 60 élű gráfban $Q = 0{,}40$. Biztos-e, hogy van közösségszerkezet?
+      <details><summary>Megoldás</summary>Nem: egy ennyire ritka ($\langle k\rangle = 3$) véletlen gráf legjobb $Q$-ja is ekkora lehet. Nullmodellel kell összevetni.</details></li>
+    <li>Miért nő a véletlen gráf legjobb $Q$-ja, ha a gráf ritkább?
+      <details><summary>Megoldás</summary>Ritka gráfban kevés él köti össze a csúcsokat, így könnyebb olyan csoportokat találni, amelyek között véletlenül alig fut él. Sűrű gráfban ez nehezebb.</details></li>
+    <li>(nehezebb) Egy kutató a hírkorpusza szereplőhálózatán $Q = 0{,}35$-öt talál, a fokszámtartó null $0{,}33 \pm 0{,}02$-t. Mit írsz a bírálatba?
+      <details><summary>Megoldás</summary>$z = 1$: a talált modularitás nem tér el lényegesen attól, ami a szereplők gyakoriságából véletlenül is kijön. A „közösségek” lehet, hogy csak a gyakori és ritka szereplők elrendeződését tükrözik. Kérj stabilitást, más nullmodellt (pl. a cikk–szereplő páros nullmodellt, 7.5), és óvatos értelmezést.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh8-87"></div>
+</section>
+
+<!-- ===================================================== 8.8 -->
+<section id="s88">
+<h2>8.8 Alkalmazás ★★</h2>
+<p>Most minden eszköz megvan: Girvan–Newman, modularitás, Louvain $\gamma$-val, címketerjesztés, spektrális vágás, SBM, NMI / ARI, stabilitás és nullmodell. Három hálózaton próbáljuk ki őket – és végül megválaszoljuk a fejezet kérdését.</p>
+
+<h3 id="s88-a">1. lépés: a karateklub – az algoritmusok a valódi kettéváláshoz mérve</h3>
+<div class="two-col">
+  <div><div class="gfig" data-edges="1-2,1-3,1-4,1-5,1-6,1-7,1-8,1-9,1-11,1-12,1-13,1-14,1-18,1-20,1-22,1-32,2-3,2-4,2-8,2-14,2-18,2-20,2-22,2-31,3-4,3-8,3-9,3-10,3-14,3-28,3-29,3-33,4-8,4-13,4-14,5-7,5-11,6-7,6-11,6-17,7-17,9-31,9-33,9-34,10-34,14-34,15-33,15-34,16-33,16-34,19-33,19-34,20-34,21-33,21-34,23-33,23-34,24-26,24-28,24-30,24-33,24-34,25-26,25-28,25-32,26-32,27-30,27-34,28-34,29-32,29-34,30-33,30-34,31-33,31-34,32-33,32-34,33-34" data-pos="1:0.813,0.620 2:1.083,0.574 3:0.744,0.429 4:0.626,0.563 5:0.563,0.758 6:0.568,0.817 7:0.859,0.825 8:0.429,0.551 9:1.115,0.426 10:0.747,0.267 11:0.285,0.734 12:1.133,0.791 13:0.203,0.647 14:0.979,0.461 15:1.600,0.253 16:1.549,0.187 17:0.614,1.000 18:1.270,0.724 19:1.445,0.127 20:1.264,0.471 21:1.291,0.081 22:1.410,0.679 23:1.090,0.065 24:0.499,0.138 25:0.000,0.262 26:0.032,0.336 27:0.923,0.000 28:0.427,0.266 29:0.574,0.265 30:0.750,0.078 31:1.422,0.380 32:0.557,0.390 33:1.110,0.254 34:1.003,0.238" data-color="1:--setA 2:--setA 3:--setB 4:--setA 5:--setA 6:--setA 7:--setA 8:--setA 9:--setB 10:--setB 11:--setA 12:--setA 13:--setA 14:--setA 15:--setB 16:--setB 17:--setA 18:--setA 19:--setB 20:--setA 21:--setB 22:--setA 23:--setB 24:--setB 25:--setB 26:--setB 27:--setB 28:--setB 29:--setB 30:--setB 31:--setB 32:--setB 33:--setB 34:--setB" data-w="300" data-h="210" data-r="8"
+    data-caption="Girvan–Newman, első kettéesés (15 + 19 tag)"></div></div>
+  <div><div class="gfig" data-edges="1-2,1-3,1-4,1-5,1-6,1-7,1-8,1-9,1-11,1-12,1-13,1-14,1-18,1-20,1-22,1-32,2-3,2-4,2-8,2-14,2-18,2-20,2-22,2-31,3-4,3-8,3-9,3-10,3-14,3-28,3-29,3-33,4-8,4-13,4-14,5-7,5-11,6-7,6-11,6-17,7-17,9-31,9-33,9-34,10-34,14-34,15-33,15-34,16-33,16-34,19-33,19-34,20-34,21-33,21-34,23-33,23-34,24-26,24-28,24-30,24-33,24-34,25-26,25-28,25-32,26-32,27-30,27-34,28-34,29-32,29-34,30-33,30-34,31-33,31-34,32-33,32-34,33-34" data-pos="1:0.813,0.620 2:1.083,0.574 3:0.744,0.429 4:0.626,0.563 5:0.563,0.758 6:0.568,0.817 7:0.859,0.825 8:0.429,0.551 9:1.115,0.426 10:0.747,0.267 11:0.285,0.734 12:1.133,0.791 13:0.203,0.647 14:0.979,0.461 15:1.600,0.253 16:1.549,0.187 17:0.614,1.000 18:1.270,0.724 19:1.445,0.127 20:1.264,0.471 21:1.291,0.081 22:1.410,0.679 23:1.090,0.065 24:0.499,0.138 25:0.000,0.262 26:0.032,0.336 27:0.923,0.000 28:0.427,0.266 29:0.574,0.265 30:0.750,0.078 31:1.422,0.380 32:0.557,0.390 33:1.110,0.254 34:1.003,0.238" data-color="1:--setA 2:--setA 3:--setA 4:--setA 5:--setB 6:--setB 7:--setB 8:--setA 9:--setC 10:--setC 11:--setB 12:--setA 13:--setA 14:--setA 15:--setC 16:--setC 17:--setB 18:--setA 19:--setC 20:--setA 21:--setC 22:--setA 23:--setC 24:#a855f7 25:#a855f7 26:#a855f7 27:--setC 28:#a855f7 29:#a855f7 30:--setC 31:--setC 32:#a855f7 33:--setC 34:--setC" data-w="300" data-h="210" data-r="8"
+    data-caption="Louvain, $\gamma = 1$: 4 közösség, $Q = 0{,}420$"></div></div>
+</div>
+<div class="tw" style="overflow-x:auto"><table>
+  <tr><th>módszer</th><th>közösségek</th><th>$Q$</th><th>NMI</th><th>ARI</th><th>„rossz” oldalon</th></tr>
+  <tr><td>valódi kettéválás</td><td>2</td><td>0,358</td><td>1</td><td>1</td><td>–</td></tr>
+  <tr><td>Girvan–Newman, első kettéesés</td><td>2</td><td>0,360</td><td>0,73</td><td>0,77</td><td>3, 9</td></tr>
+  <tr><td>Fiedler-vektor (4.5)</td><td>2</td><td>0,360</td><td>0,73</td><td>0,77</td><td>3, 9</td></tr>
+  <tr><td>modularitásmátrix (8.5)</td><td>2</td><td>0,371</td><td>0,84</td><td>0,88</td><td>9</td></tr>
+  <tr><td>Louvain, $\gamma = 0{,}5$</td><td>2</td><td>0,372</td><td>0,68</td><td>0,77</td><td>9, 10</td></tr>
+  <tr><td>Girvan–Newman, legjobb $Q$</td><td>5</td><td>0,401</td><td colspan="3" rowspan="2">a táborokon belüli kisebb köröket is szétválasztja</td></tr>
+  <tr><td>Louvain, $\gamma = 1$</td><td>4</td><td>0,420</td></tr>
+  <tr><td>címketerjesztés</td><td>1–6</td><td>változó</td><td colspan="3">átlagos NMI 0,57 (100 futás) – instabil</td></tr>
+</table></div>
+<p class="muted" style="font-size:.92rem">Python (<code>networkx</code>, <code>scikit-learn</code>); a Louvain-sorok 50 futás legjobbjai. A Louvain $\gamma = 1$ felbontása a kettéváláshoz mérve NMI 0,59, ARI 0,47.</p>
+
+<div class="box example">
+  <span class="box-title">Példa – mit olvasunk ki a táblázatból?</span>
+  Melyik módszer a „legjobb”?
+  <details><summary>Megoldás</summary>Ha a kérdés a kettéválás megjóslása: a modularitásmátrix kettévágása (egyetlen tévedés, a 9-es – akinek a története a szerkezettel ellentétes). Ha a kérdés a barátsági szerkezet: a Louvain négy közössége a legmodulárisabb, és a 8.7 szerint stabil és a nullmodell fölött van.
+    A két válasz nem mond ellent egymásnak: a négy közösség két-két csoportja nagyjából egy-egy tábor.</details>
+</div>
+
+<h3 id="s88-b">2. lépés: a Les Misérables – ki kivel szerepel</h3>
+<p>Donald Knuth (1993) Victor Hugo regényének 77 szereplőjét kötötte össze, ha egy fejezetben együtt szerepelnek; az él súlya a közös fejezetek száma (254 él, összsúly 820). Ez a „ki kivel jelenik meg” hálózat irodalmi előképe – a hírek <b>együttemlítési</b> hálózata ugyanígy épül.</p>
+
+<div class="box example">
+  <span class="box-title">Példa – a súlyozott Louvain hat közössége</span>
+  100 futás legjobbja (Python, súlyozva): 6 közösség, $Q = 0{,}567$; a futások $Q$-ja 0,559 és 0,567 között szór. A közösségek (méret szerint):
+  <ul style="margin:.2rem 0">
+    <li><b>22:</b> Valjean, Cosette, Marius, Javert, Fauchelevent, Gillenormand-ék – a főszál;</li>
+    <li><b>17:</b> Enjolras, Courfeyrac, Combeferre és az ABC barátai, Gavroche, Mabeuf – a barikád;</li>
+    <li><b>11:</b> Thénardier-ék, Éponine és a Patron-Minette banda;</li>
+    <li><b>11:</b> Fantine, Tholomyès és a diáktársaság – a regény első része;</li>
+    <li><b>10:</b> Myriel püspök és környezete – a nyitófejezetek;</li>
+    <li><b>6:</b> Champmathieu és a tárgyalás szereplői.</li>
+  </ul>
+  Melyik szereplő nem illik egyetlen közösségbe sem igazán?
+  <details><summary>Megoldás</summary>Valjean. Messze ő a legnagyobb fokszámú (36) és köztességű (0,57) szereplő: szinte minden szálban megjelenik. A felbontás egy közösségbe kell tegye (a főszálba), de valójában <b>híd</b> – ahogy az Árvízhéten a Polgármester. Ezt a kemény (nem átfedő) felbontás elrejti.</details>
+</div>
+
+<div class="widget" data-widget="community-explorer"></div>
+
+<h3 id="s88-c">3. lépés: az Árvízhét – közösség vagy keret?</h3>
+<p>Itt a fejezet kérdése. A keretek szerinti csoportok: $\{\mathrm{Ko}, \mathrm{Vi}\}$, $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$, $\{\mathrm{Sz}, \mathrm{Kl}\}$. Mit mondanak az algoritmusok?</p>
+
+<div class="box example">
+  <span class="box-title">Példa – négy beállítás, négy válasz</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>beállítás</th><th>legjobb felbontás (mind a 877-ből)</th><th>a keretfelbontás helye</th></tr>
+    <tr><td>súly nélkül, $\gamma = 1$</td><td>$\{\mathrm{Ko}, \mathrm{Vi}, \mathrm{Sz}, \mathrm{Kl}\}$ · $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$, $Q = 0{,}28$</td><td>7. ($Q = 0{,}155$)</td></tr>
+    <tr><td>súlyozva, $\gamma = 1$</td><td>ugyanez, $Q^w = 0{,}278$</td><td>2. ($Q^w = 0{,}230$)</td></tr>
+    <tr><td>súlyozva, $1{,}40 \le \gamma \le 1{,}80$</td><td><b>a keretfelbontás</b></td><td><b>1.</b></td></tr>
+    <tr><td>súly nélkül, $\gamma \gtrsim 1{,}48$</td><td>$\{\mathrm{Ko}, \mathrm{Sz}, \mathrm{Kl}\}$ · $\{\mathrm{Vi}\}$ · $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$ (majd egyre több darab)</td><td>–</td></tr>
+  </table></div>
+  A Girvan–Newman, a Fiedler-vektor (4.6) és a Louvain is a <b>kétcsoportos</b> felbontást adja alapbeállításban. A keretek csak <b>súlyozva és nagyobb felbontással</b> jönnek ki.
+  <details><summary>Hol a határ? – a $\gamma$ kézzel</summary>
+    Súlyozva: $Q_\gamma(\text{két csoport}) = 14/18 - \gamma \cdot 2 \cdot (18/36)^2 = 0{,}778 - 0{,}5\gamma$; $Q_\gamma(\text{keretek}) = 11/18 - \gamma\,(11^2 + 18^2 + 7^2)/36^2 = 0{,}611 - 0{,}381\gamma$.
+    Egyenlők, ha $\gamma = (1/6)/(154/1296) \approx 1{,}40$. Felül: $\gamma \approx 1{,}80$-tól a Polgármester is leválik (négy csoport).
+  </details>
+</div>
+
+<div class="box tip">
+  <span class="box-title">A fejezet kérdésének válasza</span>
+  <b>Alapbeállításban nem.</b> A szereplőgráf legerősebb szerkezete nem a három keret, hanem két <b>szál</b>: az országos–szakpolitikai ($\mathrm{Ko}$, $\mathrm{Vi}$, $\mathrm{Sz}$, $\mathrm{Kl}$) és a helyi–lakossági ($\mathrm{Po}$, $\mathrm{La}$, $\text{Ön}$). A „védekezés” és a „felkészülési hiány” keret ugyanazokról a szereplőkről szól, csak <em>másképp</em> – ezt az együttemlítés nem látja.
+  A keretek csak akkor jönnek ki, ha a súlyokat (hányszor szerepelnek együtt) figyelembe vesszük, és nagyobb nagyítást ($\gamma \approx 1{,}4$–$1{,}8$) választunk. Ez nem „bizonyítja”, hogy a közösségek a keretek: mi választottuk a $\gamma$-t, és tudtuk, mit keresünk.
+  <b>Tanulság:</b> a közösség ≠ keret ≠ téma. A közösségkeresés <b>keretjelölteket</b> ad, amelyeket a szövegen kell ellenőrizni (17. fejezet).
+</div>
+
+<div class="two-col">
+  <div><div class="gfig" data-edges="Ko-Vi,Ko-Po,Vi-Po,Vi-Sz,Sz-Kl,Sz-Ko,Kl-Ko,La-Ön,La-Po,Po-Ön" data-weights="2,2,2,1,2,1,1,3,2,2" data-show-weights
+    data-color="Ko:--setA Vi:--setA Sz:--setA Kl:--setA Po:#a855f7 La:--setB Ön:--setB" data-hl="Ko-Po,Vi-Po"
+    data-pos="Kl:.6,0 Sz:0,.5 Ko:1.3,.5 Vi:.65,1 Po:1.6,1.3 La:2.4,1 Ön:2.3,1.9" data-w="300" data-h="200" data-r="16"
+    data-caption="Klikkperkoláció ($k = 3$): két átfedő közösség, a Polgármester (lila) mindkettőben"></div></div>
+  <div class="box def">
+    <span class="box-title">Átfedő közösségek – klikkperkoláció</span>
+    A kemény felbontás minden csúcsot <b>egy</b> csoportba tesz. A Polgármester viszont 3 védekezés- és 3 veszteség-keretes cikkben szerepel – két csoporthoz is tartozik.
+    A <b>klikkperkoláció</b> (Palla, Derényi, Farkas és Vicsek, 2005) $k$-klikkekből (itt háromszögekből) épít közösséget: két háromszög szomszédos, ha két közös csúcsuk van, és a szomszédos háromszögek láncai a közösségek.
+    Az Árvízhét 4 háromszögéből ($\mathrm{Ko}\mathrm{Vi}\mathrm{Po}$, $\mathrm{Ko}\mathrm{Vi}\mathrm{Sz}$, $\mathrm{Ko}\mathrm{Sz}\mathrm{Kl}$, $\mathrm{Po}\mathrm{La}\text{Ön}$) két közösség lesz:
+    $\{\mathrm{Ko}, \mathrm{Vi}, \mathrm{Po}, \mathrm{Sz}, \mathrm{Kl}\}$ és $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$ – a <b>Polgármester mindkettőben</b>.
+  </div>
+</div>
+
+<div class="box history">
+  <span class="box-title">📜 Magyar szál: a CFinder</span>
+  A klikkperkolációs módszert az ELTE Biológiai Fizika Tanszékén dolgozta ki Palla Gergely, Derényi Imre, Farkas Illés és Vicsek Tamás (<em>Nature</em>, 2005), és a <b>CFinder</b> programmal tették elérhetővé.
+  Fehérjehálózatokon, szóasszociációs és együttműködési hálózatokon mutatták meg, hogy a valódi közösségek erősen átfednek. Ma az átfedő közösségek kutatásának egyik kiindulópontja – mellette az élközösségek (Ahn, Bagrow és Lehmann, 2010) a legismertebbek.
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – az Árvízhét közösségei</summary>
+  <ol>
+    <li>Ellenőrizd, hogy $\gamma = 1{,}5$-nél (súlyozva) a keretfelbontás $Q_\gamma$-ja nagyobb a kétcsoportosénál!
+      <details><summary>Megoldás</summary>Két csoport: $0{,}778 - 0{,}75 = 0{,}028$. Keretek: $0{,}611 - 0{,}381 \cdot 1{,}5 \approx 0{,}039$. ✓</details></li>
+    <li>Miért segít a súlyozás a keretfelbontásnak?
+      <details><summary>Megoldás</summary>A $\mathrm{Ko}$–$\mathrm{Vi}$ és az $\mathrm{Sz}$–$\mathrm{Kl}$ két-két közös cikkben szerepel: súlyozva ezek a kapcsolatok erősebbek, a „hiányzó” élek (pl. $\mathrm{Ko}$–$\mathrm{Sz}$, 1 cikk) gyengébbek.</details></li>
+    <li>Melyik két háromszög szomszédos a klikkperkolációban a $\mathrm{Ko}\mathrm{Vi}\mathrm{Po}$-val?
+      <details><summary>Megoldás</summary>Csak a $\mathrm{Ko}\mathrm{Vi}\mathrm{Sz}$ (közös: $\mathrm{Ko}$, $\mathrm{Vi}$). A $\mathrm{Po}\mathrm{La}\text{Ön}$-nal egy közös csúcsa van ($\mathrm{Po}$) – az nem elég.</details></li>
+    <li>Hány csúcs tartozik egynél több közösséghez a klikkperkolációs felbontásban?
+      <details><summary>Megoldás</summary>Egy: a $\mathrm{Po}$.</details></li>
+    <li>(nehezebb) Egy kutató a korpusza szereplőhálózatán Louvain-nal 3 közösséget talál, és „3 keretet” jelent. Mit kérdezel tőle?
+      <details><summary>Megoldás</summary>Milyen $\gamma$ és súlyozás mellett; hány futásból, mennyire stabilan (8.7); mihez képest jelentős a $Q$ (nullmodell); és főleg: ellenőrizte-e a szövegen, hogy a közösségek tényleg keretek (értelmezés, problémadefiníció, értékelés, javaslat), nem csak témák vagy szereplőcsoportok.</details></li>
+  </ol>
+</details>
+
+<h3 id="s88-d">4. lépés: közösségkeresés a hírkutatásban</h3>
+<div class="box tip">
+  <span class="box-title">⚖️ Konszenzus és vita – közösségek mint keretek <span class="muted">(📅 Állapot: 2026)</span></span>
+  <ul style="margin:.2rem 0">
+    <li><b>ANTMN</b> (Walter és Ophir, 2019): a hírkorpuszból LDA-témákat nyernek ki, a témákat összekötik, ha ugyanazokban a cikkekben fordulnak elő, és a témahálózat Louvain-közösségeit „keretcsomagoknak” tekintik. Magyar hírportálokon (BERTopic + ANTMN) Nagy M. (2024) alkalmazta.</li>
+    <li><b>Keretelem-hálózat</b> (Jiang és mtsai, 2025, <em>JMCQ</em>): a csúcsok szereplők <em>és</em> témák, az élek az együttes előfordulás (plusz szemantikai hasonlóság). 1300 amerikai lövöldözéses hír elemzésénél spektrális klaszterezéssel (2–20 csoportot kipróbálva) az LDA-val összemérhető kereteket kaptak, és egy addig nem leírt keretet is („politikai álláspont a fegyvertartásról”).</li>
+    <li><b>Egyetértés:</b> a közösségek hasznos <em>jelöltek</em>, gyorsabbak a kézi kódolásnál, és az együttelőfordulási hálózatot <b>vázkinyerés</b> (backbone) nélkül a gyakori, semleges szavak uralják.</li>
+    <li><b>Vita:</b> mennyire keret egy közösség (és nem csak téma); melyik algoritmus és felbontás illik a hírhálózatokhoz – egységes ajánlás nincs. A közös minimum: több módszer, több futás, a robusztusság közlése, és validálás a szövegen.</li>
+  </ul>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Módszertani józanság</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az él definíciója döntés.</b> Együttemlítés, megszólaltatás, idézés – mindegyik más hálózatot és más közösségeket ad (3. fejezet).</li>
+    <li><b>Az együttelőfordulás nem kapcsolat.</b> Két szereplő azért is szerepelhet együtt, mert mindkettő gyakori. A modularitás ezt a fokszámon keresztül kezeli, a páros (cikk–szereplő) nullmodell (7.5) még pontosabban.</li>
+    <li><b>Hét csúcs kevés.</b> Az Árvízhét szemléltetés, nem felfedezés: 877 felbontás közül választunk, és a különbségek kicsik.</li>
+  </ul>
+</div>
+
+<div class="quiz" data-quiz="gh8-88"></div>
+</section>
+
+<!-- ===================================================== Összefoglalás -->
+<section id="s-sum">
+<h2>Összefoglalás</h2>
+<div class="tw" style="overflow-x:auto"><table>
+  <tr><th>Fogalom / módszer</th><th>Szabály / képlet</th><th>Mit ad, mire figyelj?</th><th>Példa</th></tr>
+  <tr><td>felbontás, közösségi mennyiségek</td><td>$d_c = 2L_c + K_c$; $\sum_c L_c + \text{vágott} = m$</td><td>a vágott élek száma önmagában nem mérce</td><td>Árvízhét: $L = 5, 3$; $K = 2, 2$; $d = 12, 8$</td></tr>
+  <tr><td>élköztesség</td><td>$b(e) = \sum_{s \lt t}\sigma_{st}(e)/\sigma_{st}$; $\sum_e b(e) = \sum d(s, t)$</td><td>a hidakon torlódik a forgalom</td><td>két háromszög: híd 9</td></tr>
+  <tr><td>Girvan–Newman</td><td>a legnagyobb $b(e)$ törlése, újraszámolás</td><td>dendrogram; lassú ($O(m^2 n)$)</td><td>Árvízhét: Ko–Po, Vi–Po → 2 csoport</td></tr>
+  <tr><td>modularitás</td><td>$Q = \sum_c [L_c/m - (d_c/2m)^2]$</td><td>megfigyelt – konfigurációs null; $-\tfrac12 \le Q \lt 1$</td><td>két háromszög: 0,357; Árvízhét: 0,28</td></tr>
+  <tr><td>súlyozott modularitás</td><td>$Q^w = \sum_c [W_c/W - (s_c/2W)^2]$</td><td>átrendezheti a sorrendet</td><td>keretek: 7. → 2. hely</td></tr>
+  <tr><td>felbontási határ</td><td>összevonás, ha $\ell_{12} \gt d_1 d_2/2m$</td><td>nagy gráfban a kis közösségek összeolvadnak</td><td>10 háromszög: 0,650 vs. 0,675</td></tr>
+  <tr><td>Louvain</td><td>$\Delta Q = k_{i,C}/m - \Sigma_C k_i/2m^2$; áthelyezés + összevonás</td><td>gyors, mohó, sorrendfüggő</td><td>karateklub: 4 közösség, 0,420</td></tr>
+  <tr><td>felbontási paraméter</td><td>$Q_\gamma = \sum_c [L_c/m - \gamma(d_c/2m)^2]$</td><td>nagy $\gamma$ → sok kis közösség</td><td>karate: $\gamma$ 0,5 / 1 / 2 → 2 / 4 / 7</td></tr>
+  <tr><td>Leiden</td><td>áthelyezés + finomítás + összevonás</td><td>összefüggő közösségek, gyorsabb</td><td>a Louvain szétszakadt közösségeit javítja</td></tr>
+  <tr><td>címketerjesztés</td><td>a szomszédok leggyakoribb címkéje</td><td>nagyon gyors, instabil</td><td>karateklub: 1–6 közösség</td></tr>
+  <tr><td>spektrális kettévágás</td><td>Fiedler-vektor (L), ill. $B = A - kk^\top/2m$ vezető sajátvektora</td><td>$Q = \mathbf s^\top B\mathbf s/4m$</td><td>karateklub: 32/34, ill. 33/34</td></tr>
+  <tr><td>SBM</td><td>$P(A_{ij} = 1) = p_{g_i g_j}$; $\hat p_{rs} = e_{rs}/N_{rs}$</td><td>mag–periféria, kétrészes is; túlillesztés; fokszám-korrekció</td><td>csillag, $K_{3,3}$: $Q = -0{,}5$, SBM tökéletes</td></tr>
+  <tr><td>NMI, ARI</td><td>információ, ill. véletlenre korrigált páregyezés</td><td>címkefüggetlenek; NMI sok kis csoportnál túlzó</td><td>egy csúcs átcsúszik: 0,48 / 0,32</td></tr>
+  <tr><td>stabilitás, konszenzus</td><td>$C_{ij}$ = együtt töltött futások aránya</td><td>a határcsúcsok kiszűrése</td><td>karate Louvain: NMI 0,90</td></tr>
+  <tr><td>nullmodell a $Q$-hoz</td><td>a null legjobb $Q$-ja ugyanazzal az algoritmussal</td><td>véletlen gráf is moduláris</td><td>$G(34, 78)$: 0,354 ± 0,019</td></tr>
+  <tr><td>klikkperkoláció</td><td>$k$-klikkek, két közös csúccsal szomszédosak</td><td>átfedő közösségek</td><td>Árvízhét: a Po két közösségben</td></tr>
+</table></div>
+
+<div class="box tip">
+  <span class="box-title">Melyik módszer mikor? – döntési táblázat</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>Ha a kérdésben ez áll…</th><th>…akkor ezt használd</th></tr>
+    <tr><td>„mennyire jó ez a felbontás?”</td><td>modularitás ($Q$), súlyozott gráfon $Q^w$ – de nullmodellhez mérve</td></tr>
+    <tr><td>kis gráf, a lépéseket is látni akarod</td><td>Girvan–Newman (dendrogram), vagy kis gráfon az összes felbontás kipróbálása</td></tr>
+    <tr><td>nagy gráf, „sűrű csomókat” keresel</td><td>Leiden (vagy Louvain, az összefüggőség ellenőrzésével); $\gamma$-t több értékre</td></tr>
+    <tr><td>gyors első ránézés óriási gráfon</td><td>címketerjesztés – sok futással, konszenzussal</td></tr>
+    <tr><td>két csoportot keresel, vagy beágyazás kell</td><td>spektrális kettévágás / spektrális klaszterezés</td></tr>
+    <tr><td>mag–periféria vagy kétrészes szerkezet is lehet; hány csoport van?</td><td>SBM (fokszám-korrigált, bayesi / MDL modellválasztással)</td></tr>
+    <tr><td>egy csúcs több csoporthoz is tartozhat</td><td>átfedő módszer: klikkperkoláció, élközösségek</td></tr>
+    <tr><td>„mennyire egyezik két felbontás?”</td><td>ARI (és NMI, kevés csoportnál); nem címkealapú pontosság</td></tr>
+    <tr><td>„megbízható-e a felbontás?”</td><td>több futás, $C_{ij}$, konszenzus; a $Q$ nullmodellhez mérve (z, empirikus p)</td></tr>
+    <tr><td>„a közösségek a keretek?”</td><td>keretjelöltként kezeld; validáld a szövegen (17. fejezet)</td></tr>
+  </table></div>
+</div>
+</section>
+
+<!-- ===================================================== Ellenőrző kérdések -->
+<section id="s-check">
+<h2>Ellenőrző kérdések</h2>
+<p>Gondold végig a választ, aztán kattints a kártyára a megfordításhoz!</p>
+<div class="flashcards">
+  <div class="flash"><div class="inner"><div class="face front">Mi a közösség szemléletes definíciója?</div>
+    <div class="face back">Csúcshalmaz, amelyen belül sok, kifelé kevés az él – pontosabban: több belső él, mint ami a véletlen szint alapján várható.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért nem elég a legkevesebb vágott élt keresni?</div>
+    <div class="face back">Mert a „mindenki egy csoportban” 0 élt vág, és egyetlen gyengén kötődő csúcs levágása is kevés élt vág. A méretet és a véletlen szintet is figyelembe kell venni.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi az élköztesség, és miért jó híd-detektor?</div>
+    <div class="face back">Hány legrövidebb út megy át az élen (törtekkel). A csoportok közti kevés élen minden csoportközi út átmegy, a belső éleken a forgalom szétoszlik.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért kell a Girvan–Newmanban újraszámolni a köztességet?</div>
+    <div class="face back">Mert egy él törlése átrendezi a forgalmat: a megmaradt párhuzamos hídon minden csoportközi út torlódik.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a modularitás képlete, és mi benne a mérce?</div>
+    <div class="face back">$Q = \sum_c [L_c/m - (d_c/2m)^2]$: a belső élek aránya mínusz ugyanez a konfigurációs (fokszámtartó) véletlen gráfban.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mennyi a $Q$ egyetlen közösségre, és mindenki külön?</div>
+    <div class="face back">Egy közösség: 0. Mindenki külön: $-\sum_i (k_i/2m)^2$, negatív. Általában $-\tfrac12 \le Q \lt 1$.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a felbontási határ?</div>
+    <div class="face back">Két közösség összevonása növeli a $Q$-t, ha köztük több él fut, mint $d_1 d_2/2m$. Nagy gráfban ez egyetlen élre is igaz – a kis, sűrű közösségek összeolvadnak.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a Louvain két fázisa?</div>
+    <div class="face back">1. Minden csúcsot a legnagyobb $\Delta Q$-jú szomszédos közösségbe teszünk, amíg van javítás. 2. A közösségekből szuperpontok lesznek (belső élek → hurok), és újra az 1. fázis.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit csinál a felbontási paraméter ($\gamma$)?</div>
+    <div class="face back">A véletlen szintet szorozza. Nagy $\gamma$: sok kis közösség; kis $\gamma$: kevés nagy. A felbontási határ ellen segít, de a választását közölni kell.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit javít a Leiden a Louvainon?</div>
+    <div class="face back">Egy finomító fázissal garantálja, hogy minden közösség összefüggő (a Louvain közösségei szétszakadhatnak), és gyorsabb is.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a címketerjesztés előnye és hátránya?</div>
+    <div class="face back">Nagyon gyors, nincs paramétere. De instabil: a sorrendtől és a holtversenyektől függően más eredményt ad, akár egyetlen közösséget is.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Milyen szerkezetet talál az SBM, amit a modularitás nem?</div>
+    <div class="face back">Mag–perifériát és kétrészes (diszasszortatív) szerkezetet: az SBM a hasonló kapcsolódási mintázatú csúcsokat teszi egy blokkba, nem csak a sűrű csomókat.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért kell az SBM-ben a blokkok számát büntetni, és mi a fokszám-korrekció?</div>
+    <div class="face back">Több blokk mindig jobb likelihoodot ad (a „mindenki külön” tökéletes) – túlillesztés. A fokszám-korrigált SBM minden csúcsnak saját aktivitást ad, így a blokkok nem a fokszámot követik.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a különbség az NMI és az ARI között?</div>
+    <div class="face back">Az NMI a felbontások közös információját, az ARI a véletlenre korrigált páronkénti egyezést méri. Mindkettő címkefüggetlen; az NMI sok kis csoportnál túlzó lehet.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért kell a modularitást nullmodellhez mérni?</div>
+    <div class="face back">Mert véletlen gráfban is van nagy $Q$-jú felbontás (Guimerà és mtsai, 2004): a karateklub méretű $G(n, m)$-ben kb. 0,35.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Megtalálja-e az algoritmus az Árvízhét három keretét?</div>
+    <div class="face back">Alapbeállításban nem: két szálat talál (országos – helyi). Súlyozva és $\gamma \approx 1{,}4$–$1{,}8$-nál igen. A közösség keretjelölt, nem keret.</div></div></div>
+</div>
+</section>
+
+<!-- ===================================================== Vegyes gyakorló feladatok -->
+<section id="s-ex">
+<h2>Vegyes gyakorló feladatok</h2>
+<p>Itt már nincs megmondva, melyik részhez tartozik a feladat: neked kell eldönteni, melyik eszköz kell.</p>
+<details class="box practice">
+  <summary>✏️ Vegyes gyakorló feladatok – kattints a kinyitáshoz</summary>
+  <ol>
+    <li>Egy gráf: két négyzet ($1$–$2$–$3$–$4$–$1$ és $5$–$6$–$7$–$8$–$5$), a 4–5 éllel összekötve. Melyik él köztessége a legnagyobb, és mennyi?
+      <details><summary>Tipp</summary>Hány csúcspár útja megy át a hídon?</details>
+      <details><summary>Megoldás</summary>A 4–5 híd: $4 \cdot 4 = 16$ pár útja megy át rajta – messze a legtöbb.</details></li>
+    <li>Ugyanebben a gráfban mennyi a $Q$ a két négyzetre bontva?
+      <details><summary>Tipp</summary>$m$, $L_c$, $d_c$, majd a képlet.</details>
+      <details><summary>Megoldás</summary>$m = 9$. Mindkét négyzet: $L = 4$, $d = 4 \cdot 2 + 1 = 9$. $Q = 2 \cdot (4/9 - (9/18)^2) = 2 \cdot (0{,}444 - 0{,}25) \approx 0{,}389$.</details></li>
+    <li>Egy 30 élű gráfban a $C$ közösség fokszámösszege 20; az $i$ csúcs ($k_i = 5$) 3 éllel kötődik hozzá. Megéri-e beköltöztetni (az $i$ most egyedül áll)?
+      <details><summary>Tipp</summary>A Louvain $\Delta Q$-ja.</details>
+      <details><summary>Megoldás</summary>$3/30 - 20 \cdot 5/1800 = 0{,}1 - 0{,}056 = 0{,}044 \gt 0$: igen.</details></li>
+    <li>Az előző feladatban mekkora $\gamma$-tól nem éri meg már?
+      <details><summary>Tipp</summary>$\Delta Q_\gamma = 0$.</details>
+      <details><summary>Megoldás</summary>$0{,}1 = \gamma \cdot 0{,}0556 \iff \gamma = 1{,}8$. Efölött az $i$ egyedül marad.</details></li>
+    <li>Két 6 csúcsú blokk, $p_{\text{be}} = 0{,}6$, $p_{\text{ki}} = 0{,}05$. Hány él várható összesen?
+      <details><summary>Tipp</summary>Belül $\binom{n_r}{2}$, között $n_r n_s$ pár.</details>
+      <details><summary>Megoldás</summary>Belül $2 \cdot 0{,}6 \cdot 15 = 18$, között $0{,}05 \cdot 36 = 1{,}8$: 19,8.</details></li>
+    <li>Egy kutató két futás felbontását hasonlítja össze: az egyik $\{a, b, c\}\{d, e\}$, a másik $\{d, e\}\{a, b, c\}$. A „pontossága” 0. Mit rontott el?
+      <details><summary>Tipp</summary>Mi változott a két felbontás között?</details>
+      <details><summary>Megoldás</summary>Csak a címkék sorrendje: a felbontás azonos. Címkefüggetlen mérce kell: NMI = ARI = 1.</details></li>
+    <li>Egy 200 csúcsú, 300 élű hírhálózaton a Louvain $Q = 0{,}48$-at ad. Erős a közösségszerkezet?
+      <details><summary>Tipp</summary>Mennyi az átlagos fokszám? Mi jönne ki véletlenül?</details>
+      <details><summary>Megoldás</summary>$\langle k\rangle = 3$: nagyon ritka gráf, a véletlen gráf legjobb $Q$-ja is magas lehet. Nullmodell (fokszámtartó, sok sorsolás, ugyanazzal a Louvain-nal) nélkül nem dönthető el.</details></li>
+    <li>Egy linkhálózatban néhány nagy portálra mindenki hivatkozik, a kis oldalak egymásra alig. A Louvain alacsony $Q$-t ad. Melyik módszert próbálod?
+      <details><summary>Tipp</summary>Milyen szerkezet ez?</details>
+      <details><summary>Megoldás</summary>Mag–periféria szerkezet – a modularitás nem látja. Fokszám-korrigált SBM-et.</details></li>
+    <li>(nehezebb) Egy szereplőhálózat Louvain-felbontásában a „Polgármester”-típusú szereplő futásról futásra más közösségbe kerül. Mit teszel?
+      <details><summary>Tipp</summary>Mit mond ez a csúcsról?</details>
+      <details><summary>Megoldás</summary>Határcsúcs: két közösséghez is erősen kötődik. Mutasd meg a stabilitását ($C_{ij}$); fontold meg az átfedő felbontást (klikkperkoláció, élközösségek); és értelmezd hídként (köztesség, 5.3).</details></li>
+    <li>(nehezebb) 6 csúcs: A = $\{1, 2\}\{3, 4\}\{5, 6\}$, B = $\{1, 2, 3, 4\}\{5, 6\}$. Számold ki az ARI-t!
+      <details><summary>Tipp</summary>Közös csoportok, majd a „megfigyelt – várható” képlet.</details>
+      <details><summary>Megoldás</summary>Közös csoportok: $\{1, 2\}$, $\{3, 4\}$, $\{5, 6\}$ – megfigyelt $1 + 1 + 1 = 3$. $\sum\binom{a_i}{2} = 3$, $\sum\binom{b_j}{2} = 6 + 1 = 7$; várható $3 \cdot 7/15 = 1{,}4$; legnagyobb $(3 + 7)/2 = 5$. $\mathrm{ARI} = (3 - 1{,}4)/(5 - 1{,}4) = 1{,}6/3{,}6 \approx 0{,}44$.</details></li>
+  </ol>
+</details>
+</section>
+
+<!-- ===================================================== Fejezetzáró teszt -->
+<section id="s-final">
+<h2>Fejezetzáró teszt</h2>
+<p>Vegyes kérdések a teljes fejezetből. Minden kérdésnél van tipp, és a válasz után részletes magyarázat.</p>
+<div class="quiz" data-quiz="gh8-final"></div>
+</section>
+
+<!-- ===================================================== Szómagyarázó -->
+<section id="s-gloss">
+<h2>Szómagyarázó</h2>
+<p>A fejezetben előforduló idegen vagy kevésbé ismert szakkifejezések, betűrendben.</p>
+<dl class="glossary">
+  <dt id="g-asszortativ">asszortatív / diszasszortatív <span class="etym">ang. <em>assort</em> „osztályoz, válogat” (lat. <em>sors</em> „sors, osztályrész”)</span></dt>
+  <dd><p>Asszortatív: a hasonlók kapcsolódnak (sűrű csoportok, $p_{\text{be}} \gt p_{\text{ki}}$). Diszasszortatív: a különbözők (kétrészes szerkezet, $p_{\text{ki}} \gt p_{\text{be}}$).</p></dd>
+
+  <dt id="g-dendrogram">dendrogram <span class="etym">gör. <em>dendron</em> „fa” + <em>gramma</em> „írás, rajz”</span></dt>
+  <dd><p>Elágazási fa, amely megmutatja, hogyan esik szét (vagy áll össze) a gráf lépésről lépésre. Bármely szintjén elvágva egy felbontást kapunk.</p></dd>
+
+  <dt id="g-entropia">entrópia <span class="etym">gör. <em>en</em> „benne” + <em>tropé</em> „fordulat, változás”</span></dt>
+  <dd><p>A bizonytalanság mértéke: $H = -\sum p\ln p$. Egy felbontás entrópiája a csoportméretek arányaiból számol; az NMI ezekhez méri a közös információt.</p></dd>
+
+  <dt id="g-heurisztika">heurisztika <span class="etym">gör. <em>heuriszkó</em> „megtalálok”</span></dt>
+  <dd><p>Gyors, „jó eséllyel jó” eljárás, amely nem garantálja a legjobb megoldást. A Louvain, a Leiden és a címketerjesztés heurisztika.</p></dd>
+
+  <dt id="g-konszenzus">konszenzus-klaszterezés <span class="etym">lat. <em>consensus</em> „egyetértés”</span></dt>
+  <dd><p>Sok futás eredményét összesítő eljárás: az együttes besorolási mátrixon újra közösséget keres, amíg a futások egyeznek.</p></dd>
+
+  <dt id="g-likelihood">likelihood <span class="etym">ang. „valószínűség, esély” (<em>likely</em>)</span></dt>
+  <dd><p>Annak valószínűsége, hogy egy adott modell (itt: blokkbeosztás és blokkmátrix) éppen a megfigyelt gráfot gyártja. A logaritmusával (log-likelihood) könnyebb számolni.</p></dd>
+
+  <dt id="g-modularitas">modularitás <span class="etym">lat. <em>modulus</em> „kis mérték, egység”</span></dt>
+  <dd><p>A felbontás minőségét mérő szám: a közösségeken belüli élek aránya mínusz a fokszámtartó véletlen gráfban várható arány.</p></dd>
+
+  <dt id="g-partitio">partíció (felbontás) <span class="etym">lat. <em>partitio</em> „felosztás” (<em>pars</em> „rész”)</span></dt>
+  <dd><p>A csúcsok diszjunkt, nem üres csoportokra osztása, ahol mindenki pontosan egy csoportba kerül.</p></dd>
+
+  <dt id="g-perkolacio">perkoláció <span class="etym">lat. <em>percolare</em> „átszűrődik, átszivárog”</span></dt>
+  <dd><p>Szivárgás egy hálón át. A klikkperkolációban egy „gördülő” klikk lépked szomszédos klikkekre (két közös csúcson át); ameddig eljut, az egy közösség.</p></dd>
+
+  <dt id="g-spektralis">spektrális <span class="etym">lat. <em>spectrum</em> „kép, jelenés”</span></dt>
+  <dd><p>Egy mátrix sajátértékeire és sajátvektoraira (spektrumára) épülő. A spektrális kettévágás egy sajátvektor előjeleit használja.</p></dd>
+
+  <dt id="g-sztochasztikus-blokk">sztochasztikus blokkmodell <span class="etym">gör. <em>sztokhasztikosz</em> „célba találó, sejtő”; ang. <em>block</em> „tömb”</span></dt>
+  <dd><p>Véletlengráf-modell, amelyben két csúcs kapcsolódási esélye csak attól függ, melyik blokkba tartoznak. Generatív: a közösségkeresés ennek a megfordítása.</p></dd>
+</dl>
+</section>
+
+<nav class="pager">
+  <a href="../07-halozatmodellek/">← 7. Hálózatmodellek és nullmodellek</a>
+  <span class="next muted">9. Terjedés hálózatokon (hamarosan) →</span>
+</nav>
+
+</main>
+</div>
+
+<footer class="site">
+  Források: A.-L. Barabási: <em>Network Science</em> (2016), 9. fejezet · M. E. J. Newman: <em>Networks</em> (2. kiad., Oxford UP, 2018), 14. fejezet · S. Fortunato (2010); S. Fortunato – D. Hric (2016) áttekintések ·
+  W. W. Zachary (1977) · M. Girvan – M. E. J. Newman (2002) · M. E. J. Newman – M. Girvan (2004) · M. E. J. Newman (2006, 2016) · R. Guimerà – M. Sales-Pardo – L. A. N. Amaral (2004) · S. Fortunato – M. Barthélemy (2007) ·
+  U. Brandes és mtsai (2008) · B. H. Good – Y.-A. de Montjoye – A. Clauset (2010) · J. Reichardt – S. Bornholdt (2006) · V. D. Blondel és mtsai (2008) · V. A. Traag – L. Waltman – N. J. van Eck (2019) ·
+  U. N. Raghavan – R. Albert – S. Kumara (2007) · P. W. Holland – K. B. Laskey – S. Leinhardt (1983) · F. Lorrain – H. C. White (1971) · B. Karrer – M. E. J. Newman (2011) · T. P. Peixoto (2019) · A. Decelle és mtsai (2011) ·
+  L. Hubert – P. Arabie (1985) · A. Lancichinetti – S. Fortunato (2012) · L. Peel – D. B. Larremore – A. Clauset (2017) · G. Palla – I. Derényi – I. Farkas – T. Vicsek (2005) · Y.-Y. Ahn – J. P. Bagrow – S. Lehmann (2010) ·
+  D. E. Knuth: <em>The Stanford GraphBase</em> (1993) · J.-P. Cointet és mtsai (2021) · D. Walter – Y. Ophir (2019) · Nagy M. (2024) · Y. Jiang és mtsai (2025) · Az Árvízhét kitalált példa.
+</footer>
+</body>
+</html>

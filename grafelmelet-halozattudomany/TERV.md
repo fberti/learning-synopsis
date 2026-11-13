@@ -606,6 +606,12 @@ Holme (2019) *Rare and everywhere* (Nat. Commun.); Fosdick et al. (2018) a konfi
 {Szakértő, Klímaváltozás}. Ezek a csoportok a hírek **keretei**? Hogyan találja meg őket egy algoritmus – és mennyire
 bízhatunk benne?*
 
+> **Megvalósítás (2026-11-13):** a rögzített Árvízhét-adatban a modularitás-optimum (mind a 877 felbontásból) **két** csoport: $\{\mathrm{Ko}, \mathrm{Vi}, \mathrm{Sz}, \mathrm{Kl}\}$ · $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$ ($Q = 0{,}28$),
+> nem a fenti három; a keretek szerinti hármas súly nélkül csak a 7. ($Q = 0{,}155$), súlyozva a 2. ($Q^w = 0{,}230$), és súlyozva $1{,}40 \le \gamma \le 1{,}80$ mellett az 1. Ez lett a fejezet tanulsága (közösség ≠ keret, a keret csak súllyal és nagyítással jön ki).
+> A nagy kérdés ezért úgy szól: „Megtalálja-e az algoritmus a három keretcsoportot?” Klikkperkoláció ($k = 3$): {Ko, Vi, Po, Sz, Kl} és {Po, La, Ön} – a Po átfed.
+> A „két háromszög + híd” $Q$-ja $5/14 \approx 0{,}357$. Új adat: `08-kozossegek/lesmis-data.js` (77 szereplő, 254 él; Louvain súlyozva 6 közösség, $Q \approx 0{,}567$).
+> Widgetek: `girvan-newman`, `modularity-painter`, `louvain-steps`, `stability-check`, `sbm-generator`, `community-explorer` (a `karate-split` helyett: karateklub, Les Misérables, Árvízhét × Louvain / GN / címketerjesztés / spektrális).
+
 **Cél:** a közösség fogalma; modularitás; Girvan–Newman, Louvain és Leiden, címketerjesztés, spektrális klaszterezés,
 sztochasztikus blokkmodell (SBM); az eredmény stabilitása és validálása. A 17. fejezet (keretezés) közvetlen előfeltétele.
 

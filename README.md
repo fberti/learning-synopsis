@@ -59,7 +59,8 @@ synopsis/
 │   ├── 04-grafok-es-matrixok/      ← index.html, widgets.js (graph.js; saját Jacobi-sajátérték-számítás), quizzes.js; a karateklubot az MI 13. fejezet graph-data.js-éből tölti
 │   ├── 05-centralitas/            ← index.html, widgets.js (graph.js; Brandes-köztesség, PageRank, HITS), quizzes.js, polblogs-data.js (Adamic–Glance, előre számolva)
 │   ├── 06-helyi-szerkezet/        ← index.html, widgets.js (graph.js; klaszterezettség, asszortativitás, átfedés, előjeles egyensúly, nullmodellek), quizzes.js, karate-weights.js (Zachary-élsúlyok)
-│   └── 07-halozatmodellek/        ← index.html, widgets.js (graph.js; ER-óriáskomponens, Watts–Strogatz, BA-növekedés, fokszámfarok-illesztés, félélpárosítás, nullmodell-labor), quizzes.js
+│   ├── 07-halozatmodellek/        ← index.html, widgets.js (graph.js; ER-óriáskomponens, Watts–Strogatz, BA-növekedés, fokszámfarok-illesztés, félélpárosítás, nullmodell-labor), quizzes.js
+│   └── 08-kozossegek/             ← index.html, widgets.js (graph.js; saját Girvan–Newman, Louvain, címketerjesztés, SBM, NMI/ARI), quizzes.js, lesmis-data.js (Knuth: Les Misérables)
 ├── halozatelemzes/
 │   ├── index.html                  ← a témakör fejezetlistája (27 lecke, 0–26)
 │   ├── TERV.md                     ← a kurzus részletes terve (a Vault „Hálózatelemzés TOC.md” jegyzetéből)
