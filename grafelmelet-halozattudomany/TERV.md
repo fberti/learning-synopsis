@@ -669,6 +669,11 @@ NSB 9; NEW 14; Fortunato (2010) és Fortunato–Hric (2016) áttekintések; Girv
 **Nagy kérdés:** *Egy hír néhány óra alatt eljut mindenkihez, egy másik elhal az első megosztások után. A hír tartalmán
 múlik – vagy azon is, hogy milyen hálózatban indul el?*
 
+> **Megvalósítás (2026-11-13):** mappa `09-terjedes/`; hét szakasz – a TERV hat szakasza mellé **9.7 Alkalmazás** került (ugyanaz a $p$ négy, 1000 csúcsú, ⟨k⟩ = 4 hálózaton: $p = 0{,}25$-nél a kezdésekből rács 0%, kisvilág 0%, ER 7%, BA 35% nagy kaszkád; politikai blogok $T_c \approx 0{,}012$; Vosoughi 2018 vs. Juul–Ugander 2021).
+> A barátság-paradoxont a 7.3 már tanítja – a 9.2 erre épít ($\kappa = \langle k^2\rangle/\langle k\rangle - 1$). A $\langle k^2\rangle/\langle k\rangle$ példa: $C_6$ vs. csillag + él (mindkettő 6 csúcs, 6 él; $T_c$ 1 vs. 0,5). Összetett fertőzés kis esete: 8 csúcsú gyűrűrács vs. $K_{4,4}$ (mindkettő 4-reguláris).
+> Árvízhét-számok: biztos SI Kl-ből 1, 3, 5, 7; $\kappa = 2{,}1$; IC $p = 0{,}3$: Ko 2,898, mohó Ko + La 4,327, optimum Po + Sz 4,363; a hivatkozási hálóból két szülőszabállyal más-más kaszkádfák.
+> Kvízek `gh9-91` … `gh9-97`, `gh9-final`. Widgetek: `sir-network`, `epidemic-threshold`, `threshold-crowd`, `simple-vs-complex`, `cascade-tree`, `seed-picker`, `opinion-dynamics`.
+
 **Cél:** terjedési modellek hálózaton: SI / SIS / SIR, járványküszöb; független kaszkád és küszöbmodell (egyszerű vs.
 összetett fertőzés); kaszkádméret-eloszlás; befolyásmaximalizálás; véleménydinamika röviden (DeGroot, korlátos bizalom) –
 ezek a 19. fejezet modelljei.
