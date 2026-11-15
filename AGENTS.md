@@ -40,8 +40,16 @@ Minden új vagy átírt tananyagnak az alábbi sémát kell követnie. A mintap�
   (pl. ${}_nP_r$ = variáció), egy `box tip` mondja meg a megfelelést.
 - **Stílus:** rövid mondatok, tegező hangnem, magyar tizedesvessző (KaTeX-ben `0{,}5`), ezres
   tagolás `\,`-vel.
+- **Hivatkozz, ne ismételj – és mindig linkkel:** ha egy korábbi (vagy későbbi) példára, szakaszra, fejezetre,
+  másik témakörre építesz, ne másold át, hanem utalj rá, és az utalás **mindig link** legyen a pontos helyre
+  (`<a class="xref">`, lásd a Technikai emlékeztetőt). Link nélküli „lásd 2.3”, „az 1. fejezetben láttuk”,
+  „ott már láttuk” nem maradhat az anyagban. Ez a kvízek `q` / `hint` / `explain` szövegeire is vonatkozik
+  (válaszopcióba ne tegyél linket).
 - **Ellenőrzés:** minden numerikus eredményt (példák, gyakorló feladatok, kvízválaszok és rossz
   válaszok) Pythonnal ellenőrizni kell.
+- **Hivatkozások ellenőrzése:** írás után keresd meg a link nélküli utalásokat („fejezet”, „lásd”, „láttuk”,
+  „korábban”, „N.M”), és ellenőrizd szkripttel, hogy minden `xref` célfájl és `#id` létezik, nincs duplikált `id`.
+  Böngészőben próbálj ki legalább egy linket (az oldalsávban nyílik-e, a jó helyre görget-e).
 
 ## Lenyílók – mi legyen csukva?
 
