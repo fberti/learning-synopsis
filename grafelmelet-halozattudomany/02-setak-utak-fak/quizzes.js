@@ -13,7 +13,7 @@
       questions: [
         {
           type: "match",
-          q: R`A 2.1 gráfjában (élek: $AB, AC, BC, BD, CD, DE, EF$) milyen fajta a lépéssorozat? Párosítsd!`,
+          q: R`A <a class="xref" href="#s21-a-a-bol-f-be">2.1</a> gráfjában (élek: $AB, AC, BC, BD, CD, DE, EF$) milyen fajta a lépéssorozat? Párosítsd!`,
           pairs: [
             [R`$A, C, D, E, F$`, "út"],
             [R`$C, A, B, D, C, B$`, "vonal, de nem út"],
@@ -379,7 +379,7 @@
         },
         {
           type: "single", shuffle: true,
-          q: R`A 2.4 településeinek minimális feszítőfája 121 km (Sze–Hmv, Hmv–Mak, Sze–Kis, Kis–Csg). Melyik állítás igaz?`,
+          q: R`A <a class="xref" href="#s24-b-telepulesek">2.4</a> településeinek minimális feszítőfája 121 km (Sze–Hmv, Hmv–Mak, Sze–Kis, Kis–Csg). Melyik állítás igaz?`,
           options: [
             "A fában Szegedről Csongrádra 66 km az út, pedig a gráfban a távolságuk 62 km.",
             "A fában minden két település távolsága ugyanaz, mint az eredeti gráfban.",
@@ -670,7 +670,7 @@
       questions: [
         {
           type: "single", shuffle: true,
-          q: R`A 2.1 gráfjában ($AB, AC, BC, BD, CD, DE, EF$) milyen az $A, B, C, D, B$ lépéssorozat, és mennyi a hossza?`,
+          q: R`A <a class="xref" href="#s21-a-a-bol-f-be">2.1</a> gráfjában ($AB, AC, BC, BD, CD, DE, EF$) milyen az $A, B, C, D, B$ lépéssorozat, és mennyi a hossza?`,
           options: [
             "vonal, de nem út; hossza 4",
             "út; hossza 5",
@@ -683,7 +683,7 @@
         },
         {
           type: "single", shuffle: true,
-          q: R`Hány kör van a 2.1 gráfjában ($AB, AC, BC, BD, CD, DE, EF$)? (A más kezdőpontú vagy fordított irányú bejárás ugyanaz a kör.)`,
+          q: R`Hány kör van a <a class="xref" href="#s21-a-a-bol-f-be">2.1</a> gráfjában ($AB, AC, BC, BD, CD, DE, EF$)? (A más kezdőpontú vagy fordított irányú bejárás ugyanaz a kör.)`,
           options: ["3", "2", "6", "4"],
           answer: 0,
           hint: "Keresd a háromszögeket, aztán a hosszabb köröket! A D–E–F rész tartalmazhat-e kört?",
@@ -713,7 +713,7 @@
         },
         {
           type: "single", shuffle: true,
-          q: R`A 2.1 gráfjában ($AB, AC, BC, BD, CD, DE, EF$) mennyi a sugár, és mi a központ?`,
+          q: R`A <a class="xref" href="#s21-a-a-bol-f-be">2.1</a> gráfjában ($AB, AC, BC, BD, CD, DE, EF$) mennyi a sugár, és mi a központ?`,
           options: [
             R`sugár 2, központ $\{D\}$`,
             R`sugár 4, központ $\{A, F\}$`,

@@ -68,7 +68,7 @@
           options: [R`$\approx 0{,}358$`, R`$\approx 0{,}859$`, R`$\approx 0{,}72$`, R`$\approx -0{,}141$`],
           answer: 0,
           hint: R`Három lépés: belső arány, a két tábor véletlen szintje ($2m = 156$), különbség.`,
-          explain: R`Belül $67/78 \approx 0{,}859$. Véletlen szint $(81/156)^2 + (75/156)^2 \approx 0{,}270 + 0{,}231 = 0{,}501$. Többlet $\approx 0{,}358$. A $0{,}859$ csak a belső arány. A $0{,}72$ a 6.2 kategóriás asszortativitása: ott a többletet még $1 - 0{,}501$-gyel osztottuk. A $-0{,}141$ elhagyja a négyzetet: $81/156 + 75/156 = 1$ – a négyzet nélkül a véletlen szint mindig 1 lenne.`
+          explain: R`Belül $67/78 \approx 0{,}859$. Véletlen szint $(81/156)^2 + (75/156)^2 \approx 0{,}270 + 0{,}231 = 0{,}501$. Többlet $\approx 0{,}358$. A $0{,}859$ csak a belső arány. A $0{,}72$ a <a class="xref" href="../06-helyi-szerkezet/#s62-b-valos-halozatok">6.2</a> kategóriás asszortativitása: ott a többletet még $1 - 0{,}501$-gyel osztottuk. A $-0{,}141$ elhagyja a négyzetet: $81/156 + 75/156 = 1$ – a négyzet nélkül a véletlen szint mindig 1 lenne.`
         },
         {
           type: "single", shuffle: true,
@@ -116,7 +116,7 @@
             R`A $\mathrm{Ko}$–$\mathrm{Kl}$ törlése: köztessége 4,5.`
           ],
           answer: 0,
-          hint: R`Mi történik a csoportközi forgalommal, ha a két oldalt összekötő két élből az egyik eltűnik? És mit ír elő az algoritmus 3. lépése?`,
+          hint: R`Mi történik a csoportközi forgalommal, ha a két oldalt összekötő két élből az egyik eltűnik? És mit ír elő <a class="xref" href="#s82-b-algoritmus">az algoritmus 3. lépése</a>?`,
           explain: R`Minden törlés után újraszámoljuk a köztességeket. A $\mathrm{Ko}$–$\mathrm{Po}$ után a $\mathrm{Vi}$–$\mathrm{Po}$ maradt az egyetlen él a $\{\mathrm{Ko}, \mathrm{Vi}, \mathrm{Sz}, \mathrm{Kl}\}$ és a $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$ között, ezért a $4 \cdot 3 = 12$ csoportközi pár mind rajta megy át: 4,5-ről 12-re ugrik. Törlése után a gráf a két csoportra esik szét. A $\mathrm{Po}$–$\mathrm{La}$ az újraszámolás elhagyásából jön – rossz helyen vágnánk. A csúcstörlés a $\mathrm{Po}$-t is elveszítené. A $\mathrm{Ko}$–$\mathrm{Kl}$ a régi 4,5-ös érték, újraszámolva csak 3.`
         },
         {
@@ -165,7 +165,7 @@
           ],
           answer: 0,
           hint: R`Kell egy szám, amely minden szintet pontoz. Melyik mérce nem jutalmazza sem a „semmit sem vágunk”, sem a „mindent szétvágunk” felbontást?`,
-          explain: R`Girvan és Newman erre vezette be a modularitást: a 8.1 többletét minden közösségre összeadva. Az Árvízhéten a szintek $Q$-ja 0 (1 csoport), 0,28 (2), 0,215 (3), …, $-0{,}155$ (7): a két csoportos nyer. A karateklubon viszont 5 csoportnál van a csúcs ($Q = 0{,}401$), nem az első kettéesésnél – ezért nem jó az „első kettéesés” szabály. A legkevesebb vágott él a legfelső szint (1 csoport, 0 vágott él), az utolsó szint pedig mindenkit szétszed – mindkettő értelmetlen.`
+          explain: R`Girvan és Newman erre vezette be a modularitást: a <a class="xref" href="#s81-b-merce">8.1 többletét</a> minden közösségre összeadva. Az Árvízhéten a szintek $Q$-ja 0 (1 csoport), 0,28 (2), 0,215 (3), …, $-0{,}155$ (7): a két csoportos nyer. A karateklubon viszont 5 csoportnál van a csúcs ($Q = 0{,}401$), nem az első kettéesésnél – ezért nem jó az „első kettéesés” szabály. A legkevesebb vágott él a legfelső szint (1 csoport, 0 vágott él), az utolsó szint pedig mindenkit szétszed – mindkettő értelmetlen.`
         }
       ]
     },
@@ -297,7 +297,7 @@
             R`hurok $6$, fokszám $4$`
           ],
           answer: 0,
-          hint: R`A hurok a belső éleket őrzi. A szuperpont fokszáma a közösség $d_c$-je – mi volt rá a 8.1 képlete?`,
+          hint: R`A hurok a belső éleket őrzi. A szuperpont fokszáma a közösség $d_c$-je – mi volt rá a <a class="xref" href="#s81-a-definicio">8.1 képlete</a>?`,
           explain: R`A hurok súlya a belső élek száma: 6. A fokszám $d_c = 2L_c + K_c = 12 + 4 = 16$ – a hurok kétszer számít, ettől marad változatlan a $Q$ az összevonásnál. A $10 = 6 + 4$ a hurkot csak egyszer számolja. A „hurok 12” a dupla számolást a súlyba is beleteszi. A „fokszám 4” elfelejti a hurkot – ekkor a véletlen szint rossz lesz.`
         },
         {
@@ -395,7 +395,7 @@
           options: [R`$\approx 0{,}357$`, R`$\approx 0{,}714$`, R`$\approx 1{,}429$`, R`$\approx 0{,}179$`],
           answer: 0,
           hint: R`Két csoportra $Q = \tfrac{1}{c\,m}\,\mathbf s^\top B\,\mathbf s$. Mennyi a $c$? Gondolj arra, hogy $\delta(c_i, c_j) = (1 + s_i s_j)/2$.`,
-          explain: R`$Q = \mathbf s^\top B\,\mathbf s/4m = 10/28 \approx 0{,}357$ – ugyanaz, mint kézzel a 8.3-ban. A $4m$ abból jön, hogy a páros alak $\tfrac{1}{2m}$-es előtagjához még a $\delta = (1 + s_i s_j)/2$ feles szorzója is hozzájön (az $1$-es tag kiesik, mert $\sum_{ij} B_{ij} = 0$). A $0{,}714 = 10/14$ a $2m$-mel oszt (a fél elmarad), az $1{,}429 = 10/7$ csak $m$-mel – ez már 1 fölött van, ami modularitásra lehetetlen. A $0{,}179 = 10/56$ egyszer túl sokat felez.`
+          explain: R`$Q = \mathbf s^\top B\,\mathbf s/4m = 10/28 \approx 0{,}357$ – ugyanaz, mint kézzel a <a class="xref" href="#s83-a-ket-haromszog">8.3</a>-ban. A $4m$ abból jön, hogy a páros alak $\tfrac{1}{2m}$-es előtagjához még a $\delta = (1 + s_i s_j)/2$ feles szorzója is hozzájön (az $1$-es tag kiesik, mert $\sum_{ij} B_{ij} = 0$). A $0{,}714 = 10/14$ a $2m$-mel oszt (a fél elmarad), az $1{,}429 = 10/7$ csak $m$-mel – ez már 1 fölött van, ami modularitásra lehetetlen. A $0{,}179 = 10/56$ egyszer túl sokat felez.`
         },
         {
           type: "multi",
@@ -416,7 +416,7 @@
           q: R`A karateklubon a Fiedler-vektor 32, a modularitásmátrix vezető sajátvektora 33 tagot sorol a valódi táborába. Ki(k) van(nak) „rossz” oldalon a modularitásmátrix vágásánál?`,
           options: [R`csak a 9-es`, R`a 3-as és a 9-es`, R`a 9-es és a 10-es`, R`senki – a vágás pontosan a kettéválás`],
           answer: 0,
-          hint: R`33/34 találat hány tévedést jelent? És kinek a története „mond ellent” a szerkezetnek a 8.1 szerint?`,
+          hint: R`33/34 találat hány tévedést jelent? És kinek a története „mond ellent” a szerkezetnek a <a class="xref" href="#s81-c-zachary">8.1</a> szerint?`,
           explain: R`33/34 egyetlen tévedés: a 9-es, aki a barátai többsége ellenére (a közelgő fekete öves vizsgája miatt) az edzővel tartott. A „3-as és 9-es” a Fiedler-vágás (és a Girvan–Newman első kettéesése) – 32/34. A „9-es és 10-es” a Louvain $\gamma = 0{,}5$-nél. A „senki” nem lehet, hiszen 33, nem 34 a találat. A modularitásmátrix vágásának $Q$-ja kb. $0{,}37$, a valódi kettéválásé $0{,}358$ – a szerkezet szerint a 9-es tényleg az elnök oldalára illik.`
         }
       ]
@@ -656,7 +656,7 @@
           ],
           answer: 0,
           hint: R`Nézd meg a fokszámát és a köztességét! Mihez hasonlít az Árvízhéten a Polgármester helyzete?`,
-          explain: R`Valjean a legnagyobb fokszámú (36) és köztességű (0,57) szereplő: szinte minden szálat összeköt, mint az Árvízhéten a Polgármester. A felbontás a főszálba teszi, de valójában híd – a kemény (nem átfedő) felbontás ezt elrejti; átfedő módszer (pl. klikkperkoláció) jobban mutatná. A második opció a Perpetue, Simplice, Magnon típusú mellékszereplőkre igaz (a 8.7 stabilitási példája), Valjeanre épp nem. A szétszakadt közösség és a felbontási határ valódi jelenségek, de nem ezt magyarázzák.`
+          explain: R`Valjean a legnagyobb fokszámú (36) és köztességű (0,57) szereplő: szinte minden szálat összeköt, mint az Árvízhéten a Polgármester. A felbontás a főszálba teszi, de valójában híd – a kemény (nem átfedő) felbontás ezt elrejti; átfedő módszer (pl. klikkperkoláció) jobban mutatná. A második opció a Perpetue, Simplice, Magnon típusú mellékszereplőkre igaz (a <a class="xref" href="#s87-b">8.7 stabilitási példája</a>), Valjeanre épp nem. A szétszakadt közösség és a felbontási határ valódi jelenségek, de nem ezt magyarázzák.`
         },
         {
           type: "single", shuffle: true,
@@ -760,7 +760,7 @@
             R`Nem függ a sorrendtől és a $\gamma$-tól, ezért elég egyszer futtatni.`
           ],
           answer: 0,
-          hint: R`Gondolj a $\mathrm h$ csúcs példájára: mi történt az első közösséggel, amikor a $\mathrm h$ átvándorolt?`,
+          hint: R`Gondolj <a class="xref" href="#s84-d">a $\mathrm h$ csúcs példájára</a>: mi történt az első közösséggel, amikor a $\mathrm h$ átvándorolt?`,
           explain: R`A Louvain szétszakadt közösségeket is visszaadhat: ha az összetartó csúcs átvándorol, a régi közösség két szigetre esik, de már egyetlen szuperpontként kezeli. A Leiden a két fázis közé finomítást iktat, és csak a jól összekötött részeket vonja össze – így minden közösség összefüggő. A többi tévhit: a felbontási határ, a $\gamma$-függés és a sok közel optimális felbontás a Leidennél is megvan; a nagyobb $Q$ nem garantált (mindkettő heurisztika); több futás és stabilitásvizsgálat nála is kell.`
         },
         {

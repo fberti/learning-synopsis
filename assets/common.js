@@ -5,6 +5,16 @@
 (function () {
   "use strict";
 
+  /* ---------- Kereszthivatkozások oldalsávban (assets/xref.js) ----------
+     Minden oldal betölti, így bármelyik oldal megnyitható az oldalsávban.
+     A beágyazott nézet osztálya szinkron kerül fel (ne villanjon a fejléc). */
+  if (window.self !== window.top) document.documentElement.classList.add("xref-embedded");
+  if (document.currentScript && !window.SynopsisXref) {
+    const xs = document.createElement("script");
+    xs.src = document.currentScript.src.replace(/common\.js(\?.*)?$/, "xref.js");
+    document.head.appendChild(xs);
+  }
+
   /* ---------- Téma (világos / sötét) ---------- */
   const THEME_KEY = "synopsis:theme";
   function applyTheme(t) {
@@ -84,6 +94,41 @@
     onScroll();
   }
 
+  /* ---------- Tartalomjegyzék ki-becsukása ----------
+     A ☰ gomb a fejlécben; az állapotot megjegyezzük. Az xref-oldalsáv
+     szűk képernyőn ideiglenesen becsukja (setTocCollapsed(…, true)). */
+  const TOC_KEY = "synopsis:toc-collapsed";
+  // Már az első kirajzolás előtt, hogy ne villanjon fel a becsukott tartalomjegyzék.
+  try { if (localStorage.getItem(TOC_KEY) === "1") document.documentElement.classList.add("toc-collapsed"); } catch (e) { /* nem baj */ }
+  let tocAuto = false; // true, ha nem a felhasználó csukta be, hanem az oldalsáv
+  function setTocCollapsed(on, auto) {
+    document.documentElement.classList.toggle("toc-collapsed", on);
+    tocAuto = !!(on && auto);
+    document.querySelectorAll("[data-toc-toggle]").forEach(b => {
+      b.setAttribute("aria-expanded", String(!on));
+      b.title = on ? "Tartalomjegyzék megjelenítése" : "Tartalomjegyzék elrejtése";
+    });
+    if (!auto) { try { localStorage.setItem(TOC_KEY, on ? "1" : "0"); } catch (e) { /* nem baj */ } }
+  }
+  function tocToggle() {
+    const toc = document.querySelector(".layout > .toc");
+    const bar = document.querySelector(".topbar");
+    if (!toc || !bar) return;
+    const b = document.createElement("button");
+    b.className = "icon-btn toc-toggle";
+    b.type = "button";
+    b.setAttribute("data-toc-toggle", "");
+    b.setAttribute("aria-controls", toc.id || (toc.id = "toc"));
+    b.textContent = "☰";
+    b.addEventListener("click", () =>
+      setTocCollapsed(!document.documentElement.classList.contains("toc-collapsed"), false));
+    bar.insertBefore(b, bar.firstChild);
+    let saved = null;
+    try { saved = localStorage.getItem(TOC_KEY); } catch (e) { /* nem baj */ }
+    setTocCollapsed(saved === "1", true);
+    tocAuto = false;
+  }
+
   /* ---------- Villámkártyák ---------- */
   function flashcards() {
     document.querySelectorAll(".flash").forEach(f => f.addEventListener("click", () => f.classList.toggle("flipped")));
@@ -100,11 +145,16 @@
     applyTheme(document.documentElement.getAttribute("data-theme"));
     paintProgress();
     scrollSpy();
+    tocToggle();
     flashcards();
   });
 
   /* KaTeX betöltése után renderelünk (defer-rel töltött szkriptek) */
   window.addEventListener("load", () => renderMath(document.body));
 
-  window.Synopsis = { renderMath, Progress, paintProgress };
+  window.Synopsis = {
+    renderMath, Progress, paintProgress, setTocCollapsed,
+    isTocCollapsed: () => document.documentElement.classList.contains("toc-collapsed"),
+    isTocAuto: () => tocAuto
+  };
 })();

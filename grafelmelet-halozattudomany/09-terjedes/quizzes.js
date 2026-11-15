@@ -159,7 +159,7 @@
             R`Mert a hubokat oltjuk be elsőként, és a maradék oltásokat véletlenszerűen osztjuk ki.`
           ],
           answer: 0,
-          hint: R`Gondolj a barátság-paradoxonra (7.3): átlagosan kinek van több barátja, neked vagy a barátaidnak?`,
+          hint: R`Gondolj a barátság-paradoxonra (<a class="xref" href="../07-halozatmodellek/#s73-d">7.3</a>): átlagosan kinek van több barátja, neked vagy a barátaidnak?`,
           explain: R`Egy $k$ fokú csúcsot $k$ ember nevezhet meg ismerősként, ezért a megnevezés a fokszámmal arányos eséllyel éri – ez a barátság-paradoxon. A megkérdezett nem válogat: egy <i>véletlen</i> ismerőst mond, a módszer ettől működik helyi információval. A megkérdezett egy véletlen ember, aki többnyire kis fokú – ezért őt oltani nem jobb a véletlen oltásnál. A hubok előre kiválasztása a célzott immunizálás, ehhez ismerni kellene a hálózatot.`
         }
       ]
@@ -411,8 +411,8 @@
             R`Az, hogy a nagy kaszkádok forrásai mindig kis fokszámú csúcsok.`
           ],
           answer: 0,
-          hint: R`Gondolj a 9.4 elágazó folyamatára: ugyanaz a tartalom egyszer elhal, máskor felrobban. Mit talált Bakshy és mtsai (2011) a Twitteren?`,
-          explain: R`A befolyásos emberek utólagos azonosítása csalóka: egy nagy kaszkád részben szerencse (9.4). Bakshy és munkatársai (2011) szerint a nagy kaszkádok forrásai előre csak gyengén jósolhatók, és sok átlagos kezdő gyakran költséghatékonyabb néhány drága „influenszernél”. Ráadásul a modellbeli legjobb kezdő is modellfüggő ($p$, a platform algoritmusa). A mohó garanciája nem mond semmit a kezdők számáról, és a szöveg nem állítja, hogy a nagy kaszkádok forrásai kis fokszámúak lennének.`
+          hint: R`Gondolj a <a class="xref" href="#s94-c">9.4 elágazó folyamatára</a>: ugyanaz a tartalom egyszer elhal, máskor felrobban. Mit talált Bakshy és mtsai (2011) a Twitteren?`,
+          explain: R`A befolyásos emberek utólagos azonosítása csalóka: egy nagy kaszkád részben szerencse (<a class="xref" href="#s94-c-szerencse">9.4</a>). Bakshy és munkatársai (2011) szerint a nagy kaszkádok forrásai előre csak gyengén jósolhatók, és sok átlagos kezdő gyakran költséghatékonyabb néhány drága „influenszernél”. Ráadásul a modellbeli legjobb kezdő is modellfüggő ($p$, a platform algoritmusa). A mohó garanciája nem mond semmit a kezdők számáról, és a szöveg nem állítja, hogy a nagy kaszkádok forrásai kis fokszámúak lennének.`
         }
       ]
     },
@@ -506,7 +506,7 @@
           items: ["gyűrűrács", "kisvilág (WS)", "véletlen (ER)", "skálafüggetlen (BA)"],
           answer: ["véletlen (ER)", "skálafüggetlen (BA)"],
           hint: R`Hasonlítsd össze a $p$-t a $T_c = 1/\kappa$-val (rács 0,33, kisvilág 0,32, ER 0,25, BA 0,10) – és gondolj arra, hol érvényes ez a képlet.`,
-          explain: R`A 9.7 táblázata szerint $p = 0{,}25$-nél: rács 0%, kisvilág 0%, ER 7%, BA 35%. A BA jóval a küszöb ($\approx 0{,}10$) fölött van a hubok miatt. Az ER éppen a küszöbén áll ($\kappa \approx 3{,}9$), és már 7%-ból lesz nagy kaszkád. A rácsban és a kisvilágban a $T_c$ is magasabb, ráadásul a sok háromszög „elpazarolja” a továbbadásokat – a 10% átkötés itt nem segít. „A kisvilág mindent gyorsít” csak az elérési időre igaz, nem a küszöbre.`
+          explain: R`A <a class="xref" href="#s97-a">9.7 táblázata</a> szerint $p = 0{,}25$-nél: rács 0%, kisvilág 0%, ER 7%, BA 35%. A BA jóval a küszöb ($\approx 0{,}10$) fölött van a hubok miatt. Az ER éppen a küszöbén áll ($\kappa \approx 3{,}9$), és már 7%-ból lesz nagy kaszkád. A rácsban és a kisvilágban a $T_c$ is magasabb, ráadásul a sok háromszög „elpazarolja” a továbbadásokat – a 10% átkötés itt nem segít. „A kisvilág mindent gyorsít” csak az elérési időre igaz, nem a küszöbre.`
         },
         {
           type: "single", shuffle: true,
@@ -552,12 +552,12 @@
             R`Az adat hibás volt, ezért az eredeti cikket visszavonták.`
           ],
           answer: 0,
-          hint: R`A 9.4 szerint hogyan függ a mélység és a virálisság a kaszkád méretétől?`,
+          hint: R`A <a class="xref" href="#s94-a">9.4</a> szerint hogyan függ a mélység és a virálisság a kaszkád méretétől?`,
           explain: R`A mélység és a virálisság a mérettel együtt nő, ezért különböző méretű kaszkádok szerkezetét nem szabad közvetlenül összevetni. Juul és Ugander méret szerint párosított, és a mélység, szélesség, virálisság különbsége szinte eltűnt: a hamis hírek nagyobb $p$-vel terjednek, ezért nagyobbak, de a mechanizmus ugyanaz. Ami elfogadott: a hamis hírek az adatban átlagosan nagyobb kaszkádokat értek el – tehát nem kisebbek. Visszavonásról a szöveg nem szól.`
         },
         {
           type: "single", shuffle: true,
-          q: R`Miért van zárójelben a gyűrűrács $T_c = 1/\kappa \approx 0{,}33$ értéke a 9.7 táblázatában?`,
+          q: R`Miért van zárójelben a gyűrűrács $T_c = 1/\kappa \approx 0{,}33$ értéke a <a class="xref" href="#s97-a">9.7 táblázatában</a>?`,
           options: [
             R`Mert a képlet fa-szerű (kevés háromszögű) hálózatra szól; a rácsban a háromszögek miatt a valódi küszöb sokkal magasabb.`,
             R`Mert a rácsban a valódi küszöb alacsonyabb: a szomszédok átfedése gyorsítja a terjedést.`,
@@ -570,7 +570,7 @@
         },
         {
           type: "multi",
-          q: R`A fejezet kérdésére („a tartalmon múlik egy hír sikere, vagy a hálózaton?”) melyik állítás következik a 9.7 eredményeiből? (Több jó válasz is lehet.)`,
+          q: R`A fejezet kérdésére („a tartalmon múlik egy hír sikere, vagy a hálózaton?”) melyik állítás következik a <a class="xref" href="#s97">9.7</a> eredményeiből? (Több jó válasz is lehet.)`,
           options: [
             R`A tartalom a továbbadás esélyét ($p$) adja; a hálózat dönti el, hogy ez a küszöb alatt vagy fölött van.`,
             R`A küszöb fölött is a kezdések többsége kicsi kaszkádot ad: egy konkrét hír sikere korlátosan jósolható.`,
@@ -579,8 +579,8 @@
             R`Ha a modellben a hubok viszik a terjedést, akkor egy konkrét valódi kaszkádot is biztosan a hubok vittek.`
           ],
           answer: [0, 1, 2],
-          hint: R`Nézd meg újra a négy hálózat táblázatát és a „Mit nem tud a modell?” dobozt.`,
-          explain: R`Igaz: ez a hüvelykujjszabály – a tartalom a $p$-t állítja, a hálózat a küszöböt. Igaz: a medián minden hálózatban 2–3, még a BA-ban is; a nagy kaszkád ritka esemény. Igaz: ez a 9.3 tanulsága, a fejezet válaszának része. Hamis: $p = 0{,}25$-nél a BA-ban 35%, a rácsban 0% – az átlagos fokszám nem dönt. Hamis: a modell oksági állítása csak a modellen belül érvényes.`
+          hint: R`Nézd meg újra <a class="xref" href="#s97-a">a négy hálózat táblázatát</a> és <a class="xref" href="#s97-b-modell">a „Mit nem tud a modell?” dobozt</a>.`,
+          explain: R`Igaz: ez a hüvelykujjszabály – a tartalom a $p$-t állítja, a hálózat a küszöböt. Igaz: a medián minden hálózatban 2–3, még a BA-ban is; a nagy kaszkád ritka esemény. Igaz: ez a <a class="xref" href="#s93-c">9.3</a> tanulsága, a fejezet válaszának része. Hamis: $p = 0{,}25$-nél a BA-ban 35%, a rácsban 0% – az átlagos fokszám nem dönt. Hamis: a modell oksági állítása csak a modellen belül érvényes.`
         }
       ]
     },
@@ -717,7 +717,7 @@
             ["küszöbmodell", "akkor aktív, ha elég sok vagy elég nagy arányú szomszédja aktív"]
           ],
           hint: R`Melyik modellben számít a véleménykülönbség, és melyikben csak az aktív szomszédok száma? Melyik változtatja a hálózatot is?`,
-          explain: R`DeGroot: $\mathbf x(t+1) = W\mathbf x(t)$, mindenkire hallgat, ezért konszenzus. Hegselmann–Krause: szinkron, mindenki az $\varepsilon$-on belüliek (önmagát is beleértve) átlagát veszi. Deffuant: páronként, $\mu$ lépésközzel, csak ha $|x_i - x_j| \lt \varepsilon$. Homofil újrahuzalozás: a visszhangkamra-modell második fele – a hálózat is változik. A küszöbmodell nem véleményátlagolás: egy aktív/inaktív állapot terjed $\theta$ küszöbbel (9.3).`
+          explain: R`DeGroot: $\mathbf x(t+1) = W\mathbf x(t)$, mindenkire hallgat, ezért konszenzus. Hegselmann–Krause: szinkron, mindenki az $\varepsilon$-on belüliek (önmagát is beleértve) átlagát veszi. Deffuant: páronként, $\mu$ lépésközzel, csak ha $|x_i - x_j| \lt \varepsilon$. Homofil újrahuzalozás: a visszhangkamra-modell második fele – a hálózat is változik. A küszöbmodell nem véleményátlagolás: egy aktív/inaktív állapot terjed $\theta$ küszöbbel (<a class="xref" href="#s93-b">9.3</a>).`
         },
         {
           type: "single", shuffle: true,
@@ -730,7 +730,7 @@
           ],
           answer: 0,
           hint: R`Hol lesz az új $p$ a $T_c$-hez képest? És arányos-e a hatás a beavatkozással?`,
-          explain: R`$0{,}02 \cdot 0{,}75 = 0{,}015 \gt 0{,}012$: a küszöb fölött marad. A 9.7 táblázata szerint $p = 0{,}0125$-nél 1%, $0{,}02$-nél 15% volt a nagy kaszkádok aránya – a $0{,}015$ valahol a kettő között lesz. A hatás nem arányos a beavatkozással (mint a „10% oltás = 10%-kal kisebb járvány” hibánál). Az $1/\langle k\rangle$ az ER-gráf küszöbe: a hubos blogháló küszöbét a $\kappa$ adja. A küszöb fölött sem terjed el minden hír: a kezdések nagy része így is kicsi marad.`
+          explain: R`$0{,}02 \cdot 0{,}75 = 0{,}015 \gt 0{,}012$: a küszöb fölött marad. A <a class="xref" href="#s97-b">9.7 táblázata</a> szerint $p = 0{,}0125$-nél 1%, $0{,}02$-nél 15% volt a nagy kaszkádok aránya – a $0{,}015$ valahol a kettő között lesz. A hatás nem arányos a beavatkozással (mint <a class="xref" href="#s92-c-hibak">a „10% oltás = 10%-kal kisebb járvány” hibánál</a>). Az $1/\langle k\rangle$ az ER-gráf küszöbe: a hubos blogháló küszöbét a $\kappa$ adja. A küszöb fölött sem terjed el minden hír: a kezdések nagy része így is kicsi marad.`
         }
       ]
     },

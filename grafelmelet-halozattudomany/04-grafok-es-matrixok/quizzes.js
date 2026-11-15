@@ -57,7 +57,7 @@
             [R`$D^{-1}A\mathbf 1$`, "a csupa egyes vektor"]
           ],
           hint: R`$A$: add össze; $D^{-1}$: oszd el a fokszámmal; $I$: a saját érték; a $k$-adik hatvány: csináld meg $k$-szor.`,
-          explain: R`$A\mathbf x$ összegez, $D^{-1}A\mathbf x$ átlagol (csúcsonként a saját fokszámmal oszt). $A\mathbf 1$-ben mindenki annyi 1-est kap, ahány szomszédja van: a fokszámvektor. Az $(A + I)$ főátlójában 1 áll, így a saját érték is bekerül (ezt használja a GCN). $A^k\mathbf x$ a 2.7 eredménye: $k$-szor ismételt összegzés. A konstans 1 vektor szomszédátlaga mindenütt 1, ezért $D^{-1}A\mathbf 1 = \mathbf 1$ (izolált csúcs nélkül).`
+          explain: R`$A\mathbf x$ összegez, $D^{-1}A\mathbf x$ átlagol (csúcsonként a saját fokszámmal oszt). $A\mathbf 1$-ben mindenki annyi 1-est kap, ahány szomszédja van: a fokszámvektor. Az $(A + I)$ főátlójában 1 áll, így a saját érték is bekerül (ezt használja a GCN). $A^k\mathbf x$ a <a class="xref" href="../02-setak-utak-fak/#s27-a">2.7</a> eredménye: $k$-szor ismételt összegzés. A konstans 1 vektor szomszédátlaga mindenütt 1, ezért $D^{-1}A\mathbf 1 = \mathbf 1$ (izolált csúcs nélkül).`
         },
         {
           type: "single", shuffle: true,
@@ -129,7 +129,7 @@
             R`$(\frac16, \frac12, \frac14, \frac12)$`
           ],
           answer: 0,
-          hint: R`Először $\mathbf p_1$. Utána minden célcsúcsra: honnan juthat oda, és mekkora eséllyel? Az utakat add össze (teljes valószínűség).`,
+          hint: R`Először $\mathbf p_1$. Utána minden célcsúcsra: honnan juthat oda, és mekkora eséllyel? Az utakat add össze (<a class="xref" href="../../valoszinusegszamitas/02-felteteles-valoszinuseg-es-fuggetlenseg/#s23">teljes valószínűség</a>).`,
           explain: R`$\mathbf p_1 = (\frac12, 0, \frac12, 0)$, a $B$ sora. Második lépés: az $A$-ról ($\frac12$) a három szomszédja egyikére, egyenként $\frac12 \cdot \frac13 = \frac16$; a $C$-ről ($\frac12$) az $A$-ra vagy a $B$-re, egyenként $\frac12 \cdot \frac12 = \frac14$. Összegezve: $A$: $\frac14$; $B$: $\frac16 + \frac14 = \frac5{12}$; $C$: $\frac16$; $D$: $\frac16$ – összeg 1. ✓ A $(\frac14, \frac14, \frac16, \frac16)$ elfelejti az $A \to B$ utat (összege nem is 1). A $(\frac12, 0, \frac12, 0)$ csak egy lépés. A $(\frac16, \frac12, \frac14, \frac12)$ a $P\mathbf p_1$ (jobbról szorzás = szomszédátlag), nem $\mathbf p_1^\top P$ – az összege sem 1.`
         },
         {
@@ -183,7 +183,7 @@
             [R`$\frac12(I + P)$`, "a lusta séta átmenetmátrixa"],
             ["sztochasztikus mátrix", "nemnegatív, minden sorának összege 1"]
           ],
-          hint: R`Figyelj az oldalra: a valószínűséget sorvektorként, balról szorozzuk; a jobbról szorzás a 4.1 művelete.`,
+          hint: R`Figyelj az oldalra: a valószínűséget sorvektorként, balról szorozzuk; a jobbról szorzás a <a class="xref" href="#s41-c">4.1</a> művelete.`,
           explain: R`$P_{ij} = A_{ij}/d_i$ az egylépéses átmenet esélye. A stacionárius eloszlás az, amelyet egy lépés nem változtat: $\boldsymbol\pi^\top P = \boldsymbol\pi^\top$. A $t$ lépés utáni eloszlás $\mathbf p_t^\top = \mathbf p_0^\top P^t$ (balról!). A jobbról szorzás, $P\mathbf x = D^{-1}A\mathbf x$, a szomszédátlag – másik művelet. A lusta séta $\frac12$ eséllyel helyben marad: $\frac12(I + P)$. A sztochasztikus mátrix sorai valószínűség-eloszlások.`
         },
         {
@@ -238,7 +238,7 @@
           ],
           answer: 0,
           hint: "Két kör: szorozz A-val (szomszédösszeg), majd oszd el a legnagyobb elemmel – és ismételd.",
-          explain: R`1. lépés: $A\mathbf 1 = (2, 2, 3, 1)$, normálva $(0{,}67;\ 0{,}67;\ 1;\ 0{,}33)$ – ez csak $\mathbf x_1$. 2. lépés: $A$: $0{,}67 + 1 = 1{,}67$; $B$: $1{,}67$; $C$: $0{,}67 + 0{,}67 + 0{,}33 = 1{,}67$; $D$: $1$. Normálva $(1;\ 1;\ 1;\ 0{,}6)$. A $(0{,}83;\ 0{,}83;\ 1;\ 0{,}5)$ a saját értéket is beszámolja ($A + I$-vel iterál). A $(0{,}25;\ \dots)$ a véletlen séta stacionárius eloszlása – az a $P$-hez tartozik, nem az $A$ hatványiterációjához. (A határ $(0{,}85;\ 0{,}85;\ 1;\ 0{,}46)$, $\lambda_1 \approx 2{,}17$ – ez a gráf ugyanis a „csillag + él”, csak más betűkkel.)`
+          explain: R`1. lépés: $A\mathbf 1 = (2, 2, 3, 1)$, normálva $(0{,}67;\ 0{,}67;\ 1;\ 0{,}33)$ – ez csak $\mathbf x_1$. 2. lépés: $A$: $0{,}67 + 1 = 1{,}67$; $B$: $1{,}67$; $C$: $0{,}67 + 0{,}67 + 0{,}33 = 1{,}67$; $D$: $1$. Normálva $(1;\ 1;\ 1;\ 0{,}6)$. A $(0{,}83;\ 0{,}83;\ 1;\ 0{,}5)$ a saját értéket is beszámolja ($A + I$-vel iterál). A $(0{,}25;\ \dots)$ a véletlen séta stacionárius eloszlása – az a $P$-hez tartozik, nem az $A$ hatványiterációjához. (A határ $(0{,}85;\ 0{,}85;\ 1;\ 0{,}46)$, $\lambda_1 \approx 2{,}17$ – ez a gráf ugyanis a <a class="xref" href="#s43-b">„csillag + él”</a>, csak más betűkkel.)`
         },
         {
           type: "multi",
@@ -517,7 +517,7 @@
           ],
           answer: 0,
           hint: "Két út vezet a Vízügyre. Mindkettőnél szorozd össze a lépések esélyét, aztán add össze a két utat.",
-          explain: R`$\mathrm{Kl} \to \mathrm{Ko} \to \mathrm{Vi}$: $\frac12 \cdot \frac14 = \frac18$; $\mathrm{Kl} \to \mathrm{Sz} \to \mathrm{Vi}$: $\frac12 \cdot \frac13 = \frac16$. Összesen $\frac18 + \frac16 = \frac{7}{24}$ (teljes valószínűség). Az $\frac18$ és az $\frac16$ csak az egyik utat számolja; a $\frac7{12} = \frac14 + \frac13$ elfelejti az első lépés $\frac12$-es esélyét.`
+          explain: R`$\mathrm{Kl} \to \mathrm{Ko} \to \mathrm{Vi}$: $\frac12 \cdot \frac14 = \frac18$; $\mathrm{Kl} \to \mathrm{Sz} \to \mathrm{Vi}$: $\frac12 \cdot \frac13 = \frac16$. Összesen $\frac18 + \frac16 = \frac{7}{24}$ (<a class="xref" href="../../valoszinusegszamitas/02-felteteles-valoszinuseg-es-fuggetlenseg/#s23">teljes valószínűség</a>). Az $\frac18$ és az $\frac16$ csak az egyik utat számolja; a $\frac7{12} = \frac14 + \frac13$ elfelejti az első lépés $\frac12$-es esélyét.`
         },
         {
           type: "single", shuffle: true,
@@ -557,7 +557,7 @@
           ],
           answer: 0,
           hint: "Van-e a Reggeli Hírlapnak kimenő éle? Hová léphet onnan az olvasó?",
-          explain: R`Az $\mathrm{RH}$ kifoka 0: aki odaér, nem tud továbblépni – a séta beragad. A Vidéki Naplóról $\mathrm{VN} \to \mathrm{RH}$ (1 lépés) vagy $\mathrm{VN} \to \mathrm{NY} \to \mathrm{EK} \to \mathrm{RH}$ (3 lépés) vezet oda. A $d_i/2m$ csak irányítatlan gráfra igaz – irányított gráfon alkalmazni tipikus hiba. Oszcillációról sincs szó: az $\mathrm{RH}$-ról nincs visszaút. A javítás a teleportálás: a PageRank (5. fejezet).`
+          explain: R`Az $\mathrm{RH}$ kifoka 0: aki odaér, nem tud továbblépni – a séta beragad. A Vidéki Naplóról $\mathrm{VN} \to \mathrm{RH}$ (1 lépés) vagy $\mathrm{VN} \to \mathrm{NY} \to \mathrm{EK} \to \mathrm{RH}$ (3 lépés) vezet oda. A $d_i/2m$ csak irányítatlan gráfra igaz – irányított gráfon alkalmazni tipikus hiba. Oszcillációról sincs szó: az $\mathrm{RH}$-ról nincs visszaút. A javítás a teleportálás: a PageRank (<a class="xref" href="../05-centralitas/#s55-b">5. fejezet</a>).`
         },
         {
           type: "multi",
@@ -571,7 +571,7 @@
           ],
           answer: [0, 1, 2],
           hint: "Melyik állítás állít többet, mint amit egy 7 csúcsú gráf és egy választott modell alátámaszt?",
-          explain: R`A „linkek = együttes említések” és az „egyenletes választás” a mi döntésünk; súlyozva a Polgármester nyert a holtverseny helyett – tehát a séta igenis függ a súlyozástól. Hét csúcs és 12 cikk kevés ahhoz, hogy felfedezésről beszéljünk: ehhez nullmodell kell (7. és 10. fejezet). A Fiedler-vektor mindig két részt ad, akkor is, ha nincs (vagy három van) csoport – hogy hány csoport van, azt a közösségkeresés dönti el (8. fejezet).`
+          explain: R`A „linkek = együttes említések” és az „egyenletes választás” a mi döntésünk; súlyozva a Polgármester nyert a holtverseny helyett – tehát a séta igenis függ a súlyozástól. Hét csúcs és 12 cikk kevés ahhoz, hogy felfedezésről beszéljünk: ehhez nullmodell kell (<a class="xref" href="../07-halozatmodellek/">7.</a> és 10. fejezet). A Fiedler-vektor mindig két részt ad, akkor is, ha nincs (vagy három van) csoport – hogy hány csoport van, azt a közösségkeresés dönti el (<a class="xref" href="../08-kozossegek/">8. fejezet</a>).`
         }
       ]
     },
@@ -734,7 +734,7 @@
             [R`a Fiedler-vektor`, "kettévágás előjel szerint"]
           ],
           hint: "Melyik válaszol a „hová áll be a séta?”, és melyik a „hol vágjuk ketté?” kérdésre?",
-          explain: R`$A\mathbf x$ a szomszédösszeg (4.1); a $P = D^{-1}A$ ugyanaz a mátrix, amely szomszédátlagot számol, de balról szorozva a valószínűséget adja tovább (4.2). A $\pi_i = d_i/2m$ felelt az olvasó idejére – irányított gráfon nem érvényes. A domináns sajátvektor (4.3) a fokszámot finomítja: a szomszédok fontosságát is számítja. A Fiedler-vektor (4.4–4.5) a legsimább nem konstans jel, az előjele adja a kettévágást.`
+          explain: R`$A\mathbf x$ a szomszédösszeg (<a class="xref" href="#s41">4.1</a>); a $P = D^{-1}A$ ugyanaz a mátrix, amely szomszédátlagot számol, de balról szorozva a valószínűséget adja tovább (<a class="xref" href="#s42">4.2</a>). A $\pi_i = d_i/2m$ felelt az olvasó idejére – irányított gráfon nem érvényes. A domináns sajátvektor (<a class="xref" href="#s43">4.3</a>) a fokszámot finomítja: a szomszédok fontosságát is számítja. A Fiedler-vektor (<a class="xref" href="#s44">4.4</a>–<a class="xref" href="#s45">4.5</a>) a legsimább nem konstans jel, az előjele adja a kettévágást.`
         },
         {
           type: "single", shuffle: true,

@@ -38,7 +38,7 @@
           ],
           answer: 0,
           hint: R`A $C_i$ nem a csúcs saját éleit méri, hanem valami mást a csúcs <b>környékén</b>. Mit?`,
-          explain: R`A $C_i$ a szomszédpárok összekötött hányada. A Kormány társai ($\mathrm{Vi}, \mathrm{Po}, \mathrm{Sz}, \mathrm{Kl}$) között 6 párból 3 él fut, a Polgármesteréi ($\mathrm{Ko}, \mathrm{Vi}, \mathrm{La}, \text{Ön}$) között csak 2 ($\mathrm{Ko}$–$\mathrm{Vi}$, $\mathrm{La}$–$\text{Ön}$): ő két, egymással alig érintkező kört köt össze. A „kevésbé fontos” a tipikus félreolvasás: a klaszterezettség a környék <b>sűrűsége</b>, nem centralitás – sőt, köztesség szerint éppen a Polgármester a legközpontibb (5.3). A kapcsolatok száma egyforma (4–4), a cikkszámról a $C_i$ pedig semmit sem mond.`
+          explain: R`A $C_i$ a szomszédpárok összekötött hányada. A Kormány társai ($\mathrm{Vi}, \mathrm{Po}, \mathrm{Sz}, \mathrm{Kl}$) között 6 párból 3 él fut, a Polgármesteréi ($\mathrm{Ko}, \mathrm{Vi}, \mathrm{La}, \text{Ön}$) között csak 2 ($\mathrm{Ko}$–$\mathrm{Vi}$, $\mathrm{La}$–$\text{Ön}$): ő két, egymással alig érintkező kört köt össze. A „kevésbé fontos” a tipikus félreolvasás: a klaszterezettség a környék <b>sűrűsége</b>, nem centralitás – sőt, köztesség szerint éppen a Polgármester a legközpontibb (<a class="xref" href="../05-centralitas/#s53-c-po-ko">5.3</a>). A kapcsolatok száma egyforma (4–4), a cikkszámról a $C_i$ pedig semmit sem mond.`
         },
         {
           type: "match",

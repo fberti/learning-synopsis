@@ -10,7 +10,8 @@ synopsis/
 ├── .nojekyll                       ← GitHub Pages: Jekyll kikapcsolása
 ├── assets/
 │   ├── style.css                   ← közös stílus (világos/sötét téma)
-│   ├── common.js                   ← téma, KaTeX, tartalomjegyzék, haladás mentése
+│   ├── common.js                   ← téma, KaTeX, tartalomjegyzék (követés, ☰ ki-becsukás), haladás mentése (betölti az xref.js-t is)
+│   ├── xref.js                     ← jobb oldali sáv: kereszthivatkozások (`<a class="xref">`) és 📑 tartalom-böngésző (a főoldal `a.card` és a témakörök `h3 > a` linkjeiből)
 │   ├── quiz.js                     ← általános kvízmotor
 │   ├── calc.js                     ← analízis: képletértelmező (eval nélkül) és függvényrajzoló
 │   ├── graph.js                    ← gráfok: elrendezés, statikus SVG-ábrák (.gfig), szerkeszthető canvas-nézet (GraphKit.View)
@@ -107,6 +108,9 @@ Helyi megtekintés: `python3 -m http.server` a `synopsis` mappában, majd <http:
    (típusok: `single`, `multi`, `match`, `set` – lásd `assets/quiz.js`; a `numeric` elavult, ne használd).
    A kvíz automatikusan lenyílóban jelenik meg; minden kérdéshez kell `hint` és `explain`.
 4. Frissítsd a témakör `index.html`-jét és a főoldal `data-progress` listáját az új kvízazonosítókkal.
+5. Kereszthivatkozás: ha a szöveg egy másik részre utal (korábbi példa, másik fejezet, másik témakör),
+   tegyél rá linket a pontos helyre `class="xref"`-fel – pl. `<a class="xref" href="../01-mi-a-halozat/#s17-a">1.7</a>`.
+   Ez a hivatkozott oldalt a jobb oldali sávban nyitja meg (párhuzamos olvasás). Navigációs linkre és külső forrásra nem kell.
 
 Matematika: KaTeX, `$...$` (sorközi) és `$$...$$` (kiemelt) jelöléssel.
 

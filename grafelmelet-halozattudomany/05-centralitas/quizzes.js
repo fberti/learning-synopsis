@@ -30,7 +30,7 @@
           ],
           answer: 0,
           hint: R`Különböző méretű gráfokat hasonlítasz össze. Mindkét csúcsnál nézd meg, a <b>lehetséges</b> kapcsolatok hányad része valósult meg.`,
-          explain: R`$10/(21 - 1) = 0{,}5$ és $4/(6 - 1) = 0{,}8$: a kis gráf csúcsa a lehetséges kapcsolatai 80%-át megvalósította, a nagyé csak a felét. A $0{,}48 = 10/21$ és $0{,}67 = 4/6$ $n$-nel normál $n - 1$ helyett (a sorrend itt véletlenül ugyanaz, de az érték rossz). A nyers fokszám különböző méretű gráfok között félrevezet – ez az 5.1 első buktatója. Az utolsó opció jól számol, de rossz következtetést von le: a normált értéket kell összevetni, nem a nyers számot.`
+          explain: R`$10/(21 - 1) = 0{,}5$ és $4/(6 - 1) = 0{,}8$: a kis gráf csúcsa a lehetséges kapcsolatai 80%-át megvalósította, a nagyé csak a felét. A $0{,}48 = 10/21$ és $0{,}67 = 4/6$ $n$-nel normál $n - 1$ helyett (a sorrend itt véletlenül ugyanaz, de az érték rossz). A nyers fokszám különböző méretű gráfok között félrevezet – ez az <a class="xref" href="#s51-c-hibak">5.1 első buktatója</a>. Az utolsó opció jól számol, de rossz következtetést von le: a normált értéket kell összevetni, nem a nyers számot.`
         },
         {
           type: "single", shuffle: true,
@@ -38,7 +38,7 @@
           options: [R`$5$`, R`$3$`, R`$4$`, R`$1$`],
           answer: 0,
           hint: "Keresd meg a Vízügy éleit, és add össze a súlyukat – nem az éleket számold.",
-          explain: R`A Vízügy élei: $\mathrm{Ko}$ (2), $\mathrm{Po}$ (2), $\mathrm{Sz}$ (1), így $s(\mathrm{Vi}) = 2 + 2 + 1 = 5$. A $3$ a fokszám (hány szomszéd), nem az erősség (hány együttes említés). A $4$ az, hogy hány cikk <b>említi</b> a Vízügyet (cikk–szereplő páros gráf), az $1$ pedig, hogy hány cikkben <b>szólal meg</b> – ugyanabból a korpuszból három másik „gyakoriság”. Az erősség azért több a cikkszámnál, mert a 2. cikkben két társa is van, így ott kétszer számít.`
+          explain: R`A Vízügy élei: $\mathrm{Ko}$ (2), $\mathrm{Po}$ (2), $\mathrm{Sz}$ (1), így $s(\mathrm{Vi}) = 2 + 2 + 1 = 5$. A $3$ a fokszám (hány szomszéd), nem az erősség (hány együttes említés). A $4$ az, hogy hány cikk <b>említi</b> a Vízügyet (cikk–szereplő páros gráf), az $1$ pedig, hogy hány cikkben <b>szólal meg</b> – ugyanabból a korpuszból három másik „gyakoriság”. Az erősség azért több a cikkszámnál, mert a <a class="xref" href="../01-mi-a-halozat/#s17-a">2. cikkben</a> két társa is van, így ott kétszer számít.`
         },
         {
           type: "single", shuffle: true,
@@ -79,7 +79,7 @@
           ],
           answer: [0, 1, 4],
           hint: "Mi változik, ha minden számot ugyanazzal a pozitív számmal osztasz? És számít-e a Lakóknál, hogy a La–Ön élnek 3 a súlya?",
-          explain: R`A fokszám $\mathrm{Ko} = \mathrm{Po} = 4$, holtverseny. Erősség szerint $\mathrm{Po} = 8$, $\mathrm{Ko} = 6$: a Polgármester egyedül vezet. A Lakók fokszáma 2, de az erőssége $3 + 2 = 5$ – a súly a tartós kapcsolatot jutalmazza. A normálás egy gráfon belül mindenkit ugyanazzal a számmal oszt, ezért a sorrenden <b>nem</b> változtat; csak különböző méretű gráfok összevetéséhez kell. A Vízügyet az 1., 2., 4. és 10. cikk említi, de csak a 2.-ban szólal meg.`
+          explain: R`A fokszám $\mathrm{Ko} = \mathrm{Po} = 4$, holtverseny. Erősség szerint $\mathrm{Po} = 8$, $\mathrm{Ko} = 6$: a Polgármester egyedül vezet. A Lakók fokszáma 2, de az erőssége $3 + 2 = 5$ – a súly a tartós kapcsolatot jutalmazza. A normálás egy gráfon belül mindenkit ugyanazzal a számmal oszt, ezért a sorrenden <b>nem</b> változtat; csak különböző méretű gráfok összevetéséhez kell. A Vízügyet az <a class="xref" href="../01-mi-a-halozat/#s17-a">1., 2., 4. és 10. cikk</a> említi, de csak a 2.-ban szólal meg.`
         },
         {
           type: "single", shuffle: true,
@@ -320,7 +320,7 @@
             [R`$\mathbf x = \alpha A^\top\mathbf x + \beta\mathbf 1$`, "a Katz-centralitás"]
           ],
           hint: "Minden lépés egy újabb szomszédösszeg. Mi lesz egy lépés után, kettő után, végtelen sok után? És mi az, ahol mindenki kap egy alappontszámot?",
-          explain: R`$A\mathbf 1$: mindenki annyi 1-est kap, ahány szomszédja van – a fokszám. $A^2\mathbf 1$: a szomszédok fokszámának összege (a 2 hosszú séták száma). A hatványiteráció iránya a legnagyobb sajátértékhez ($\lambda_1$) tartozó sajátvektorhoz tart (Perron–Frobenius): ez a sajátvektor-centralitás. A Katz-centralitás $\beta$ alappontszámot ad mindenkinek, így irányított gráfon sem fut le minden 0-ra. „Fokszám = 1 lépés, sajátvektor = végtelen sok lépés.”`
+          explain: R`$A\mathbf 1$: mindenki annyi 1-est kap, ahány szomszédja van – a fokszám. $A^2\mathbf 1$: a szomszédok fokszámának összege (a 2 hosszú séták száma). A hatványiteráció iránya a legnagyobb sajátértékhez ($\lambda_1$) tartozó sajátvektorhoz tart (<a class="xref" href="../04-grafok-es-matrixok/#s43-c">Perron–Frobenius</a>): ez a sajátvektor-centralitás. A Katz-centralitás $\beta$ alappontszámot ad mindenkinek, így irányított gráfon sem fut le minden 0-ra. „Fokszám = 1 lépés, sajátvektor = végtelen sok lépés.”`
         },
         {
           type: "multi",
@@ -333,7 +333,7 @@
             R`Irányított gráfon mindig van csupa pozitív sajátvektor, ezért ott is gond nélkül használható.`
           ],
           answer: [0, 1, 2],
-          hint: R`Emlékezz az $X$–$Y$ példára, a Perron–Frobenius-tételre és az $A \to B \to C$ láncra.`,
+          hint: R`Emlékezz az <a class="xref" href="#s54-a">$X$–$Y$ példára</a>, a <a class="xref" href="../04-grafok-es-matrixok/#s43-c">Perron–Frobenius-tételre</a> és az <a class="xref" href="#s54-b">$A \to B \to C$ láncra</a>.`,
           explain: R`Az $X$–$Y$ gráfban $X$ és $Y$ fokszáma is 2, a sajátvektor mégis $0{,}75$ és $0{,}40$: számít, kik a szomszédok. A Perron–Frobenius-tétel szerint összefüggő gráfon <b>csak</b> a legnagyobb sajátértékhez tartozik csupa pozitív sajátvektor – ezért azt vesszük, nem a legkisebbet (annak vannak negatív elemei). A sajátvektor előjele önkényes: $-\mathbf v$ is sajátvektor, így ha minden elem negatív, fordítsd meg. Irányított gráfon viszont a sajátvektor sokszor csupa 0 (pl. láncon, körmentes gráfon) – erre jön a Katz és a PageRank.`
         }
       ]
@@ -412,7 +412,7 @@
           q: R`Az Árvízhét szereplőgráfja irányítatlan, 10 éle van; a Polgármester fokszáma 4, PageRankje ($\alpha = 0{,}85$) $0{,}196$. Mennyi lenne a PageRankje teleportálás nélkül?`,
           options: [R`$0{,}2$`, R`$0{,}67$`, R`$0{,}22$`, R`$0{,}14$`],
           answer: 0,
-          hint: R`Irányítatlan gráfon a véletlen séta stacionárius eloszlása (4.2) egy egyszerű képlet a fokszámból. Hány élvég van összesen?`,
+          hint: R`Irányítatlan gráfon a véletlen séta stacionárius eloszlása (<a class="xref" href="../04-grafok-es-matrixok/#s42-c">4.2</a>) egy egyszerű képlet a fokszámból. Hány élvég van összesen?`,
           explain: R`Teleportálás nélkül a PageRank a véletlen séta stacionárius eloszlása, irányítatlan gráfon $d_i/2m = 4/20 = 0{,}2$. A teleportálás ezt csak kicsit simítja (0,196) – irányítatlan gráfon a PageRank majdnem a fokszám.
             A $0{,}67 = 4/6$ a fokszám-centralitás, az nem eloszlás. A $0{,}22 = 8/36$ az erősséggel számol, de a PageRank itt súlytalan gráfon fut. A $0{,}14 \approx 1/7$ az egyenletes eloszlás ($\alpha = 0$).`
         }
@@ -504,7 +504,7 @@
           ],
           answer: [0, 1, 2],
           hint: "Melyik állítás csak az első lépésre igaz? És mit díjaz a hub: a linkek számát vagy a linkelt oldalak minőségét?",
-          explain: R`A tekintély a bejövő hub-pontszámok összege: bejövő él nélkül 0. Irányítatlan gráfon $A^\top = A$, így mindkét vektor az $A^2$, azaz az $A$ domináns sajátvektora. A domináns sajátvektor a legsűrűbb csoportra „ül rá” (politikai blogok: a top 10 tekintélyből 9 liberális).
+          explain: R`A tekintély a bejövő hub-pontszámok összege: bejövő él nélkül 0. Irányítatlan gráfon $A^\top = A$, így mindkét vektor az $A^2$, azaz az $A$ domináns sajátvektora. A domináns sajátvektor a legsűrűbb csoportra „ül rá” (<a class="xref" href="#s58-c">politikai blogok</a>: a top 10 tekintélyből 9 liberális).
             A hub még az első lépésben sem a kifok, hanem a kimenő szomszédok befokának összege; a határban a linkelt oldalak tekintélye számít. Ezért nem a legtöbbet linkelő blog (blogsforbush.com, 256 link) a legjobb hub.`
         }
       ]
@@ -589,7 +589,7 @@
             R`Egy köztességi értékről önmagában eldönthető, hogy meglepően nagy-e.`
           ],
           answer: [0, 1, 2],
-          hint: "Gondolj a módszertani józanság dobozra: okság, normálás, élmodell, nullmodell. És a sárkányra.",
+          hint: "Gondolj a <a class='xref' href='#s57-c-jozansag'>módszertani józanság dobozra</a>: okság, normálás, élmodell, nullmodell. És a <a class='xref' href='#s57-a'>sárkányra</a>.",
           explain: R`A centralitás pozíciót mér, nem oksági hatást – befolyáshoz beavatkozás vagy időbeli adat kell. Normált értékek vagy rangsorok hasonlíthatók össze. A centralitás az élmodellhez képest „fontos”. A sárkányban a fokszám győztese ($D$) sem a közelség, sem a köztesség szerint nem első. Hogy egy érték „magas”-e, azt egy nullmodellhez (véletlen gráfhoz) kell mérni.`
         }
       ]
@@ -785,7 +785,7 @@
         },
         {
           type: "single", shuffle: true,
-          q: R`Krackhardt sárkányában a $D$ fokszáma 6 (a legnagyobb), sajátvektor-centralitása 1, a köztessége viszont csak 3,67 (a $H$-é 14). Mit árul el ez az eltérés a $D$-ről?`,
+          q: R`<a class="xref" href="#s57-a">Krackhardt sárkányában</a> a $D$ fokszáma 6 (a legnagyobb), sajátvektor-centralitása 1, a köztessége viszont csak 3,67 (a $H$-é 14). Mit árul el ez az eltérés a $D$-ről?`,
           options: [
             R`Egy sűrű csoport belsejében ül, kifelé nem közvetít.`,
             R`Két csoport közötti közvetítő, strukturális lyukat hidal át.`,
@@ -793,7 +793,7 @@
             R`Sokan idézik, de jelentéktelen helyekről.`
           ],
           answer: 0,
-          hint: "Az 5.7 hüvelykujjszabálya: két centralitás eltérése mit jelent? Itt magas a fokszám, alacsony a köztesség.",
+          hint: "Az <a class='xref' href='#s57-b-elteres'>5.7 hüvelykujjszabálya</a>: két centralitás eltérése mit jelent? Itt magas a fokszám, alacsony a köztesség.",
           explain: R`Magas fokszám, alacsony köztesség: a csúcs egy sűrű csoport közepén van, a szomszédai egymással is össze vannak kötve, ezért kevés legrövidebb út megy át rajta. A közvetítő a fordított eset (magas köztesség, alacsony fokszám) – ez a $H$. A „kevés, de fontos kapcsolat” a magas sajátvektor és közepes fokszám esete, a „gyenge helyekről idézik” a magas befok és alacsony PageRank esete.`
         },
         {
@@ -807,7 +807,7 @@
             ["n − 1 osztva a távolságösszeggel", "közelségi centralitás"],
             ["akire jó gyűjtők mutatnak", "HITS-tekintély"]
           ],
-          hint: "Gondold végig a fejezet összefoglaló táblázatát: képlet és „mit mér?”.",
+          hint: "Gondold végig a fejezet <a class='xref' href='#s-sum'>összefoglaló táblázatát</a>: képlet és „mit mér?”.",
           explain: R`Köztesség: $\sum \sigma_{st}(v)/\sigma_{st}$, az átmenő legrövidebb utak. Sajátvektor: $A\mathbf x = \lambda_1\mathbf x$. PageRank: a teleportálásos véletlen séta stacionárius eloszlása. Harmonikus: $\sum 1/\operatorname{dist}$, nem összefüggő gráfon is működik. Közelségi: $(n-1)/\sum\operatorname{dist}$ – csak összefüggő gráfon. HITS-tekintély: $\mathbf a = A^\top\mathbf h$.`
         },
         {

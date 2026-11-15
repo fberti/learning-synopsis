@@ -17,7 +17,7 @@
           options: [R`$n = 6,\ m = 4$`, R`$n = 5,\ m = 4$`, R`$n = 6,\ m = 8$`, R`$n = 4,\ m = 6$`],
           answer: 0,
           hint: R`$n$ a $V$ halmaz, $m$ az $E$ halmaz elemeinek száma. Nézd meg, minden csúcs szerepel-e valamelyik élben – és kell-e szerepelnie?`,
-          explain: R`$n = |V| = 6$ és $m = |E| = 4$. A 6-os csúcsra nem illeszkedik él, de benne van $V$-ben, tehát csúcs ($n = 5$ akkor jönne ki, ha csak az élekben szereplő csúcsokat számolnád). Az $m = 8$ minden élt kétszer számol (egyszer mindkét végpontjánál) – ez a fokszámok összege lesz (1.3). Az $n = 4,\ m = 6$ a két halmaz felcserélése.`
+          explain: R`$n = |V| = 6$ és $m = |E| = 4$. A 6-os csúcsra nem illeszkedik él, de benne van $V$-ben, tehát csúcs ($n = 5$ akkor jönne ki, ha csak az élekben szereplő csúcsokat számolnád). Az $m = 8$ minden élt kétszer számol (egyszer mindkét végpontjánál) – ez a fokszámok összege lesz (<a class="xref" href="#s13-b">1.3</a>). Az $n = 4,\ m = 6$ a két halmaz felcserélése.`
         },
         {
           type: "multi",
@@ -31,7 +31,7 @@
           ],
           answer: [0, 2],
           hint: R`Gondolj a definícióra: az él rendezetlen pár, a csúcsok pedig pontosan $V$ elemei. A rajz többi része nem információ.`,
-          explain: R`Az él rendezetlen pár: $ab = ba = \{a, b\}$. Az él a két végpontjára illeszkedik. A rajz nem a gráf: a keresztezés nem csúcs (csúcs csak az, ami $V$-ben van), és a rajzbeli távolság sem jelent semmit. A szomszédosság közvetlen élt jelent; a több lépéses elérhetőség más fogalom (2. fejezet).`
+          explain: R`Az él rendezetlen pár: $ab = ba = \{a, b\}$. Az él a két végpontjára illeszkedik. A rajz nem a gráf: a keresztezés nem csúcs (csúcs csak az, ami $V$-ben van), és a rajzbeli távolság sem jelent semmit. A szomszédosság közvetlen élt jelent; a több lépéses elérhetőség más fogalom (<a class="xref" href="../02-setak-utak-fak/#s21-a">2. fejezet</a>).`
         },
         {
           type: "single", shuffle: true,
@@ -56,7 +56,7 @@
         },
         {
           type: "single", shuffle: true,
-          q: R`Legfeljebb hány éle lehet egy 7 csúcsú gráfnak (az 1.1 definíciója szerint, hurok és többszörös él nélkül)?`,
+          q: R`Legfeljebb hány éle lehet egy 7 csúcsú gráfnak (az <a class="xref" href="#s11-a-definicio">1.1 definíciója</a> szerint, hurok és többszörös él nélkül)?`,
           options: ["21", "42", "49", "7"],
           answer: 0,
           hint: "Minden él egy csúcspár, és egy pár legfeljebb egyszer szerepel. Hány pár van?",
@@ -142,7 +142,7 @@
         },
         {
           type: "single", shuffle: true,
-          q: R`Az 1.2 négy cikkéből (2: Kormány, Vízügy, Polgármester; 5: Szakértő, Klímaváltozás, Kormány; 8: Lakók, Polgármester, Önkéntesek; 10: Polgármester, Vízügy) cikkgráfot készítünk, de szigorúbb szabállyal: él csak akkor legyen, ha a két cikknek <b>legalább két</b> közös szereplője van. Hány éle lesz?`,
+          q: R`Az <a class="xref" href="#s12-a-negy-cikk">1.2 négy cikkéből</a> (2: Kormány, Vízügy, Polgármester; 5: Szakértő, Klímaváltozás, Kormány; 8: Lakók, Polgármester, Önkéntesek; 10: Polgármester, Vízügy) cikkgráfot készítünk, de szigorúbb szabállyal: él csak akkor legyen, ha a két cikknek <b>legalább két</b> közös szereplője van. Hány éle lesz?`,
           options: ["1", "4", "2", "0"],
           answer: 0,
           hint: "Vedd sorra az eredeti cikkgráf négy élét, és mindegyiknél számold meg a közös szereplőket.",
@@ -212,7 +212,7 @@
           options: [R`$3$`, R`$1{,}5$`, R`$24$`, R`$\approx 0{,}43$`],
           answer: 0,
           hint: R`Először a fokszámok összegét számold ki a kézfogási lemmával, aztán oszd el a csúcsok számával.`,
-          explain: R`$\sum d(v) = 2m = 24$, ezért $\bar d = 2m/n = 24/8 = 3$. Az $1{,}5 = m/n$ elfelejti, hogy minden él két csúcs fokszámát növeli. A 24 a fokszámösszeg, nem az átlag. A $0{,}43 = 12/28$ a sűrűség (1.4), nem az átlagos fokszám.`
+          explain: R`$\sum d(v) = 2m = 24$, ezért $\bar d = 2m/n = 24/8 = 3$. Az $1{,}5 = m/n$ elfelejti, hogy minden él két csúcs fokszámát növeli. A 24 a fokszámösszeg, nem az átlag. A $0{,}43 = 12/28$ a sűrűség (<a class="xref" href="#s14-c">1.4</a>), nem az átlagos fokszám.`
         },
         {
           type: "single", shuffle: true,
@@ -563,7 +563,7 @@ $$A = \begin{pmatrix} 0 & 1 & 1 & 0\\ 1 & 0 & 0 & 1\\ 1 & 0 & 0 & 1\\ 0 & 1 & 1 
           options: ["Polgármester", "Szakértő", "Klímaváltozás", "Önkéntesek"],
           answer: 0,
           hint: "Keresd azt a szereplőt a második csoportban, akinek az első csoportban is van szomszédja.",
-          explain: R`A Polgármester a Kormánnyal és a Vízügygyel is szomszédos (2-es, 3-as, 10-es cikk), és a Lakókkal, az Önkéntesekkel is. A Lakóknak és az Önkénteseknek nincs szomszédja az első csoportban, a Szakértőnek és a Klímaváltozásnak pedig a másodikban. Ezért a nagy erősség (8) mellett a Polgármesternek összekötő szerepe is van – ezt az 5. fejezet centralitásmértékei pontosabban mérik.`
+          explain: R`A Polgármester a Kormánnyal és a Vízügygyel is szomszédos (2-es, 3-as, 10-es cikk), és a Lakókkal, az Önkéntesekkel is. A Lakóknak és az Önkénteseknek nincs szomszédja az első csoportban, a Szakértőnek és a Klímaváltozásnak pedig a másodikban. Ezért a nagy erősség (8) mellett a Polgármesternek összekötő szerepe is van – ezt az <a class="xref" href="../05-centralitas/">5. fejezet</a> centralitásmértékei pontosabban mérik.`
         }
       ]
     },
@@ -591,7 +591,7 @@ $$A = \begin{pmatrix} 0 & 1 & 1 & 0\\ 1 & 0 & 0 & 1\\ 1 & 0 & 0 & 1\\ 0 & 1 & 1 
           ],
           answer: 0,
           hint: "Mi a különbség a „szomszédos” és az „elérhető” között?",
-          explain: R`Két csúcs akkor szomszédos, ha <b>közvetlenül</b> él köti össze őket; $ac \notin E$. Elérhetők viszont: $a - b - c$ (ezekkel az utakkal a 2. fejezet foglalkozik). A rajz elhelyezése nem információ – két közel rajzolt pont nem feltétlenül szomszédos.`
+          explain: R`Két csúcs akkor szomszédos, ha <b>közvetlenül</b> él köti össze őket; $ac \notin E$. Elérhetők viszont: $a - b - c$ (ezekkel az utakkal a <a class="xref" href="../02-setak-utak-fak/#s21-a">2. fejezet</a> foglalkozik). A rajz elhelyezése nem információ – két közel rajzolt pont nem feltétlenül szomszédos.`
         },
         {
           type: "single", shuffle: true,

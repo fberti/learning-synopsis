@@ -174,7 +174,7 @@
           ],
           answer: [0, 1, 2],
           hint: R`Idézd fel a gyűrűrács két képletét ($C$ és $L$), és a kisvilág definíciójának két pontját.`,
-          explain: R`A gyűrűrácsban a társak egymáshoz közel vannak a körön, $C = 3(k-2)/(4(k-1))$ – $n$ nem szerepel benne. A WS-modellben mindenki fokszáma $k$ körül van, a hubok kérdése a 7.3-ban jön. A kisvilág-definíció két feltétele igaz. A rácsban viszont $L \approx n/(2k)$: az út $n$-nel <b>arányosan</b> nő, nem logaritmikusan ($n = 1000$, $k = 10$: 50, szemben az ER-gráf kb. 3-ával). Az utolsó a kisvilágot a rövid utakkal azonosítja – rövid út az ER-gráfban „ingyen” van; ha $C \approx C_{\text{ER}}$, akkor $\sigma \approx 1$, és a hálózat egyszerűen véletlen gráfnak látszik.`
+          explain: R`A gyűrűrácsban a társak egymáshoz közel vannak a körön, $C = 3(k-2)/(4(k-1))$ – $n$ nem szerepel benne. A WS-modellben mindenki fokszáma $k$ körül van, a hubok kérdése a <a class="xref" href="#s73-a">7.3</a>-ban jön. A kisvilág-definíció két feltétele igaz. A rácsban viszont $L \approx n/(2k)$: az út $n$-nel <b>arányosan</b> nő, nem logaritmikusan ($n = 1000$, $k = 10$: 50, szemben az ER-gráf kb. 3-ával). Az utolsó a kisvilágot a rövid utakkal azonosítja – rövid út az ER-gráfban „ingyen” van; ha $C \approx C_{\text{ER}}$, akkor $\sigma \approx 1$, és a hálózat egyszerűen véletlen gráfnak látszik.`
         }
       ]
     },
@@ -461,7 +461,7 @@
           ],
           answer: 0,
           hint: R`Hány különböző értéket vehet fel a $\mathrm{Sz}$–$\mathrm{Kl}$ közös cikkeinek száma, ha a Klímaváltozás csak 2 cikkben szerepel?`,
-          explain: R`A $\mathrm{Sz}$–$\mathrm{Kl}$ közös cikkeinek száma csak 0, 1 vagy 2 lehet, és erősen ferde (várható 0,31, szórás kb. 0,5). Ilyen diszkrét, ferde eloszlásnál a $z$ és a $p$ nem fordíthatók egymásba normális táblázattal – a „nagyobb $z$ ⇒ kisebb $p$” csak ugyanolyan alakú eloszlásokra igaz. Ezért kis gráfon a $p$ a megbízhatóbb – ez a 7.4 figyelmeztetése élesben. Mindkét szám ugyanabból a páros nullmodellből jön.`
+          explain: R`A $\mathrm{Sz}$–$\mathrm{Kl}$ közös cikkeinek száma csak 0, 1 vagy 2 lehet, és erősen ferde (várható 0,31, szórás kb. 0,5). Ilyen diszkrét, ferde eloszlásnál a $z$ és a $p$ nem fordíthatók egymásba normális táblázattal – a „nagyobb $z$ ⇒ kisebb $p$” csak ugyanolyan alakú eloszlásokra igaz. Ezért kis gráfon a $p$ a megbízhatóbb – ez a <a class="xref" href="#s74-d-buktatok">7.4</a> figyelmeztetése élesben. Mindkét szám ugyanabból a páros nullmodellből jön.`
         },
         {
           type: "single", shuffle: true,

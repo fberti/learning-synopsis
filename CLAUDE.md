@@ -91,5 +91,12 @@ Minden új vagy átírt tananyagnak az alábbi sémát kell követnie. A mintap�
   </details>
   ```
   A „Vegyes gyakorló feladatok” rész ugyanígy, egyetlen `details.box.practice`-ban.
+- **Kereszthivatkozás – mindig linkkel, oldalsávba:** ha a szöveg egy másik részre utal (korábbi vagy későbbi
+  példa, szakasz, másik fejezet vagy témakör), és nem ismétli meg a tartalmát, a hivatkozás legyen link a
+  **pontos helyre**, `xref` osztállyal: `<a class="xref" href="../01-mi-a-halozat/#s17-a">1. fejezet szereplőgráfja</a>`,
+  ugyanazon az oldalon `<a class="xref" href="#s23-b">2.3</a>`. Ez a hivatkozott oldalt a jobb oldali sávban nyitja meg
+  (`assets/xref.js`, a `common.js` tölti be). Ha a cél egy dobozra mutat, és annak nincs horgonya, adj neki
+  `id="<lépés-id>-<slug>"`-ot. Navigációs linkre (útiterv, tartalomjegyzék, lapozó, főoldal) és külső forrásra
+  (könyv, cikk) nem kell `xref`; még meg nem írt fejezetre ne linkelj.
 - Widget (`data-widget`) csak ott, ahol a fogalom már megvan, és a kísérletezés tényleg segít.
 - Új kvízazonosítót vedd fel a témakör `index.html`-jébe és a főoldal `data-progress` listájába.

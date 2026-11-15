@@ -176,7 +176,7 @@
           ],
           answer: 0,
           hint: "A súly jelentése az élszabályból jön. Mit mér itt a szám?",
-          explain: R`A km-ben mért súly hossz: a nagyobb súly <b>messzebbi</b> kapcsolatot jelent (a legrövidebb út ezt minimalizálja, 2.4). Együttes említésnél viszont a nagyobb súly szorosabb kapcsolat. Ezért mindig írd le a súly egységét és irányát – különben a legrövidebb utat és a centralitást sem tudod értelmezni. A normálás nem oldja meg ezt a kérdést, és a „közös cikk” egy másik élszabály.`
+          explain: R`A km-ben mért súly hossz: a nagyobb súly <b>messzebbi</b> kapcsolatot jelent (a legrövidebb út ezt minimalizálja, <a class="xref" href="../02-setak-utak-fak/#s24">2.4</a>). Együttes említésnél viszont a nagyobb súly szorosabb kapcsolat. Ezért mindig írd le a súly egységét és irányát – különben a legrövidebb utat és a centralitást sem tudod értelmezni. A normálás nem oldja meg ezt a kérdést, és a „közös cikk” egy másik élszabály.`
         }
       ]
     },
@@ -209,7 +209,7 @@
           ],
           answer: 0,
           hint: "Szorozd össze a három előjelet!",
-          explain: R`$(+1)(+1)(-1) = -1$: a $++-$ háromszög kiegyensúlyozatlan. A szakértő egyetért a vízüggyel, a vízügy a kormánnyal, de a szakértő bírálja a kormányt – ez „feszült” helyzet (részletek: 6. fejezet). Nem a többség vagy az összeg számít, hanem a szorzat. A negatív él pedig létező kapcsolat (bírálat), nem hiányzó él.`
+          explain: R`$(+1)(+1)(-1) = -1$: a $++-$ háromszög kiegyensúlyozatlan. A szakértő egyetért a vízüggyel, a vízügy a kormánnyal, de a szakértő bírálja a kormányt – ez „feszült” helyzet (részletek: <a class="xref" href="../06-helyi-szerkezet/#s64-a">6. fejezet</a>). Nem a többség vagy az összeg számít, hanem a szorzat. A negatív él pedig létező kapcsolat (bírálat), nem hiányzó él.`
         },
         {
           type: "set",
@@ -217,7 +217,7 @@
           items: ["+ + +", "+ + −", "+ − −", "− − −"],
           answer: ["+ + +", "+ − −"],
           hint: "A kiegyensúlyozottság az előjelek szorzatán múlik.",
-          explain: R`Szorzat $+$: a $+++$ („mindenki barátja mindenkinek”) és a $+--$ („az ellenségem ellensége a barátom”) kiegyensúlyozott. Szorzat $-$: a $++-$ és a $---$ kiegyensúlyozatlan. A $++-$-t könnyű kiegyensúlyozottnak hinni, mert „majdnem minden pozitív” – pedig épp ez a feszült eset. Részletek: 6. fejezet.`
+          explain: R`Szorzat $+$: a $+++$ („mindenki barátja mindenkinek”) és a $+--$ („az ellenségem ellensége a barátom”) kiegyensúlyozott. Szorzat $-$: a $++-$ és a $---$ kiegyensúlyozatlan. A $++-$-t könnyű kiegyensúlyozottnak hinni, mert „majdnem minden pozitív” – pedig épp ez a feszült eset. Részletek: <a class="xref" href="../06-helyi-szerkezet/#s64-a">6. fejezet</a>.`
         },
         {
           type: "single", shuffle: true,
@@ -251,7 +251,7 @@
           ],
           answer: 0,
           hint: "Mit rejtene el az összevont érték?",
-          explain: R`Az összevont „0” elrejtené, hogy vita volt – és a 0 ráadásul „nincs viszony”-t jelent. Jobb két külön él (multigráf), két réteg (3.6), vagy időbélyeg (3.5), ha a sorrend számít. Törölni vagy egyik előjelet kiválasztani információvesztés.`
+          explain: R`Az összevont „0” elrejtené, hogy vita volt – és a 0 ráadásul „nincs viszony”-t jelent. Jobb két külön él (multigráf), két réteg (<a class="xref" href="#s36-a">3.6</a>), vagy időbélyeg (<a class="xref" href="#s35-a">3.5</a>), ha a sorrend számít. Törölni vagy egyik előjelet kiválasztani információvesztés.`
         }
       ]
     },
@@ -486,7 +486,7 @@
           ],
           answer: 0,
           hint: "A metaútvonal két végén a vetület csúcstípusa áll, a közepén az, ami „összeköti” őket.",
-          explain: R`Két lap között a lap – cikk – szereplő – cikk – lap utak száma a közös szereplőn át futó cikkpárok száma: ez a közös szereplős lapgráf. A lap – cikk – esemény – cikk – lap a közös eseményes réteg, a szereplő – cikk – szereplő az 1. fejezet szereplőgráfja (végein szereplő áll, nem lap), a lap – cikk – cikk – lap pedig a hivatkozási réteg.`
+          explain: R`Két lap között a lap – cikk – szereplő – cikk – lap utak száma a közös szereplőn át futó cikkpárok száma: ez a közös szereplős lapgráf. A lap – cikk – esemény – cikk – lap a közös eseményes réteg, a szereplő – cikk – szereplő az <a class="xref" href="../01-mi-a-halozat/#s17-a">1. fejezet szereplőgráfja</a> (végein szereplő áll, nem lap), a lap – cikk – cikk – lap pedig a hivatkozási réteg.`
         },
         {
           type: "single", shuffle: true,
@@ -564,7 +564,7 @@
             "Azt, hogy a Kormány és a Szakértő között negatív él van."
           ],
           answer: 0,
-          hint: "Ugyanez a kérdés felmerült az 1.2-ben a hiányzó élnél. Mit tudunk abból, hogy valami nem szerepel az adatokban?",
+          hint: "Ugyanez a kérdés felmerült az <a class='xref' href='../01-mi-a-halozat/#s12-b-hianyzo-el'>1.2</a>-ben a hiányzó élnél. Mit tudunk abból, hogy valami nem szerepel az adatokban?",
           explain: R`A tudásgráf „nyílt világ”: a hiányzó hármas nem hamis állítás, csak ismeretlen. A „nem bírálta” a zárt világ feltevése lenne. A fordított hármas nem következik: a tudásgráf irányított, „X bírálja Y-t” ≠ „Y bírálja X-et”. A negatív él pedig létező (bíráló) viszony, nem hiány.`
         },
         {
@@ -761,7 +761,7 @@
           items: [R`$+++$`, R`$++-$`, R`$+--$`, R`$---$`],
           answer: [R`$+++$`, R`$+--$`],
           hint: "Szorozd össze a három előjelet!",
-          explain: R`A háromszög kiegyensúlyozott, ha az előjelek szorzata pozitív: $+++$ („mindenki barátja mindenkinek”) és $+--$ („az ellenségem ellensége a barátom”). A $++-$ (az Árvízhét $\mathrm{Ko}$–$\mathrm{Vi}$–$\mathrm{Sz}$ háromszöge) és a $---$ kiegyensúlyozatlan. Részletek: 6. fejezet.`
+          explain: R`A háromszög kiegyensúlyozott, ha az előjelek szorzata pozitív: $+++$ („mindenki barátja mindenkinek”) és $+--$ („az ellenségem ellensége a barátom”). A $++-$ (az Árvízhét $\mathrm{Ko}$–$\mathrm{Vi}$–$\mathrm{Sz}$ háromszöge) és a $---$ kiegyensúlyozatlan. Részletek: <a class="xref" href="../06-helyi-szerkezet/#s64-a">6. fejezet</a>.`
         },
         {
           type: "single", shuffle: true,
