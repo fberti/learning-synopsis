@@ -97,7 +97,7 @@
             R`A $\sum (x_i - c)^2$ összeg $c = \bar x$-re a legkisebb.`
           ],
           answer: [0, 1, 4],
-          hint: "Gondolj a 2.2-a tételére és a „milliárdos a kocsmában” példára.",
+          hint: "Gondolj a <a class='xref' href='#s22-a-tetel'>2.2-a tételére</a> és a <a class='xref' href='#s23-d-milliardos'>„milliárdos a kocsmában” példára</a>.",
           explain: R`Az eltérések összege 0, az eltolás átvihető, és az eltérésnégyzet-összeg az átlagnál minimális. Az átlag viszont lehet nem létező érték (1,65 gyerek), és egy kiugró érték erősen elhúzza – ezért nem robusztus.`
         },
         {
@@ -316,7 +316,7 @@
           ],
           answer: 0,
           hint: "Mintából becsül a sokaságra – melyik nevező torzítatlan?",
-          explain: R`Mintából a sokasági variancia torzítatlan becslése $s^2$, $n - 1$-es nevezővel; az $n$-es változat átlagosan alábecsül (lásd a 2.6-c teljes felsorolását). Az átlagos abszolút eltérés és a terjedelem más mutató.`
+          explain: R`Mintából a sokasági variancia torzítatlan becslése $s^2$, $n - 1$-es nevezővel; az $n$-es változat átlagosan alábecsül (lásd a <a class="xref" href="#s26-c-felsorolas">2.6-c teljes felsorolását</a>). Az átlagos abszolút eltérés és a terjedelem más mutató.`
         },
         {
           type: "single", shuffle: true,
@@ -461,7 +461,7 @@
             "Kétcsúcsú eloszlásnál az átlag jó „tipikus érték”."
           ],
           answer: [0, 1, 3],
-          hint: "Gondolj az 1, 1, 1, 9, 9, 9 példára, és arra, hogy a mutatók z-értékekből számolnak.",
+          hint: "Gondolj az <a class='xref' href='#s28-b-bimodalis'>1, 1, 1, 9, 9, 9 példára</a>, és arra, hogy a mutatók z-értékekből számolnak.",
           explain: R`Az 1, 1, 1, 9, 9, 9 ferdesége 0, mégis kétcsúcsú, és az átlaga (5) olyan helyen van, ahol egy adat sincs. A ferdeség és csúcsosság z-értékekből számol, ezért mértékegység-váltáskor nem változik. A −3-as korrekció épp azért van, hogy a normálisé 0 legyen.`
         },
         {
@@ -607,8 +607,8 @@
             "A z-érték megmutatja, hány százalék van az adott érték alatt."
           ],
           answer: [0, 1, 2],
-          hint: "Gondolj a bérpéldára, a kvartilis-definíciók táblázatára és az egyenlőtlen osztályközökre.",
-          explain: R`Az első három igaz (2.10, 2.5-a, 2.6-c). Egyenlőtlen osztályközöknél a hisztogram magassága a sűrűség, nem a gyakoriság. A z-érték szórásban méri a távolságot; százalékot csak egy adott eloszlás (pl. normális) ismeretében lehet belőle mondani.`
+          hint: "Gondolj a <a class='xref' href='#s210-a'>bérpéldára</a>, a <a class='xref' href='#s25-a-definiciok'>kvartilis-definíciók táblázatára</a> és az egyenlőtlen osztályközökre.",
+          explain: R`Az első három igaz (<a class="xref" href="#s210-a">2.10</a>, <a class="xref" href="#s25-a">2.5-a</a>, <a class="xref" href="#s26-c">2.6-c</a>). Egyenlőtlen osztályközöknél a hisztogram magassága a sűrűség, nem a gyakoriság. A z-érték szórásban méri a távolságot; százalékot csak egy adott eloszlás (pl. normális) ismeretében lehet belőle mondani.`
         }
       ]
     }

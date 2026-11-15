@@ -277,7 +277,7 @@
           ],
           answer: 0,
           hint: "Hány paramétere van egy 9. fokú polinomnak?",
-          explain: "10 paraméter, 10 pont: a polinom pontosan átvezethető rajtuk – a zajon is. A tanítóhiba 0, de a teszthiba óriási (a példában 3,38 a harmadfokú 0,076-jával szemben). A tanítóhiba a fokszámmal sosem nő."
+          explain: "10 paraméter, 10 pont: a polinom pontosan átvezethető rajtuk – a zajon is. A tanítóhiba 0, de a teszthiba óriási (a <a class='xref' href='#s35-b-tiz-pont'>példában</a> 3,38 a harmadfokú 0,076-jával szemben). A tanítóhiba a fokszámmal sosem nő."
         },
         {
           type: "single", shuffle: true,

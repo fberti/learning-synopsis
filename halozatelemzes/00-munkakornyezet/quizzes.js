@@ -267,7 +267,7 @@
             "QAP-regresszió"
           ],
           answer: [0, 1],
-          hint: "Hol nincs érett Python-megfelelő? És mit oldottunk meg a 0.4-ben R nélkül?",
+          hint: "Hol nincs érett Python-megfelelő? És mit oldottunk meg a <a class='xref' href='#s04-c'>0.4</a>-ben R nélkül?",
           explain: R`ERGM-hez (<code>statnet</code>/<code>ergm</code>) és SAOM-hoz (<code>RSiena</code>) nincs érett Python-csomag, ezek R-ben maradnak (16. lecke). Az exportot az <code>rdata</code> R nélkül megoldja. A centralitás a <code>networkx</code>-ben van. A QAP-ot <code>numpy</code>-ban magunk írjuk meg (15. lecke), az R-es <code>sna::netlm</code> legfeljebb ellenőrzésre kell.`
         },
         {
@@ -294,7 +294,7 @@
           ],
           answer: 0,
           hint: "Mit hasonlítottunk össze mivel? Mit nem vizsgált ez az összevetés?",
-          explain: R`Az összevetés két <em>exportot</em> hasonlít össze: azt igazolja, hogy az <code>rdata</code> ugyanazt olvassa ki, mint maga az R. Arról nem mond semmit, hogy az adat helyes-e: a metaadat-hibák (0.4) mindkét exportban benne vannak. Az eredmények reprodukálása leckéről leckére történik. Az R a 16. leckéhez (ERGM, SAOM) továbbra is kell.`
+          explain: R`Az összevetés két <em>exportot</em> hasonlít össze: azt igazolja, hogy az <code>rdata</code> ugyanazt olvassa ki, mint maga az R. Arról nem mond semmit, hogy az adat helyes-e: a metaadat-hibák (<a class="xref" href="#s04-d-metaadat-hibak">0.4</a>) mindkét exportban benne vannak. Az eredmények reprodukálása leckéről leckére történik. Az R a 16. leckéhez (ERGM, SAOM) továbbra is kell.`
         },
         {
           type: "single", shuffle: true,

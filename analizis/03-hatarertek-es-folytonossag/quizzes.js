@@ -64,7 +64,7 @@
           ],
           answer: 0,
           hint: "Néhány jól kiválasztott pont táblázata csak sejtést ad. Mit jelent, hogy két, a 0-hoz közelítő pontsoron más-más értéket kapsz?",
-          explain: R`Ha lenne határérték, minden 0 felé közelítő pontsoron oda kellene közelíteniük az értékeknek. Itt az $x = \tfrac1n$ pontokon $\sin(n\pi) = 0$, az $x = \tfrac{2}{4n + 1}$ pontokon $\sin\left(2n\pi + \tfrac{\pi}2\right) = 1$ – tehát nincs határérték (pontosan a 3.2-ben bizonyítjuk). A „0” és az „1” egyetlen pontsorra hagyatkozik; az „átlag” nem határérték-fogalom.`
+          explain: R`Ha lenne határérték, minden 0 felé közelítő pontsoron oda kellene közelíteniük az értékeknek. Itt az $x = \tfrac1n$ pontokon $\sin(n\pi) = 0$, az $x = \tfrac{2}{4n + 1}$ pontokon $\sin\left(2n\pi + \tfrac{\pi}2\right) = 1$ – tehát nincs határérték (pontosan a <a class="xref" href="#s32-c">3.2-ben</a> bizonyítjuk). A „0” és az „1” egyetlen pontsorra hagyatkozik; az „átlag” nem határérték-fogalom.`
         },
         {
           type: "single", shuffle: true,
@@ -72,7 +72,7 @@
           options: [R`kb. $0{,}69$`, R`$1$`, R`$2$`, R`$0$`],
           answer: 0,
           hint: "Nézd, hogy balról és jobbról közeledve egyre közelebb kerülnek-e az értékek egymáshoz – és mihez.",
-          explain: R`Jobbról $0{,}7177 \to 0{,}6956$ csökken, balról $0{,}6697 \to 0{,}6908$ nő: a két oldal kb. $0{,}69$ felé szorul (a pontos érték $\ln 2 \approx 0{,}6931$, 3.4). Az $1$ az $\tfrac{e^x - 1}{x}$ határértéke – a 2-es alap mást ad. A $2$ az alapot veszi határértéknek, a $0$ pedig a $\tfrac00 = 0$ tévhit.`
+          explain: R`Jobbról $0{,}7177 \to 0{,}6956$ csökken, balról $0{,}6697 \to 0{,}6908$ nő: a két oldal kb. $0{,}69$ felé szorul (a pontos érték $\ln 2 \approx 0{,}6931$, <a class="xref" href="#s34-e-ketx">3.4</a>). Az $1$ az $\tfrac{e^x - 1}{x}$ határértéke – a 2-es alap mást ad. A $2$ az alapot veszi határértéknek, a $0$ pedig a $\tfrac00 = 0$ tévhit.`
         },
         {
           type: "multi",
@@ -86,7 +86,7 @@
           ],
           answer: [0, 2],
           hint: "Gondolj a lyukas függvényekre, az áthelyezett pontra (g(1) = 5), a 0/0 két különböző kimenetelére és a sin(π/x) példájára.",
-          explain: R`Igaz: $\tfrac{x^2 - 1}{x - 1}$ az 1-ben nincs értelmezve, mégis 2 a határértéke; és ez a függvény $x + 1$-től csak abban tér el, hogy az 1 nincs az értelmezési tartományában – a határérték csak a pont körüli értékeken múlik. Hamis: a $g(x) = x + 1$ ($x \ne 1$), $g(1) = 5$ függvénynél $g(1) = 5$, a határérték 2. A $\tfrac00$ nem szám: a 3.1 két példájában egyszer 4-et, egyszer 3-at adott. A táblázat nem bizonyít: $\sin\tfrac{\pi}{x}$ ezekben a pontokban 0, mégsincs határértéke.`
+          explain: R`Igaz: $\tfrac{x^2 - 1}{x - 1}$ az 1-ben nincs értelmezve, mégis 2 a határértéke; és ez a függvény $x + 1$-től csak abban tér el, hogy az 1 nincs az értelmezési tartományában – a határérték csak a pont körüli értékeken múlik. Hamis: a $g(x) = x + 1$ ($x \ne 1$), $g(1) = 5$ függvénynél $g(1) = 5$, a határérték 2. A $\tfrac00$ nem szám: a <a class="xref" href="#s31-a">3.1 két példájában</a> egyszer 4-et, egyszer 3-at adott. A táblázat nem bizonyít: $\sin\tfrac{\pi}{x}$ ezekben a pontokban 0, mégsincs határértéke.`
         },
         {
           type: "match",
@@ -119,7 +119,7 @@
           ],
           answer: [0, 2],
           hint: R`A definícióban „<b>minden</b> sorozatra” áll. Mit bizonyít egy (vagy két) jó sorozat, és mit egy rossz?`,
-          explain: R`Igaz: ha lenne határérték, minden ilyen sorozat képének konvergálnia kellene – egy divergens képsorozat (pl. $\operatorname{sgn}\tfrac{(-1)^n}{n}$) elég a cáfolathoz. Igaz: az $x_n \ne a$ miatt az $f(a)$ sosem kerül a képsorozatba (a $g(1) = 5$ példánál ezért 2 a határérték). Hamis: egy vagy két jó sorozat nem bizonyít – a $\sin\tfrac{\pi}{x}$-nél az $\tfrac1n$ képei mind 0-k, mégsincs határérték. Hamis az utolsó is: a két egyoldali határértéknek <em>egyenlőnek</em> is kell lennie ($\operatorname{sgn} x$: $-1$ és $1$).`
+          explain: R`Igaz: ha lenne határérték, minden ilyen sorozat képének konvergálnia kellene – egy divergens képsorozat (pl. $\operatorname{sgn}\tfrac{(-1)^n}{n}$) elég a cáfolathoz. Igaz: az $x_n \ne a$ miatt az $f(a)$ sosem kerül a képsorozatba (<a class="xref" href="#s31-c-athelyezett-pont">a $g(1) = 5$ példánál</a> ezért 2 a határérték). Hamis: egy vagy két jó sorozat nem bizonyít – a $\sin\tfrac{\pi}{x}$-nél az $\tfrac1n$ képei mind 0-k, mégsincs határérték. Hamis az utolsó is: a két egyoldali határértéknek <em>egyenlőnek</em> is kell lennie ($\operatorname{sgn} x$: $-1$ és $1$).`
         },
         {
           type: "single", shuffle: true,
@@ -190,7 +190,7 @@
           ],
           answer: 0,
           hint: "Három dologra figyelj: ki „lép” először (a hibahatár vagy az ablak), kizárjuk-e magát az a pontot, és az ablak minden pontjára vagy csak egyre kell-e a feltétel.",
-          explain: R`Előbb jön az $\varepsilon$ (az ellenfél hibahatára), és erre válaszolsz egy $\delta$-val; a $0 \lt |x - a|$ kizárja az $x = a$-t; és az ablak <em>minden</em> pontjára kell a feltétel. A második rögzíti a $\delta$-t minden $\varepsilon$ előtt – ez csak akkor teljesülne, ha $f$ az $a$ körül (az $a$-t kivéve) állandóan $A$ lenne. A harmadikból hiányzik a $0 \lt$: ekkor $f(a)$ is számítana (a $g(1) = 5$ példánál nem lenne határérték). A negyedik csak azt kéri, hogy <em>legyen</em> egy jó $x$ az ablakban – ez a $\sin\tfrac{\pi}{x}$-re is teljesülne $A = 0$-val.`
+          explain: R`Előbb jön az $\varepsilon$ (az ellenfél hibahatára), és erre válaszolsz egy $\delta$-val; a $0 \lt |x - a|$ kizárja az $x = a$-t; és az ablak <em>minden</em> pontjára kell a feltétel. A második rögzíti a $\delta$-t minden $\varepsilon$ előtt – ez csak akkor teljesülne, ha $f$ az $a$ körül (az $a$-t kivéve) állandóan $A$ lenne. A harmadikból hiányzik a $0 \lt$: ekkor $f(a)$ is számítana (<a class="xref" href="#s31-c-athelyezett-pont">a $g(1) = 5$ példánál</a> nem lenne határérték). A negyedik csak azt kéri, hogy <em>legyen</em> egy jó $x$ az ablakban – ez a $\sin\tfrac{\pi}{x}$-re is teljesülne $A = 0$-val.`
         }
       ]
     },
@@ -350,7 +350,7 @@
           options: [R`$\ln 3$`, R`$3$`, R`$1$`, R`$0$`],
           answer: 0,
           hint: R`Írd át: $3^x = e^{x\ln 3}$, és használd az $\tfrac{e^u - 1}{u} \to 1$ nevezetes határértéket!`,
-          explain: R`$\dfrac{e^{x\ln 3} - 1}{x} = \ln 3\cdot\dfrac{e^u - 1}{u}$ ($u = x\ln 3 \to 0$) $\to \ln 3 \approx 1{,}0986$. (Ugyanígy $\tfrac{2^x - 1}{x} \to \ln 2 \approx 0{,}6931$, a 3.1 táblázata.) A $3$ az alapot veszi határértéknek, az $1$ csak $e$ alapnál igaz, a $0$ a $\tfrac00 = 0$ tévhit.`
+          explain: R`$\dfrac{e^{x\ln 3} - 1}{x} = \ln 3\cdot\dfrac{e^u - 1}{u}$ ($u = x\ln 3 \to 0$) $\to \ln 3 \approx 1{,}0986$. (Ugyanígy $\tfrac{2^x - 1}{x} \to \ln 2 \approx 0{,}6931$, <a class="xref" href="#s31-b-tablazat">a 3.1 táblázata</a>.) A $3$ az alapot veszi határértéknek, az $1$ csak $e$ alapnál igaz, a $0$ a $\tfrac00 = 0$ tévhit.`
         },
         {
           type: "match",
@@ -409,8 +409,8 @@
             "Ha egy függvény folytonos, a grafikonja sima, csúcsmentes."
           ],
           answer: [0, 1],
-          hint: "Gondolj a 3.5 ellenpéldáira: egy áthelyezett pont, az egységugrás és az abszolútérték „csúcsa”.",
-          explain: R`Igaz: az $|x|$ a 0-ban folytonos (balról $-x \to 0$, jobbról $x \to 0$, és $|0| = 0$), és a folytonosság definíciója éppen $\lim\limits_{x\to a} f(x) = f(a)$. Hamis: a határérték létezése kevés – a $g(x) = x + 1$ ($x \ne 1$), $g(1) = 5$ függvénynek van határértéke az 1-ben, mégsem folytonos. Hamis: az egységugrás a 0-ban értelmezve van, mégsem folytonos. Hamis: „folytonos = sima” – az $|x|$-nek csúcsa van, mégis folytonos; a csúcs a deriválhatóságnak árt (4. fejezet), a folytonosságnak nem.`
+          hint: "Gondolj <a class='xref' href='#s35-a'>a 3.5 ellenpéldáira</a>: egy áthelyezett pont, az egységugrás és az abszolútérték „csúcsa”.",
+          explain: R`Igaz: az $|x|$ a 0-ban folytonos (balról $-x \to 0$, jobbról $x \to 0$, és $|0| = 0$), és a folytonosság definíciója éppen $\lim\limits_{x\to a} f(x) = f(a)$. Hamis: a határérték létezése kevés – a $g(x) = x + 1$ ($x \ne 1$), $g(1) = 5$ függvénynek van határértéke az 1-ben, mégsem folytonos. Hamis: az egységugrás a 0-ban értelmezve van, mégsem folytonos. Hamis: „folytonos = sima” – az $|x|$-nek csúcsa van, mégis folytonos; a csúcs a deriválhatóságnak árt (<a class="xref" href="../04-derivalt/#s42-c-abszolutertek">4. fejezet</a>), a folytonosságnak nem.`
         },
         {
           type: "match",
@@ -587,7 +587,7 @@
           options: ["kb. 5,41%", "11%", "kb. 3,67%", "10%"],
           answer: 0,
           hint: "A kamat csak a még fennálló tartozásra jár, és a tartozás évről évre csökken. Az egyenletet nem tudod p-re kifejezni – mit mond Bolzano és a felezés?",
-          explain: R`Az $F(p) = 370\,000\cdot\dfrac{q^3 - 1}{q^3(q - 1)} - 1\,000\,000$ ($q = 1 + \tfrac{p}{100}$) folytonos, $F(1) \gt 0$, $F(9) \lt 0$: van gyök, felezéssel $p \approx 5{,}41\%$. A 11% a „$3 \cdot 370\,000 = 1{,}11$ millió” egyszerű osztás – de a tőke folyamatosan csökken. A $3{,}67\% = \tfrac{11\%}{3}$ ugyanez a hiba évekre osztva. A 10% a 2.7 hitele, ott a részlet $402\,115$ Ft volt – a kisebb részlethez kisebb kamatláb tartozik.`
+          explain: R`Az $F(p) = 370\,000\cdot\dfrac{q^3 - 1}{q^3(q - 1)} - 1\,000\,000$ ($q = 1 + \tfrac{p}{100}$) folytonos, $F(1) \gt 0$, $F(9) \lt 0$: van gyök, felezéssel $p \approx 5{,}41\%$. A 11% a „$3 \cdot 370\,000 = 1{,}11$ millió” egyszerű osztás – de a tőke folyamatosan csökken. A $3{,}67\% = \tfrac{11\%}{3}$ ugyanez a hiba évekre osztva. A 10% <a class="xref" href="../02-szamsorozatok-es-sorok/#s27-e-hitel">a 2.7 hitele</a>, ott a részlet $402\,115$ Ft volt – a kisebb részlethez kisebb kamatláb tartozik.`
         },
         {
           type: "single", shuffle: true,

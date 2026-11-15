@@ -85,7 +85,7 @@
           ],
           answer: 0,
           hint: "Gondolj az útvonaltervezőre: régen MI-kutatás volt, ma minek hívjuk?",
-          explain: "„MI az, amit még nem sikerült megcsinálni.” Az útvonaltervezés vagy a karakterfelismerés egykor MI-nek számított, ma „csak algoritmus”. Az érzelmi kötődés a beszélgető programokhoz az ELIZA-hatás (1.4) – más jelenség."
+          explain: "„MI az, amit még nem sikerült megcsinálni.” Az útvonaltervezés vagy a karakterfelismerés egykor MI-nek számított, ma „csak algoritmus”. Az érzelmi kötődés a beszélgető programokhoz az ELIZA-hatás (<a class='xref' href='#s14-b'>1.4</a>) – más jelenség."
         }
       ]
     },
@@ -212,7 +212,7 @@
             "Csak képekre működik, szövegre nem."
           ],
           answer: 0,
-          hint: "A „macska felmászott a fára” példában volt-e helyes válasz, amihez a jóslatot mérni lehetett? Ki adta?",
+          hint: "<a class='xref' href='#s13-d-macska'>A „macska felmászott a fára” példában</a> volt-e helyes válasz, amihez a jóslatot mérni lehetett? Ki adta?",
           explain: "Az önfelügyelt tanulás technikailag felügyelt: van bemenet és címke, a hiba mérhető – csak a címkét az adat egy eltakart része adja. A felügyelet nélküli tanulásnál nincs címke; a jutalomért tanulás a megerősítéses tanulás. Szövegre (LLM-ek előtanítása) és képekre egyaránt használják."
         },
         {
@@ -508,7 +508,7 @@
           options: ["98%", "2%", "100%", "50%"],
           answer: 0,
           hint: "Hány levelet sorol jól, ha mindent rendesnek mond?",
-          explain: R`A 980 rendes levelet jól sorolja: $980/1000 = 98\%$ – és egyetlen spamet sem fog meg. A ritka osztálynál a pontosság félrevezető (6. fejezet). A 2% a spamek aránya.`
+          explain: R`A 980 rendes levelet jól sorolja: $980/1000 = 98\%$ – és egyetlen spamet sem fog meg. A ritka osztálynál a pontosság félrevezető (<a class="xref" href="../06-modellertekeles/#s61-a">6. fejezet</a>). A 2% a spamek aránya.`
         },
         {
           type: "multi",
@@ -538,7 +538,7 @@
           options: ["jutalom-kijátszás", "túlillesztés", "MI-tél", "önfelügyelt tanulás"],
           answer: 0,
           hint: "Az ágens azt maximalizálja, amit mérünk, nem azt, amit gondolunk.",
-          explain: "Jutalom-kijátszás (reward hacking): a rosszul megfogalmazott jutalom nem szándékolt viselkedést tanít. A túlillesztés (6. fejezet) más jelenség: a modell a tanító adatok zaját is megtanulja."
+          explain: "Jutalom-kijátszás (reward hacking): a rosszul megfogalmazott jutalom nem szándékolt viselkedést tanít. A túlillesztés (<a class='xref' href='../06-modellertekeles/#s66'>6. fejezet</a>) más jelenség: a modell a tanító adatok zaját is megtanulja."
         },
         {
           type: "single", shuffle: true,
@@ -550,7 +550,7 @@
             "Mert 2012-ben jelent meg a ChatGPT."
           ],
           answer: 0,
-          hint: "Az 1.5 három összetevője közül melyik volt meg 1986-ban, és melyik hiányzott?",
+          hint: "<a class='xref' href='#s15-a'>Az 1.5 három összetevője</a> közül melyik volt meg 1986-ban, és melyik hiányzott?",
           explain: "Az algoritmus megvolt, de a számítás és az adat hiányzott. A mesterséges neuron 1943-as, a ChatGPT 2022-es; a szakértői rendszerek nem 2012-ben „szűntek meg”."
         }
       ]

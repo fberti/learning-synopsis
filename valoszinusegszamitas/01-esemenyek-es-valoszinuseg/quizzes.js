@@ -56,7 +56,7 @@
           q: "Igaz vagy hamis? <em>„Ha 10 dobásból 4-szer jött ki a hatos, akkor a kocka biztosan cinkelt.”</em>",
           options: ["Igaz", "Hamis"],
           answer: 1,
-          explain: "Kevés kísérletnél a relatív gyakoriság erősen ingadozik; 10 dobásból 4 hatos szabályos kockával is előfordul (kb. 5,4% eséllyel). Próbáld ki a fenti szimulátorral!"
+          explain: "Kevés kísérletnél a relatív gyakoriság erősen ingadozik; 10 dobásból 4 hatos szabályos kockával is előfordul (kb. 5,4% eséllyel). Próbáld ki a <a class='xref' href='#s11-kockadobo'>fenti szimulátorral</a>!"
         }
       ]
     },
@@ -528,7 +528,7 @@
           q: R`Mely állítások igazak <b>tetszőleges</b> $A$, $B$ eseményekre?`,
           options: [R`$P(A+B) \le P(A) + P(B)$`, R`$P(AB) \le P(A)$`, R`$P(A+B) = P(A) + P(B)$`, R`$P(\overline{A}) = 1 - P(A)$`, R`$P(AB) = P(A)\,P(B)$`],
           answer: [0, 1, 3],
-          explain: R`A 3. csak kizáró eseményekre igaz; az 5. csak <em>független</em> eseményekre – erről a 2. fejezetben lesz szó!`
+          explain: R`A 3. csak kizáró eseményekre igaz; az 5. csak <em>független</em> eseményekre – erről a <a class="xref" href="../02-felteteles-valoszinuseg-es-fuggetlenseg/#s25-a">2. fejezetben</a> lesz szó!`
         }
       ]
     }

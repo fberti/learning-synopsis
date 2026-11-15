@@ -375,7 +375,7 @@
           q: "Véletlen pontok az egységkockában: hogyan változik a legközelebbi és a legtávolabbi pont távolságának aránya a dimenzió növelésével?",
           options: ["1-hez közelít", "0-hoz közelít", "nem változik", "minden határon túl nő"],
           answer: 0,
-          hint: "Lásd a „dimenzió átka” szemléltetést: $d = 2$-nél kb. 0,02, $d = 1000$-nél?",
+          hint: "Lásd a <a class='xref' href='#s46-c'>„dimenzió átka” szemléltetést</a>: $d = 2$-nél kb. 0,02, $d = 1000$-nél?",
           explain: "A távolságok kiegyenlítődnek: a legközelebbi is szinte ugyanolyan messze van, mint a legtávolabbi (a kísérletben 0,02 → 0,33 → 0,73 → 0,91). Ezért veszíti el értelmét a „legközelebbi szomszéd” sok dimenzióban. Az arány legfeljebb 1 lehet."
         }
       ]
@@ -596,7 +596,7 @@
             ["az illeték az ár 4%-a", "a szivárgó oszlop törlése"]
           ],
           hint: "Melyik szakasz eszköze kell az egyes hibákhoz?",
-          explain: "Írásmód → egységesítés (4.2); duplikátum → szűrés (4.2, 4.7); elírás → IQR-szabály és javítás (4.2); nominális kategória → one-hot (4.3); a címke átszámítása → törlés (4.7)."
+          explain: "Írásmód → egységesítés (<a class='xref' href='#s42-a'>4.2</a>); duplikátum → szűrés (<a class='xref' href='#s42-a'>4.2</a>, <a class='xref' href='#s47-c'>4.7</a>); elírás → IQR-szabály és javítás (<a class='xref' href='#s42-c'>4.2</a>); nominális kategória → one-hot (<a class='xref' href='#s43-b'>4.3</a>); a címke átszámítása → törlés (<a class='xref' href='#s47-a'>4.7</a>)."
         },
         {
           type: "single", shuffle: true,

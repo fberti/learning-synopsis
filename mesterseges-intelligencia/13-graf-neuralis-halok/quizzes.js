@@ -88,7 +88,7 @@
           ],
           answer: [0, 1, 2],
           hint: "Mi az adat egy gráfban: a rajz, vagy hogy mi mivel van összekötve? És mit ír le a számítási gráf?",
-          explain: R`Az első három igaz: a barátság kölcsönös, ezért $A_{uv} = A_{vu}$; a mátrix a számozástól függ (ez a 13.2 fő problémája); az $A^2$ sétákat számol, ezért a főátlóban a fokszám áll. A rajz csak szemléltetés – ugyanaz a gráf ezerféleképpen lerajzolható. A számítási gráf a műveletek sorrendjét írja le, a GNN gráfja az adat; egy GNN-nek mindkettő van.`
+          explain: R`Az első három igaz: a barátság kölcsönös, ezért $A_{uv} = A_{vu}$; a mátrix a számozástól függ (ez a <a class="xref" href="#s132-a">13.2</a> fő problémája); az $A^2$ sétákat számol, ezért a főátlóban a fokszám áll. A rajz csak szemléltetés – ugyanaz a gráf ezerféleképpen lerajzolható. A számítási gráf a műveletek sorrendjét írja le, a GNN gráfja az adat; egy GNN-nek mindkettő van.`
         }
       ]
     },
@@ -116,7 +116,7 @@
           ],
           answer: 0,
           hint: "Az átszámozás megváltoztatja-e a molekulát? És akkor mit tanulhatott meg a modell, ami az átszámozással elveszett?",
-          explain: "Az átszámozás a molekulát nem változtatja meg, csak a felírását. Ha a pontosság mégis leesik, a modell a felírás egy véletlen tulajdonságára – az adatkészlet számozási konvenciójára – épített. Ugyanez a hiba, mint a 11.1 középre igazított számjegyekre tanult MLP-jénél. A kitöltés a változó méreten segít, a sorrenden nem; és az MLP semmilyen méretben nem lesz magától invariáns."
+          explain: "Az átszámozás a molekulát nem változtatja meg, csak a felírását. Ha a pontosság mégis leesik, a modell a felírás egy véletlen tulajdonságára – az adatkészlet számozási konvenciójára – épített. Ugyanez a hiba, mint a <a class='xref' href='../11-konvolucios-halok/#s111-c'>11.1</a> középre igazított számjegyekre tanult MLP-jénél. A kitöltés a változó méreten segít, a sorrenden nem; és az MLP semmilyen méretben nem lesz magától invariáns."
         },
         {
           type: "single", shuffle: true,
@@ -331,7 +331,7 @@
             R`$P$ pontosan átlagol, ugyanúgy, mint $\hat D^{-1}\hat A$.`
           ],
           answer: [0, 1, 2],
-          hint: "Számold ki Bence sorának összegét: 3 szomszéd és önmaga. És mennyit ért el a címketerjesztés a 13.2-ben?",
+          hint: "Számold ki Bence sorának összegét: 3 szomszéd és önmaga. És mennyit ért el a címketerjesztés a <a class='xref' href='#s132-c'>13.2</a>-ben?",
           explain: R`Bence sora: $3 \cdot \tfrac{1}{\sqrt{12}} + \tfrac14 \approx 1{,}116$ – a GCN „majdnem átlag”, nem átlag; a $\hat D^{-1}\hat A$ sorai pontosan 1-re összegződnek. A $+1$ az önhurokból jön. A GCN a szomszédokat összemossa a sajáttal, ez homofil gráfon jó. A karateklubon a címketerjesztés is 31/32-t ér el ugyanazzal az egy hibával (a 9-es tag) – a GCN itt nem okosabb az alapvonalnál.`
         },
         {
@@ -371,7 +371,7 @@
           options: ["4128", "2080", "4096", "4160"],
           answer: 0,
           hint: "Milyen hosszú az összefűzött vektor? Ebből lesz a súlymátrix sorainak száma.",
-          explain: R`Az összefűzött vektor $64 + 64 = 128$ hosszú, $W$ $128 \times 32$-es: $4096 + 32 = 4128$ – ugyanannyi, mint a 13.3 $W_1$, $W_2$-es rétegénél. A 2080 az összefűzést felejti el ($64 \cdot 32 + 32$), a 4096 a torzítást, a 4160 a torzítást 64 hosszúnak veszi.`
+          explain: R`Az összefűzött vektor $64 + 64 = 128$ hosszú, $W$ $128 \times 32$-es: $4096 + 32 = 4128$ – ugyanannyi, mint a <a class="xref" href="#s133-a">13.3</a> $W_1$, $W_2$-es rétegénél. A 2080 az összefűzést felejti el ($64 \cdot 32 + 32$), a 4096 a torzítást, a 4160 a torzítást 64 hosszúnak veszi.`
         },
         {
           type: "single", shuffle: true,
@@ -468,7 +468,7 @@
           ],
           answer: [0, 1],
           hint: "Az összefűzés minek a sorrendjében történik? És hol vész el a benzol és a két ciklopropán közti különbség?",
-          explain: R`Az első kettő igaz. Az összefűzés a <b>rétegek</b> rögzített sorrendjében történik, nem a csúcsokéban – minden réteg kiolvasása invariáns, így az egész is. A kezdeti jellemzők összege csak az atomok darabszámát adja (az etanol és a dimetil-éter is $(2;\ 1)$); a szerkezetet az üzenetküldés írja bele a vektorokba. A benzol és a két ciklopropán minden atomja minden réteg után ugyanaz – ez az üzenetküldés korlátja (13.7), nem a kiolvasásé.`
+          explain: R`Az első kettő igaz. Az összefűzés a <b>rétegek</b> rögzített sorrendjében történik, nem a csúcsokéban – minden réteg kiolvasása invariáns, így az egész is. A kezdeti jellemzők összege csak az atomok darabszámát adja (az etanol és a dimetil-éter is $(2;\ 1)$); a szerkezetet az üzenetküldés írja bele a vektorokba. A benzol és a két ciklopropán minden atomja minden réteg után ugyanaz – ez az üzenetküldés korlátja (<a class="xref" href="#s137-a">13.7</a>), nem a kiolvasásé.`
         },
         {
           type: "single", shuffle: true,
@@ -582,7 +582,7 @@
         },
         {
           type: "single", shuffle: true,
-          q: "Mit mond a 13.7 📅 doboza (2026-os állapot) a mély GNN-ek gyakorlati kudarcáról?",
+          q: "Mit mond a <a class='xref' href='#s137-b-allapot'>13.7 📅 doboza</a> (2026-os állapot) a mély GNN-ek gyakorlati kudarcáról?",
           options: [
             "A túlsimítás bizonyított, de legalább ekkora ok a nehéz taníthatóság; a túlsimítás megszüntetése szükséges, de nem elégséges.",
             "A túlsimítás csak a GCN-t érinti; a figyelem (GAT, Transformer) megvéd tőle.",
@@ -638,7 +638,7 @@
             "Senki: az önfigyelem nem üzenetküldés, mert nincs benne gráf."
           ],
           answer: 0,
-          hint: "A 12.5-ben a „levél” token hány tokenre figyelt?",
+          hint: "A <a class='xref' href='../12-beagyazasok-figyelem/#s125-a'>12.5</a>-ben a „levél” token hány tokenre figyelt?",
           explain: R`Az önfigyelem egy GNN a <b>teljes</b> gráfon (önhurkokkal): az üzenet $\mathbf h_u W_V$, a gyűjtés figyelemmel súlyozott összeg mindenkin. Olyan, mint a GAT, csak a gráf teljes, és a pontszám a lekérdezés és a kulcs skaláris szorzata. A „bal és jobb szomszéd” egy láncon futó GNN lenne; a figyelem nem vág le tokeneket, minden pár kap súlyt.`
         },
         {
@@ -647,7 +647,7 @@
           options: ["kb. 111-szer", "kb. 125-ször", "kb. 250-szer", "kb. 200-szor"],
           answer: 0,
           hint: R`GCN: minden él kétszer (oda-vissza) + csúcsonként egy önhurok. Teljes figyelem: $n^2$.`,
-          explain: R`GCN: $2 \cdot 4000 + 1000 = 9000$ pár; teljes figyelem: $1000^2 = 10^6$; arány $\approx 111$. A 125 elfelejti az önhurkokat ($10^6/8000$), a 250 az önhurkokat és a második irányt is ($10^6/4000$), a 200 csak a második irányt ($10^6/5000$). Ez a 12.5 négyzetes ára gráfokon.`
+          explain: R`GCN: $2 \cdot 4000 + 1000 = 9000$ pár; teljes figyelem: $1000^2 = 10^6$; arány $\approx 111$. A 125 elfelejti az önhurkokat ($10^6/8000$), a 250 az önhurkokat és a második irányt is ($10^6/4000$), a 200 csak a második irányt ($10^6/5000$). Ez a <a class="xref" href="../12-beagyazasok-figyelem/#s125-b">12.5</a> négyzetes ára gráfokon.`
         },
         {
           type: "single", shuffle: true,
@@ -707,7 +707,7 @@
         },
         {
           type: "multi",
-          q: "Mit állít a 13.8 📅 doboza a gráf-Transformerek és a klasszikus GNN-ek összevetéséről?",
+          q: "Mit állít a <a class='xref' href='#s138-c-allapot'>13.8 📅 doboza</a> a gráf-Transformerek és a klasszikus GNN-ek összevetéséről?",
           options: [
             "Az LRGB-benchmarkon a gráf-Transformerek előnye alapos hiperparaméter-hangolás után eltűnt (Tönshoff és társai, 2024).",
             "Kis hangolással a GCN, a GAT és a GraphSAGE 18 csúcsosztályozási adatkészletből 17-en hozta vagy verte a gráf-Transformereket.",
@@ -809,7 +809,7 @@
         },
         {
           type: "multi",
-          q: "Mit állít a 13.9 📅 doboza a geometriai GNN-ek nagy eredményeiről?",
+          q: "Mit állít a <a class='xref' href='#s139-c-allapot'>13.9 📅 doboza</a> a geometriai GNN-ek nagy eredményeiről?",
           options: [
             "Az AlphaFold 2 gráfszemléletű, figyelemre épülő háló sűrű gráfon – nem klasszikus, ritka üzenetküldő GNN.",
             "A GNoME 2,2 millió stabilnak jósolt kristályszerkezetet javasolt, de anyagkémikusok szerint kevés a bizonyíték, hogy ezek egyszerre újak, hihetők és hasznosak.",
@@ -871,7 +871,7 @@
             ["Antibiotikum-keresés (halicin)", "csúcs = atom, gráfszintű feladat"]
           ],
           hint: "Minden alkalmazásnál kérdezd meg: mi a csúcs, mi az él, és egy csúcsra, egy párra vagy egy egész gráfra kell-e válasz?",
-          explain: R`Google Maps: útszakaszok és csatlakozásaik, a GNN „szuperszakaszok” részgráfjain jósol menetidőt. PinSage: felhasználó/kép–tábla kétrészes gráf, GNN-beágyazás + skaláris szorzat – élszintű (13.6). Csalás: számlák és tranzakciók, „csaló-e?” – csúcsszintű, gyakran heterofil gráfon. Molekula: egy egész gráfra egy válasz, invariáns kiolvasással.`
+          explain: R`Google Maps: útszakaszok és csatlakozásaik, a GNN „szuperszakaszok” részgráfjain jósol menetidőt. PinSage: felhasználó/kép–tábla kétrészes gráf, GNN-beágyazás + skaláris szorzat – élszintű (<a class="xref" href="#s136-b">13.6</a>). Csalás: számlák és tranzakciók, „csaló-e?” – csúcsszintű, gyakran heterofil gráfon. Molekula: egy egész gráfra egy válasz, invariáns kiolvasással.`
         },
         {
           type: "single", shuffle: true,
@@ -888,7 +888,7 @@
         },
         {
           type: "multi",
-          q: "Mely állítások szerepelnek a 13.10 📅/⚖️ jelű eredményei között?",
+          q: "Mely állítások szerepelnek a <a class='xref' href='#s1310'>13.10</a> 📅/⚖️ jelű eredményei között?",
           options: [
             "Az Elliptic-adatkészlet eredeti cikkében a véletlen erdő jobb volt a GCN-nél; későbbi, más beállítású összehasonlításokban a GNN-ek jöttek ki jobban.",
             "A chiptervező ágens (AlphaChip) eredménye vitatott: független kutatók szerint a klasszikus módszerek és a szakértők jobbak, és 2025 végéig nem született sikeres független reprodukció.",
@@ -968,7 +968,7 @@
             "A Cora heterofil gráf, ezért a szöveg félrevezeti az MLP-t."
           ],
           answer: 0,
-          hint: "Mire épít a címketerjesztés? Gondolj a 13.7 homofília-mérésére.",
+          hint: "Mire épít a címketerjesztés? Gondolj a <a class='xref' href='#s137-c-homofilia'>13.7 homofília-mérésére</a>.",
           explain: "A címketerjesztés a szomszédok címkéit veszi át – ez akkor működik, ha a hasonlók összekapcsolódnak. A Cora-n a hivatkozások 81,0%-a azonos témájú cikkek között fut (erősen homofil). A szöveg nem felesleges: a GCN a kettővel együtt 82,2%-ot ér el. A címketerjesztésnek 0 paramétere van – nem a méret dönt."
         },
         {
@@ -1003,7 +1003,7 @@
             ["GIN + átlag-kiolvasás", "a szerkezet, a méret nélkül"]
           ],
           hint: "Melyik modell számol szomszédságot, melyik függ a számozástól, és melyik kiolvasás méretvak?",
-          explain: "Az atomzsák csak az atomtípusok darabszámát látja. Egy WL-kör minden atomot a saját típusával és a szomszédai típusainak multihalmazával színez – ezek darabszámai a jellemzők. Az MLP a mátrix helyeihez köt súlyokat, ezért a számozástól függ. A két GIN ugyanazt a szerkezetet tanulja, de az összeg-kiolvasás a darabszámokat (a méretet) is megtartja, az átlag csak az arányokat (13.6)."
+          explain: "Az atomzsák csak az atomtípusok darabszámát látja. Egy WL-kör minden atomot a saját típusával és a szomszédai típusainak multihalmazával színez – ezek darabszámai a jellemzők. Az MLP a mátrix helyeihez köt súlyokat, ezért a számozástól függ. A két GIN ugyanazt a szerkezetet tanulja, de az összeg-kiolvasás a darabszámokat (a méretet) is megtartja, az átlag csak az arányokat (<a class='xref' href='#s136-a'>13.6</a>)."
         },
         {
           type: "multi",
@@ -1016,8 +1016,8 @@
             "Az összeg-kiolvasás 1,2 pontos előnye bizonyítja, hogy molekulákra az összeg jobb, mint az átlag."
           ],
           answer: [0, 1, 2],
-          hint: "Vesd össze a különbségeket a szórásokkal, és gondold végig, mit mond a 13.7 WL-tétele.",
-          explain: "±7–10 pontos szórás mellett a 4,1 és az 1,2 pontos különbség sem bizonyít semmit – sem azt, hogy a GIN rosszabb, sem azt, hogy jobb. Az atomzsák 86%-a mutatja, hogy az összetétel sokat elárul. A WL-színek az üzenetküldés erejét képviselik (13.7), így a WL + LR a gráfos „klasszikus alapvonal”. A GNN előnye ott jön ki, ahol a szerkezet dönt és sok az adat (pl. a halicin-kísérlet 2335 molekulája)."
+          hint: "Vesd össze a különbségeket a szórásokkal, és gondold végig, mit mond a <a class='xref' href='#s137-a'>13.7 WL-tétele</a>.",
+          explain: "±7–10 pontos szórás mellett a 4,1 és az 1,2 pontos különbség sem bizonyít semmit – sem azt, hogy a GIN rosszabb, sem azt, hogy jobb. Az atomzsák 86%-a mutatja, hogy az összetétel sokat elárul. A WL-színek az üzenetküldés erejét képviselik (<a class='xref' href='#s137-a'>13.7</a>), így a WL + LR a gráfos „klasszikus alapvonal”. A GNN előnye ott jön ki, ahol a szerkezet dönt és sok az adat (pl. a halicin-kísérlet 2335 molekulája)."
         },
         {
           type: "single", shuffle: true,
@@ -1030,7 +1030,7 @@
           ],
           answer: 0,
           hint: "Mekkora a GCN és a GAT közti különbség a szórásokhoz képest?",
-          explain: "A GAT és a GCN közti 0,4 pont kisebb, mint bármelyik szórás (0,7–0,8), a GraphSAGE 0,8 pontos lemaradása is alig nagyobb egy szórásnál. Ez egyezik az irodalommal: jól beállított GCN, GraphSAGE és GAT között a Cora-n a különbség a zaj szintjén van (13.8). A GAT valóban kb. négyszer annyi paraméterű (92 373 vs. 23 063), de a teszten nem rosszabb – túltanulásra ebből nem lehet következtetni."
+          explain: "A GAT és a GCN közti 0,4 pont kisebb, mint bármelyik szórás (0,7–0,8), a GraphSAGE 0,8 pontos lemaradása is alig nagyobb egy szórásnál. Ez egyezik az irodalommal: jól beállított GCN, GraphSAGE és GAT között a Cora-n a különbség a zaj szintjén van (<a class='xref' href='#s138-c-allapot'>13.8</a>). A GAT valóban kb. négyszer annyi paraméterű (92 373 vs. 23 063), de a teszten nem rosszabb – túltanulásra ebből nem lehet következtetni."
         }
       ]
     },
@@ -1059,7 +1059,7 @@
           ],
           answer: [0, 1, 2],
           hint: "Függvényt tanul-e a módszer (jellemzőkből vektort), vagy csúcsonként egy táblázatsort?",
-          explain: "A GraphSAGE és a valódi jellemzőkön futó GCN szabályt tanul: a vektort a jellemzőkből és a szomszédokból számolja, ez új csúcsra is működik (induktív). A kézi jellemzők az új csúcsra is kiszámolhatók. A DeepWalk csúcsonként egy szabad vektort tanul – új csúcsnak nincs sora. A one-hot „kicsoda” jellemző ugyanígy transzduktív: az új tagnak nincs oszlopa (13.4)."
+          explain: "A GraphSAGE és a valódi jellemzőkön futó GCN szabályt tanul: a vektort a jellemzőkből és a szomszédokból számolja, ez új csúcsra is működik (induktív). A kézi jellemzők az új csúcsra is kiszámolhatók. A DeepWalk csúcsonként egy szabad vektort tanul – új csúcsnak nincs sora. A one-hot „kicsoda” jellemző ugyanígy transzduktív: az új tagnak nincs oszlopa (<a class='xref' href='#s134-c'>13.4</a>)."
         },
         {
           type: "single", shuffle: true,
@@ -1072,7 +1072,7 @@
           ],
           answer: 0,
           hint: "Ekvivariáns réteg + invariáns összegzés = ? Hol lép be a sorszám a többi opcióban?",
-          explain: "A GCN-rétegek ekvivariánsak, a csúcsokon vett összeg invariáns – együtt invariáns modellt adnak (13.2, 13.6). Az 1. atom attól függ, ki kapta az 1-es sorszámot; a sorszám szerinti összefűzés is sorrendfüggő. Az utolsó opcióban már a gyűjtés sorrendfüggő, így a csúcsvektorok sem ekvivariánsak – ezen a végső összeg sem segít."
+          explain: "A GCN-rétegek ekvivariánsak, a csúcsokon vett összeg invariáns – együtt invariáns modellt adnak (<a class='xref' href='#s132-b'>13.2</a>, <a class='xref' href='#s136-a'>13.6</a>). Az 1. atom attól függ, ki kapta az 1-es sorszámot; a sorszám szerinti összefűzés is sorrendfüggő. Az utolsó opcióban már a gyűjtés sorrendfüggő, így a csúcsvektorok sem ekvivariánsak – ezen a végső összeg sem segít."
         },
         {
           type: "single", shuffle: true,
@@ -1085,7 +1085,7 @@
           ],
           answer: 0,
           hint: "Mekkora a 3 rétegű GNN recepciós mezője? Mi van azon túl?",
-          explain: "$k$ réteg = $k$ ugrás: ami 3 ugráson túl van, az a csúcs vektorában nem jelenhet meg – akárhány adat, akárhány neuron vagy akármilyen gyűjtés mellett. Segít a több réteg (túlsimítás-kockázattal), a hosszú élek vagy a durvább, hierarchikus gráf (GraphCast), illetve a virtuális csúcs, amelyen át bárki két lépésben elér bárkit (13.3, 13.7)."
+          explain: "$k$ réteg = $k$ ugrás: ami 3 ugráson túl van, az a csúcs vektorában nem jelenhet meg – akárhány adat, akárhány neuron vagy akármilyen gyűjtés mellett. Segít a több réteg (túlsimítás-kockázattal), a hosszú élek vagy a durvább, hierarchikus gráf (GraphCast), illetve a virtuális csúcs, amelyen át bárki két lépésben elér bárkit (<a class='xref' href='#s133-b'>13.3</a>, <a class='xref' href='#s137-c-ellenszerek'>13.7</a>)."
         },
         {
           type: "single", shuffle: true,
@@ -1105,7 +1105,7 @@
             ["A szomszédok fontossága a tartalmuktól függ.", "figyelem (GAT)"]
           ],
           hint: "Darabszám, arány, előfordulás – és mi van, ha a súlyokat tanulni kell?",
-          explain: "Darabszámhoz összeg kell (csak az különbözteti meg az {N} és az {N, N} szomszédságot). Arányhoz átlag – egy sok barátú embernél is az arány számít, nem a darabszám. Ha az a kérdés, előfordul-e valami, a maximum a legtisztább (az átlag egy csalót 100 tisztességes partner közt 0,01-re hígít). Ha a szomszédok súlya a tartalmuktól függ, figyelem tanulja meg (13.5)."
+          explain: "Darabszámhoz összeg kell (csak az különbözteti meg az {N} és az {N, N} szomszédságot). Arányhoz átlag – egy sok barátú embernél is az arány számít, nem a darabszám. Ha az a kérdés, előfordul-e valami, a maximum a legtisztább (az átlag egy csalót 100 tisztességes partner közt 0,01-re hígít). Ha a szomszédok súlya a tartalmuktól függ, figyelem tanulja meg (<a class='xref' href='#s135-b'>13.5</a>)."
         },
         {
           type: "single", shuffle: true,
@@ -1118,7 +1118,7 @@
           ],
           answer: 0,
           hint: "Melyik felosztás tesztje hasonlít jobban arra, amire a modellt használni fogják?",
-          explain: "Véletlen felosztásnál a tesztmolekulák „testvérei” (azonos vázzal) a tanítóban vannak – a modell a hasonlóságot ismeri fel, ez túl optimista. A vázfelosztás új vázakat tesz a tesztbe, ahogy a valóságban az új családok érkeznek – ez a becsületes becslés (13.6). Az átlagnak nincs értelme; az időbeli vágás az időben változó gráfoknál (közösségi háló, tranzakciók) kell."
+          explain: "Véletlen felosztásnál a tesztmolekulák „testvérei” (azonos vázzal) a tanítóban vannak – a modell a hasonlóságot ismeri fel, ez túl optimista. A vázfelosztás új vázakat tesz a tesztbe, ahogy a valóságban az új családok érkeznek – ez a becsületes becslés (<a class='xref' href='#s136-c'>13.6</a>). Az átlagnak nincs értelme; az időbeli vágás az időben változó gráfoknál (közösségi háló, tranzakciók) kell."
         },
         {
           type: "single", shuffle: true,
@@ -1153,7 +1153,7 @@
           ],
           answer: [0, 1, 2],
           hint: "Melyik kódolás jön csak a szerkezetből, és melyik függ valamilyen önkényes választástól?",
-          explain: "Az önfigyelem üzenetküldés a teljes gráfon: ekvivariáns, de a szerkezetet vissza kell kódolni. Az RWSE a gráfból számolt valószínűség – nem függ a számozástól. A GPS két ága (helyi MPNN + globális figyelem) összeadódik, utána FFN jön. A sorszám a számozástól függ (az MLP hibája jönne vissza), a Laplace-sajátvektor előjele pedig önkényes – ezért tanításkor véletlenszerűen átfordítják (13.8)."
+          explain: "Az önfigyelem üzenetküldés a teljes gráfon: ekvivariáns, de a szerkezetet vissza kell kódolni. Az RWSE a gráfból számolt valószínűség – nem függ a számozástól. A GPS két ága (helyi MPNN + globális figyelem) összeadódik, utána FFN jön. A sorszám a számozástól függ (az MLP hibája jönne vissza), a Laplace-sajátvektor előjele pedig önkényes – ezért tanításkor véletlenszerűen átfordítják (<a class='xref' href='#s138-b'>13.8</a>)."
         },
         {
           type: "single", shuffle: true,
@@ -1166,7 +1166,7 @@
           ],
           answer: 0,
           hint: "Az erő vektor: a molekulával együtt kell elfordulnia. Melyik konstrukció garantálja ezt?",
-          explain: R`Ha $E(R\mathbf x) = E(\mathbf x)$, a láncszabály szerint $\nabla E(R\mathbf x) = R\,\nabla E(\mathbf x)$: az invariáns energia gradiense ekvivariáns erő (13.9). Egy invariáns háló kimenete forgatáskor nem változik – az erő iránya így rossz lenne. Az adatbővítés csak közelít, nem garantál. Az abszolút koordinátákkal az eltolás nem esik ki: $\sum_j (\mathbf x_j + \mathbf t)\phi$ nem egyszerűen $\mathbf t$-vel tolódik el.`
+          explain: R`Ha $E(R\mathbf x) = E(\mathbf x)$, a láncszabály szerint $\nabla E(R\mathbf x) = R\,\nabla E(\mathbf x)$: az invariáns energia gradiense ekvivariáns erő (<a class="xref" href="#s139-b">13.9</a>). Egy invariáns háló kimenete forgatáskor nem változik – az erő iránya így rossz lenne. Az adatbővítés csak közelít, nem garantál. Az abszolút koordinátákkal az eltolás nem esik ki: $\sum_j (\mathbf x_j + \mathbf t)\phi$ nem egyszerűen $\mathbf t$-vel tolódik el.`
         },
         {
           type: "set",
@@ -1181,7 +1181,7 @@
           ],
           answer: ["GraphCast (időjárás)", "Chemprop (a halicin megtalálása)", "PinSage (ajánlás a Pinteresten)"],
           hint: "Van-e a rendszerben tanuló háló, amely egy gráf élei mentén gyűjt? A „gráf” szó a névben nem elég.",
-          explain: "A GraphCast 16 üzenetküldő réteget futtat egy gömbhálón, a Chemprop irányított élekkel dolgozó MPNN, a PinSage a GraphSAGE ipari változata. A GraphRAG-ban a gráf csak index, amelyet egy LLM épít és olvas – tanult üzenetküldés nincs benne. A Pangu-Weather 3D-s Transformer rácson, nem gráfon. Az éllistás promptban az LLM tokensorozatot lát, nem gráfot (13.10)."
+          explain: "A GraphCast 16 üzenetküldő réteget futtat egy gömbhálón, a Chemprop irányított élekkel dolgozó MPNN, a PinSage a GraphSAGE ipari változata. A GraphRAG-ban a gráf csak index, amelyet egy LLM épít és olvas – tanult üzenetküldés nincs benne. A Pangu-Weather 3D-s Transformer rácson, nem gráfon. Az éllistás promptban az LLM tokensorozatot lát, nem gráfot (<a class='xref' href='#s1310-c'>13.10</a>)."
         },
         {
           type: "single", shuffle: true,
@@ -1194,11 +1194,11 @@
           ],
           answer: 0,
           hint: "Hány molekula van egy hajtásban, és mennyit ér közülük egy?",
-          explain: "Egy hajtásban 15 molekula van, egy molekula 6,7 százalékpont – a 2 pontos különbség kevesebb egyetlen molekulánál, a szórás pedig 8–9 pont. Ugyanez volt a MUTAG-on (86,0% vs. 81,9%, ±7–10): a különbség nem bizonyít semmit egyik irányban sem. A kisebb szórás sem tesz jobbá egy modellt, a kifejezőerő pedig nem jelenti, hogy kevés adatból meg is tanulja (13.7, 13.11)."
+          explain: "Egy hajtásban 15 molekula van, egy molekula 6,7 százalékpont – a 2 pontos különbség kevesebb egyetlen molekulánál, a szórás pedig 8–9 pont. Ugyanez volt a MUTAG-on (86,0% vs. 81,9%, ±7–10): a különbség nem bizonyít semmit egyik irányban sem. A kisebb szórás sem tesz jobbá egy modellt, a kifejezőerő pedig nem jelenti, hogy kevés adatból meg is tanulja (<a class='xref' href='#s137-a'>13.7</a>, <a class='xref' href='#s1311-b'>13.11</a>)."
         },
         {
           type: "match",
-          q: "Melyik eszköz illik a feladathoz? (A fejezet döntési táblázata alapján.)",
+          q: "Melyik eszköz illik a feladathoz? (A <a class='xref' href='#s-sum-dontesi'>fejezet döntési táblázata</a> alapján.)",
           pairs: [
             ["Egy fehérje 3D-szerkezetéből egy kötőzseb energiáját kell jósolni.", "távolságokra épülő invariáns 3D-s GNN"],
             ["Milliárd csúcsú, folyamatosan bővülő felhasználói gráf, mini-kötegek.", "GraphSAGE mintavétellel"],

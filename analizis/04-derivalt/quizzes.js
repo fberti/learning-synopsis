@@ -32,7 +32,7 @@
           q: R`Mennyi az $f(x) = x^2$ szelőjének meredeksége a $2$ és az $5$ között?`,
           options: [R`$7$`, R`$21$`, R`$10$`, R`$3$`],
           answer: 0,
-          hint: R`A szelő meredeksége a differenciahányados: $\tfrac{\Delta y}{\Delta x}$. (A 4.1 gyakorló feladata szerint az $x^2$-nél ez egy nagyon egyszerű kifejezés $a$-ból és $b$-ből.)`,
+          hint: R`A szelő meredeksége a differenciahányados: $\tfrac{\Delta y}{\Delta x}$. (<a class="xref" href="#s41-b-gyakorlas">A 4.1 gyakorló feladata</a> szerint az $x^2$-nél ez egy nagyon egyszerű kifejezés $a$-ból és $b$-ből.)`,
           explain: R`$\dfrac{f(5) - f(2)}{5 - 2} = \dfrac{25 - 4}{3} = 7$ – és valóban $a + b = 2 + 5 = 7$. A $21$ csak $\Delta y$ (nincs osztva $\Delta x$-szel), a $3$ csak $\Delta x$. A $10$ a parabola meredeksége az $5$-ben (az érintőé, nem a szelőé).`
         },
         {
@@ -61,7 +61,7 @@
             R`Beírod $h = 0{,}001$-et: az eredmény ($10{,}005$) a pontos pillanatnyi sebesség.`
           ],
           answer: 0,
-          hint: R`A $\tfrac00$ nem szám, hanem jelzés. Mit tanultál a 3. fejezetben, mit kell ilyenkor tenni?`,
+          hint: R`A $\tfrac00$ nem szám, hanem jelzés. Mit tanultál <a class="xref" href="../03-hatarertek-es-folytonossag/#s34-b">a 3. fejezetben</a>, mit kell ilyenkor tenni?`,
           explain: R`$h \ne 0$ esetén $\dfrac{10h + 5h^2}{h} = 10 + 5h$, és ez $h \to 0$-ra $10$-hez tart: $v(1) = 10\ \tfrac{\text{m}}{\text{s}}$. A $h = 0$ behelyettesítése egyszerűsítés előtt $\tfrac00$-t ad – ebből sem az nem következik, hogy nincs határérték, sem az, hogy 0. A $h = 0{,}001$ csak közelítést ad (10,005), a pontos érték a határérték.`
         },
         {
@@ -576,7 +576,7 @@
         },
         {
           type: "single", shuffle: true,
-          q: R`A 3. fejezet víz-modelljében $V(T) = 1000 + 0{,}0075(T - 4)^2$ cm³, $V'(T) = 0{,}015(T - 4)$. A differenciál szerint kb. milyen pontos hőmérő kell 14 °C-on, hogy a térfogat hibája 0,1 cm³ alatt maradjon?`,
+          q: R`<a class="xref" href="../03-hatarertek-es-folytonossag/#s37-a">A 3. fejezet víz-modelljében</a> $V(T) = 1000 + 0{,}0075(T - 4)^2$ cm³, $V'(T) = 0{,}015(T - 4)$. A differenciál szerint kb. milyen pontos hőmérő kell 14 °C-on, hogy a térfogat hibája 0,1 cm³ alatt maradjon?`,
           options: [R`$\approx 0{,}67$ °C`, R`$1{,}5$ °C`, R`$0{,}15$ °C`, R`$0{,}015$ °C`],
           answer: 0,
           hint: R`$|\Delta V| \approx |V'(T)|\cdot|\Delta T|$. Számold ki $V'(14)$-et, és fejezd ki $\Delta T$-t.`,
@@ -724,7 +724,7 @@
           ],
           answer: 0,
           hint: R`Két dolgot nézz meg: folytonos-e (a két darab ugyanoda ér-e $f(1) = 1$-ben), és egyenlő-e a bal és a jobb oldali derivált, a valódi $f(1)$-gyel számolva.`,
-          explain: R`Folytonos: $2\cdot 1 - 1 = 1 = f(1)$. Bal oldali derivált: $\tfrac{(1 + h)^2 - 1}{h} = 2 + h \to 2$; jobb oldali: $\tfrac{2(1 + h) - 1 - 1}{h} = 2$. Egyenlők, tehát deriválható, $f'(1) = 2$ – a darabok simán csatlakoznak (az $y = 2x - 1$ éppen az $x^2$ érintője az 1-ben). A 4.2 hasonló példájában ($2x$ a jobb oldalon) a függvény ugrott – ott a folytonosság hiányzott. A két képlet önmagában nem akadály.`
+          explain: R`Folytonos: $2\cdot 1 - 1 = 1 = f(1)$. Bal oldali derivált: $\tfrac{(1 + h)^2 - 1}{h} = 2 + h \to 2$; jobb oldali: $\tfrac{2(1 + h) - 1 - 1}{h} = 2$. Egyenlők, tehát deriválható, $f'(1) = 2$ – a darabok simán csatlakoznak (az $y = 2x - 1$ éppen az $x^2$ érintője az 1-ben). <a class="xref" href="#s42-d-darabok">A 4.2 hasonló példájában</a> ($2x$ a jobb oldalon) a függvény ugrott – ott a folytonosság hiányzott. A két képlet önmagában nem akadály.`
         },
         {
           type: "multi",

@@ -573,7 +573,7 @@
             "A fésű áramot indít az Arduino tápjában, és az módosítja a mérést."
           ],
           answer: 0,
-          hint: R`Az antenna fémdrót – vezető vagy szigetelő? Melyik 1.2-es fogalom tartozik a vezetőhöz?`,
+          hint: R`Az antenna fémdrót – vezető vagy szigetelő? Melyik <a class="xref" href="#s12-b">1.2</a>-es fogalom tartozik a vezetőhöz?`,
           explain: R`Az antenna és a bemenet vezető, a fésű töltése a szabad elektronjaikat eltolja: ez <b>megosztás</b>, töltésátadás nélkül. Polarizáció szigetelőben történik, a drót pedig vezet (megosztás ↔ polarizáció összekeverése). Érintés nélkül nem kerül át töltés – ezért tér vissza az érték a fésű távolításakor. (Érintésnél épp ez lenne veszélyes: a szikra tönkreteheti a bemenetet.)`
         },
         {
@@ -604,7 +604,7 @@
         },
         {
           type: "single", shuffle: true,
-          q: "A fejezet kérdése: lehúzod a gyapjúpulóvert, és a hajad égnek áll. Mi történik?",
+          q: "A <a class='xref' href='#s-kerdes'>fejezet kérdése</a>: lehúzod a gyapjúpulóvert, és a hajad égnek áll. Mi történik?",
           options: [
             "A haj elektronokat ad át a pulóvernek; minden hajszál pozitív lesz, és taszítják egymást.",
             "A pulóver protonokat ad át a hajnak; a hajszálak pozitívak lesznek, és taszítják egymást.",

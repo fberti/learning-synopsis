@@ -48,7 +48,7 @@
           ],
           answer: [0, 2, 4],
           hint: "Gondold végig: mit használ egy vágás a jellemzőből – az értékét vagy csak a sorrendjét? És mit jelent, hogy „mohó”?",
-          explain: "A fa csak a jellemzők sorrendjét használja, ezért nem kell skálázni. A mohó építés minden lépésben a pillanatnyilag legjobb vágást választja, előre nem néz – az optimális fa megtalálása NP-teljes, ezt nem garantálja (lásd a XOR-t)."
+          explain: "A fa csak a jellemzők sorrendjét használja, ezért nem kell skálázni. A mohó építés minden lépésben a pillanatnyilag legjobb vágást választja, előre nem néz – az optimális fa megtalálása NP-teljes, ezt nem garantálja (lásd a <a class='xref' href='#s71-d-xor'>XOR-t</a>)."
         },
         {
           type: "match",
@@ -60,7 +60,7 @@
             ["döntési tönk", "egyetlen vágásból álló fa"]
           ],
           hint: "Melyik algoritmus jött a gépi tanulásból (Quinlan), és melyik a statisztikából (Breiman és társai)?",
-          explain: "Quinlan ID3-a és C4.5-je entrópiát (információnyereséget) használ, és egy kategóriás kérdésnek annyi ága lehet, ahány értéke van. A CART bináris, Gini-indexszel. A tönk egyetlen kérdés – az 5.1 küszöbszabálya."
+          explain: "Quinlan ID3-a és C4.5-je entrópiát (információnyereséget) használ, és egy kategóriás kérdésnek annyi ága lehet, ahány értéke van. A CART bináris, Gini-indexszel. A tönk egyetlen kérdés – az <a class='xref' href='../05-osztalyozas/#s51-b'>5.1 küszöbszabálya</a>."
         },
         {
           type: "single", shuffle: true,
@@ -477,7 +477,7 @@
           ],
           answer: 0,
           hint: "Rajzold le a négy csoportot, és próbálj egy egyenest húzni.",
-          explain: R`Bármely egyenes mindkét oldalára nagyjából fele-fele jut mindkét osztályból. Ez az induktív torzítás korlátja (alulillesztés), nem az adatmennyiségé. Egy $x_1x_2$ jellemző megoldaná (5.6).`
+          explain: R`Bármely egyenes mindkét oldalára nagyjából fele-fele jut mindkét osztályból. Ez az induktív torzítás korlátja (alulillesztés), nem az adatmennyiségé. Egy $x_1x_2$ jellemző megoldaná (<a class="xref" href="../05-osztalyozas/#s56-b">5.6</a>).`
         },
         {
           type: "single", shuffle: true,
@@ -490,7 +490,7 @@
           ],
           answer: 0,
           hint: "Mekkora egy 89%-os arány hibahatára 400 mintánál?",
-          explain: R`$1{,}96\sqrt{0{,}89 \cdot 0{,}11/400} \approx 0{,}03$ – kb. ±3 százalékpont. A 0,5 pont különbség ennél sokkal kisebb; ismételt CV vagy páros összehasonlítás kellene (6.9).`
+          explain: R`$1{,}96\sqrt{0{,}89 \cdot 0{,}11/400} \approx 0{,}03$ – kb. ±3 százalékpont. A 0,5 pont különbség ennél sokkal kisebb; ismételt CV vagy páros összehasonlítás kellene (<a class="xref" href="../06-modellertekeles/#s69-b-paros">6.9</a>).`
         },
         {
           type: "single", shuffle: true,

@@ -448,7 +448,7 @@
           q: R`A minta: 1, 3, 5. Mennyi az átlag bootstrap standard hibája (a 27 újraminta átlagának pontos szórása)?`,
           options: ["0,943", "1,155", "1,633", "0,889"],
           answer: 0,
-          hint: R`Az újraminta 3 független húzás egy olyan „sokaságból”, amely maga a minta. Számold ki ennek $n$-es nevezőjű szórásnégyzetét, aztán alkalmazd az 5.2 tételét.`,
+          hint: R`Az újraminta 3 független húzás egy olyan „sokaságból”, amely maga a minta. Számold ki ennek $n$-es nevezőjű szórásnégyzetét, aztán alkalmazd az <a class="xref" href="#s52-b">5.2 tételét</a>.`,
           explain: R`A „sokaság” (1, 3, 5) szórásnégyzete $n$-es nevezővel $\hat\sigma^2 = \frac{4 + 0 + 4}{3} = \frac83$. Az átlag szórásnégyzete $\hat\sigma^2/n = \frac89$, a bootstrap SE $\sqrt{8/9} \approx 0{,}943$. Az $1{,}155 = s/\sqrt3$ a képletes becslés ($s = 2$, $n-1$-es nevező) – a bootstrap kicsit kisebbet ad: $1{,}155\cdot\sqrt{2/3} \approx 0{,}943$. Az $1{,}633 = \hat\sigma$ az adatok szórása (SD ↔ SE). A $0{,}889 = 8/9$ a szórásnégyzet, a gyökvonás maradt el.`
         },
         {

@@ -45,7 +45,7 @@
             "Mert a leíró statisztika is mindig bizonytalan."
           ],
           answer: 0,
-          hint: "Gondolj az 5 diákos példára: mitől függött a mintából kapott átlag?",
+          hint: "Gondolj az <a class='xref' href='#s12-b-apro'>5 diákos példára</a>: mitől függött a mintából kapott átlag?",
           explain: R`A következtetés a meg nem figyelt egyedekre is vonatkozik. Hogy kik kerültek a mintába, az a véletlenen múlik, így a belőle számolt érték is ingadozik. A leíró statisztika (ha nincs mérési hiba) nem bizonytalan: azt foglalja össze, amit láttunk.`
         },
         {
@@ -297,7 +297,7 @@
             "Ha a csoportokon belül is mindig csak egy elemet figyelünk meg."
           ],
           answer: 0,
-          hint: "Gondolj a kollégiumi szobás példára: mikor adott jó becslést egyetlen kisorsolt szoba?",
+          hint: "Gondolj a <a class='xref' href='#s14-d-szobak'>kollégiumi szobás példára</a>: mikor adott jó becslést egyetlen kisorsolt szoba?",
           explain: R`Vegyes szobáknál a mintaátlag 6 vagy 8 volt (jó), egynemű szobáknál 3 vagy 11 (rossz). A „belül egynemű, egymástól különböző” csoportok a rétegzéshez valók, nem a csoportos mintavételhez. Egyetlen csoport sosem elég.`
         },
         {
@@ -419,7 +419,7 @@
         },
         {
           type: "single", shuffle: true,
-          q: R`A kávés–dohányos példában (1&nbsp;000 fő, 500 kávézik, közülük 82 tüdőrákos) mekkora a tüdőrák aránya a kávézók között?`,
+          q: R`A <a class="xref" href="#s16-b-kave">kávés–dohányos példában</a> (1&nbsp;000 fő, 500 kávézik, közülük 82 tüdőrákos) mekkora a tüdőrák aránya a kávézók között?`,
           options: ["16,4%", "8,2%", "20%", "5,6%"],
           answer: 0,
           hint: "A kávézók számához viszonyíts, ne az összes résztvevőhöz!",

@@ -212,7 +212,7 @@
           ],
           answer: 0,
           hint: "A PCA nem látja a címkét – ki tudja megmondani, mi kell a jósláshoz?",
-          explain: "A variancia-szabály nem garantálja, hogy a jósláshoz fontos irány megmarad (lásd a két szivart). A teljes adaton illesztett PCA szivárgás. Ha a cél a jóslás, a q is hiperparaméter: keresztvalidációval, csővezetékben kell hangolni."
+          explain: "A variancia-szabály nem garantálja, hogy a jósláshoz fontos irány megmarad (lásd a <a class='xref' href='#s83-d-ket-szivar'>két szivart</a>). A teljes adaton illesztett PCA szivárgás. Ha a cél a jóslás, a q is hiperparaméter: keresztvalidációval, csővezetékben kell hangolni."
         }
       ]
     },

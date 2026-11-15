@@ -52,7 +52,7 @@
           ],
           answer: 1,
           hint: "Gondold végig, milyen feltételt használ a bizonyítás az eloszlásról – és mit ad, ha k kicsi.",
-          explain: R`Univerzális, ezért óvatos. $k \le 1$ esetén $\tfrac1{k^2} \ge 1$ – semmitmondó. Vannak eloszlások, amelyeknél pontosan egyenlőség áll (lásd az „éles” példát).`
+          explain: R`Univerzális, ezért óvatos. $k \le 1$ esetén $\tfrac1{k^2} \ge 1$ – semmitmondó. Vannak eloszlások, amelyeknél pontosan egyenlőség áll (lásd az <a class="xref" href="#s52-c-eles">„éles” példát</a>).`
         }
       ]
     },

@@ -87,7 +87,7 @@
           ],
           answer: [0, 1, 2],
           hint: "Gondolj a memorizálásra: mit jutalmaz a tanítóadaton mért NLL? És mennyi bit jut egy pixelre, ha semmit sem tudsz?",
-          explain: R`A 2,25 bit az adatok entrópiája – a tanítóadaton ez a minimum. A $-\log_2 0 = \infty$ miatt egy új rajz végtelen NLL-t ad. Az egyenletes modell pixelenként 1 bit, $64$ bit összesen. Hamis: a kis NLL nem garantál szép mintát (és fordítva, 14.8); a tanítóadaton mért NLL a memorizálást jutalmazza – a valódi mérce a teszt-NLL.`
+          explain: R`A 2,25 bit az adatok entrópiája – a tanítóadaton ez a minimum. A $-\log_2 0 = \infty$ miatt egy új rajz végtelen NLL-t ad. Az egyenletes modell pixelenként 1 bit, $64$ bit összesen. Hamis: a kis NLL nem garantál szép mintát (és fordítva, <a class="xref" href="#s148-a">14.8</a>); a tanítóadaton mért NLL a memorizálást jutalmazza – a valódi mérce a teszt-NLL.`
         }
       ]
     },
@@ -169,7 +169,7 @@
           ],
           answer: 0,
           hint: R`Nézd meg, mire feltételezünk a $p(x_i \mid \mathbf x_{\lt i})$ tényezőben.`,
-          explain: "Mintavételkor minden token a már kihúzott előzményekre épül, ezért sorban kell haladni (500 · 20 ms = 10 s). Tanításkor viszont párhuzamos a számolás, mert ott a teljes szöveg ismert (12.7). A láncszabály tetszőleges hosszra igaz, a hőmérséklet pedig csak átskálázza a logitokat."
+          explain: "Mintavételkor minden token a már kihúzott előzményekre épül, ezért sorban kell haladni (500 · 20 ms = 10 s). Tanításkor viszont párhuzamos a számolás, mert ott a teljes szöveg ismert (<a class='xref' href='../12-beagyazasok-figyelem/#s127-a'>12.7</a>). A láncszabály tetszőleges hosszra igaz, a hőmérséklet pedig csak átskálázza a logitokat."
         }
       ]
     },
@@ -640,7 +640,7 @@
         },
         {
           type: "single", shuffle: true,
-          q: "A 14.9-ben a tanítóképeket visszaadó „másoló” FID-je 23,3 – jobb, mint bármelyik valódi modellé. Miért?",
+          q: "A <a class='xref' href='#s149-a'>14.9</a>-ben a tanítóképeket visszaadó „másoló” FID-je 23,3 – jobb, mint bármelyik valódi modellé. Miért?",
           options: [
             "Mert a FID csak azt méri, mennyire hasonlít a két jellemzőfelhő; azt nem kérdezi, újak-e a minták.",
             "Mert a másoló a tesztképeket adja vissza, és azokhoz mérjük.",
@@ -716,7 +716,7 @@
       questions: [
         {
           type: "single", shuffle: true,
-          q: "A négy modell és a két alapvonal (másoló, Gauss-modell) közül melyiknek a legkisebb a FID-je a 14.9 táblázatában?",
+          q: "A négy modell és a két alapvonal (másoló, Gauss-modell) közül melyiknek a legkisebb a FID-je a <a class='xref' href='#s149-a'>14.9</a> táblázatában?",
           options: ["A másolónak", "A diffúziós modellnek", "Az autoregresszív modellnek", "A VAE-nek"],
           answer: 0,
           hint: "Ne csak a valódi modelleket nézd – a semmit nem tanult viszonyítási pontokat is.",
@@ -728,7 +728,7 @@
           options: ["A VAE-re", "A GAN-ra", "Az autoregresszív modellre", "A Gauss-modellre"],
           answer: 0,
           hint: "Melyik modell rajzol homályos, „tipikus” átlagképeket?",
-          explain: "A VAE „óvatos”: homályos, tipikus alakokat rajzol, amelyek a valódi számjegyek közé esnek, de csak egy szűk sávban – mint a 14.8 A modellje. A GAN közepes pontosságú és felidézésű (0,64 és 0,48), az autoregresszív modell épp fordított (0,56 és 0,88), a Gauss-modell 0,50 és 0,55."
+          explain: "A VAE „óvatos”: homályos, tipikus alakokat rajzol, amelyek a valódi számjegyek közé esnek, de csak egy szűk sávban – mint a <a class='xref' href='#s148-a-ket-modell'>14.8 A modellje</a>. A GAN közepes pontosságú és felidézésű (0,64 és 0,48), az autoregresszív modell épp fordított (0,56 és 0,88), a Gauss-modell 0,50 és 0,55."
         },
         {
           type: "single", shuffle: true,
@@ -761,7 +761,7 @@
         },
         {
           type: "match",
-          q: "Párosítsd a „gépet” a 14.9-ben látott jellemzőjével!",
+          q: "Párosítsd a „gépet” a <a class='xref' href='#s149'>14.9</a>-ben látott jellemzőjével!",
           pairs: [
             ["autoregresszív modell", "egyedül ad pontos valószínűséget (25,9 bit/kép)"],
             ["VAE", "nagy pontosság, nagyon kicsi felidézés"],
@@ -832,7 +832,7 @@
         },
         {
           type: "single", shuffle: true,
-          q: R`A 14.3 lineáris dekódolója: $\hat{\mathbf x} = 0{,}5 + z_1 \cdot (0{,}5;\ 0{,}5;\ -0{,}5;\ -0{,}5) + z_2 \cdot (0{,}5;\ -0{,}5;\ 0{,}5;\ -0{,}5)$. Mit rajzol a $(0;\ -0{,}5)$ kódból?`,
+          q: R`A <a class="xref" href="#s143-a">14.3</a> lineáris dekódolója: $\hat{\mathbf x} = 0{,}5 + z_1 \cdot (0{,}5;\ 0{,}5;\ -0{,}5;\ -0{,}5) + z_2 \cdot (0{,}5;\ -0{,}5;\ 0{,}5;\ -0{,}5)$. Mit rajzol a $(0;\ -0{,}5)$ kódból?`,
           options: [
             R`$(0{,}25;\ 0{,}75;\ 0{,}25;\ 0{,}75)$ – halvány jobb csík`,
             R`$(0{,}75;\ 0{,}25;\ 0{,}75;\ 0{,}25)$ – halvány bal csík`,
@@ -925,7 +925,7 @@
         },
         {
           type: "single", shuffle: true,
-          q: "Mi a „Négy gép, egy füzet” rejtvény tanulsága a 14.9 alapján?",
+          q: "Mi a <a class='xref' href='#s-kerdes'>„Négy gép, egy füzet” rejtvény</a> tanulsága a <a class='xref' href='#s149-c'>14.9</a> alapján?",
           options: [
             "A „legjobb” attól függ, mit mérsz – és a FID-et a semmit nem tanult másoló nyerte, ezért egyetlen szám nem elég.",
             "A diffúziós modell minden mérőszámban a legjobb, ezért mindig azt kell választani.",
@@ -938,7 +938,7 @@
         },
         {
           type: "match",
-          q: "Párosítsd a feladatot a fejezet döntési táblázata szerinti módszerrel!",
+          q: "Párosítsd a feladatot a <a class='xref' href='#s-sum-dontesi'>fejezet döntési táblázata</a> szerinti módszerrel!",
           pairs: [
             ["pontos valószínűség kell (tömörítés, modellek összevetése bitekben)", "autoregresszív modell"],
             ["valós idejű, egylépéses generálás szűk témában", "GAN vagy desztillált diffúzió"],

@@ -200,7 +200,7 @@
           ],
           answer: 0,
           hint: "Felmentés ≠ ártatlanság. Mi történne, ha az érme valójában 70%-ban fejre esne – milyen eredmények jönnének 10 dobásból?",
-          explain: R`A „nem vetjük el” gyenge állítás: az adat összefér $H_0$-val, de a 0,7-es érmével is (ilyenkor 10 dobásból kb. 70% eséllyel 6–8 fej jön). A 95%-os Wilson-intervallum kb. $[0{,}40;\ 0{,}89]$. A „bebizonyítottuk” és az „elfogadjuk” azt sugallja, hogy $H_0$ igazolódott – a hiányzó bizonyíték nem bizonyítéka a hiánynak. Az $1 - p$ pedig nem $H_0$ valószínűsége (lásd 7.3).`
+          explain: R`A „nem vetjük el” gyenge állítás: az adat összefér $H_0$-val, de a 0,7-es érmével is (ilyenkor 10 dobásból kb. 70% eséllyel 6–8 fej jön). A 95%-os Wilson-intervallum kb. $[0{,}40;\ 0{,}89]$. A „bebizonyítottuk” és az „elfogadjuk” azt sugallja, hogy $H_0$ igazolódott – a hiányzó bizonyíték nem bizonyítéka a hiánynak. Az $1 - p$ pedig nem $H_0$ valószínűsége (lásd <a class="xref" href="#s73-b">7.3</a>).`
         }
       ]
     },
@@ -292,7 +292,7 @@
           options: ["0,0975", "0,10", "0,0025", "0,05"],
           answer: 0,
           hint: R`$H_0$ mellett egy vizsgálat 5% eséllyel ad $p \le 0{,}05$-öt. Számold ki az ellentett eseményt: egyik sem szignifikáns.`,
-          explain: R`$1 - 0{,}95^2 = 0{,}0975$ – majdnem 10%. A 0,10 $= 2 \cdot 0{,}05$ közelítés, a „mindkettő szignifikáns” esetet kétszer számolja. A $0{,}0025 = 0{,}05^2$ annak az esélye, hogy <em>mindkettő</em> szignifikáns. Az 5% egyetlen vizsgálatra igaz. Ez a többszörös tesztelés problémája (7.7).`
+          explain: R`$1 - 0{,}95^2 = 0{,}0975$ – majdnem 10%. A 0,10 $= 2 \cdot 0{,}05$ közelítés, a „mindkettő szignifikáns” esetet kétszer számolja. A $0{,}0025 = 0{,}05^2$ annak az esélye, hogy <em>mindkettő</em> szignifikáns. Az 5% egyetlen vizsgálatra igaz. Ez a többszörös tesztelés problémája (<a class="xref" href="#s77-a">7.7</a>).`
         }
       ]
     },
@@ -341,7 +341,7 @@
           ],
           answer: [0, 1, 2],
           hint: R`Képzeld el a $H_0$ és a valódi eloszlás két haranggörbéjét: mitől távolodnak el, mitől keskenyednek, és merre mozdul a kritikus érték?`,
-          explain: R`Nagyobb hatás: messzebb a két eloszlás. Nagyobb $n$: kisebb SE, keskenyebb eloszlások. Nagyobb $\alpha$: közelebb a kritikus érték – de több a téves riasztás. <b>Csökkenti</b> az erőt a nagyobb zaj (több átfedés) és a szigorúbb $\alpha$: az IQ-példában ($n = 25$) 5%-on 0,51, 1%-on csak 0,25.`
+          explain: R`Nagyobb hatás: messzebb a két eloszlás. Nagyobb $n$: kisebb SE, keskenyebb eloszlások. Nagyobb $\alpha$: közelebb a kritikus érték – de több a téves riasztás. <b>Csökkenti</b> az erőt a nagyobb zaj (több átfedés) és a szigorúbb $\alpha$: <a class="xref" href="#s74-b-iq">az IQ-példában</a> ($n = 25$) 5%-on 0,51, 1%-on csak 0,25.`
         },
         {
           type: "single", shuffle: true,
@@ -370,7 +370,7 @@
           ],
           answer: 0,
           hint: R`Merre mozdul a kritikus érték, ha szigorítunk? Mi történik ezzel a valódi eloszlás „elvetési” részével?`,
-          explain: R`Szigorúbb $\alpha$ → távolabbi kritikus érték → nehezebb elvetni, a valódi hatást is. Az IQ-példában ($n = 25$) az erő 0,51-ről 0,25-re esik, $\beta$ 0,49-ről 0,75-re nő. $\alpha$ és $\beta$ egyszerre csak nagyobb mintával csökkenthető. $\beta$ függ a hatástól, de $\alpha$-tól, $n$-től és a zajtól is; és nincs semmi oka egyenlőnek lennie $\alpha$-val.`
+          explain: R`Szigorúbb $\alpha$ → távolabbi kritikus érték → nehezebb elvetni, a valódi hatást is. <a class="xref" href="#s74-b-iq">Az IQ-példában</a> ($n = 25$) az erő 0,51-ről 0,25-re esik, $\beta$ 0,49-ről 0,75-re nő. $\alpha$ és $\beta$ egyszerre csak nagyobb mintával csökkenthető. $\beta$ függ a hatástól, de $\alpha$-tól, $n$-től és a zajtól is; és nincs semmi oka egyenlőnek lennie $\alpha$-val.`
         },
         {
           type: "single", shuffle: true,
@@ -406,7 +406,7 @@
           options: [R`$\mu_0 = 388$ g`, R`$\mu_0 = 392$ g`, R`$\mu_0 = 400$ g`, R`$\mu_0 = 405$ g`],
           answer: 0,
           hint: R`Nem kell újra számolnod a $t$-t: nézd meg, melyik érték esik a KI-n kívül.`,
-          explain: R`Csak a 388 esik az intervallumon kívül, ezt elveti a próba (ellenőrzésképp: $t \approx 2{,}92$, $p \approx 0{,}011$). A 392, a 400 és a 405 mind a $[390{,}65;\ 405{,}35]$-ben van, ezeket nem veti el (a 405-nél $p \approx 0{,}06$ – közel a határhoz, de még belül). Aki a 400-at választja, az a „nem vetjük el” és az „elvetjük” szerepét keveri: a 400 a fejezet példájában épp összefért az adattal ($p \approx 0{,}57$).`
+          explain: R`Csak a 388 esik az intervallumon kívül, ezt elveti a próba (ellenőrzésképp: $t \approx 2{,}92$, $p \approx 0{,}011$). A 392, a 400 és a 405 mind a $[390{,}65;\ 405{,}35]$-ben van, ezeket nem veti el (a 405-nél $p \approx 0{,}06$ – közel a határhoz, de még belül). Aki a 400-at választja, az a „nem vetjük el” és az „elvetjük” szerepét keveri: a 400 <a class="xref" href="#s75-a">a fejezet példájában</a> épp összefért az adattal ($p \approx 0{,}57$).`
         },
         {
           type: "set",
@@ -468,7 +468,7 @@
           options: ["0,10", "0,05", "0,025", "0,014"],
           answer: 0,
           hint: R`Kétoldalinál a $|\text{különbség}| \ge 5$ felosztásokat kell megszámolni. Hány ilyen van a 20-ból?`,
-          explain: R`A $+5$ és a $-5$ is egy-egy felosztásból jön, így $p = 2/20 = 0{,}10$. A 0,05 az egyoldali p-érték (elmaradt a duplázás). A 0,025 a felezés – kétoldalinál nem felezünk, hanem mindkét szélet összeadjuk. A 0,014 $= 1/70$ a teás kísérlet p-értéke: ott 70 választás volt, itt csak $\binom63 = 20$ felosztás.`
+          explain: R`A $+5$ és a $-5$ is egy-egy felosztásból jön, így $p = 2/20 = 0{,}10$. A 0,05 az egyoldali p-érték (elmaradt a duplázás). A 0,025 a felezés – kétoldalinál nem felezünk, hanem mindkét szélet összeadjuk. A 0,014 $= 1/70$ <a class="xref" href="#s71-a-fisher">a teás kísérlet p-értéke</a>: ott 70 választás volt, itt csak $\binom63 = 20$ felosztás.`
         },
         {
           type: "single", shuffle: true,
@@ -512,7 +512,7 @@
             [R`kétmintás $t$-próba`, "a nullhipotézis melletti eloszlást képletből veszi"]
           ],
           hint: R`Melyik módszer modellezi $H_0$ eloszlását, és melyik egy becslés bizonytalanságát? Melyiknél van visszatevés?`,
-          explain: R`A permutációs próba a meglévő adatokat osztja újra, visszatevés nélkül, és így állítja elő $H_0$ eloszlását. A bootstrap (5.6) visszatevéssel mintáz újra – ez standard hibát, KI-t ad, nem próbát. Fisher egzakt próbája a teás kísérletre ugyanez a permutációs gondolat (a 70 választás egyformán valószínű). A $t$-próba ugyanazt a kérdést képletből válaszolja meg – a 8 + 8 diáknál nagyon hasonló eredménnyel (0,011 vs 0,013).`
+          explain: R`A permutációs próba a meglévő adatokat osztja újra, visszatevés nélkül, és így állítja elő $H_0$ eloszlását. A bootstrap (<a class="xref" href="../05-mintaveteli-eloszlasok/#s56">5.6</a>) visszatevéssel mintáz újra – ez standard hibát, KI-t ad, nem próbát. Fisher egzakt próbája a teás kísérletre ugyanez a permutációs gondolat (a 70 választás egyformán valószínű). A $t$-próba ugyanazt a kérdést képletből válaszolja meg – a 8 + 8 diáknál nagyon hasonló eredménnyel (0,011 vs 0,013).`
         },
         {
           type: "multi",
@@ -526,7 +526,7 @@
           ],
           answer: [0, 1, 2],
           hint: "Mit biztosít a randomizálás? És mi a különbség a permutáció és a bootstrap között?",
-          explain: R`Az első három igaz (lásd a módszer-dobozt és a 8 + 8-as példát). A visszatevéses keverés a bootstrap – az más kérdésre felel; a permutációs próba ugyanazokat az adatokat osztja újra. Megfigyeléses adatnál a próba legfeljebb annyit mutat, hogy a különbség nem csak véletlen; az okot nem – a csoportosítást zavaró változó is okozhatja.`
+          explain: R`Az első három igaz (lásd <a class="xref" href="#s76-a-modszer">a módszer-dobozt</a> és <a class="xref" href="#s76-b-8-8">a 8 + 8-as példát</a>). A visszatevéses keverés a bootstrap – az más kérdésre felel; a permutációs próba ugyanazokat az adatokat osztja újra. Megfigyeléses adatnál a próba legfeljebb annyit mutat, hogy a különbség nem csak véletlen; az okot nem – a csoportosítást zavaró változó is okozhatja.`
         },
         {
           type: "single", shuffle: true,
@@ -777,7 +777,7 @@
           options: ["25", "32", "11", "5"],
           answer: 0,
           hint: R`$n = \left(\frac{z_{1-\alpha} + z_{1-\beta}}{d}\right)^2$, felfelé kerekítve. Egyoldali próbánál melyik kvantilis kell?`,
-          explain: R`$n = \left(\frac{1{,}645 + 0{,}842}{0{,}5}\right)^2 \approx 24{,}7 \to 25$ (ellenőrzés: 25 fővel az erő $\approx 0{,}80$, ahogy a 7.4 is írja). A 32 a kétoldali 1,96-tal számol – egyoldali próbánál az egész $\alpha$ egy oldalon van. A 11 kihagyja a $z_{1-\beta}$-t (az csak 50%-os erőt adna). Az 5 elfelejtette a négyzetre emelést ($4{,}97$).`
+          explain: R`$n = \left(\frac{1{,}645 + 0{,}842}{0{,}5}\right)^2 \approx 24{,}7 \to 25$ (ellenőrzés <a class="xref" href="#s74-c-mintanagysag">a 7.4</a> erőképletével: 25 fővel $1 - \Phi(1{,}645 - 0{,}5\sqrt{25}) = 1 - \Phi(-0{,}855) \approx 0{,}80$). A 32 a kétoldali 1,96-tal számol – egyoldali próbánál az egész $\alpha$ egy oldalon van. A 11 kihagyja a $z_{1-\beta}$-t (az csak 50%-os erőt adna). Az 5 elfelejtette a négyzetre emelést ($4{,}97$).`
         },
         {
           type: "single", shuffle: true,

@@ -483,7 +483,7 @@
             ["mennyi idő telik el a következő bomlásig egy radioaktív mintában", EXP],
             ["egy véletlenül választott felnőtt testmagassága", NOR]
           ],
-          explain: "Darabszámnál: rögzített számú független kísérlet → binomiális; első sikerig → geometriai; visszatevés nélkül véges dobozból → hipergeometrikus; csak átlag ismert, ritka események → Poisson. Mérésnél: „bárhol egyforma eséllyel” → egyenletes; várakozási idő öregedés nélkül → exponenciális; sok kis hatás összege → normális. (Lásd a fejezet döntési táblázatát.)"
+          explain: "Darabszámnál: rögzített számú független kísérlet → binomiális; első sikerig → geometriai; visszatevés nélkül véges dobozból → hipergeometrikus; csak átlag ismert, ritka események → Poisson. Mérésnél: „bárhol egyforma eséllyel” → egyenletes; várakozási idő öregedés nélkül → exponenciális; sok kis hatás összege → normális. (Lásd a <a class='xref' href='#s-sum-dontesi-tabla'>fejezet döntési táblázatát</a>.)"
         },
         {
           type: "single", shuffle: true,

@@ -84,7 +84,7 @@
         },
         {
           type: "single", shuffle: true,
-          q: "A tíz páciensnél (6.2, 1. lépés) egy elmulasztott beteg 10, egy fölösleges kontroll 1 egység. Melyik küszöb a legolcsóbb?",
+          q: "A tíz páciensnél (<a class='xref' href='#s62-a'>6.2, 1. lépés</a>) egy elmulasztott beteg 10, egy fölösleges kontroll 1 egység. Melyik küszöb a legolcsóbb?",
           options: ["0,30", "0,80", "0,55", "0,05"],
           answer: 0,
           hint: R`Számold ki mindegyikre: $10 \cdot FN + 1 \cdot FP$.`,
@@ -174,7 +174,7 @@
             "A MAE-t minimalizáló konstans jóslat a medián."
           ],
           answer: [0, 1, 3, 4],
-          hint: "Gondolj a 0,5 °C-os példára és a legjobb konstans jóslatra (3.4).",
+          hint: "Gondolj a <a class='xref' href='#s63-c-kozel-nulla'>0,5 °C-os példára</a> és a legjobb konstans jóslatra (<a class='xref' href='../03-tanulas-anatomiaja/#s34-a-legjobb-konstans'>3.4</a>).",
           explain: R`0 közeli címkénél a relatív hiba felrobban (0,5 °C helyett 1,5 °C: 200%), és 0-nál nem is értelmezhető. A többi igaz: negatív $R^2$ = rosszabb az átlagnál; RMSE ≥ MAE; MSE ~ egység²; a MAE-t a medián minimalizálja.`
         },
         {

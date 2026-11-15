@@ -50,7 +50,7 @@
           ],
           answer: [0, 1, 3],
           hint: "Gondolj a „ferde” és a „lépcsős” szabályra, amelyek mindketten 100%-osak voltak – és a XOR-ra.",
-          explain: "Sok különböző határ lehet 100%-os ugyanazon a kevés ponton, és más-más döntést adhat új pontra. Nem minden adat választható el egyenessel (lásd a XOR-t az 5.6-ban)."
+          explain: "Sok különböző határ lehet 100%-os ugyanazon a kevés ponton, és más-más döntést adhat új pontra. Nem minden adat választható el egyenessel (lásd a XOR-t az <a class='xref' href='#s56-a'>5.6</a>-ban)."
         },
         {
           type: "single", shuffle: true,

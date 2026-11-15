@@ -59,7 +59,7 @@
           ],
           answer: [0, 1, 2],
           hint: "Gondolj a buktatókra: mi történik, ha a sorrend vagy a kódolás hamis információt visz a modellbe?",
-          explain: "Az első három igaz. A jellemzők sorrendjének minden mintánál azonosnak kell lennie, különben a modell mást „lát”. A sorszámos színkódolás hamis sorrendet sugall – erre a one-hot kódolás a megoldás (4. fejezet)."
+          explain: "Az első három igaz. A jellemzők sorrendjének minden mintánál azonosnak kell lennie, különben a modell mást „lát”. A sorszámos színkódolás hamis sorrendet sugall – erre a one-hot kódolás a megoldás (<a class='xref' href='../04-adatok-es-jellemzok/#s43-b'>4. fejezet</a>)."
         }
       ]
     },

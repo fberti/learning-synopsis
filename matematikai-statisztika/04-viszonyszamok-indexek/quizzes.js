@@ -377,7 +377,7 @@
       questions: [
         {
           type: "single", shuffle: true,
-          q: R`Néhány adat a 8.6. táblából (sor: melyik év mennyisége, oszlop: melyik év árain, ezer Ft). Az 1992-es mennyiség 1992-es / 1996-os áron: 3100 / 5800. Az 1994-es mennyiség 1992-es / 1995-ös / 1996-os áron: 3170 / 4630 / 5840. A valódi érték (átló) 1996-ban: 6280. Mennyi az 1996-os árindex 1994-es súllyal, 1992 = 100% bázison?`,
+          q: R`Néhány adat a <a class="xref" href="#s45-a-uzem">8.6. táblából</a> (sor: melyik év mennyisége, oszlop: melyik év árain, ezer Ft). Az 1992-es mennyiség 1992-es / 1996-os áron: 3100 / 5800. Az 1994-es mennyiség 1992-es / 1995-ös / 1996-os áron: 3170 / 4630 / 5840. A valódi érték (átló) 1996-ban: 6280. Mennyi az 1996-os árindex 1994-es súllyal, 1992 = 100% bázison?`,
           options: ["184,2%", "187,1%", "202,6%", "126,1%"],
           answer: 0,
           hint: "Árindexsorhoz a mennyiséget rögzíted – tehát egy sort használsz. Melyiket, és melyik két elemét?",
@@ -534,7 +534,7 @@
             ["A csoportátlagok nőttek, és a magas bérű csoport aránya is nőtt.", "azonos irányú hatások"]
           ],
           hint: "Kérdezd meg külön: változtak-e a részátlagok (részhatás)? És változott-e az összetétel (összetételhatás)? Ha mindkettő, melyik irányba húz?",
-          explain: R`Változatlan összetételnél $V_S = V_0$, minden változás részhatás. Változatlan részátlagoknál $V_1 = V_S$, minden változás összetételhatás (ilyenkor $I_R = 100\%$ – lásd 4.7, „senki nem kapott béremelést”). Ha az alacsony bérűek aránya nő, az összetételhatás negatív, a részhatás pozitív – ez a bővülő cég esete. Ha a magas bérűek aránya nő, mindkét hatás felfelé húz (mint a két boltnál: $K_R = +0{,}1$, $K_{\text{Ö}} = +0{,}2$).`
+          explain: R`Változatlan összetételnél $V_S = V_0$, minden változás részhatás. Változatlan részátlagoknál $V_1 = V_S$, minden változás összetételhatás (ilyenkor $I_R = 100\%$ – lásd <a class="xref" href="#s47-b-focimek">4.7</a>, „senki nem kapott béremelést”). Ha az alacsony bérűek aránya nő, az összetételhatás negatív, a részhatás pozitív – ez a bővülő cég esete. Ha a magas bérűek aránya nő, mindkét hatás felfelé húz (mint a két boltnál: $K_R = +0{,}1$, $K_{\text{Ö}} = +0{,}2$).`
         }
       ]
     },

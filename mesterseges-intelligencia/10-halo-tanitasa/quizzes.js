@@ -32,7 +32,7 @@
           options: ["2,303", "0,1", "1", "3,322"],
           answer: 0,
           hint: "Minden képen ugyanaz a helyes válasz valószínűsége: 0,1. Mi a negatív természetes logaritmusa?",
-          explain: R`$-\ln 0{,}1 = \ln 10 \approx 2{,}303$. Az 1 a 10-es alapú, a 3,322 a 2-es alapú logaritmus, a 0,1 maga a valószínűség. Ez a jó első ellenőrzés egy új tanításnál (10.8).`
+          explain: R`$-\ln 0{,}1 = \ln 10 \approx 2{,}303$. Az 1 a 10-es alapú, a 3,322 a 2-es alapú logaritmus, a 0,1 maga a valószínűség. Ez a jó első ellenőrzés egy új tanításnál (<a class="xref" href="#s108-a">10.8</a>).`
         },
         {
           type: "match",
@@ -457,7 +457,7 @@
         },
         {
           type: "single", shuffle: true,
-          q: R`A 10.3 hálójában ($\mathbf x = (1;\ 2)$, a rejtett $\boldsymbol\delta_1 = (-0{,}5;\ 0{,}5)$) mennyi $W_1$ bal felső súlyának gradiense (első neuron, első bemenet)?`,
+          q: R`A <a class="xref" href="#s103-b-kiindulo">10.3 hálójában</a> ($\mathbf x = (1;\ 2)$, a rejtett $\boldsymbol\delta_1 = (-0{,}5;\ 0{,}5)$) mennyi $W_1$ bal felső súlyának gradiense (első neuron, első bemenet)?`,
           options: ["−0,5", "−1", "0,5", "−0,25"],
           answer: 0,
           hint: R`„Bemenet × $\delta$”: melyik neuron $\delta$-ja, és melyik bemenet?`,

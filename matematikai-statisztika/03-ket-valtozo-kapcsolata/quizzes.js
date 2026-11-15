@@ -195,7 +195,7 @@
             R`A Yule-féle $Q$ bármilyen méretű táblára kiszámolható.`
           ],
           answer: [0, 2],
-          hint: R`Gondolj a „kétszer akkora minta” példára és a 20 | 0 és 10 | 20 táblára.`,
+          hint: R`Gondolj a <a class="xref" href="#s32-d-ketszer">„kétszer akkora minta” példára</a> és a <a class="xref" href="#s32-d-buktatok">20 | 0 és 10 | 20 táblára</a>.`,
           explain: R`A $\chi^2$ a létszámmal arányos, ezért a nagysága nem szorosság – ahhoz normálni kell ($V$). $V = 0 \iff \chi^2 = 0 \iff$ a tényleges tábla a várttal egyezik (függetlenség). A $Q = 1$-hez elég egyetlen üres cella: a 20 | 0 és 10 | 20 táblában $Q = 1$, de $V \approx 0{,}67$. A $Q$ csak 2×2-es táblára értelmezett.`
         }
       ]
@@ -339,7 +339,7 @@
             "Csak 2×2-es kontingencia-táblára használható."
           ],
           answer: 0,
-          hint: "Gondolj a 10 cég példájában a 6. és a 10. cégre.",
+          hint: "Gondolj a <a class='xref' href='#s34-cegek'>10 cég példájában</a> a 6. és a 10. cégre.",
           explain: R`A 6. cég alig tér el az átlagoktól ($+0{,}1$ és $-1$), mégis egy teljes „negatív szavazat”, ugyanannyi, mint a 10. cég ($+1{,}1$ és $+16$) pozitív szavazata. Egy átlag körüli pont véletlenül átcsúszhat, és a $K_r$ ugrik. A $K_r$ $-1$ és $1$ között mozog (van iránya), és mértékegységtől független – a mértékegység-függés a <b>kovariancia</b> baja.`
         },
         {
@@ -477,7 +477,7 @@
             ["minden pont egy emelkedő egyenesen", "r pontosan 1"]
           ],
           hint: "Az $r$ csak a lineáris kapcsolatot látja, és a messzi pontok szorzata nagyon nagy.",
-          explain: R`A parabolánál a két ág kioltja egymást ($r = 0$). A „rombolás” (3.5-c: $0{,}99 \to 0{,}35$) és a „teremtés” ($0{,}14 \to 0{,}91$) példája mutatja, mennyire érzékeny az $r$ egyetlen kiugró pontra.
+          explain: R`A parabolánál a két ág kioltja egymást ($r = 0$). A „rombolás” (<a class="xref" href="#s35-c">3.5-c</a>: $0{,}99 \to 0{,}35$) és a „teremtés” ($0{,}14 \to 0{,}91$) példája mutatja, mennyire érzékeny az $r$ egyetlen kiugró pontra.
             $r = 1$ csak egyenes mentén – ez az Anscombe-kvartett tanulsága is: <b>előbb rajzolj, aztán számolj</b>.`
         }
       ]
@@ -571,7 +571,7 @@
             ["csak azt nézi, melyik negyedbe esik a pont az átlagokhoz képest", "előjel-korreláció"]
           ],
           hint: "Rangok, párok, szórásnyi egységek, előjelek – melyik mire épít?",
-          explain: R`Spearman: $1 - 6\sum D^2/(n^3 - n)$; Kendall: $(P - Q)/\binom n2$; Pearson: $\overline{z_x z_y}$; előjel-korreláció (3.4): $K_r = (p - q)/(p + q)$, ahol csak a szorzatok előjele számít.`
+          explain: R`Spearman: $1 - 6\sum D^2/(n^3 - n)$; Kendall: $(P - Q)/\binom n2$; Pearson: $\overline{z_x z_y}$; előjel-korreláció (<a class="xref" href="#s34-b">3.4</a>): $K_r = (p - q)/(p + q)$, ahol csak a szorzatok előjele számít.`
         }
       ]
     },
@@ -640,7 +640,7 @@
             "Mert a csoportátlagok mindig egy egyenesre esnek."
           ],
           answer: 0,
-          hint: "Gondolj a 3.3 belső és külső varianciájára: melyik marad meg az átlagokban?",
+          hint: "Gondolj a <a class='xref' href='#s33-a'>3.3</a> belső és külső varianciájára: melyik marad meg az átlagokban?",
           explain: R`Az egyéni korrelációt a csoporton belüli „zaj” gyengíti; az átlagokban csak a külső szóródás marad meg. Csoportszinten valójában <em>kevesebb</em> adatpont van (megyék, nem emberek),
             a zavaró változók pedig ott is működnek (pl. gazdagság). Az átlagok sem esnek automatikusan egy egyenesre.`
         },
@@ -655,7 +655,7 @@
             "A korreláció előjeléből kiderül, melyik változó az ok."
           ],
           answer: [0, 1, 2],
-          hint: "A fagyi–fulladás példára és a véletlen bolyongásokra gondolj. Szimmetrikus-e $r$?",
+          hint: "A <a class='xref' href='#s37-a-fagyi'>fagyi–fulladás példára</a> és a véletlen bolyongásokra gondolj. Szimmetrikus-e $r$?",
           explain: R`A fagyi–fulladás 0,94-es korrelációja azonos hőmérsékletű hónapokon belül eltűnik (nyáron $r = 0$) – de csak azért láttuk, mert a hőmérsékletet megmértük.
             A bolyongó sorozatok trendje látszólagos korrelációt hoz létre. A korreláció erőssége nem bizonyít okságot, és szimmetrikus ($r(x, y) = r(y, x)$), így az irányról semmit sem mond.`
         },
@@ -791,7 +791,7 @@
           ],
           answer: 0,
           hint: "Monoton-e a kapcsolat? Mit lát a rangkorreláció?",
-          explain: R`Az U alakú kapcsolat nem monoton: az $r$ gyengének mutatná (a két ág kioltja egymást), a $\rho$ is csak a monoton kapcsolatot látja. A döntési táblázat szerint: ábra, és a 11. fejezet modelljei.
+          explain: R`Az U alakú kapcsolat nem monoton: az $r$ gyengének mutatná (a két ág kioltja egymást), a $\rho$ is csak a monoton kapcsolatot látja. A <a class="xref" href="#s-sum-dontes">döntési táblázat</a> szerint: ábra, és a 11. fejezet modelljei.
             A $\rho$ a monoton, de görbe kapcsolatra jó (pl. exponenciális), nem az U alakra; a csoportosítás pedig információt dob el.`
         },
         {
@@ -833,7 +833,7 @@
             "A fagyi fogyasztása növeli a fulladás kockázatát."
           ],
           answer: [0, 1, 2],
-          hint: "A menetrend utolsó lépése: ok-okozati szavak nélkül írj („együtt jár”, „összefügg”), hacsak nem kísérletből van az adat.",
+          hint: "A <a class='xref' href='#s38-b'>menetrend utolsó lépése</a>: ok-okozati szavak nélkül írj („együtt jár”, „összefügg”), hacsak nem kísérletből van az adat.",
           explain: R`Az első három leíró: együttmozgást és a rétegzés eredményét mondja ki. A „felelős” és a „növeli a kockázatot” okságot állít – ezt korrelációból nem lehet, csak kísérlettel
             vagy a zavaró változók gondos kiszűrésével. A 89% ráadásul az $r^2$ ok-okozati értelmezése.`
         }

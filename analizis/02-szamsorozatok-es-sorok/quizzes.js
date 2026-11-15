@@ -387,7 +387,7 @@
           options: [R`$\sqrt[n]{100}$`, R`$\sqrt[n]{n^2}$`, R`$\sqrt[n]{2^n}$`, R`$\left(1 + \tfrac1n\right)^n$`, R`$\left(1 + \tfrac1{n^2}\right)^n$`],
           answer: [0, 1, 4],
           hint: R`Nézd meg, mi van a gyök alatt (szám, polinom vagy exponenciális?), és az $1^\infty$ alakoknál ne feltételezd, hogy az eredmény 1!`,
-          explain: R`$\sqrt[n]{100} \to 1$ (bármely pozitív számra), $\sqrt[n]{n^2} = \left(\sqrt[n]n\right)^2 \to 1$. Viszont $\sqrt[n]{2^n} = 2$ minden $n$-re. Az $\left(1 + \tfrac1n\right)^n \to e$ – az $1^\infty$ kritikus alak, nem 1. Az $\left(1 + \tfrac1{n^2}\right)^n$ szintén $1^\infty$ alakú, de itt az alap olyan gyorsan közelít az 1-hez, hogy a határérték tényleg 1 (a 2.5 buktató-dobozának példája).`
+          explain: R`$\sqrt[n]{100} \to 1$ (bármely pozitív számra), $\sqrt[n]{n^2} = \left(\sqrt[n]n\right)^2 \to 1$. Viszont $\sqrt[n]{2^n} = 2$ minden $n$-re. Az $\left(1 + \tfrac1n\right)^n \to e$ – az $1^\infty$ kritikus alak, nem 1. Az $\left(1 + \tfrac1{n^2}\right)^n$ szintén $1^\infty$ alakú, de itt az alap olyan gyorsan közelít az 1-hez, hogy a határérték tényleg 1 (a <a class="xref" href="#s25-d-buktatok">2.5 buktató-dobozának</a> példája).`
         },
         {
           type: "set",
@@ -528,7 +528,7 @@
           options: ["a 9. év végére", "a 8. év végére", "a 12. év végére", "a 7. év végére"],
           answer: 0,
           hint: R`Oldd meg a $1{,}09^n = 2$ egyenletet logaritmussal – és nézd meg, hogyan kell kerekíteni!`,
-          explain: R`$n = \dfrac{\ln2}{\ln1{,}09} \approx 8{,}04$. Kerekítés: $1{,}09^8 \approx 1{,}993 \lt 2$, tehát 8 év még nem elég; $1{,}09^9 \approx 2{,}172$ – a 9. év végére duplázódik. A 8. év a lefelé kerekítés hibája (mint a 9,006 → 9 csapda), a 12. év az egyszerű kamat ($9\% \cdot n \ge 100\%$), a 7. év a 70-es szabály ($\tfrac{70}{9} \approx 7{,}8$) rossz kerekítése.`
+          explain: R`$n = \dfrac{\ln2}{\ln1{,}09} \approx 8{,}04$. Kerekítés: $1{,}09^8 \approx 1{,}993 \lt 2$, tehát 8 év még nem elég; $1{,}09^9 \approx 2{,}172$ – a 9. év végére duplázódik. A 8. év a lefelé kerekítés hibája (mint a <a class="xref" href="#s27-a-buktatok">9,006 → 9 csapda</a>), a 12. év az egyszerű kamat ($9\% \cdot n \ge 100\%$), a 7. év a 70-es szabály ($\tfrac{70}{9} \approx 7{,}8$) rossz kerekítése.`
         },
         {
           type: "single", shuffle: true,
@@ -644,7 +644,7 @@
           ],
           answer: [0, 2, 3],
           hint: R`Keress ellenpéldát a gyanús állításokra! Gondolj a $(-1)^n$ és a $(-1)^n n$ sorozatra.`,
-          explain: R`Konvergens ⇒ korlátos (a 2.3 tétele), de fordítva nem: a $(-1)^n$ korlátos, mégis divergens. A $\pm\infty$-hez tartó sorozat divergens, csak tágabb értelemben van határértéke. Konvergens sorozat minden részsorozata ugyanoda tart, ezért két különböző részsorozat-határérték divergenciát jelent. Az utolsó hamis: a $(-1)^n n$ se nem konvergens, se nem tart $\pm\infty$-hez.`
+          explain: R`Konvergens ⇒ korlátos (a <a class="xref" href="#s23-d-tetelek">2.3 tétele</a>), de fordítva nem: a $(-1)^n$ korlátos, mégis divergens. A $\pm\infty$-hez tartó sorozat divergens, csak tágabb értelemben van határértéke. Konvergens sorozat minden részsorozata ugyanoda tart, ezért két különböző részsorozat-határérték divergenciát jelent. Az utolsó hamis: a $(-1)^n n$ se nem konvergens, se nem tart $\pm\infty$-hez.`
         },
         {
           type: "single", shuffle: true,

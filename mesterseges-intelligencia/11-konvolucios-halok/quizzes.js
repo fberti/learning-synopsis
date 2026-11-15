@@ -83,7 +83,7 @@
       questions: [
         {
           type: "single", shuffle: true,
-          q: R`A 11.2 „T” képén ($5 \times 5$; felső sor csupa 1, középső oszlop csupa 1, a többi 0) a függőleges élkereső szűrő minden sora $(-1, 0, 1)$. Mennyi a kimenet 2. sorának 1. eleme (vagyis az ablak a kép 2–4. sora, 1–3. oszlopa)?`,
+          q: R`A <a class="xref" href="#s112-a-fuggoleges-t">11.2 „T” képén</a> ($5 \times 5$; felső sor csupa 1, középső oszlop csupa 1, a többi 0) a függőleges élkereső szűrő minden sora $(-1, 0, 1)$. Mennyi a kimenet 2. sorának 1. eleme (vagyis az ablak a kép 2–4. sora, 1–3. oszlopa)?`,
           options: ["3", "2", "−3", "0"],
           answer: 0,
           hint: "Az ablak minden sorában: jobb szélső mínusz bal szélső.",
@@ -437,7 +437,7 @@
           ],
           answer: 0,
           hint: "Mennyi a „mindenhol háttér” válasz pontossága?",
-          explain: "A „mindenhol háttér” válasz is 98%-os – a szám nem mondja meg, megtalálja-e a háló az objektumot. A ritka osztályra számolt IoU vagy Dice ezt méri (ugyanaz a csapda, mint a 6.1 pontossága)."
+          explain: "A „mindenhol háttér” válasz is 98%-os – a szám nem mondja meg, megtalálja-e a háló az objektumot. A ritka osztályra számolt IoU vagy Dice ezt méri (ugyanaz a csapda, mint a <a class='xref' href='../06-modellertekeles/#s61-a'>6.1 pontossága</a>)."
         }
       ]
     },

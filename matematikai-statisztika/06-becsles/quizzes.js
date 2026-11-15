@@ -123,7 +123,7 @@
           q: R`Óránkénti hibaüzenetek száma (Poisson-eloszlás): 3, 1, 4, 0, 2. Mi a $\lambda$ maximum likelihood becslése?`,
           options: ["2", "2,5", "10", "0,5"],
           answer: 0,
-          hint: R`A Poisson-példában $\ell'(\lambda) = -n + \frac{\sum x_i}{\lambda}$. Hol nulla?`,
+          hint: R`<a class="xref" href="#s62-b-poisson">A Poisson-példában</a> $\ell'(\lambda) = -n + \frac{\sum x_i}{\lambda}$. Hol nulla?`,
           explain: R`$\ell'(\lambda) = -5 + 10/\lambda = 0 \iff \hat\lambda = 2 = \bar x$ – itt egyezik a momentum-becsléssel. A 2,5 $= 10/4$ az $n-1$-es nevező (átlagnál nincs ilyen). A 10 az összeg. A 0,5 $= 1/\bar x$ az exponenciális eloszlás képletét keveri ide (ott $E(X) = 1/\lambda$, a Poissonnál $E(X) = \lambda$).`
         },
         {
@@ -366,7 +366,7 @@
           ],
           answer: 0,
           hint: R`A $\sigma^2$ a törtnek a nevezőjében áll: $(n-1)s^2/\sigma^2$. Mi történik az egyenlőtlenséggel, ha reciprokot veszel?`,
-          explain: R`$\chi^2_{\alpha/2} \lt (n-1)s^2/\sigma^2 \lt \chi^2_{1-\alpha/2}$. A reciprok megfordítja az egyenlőtlenségeket, ezért $\sigma^2 \gt (n-1)s^2/\chi^2_{1-\alpha/2}$: a <b>nagyobb</b> kvantilis adja az alsó határt. Ha a kisebbikkel osztasz, a „határok” helyet cserélnek (az alsó nagyobb lesz a felsőnél). A $z$ és a $t$ az átlag intervallumához kell; a szórásnál a $\chi^2$-tétel (5.5-a) az eszköz.`
+          explain: R`$\chi^2_{\alpha/2} \lt (n-1)s^2/\sigma^2 \lt \chi^2_{1-\alpha/2}$. A reciprok megfordítja az egyenlőtlenségeket, ezért $\sigma^2 \gt (n-1)s^2/\chi^2_{1-\alpha/2}$: a <b>nagyobb</b> kvantilis adja az alsó határt. Ha a kisebbikkel osztasz, a „határok” helyet cserélnek (az alsó nagyobb lesz a felsőnél). A $z$ és a $t$ az átlag intervallumához kell; a szórásnál a $\chi^2$-tétel (<a class="xref" href="../05-mintaveteli-eloszlasok/#s55-a">5.5-a</a>) az eszköz.`
         },
         {
           type: "single", shuffle: true,
@@ -429,7 +429,7 @@
             "felnőtt férfiak testmagassága (jó közelítéssel normális)"
           ],
           hint: "Csak egyetlen feltétel számít – és ezt a mintanagyság nem helyettesíti.",
-          explain: R`A $\chi^2$-intervallum feltétele a <b>normális sokaság</b>: ez a töltősúlyokra és a testmagasságra jó közelítéssel teljesül. Ferde adatoknál (jövedelem, várakozási idő) a lefedettség messze 95% alatt lehet. A tipikus hiba az átlag intervallumából áthozott gondolat, hogy „nagy mintán a CHT megment”: az $s^2$ eloszlása a sokaság csúcsosságától függ, és ez nagy $n$-nél sem tűnik el. Ilyenkor bootstrap (6.7) a jobb választás.`
+          explain: R`A $\chi^2$-intervallum feltétele a <b>normális sokaság</b>: ez a töltősúlyokra és a testmagasságra jó közelítéssel teljesül. Ferde adatoknál (jövedelem, várakozási idő) a lefedettség messze 95% alatt lehet. A tipikus hiba az átlag intervallumából áthozott gondolat, hogy „nagy mintán a CHT megment”: az $s^2$ eloszlása a sokaság csúcsosságától függ, és ez nagy $n$-nél sem tűnik el. Ilyenkor bootstrap (<a class="xref" href="#s67">6.7</a>) a jobb választás.`
         },
         {
           type: "single", shuffle: true,
@@ -517,7 +517,7 @@
             ["± 2 százalékpont", "2401 fő"],
             ["± 1 százalékpont", "9604 fő"]
           ],
-          hint: R`$n = 1{,}96^2/(4\Delta^2)$. A ± 3-hoz tartozó szám a fejezet kérdéséből ismerős; a többit a négyzetes összefüggés adja.`,
+          hint: R`$n = 1{,}96^2/(4\Delta^2)$. A ± 3-hoz tartozó szám <a class="xref" href="#s-kerdes">a fejezet kérdéséből</a> ismerős; a többit a négyzetes összefüggés adja.`,
           explain: R`$1{,}96^2 \cdot 0{,}25/\Delta^2$: ± 5 → 384,2 → 385; ± 3 → 1067,1 → 1068; ± 2 → 2401; ± 1 → 9604. Figyeld meg: a ± 2-ről ± 1-re (felezés) négyszeres minta, a ± 3-ról ± 1-re kilencszeres. Ezért áll meg a legtöbb felmérés 1000 fő körül – a pontosság gyorsan drágul.`
         }
       ]

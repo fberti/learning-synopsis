@@ -152,7 +152,7 @@
           ],
           answer: [0, 1, 2],
           hint: R`Nézd meg az SE képletét: kell-e benne $n_1 = n_2$ vagy $\sigma_1 = \sigma_2$? És mire épül a $D^2(X - Y) = D^2(X) + D^2(Y)$ tétel?`,
-          explain: R`A tétel <b>függetlenséget</b> kíván (különben a kovariancia nem 0); a $z$ képletében a <b>valódi</b> szórások szerepelnek; és a $z$ normalitásához normális sokaság vagy (CHT) nagy minta kell. A mintaméretek és a szórások bármilyenek lehetnek: a $\sqrt{\sigma_1^2/n_1 + \sigma_2^2/n_2}$ képlet ezt kezeli (a példában is 25 és 16 zacskó, 10 és 8 g szórás volt).`
+          explain: R`A tétel <b>függetlenséget</b> kíván (különben a kovariancia nem 0); a $z$ képletében a <b>valódi</b> szórások szerepelnek; és a $z$ normalitásához normális sokaság vagy (CHT) nagy minta kell. A mintaméretek és a szórások bármilyenek lehetnek: a $\sqrt{\sigma_1^2/n_1 + \sigma_2^2/n_2}$ képlet ezt kezeli (<a class="xref" href="#s82-b-gepek">a példában</a> is 25 és 16 zacskó, 10 és 8 g szórás volt).`
         },
         {
           type: "single", shuffle: true,
@@ -165,7 +165,7 @@
           ],
           answer: 0,
           hint: R`Idézd fel, miből jön a szórásnégyzetek összeadása: $D^2(X - Y) = D^2(X) + D^2(Y) - 2\,\mathrm{cov}(X, Y)$.`,
-          explain: R`A képlet a $-2\,\mathrm{cov}$ tag elhagyásával készült, ami csak <b>független</b> mintáknál jogos. Ha ugyanazt az embert mérjük kétszer, az eredményei együtt mozognak, a kovariancia pozitív – erre a páros próba való (8.4). A képlet egyforma mintaméretekkel is működik. A szórásokat sosem kivonjuk. A mintaméret itt nem számít: a baj a függetlenség hiánya.`
+          explain: R`A képlet a $-2\,\mathrm{cov}$ tag elhagyásával készült, ami csak <b>független</b> mintáknál jogos. Ha ugyanazt az embert mérjük kétszer, az eredményei együtt mozognak, a kovariancia pozitív – erre a páros próba való (<a class="xref" href="#s84">8.4</a>). A képlet egyforma mintaméretekkel is működik. A szórásokat sosem kivonjuk. A mintaméret itt nem számít: a baj a függetlenség hiánya.`
         },
         {
           type: "single", shuffle: true,
@@ -185,8 +185,8 @@
             "Két ismert szórású gép, de az egyikről 25, a másikról 16 zacskó van."
           ],
           answer: 0,
-          hint: "Mi az u-próba „nagy gyengesége” a szakasz 3. lépése szerint?",
-          explain: R`Az u-próba a sokasági szórás ismeretét kívánja. Új gépnél nincs honnan tudni; a mintából becsült $s$-sel – kis mintán – már $t$-eloszlás kell (8.3, 8.5). Az ismert szórású gépek és az IQ-teszt (szórása 15) jó példák az u-próbára. Az eltérő mintaméret nem akadály.`
+          hint: "Mi az u-próba „nagy gyengesége” <a class='xref' href='#s82-c'>a szakasz 3. lépése</a> szerint?",
+          explain: R`Az u-próba a sokasági szórás ismeretét kívánja. Új gépnél nincs honnan tudni; a mintából becsült $s$-sel – kis mintán – már $t$-eloszlás kell (<a class="xref" href="#s83">8.3</a>, <a class="xref" href="#s85">8.5</a>). Az ismert szórású gépek és az IQ-teszt (szórása 15) jó példák az u-próbára. Az eltérő mintaméret nem akadály.`
         }
       ]
     },
@@ -282,7 +282,7 @@
           ],
           answer: 0,
           hint: R`Öt adatból mennyire megbízható a szórásbecslés? Melyik eloszlás veszi ezt figyelembe?`,
-          explain: R`A normális eloszlás úgy tesz, mintha $s = \sigma$ biztosan igaz lenne; öt adatnál ez nagyon bizonytalan. Ezért a $z$-alapú p-érték itt kb. 150-szer kisebb a helyesnél, és általában is több téves riasztást ad. A „csak kerekítés” nem igaz: a 8.3-b példájában ($t = -2$, $n = 16$) a döntés is megfordul. A $t$-eloszlás farka <em>vastagabb</em>, nem vékonyabb – ezért nagyobb a p.`
+          explain: R`A normális eloszlás úgy tesz, mintha $s = \sigma$ biztosan igaz lenne; öt adatnál ez nagyon bizonytalan. Ezért a $z$-alapú p-érték itt kb. 150-szer kisebb a helyesnél, és általában is több téves riasztást ad. A „csak kerekítés” nem igaz: <a class="xref" href="#s83-b">a 8.3-b példájában</a> ($t = -2$, $n = 16$) a döntés is megfordul. A $t$-eloszlás farka <em>vastagabb</em>, nem vékonyabb – ezért nagyobb a p.`
         }
       ]
     },
@@ -309,7 +309,7 @@
         },
         {
           type: "single", shuffle: true,
-          q: R`A hat dolgozó példájában a páros próba $t \approx 3{,}22$-t ($p \approx 0{,}023$) ad, a két független mintás elemzés ugyanarra a 3 pontos javulásra $t \approx 0{,}43$-at ($p \approx 0{,}68$). Mi a különbség oka?`,
+          q: R`<a class="xref" href="#s84-a-hat-dolgozo">A hat dolgozó példájában</a> a páros próba $t \approx 3{,}22$-t ($p \approx 0{,}023$) ad, a két független mintás elemzés ugyanarra a 3 pontos javulásra $t \approx 0{,}43$-at ($p \approx 0{,}68$). Mi a különbség oka?`,
           options: [
             R`A független elemzés az emberek közti nagy szóródást (45–80 pont) is a zajhoz számolja; a páros elemzésben ez kiesik, mert mindenki önmagához hasonlít.`,
             R`A páros próbának több a szabadságfoka, ezért kisebb a kritikus érték.`,
@@ -348,7 +348,7 @@
           options: ["0,02", "0,08", "0,04", "0,98"],
           answer: 0,
           hint: R`A $t$-eloszlás szimmetrikus. A kétoldali p a két farok összege – hány farok kell most?`,
-          explain: R`Csak a jobb farok számít: $0{,}04/2 = 0{,}02$ (ahogy a betanítási példában is: kétoldali 0,023 → egyoldali 0,012). A 0,08 duplázza a már kétoldali p-t. A 0,04 a kétoldali érték. A 0,98 a másik irányú ($H_1$: $\mu_d \lt 0$) egyoldali p lenne: $1 - 0{,}02$. Az egyoldali p-t csak előre rögzített irány mellett használhatod.`
+          explain: R`Csak a jobb farok számít: $0{,}04/2 = 0{,}02$ (ahogy <a class="xref" href="#s84-a-hat-dolgozo">a betanítási példában</a> is: kétoldali 0,023 → egyoldali 0,012). A 0,08 duplázza a már kétoldali p-t. A 0,04 a kétoldali érték. A 0,98 a másik irányú ($H_1$: $\mu_d \lt 0$) egyoldali p lenne: $1 - 0{,}02$. Az egyoldali p-t csak előre rögzített irány mellett használhatod.`
         },
         {
           type: "single", shuffle: true,
@@ -418,7 +418,7 @@
           ],
           answer: 0,
           hint: R`Melyik csoport szórásnégyzete dominálja $s_p^2$-et, és mekkora a kis csoport valódi bizonytalansága?`,
-          explain: R`Ez az 5 vs 20 fős példa helyzete: a kisebb csoport szórása a nagyobb. Itt $s_p^2 = (5 \cdot 225 + 29 \cdot 16)/34 \approx 46{,}7$ a 16 felé húz, a közös SE kb. 3,06, a Welch-SE kb. 6,17 – a közös próba a felére becsüli a bizonytalanságot, és igaz $H_0$ mellett is sokszor riaszt (a szöveg példájában 28%-ban 5% helyett). A nagyobb $df$ nem ér semmit, ha az SE rossz. Az F-próbás előszűrés kis mintán gyenge és normalitásérzékeny – egyből Welch kell. A Welch épp eltérő csoportméreteknél és szórásoknál hasznos.`
+          explain: R`Ez az 5 vs 20 fős példa helyzete: a kisebb csoport szórása a nagyobb. Itt $s_p^2 = (5 \cdot 225 + 29 \cdot 16)/34 \approx 46{,}7$ a 16 felé húz, a közös SE kb. 3,06, a Welch-SE kb. 6,17 – a közös próba a felére becsüli a bizonytalanságot, és igaz $H_0$ mellett is sokszor riaszt (<a class="xref" href="#s85-c-ketto">a szöveg példájában</a> 28%-ban 5% helyett). A nagyobb $df$ nem ér semmit, ha az SE rossz. Az F-próbás előszűrés kis mintán gyenge és normalitásérzékeny – egyből Welch kell. A Welch épp eltérő csoportméreteknél és szórásoknál hasznos.`
         },
         {
           type: "multi",
@@ -539,7 +539,7 @@
           ],
           answer: [0, 1, 2],
           hint: "Az átlagot a CHT „megmenti” nagy mintán. Igaz ez a szórásnégyzet eloszlására is? Mitől függ annak ingadozása?",
-          explain: R`Az első három a 8.6-c táblázatából jön: ferde és vastag farkú adaton az F-próba sokat riaszt, és <b>a minta növelésével romlik</b>; rövid farkú (egyenletes) adaton túl óvatos. A szórásnégyzet ingadozása a farkak vastagságától (negyedik momentum) függ, ezt a CHT nem javítja – a „nagy minta megoldja” a t-próbára igaz, az F-re nem. A Levene-próba épp azért ajánlott, mert <em>kevésbé</em> érzékeny a normalitásra.`
+          explain: R`Az első három <a class="xref" href="#s86-c">a 8.6-c táblázatából</a> jön: ferde és vastag farkú adaton az F-próba sokat riaszt, és <b>a minta növelésével romlik</b>; rövid farkú (egyenletes) adaton túl óvatos. A szórásnégyzet ingadozása a farkak vastagságától (negyedik momentum) függ, ezt a CHT nem javítja – a „nagy minta megoldja” a t-próbára igaz, az F-re nem. A Levene-próba épp azért ajánlott, mert <em>kevésbé</em> érzékeny a normalitásra.`
         },
         {
           type: "single", shuffle: true,
@@ -636,7 +636,7 @@
           ],
           answer: 0,
           hint: R`Az összevont arány melyik hipotézisből következik? Van-e hipotézis a KI-nél?`,
-          explain: R`Az összevont arány $H_0$-ból jön: ha $p_1 = p_2$, egyetlen közös arány van. A KI-nél nincs $H_0$ – egy (lehet, hogy nem nulla) különbséget becsülünk, így a két arányt külön kell használni. Az összevont arány bármilyen csoportméretnél számolható. A külön SE nem mindig nagyobb (az A/B-példában 0,0340 vs 0,0342). Az egyoldali próbánál is összevont arányt használunk.`
+          explain: R`Az összevont arány $H_0$-ból jön: ha $p_1 = p_2$, egyetlen közös arány van. A KI-nél nincs $H_0$ – egy (lehet, hogy nem nulla) különbséget becsülünk, így a két arányt külön kell használni. Az összevont arány bármilyen csoportméretnél számolható. A külön SE nem mindig nagyobb (<a class="xref" href="#s87-b-ki">az A/B-példában</a> 0,0340 vs 0,0342). Az egyoldali próbánál is összevont arányt használunk.`
         },
         {
           type: "single", shuffle: true,

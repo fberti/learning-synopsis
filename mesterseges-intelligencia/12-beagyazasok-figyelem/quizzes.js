@@ -55,7 +55,7 @@
         },
         {
           type: "single", shuffle: true,
-          q: R`A 12.1 négy kritikájának szózsákjával (szótár: a, film, jó, volt, nem, zene, unalmas, remek) mennyi D2 = „a film nem volt jó” és D4 = „a film remek” koszinusz-hasonlósága?`,
+          q: R`A <a class="xref" href="#s121-b-negy-kritika">12.1 négy kritikájának</a> szózsákjával (szótár: a, film, jó, volt, nem, zene, unalmas, remek) mennyi D2 = „a film nem volt jó” és D4 = „a film remek” koszinusz-hasonlósága?`,
           options: ["0,516", "0,4", "0,133", "0,894"],
           answer: 0,
           hint: "Skaláris szorzat (a közös szavak száma) osztva a két vektor hosszának szorzatával. A hossz a négyzetösszeg gyöke.",
@@ -174,7 +174,7 @@
             ["fastText", "a betű-n-gramok vektorainak összege, ismeretlen szóhoz is ad vektort"]
           ],
           hint: "A skip-gram és a CBOW egymás „fordítottja”. Melyik módszer foglalkozik a szavak belsejével, a betűkkel?",
-          explain: "Mindegyik a disztribúciós hipotézisre épül: a hasonló környezetű szavak jelentése hasonló, és a címkét maga a szöveg adja (önfelügyelt tanulás). A skip-gram a középső szóból jósol, a CBOW a környezetből. A GloVe ugyanazt a gondolatot mátrixfaktorizációval valósítja meg (mint a 8.6 ízlés-vektorai). A fastText a betű-n-gramok miatt ragozott és ismeretlen alakhoz is tud vektort adni."
+          explain: "Mindegyik a disztribúciós hipotézisre épül: a hasonló környezetű szavak jelentése hasonló, és a címkét maga a szöveg adja (önfelügyelt tanulás). A skip-gram a középső szóból jósol, a CBOW a környezetből. A GloVe ugyanazt a gondolatot mátrixfaktorizációval valósítja meg (mint a <a class='xref' href='../08-felugyelet-nelkuli-tanulas/#s86-c'>8.6 ízlés-vektorai</a>). A fastText a betű-n-gramok miatt ragozott és ismeretlen alakhoz is tud vektort adni."
         }
       ]
     },
@@ -206,7 +206,7 @@
             ["Szöveget írni szóról szóra", "a következő elem jóslása"]
           ],
           hint: "Hány kimenet van, és ugyanannyi-e, mint a bemeneti tokenek száma?",
-          explain: "A spamszűrés egy egész sorozatból egy címkét ad. A szófaj tokenenként egy címke. A fordítás más hosszú kimenetet ad (a 12.4 témája). A szöveggenerálás mindig a következő tokent jósolja (12.6)."
+          explain: "A spamszűrés egy egész sorozatból egy címkét ad. A szófaj tokenenként egy címke. A fordítás más hosszú kimenetet ad (a <a class='xref' href='#s124-a'>12.4</a> témája). A szöveggenerálás mindig a következő tokent jósolja (<a class='xref' href='#s126-b'>12.6</a>)."
         },
         {
           type: "single", shuffle: true,
@@ -266,7 +266,7 @@
           ],
           answer: [0, 3, 4],
           hint: R`Nézd meg a $\mathbf c_t = \mathbf f_t \odot \mathbf c_{t-1} + \mathbf i_t \odot \mathbf g_t$ képletet. Mit enyhít az összeadásos frissítés, és mit nem?`,
-          explain: R`A cellaállapot „egyenes út”: nincs rajta $\tanh$ és $W$-szorzás, csak a felejtőkapu – mint a maradékkapcsolatnál. $\mathbf f = 1$, $\mathbf i = 0$ mellett $\mathbf c_t = \mathbf c_{t-1}$. A kísérletben az LSTM minden távolságon 99,9–100%-ot hozott. Az LSTM-et viszont ugyanúgy időbeli visszaterjesztéssel tanítjuk (a <em>Deep Learning – A Visual Approach</em> itt pontatlan), és csak az eltűnést enyhíti – a robbanásra gradiensvágás kell.`
+          explain: R`A cellaállapot „egyenes út”: nincs rajta $\tanh$ és $W$-szorzás, csak a felejtőkapu – mint a maradékkapcsolatnál. $\mathbf f = 1$, $\mathbf i = 0$ mellett $\mathbf c_t = \mathbf c_{t-1}$. A <a class="xref" href="#s123-c-tagadas">kísérletben</a> az LSTM minden távolságon 99,9–100%-ot hozott. Az LSTM-et viszont ugyanúgy időbeli visszaterjesztéssel tanítjuk (a <em>Deep Learning – A Visual Approach</em> itt pontatlan), és csak az eltűnést enyhíti – a robbanásra gradiensvágás kell.`
         }
       ]
     },
@@ -405,7 +405,7 @@
           ],
           answer: 0,
           hint: R`Mennyi lesz minden pontszám? És mit ad a softmax, ha minden bemenete egyenlő?`,
-          explain: R`Minden lekérdezés és kulcs nullvektor, így minden pontszám 0, a softmax pedig egyenlő súlyokat ad: $1/n$. A kimenet az értékek (itt a bemeneti vektorok) sima átlaga – ez a 12.3 átlagoló modellje. A nullvektor kimenet akkor jönne, ha $W_V$ lenne nulla; a „saját vektor” akkor, ha mindenki csak magára figyelne.`
+          explain: R`Minden lekérdezés és kulcs nullvektor, így minden pontszám 0, a softmax pedig egyenlő súlyokat ad: $1/n$. A kimenet az értékek (itt a bemeneti vektorok) sima átlaga – ez a <a class="xref" href="#s123-a">12.3 átlagoló modellje</a>. A nullvektor kimenet akkor jönne, ha $W_V$ lenne nulla; a „saját vektor” akkor, ha mindenki csak magára figyelne.`
         },
         {
           type: "single", shuffle: true,
@@ -637,7 +637,7 @@
       questions: [
         {
           type: "single", shuffle: true,
-          q: R`A 12.1 négy kritikájában D1 = „a film jó volt”, D3 = „a zene unalmas volt”, $\text{idf}(t) = \ln(4/\text{df}(t))$ (df: a: 4, film: 3, jó: 2, volt: 3, zene, unalmas: 1). Mennyi D1 és D3 koszinusz-hasonlósága TF-IDF-vektorokkal?`,
+          q: R`A <a class="xref" href="#s121-b-negy-kritika">12.1 négy kritikájában</a> D1 = „a film jó volt”, D3 = „a zene unalmas volt”, $\text{idf}(t) = \ln(4/\text{df}(t))$ (df: a: 4, film: 3, jó: 2, volt: 3, zene, unalmas: 1). Mennyi D1 és D3 koszinusz-hasonlósága TF-IDF-vektorokkal?`,
           options: ["0,052", "0,500", "0,318", "0,780"],
           answer: 0,
           hint: "Csak a közös szavak adnak tagot a skaláris szorzatba. Mennyi az „a” súlya?",
@@ -653,7 +653,7 @@
         },
         {
           type: "single", shuffle: true,
-          q: R`A 12.2 hatmondatos együttes-előfordulási táblájában (darabszámok; oszlopok: tejet, vizet, iszik, egeret, labdát, kerget, benzint, fogyaszt) a macska sora $(1, 0, 1, 1, 0, 1, 0, 0)$, a kutyáé $(0, 1, 1, 0, 1, 1, 0, 0)$. Hozzáveszünk egy hetedik mondatot: „a kutya tejet iszik”. Mennyi most a macska–kutya koszinusz?`,
+          q: R`A <a class="xref" href="#s122-c-hat-mondat">12.2 hatmondatos együttes-előfordulási táblájában</a> (darabszámok; oszlopok: tejet, vizet, iszik, egeret, labdát, kerget, benzint, fogyaszt) a macska sora $(1, 0, 1, 1, 0, 1, 0, 0)$, a kutyáé $(0, 1, 1, 0, 1, 1, 0, 0)$. Hozzáveszünk egy hetedik mondatot: „a kutya tejet iszik”. Mennyi most a macska–kutya koszinusz?`,
           options: ["0,707", "0,671", "0,500", "0,750"],
           answer: 0,
           hint: "A kutya sorában két szám változik – az egyik 2 lesz. A hossz is megváltozik!",
@@ -674,7 +674,7 @@
         },
         {
           type: "single", shuffle: true,
-          q: R`A 12.3 játék-RNN-je: $h_{\text{új}} = \tanh(0{,}5\,h + x)$, $h_0 = 0$; unalmas $= -1$, jó $= +1$, de $= 0$. Mennyi $h_3$ az „unalmas jó de” sorozat után?`,
+          q: R`A <a class="xref" href="#s123-b-emlekezet">12.3 játék-RNN-je</a>: $h_{\text{új}} = \tanh(0{,}5\,h + x)$, $h_0 = 0$; unalmas $= -1$, jó $= +1$, de $= 0$. Mennyi $h_3$ az „unalmas jó de” sorozat után?`,
           options: ["0,269", "0,250", "−0,551", "0,000"],
           answer: 0,
           hint: "Lépésről lépésre: minden lépésben a régi állapot felét adod a szó értékéhez, aztán tanh.",
@@ -690,7 +690,7 @@
         },
         {
           type: "single", shuffle: true,
-          q: R`Puha keresés (12.4): kulcsok $\mathbf k_1 = (2;\ 0) \to 10$, $\mathbf k_2 = (0;\ 2) \to 20$, $\mathbf k_3 = (1;\ 1) \to 30$; a lekérdezés $\mathbf q = (2;\ 0)$, skálázás nélkül. Mennyi a válasz?`,
+          q: R`Puha keresés (<a class="xref" href="#s124-b">12.4</a>): kulcsok $\mathbf k_1 = (2;\ 0) \to 10$, $\mathbf k_2 = (0;\ 2) \to 20$, $\mathbf k_3 = (1;\ 1) \to 30$; a lekérdezés $\mathbf q = (2;\ 0)$, skálázás nélkül. Mennyi a válasz?`,
           options: ["12,50", "10,00", "20,00", "16,67"],
           answer: 0,
           hint: "Pontszám skaláris szorzattal, súly softmax-szal, válasz az értékek súlyozott átlaga.",
@@ -722,7 +722,7 @@
           options: [R`$(1{,}5;\ 0{,}5)$`, R`$(1{,}401;\ 0{,}401)$`, R`$(1;\ 0{,}670)$`, R`$(1{,}203;\ 0{,}401)$`],
           answer: 0,
           hint: "A levél a 2. token: kikre figyelhet? A megmaradt súlyok összege legyen 1.",
-          explain: R`A levél csak a fára és magára figyelhet; mindkét pontszám 2, így a súlyok $0{,}5$–$0{,}5$: $0{,}5\cdot(2;0) + 0{,}5\cdot(1;1) = (1{,}5;\ 0{,}5)$. Az $(1{,}401;\ 0{,}401)$ a maszk nélküli (12.5) eredmény, az $(1;\ 0{,}670)$ a rossz háromszöget maszkolja (magára és a hullikra figyel), az $(1{,}203;\ 0{,}401)$ a softmax után nulláz, és nem normál újra.`
+          explain: R`A levél csak a fára és magára figyelhet; mindkét pontszám 2, így a súlyok $0{,}5$–$0{,}5$: $0{,}5\cdot(2;0) + 0{,}5\cdot(1;1) = (1{,}5;\ 0{,}5)$. Az $(1{,}401;\ 0{,}401)$ a maszk nélküli (<a class="xref" href="#s125-a">12.5</a>) eredmény, az $(1;\ 0{,}670)$ a rossz háromszöget maszkolja (magára és a hullikra figyel), az $(1{,}203;\ 0{,}401)$ a softmax után nulláz, és nem normál újra.`
         },
         {
           type: "single", shuffle: true,

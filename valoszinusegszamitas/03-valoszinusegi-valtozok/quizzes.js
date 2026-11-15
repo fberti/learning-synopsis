@@ -490,7 +490,7 @@
           ],
           answer: 1,
           hint: R`Bontsd ki $\operatorname{Cov}(a + b, a - b)$-t a bilinearitással; a függetlenséghez nézd meg, mit árul el $S = 2$ a $D$-ről.`,
-          explain: R`$\operatorname{Cov}(a + b, a - b) = D^2(a) - D^2(b) = 0$, de pl. $S = 2$ esetén biztosan $D = 0$ – nem függetlenek. Nézd meg a 3.8 szemléltetésében!`
+          explain: R`$\operatorname{Cov}(a + b, a - b) = D^2(a) - D^2(b) = 0$, de pl. $S = 2$ esetén biztosan $D = 0$ – nem függetlenek. Nézd meg a <a class="xref" href="#s38-a-szemleltetes">3.8 szemléltetésében</a>!`
         },
         {
           q: "A szentpétervári játékban (az első fejig dobunk, a k-adik dobásnál jövő első fej 2^k dukátot ér) mennyi a nyeremény várható értéke korlátlan bank mellett?",
