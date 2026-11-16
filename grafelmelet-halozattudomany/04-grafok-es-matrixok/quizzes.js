@@ -571,7 +571,7 @@
           ],
           answer: [0, 1, 2],
           hint: "Melyik állítás állít többet, mint amit egy 7 csúcsú gráf és egy választott modell alátámaszt?",
-          explain: R`A „linkek = együttes említések” és az „egyenletes választás” a mi döntésünk; súlyozva a Polgármester nyert a holtverseny helyett – tehát a séta igenis függ a súlyozástól. Hét csúcs és 12 cikk kevés ahhoz, hogy felfedezésről beszéljünk: ehhez nullmodell kell (<a class="xref" href="../07-halozatmodellek/">7.</a> és 10. fejezet). A Fiedler-vektor mindig két részt ad, akkor is, ha nincs (vagy három van) csoport – hogy hány csoport van, azt a közösségkeresés dönti el (<a class="xref" href="../08-kozossegek/">8. fejezet</a>).`
+          explain: R`A „linkek = együttes említések” és az „egyenletes választás” a mi döntésünk; súlyozva a Polgármester nyert a holtverseny helyett – tehát a séta igenis függ a súlyozástól. Hét csúcs és 12 cikk kevés ahhoz, hogy felfedezésről beszéljünk: ehhez nullmodell kell (<a class="xref" href="../07-halozatmodellek/">7.</a> és <a class="xref" href="../10-halozatok-osszehasonlitasa/#s106">10. fejezet</a>). A Fiedler-vektor mindig két részt ad, akkor is, ha nincs (vagy három van) csoport – hogy hány csoport van, azt a közösségkeresés dönti el (<a class="xref" href="../08-kozossegek/">8. fejezet</a>).`
         }
       ]
     },

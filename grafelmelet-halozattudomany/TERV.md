@@ -729,6 +729,10 @@ Science*; Hegselmann–Krause (2002).
 **Nagy kérdés:** *A Reggeli Hírlap és a Nyitott Szó szereplőhálózata „hasonlít” – de mennyire, és ez több-e, mint ami
 véletlenül is kijönne? Egyáltalán: hogyan lehet két hálózatot összehasonlítani, és mikor szignifikáns a különbség?*
 
+> **Megvalósítás (2026-11-16):** mappa `10-halozatok-osszehasonlitasa/`; nyolc szakasz – a TERV hét szakasza mellé **10.8 Alkalmazás** került. A nagy kérdés a rögzített adatokhoz igazítva: a RH és a NY szereplőgráfjának **nincs** közös éle, ezért a fejezet a **Vidéki Napló és a Nyitott Szó** párját veszi (Jaccard 0,5; $r$ = 0,61 hét szereplőn, naiv $p$ = 0,003, QAP $p$ = 3/35 ≈ 0,086; négy szereplőn $r$ = 1/3, QAP $p$ = 18/24 = 0,75 – a teljes felsorolás kézzel levezethető). Hét eleje vs. vége: $J$ = 0,3, $r$ = 0,22, QAP $p$ = 0,29.
+> Valós adat: **Krackhardt (1987) high-tech menedzserei** (`krack-data.js`, a NetData R-csomagból): tanácskérés ~ barátság $r$ = 0,155, QAP $p$ ≈ 0,02 (naiv 0,0015); MRQAP barátság 0,136 (DSP $p$ ≈ 0,10), jelent 0,472, $R^2$ 0,063 – egyezik az ASNR 14.3 táblázatával. Gerinc: Árvízhét $w \ge 2$, diszparitásszűrő (a TERV 10, 1, 1, 1 példája: 0,012 / 0,79; az Árvízhéten α = 0,05-nél egy él sem marad), Les Misérables; páros gerinc = a 7.6 nullmodellje. Hiány: egy él (Ko–Po) törlése a köztességi első helyet Po-ról Vi-re viszi; karateklub-tábla. Érzékenységi rács: Les Mis küszöb × felbontás. ERGM: 4 csúcs, 64 gráf teljes felsorolással, illesztés, degeneráció 6 csúcson.
+> Kvízek `gh10-101` … `gh10-108`, `gh10-final`. Widgetek: `overlap-compare`, `naive-vs-qap`, `qap-lab`, `mrqap-lab`, `backbone-filter`, `missing-data`, `sensitivity-grid`, `ergm-toy`.
+
 **Cél:** a IV. blokk statisztikai eszköztára: élátfedés (Jaccard), mátrixkorreláció és **QAP** (a NAS fő eszköze),
 MRQAP-regresszió, hálózati gerinc (backbone) kivonása, bootstrap és mintavételi torzítás, az ERGM és az időbeli modellek
 röviden. Hálózatoknál a megfigyelések **nem függetlenek** – a hagyományos próbák nem használhatók.

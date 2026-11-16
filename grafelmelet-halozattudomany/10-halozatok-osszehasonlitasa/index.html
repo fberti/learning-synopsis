@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>10. Hálózatok összehasonlítása – Gráfelmélet és hálózattudomány – Synopsis</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="../../assets/common.js"></script>
+  <script defer src="../../assets/quiz.js"></script>
+  <script defer src="../../assets/graph.js"></script>
+  <script defer src="../arvizhet-data.js"></script>
+  <script defer src="../../mesterseges-intelligencia/13-graf-neuralis-halok/graph-data.js"></script>
+  <script defer src="../08-kozossegek/lesmis-data.js"></script>
+  <script defer src="krack-data.js"></script>
+  <script defer src="widgets.js"></script>
+  <script defer src="quizzes.js"></script>
+</head>
+<body>
+<div class="progressbar"></div>
+<header class="topbar">
+  <a class="brand" href="../../">📚 Synopsis</a>
+  <span class="crumbs"><a href="../../">Tartalomjegyzék</a> › <a href="../">Gráfelmélet és hálózattudomány</a> › 10. fejezet</span>
+  <button class="icon-btn" data-theme-toggle title="Téma váltása">🌙</button>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <div class="toc-title">10. fejezet</div>
+  <ol>
+    <li><a href="#s101">10.1 Élátfedés</a></li>
+    <li><a href="#s102">10.2 Mátrixkorreláció</a></li>
+    <li><a href="#s103">10.3 QAP-próba</a></li>
+    <li><a href="#s104">10.4 MRQAP-regresszió</a></li>
+    <li><a href="#s105">10.5 Hálózati gerinc</a></li>
+    <li><a href="#s106">10.6 Hiányzó adat, robusztusság</a></li>
+    <li><a href="#s107">10.7 Kitekintés: ERGM</a></li>
+    <li><a href="#s108">10.8 Alkalmazás</a></li>
+    <li><a href="#s-sum">Összefoglalás</a></li>
+    <li><a href="#s-check">Ellenőrző kérdések</a></li>
+    <li><a href="#s-ex">Vegyes gyakorló feladatok</a></li>
+    <li><a href="#s-final">Fejezetzáró teszt</a></li>
+    <li><a href="#s-gloss">Szómagyarázó</a></li>
+  </ol>
+</nav>
+
+<main class="content">
+
+<section class="hero" style="padding-top:.5rem">
+  <div class="kicker">Gráfelmélet és hálózattudomány · 10. fejezet · ★★–★★★</div>
+  <h1>Hálózatok összehasonlítása és statisztikai következtetés</h1>
+  <p class="lead">Eddig egy-egy hálózatot írtunk le: ki a központi, hol vannak háromszögek, milyen csoportok vannak, mi terjed el rajta. Most <b>két hálózatot</b> teszünk egymás mellé. Mennyire hasonlítanak?
+  És ha hasonlítanak, több-e ez annál, ami véletlenül is kijönne? Ehhez statisztika kell – de a megszokott próbák itt <b>csődöt mondanak</b>, mert egy hálózat elemei nem függetlenek egymástól.</p>
+</section>
+
+<div class="box tip">
+  <span class="box-title">Mit fogsz megtanulni?</span>
+  <ul style="margin:.2rem 0">
+    <li>megmérni két hálózat <b>élátfedését</b> (Jaccard-index, súlyozott változat) és <b>korrelációját</b> (mátrixkorreláció);</li>
+    <li>megérteni, miért ad <b>hamis</b> p-értéket a szokásos korrelációs próba hálózati adaton;</li>
+    <li>elvégezni a <b>QAP-próbát</b>: kézzel 4 csúcson, mind a 24 permutációval, aztán géppel nagy hálózatokon;</li>
+    <li>értelmezni egy <b>MRQAP-regressziót</b>: több magyarázó hálózat egyszerre (Y-permutáció, kettős szemi-parciális eljárás);</li>
+    <li>kivonni egy sűrű, súlyozott hálózat <b>gerincét</b> (globális küszöb vs. diszparitásszűrő);</li>
+    <li>felmérni, mennyire <b>érzékeny</b> egy eredmény a hiányzó adatra és a saját döntéseidre (küszöb, felbontás);</li>
+    <li>megérteni az <b>ERGM</b> ötletét: „logisztikus regresszió” a hálózat éleire.</li>
+  </ul>
+</div>
+
+<div class="box">
+  <span class="box-title">🔁 Amit használni fogunk</span>
+  Az <a href="../01-mi-a-halozat/">1. fejezetből</a>: az Árvízhét <b>szereplőgráfja</b> (együttemlítés). A <a href="../03-graftipusok/">3. fejezetből</a>: <b>súlyozott</b> és <b>irányított</b> gráf, <b>páros gráf</b> és <b>vetület</b> (<a class="xref" href="../03-graftipusok/#s34-b">3.4</a>).
+  Az <a href="../05-centralitas/">5. fejezetből</a>: <b>fokszám</b> és <b>köztesség</b>, a centralitások <b>rangkorrelációja</b> (<a class="xref" href="../05-centralitas/#s57-b">5.7</a>). A <a href="../07-halozatmodellek/">7. fejezetből</a>: a <b>nullmodell</b> ötlete, z-érték és empirikus p (<a class="xref" href="../07-halozatmodellek/#s74-d">7.4</a>), a cikk–szereplő nullmodell (<a class="xref" href="../07-halozatmodellek/#s75-b">7.5</a>).
+  A <a href="../08-kozossegek/">8. fejezetből</a>: <b>Louvain</b>, felbontási paraméter, <b>NMI</b> (<a class="xref" href="../08-kozossegek/#s87-a">8.7</a>).
+  A Matematikai statisztikából: a <b>korrelációs együttható</b> (<a class="xref" href="../../matematikai-statisztika/03-ket-valtozo-kapcsolata/#s35-a">3.5</a>), a <b>p-érték</b> (<a class="xref" href="../../matematikai-statisztika/07-hipotezisvizsgalat/#s73-a">7.3</a>) és a <b>permutációs próba</b> (<a class="xref" href="../../matematikai-statisztika/07-hipotezisvizsgalat/#s76-a">7.6</a>).
+</div>
+
+<div class="box example">
+  <span class="box-title">🎯 A fejezet kérdése</span>
+  Az Árvízhét négy lapja közül a <b>Vidéki Napló</b> és a <b>Nyitott Szó</b> szereplőhálózata hasonlít a legjobban: a VN három éléből kettő a NY-ban is megvan. A két mátrix korrelációja $r = 0{,}61$, és a szokásos korrelációs próba szerint ez <b>erősen szignifikáns</b> ($p = 0{,}003$).
+  Kimondhatjuk, hogy a két lap ugyanazt a <b>napirendet</b> követi – ugyanazokat a szereplőket kapcsolja össze? Vagy két ilyen kicsi hálózatban ennyi egyezés véletlenül is gyakran kijön – és a „szokásos próba” egyszerűen rossz kérdésre felel? A válasz a <a href="#s108">10.8</a>-ban.
+</div>
+
+<p><b>Útiterv</b> – a legegyszerűbb összevetéstől a hálózati modellekig:</p>
+<ol>
+  <li><a href="#s101">Élátfedés</a> – hány él közös? A Jaccard-index.</li>
+  <li><a href="#s102">Mátrixkorreláció</a> – a két mátrix cellái egy pontdiagramon. És miért hazudik a szokásos p-érték?</li>
+  <li><a href="#s103">QAP-próba</a> – keverjük össze a csúcsok neveit, és nézzük meg, mi jön ki véletlenül.</li>
+  <li><a href="#s104">MRQAP-regresszió</a> – ha több hálózat együtt magyaráz egy harmadikat.</li>
+  <li><a href="#s105">Hálózati gerinc</a> – egy sűrű, súlyozott hálózatból melyik él számít?</li>
+  <li><a href="#s106">Hiányzó adat, robusztusság</a> – mennyire bízhatsz az eredményben, ha az adat hiányos, és a beállítások a te döntéseid?</li>
+  <li><a href="#s107">Kitekintés: ERGM</a> – ha nem csak tesztelni, hanem <b>modellezni</b> akarjuk az éleket.</li>
+  <li><a href="#s108">Alkalmazás</a> – a fejezet kérdése, Krackhardt menedzserei és egy ellenőrző lista.</li>
+</ol>
+
+<div class="box tip">
+  <span class="box-title">📐 Jelölések ebben a fejezetben</span>
+  $n$ csúcs, $A$ és $B$ két hálózat szomszédsági mátrixa ugyanazon a csúcshalmazon, $a_{ij}$, $b_{ij}$ a cellák. $E_A$, $E_B$ az élhalmazok, $J$ a Jaccard-index.
+  $N$ a <b>cellák</b> (csúcspárok, <b>diádok</b>) száma: irányítatlan gráfban $N = n(n-1)/2$, irányítottban $n(n-1)$. $r$ a megfigyelt korreláció, $r^*$ egy permutált korreláció, $\pi$ egy permutáció.
+  Gerincnél $w_{ij}$ az él súlya, $s_i$ a csúcs erőssége (súlyösszeg), $k_i$ a fokszáma, $\alpha$ a szignifikanciaszint. ERGM-nél $\theta$ a paraméter.
+  <br><small>⚠️ A $\pi$ itt <b>permutáció</b> – a <a class="xref" href="../09-terjedes/#s96">9.6</a>-ban ugyanez a betű a DeGroot-súly volt.</small>
+</div>
+
+<!-- ===================================================== 10.1 -->
+<section id="s101">
+<h2>10.1 Élátfedés ★</h2>
+<p>A legegyszerűbb kérdés két hálózatról: <b>hány kapcsolat közös bennük?</b> Ehhez az kell, hogy a két hálózat <b>ugyanazokon a csúcsokon</b> legyen (itt: az Árvízhét 7 szereplője), és csak az éleik különbözzenek.
+Ilyen helyzet a hírelemzésben folyton előáll: ugyanazok a szereplők két lapban, két héten, két platformon – vagy a média és a közönség „fejében”.</p>
+
+<h3 id="s101-a">1. lépés: közös élek és a Jaccard-index</h3>
+<div class="box example" id="s101-a-vnny">
+  <span class="box-title">Kiinduló példa – a Vidéki Napló és a Nyitott Szó</span>
+  Mindkét lapnak három cikke van. Az együttemlítési hálózatuk (két szereplő között él, ha egy cikkben szerepelnek együtt) – a lapokra bontott gráfokat az <a class="xref" href="../01-mi-a-halozat/#s17-b">1.7</a>-ben már láttuk:
+  <div class="two-col">
+    <div><div class="gfig" data-nodes="Ko,Vi,Po,La,Ön,Sz,Kl" data-edges="Po-Vi,Po-La,Po-Ön" data-hl="Po-La,Po-Ön"
+      data-pos="Kl:.6,0 Sz:0,.5 Ko:1.3,.5 Vi:.65,1 Po:1.6,1.3 La:2.4,1 Ön:2.3,1.9" data-w="280" data-h="190" data-r="15"
+      data-caption="Vidéki Napló (cikkek 10–12): Po–Vi, Po–La, Po–Ön"></div></div>
+    <div><div class="gfig" data-nodes="Ko,Vi,Po,La,Ön,Sz,Kl" data-edges="La-Ön,Po-La,Po-Ön" data-hl="Po-La,Po-Ön"
+      data-pos="Kl:.6,0 Sz:0,.5 Ko:1.3,.5 Vi:.65,1 Po:1.6,1.3 La:2.4,1 Ön:2.3,1.9" data-w="280" data-h="190" data-r="15"
+      data-caption="Nyitott Szó (cikkek 7–9): La–Ön, Po–La, Po–Ön"></div></div>
+  </div>
+  Sorold fel az éleket! A VN-ben: $\{\mathrm{Po}\text{–}\mathrm{Vi},\ \mathrm{Po}\text{–}\mathrm{La},\ \mathrm{Po}\text{–}\text{Ön}\}$. A NY-ban: $\{\mathrm{La}\text{–}\text{Ön},\ \mathrm{Po}\text{–}\mathrm{La},\ \mathrm{Po}\text{–}\text{Ön}\}$.
+  <b>Közös</b> (mindkettőben megvan): Po–La, Po–Ön – <b>2 él</b> (kiemelve). <b>Legalább az egyikben</b> megvan: Po–Vi, Po–La, Po–Ön, La–Ön – <b>4 él</b>.
+  A közös élek aránya az összes előforduló élhez: $2/4 = 0{,}5$.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – Jaccard-index két élhalmazra</span>
+  Két hálózat ugyanazon a csúcshalmazon, élhalmazuk $E_A$ és $E_B$. Az <b>élátfedésük</b> (Jaccard-index):
+  $$J(A, B) = \frac{|E_A \cap E_B|}{|E_A \cup E_B|} = \frac{\text{közös élek}}{\text{az egyikben vagy a másikban meglévő élek}}.$$
+  $J = 0$: nincs közös él. $J = 1$: a két élhalmaz ugyanaz. Az unió mérete $|E_A| + |E_B| - |E_A \cap E_B|$.
+  <small>Miért az unió a nevező? Mert így a mérőszám mindkét hálózat „hiányait” bünteti: ami csak az egyikben van, az a nevezőt növeli, a számlálót nem. (A <a class="xref" href="../03-graftipusok/#s34-c-normalizalt">3.4</a>-ben ugyanezt az ötletet két szereplő cikkhalmazára használtuk, a vetület normalizálásához.)</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – Reggeli Hírlap és Vidéki Napló</span>
+    Az RH élei: Ko–Vi, Ko–Po, Vi–Po. Mennyi a Jaccard-index a VN-nel?
+    <details><summary>Megoldás</summary>Közös: Vi–Po (1 él). Unió: $3 + 3 - 1 = 5$. $J = 1/5 = 0{,}2$.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a hét eleje és a hét vége</span>
+    Ossz két részre a 12 cikket: hétfő–szerda (1, 2, 4, 7, 10, 11) és csütörtök–vasárnap (3, 5, 6, 8, 9, 12). Az első részben 6 különböző él van, a másodikban 7, és ebből 3 közös (Ko–Po, Po–La, La–Ön). Mennyi a $J$?
+    <details><summary>Megoldás</summary>Unió: $6 + 7 - 3 = 10$. $J = 3/10 = 0{,}3$. A hét eleje és vége kevésbé hasonlít, mint a VN és a NY – pedig itt jóval több él van.</details>
+  </div>
+</div>
+
+<p>A négy lap minden párjára (Python):</p>
+<div class="tw" style="overflow-x:auto"><table>
+  <tr><th></th><th>RH</th><th>EK</th><th>NY</th><th>VN</th></tr>
+  <tr><th>RH</th><td>–</td><td>0</td><td>0</td><td>0,2</td></tr>
+  <tr><th>EK</th><td>0</td><td>–</td><td>0</td><td>0</td></tr>
+  <tr><th>NY</th><td>0</td><td>0</td><td>–</td><td><b>0,5</b></td></tr>
+  <tr><th>VN</th><td>0,2</td><td>0</td><td><b>0,5</b></td><td>–</td></tr>
+</table></div>
+<p>Az Esti Krónika (Szakértő, Klímaváltozás) egyik lappal sem oszt meg élt: egészen más szereplőket kapcsol össze. A VN–NY pár a „leghasonlóbb”.</p>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az összeggel osztani az unió helyett.</b> A VN–NY-ra $2/(3 + 3) = 0{,}33$ – így a közös éleket kétszer számolnád a nevezőben. A helyes nevező $3 + 3 - 2 = 4$.</li>
+    <li><b>Különböző csúcshalmazokon összevetni.</b> Ha az egyik hálózatban 7 szereplő van, a másikban 70, a közös élek száma nem összemérhető. Előbb rögzítsd a közös csúcshalmazt.</li>
+    <li><b>A Jaccardot „szignifikanciának” olvasni.</b> A $J = 0{,}5$ azt mondja meg, <b>mennyi</b> a közös – azt nem, hogy ez <b>sok-e</b>. Két nagyon sűrű hálózatnak véletlenül is sok közös éle van. Hogy mihez mérjük, az a <a class="xref" href="#s103">10.3</a> témája.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – közös élek és Jaccard-index</summary>
+  <ol>
+    <li>$E_A = \{AB, AC, BC\}$, $E_B = \{AB, BC, CD\}$. Mennyi a $J$?
+      <details><summary>Megoldás</summary>Közös: AB, BC (2). Unió: AB, AC, BC, CD (4). $J = 2/4 = 0{,}5$.</details></li>
+    <li>Két 6 élű hálózatnak 4 éle közös. Mennyi a $J$?
+      <details><summary>Megoldás</summary>Unió: $6 + 6 - 4 = 8$, $J = 4/8 = 0{,}5$.</details></li>
+    <li>Az A hálózat 5 éle mind megvan a B-ben, amelynek 20 éle van. Mennyi a $J$? Mit nem árul el ez a szám?
+      <details><summary>Megoldás</summary>Unió: 20, $J = 5/20 = 0{,}25$. Nem árulja el, hogy az A <b>teljesen</b> benne van a B-ben – a nagyon különböző élszám lehúzza a $J$-t. (Erre az átfedési együttható, $|E_A \cap E_B| / \min(|E_A|, |E_B|) = 1$ érzékenyebb.)</details></li>
+    <li>Az Esti Krónika élei: Ko–Sz, Ko–Kl, Vi–Sz, Sz–Kl. Mennyi a $J$ a Reggeli Hírlappal (Ko–Vi, Ko–Po, Vi–Po)?
+      <details><summary>Megoldás</summary>Nincs közös él: $J = 0$ (az unió 7). Pedig mindkét lapban szerepel a Kormány és a Vízügy – a <b>csúcsok</b> közösek, a <b>kapcsolatok</b> nem.</details></li>
+    <li>(nehezebb) Két hálózat 10 csúcson; mindkettőben 9 él van, a $J = 0{,}8$. Hány él közös?
+      <details><summary>Megoldás</summary>$x/(18 - x) = 0{,}8$ → $x = 14{,}4 - 0{,}8x$ → $1{,}8x = 14{,}4$ → $x = 8$. Ellenőrzés: unió $18 - 8 = 10$, $8/10 = 0{,}8$. ✓</details></li>
+  </ol>
+</details>
+
+<h3 id="s101-b">2. lépés: súlyozott élek – a súlyozott Jaccard</h3>
+<p>Eddig csak azt néztük, <b>van-e</b> él. A Nyitott Szóban azonban a Lakók és az Önkéntesek <b>mindhárom</b> cikkben együtt szerepelnek, a VN-ben egyszer sem. Egy súlyozott hálózatnál (<a class="xref" href="../03-graftipusok/#s32-a">3.2</a>) a „mennyire” is számít.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – VN és NY, súllyal</span>
+  A súly = a közös cikkek száma. Írjuk egymás alá a négy csúcspárt, ahol legalább az egyik lapban van él:
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>pár</th><th>VN</th><th>NY</th><th>kisebb (min)</th><th>nagyobb (max)</th></tr>
+    <tr><td>Po–Vi</td><td>1</td><td>0</td><td>0</td><td>1</td></tr>
+    <tr><td>Po–La</td><td>1</td><td>1</td><td>1</td><td>1</td></tr>
+    <tr><td>Po–Ön</td><td>1</td><td>1</td><td>1</td><td>1</td></tr>
+    <tr><td>La–Ön</td><td>0</td><td>3</td><td>0</td><td>3</td></tr>
+    <tr><td><b>összesen</b></td><td>3</td><td>5</td><td><b>2</b></td><td><b>6</b></td></tr>
+  </table></div>
+  A „közös súly” a kisebbik érték, az „összes súly” a nagyobbik. Arányuk $2/6 = 1/3$ – kisebb, mint a bináris $0{,}5$, mert a NY legerősebb kapcsolata (La–Ön, 3) a VN-ből teljesen hiányzik.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – súlyozott Jaccard-index</span>
+  $$J_w(A, B) = \frac{\sum_{i \lt j} \min(a_{ij}, b_{ij})}{\sum_{i \lt j} \max(a_{ij}, b_{ij})}.$$
+  0–1 közötti szám; ha minden súly 0 vagy 1, visszakapjuk a bináris $J$-t. Hasznos azonosság: $\max(x, y) = x + y - \min(x, y)$, ezért a nevező = a két teljes súly összege mínusz a számláló.
+  <small>Miért? A $\min$ az a „mennyiség”, ami mindkettőben megvan (mint a közös élek), a $\max$ az, ami legalább az egyikben (mint az unió). 0/1 súlynál a $\min = 1$ pontosan a közös éleknél, a $\max = 1$ pontosan az unió éleinél.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a hét két fele, súllyal</span>
+    A hét elején a teljes súly 8, a hét végén 10; a közös élek kisebbik súlyainak összege 3 (Ko–Po 1, Po–La 1, La–Ön 1). Mennyi a $J_w$?
+    <details><summary>Megoldás</summary>Nevező: $8 + 10 - 3 = 15$. $J_w = 3/15 = 0{,}2$ (a bináris $0{,}3$ helyett).</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – ugyanaz, kétszer annyi cikkel</span>
+    Egy lap kétszer annyit ír ugyanarról: minden súlya kétszerese a VN-ének (2, 2, 2). Mennyi a $J_w$ az eredeti VN-nel?
+    <details><summary>Megoldás</summary>$\sum\min = 3$, $\sum\max = 6$: $J_w = 0{,}5$ – pedig a két lap <b>arányaiban</b> ugyanazt írja. A bináris $J = 1$.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A terjedelmet összekeverni a tartalommal.</b> Egy nagy lap minden súlya nagyobb, ezért a $J_w$ egy kicsi és egy nagy lap között mindig kicsi. Ha a <b>szerkezetet</b> akarod összevetni, előbb normáld a súlyokat (pl. osszd el a lap teljes súlyával – arányok), és azokkal számolj.</li>
+    <li><b>Csak a közös éleken számolni.</b> A $\sum\max$-ban azok az élek is benne vannak, amelyek csak az egyik hálózatban vannak meg – ezek nélkül a $J_w$ felfelé torzít.</li>
+  </ul>
+</div>
+
+<p>Próbáld ki! Válassz két részkorpuszt (lapot vagy a hét egy részét), és nézd, melyik élek közösek, és mennyi a két Jaccard-index.</p>
+<div class="widget" data-widget="overlap-compare"></div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – súlyozott Jaccard</summary>
+  <ol>
+    <li>Két hálózat súlyai három csúcspáron: $A = (2, 1, 0)$, $B = (1, 1, 1)$. Mennyi a $J_w$?
+      <details><summary>Megoldás</summary>$\min$: 1, 1, 0 → 2. $\max$: 2, 1, 1 → 4. $J_w = 0{,}5$.</details></li>
+    <li>Mennyi a VN és a NY bináris és súlyozott Jaccard-indexe, ha a NY-ban a La–Ön súlya csak 1 lenne?
+      <details><summary>Megoldás</summary>Binárisan nem változik: $0{,}5$. Súlyozottan: $\sum\min = 2$, $\sum\max = 1 + 1 + 1 + 1 = 4$, $J_w = 0{,}5$ – ekkor a kettő egyezik, mert minden súly 0 vagy 1.</details></li>
+    <li>Az A teljes súlya 12, a B-é 8, és $\sum\min = 5$. Mennyi a $J_w$?
+      <details><summary>Megoldás</summary>$\sum\max = 12 + 8 - 5 = 15$, $J_w = 5/15 = 1/3$.</details></li>
+    <li>Normáld a VN és a NY súlyait arányokra (osszd a lap teljes súlyával: 3, illetve 5), és számold ki így a $J_w$-t!
+      <details><summary>Megoldás</summary>VN: Po–Vi, Po–La, Po–Ön egyenként $1/3$. NY: Po–La $0{,}2$, Po–Ön $0{,}2$, La–Ön $0{,}6$. $\sum\min = 0{,}2 + 0{,}2 = 0{,}4$, $\sum\max = 1/3 + 1/3 + 1/3 + 0{,}6 = 1{,}6$. $J_w = 0{,}25$.</details></li>
+    <li>(nehezebb) Lehet-e a súlyozott Jaccard nagyobb, mint a bináris?
+      <details><summary>Megoldás</summary>Igen. Ha a közös élek nagy súlyúak, a csak egyikben meglévők kicsik: pl. $A = (5, 1, 0)$, $B = (5, 0, 1)$. Binárisan $J = 1/3$, súlyozottan $5/7 \approx 0{,}71$.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh10-101"></div>
+</section>
+
+<!-- ===================================================== 10.2 -->
+<section id="s102">
+<h2>10.2 Mátrixkorreláció ★★</h2>
+<p>A Jaccard-index csak a meglévő éleket nézi. Egy másik ötlet: tekintsük a két szomszédsági mátrixot két <b>változónak</b>, amelyeket ugyanazokon a „megfigyelési egységeken” mértünk – a <b>csúcspárokon</b> (diádokon) –, és számoljuk ki a <b>korrelációjukat</b>.
+Így a közös <b>hiányok</b> (ahol egyik lapban sincs él) is számítanak, és a súlyok is.</p>
+
+<h3 id="s102-a">1. lépés: a cellák mint adatpontok</h3>
+<div class="box example" id="s102-a-negy">
+  <span class="box-title">Kiinduló példa – VN és NY négy szereplőn</span>
+  Szorítkozzunk arra a négy szereplőre, aki a két lap valamelyikében előfordul: Po, Vi, La, Ön. Négy csúcson $4 \cdot 3/2 = 6$ csúcspár van. Írjuk egymás alá a két mátrix celláit (súly nélkül: van él = 1):
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>pár</th><th>Po–Vi</th><th>Po–La</th><th>Po–Ön</th><th>Vi–La</th><th>Vi–Ön</th><th>La–Ön</th></tr>
+    <tr><td>$x$ = VN</td><td>1</td><td>1</td><td>1</td><td>0</td><td>0</td><td>0</td></tr>
+    <tr><td>$y$ = NY</td><td>0</td><td>1</td><td>1</td><td>0</td><td>0</td><td>1</td></tr>
+  </table></div>
+  Ez két 6 elemű adatsor – számolhatunk velük úgy, mint bármely két változóval (<a class="xref" href="../../matematikai-statisztika/03-ket-valtozo-kapcsolata/#s35-a">Mat. stat. 3.5</a>). Az átlagok: $\bar x = \bar y = 0{,}5$. A kovariancia: $\overline{xy} - \bar x \bar y = 2/6 - 0{,}25 = 1/12$.
+  A szórások: $\sqrt{0{,}5 - 0{,}25} = 0{,}5$ mindkettőnél. A korreláció: $r = \dfrac{1/12}{0{,}5 \cdot 0{,}5} = \dfrac13$.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – mátrixkorreláció</span>
+  Két hálózat ugyanazon az $n$ csúcson, mátrixuk $A$ és $B$. Tegyük sorba a <b>főátlón kívüli</b> cellákat (irányítatlan gráfnál csak az $i \lt j$ párokat, $N = n(n-1)/2$ darabot; irányítottnál mind az $N = n(n-1)$ cellát), és számoljuk ki a két sorozat Pearson-korrelációját:
+  $$r(A, B) = \frac{\sum_{i \ne j} (a_{ij} - \bar a)(b_{ij} - \bar b)}{\sqrt{\sum_{i \ne j} (a_{ij} - \bar a)^2}\ \sqrt{\sum_{i \ne j} (b_{ij} - \bar b)^2}}.$$
+  <small>Miért nem a teljes mátrix? A főátló (önhurok) nem kapcsolat két szereplő között; és irányítatlan gráfban minden cella kétszer szerepelne ($a_{ij} = a_{ji}$), ami a korrelációt nem változtatná, de az elemszámot hamisan megduplázná.</small>
+  Bináris (0/1) mátrixoknál ez a <b>$\varphi$-együttható</b>: ha $a$ = hány párban van él mindkettőben, $b$ = csak az $A$-ban, $c$ = csak a $B$-ben, $d$ = egyikben sem, akkor $r = \dfrac{ad - bc}{\sqrt{(a+b)(c+d)(a+c)(b+d)}}$.
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – ugyanez súllyal</span>
+    Ha a NY celláiba a súlyt írjuk ($y = (0, 1, 1, 0, 0, 3)$), mennyi az $r$?
+    <details><summary>Megoldás</summary>$\bar y = 5/6$, $\overline{xy} = 2/6$, kovariancia $1/3 - 0{,}5 \cdot 5/6 = -1/12$. A $y$ szórása $\sqrt{11/6 - 25/36} \approx 1{,}067$. $r = -0{,}083/(0{,}5 \cdot 1{,}067) \approx -0{,}156$.
+      <b>Negatív!</b> A NY legerősebb kapcsolata (La–Ön, 3) a VN-ből hiányzik, és ez az egy cella elviszi a korrelációt. A súlyozott és a bináris $r$ más kérdésre felel.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – mind a hét szereplőn</span>
+    Most vegyük mind a 7 szereplőt: 21 csúcspár. Mindkét lapban 3 él van, ebből 2 közös. Számold ki a $\varphi$-t!
+    <details><summary>Megoldás</summary>$a = 2$ (mindkettő), $b = 1$ (csak VN: Po–Vi), $c = 1$ (csak NY: La–Ön), $d = 21 - 4 = 17$ (egyik sem). $r = \dfrac{2 \cdot 17 - 1 \cdot 1}{\sqrt{3 \cdot 18 \cdot 3 \cdot 18}} = \dfrac{33}{54} \approx 0{,}611$.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A csúcshalmaz „semleges” döntésnek tekintése.</b> Ugyanaz a két lap 4 szereplőn $r = 0{,}33$, 7 szereplőn $r = 0{,}61$. A hozzávett 3 szereplő (Ko, Sz, Kl) egyik lapban sem szerepel: 15 új „mindkettőben 0” cellát hoznak, és ezek egyezésnek számítanak. Hogy kik tartoznak a csúcshalmazba, azt a kérdés dönti el (itt: a hét összes szereplője? vagy csak akiről a két lap írt?) – és meg kell mondani.</li>
+    <li><b>A főátlót vagy a szimmetrikus párt is beszámolni.</b> Irányítatlan gráfnál minden pár egyszer szerepel. Irányítottnál viszont $a_{ij}$ és $a_{ji}$ két külön cella (két különböző kapcsolat: ki kitől kér tanácsot).</li>
+    <li><b>Bináris és súlyozott eredményt keverni.</b> Mindig írd ki, melyiket számoltad.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – mátrixkorreláció</summary>
+  <ol>
+    <li>Hány cellát korrelálunk egy 10 csúcsú irányítatlan, illetve irányított hálózatnál?
+      <details><summary>Megoldás</summary>Irányítatlan: $10 \cdot 9/2 = 45$. Irányított: $10 \cdot 9 = 90$.</details></li>
+    <li>Két bináris hálózat 4 csúcson: $x = (1, 1, 0, 0, 0, 0)$, $y = (1, 1, 0, 0, 0, 0)$. Mennyi az $r$? És ha $y = (0, 0, 1, 1, 0, 0)$?
+      <details><summary>Megoldás</summary>Azonos sorozat: $r = 1$. A másodiknál nincs közös él: $a = 0$, $b = 2$, $c = 2$, $d = 2$: $r = (0 - 4)/\sqrt{2 \cdot 4 \cdot 2 \cdot 4} = -4/8 = -0{,}5$.</details></li>
+    <li>A hét eleje és vége (7 szereplő, 21 pár): 3 közös él, 3 csak az elején, 4 csak a végén. Mennyi a $\varphi$?
+      <details><summary>Megoldás</summary>$d = 21 - 10 = 11$. $r = (3 \cdot 11 - 3 \cdot 4)/\sqrt{6 \cdot 15 \cdot 7 \cdot 14} = 21/\sqrt{8820} \approx 0{,}224$.</details></li>
+    <li>Ha egy ötödik, mindkét hálózatban élek nélküli csúcsot adsz a 4 csúcsú VN–NY példához, nő vagy csökken a $\varphi$?
+      <details><summary>Megoldás</summary>Nő: 4 új „egyik sem” cella jön ($d$: 2 → 6). $r = (2 \cdot 6 - 1)/\sqrt{3 \cdot 7 \cdot 3 \cdot 7} = 11/21 \approx 0{,}52$.</details></li>
+    <li>(nehezebb) Két bináris hálózat 7 csúcson (21 cella), mindkettőben 3 él, és <b>nincs</b> közös él. Mennyi a $\varphi$? Lehet-e a $\varphi$ ennél is kisebb ugyanilyen élszámokkal?
+      <details><summary>Megoldás</summary>$a = 0$, $b = c = 3$, $d = 15$: $r = (0 - 9)/\sqrt{3 \cdot 18 \cdot 3 \cdot 18} = -9/54 \approx -0{,}167$. Kisebb nem lehet: 3–3 élnél a „legrosszabb” eset az, ha egyetlen él sem közös. (A $\varphi$ alsó határa tehát az élszámoktól függ – a ritka hálózatok korrelációja sosem megy le $-1$-ig.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s102-b">2. lépés: miért hazudik a szokásos p-érték?</h3>
+<p>Van egy korrelációnk, $r = 0{,}611$, 21 adatpárból. A szokásos próba (<a class="xref" href="../../matematikai-statisztika/07-hipotezisvizsgalat/#s73-a">Mat. stat. 7.3</a>) azt mondja: $t = r\sqrt{N-2}/\sqrt{1-r^2} = 3{,}37$, $p = 0{,}003$. Ez erős bizonyítéknak tűnik. De a próba feltételezi, hogy a <b>21 cellapár egymástól független</b> megfigyelés. Igaz ez?</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – mi „mozog együtt”?</span>
+  Nézd meg a VN három élét: Po–Vi, Po–La, Po–Ön. Mind a három a Po-n megy át – a VN hálózata egy <b>csillag</b>. A NY három éle egy <b>háromszög</b> (Po, La, Ön).
+  Képzeld el, hogy a csillag közepe nem a Po, hanem a Ko lenne. Akkor egyetlen közös él sem lenne – <b>egyszerre</b> esne ki mind a három egyezés. A cellák tehát nem külön-külön „pénzfeldobások”: egy csúcs <b>összes cellája együtt mozog</b>.
+  A Po 21 cellából 6-ban szerepel; ha a Po-ról kiderül, hogy „aktív”, az 6 cellát érint egyszerre.
+</div>
+
+<div class="box def">
+  <span class="box-title">A probléma – a diádok nem függetlenek</span>
+  Hálózatban a megfigyelési egység, a <b>diád</b> (csúcspár), nem független a többitől: az $(i, j)$ és az $(i, k)$ cella <b>közös csúcson</b> osztozik, és ha az $i$-nek valami tulajdonsága (aktivitás, népszerűség, központi szerep) sok élt ad, az a sorát és az oszlopát egyszerre emeli. Ezt <b>sor- és oszlopautokorrelációnak</b> hívják (Krackhardt, 1988).
+  Következmény: a szokásos próba úgy számol, mintha $N = n(n-1)/2$ független megfigyelésünk lenne, holott a valódi információ jóval kevesebb – ezért a p-érték <b>túl kicsi</b>, és a próba túl gyakran „talál” kapcsolatot ott is, ahol nincs.
+  <small>Miért? Ha két hálózatban vannak „aktív” csúcsok, a soraik nagy értékei sok cellapárban egyszerre esnek egybe vagy nem – a korreláció ingadozása sokkal nagyobb, mint $N$ független pontnál. A próba ezt az ingadozást alábecsüli.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – hány cellán osztozik egy csúcs?</span>
+    Egy 21 fős szervezet irányított tanácskérési hálózatában hány cella tartozik egy adott emberhez (mint kérdezőhöz vagy megkérdezetthez)?
+    <details><summary>Megoldás</summary>A sora $20$, az oszlopa $20$ cella: összesen $40$ a $420$-ból. Egy ember „szokása” (pl. sokakat kérdez) 20 cellát mozgat egyszerre.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – két független hálózat, mégis „szignifikáns”</span>
+    Szimuláció: két <b>teljesen független</b> súlyozott hálózat 20 csúcson, mindkettőben csúcsonkénti „aktivitással” (van, aki minden kapcsolatában erős). Hányszor ad a naiv próba $p \lt 0{,}05$-öt?
+    <details><summary>Megoldás</summary>Csúcshatás nélkül 4,5%-ban – ahogy kell. Közepes csúcshatással 24%-ban, erőssel 46–48%-ban! Minden második „felfedezés” hamis. Ugyanebben a szimulációban a <a class="xref" href="#s103">10.3</a> QAP-próbája végig 5% körül marad (400 kísérlet, Python).</details>
+  </div>
+</div>
+
+<p>Próbáld ki! Állítsd a csúcshatás erősségét, és figyeld, hogyan nő a naiv próba hamis riasztásainak aránya.</p>
+<div class="widget" data-widget="naive-vs-qap"></div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A cellákat független mintának venni.</b> Egy hálózati korreláció mellé a szokásos t-próba vagy a táblázatkezelő p-értéke <b>nem</b> használható. Ez a hálózatkutatás egyik leggyakoribb módszertani hibája.</li>
+    <li><b>Azt hinni, hogy a nagy $N$ megment.</b> Több csúcs több cellát ad, de a függőség is marad: a próba ilyenkor még magabiztosabban téved.</li>
+    <li><b>A függőséget „hibának” tekinteni, amit el kell tüntetni.</b> A közös csúcs a hálózat lényege. Nem eltüntetni kell, hanem olyan próbát választani, amely megtartja – ez a QAP.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a függőség</summary>
+  <ol>
+    <li>Egy 5 csúcsú irányítatlan hálózatban hány cellában szerepel egy adott csúcs, és ez a cellák hány százaléka?
+      <details><summary>Megoldás</summary>4 cellában a 10-ből: 40%.</details></li>
+    <li>Két hálózat 30 csúcson, irányítatlanul. A naiv próba $N = ?$ független megfigyeléssel számol.
+      <details><summary>Megoldás</summary>$N = 30 \cdot 29/2 = 435$ – pedig csak 30 „egység” (szereplő) van, akiknek a tulajdonságai a cellákon át ismétlődnek.</details></li>
+    <li>Miért mozog együtt egy csillag összes éle, ha a csillag középpontját egy másik csúcsra tesszük?
+      <details><summary>Megoldás</summary>Mert mind ugyanazon a csúcson megy át: ha a középpont máshová kerül, mind a $k$ él egyszerre kerül máshová. Az egyezések nem egyenként, hanem „csomagban” jönnek vagy mennek.</details></li>
+    <li>Egy kutató 200 szereplő együttemlítési hálózatát korrelálja két évben, és a táblázatkezelő $p = 10^{-12}$-t ad. Mit mondanál neki?
+      <details><summary>Megoldás</summary>Hogy ez a p-érték független cellákat feltételez ($N = 19\,900$), ami hálózatban nem teljesül – túl kicsi. QAP-pal kell újraszámolni. (A korreláció maga lehet jó leíró szám; csak a p-érték hamis.)</details></li>
+    <li>(nehezebb) Ha a két hálózat <b>egyikében</b> sincs csúcshatás (az élek teljesen véletlenek, egymástól függetlenül), akkor is hibás a naiv próba?
+      <details><summary>Megoldás</summary>Nagyjából nem: a szimulációban csúcshatás nélkül 4,5% a hamis riasztás. A gond akkor jelentkezik, ha <b>mindkét</b> hálózatban van sor- / oszlopfüggőség – a valós hálózatokban (hubok, aktív szereplők) szinte mindig van.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh10-102"></div>
+</section>
+
+<!-- ===================================================== 10.3 -->
+<section id="s103">
+<h2>10.3 QAP-próba ★★</h2>
+<p>A szokásos próba azért téved, mert összekeveri a cellákat, mintha függetlenek lennének. Mi lenne, ha a nullhipotézist úgy gyártanánk le, hogy a két hálózat <b>szerkezete pontosan megmaradjon</b>, és csak az <b>illesztésük</b> legyen véletlen?
+Ez a <b>QAP</b> (<em>quadratic assignment procedure</em>, kvadratikus hozzárendelési eljárás) ötlete. Pontosan úgy működik, mint a <a class="xref" href="../../matematikai-statisztika/07-hipotezisvizsgalat/#s76-a">Mat. stat. 7.6</a> permutációs próbája – csak nem a megfigyeléseket keverjük, hanem a <b>csúcsok nevét</b>.</p>
+
+<h3 id="s103-a">1. lépés: kézzel, mind a 24 permutációval</h3>
+<div class="box example" id="s103-a-24">
+  <span class="box-title">Kiinduló példa – VN és NY négy szereplőn</span>
+  A VN egy csillag (közepe Po), a NY egy háromszög (Po, La, Ön) és egy magányos csúcs (Vi); $r = 1/3$ (<a class="xref" href="#s102-a-negy">10.2</a>).
+  Most „cseréljük össze a neveket” a NY-ban: egy permutáció minden NY-szereplőt átnevez (pl. Po ↔ Vi). A NY gráfja ugyanaz marad – egy háromszög és egy magányos csúcs –, csak más nevekkel (<b>izomorf</b>, <a class="xref" href="../01-mi-a-halozat/#s16-c">1.6</a>). Ezt rakjuk a VN mellé, és újra kiszámoljuk a korrelációt.
+  <p style="margin:.4rem 0">4 szereplőnek $4! = 24$ átnevezése van. Két eset lehetséges:</p>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>hová kerül a NY magányos csúcsa?</th><th>közös élek</th><th>$r^*$</th><th>hány permutáció?</th></tr>
+    <tr><td>a VN csillagának egyik levelére (Vi, La vagy Ön)</td><td>2</td><td>$1/3$</td><td>$3 \cdot 3! = 18$</td></tr>
+    <tr><td>a csillag közepére (Po)</td><td>0</td><td>$-1$</td><td>$1 \cdot 3! = 6$</td></tr>
+  </table></div>
+  A megfigyelt $r = 1/3$ a <b>legnagyobb</b> lehetséges érték – mégis a 24 permutációból 18 legalább ennyit ad: $p = 18/24 = 0{,}75$. Négy szereplőn a „két közös él” a <b>legtipikusabb</b> eredmény, semmi meglepő nincs benne.
+</div>
+
+<div class="box def">
+  <span class="box-title">A QAP-próba lépései</span>
+  <ol style="margin:.2rem 0">
+    <li>Számold ki a megfigyelt mátrixkorrelációt: $r = r(A, B)$.</li>
+    <li>Válassz egy permutációt $\pi$, és nevezd át vele a $B$ csúcsait: $b^*_{ij} = b_{\pi(i)\pi(j)}$ – a <b>sorokat és az oszlopokat együtt</b>, ugyanazzal a $\pi$-vel. Számold ki $r^* = r(A, B^*)$-ot.</li>
+    <li>Ismételd mind az $n!$ permutációra (vagy nagy $n$-nél sok ezer véletlenre).</li>
+    <li>A p-érték: a permutációk hányad része ad legalább akkora $r^*$-ot, mint a megfigyelt (egyoldali; kétoldali: $|r^*| \ge |r|$). Az identitás is permutáció – ezért $p \ge 1/n!$.</li>
+  </ol>
+  <b>Nullhipotézis:</b> a két hálózat szerkezete adott, de a csúcsaik <b>megfeleltetése</b> véletlen – az, hogy ki melyik szereplő, nem számít.
+  <small>Miért a sorokat és oszlopokat együtt? Mert így egy csúcs minden kapcsolata vele együtt költözik: a hálózat fokszámai, csillagai, háromszögei, minden függősége megmarad. Csak a két hálózat <b>egymáshoz illesztése</b> lesz véletlen. Pontosan ezt a függőséget hagyta figyelmen kívül a naiv próba.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example" id="s103-a-5040">
+    <span class="box-title">Példa – mind a 7 szereplőn: 5040 permutáció</span>
+    Hét szereplőn $r = 0{,}611$. A $7! = 5040$ permutáció közül hány ad legalább ennyit?
+    <details><summary>Megoldás</summary>Csak akkor jön ki ismét 2 közös él, ha a csillag közepe a háromszögbe kerül ($3/7$ esély), <b>és</b> a háromszög másik két csúcsa a csillag három levele közé esik (a maradék 6 csúcsból 3 levél: $\binom41 / \binom63 = 4/20$ esély). $p = \frac37 \cdot \frac{4}{20} = \frac{3}{35} \approx 0{,}086$ – azaz 432 permutáció.
+      A lehetséges értékek: $0{,}611$ (2 közös él, 432-szer), $0{,}222$ (1 közös, 1296-szor), $-0{,}167$ (0 közös, 3312-szer). A naiv $p = 0{,}003$ helyett tehát $p = 0{,}086$.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a hét eleje és vége</span>
+    7 szereplő, bináris, $r = 0{,}224$. Mit ad a QAP?
+    <details><summary>Megoldás</summary>Az 5040 permutációból 1440 ad $r^* \ge 0{,}224$-et: $p \approx 0{,}29$ (naiv: 0,33). A hét két felének hálózata <b>nem</b> hasonlít jobban, mint két véletlenül egymásra tett, ugyanilyen alakú hálózat. (Súlyozva még kevésbé: $r = 0{,}019$, $p = 0{,}53$.)</details>
+  </div>
+</div>
+
+<div class="box tip">
+  <span class="box-title">👍 Hüvelykujjszabály</span>
+  <b>A QAP a szerkezetet megtartja, csak a neveket keveri.</b> A kérdése: „ha ugyanezt a két alakzatot véletlenül tennénk egymásra, milyen gyakran egyeznének ennyire?” És: <b>kevés csúcson nincs erő</b> – 4 csúcson a legkisebb elérhető p-érték is $1/24 \approx 0{,}04$, és ehhez az kellene, hogy egyetlen permutáció se érje utol a megfigyeltet.
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A sorokat és az oszlopokat külön permutálni, vagy a cellákat egyenként keverni.</b> Az már nem átnevezés: szétszedi a csúcsok kapcsolatait, és visszahozza a függetlenségi feltevést. A cellánkénti keverés pontosan a naiv próba hibáját ismétli (túl szűk nulleloszlás, túl kicsi p).</li>
+    <li><b>Kihagyni az identitást.</b> A megfigyelt elrendezés is egy a lehetségesek közül; ha kihagyod, a p-érték lehet 0 – ami permutációs próbánál értelmetlen. Véletlen permutációknál a szokás: $p = (k+1)/(\text{futások} + 1)$.</li>
+    <li><b>Egyoldali és kétoldali keverése.</b> Ha előre azt vártad, hogy a két hálózat <b>hasonlít</b>, egyoldali ($r^* \ge r$). Ha bármilyen irányú kapcsolat érdekel, kétoldali ($|r^*| \ge |r|$).</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – QAP teljes felsorolással</summary>
+  <ol>
+    <li>Hány permutációt kell kipróbálni teljes felsorolással 5, 6, 8 csúcson?
+      <details><summary>Megoldás</summary>$5! = 120$, $6! = 720$, $8! = 40\,320$.</details></li>
+    <li>Egy 5 csúcsú QAP-ban a 120 permutációból 9 ad legalább akkora $r^*$-ot, mint a megfigyelt (az identitást is beleértve). Mennyi a $p$? Szignifikáns 5%-on?
+      <details><summary>Megoldás</summary>$p = 9/120 = 0{,}075$ – nem szignifikáns.</details></li>
+    <li>A 4 csúcsú VN–NY példában mennyi lenne a <b>kétoldali</b> p-érték?
+      <details><summary>Megoldás</summary>$|r^*| \ge 1/3$: mind a 24 permutáció ($|-1| \ge 1/3$ is) – $p = 1$.</details></li>
+    <li>Miért kell 4 csúcson az összes $r^*$-nak legalább kétféle értéke lennie ahhoz, hogy a próba egyáltalán „szignifikáns” lehessen?
+      <details><summary>Megoldás</summary>Ha minden permutáció ugyanazt az $r^*$-ot adná, a megfigyelt is ennyi lenne, és $p = 1$. Kis $p$-hez az kell, hogy a megfigyelt érték egy <b>ritka</b> szélső csoportba essen – 4 csúcson legfeljebb $1/24$ ritkaságú lehet.</details></li>
+    <li>(nehezebb) 7 szereplőn egy 3 élű csillag és egy háromszög: mekkora az esélye egy véletlen permutációnál, hogy <b>egyetlen</b> közös él se legyen?
+      <details><summary>Megoldás</summary>$3312/5040 = 23/35 \approx 0{,}657$. Ellenőrzés: ha a csillag közepe kívül esik a háromszögön ($4/7$), biztosan 0; ha bent van ($3/7$), akkor annak kell 0-nak lennie, hogy a háromszög két másik csúcsából egy sem levél: $\binom43/\binom63 = 4/20$. $4/7 + 3/7 \cdot 0{,}2 = 0{,}657$. ✓</details></li>
+  </ol>
+</details>
+
+<h3 id="s103-b">2. lépés: nagy hálózaton – véletlen permutációk</h3>
+<p>21 csúcson $21! \approx 5{,}1 \cdot 10^{19}$ permutáció van – ezt nem lehet végigpróbálni. Ilyenkor <b>véletlen</b> permutációkat húzunk (pl. 5000-et), és a p-értéket ezekből becsüljük – pontosan úgy, mint a nagy mintás permutációs próbánál (<a class="xref" href="../../matematikai-statisztika/07-hipotezisvizsgalat/#s76-b">Mat. stat. 7.6</a>).</p>
+
+<div class="box example" id="s103-b-krack">
+  <span class="box-title">Kiinduló példa – Krackhardt menedzserei</span>
+  David Krackhardt (1987) egy szilíciumvölgyi cég 21 vezetőjét kérdezte meg: kitől kérsz tanácsot? Kit tartasz a barátodnak? (És a szervezeti ábrából: ki kinek jelent?) Három <b>irányított</b> hálózat ugyanazon a 21 emberen, $N = 21 \cdot 20 = 420$ cellával.
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>hálózat</th><th>élek</th><th>sűrűség</th></tr>
+    <tr><td>tanácskérés ($i$ tanácsot kér $j$-től)</td><td>190</td><td>0,45</td></tr>
+    <tr><td>barátság ($i$ barátjának tartja $j$-t)</td><td>102</td><td>0,24</td></tr>
+    <tr><td>jelent ($j$ az $i$ főnöke)</td><td>20</td><td>0,05</td></tr>
+  </table></div>
+  Kérdés: a barátaidtól kérsz tanácsot? A tanácskérés és a barátság mátrixkorrelációja $r = 0{,}155$. 20&nbsp;000 véletlen QAP-permutációból 369 adott legalább ennyit (Python): $p \approx 0{,}018$ (egyoldali). A permutált $r^*$-ok átlaga 0, szórásuk 0,072, a legnagyobb 0,27.
+  A naiv próba szerint $p = 0{,}0015$ – tizenkétszer kisebb.
+</div>
+
+<div class="box def">
+  <span class="box-title">Szabály – QAP véletlen permutációkkal</span>
+  Húzz $M$ véletlen permutációt (mindegyik egyformán valószínű), számold meg, hány ad $r^* \ge r$-t ($k$ darab), és $\hat p = (k + 1)/(M + 1)$.
+  A becslés pontossága: a standard hiba kb. $\sqrt{p(1-p)/M}$ – $p \approx 0{,}02$-nél és $M = 5000$-nél $\approx 0{,}002$.
+  <small>Miért? Minden véletlen permutáció egy „pénzfeldobás”: $p$ eséllyel ad legalább akkora $r^*$-ot. A $k$ így binomiális, az aránya $p$ körül $\sqrt{p(1-p)/M}$ szórással ingadozik. Ha a döntés a határon van (pl. $p \approx 0{,}05$), növeld az $M$-et.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – tanácskérés és főnök</span>
+    A tanácskérés és a „kinek jelent” korrelációja $r = 0{,}224$. 20&nbsp;000 permutációból egy sem érte el (a legnagyobb $r^* = 0{,}20$ volt). Mennyi a $\hat p$?
+    <details><summary>Megoldás</summary>$\hat p = (0 + 1)/(20\,000 + 1) \approx 0{,}00005$: $p \lt 0{,}001$. A főnöktől kért tanács nagyon erős mintázat. (De ne írd, hogy $p = 0$!)</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – elég-e 1000 permutáció?</span>
+    Ha a valódi $p \approx 0{,}02$, mekkora a becslés hibája 1000, illetve 5000 permutációval?
+    <details><summary>Megoldás</summary>$\sqrt{0{,}02 \cdot 0{,}98/1000} \approx 0{,}0044$, illetve $\approx 0{,}002$. Az 5%-os döntéshez mindkettő elég; a harmadik tizedesjegyhez az 5000 sem.</details>
+  </div>
+</div>
+
+<p>Próbáld ki! Válassz egy hálózatpárt, permutálj egyenként (figyeld, hogy a sorok és oszlopok együtt mozognak), aztán sokszor – és nézd, hová esik a megfigyelt $r$ a nulleloszláshoz képest.</p>
+<div class="widget" data-widget="qap-lab"></div>
+
+<details><summary>🐍 Python – QAP-korreláció 10 sorban</summary>
+<pre><code>import numpy as np
+def offdiag(M):                         # irányított: minden i ≠ j cella
+    return M[~np.eye(len(M), dtype=bool)]
+def qap(A, B, runs=5000, rng=np.random.default_rng(1)):
+    a = offdiag(A); r = np.corrcoef(a, offdiag(B))[0, 1]
+    rs = np.empty(runs)
+    for t in range(runs):
+        P = rng.permutation(len(A))
+        rs[t] = np.corrcoef(a, offdiag(B[np.ix_(P, P)]))[0, 1]   # sorok ÉS oszlopok együtt
+    return r, (np.sum(rs >= r) + 1) / (runs + 1)
+# r, p = qap(advice, friendship)   →  0.155, kb. 0.02</code></pre>
+<p class="muted">A kulcs a <code>B[np.ix_(P, P)]</code>: ugyanaz a <code>P</code> a sorokra és az oszlopokra. A <code>B[P, :]</code> (csak sorok) vagy a <code>rng.permutation(offdiag(B))</code> (cellák) hibás.</p>
+</details>
+
+<div class="box history">
+  <span class="box-title">📜 A QAP és a napirend-hálózatok</span>
+  Lawrence Hubert (1987) a kvadratikus hozzárendelési feladatból vezette le a mátrixok összevetésének permutációs próbáját; David Krackhardt (1987, 1988) tette a hálózatkutatás alapeszközévé, éppen a menedzserek tanácskérési és barátsági hálózatán.
+  A kommunikációkutatásban Lei Guo és Maxwell McCombs (2011; Guo, Vu és McCombs, 2012) a QAP-pal hasonlította össze a <b>média</b> és a <b>közönség</b> „napirend-hálózatát” (melyik témákat, szereplőket kapcsolják össze): ez a hálózati napirend-kijelölés (NAS) standard próbája lett.
+  A 14. fejezet (történeti áttekintés) és a 16. fejezet (NAS) erre épít.
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – véletlen permutációk</summary>
+  <ol>
+    <li>5000 véletlen permutációból 120 adott $r^* \ge r$-t. Mennyi a $\hat p$?
+      <details><summary>Megoldás</summary>$(120 + 1)/5001 \approx 0{,}024$.</details></li>
+    <li>2000 permutációból 0 érte el a megfigyeltet. Mit írsz a cikkbe?
+      <details><summary>Megoldás</summary>$\hat p = 1/2001 \approx 0{,}0005$, azaz „$p \lt 0{,}001$ (2000 QAP-permutáció)” – nem $p = 0$.</details></li>
+    <li>Egy QAP-ban $\hat p = 0{,}048$ jött ki 500 permutációval. Mit tennél, mielőtt kimondod, hogy szignifikáns?
+      <details><summary>Megoldás</summary>A hiba $\sqrt{0{,}048 \cdot 0{,}952/500} \approx 0{,}0096$ – a valódi $p$ lehet 0,06 is. Futtasd újra sok (pl. 10 000) permutációval.</details></li>
+    <li>A Krackhardt-adatban a permutált korrelációk szórása 0,072. Kb. hány „szórásnyira” van a megfigyelt $r = 0{,}155$ a nullától? És a naiv próba szórása (1/√N) mennyi lenne?
+      <details><summary>Megoldás</summary>$0{,}155/0{,}072 \approx 2{,}2$. A naiv: $1/\sqrt{420} \approx 0{,}049$, ezzel $0{,}155/0{,}049 \approx 3{,}2$ – a naiv próba a véletlen ingadozást kb. másfélszer kisebbnek hiszi, ezért túl kicsi a p-értéke.</details></li>
+    <li>(nehezebb) Egy kutató a média és a közönség napirend-hálózatát QAP-pal veti össze: 12 téma, $r = 0{,}41$, $p = 0{,}003$. Egy másik kutató ugyanazt naiv próbával: 66 cella, $p = 0{,}0006$. Melyik a megbízhatóbb, és miért?
+      <details><summary>Megoldás</summary>A QAP-é. A 66 cella nem független (egy témához 11 cella tartozik); a naiv p alábecsüli a véletlen ingadozást. Itt mindkettő szignifikáns, de a QAP-é a becsületes szám.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh10-103"></div>
+</section>
+
+<!-- ===================================================== 10.4 -->
+<section id="s104">
+<h2>10.4 MRQAP-regresszió ★★★</h2>
+<p>A QAP-korreláció két hálózatot vet össze. De mi van, ha egy hálózatot <b>több</b> másik is magyarázhat – és ezek egymással is összefüggnek? Krackhardt menedzsereinél a tanácskérés a barátsággal is (<a class="xref" href="#s103-b-krack">10.3</a>), a főnöki viszonnyal is együtt jár. Melyik számít, ha a másikat <b>rögzítjük</b>?
+Erre a <b>regresszió</b> felel – a cellákon, és QAP-típusú p-értékkel: ez az <b>MRQAP</b> (<em>multiple regression QAP</em>).</p>
+
+<h3 id="s104-a">1. lépés: regresszió a cellákon</h3>
+<div class="box example" id="s104-a-tabla">
+  <span class="box-title">Kiinduló példa – egy bináris magyarázó: két arány különbsége</span>
+  A 420 cellát két csoportba osztjuk aszerint, hogy $i$ barátjának tartja-e $j$-t, és mindkét csoportban megnézzük, hányszor kér $i$ tanácsot $j$-től:
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th></th><th>cellák</th><th>ebből tanácskérés</th><th>arány</th></tr>
+    <tr><td>barát</td><td>102</td><td>60</td><td>0,588</td></tr>
+    <tr><td>nem barát</td><td>318</td><td>130</td><td>0,409</td></tr>
+  </table></div>
+  A barátoktól $0{,}588 - 0{,}409 = 0{,}179$-del gyakrabban kérnek tanácsot. Ha a tanácskérést (0/1) a barátságra (0/1) regresszáljuk, pontosan ezt kapjuk: tengelymetszet $b_0 = 0{,}409$ (a nem barátok aránya), meredekség $b_1 = 0{,}179$ (a különbség).
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – hálózati regresszió (QAP-regresszió)</span>
+  A függő hálózat $Y$, a magyarázó hálózatok $X_1, \dots, X_K$ – mind ugyanazon a csúcshalmazon. Minden cellára ($i \ne j$):
+  $$y_{ij} = b_0 + b_1 x_{1,ij} + \dots + b_K x_{K,ij} + e_{ij},$$
+  és a $b$-ket a szokásos legkisebb négyzetek módszerével becsüljük az $N$ cellán. A magyarázó „hálózat” lehet <b>attribútumból</b> gyártott mátrix is: pl. $x_{ij} = 1$, ha $i$ és $j$ ugyanabban a részlegben dolgozik, vagy $x_{ij} = $ a $j$ szolgálati ideje.
+  <small>Miért működik a „két arány különbsége”? Egyetlen 0/1 magyarázónál a legkisebb négyzetes egyenes a két csoport átlagán megy át: $b_0$ = az $x = 0$ csoport átlaga, $b_0 + b_1$ = az $x = 1$ csoporté.</small>
+  <b>Az együtthatók rendben vannak – a szokásos p-értékek nem.</b> A cellák itt is függenek egymástól (<a class="xref" href="#s102-b">10.2</a>), ezért a p-értéket permutációval kell előállítani.
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a főnök</span>
+    A 20 „$j$ az $i$ főnöke” cellából 19-ben van tanácskérés, a többi 400-ból 171-ben. Mennyi a meredekség, ha a tanácskérést a „kinek jelent” mátrixra regresszáljuk?
+    <details><summary>Megoldás</summary>$19/20 = 0{,}95$ és $171/400 = 0{,}4275$: $b_1 = 0{,}5225$, $b_0 = 0{,}4275$. A főnöktől szinte mindenki kér tanácsot.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a két magyarázó összefügg</span>
+    A 20 főnöki cellából 12-ben a beosztott a főnökét barátjának is mondja (60%), miközben a barátság sűrűsége csak 24%. Mit jelent ez a barátság 0,179-es hatására nézve?
+    <details><summary>Megoldás</summary>Hogy annak egy része „kölcsönvett” hatás: a barátok között sok a főnök–beosztott pár, és a főnöktől amúgy is kérnek tanácsot. Ha csak a nem főnöki cellákat nézzük: barátoktól 49/90 = 0,544, nem barátoktól 122/310 = 0,394 – a különbség már csak 0,15.</details>
+  </div>
+</div>
+
+<p>Mindkét magyarázóval egyszerre (Python, 420 cella):</p>
+<div class="tw" style="overflow-x:auto"><table>
+  <tr><th>modell: tanácskérés ~</th><th>tengelymetszet</th><th>barátság</th><th>jelent</th><th>$R^2$</th></tr>
+  <tr><td>barátság</td><td>0,409</td><td>0,179</td><td>–</td><td>0,024</td></tr>
+  <tr><td>jelent</td><td>0,428</td><td>–</td><td>0,523</td><td>0,050</td></tr>
+  <tr><td>barátság + jelent</td><td>0,397</td><td>0,136</td><td>0,472</td><td>0,063</td></tr>
+</table></div>
+<p>A barátság együtthatója 0,179-ről 0,136-ra csökken, ha a főnöki viszonyt is bevesszük: a többszörös regresszió azt méri, mennyit ad a barátság <b>a főnöki viszonyon felül</b>.</p>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az $R^2$-ből „rossz modellt” olvasni.</b> A 6,3% kevés – a tanácskérést főleg olyan dolgok döntik el (szakértelem, elérhetőség), amiket nem mértünk. De a kis $R^2$ mellett is lehet egy hatás erős és biztos.</li>
+    <li><b>A 0/1 függő változó együtthatóját valószínűségként túlolvasni.</b> A lineáris modell jóslata lehet 1 fölött is (0,397 + 0,136 + 0,472 = 1,005). Bináris függő hálózatnál a <b>logisztikus</b> QAP (LRQAP) a pontosabb – az ötlet ugyanaz.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – regresszió a cellákon</summary>
+  <ol>
+    <li>Egy hálózatban az „azonos részleg” cellák 30%-ában, a többiben 10%-ában van él. Mennyi a $b_0$ és a $b_1$, ha az élt az „azonos részleg” mátrixra regresszáljuk?
+      <details><summary>Megoldás</summary>$b_0 = 0{,}10$, $b_1 = 0{,}20$.</details></li>
+    <li>A „barátság + jelent” modellben mekkora a jósolt tanácskérési arány egy olyan párra, amely nem barát, de főnök–beosztott?
+      <details><summary>Megoldás</summary>$0{,}397 + 0{,}472 = 0{,}869$. (A tényleges arány ebben a csoportban 8/8 = 1.)</details></li>
+    <li>Hány cellán fut a regresszió 15 csúcsú irányított, illetve irányítatlan hálózatnál?
+      <details><summary>Megoldás</summary>$15 \cdot 14 = 210$, illetve $105$.</details></li>
+    <li>Hogyan gyártanál mátrixot abból a hipotézisből, hogy „az idősebbektől kérnek tanácsot”?
+      <details><summary>Megoldás</summary>$x_{ij} = $ a $j$ életkora (minden oszlop állandó: a megkérdezett tulajdonsága). Vagy $x_{ij} = \text{kor}(j) - \text{kor}(i)$, ha az idősebb–fiatalabb viszony érdekel.</details></li>
+    <li>(nehezebb) A „jelent” együtthatója az egyváltozós 0,523-ról 0,472-re csökken a barátság bevételével. Miért csökken ez is?
+      <details><summary>Megoldás</summary>Mert a két magyarázó pozitívan korrelál ($r = 0{,}19$): a főnök gyakran barát is, és a barátság maga is emeli a tanácskérést. Az egyváltozós modellben a „jelent” ezt a barátsági részt is magának számolta.</details></li>
+  </ol>
+</details>
+
+<h3 id="s104-b">2. lépés: a p-érték permutációval – Y-permutáció és DSP</h3>
+<p>Hogyan permutáljunk, ha több magyarázó van? Két bevett eljárás létezik.</p>
+
+<div class="box def">
+  <span class="box-title">Két permutációs eljárás az MRQAP-ban</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Y-permutáció.</b> A függő hálózat $Y$ csúcsait permutáljuk (sorok és oszlopok együtt), a magyarázókat békén hagyjuk, és újra lefuttatjuk a regressziót. A p-érték: hányszor lett a permutált $|t^*| \ge |t|$ (változónként).
+      Egyszerű, de ha a magyarázók erősen összefüggnek, pontatlan lehet.</li>
+    <li><b>Kettős szemi-parciális eljárás</b> (DSP, <em>double semi-partialling</em>; Dekker, Krackhardt és Snijders, 2007). Az $X_k$ hatásának p-értékéhez: (1) regresszáld $X_k$-t a <b>többi</b> magyarázóra, és vedd a <b>maradékát</b> – ez az $X_k$-nak az a része, amit a többiek nem magyaráznak; (2) ezt a maradék-mátrixot permutáld QAP-szerűen; (3) futtasd a regressziót $Y$-ra a permutált maradékkal és a többi (eredeti) magyarázóval; (4) hasonlítsd a $|t^*|$-ot a megfigyelt $|t|$-hez.</li>
+  </ul>
+  <small>Miért a $t$, és nem a $b$? Mert a $t = b/\mathrm{se}(b)$ eloszlása kevésbé függ attól, hogy a magyarázó mennyire szóródik és mennyire fedi a többit – a permutációs próba így pontosabb (Dekker és mtsai, 2007).</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – tanácskérés ~ barátság + jelent</span>
+  10&nbsp;000 permutációval (Python):
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>változó</th><th>$b$</th><th>naiv $p$</th><th>Y-permutáció $p$</th><th>DSP $p$</th></tr>
+    <tr><td>barátság (egyedül)</td><td>0,179</td><td>0,0015</td><td>0,032</td><td>0,034</td></tr>
+    <tr><td>barátság (a „jelent” mellett)</td><td>0,136</td><td><b>0,016</b></td><td><b>0,11</b></td><td><b>0,10</b></td></tr>
+    <tr><td>jelent (a barátság mellett)</td><td>0,472</td><td>$\lt 0{,}001$</td><td>$\lt 0{,}001$</td><td>$\lt 0{,}001$</td></tr>
+  </table></div>
+  A naiv próba szerint a barátság a főnöki viszony mellett is szignifikáns ($p = 0{,}016$). A QAP-alapú p-értékek szerint <b>nem</b> ($p \approx 0{,}10$). A főnöki viszony hatása viszont minden eljárással nagyon erős.
+  Ugyanezt kapta Borgatti, Everett, Johnson és Agneessens (2022) is ugyanezen az adaton: barátság 0,136 (nem szignifikáns), jelent 0,472 ($p \lt 0{,}001$), $R^2 = 0{,}063$.
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy attribútummátrix</span>
+    Vegyük be harmadikként azt is, hogy a megkérdezett mióta dolgozik a cégnél ($x_{ij}$ = $j$ szolgálati ideje, években). Mit kapunk?
+    <details><summary>Megoldás</summary>Tengelymetszet 0,254, barátság 0,140, jelent 0,415, szolgálati idő 0,012 (évente 1,2 százalékponttal több tanácskérés), $R^2 = 0{,}100$. A régi motorosoktól többen kérnek tanácsot – függetlenül attól, hogy kinek a főnökei.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – azonos részleg</span>
+    A „barátság + jelent” modellhez az „azonos részleg” mátrixot adva az együtthatója $-0{,}062$, DSP-vel $p \approx 0{,}36$. Mit mondasz?
+    <details><summary>Megoldás</summary>Hogy a részlegen belüli tanácskérés nem gyakoribb, ha a főnöki viszonyt és a barátságot már figyelembe vettük – a részleg hatását a főnök „elviszi” (a főnök a részlegében van).</details>
+  </div>
+</div>
+
+<p>Próbáld ki! Kapcsold be és ki a magyarázókat, és nézd, hogyan változik a barátság együtthatója és a háromféle p-érték.</p>
+<div class="widget" data-widget="mrqap-lab"></div>
+
+<div class="box tip">
+  <span class="box-title">👍 Hüvelykujjszabály</span>
+  <b>MRQAP-ban az együttható a szokásos regresszióé, csak a p-érték jön permutációból.</b> Ha a magyarázók összefüggenek, a DSP a biztosabb; ha nem, a két eljárás nagyjából ugyanazt adja (mint itt).
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A magyarázókat (vagy csak a magyarázókat) cellánként keverni.</b> Ez megint a függetlenséget tételezi fel. Mindig csúcsokat permutálunk.</li>
+    <li><b>Okságot olvasni ki a regresszióból.</b> A barátság és a tanácskérés kapcsolata mehet mindkét irányba (akitől tanácsot kérsz, az barátod lesz), és lehet közös oka is. A keresztmetszeti MRQAP csak az együttjárást vizsgálja „a többiek rögzítésével”.</li>
+    <li><b>Kihagyni a nyilvánvaló kontrollt.</b> Ha a főnöki viszonyt kihagyjuk, a barátság „szignifikáns” – egy hiányzó magyarázó egy másikat feljebb tol. Ugyanez a hírelemzésben: ha két szereplő mindkét hálózatban <b>gyakori</b>, az élei is erősek lesznek – a gyakoriságot érdemes kontrollként bevenni (<a class="xref" href="#s108-c">10.8</a>).</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – Y-permutáció és DSP</summary>
+  <ol>
+    <li>Egy MRQAP-ban a barátság $t = 2{,}43$. 2000 DSP-permutációból 208-ban lett $|t^*| \ge 2{,}43$. Mennyi a p?
+      <details><summary>Megoldás</summary>$208/2000 \approx 0{,}10$ – nem szignifikáns 5%-on.</details></li>
+    <li>A DSP első lépésében mit regresszálsz mire, ha a barátság p-értékét keresed a „barátság + jelent” modellben?
+      <details><summary>Megoldás</summary>A barátság mátrixát a „jelent” mátrixra (+ tengelymetszet), és a maradékot (a barátságnak a főnöki viszonytól független részét) permutálod.</details></li>
+    <li>Mit permutálsz Y-permutációnál, és mit hagysz változatlanul?
+      <details><summary>Megoldás</summary>A függő hálózat ($Y$) csúcsait permutálod (sorok és oszlopok együtt); a magyarázók egymáshoz viszonyított elrendezése (és így az összefüggésük) változatlan marad.</details></li>
+    <li>Miért nem elég a barátság egyváltozós QAP-korrelációjának p-értéke ($\approx 0{,}02$) ahhoz, hogy kimondd: „a barátoktól kérnek tanácsot”?
+      <details><summary>Megoldás</summary>Mert az egyváltozós kapcsolat egy része a főnöki viszonyon keresztül jön; a többváltozós modellben, a főnöki viszony mellett a barátság hatása már nem szignifikáns ($p \approx 0{,}10$).</details></li>
+    <li>(nehezebb) Egy NAS-kutatásban a közönség napirend-hálózatát ($Y$) a média hálózatával ($X_1$) és a közönség egy hónappal korábbi hálózatával ($X_2$) magyarázzák. Mit jelent, ha az $X_1$ együtthatója az $X_2$ bevétele után eltűnik?
+      <details><summary>Megoldás</summary>Hogy a média és a közönség hasonlósága nagyrészt abból jön, hogy a közönség „napirendje” amúgy is stabil, és a média a már meglévő kapcsolatokat ismétli – a média <b>új</b> hatását a modell nem mutatja ki. (Okságot ez sem bizonyít, de a „csak korreláció” magyarázatnál erősebb próba.)</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh10-104"></div>
+</section>
+
+<!-- ===================================================== 10.5 -->
+<section id="s105">
+<h2>10.5 Hálózati gerinc ★★</h2>
+<p>A hírekből épített hálózatok gyakran <b>túl sűrűek</b>: egy hónapnyi cikkben szinte mindenki szerepelt már mindenkivel, a gráf egy „szőrgombóc”. Az élek többsége egy-két véletlen együttemlítés. Melyik él <b>számít</b>?
+A hálózat <b>gerince</b> (<em>backbone</em>) a lényeges élek részhálózata. Két kérdés: mi a „lényeges” – és mihez mérjük?</p>
+
+<h3 id="s105-a">1. lépés: globális küszöb</h3>
+<div class="box example" id="s105-a-arviz">
+  <span class="box-title">Kiinduló példa – az Árvízhét, $w \ge 2$</span>
+  Az Árvízhét súlyozott szereplőgráfjában (súly = közös cikkek) tartsuk meg a legalább 2 súlyú éleket!
+  <div class="two-col">
+    <div><div class="gfig" data-edges="Ko-Vi,Ko-Po,Vi-Po,Vi-Sz,Sz-Kl,Ko-Sz,Ko-Kl,La-Ön,Po-La,Po-Ön" data-weights="2,2,2,1,2,1,1,3,2,2" data-show-weights
+      data-pos="Kl:.6,0 Sz:0,.5 Ko:1.3,.5 Vi:.65,1 Po:1.6,1.3 La:2.4,1 Ön:2.3,1.9" data-w="280" data-h="190" data-r="15"
+      data-caption="A teljes gráf: 10 él"></div></div>
+    <div><div class="gfig" data-nodes="Ko,Vi,Po,La,Ön,Sz,Kl" data-edges="Ko-Vi,Ko-Po,Vi-Po,Sz-Kl,La-Ön,Po-La,Po-Ön" data-weights="2,2,2,2,3,2,2" data-show-weights
+      data-pos="Kl:.6,0 Sz:0,.5 Ko:1.3,.5 Vi:.65,1 Po:1.6,1.3 La:2.4,1 Ön:2.3,1.9" data-w="280" data-h="190" data-r="15"
+      data-caption="$w \ge 2$: 7 él, két komponens"></div></div>
+  </div>
+  Kiesik a három 1-es él (Vi–Sz, Ko–Sz, Ko–Kl) – és velük a Szakértő és a Klímaváltozás <b>minden</b> kapcsolata a többiekhez. A gerinc két részre esik: $\{\mathrm{Ko}, \mathrm{Vi}, \mathrm{Po}, \mathrm{La}, \text{Ön}\}$ és $\{\mathrm{Sz}, \mathrm{Kl}\}$. $w \ge 3$-nál már csak a La–Ön marad.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – globális küszöb</span>
+  Rögzíts egy $t$ küszöböt, és tartsd meg a $w_{ij} \ge t$ éleket. Egyszerű, átlátható – de <b>minden csúcsra ugyanazt a mércét</b> alkalmazza.
+  <small>Miért baj ez? A súlyok eloszlása a valós hálózatokban nagyon ferde: néhány szereplő (a „nagyok”) erős kapcsolatai mellett a kisebbek legerősebb kapcsolata is gyenge. A globális küszöb a nagyok közti éleket tartja meg, a kisebb szereplőket leválasztja – akkor is, ha számukra az a kapcsolat a legfontosabb.</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa – a Les Misérables, küszöbökkel</span>
+  A regény 77 szereplőjének együttszereplési hálózata (254 él; súly = közös fejezetek, <a class="xref" href="../08-kozossegek/#s88-b">8.8</a>). A súlyok: 97 él 1-es, 50 él 2-es, …, a legnagyobb 31 (Valjean–Cosette). Mi marad különböző küszöbökkel (Python)?
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>küszöb $t$</th><th>1</th><th>2</th><th>3</th><th>5</th><th>10</th></tr>
+    <tr><td>élek</td><td>254</td><td>157</td><td>107</td><td>51</td><td>13</td></tr>
+    <tr><td>csúcsok (legalább egy éllel)</td><td>77</td><td>58</td><td>44</td><td>26</td><td>13</td></tr>
+    <tr><td>komponensek</td><td>1</td><td>1</td><td>3</td><td>2</td><td>3</td></tr>
+  </table></div>
+  Már $t = 2$-nél 19 szereplő tűnik el teljesen – ők mind csak egy-egy fejezetben szerepelnek valakivel.
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Egyetlen küszöböt „a” helyesnek tekinteni.</b> A küszöb modellezési döntés: írd ki, és nézd meg, mennyire változik az eredmény, ha más küszöböt választasz (<a class="xref" href="#s106-c">10.6</a>).</li>
+    <li><b>A nagy súlyt fontosnak hinni.</b> Két nagyon gyakori szereplő sok cikkben „összefut” véletlenül is – a nagy súly lehet a gyakoriság mellékterméke (<a class="xref" href="../07-halozatmodellek/#s76-a">7.6</a>: a Ko–Vi 2 közös cikke nem meglepő, a Sz–Kl 2-je igen).</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – globális küszöb</summary>
+  <ol>
+    <li>Az Árvízhéten $w \ge 2$-nél melyik szereplőnek lesz a legtöbb éle?
+      <details><summary>Megoldás</summary>A Po-nak: Ko, Vi, La, Ön – 4 él (mind 2-es).</details></li>
+    <li>A Les Misérables-ben a $t = 1 \to 2$ lépés hány élt és hány szereplőt visz el?
+      <details><summary>Megoldás</summary>$254 - 157 = 97$ élt (az összes 1-est) és $77 - 58 = 19$ szereplőt.</details></li>
+    <li>Egy hálózatban egy csúcs élei: 50, 40, 30; egy másiké: 3, 2. Mi marad a második csúcsból $t = 10$-nél?
+      <details><summary>Megoldás</summary>Semmi: mindkét éle kiesik, a csúcs elszigetelődik – pedig a 3-as éle neki a legfontosabb (a súlyának 60%-a).</details></li>
+    <li>Miért eshet szét a gerinc komponensekre, ha a teljes gráf összefüggő?
+      <details><summary>Megoldás</summary>Mert a csoportokat összekötő élek gyakran gyengék (gyenge kötések, <a class="xref" href="../06-helyi-szerkezet/">6. fejezet</a>). A küszöb pont ezeket vágja el.</details></li>
+    <li>(nehezebb) Melyik küszöbnél lesz az Árvízhét gerince egyetlen élből álló?
+      <details><summary>Megoldás</summary>$t = 3$: csak a La–Ön (3) marad.</details></li>
+  </ol>
+</details>
+
+<h3 id="s105-b">2. lépés: helyi mérce – a diszparitásszűrő</h3>
+<p>Ötlet: ne a súly abszolút nagyságát nézzük, hanem azt, mekkora <b>részét</b> adja egy él a csúcs összes súlyának – és hogy ez meglepő-e.
+Ha egy csúcs a súlyát <b>véletlenül</b> osztaná szét a $k$ éle között, mekkora eséllyel jutna egy élre ilyen nagy rész?</p>
+
+<div class="box example" id="s105-b-csillag">
+  <span class="box-title">Kiinduló példa – 10, 1, 1, 1</span>
+  Egy csúcsnak 4 éle van, súlyuk 10, 1, 1, 1 (erőssége $s = 13$). A 10-es él a súly $p = 10/13 \approx 77\%$-át viszi.
+  Ha a csúcs a súlyát véletlenül osztaná szét (egy egységnyi botot 3 véletlen ponton négy darabra törünk), annak esélye, hogy egy adott darab legalább 77%: $(1 - 0{,}77)^3 = (3/13)^3 \approx 0{,}012$. Ez nagyon ritka: a 10-es él <b>szignifikáns</b> ($0{,}012 \lt 0{,}05$).
+  Egy 1-es él része $1/13$; annak esélye, hogy egy darab legalább ekkora: $(12/13)^3 \approx 0{,}79$ – semmi meglepő. Kiesik.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – diszparitásszűrő (Serrano, Boguñá és Vespignani, 2009)</span>
+  Az $i$ csúcs felől az $(i, j)$ él „meglepetése”:
+  $$\alpha_{ij} = \left(1 - \frac{w_{ij}}{s_i}\right)^{k_i - 1},$$
+  ahol $s_i$ az $i$ erőssége, $k_i$ a fokszáma. Ez a p-érték annak a nullmodellnek, amelyben az $i$ a súlyát egyenletesen véletlenül osztja szét a $k_i$ éle között. Az él a gerincbe kerül, ha <b>valamelyik</b> végéről nézve $\alpha_{ij} \lt \alpha$ (pl. $\alpha = 0{,}05$).
+  <small>Miért ez a képlet? Ha $[0;1]$-et $k - 1$ véletlen ponttal $k$ darabra vágunk, egy adott darab akkor nagyobb $p$-nél, ha mind a $k - 1$ vágási pont a „másik” $1 - p$ hosszú részre esik: $(1 - p)^{k-1}$. Az 1 fokú csúcsra a képlet $\alpha = 1$-et ad: egyetlen él sosem meglepő onnan nézve – ilyenkor a másik vég dönt.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – az Árvízhét</span>
+    A Lakók két éle: Ön (3) és Po (2), $s = 5$, $k = 2$. Mennyi a La–Ön él $\alpha$-ja a La felől? És megmarad-e $\alpha = 0{,}05$-nél?
+    <details><summary>Megoldás</summary>$(1 - 3/5)^1 = 0{,}4$. Az Ön felől ugyanennyi. Nem marad meg. Az Árvízhét összes élének legkisebb $\alpha$-ja: Sz–Kl 0,25, Ko–Vi és Ko–Po 0,30, … – $\alpha = 0{,}05$-nél <b>egyetlen él sem</b> marad.
+      Kis fokszámnál ($k = 2$–4) egy él egyszerűen nem lehet „meglepően” nagy rész. A diszparitásszűrő nagy, sok élű csúcsokra való.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a Les Misérables, ugyanannyi éllel</span>
+    $\alpha = 0{,}3$-nál a diszparitásszűrő 85 élt tart meg. Ha a 85 legnagyobb súlyú élt tartanánk meg (globális küszöb), melyik gerincben lenne több szereplő?
+    <details><summary>Megoldás</summary>A diszparitásszűrőben 46 szereplő marad, a globális küszöbnél 37. A plusz 9 közt mellékszereplők vannak (pl. Mabeuf, Toussaint, Montparnasse): nekik egy-egy gyengébb él is a legfontosabb kapcsolatuk.
+      Közben a szűrő kidob erős éleket is: a Marius–Enjolras (7) $\alpha = 0{,}2$-nél kiesik, mert Mariusnak sok, még erősebb kapcsolata van.</details>
+  </div>
+</div>
+
+<p>A Les Misérables-ben különböző $\alpha$-kkal (Python):</p>
+<div class="tw" style="overflow-x:auto"><table>
+  <tr><th>$\alpha$</th><th>0,05</th><th>0,1</th><th>0,2</th><th>0,3</th></tr>
+  <tr><td>élek</td><td>9</td><td>21</td><td>47</td><td>85</td></tr>
+  <tr><td>szereplők – diszparitásszűrő</td><td>10</td><td>21</td><td>30</td><td>46</td></tr>
+  <tr><td>szereplők – ugyanannyi él globális küszöbbel</td><td>9</td><td>18</td><td>26</td><td>37</td></tr>
+</table></div>
+
+<div class="box tip">
+  <span class="box-title">👍 Hüvelykujjszabály</span>
+  <b>A küszöb is modellezési döntés – nézd meg, mennyire érzékeny rá az eredmény.</b> A globális küszöb „a nagyok gerincét”, a diszparitásszűrő „mindenki saját legfontosabb kapcsolatait” adja. Hogy melyik kell, a kérdés dönti el.
+</div>
+
+<p>Próbáld ki! Állítsd a küszöböt, illetve az $\alpha$-t, és hasonlítsd össze, kik maradnak a gerincben.</p>
+<div class="widget" data-widget="backbone-filter"></div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az $\alpha_{ij}$-t az él „valódi” p-értékének hinni.</b> Csúcsonként és élenként külön teszt – sok élnél sok hamis „szignifikáns” él is lesz. Az $\alpha$ itt inkább egy csúszka, amely a gerinc méretét állítja.</li>
+    <li><b>Kis fokszámú hálózaton használni.</b> $k = 2$-nél az erősebb él $\alpha$-ja egyszerűen a gyengébb él aránya: 0,05 alá csak akkor megy, ha a gyengébb él a súlynak kevesebb mint 5%-a. Kis fokszámoknál a szűrő ezért alig tart meg valamit.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – diszparitásszűrő</summary>
+  <ol>
+    <li>Egy csúcs 3 éle: 8, 1, 1. Mennyi a 8-as él $\alpha$-ja a csúcs felől? Megmarad $\alpha = 0{,}05$-nél?
+      <details><summary>Megoldás</summary>$(1 - 0{,}8)^2 = 0{,}04 \lt 0{,}05$: megmarad.</details></li>
+    <li>Egy csúcsnak 5 egyforma éle van. Mennyi az $\alpha$?
+      <details><summary>Megoldás</summary>$(1 - 0{,}2)^4 = 0{,}41$ – egyik sem meglepő: az egyenletes elosztás pont a nullmodell.</details></li>
+    <li>Egy 1 fokú csúcs egyetlen éle a csúcs felől mekkora $\alpha$-t kap? Kiesik-e ettől az él?
+      <details><summary>Megoldás</summary>$\alpha = 1$ (onnan nézve nem meglepő). Nem feltétlenül esik ki: ha a <b>másik</b> vég felől $\alpha \lt 0{,}05$, megmarad.</details></li>
+    <li>Egy hírportálon a Kormány 100 szereplővel szerepelt együtt (erőssége 300), és a Vízüggyel 30-szor. Mennyi a Ko–Vi él $\alpha$-ja a Ko felől?
+      <details><summary>Megoldás</summary>$(1 - 0{,}1)^{99} = 0{,}9^{99} \approx 3 \cdot 10^{-5}$: nagyon meglepő – sok él mellett egy 10%-os rész is kiugró.</details></li>
+    <li>(nehezebb) Egy 4 fokú csúcs élei 6, 2, 1, 1. Mekkora $\alpha$-szint mellett marad meg a 2-es él (a csúcs felől)?
+      <details><summary>Megoldás</summary>$p = 0{,}2$, $\alpha_{ij} = 0{,}8^3 = 0{,}512$. Csak $\alpha \gt 0{,}512$ szintnél – gyakorlatilag soha. A 6-osé $0{,}4^3 = 0{,}064$: az is csak $\alpha \gt 0{,}064$-nél.</details></li>
+  </ol>
+</details>
+
+<h3 id="s105-c">3. lépés: páros vetület gerince – a cikkek szintjén</h3>
+<p>A szereplőgráf egy <b>páros gráf</b> (cikk–szereplő) <b>vetülete</b> (<a class="xref" href="../03-graftipusok/#s34-b">3.4</a>). Ilyenkor a jobb nullmodell nem a csúcs súlyait osztja szét, hanem a <b>cikkek és a szereplők fokszámait</b> rögzíti: mennyi közös cikk várható két szereplőnél pusztán a gyakoriságuk és a cikkek mérete alapján?</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a 7. fejezet nullmodellje mint gerinc</span>
+  Ezt a <a class="xref" href="../07-halozatmodellek/#s75-b">7.5</a> cikk–szereplő nullmodelljével már kiszámoltuk (<a class="xref" href="../07-halozatmodellek/#s76-a">7.6</a>): a Ko–Vi 2 közös cikkje $p = 0{,}20$, a Sz–Kl 2-je $p = 0{,}016$, a La–Ön 3-a $p = 0{,}018$.
+  A <b>gerinc</b> ezen a szinten: azok a párok, amelyek a nullmodellhez képest meglepően sokszor szerepelnek együtt – 5%-on a Sz–Kl és a La–Ön. A Ko–Vi, bár ugyanakkora súlyú, mint a Sz–Kl, <b>nem</b> kerül be: a Kormány és a Vízügy egyszerűen sokat szerepel.
+</div>
+
+<div class="box def">
+  <span class="box-title">Páros vetületek gerince</span>
+  Minden szereplőpárra: a megfigyelt közös cikkszám p-értéke egy páros nullmodellben, amely a szereplők gyakoriságát (és lehetőleg a cikkek méretét) rögzíti. A gerincbe a $p \lt \alpha$ párok kerülnek. Ez a <b>sztochasztikus fokszám-sorozat modell</b> (SDSM, Neal, 2014) és rokonai ötlete.
+  <small>Miért jobb itt, mint a diszparitásszűrő? Mert a vetület súlyai nem „szabadon” oszlanak el: egy 3 szereplős cikk egyszerre 3 élt gyárt. A páros nullmodell ezt a keletkezési módot követi.</small>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Sok pár tesztelésénél elfelejteni a többszörös tesztelést.</b> 21 párból 5%-on kb. 1 hamis „szignifikáns” pár várható; a Bonferroni-küszöb $0{,}05/21 \approx 0{,}0024$ (<a class="xref" href="../../matematikai-statisztika/07-hipotezisvizsgalat/#s77-a">Mat. stat. 7.7</a>). 12 cikkből ezt egyik pár sem éri el.</li>
+    <li><b>A gerincet „a” hálózatnak tekinteni.</b> A gerinc egy kérdésre adott válasz („mi meglepő a gyakoriságokhoz képest?”) – nem tisztább változata egy rejtett, valódi hálózatnak.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – páros vetület gerince</summary>
+  <ol>
+    <li>Miért nem kerül a Ko–Vi a páros gerincbe, ha a súlya ugyanannyi, mint a Sz–Kl-é?
+      <details><summary>Megoldás</summary>Mert a Ko és a Vi 4–4 cikkben szerepel, így véletlenül is várható köztük kb. 0,9 közös cikk; a 2 nem meglepő ($p = 0{,}20$). A Kl csak 2 cikkben van, mindkettőben a Sz-szel – ez ritka ($p = 0{,}016$).</details></li>
+    <li>A globális $w \ge 2$ küszöb és a páros gerinc (5%) közül melyik tart meg több élt az Árvízhéten?
+      <details><summary>Megoldás</summary>A küszöb 7 élt, a páros gerinc 2-t (Sz–Kl, La–Ön).</details></li>
+    <li>Hány párt kell tesztelni egy 50 szereplős korpuszban, és mennyi a Bonferroni-küszöb 5%-on?
+      <details><summary>Megoldás</summary>$\binom{50}{2} = 1225$ pár, küszöb $0{,}05/1225 \approx 4 \cdot 10^{-5}$.</details></li>
+    <li>Egy kutató a gerinc éleiből közösségeket keres. Mit kell még megadnia a módszertani részben?
+      <details><summary>Megoldás</summary>A nullmodellt (melyik gerincmódszer), a szintet ($\alpha$), a többszörös tesztelés kezelését, és hogy mennyire változnak a közösségek más $\alpha$-val.</details></li>
+    <li>(nehezebb) A Po–La pár 2 közös cikkben szerepel (a Po 6, a La 4 cikkben). Várhatóan bekerül-e a páros gerincbe?
+      <details><summary>Megoldás</summary>Nem: a <a class="xref" href="../07-halozatmodellek/#s76-a">7.6</a> szerint a várható közös cikkszám 1,51, $P(\ge 2) = 0{,}50$ – a megfigyelt a nulleloszlás közepén van.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh10-105"></div>
+</section>
+
+<!-- ===================================================== 10.6 -->
+<section id="s106">
+<h2>10.6 Mintavétel, hiányzó adat, robusztusság ★★</h2>
+<p>Egy hálózat nem „adott”: a gyűjtés eredménye. Kimaradhat egy cikk, egy szereplőt rosszul ismer fel az entitáskinyerő, egy platform nem adja ki az adatot, egy kérdőívre nem válaszol valaki.
+És a feldolgozás is tele van döntésekkel: küszöb, időablak, algoritmus, felbontás. A kérdés: <b>mennyire múlik az eredmény ezeken?</b></p>
+
+<h3 id="s106-a">1. lépés: egyetlen hiányzó él</h3>
+<div class="box example" id="s106-a-el">
+  <span class="box-title">Kiinduló példa – ki a fő közvetítő az Árvízhéten?</span>
+  A köztességi centralitás (<a class="xref" href="../05-centralitas/#s53-c">5.3</a>) szerint az Árvízhét fő közvetítője a Polgármester (8), utána a Kormány (5), a Vízügy (1,5) és a Szakértő (0,5). Tegyük fel, hogy egyetlen cikk hiányzik a gyűjtésből – és vele egy él. Mi történik?
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>hiányzó él</th><th>Ko</th><th>Vi</th><th>Po</th><th>Sz</th><th>La</th><th>Ön</th><th>első</th></tr>
+    <tr><td>(semmi)</td><td>5</td><td>1,5</td><td><b>8</b></td><td>0,5</td><td>0</td><td>0</td><td>Po</td></tr>
+    <tr><td>Ko–Po</td><td>2</td><td><b>9</b></td><td>8</td><td>2</td><td>0</td><td>0</td><td><b>Vi</b></td></tr>
+    <tr><td>Vi–Po</td><td><b>9,5</b></td><td>0</td><td>8</td><td>0,5</td><td>0</td><td>0</td><td><b>Ko</b></td></tr>
+    <tr><td>Vi–Sz</td><td><b>8</b></td><td>0</td><td><b>8</b></td><td>0</td><td>0</td><td>0</td><td>Ko = Po</td></tr>
+    <tr><td>La–Ön</td><td>5</td><td>1,5</td><td><b>9</b></td><td>0,5</td><td>0</td><td>0</td><td>Po</td></tr>
+  </table></div>
+  Egyetlen hiányzó él (a Ko–Po) után a <b>Vízügy</b> lesz a fő közvetítő; egy másik (a Vi–Po) után a <b>Kormány</b>. A fokszámok közben alig változnak: két szereplő veszít egy-egy élt.
+</div>
+
+<div class="box def">
+  <span class="box-title">Szabály – melyik mérőszám érzékeny?</span>
+  A <b>helyi</b> mérőszámok (fokszám, erősség) egy hiányzó éltől csak a két végpontnál változnak, egy-egy egységgel. A <b>globális</b>, utakra épülő mérőszámok (köztesség, közelség) egy él miatt sok csúcspár legrövidebb útját változtathatják meg – különösen, ha az él egy <b>híd</b> vagy egy alternatív út része.
+  <small>Miért? A köztesség az összes csúcspár legrövidebb útjait számolja. Ha a Ko–Po él kiesik, a Ko-oldal (Ko, Sz, Kl) és a Po-oldal (Po, La, Ön) közti utak mind a Vízügyön át mennek – a Vi hirtelen sok pár egyetlen közvetítője.</small>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Egy kis hálózat rangsorát erős állításnak venni.</b> Ha egyetlen él megfordítja az első helyet, akkor a „fő közvetítő” állítás az adatgyűjtés véletlenjein múlik. Mondd ki, és nézd meg, mi változik egy-egy él elhagyásával („egyet kihagyó” ellenőrzés).</li>
+    <li><b>Azt hinni, hogy a hiányzó adat csak „zaj”, ami kiátlagolódik.</b> Ha a hiány nem véletlen (pl. a kis lapok cikkei hiányoznak, vagy az API csak a népszerű posztokat adja), az torzít, és nem átlagolódik ki.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – egy hiányzó él</summary>
+  <ol>
+    <li>Az Árvízhéten melyik él hiánya nem változtat a köztességi rangsor első helyén, de a Po értékét 9-re emeli?
+      <details><summary>Megoldás</summary>A La–Ön: a La és az Ön között ilyenkor csak a Po-n át vezet út.</details></li>
+    <li>Hogyan változik a Kormány fokszáma, ha a Ko–Po él hiányzik? És a köztessége?
+      <details><summary>Megoldás</summary>Fokszám: 4 → 3. Köztesség: 5 → 2. A helyi mérőszám egyet, a globális sokat változik.</details></li>
+    <li>A Po–La él hiányában mennyi lesz az Önkéntesek köztessége?
+      <details><summary>Megoldás</summary>5: a La ilyenkor csak az Ön-ön át éri el a többieket (a La–X párok, X ≠ Ön: 5 pár).</details></li>
+    <li>Miért nem változik egyik köztesség sem a Sz–Kl él eltávolításakor… vagy mégis?
+      <details><summary>Megoldás</summary>Változik: a Kl ilyenkor csak a Ko-n át érhető el, így a Ko köztessége 5-ről 6,5-re nő, a Sz-é 0,5-ről 0-ra csökken. A Po marad az első (8).</details></li>
+    <li>(nehezebb) Egy cikkben 3 szereplő szerepel. Ha ez a cikk hiányzik, legfeljebb hány él tűnhet el a szereplőgráfból?
+      <details><summary>Megoldás</summary>3 (a három pár) – ha egyik pár sem szerepel együtt másik cikkben. Az Árvízhét 2. cikkének hiányakor (Ko, Vi, Po) egy él sem tűnik el (mindhárom pár szerepel máshol is, csak a súlyuk csökken).</details></li>
+  </ol>
+</details>
+
+<h3 id="s106-b">2. lépés: sok hiányzó él – véletlen hiány</h3>
+<p>Egy él helyett most az élek egy $f$ hányada hiányzik, véletlenszerűen. Mennyire marad hasonló a centralitás-rangsor? A rangsorok egyezését a <b>Spearman-féle rangkorrelációval</b> mérjük (<a class="xref" href="../05-centralitas/#s57-b">5.7</a>, <a class="xref" href="../../matematikai-statisztika/03-ket-valtozo-kapcsolata/#s36-a">Mat. stat. 3.6</a>).</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a karateklub, élek véletlen hiányával</span>
+  A karateklub 78 élének $f$ részét véletlenül töröljük (300 ismétlés, Python), és összevetjük a fokszám- és a köztességi rangsort az eredetivel:
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>hiányzó élek $f$</th><th>5%</th><th>10%</th><th>20%</th><th>30%</th><th>50%</th></tr>
+    <tr><td>fokszám: Spearman $\rho$</td><td>0,97</td><td>0,95</td><td>0,90</td><td>0,85</td><td>0,74</td></tr>
+    <tr><td>köztesség: Spearman $\rho$</td><td>0,96</td><td>0,93</td><td>0,86</td><td>0,80</td><td>0,70</td></tr>
+    <tr><td>a köztesség első helyezettje ugyanaz</td><td>100%</td><td>99%</td><td>90%</td><td>83%</td><td>46%</td></tr>
+  </table></div>
+  Ha a <b>csúcsok</b> hiányoznak (a megmaradtakon mérve): 10% / 20% / 30% hiánynál a fokszám $\rho$-ja 0,96 / 0,90 / 0,87, a köztességé 0,95 / 0,89 / 0,84.
+</div>
+
+<div class="box def">
+  <span class="box-title">Szabály – a robusztusság mérése</span>
+  <ol style="margin:.2rem 0">
+    <li>Töröld az élek (vagy csúcsok) $f$ hányadát véletlenül – vagy a valószínű hiány mintája szerint (pl. a gyenge élek, a kis lapok).</li>
+    <li>Számold újra a mérőszámot, és vesd össze az eredetivel: rangkorreláció, az első $k$ egyezése, a közösségek NMI-je (<a class="xref" href="../08-kozossegek/#s87-a">8.7</a>).</li>
+    <li>Ismételd sokszor, és add meg az átlagot és a szóródást $f$ függvényében.</li>
+  </ol>
+  <small>Miért véletlen törlés, ha az adat már hiányos? Mert nem tudjuk, mi hiányzik – de azt meg tudjuk nézni, hogy <b>további</b> hiány mennyit rontana. Ha 10% plusz hiány is nagyot változtat, a mostani eredmény sem stabil. Borgatti, Carley és Krackhardt (2006) szimulációi szerint a centralitások pontossága a hiánnyal fokozatosan, kiszámíthatóan romlik – de a rangsor teteje kis hálózatban könnyen felborul.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a rangsor eleje</span>
+    20% hiányzó élnél a köztesség $\rho = 0{,}86$ – ez elég jónak tűnik. Mégis: az esetek hány százalékában változik meg, ki a fő közvetítő?
+    <details><summary>Megoldás</summary>10%-ában. Az átlagos rangegyezés jó, de egyetlen konkrét állítás („X a legfontosabb közvetítő”) jóval törékenyebb, mint a rangsor egésze.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a nem véletlen hiány</span>
+    Egy kutató a hírportálok cikkeit API-n gyűjti, de az API csak a 100 legnépszerűbb cikket adja naponta. Melyik szereplők élei hiányoznak inkább?
+    <details><summary>Megoldás</summary>A kevésbé népszerű témák szereplőié (helyi ügyek, kis szereplők). A hiány <b>rendszerszerű</b>: a nagy szereplők centralitása felfelé torzul. Ezt a véletlen törléses ellenőrzés nem mutatja meg – ehhez a hiány valószínű mechanizmusát kell szimulálni.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A szoros versenyt biztos győzelemnek olvasni.</b> A karateklub legnagyobb fokszámú tagja a 34-es (17 él), de az 1-esnek 16 van. Már 5% hiányzó élnél is csak kb. az esetek 60%-ában marad a 34-es egyedül az első (1000 ismétlés, Python) – pedig a fokszám összességében a robusztusabb mérőszám. Ha az első kettő közel van, az „első hely” állítás gyenge.</li>
+    <li><b>Az átlagos $\rho$-ból egyéni állítást levezetni.</b> A rangsor egésze és a rangsor egy-egy pontja (ki az első, benne van-e X az első ötben) mást mér – mindkettőt meg kell nézni.</li>
+  </ul>
+</div>
+
+<p>Próbáld ki! Válaszd ki, mi hiányozzon és mennyi, és nézd, hogyan romlik a rangsor egyezése.</p>
+<div class="widget" data-widget="missing-data"></div>
+
+<div class="box tip">
+  <span class="box-title">📅 Állapot: 2026 – platform-hozzáférés</span>
+  A közösségimédia-kutatás adatforrásai az elmúlt években szűkültek: az X (Twitter) 2023-ban megszüntette az ingyenes kutatói API-t, a Meta 2024 augusztusában leállította a CrowdTangle-t. Az EU digitális szolgáltatásokról szóló rendelete (DSA, 40. cikk) kutatói adathozzáférést ír elő a nagy platformoknak, de ennek gyakorlata 2026-ban is alakul.
+  A hálózati adatok „hiányát” tehát sokszor nem a kutató, hanem a hozzáférés szabja meg – ezt a módszertani részben ki kell mondani.
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – véletlen hiány</summary>
+  <ol>
+    <li>A karateklubban 30% hiányzó élnél mekkora a köztességi rangsor átlagos Spearman-korrelációja az eredetivel?
+      <details><summary>Megoldás</summary>Kb. 0,80.</details></li>
+    <li>Melyik romlik gyorsabban a hiánnyal: a fokszám- vagy a köztességi rangsor?
+      <details><summary>Megoldás</summary>A köztességi – minden $f$-nél kicsit kisebb a $\rho$-ja (pl. 50%-nál 0,70 vs. 0,74).</details></li>
+    <li>Miért kell ugyanazt a törlést 300-szor megismételni?
+      <details><summary>Megoldás</summary>Mert egy-egy törlés véletlen: egyszer egy hidat visz el, máskor egy jelentéktelen élt. Az átlag és a szóródás mondja meg, mire számíthatunk.</details></li>
+    <li>Egy kérdőíves hálózati vizsgálatban a 30 fős osztályból 6-an nem válaszoltak. Hány százalékos a csúcshiány, és kb. mennyire bízhatsz a fokszám-rangsorban a karateklub eredményei alapján?
+      <details><summary>Megoldás</summary>20%; a karateklubnál ilyenkor $\rho \approx 0{,}90$ – a rangsor nagy vonalakban megbízható, a pontos sorrend nem. (Ez csak tájékoztató: más hálózatban más lehet.)</details></li>
+    <li>(nehezebb) Egy kutató azt írja: „a köztesség rangsora 20% hiányzó élnél is $\rho = 0{,}86$-tal egyezik, tehát a fő közvetítőre vonatkozó eredményünk robusztus”. Mi a gond az érveléssel?
+      <details><summary>Megoldás</summary>Az átlagos rangegyezés a <b>teljes</b> rangsorról szól; az első hely 20% hiánynál az esetek 10%-ában megváltozik. Az állítás a fő közvetítőről szól – azt külön kell ellenőrizni (első-hely-egyezés).</details></li>
+  </ol>
+</details>
+
+<h3 id="s106-c">3. lépés: a saját döntéseid – érzékenységvizsgálat</h3>
+<p>A hiányzó adatnál is gyakoribb forrása a bizonytalanságnak a <b>feldolgozás</b>: mekkora küszöbbel vágtunk (<a class="xref" href="#s105-a">10.5</a>), mekkora időablakot vettünk (<a class="xref" href="../03-graftipusok/#s35-c">3.5</a>), milyen felbontással kerestünk közösséget (<a class="xref" href="../08-kozossegek/#s84-c">8.4</a>), melyik entitáskinyerőt használtuk. Ezek a te döntéseid – az eredménynek nem szabad csak egyetlen beállításon múlnia.</p>
+
+<div class="box example" id="s106-c-racs">
+  <span class="box-title">Kiinduló példa – a Les Misérables közösségei, 4 × 4 beállítással</span>
+  Két döntés: az élküszöb ($t$: csak a legalább $t$ súlyú élek) és a Louvain felbontása ($\gamma$). Minden párosításra lefuttatjuk a közösségkeresést, és összevetjük az alapesettel ($t = 1$, $\gamma = 1$, 6 közösség) – NMI-vel (Python):
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>küszöb \ felbontás</th><th>$\gamma = 0{,}5$</th><th>$\gamma = 1$</th><th>$\gamma = 1{,}5$</th><th>$\gamma = 2$</th></tr>
+    <tr><th>$t = 1$</th><td>0,86</td><td>1</td><td>0,93</td><td>0,85</td></tr>
+    <tr><th>$t = 2$</th><td>0,63</td><td>0,80</td><td>0,76</td><td>0,74</td></tr>
+    <tr><th>$t = 3$</th><td>0,60</td><td>0,63</td><td>0,63</td><td>0,63</td></tr>
+    <tr><th>$t = 5$</th><td>0,58</td><td>0,60</td><td>0,59</td><td>0,59</td></tr>
+  </table></div>
+  A felbontás (egy soron belül) viszonylag keveset változtat; a <b>küszöb</b> (egy oszlopon belül) sokat. Ha egy állítást („Javert külön közösségben van”) csak a $t = 1$ sorban kapunk meg, az a küszöb választásán múlik.
+</div>
+
+<div class="box def">
+  <span class="box-title">Szabály – érzékenységvizsgálat (robusztussági térkép)</span>
+  <ol style="margin:.2rem 0">
+    <li>Sorold fel a döntéseidet, és mindegyikhez egy ésszerű <b>tartományt</b> (pl. küszöb 1–5, ablak 1 nap – 1 hét, $\gamma$ 0,5–2).</li>
+    <li>Futtasd le az elemzést a tartományok rácsán.</li>
+    <li>Minden cellában mérd, mennyire egyezik az eredmény az alapesettel (NMI, rangkorreláció, a fő állítás igaz-e).</li>
+    <li>Jelentsd a térképet: mely állítások igazak (szinte) minden cellában, és melyek csak néhányban.</li>
+  </ol>
+  <small>Miért rács, és nem egyenként? Mert a döntések kölcsönhatnak: egy küszöb mellett a felbontás mást csinál, mint egy másik mellett. Egyenként változtatva ezt nem látnád.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – maga az algoritmus is véletlen</span>
+    Az alapesetet ($t = 1$, $\gamma = 1$) 20-szor futtattuk különböző véletlen kezdéssel. Mennyire stabil?
+    <details><summary>Megoldás</summary>Mindig 6 közösség, NMI 0,93–1 az első futáshoz. A Louvain véletlensége itt kicsi – a küszöb választása sokkal többet számít (<a class="xref" href="../08-kozossegek/#s87-b">8.7</a>).</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – az Árvízhét és a küszöb</span>
+    Mit mond az Árvízhét gerince a <a class="xref" href="#s105-a-arviz">10.5</a> alapján: robusztus-e az az állítás, hogy „a Szakértő és a Klímaváltozás külön csoport”?
+    <details><summary>Megoldás</summary>Nem: $t = 1$-nél a Sz–Kl három éllel kötődik a többiekhez, $t = 2$-nél külön komponens, $t = 3$-nál el is tűnik. Az állítás a küszöbön múlik – így kell jelenteni.</details>
+  </div>
+</div>
+
+<p>Próbáld ki! A rács minden cellája egy beállítás; kattints rá, és nézd meg a közösségeket.</p>
+<div class="widget" data-widget="sensitivity-grid"></div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A legszebb cellát jelenteni.</b> Ha sok beállítást kipróbálsz, és csak azt közlöd, amelyik a legérdekesebb eredményt adja, az a hálózati p-hacking (<a class="xref" href="../../matematikai-statisztika/07-hipotezisvizsgalat/#s77-b">Mat. stat. 7.7</a>). A beállításokat előre rögzítsd, vagy közöld a teljes térképet.</li>
+    <li><b>Csak egy döntést változtatni.</b> A döntések kölcsönhatnak; egyenkénti próbálgatással a „robusztus” könnyen csak „egy irányban robusztus”.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – érzékenységvizsgálat</summary>
+  <ol>
+    <li>Három döntésed van, mindegyikhez 4 lehetséges érték. Hány cellás a rács?
+      <details><summary>Megoldás</summary>$4^3 = 64$.</details></li>
+    <li>A Les Misérables-rácsban melyik cellában a legkisebb az egyezés az alapesettel?
+      <details><summary>Megoldás</summary>$t = 5$, $\gamma = 0{,}5$: NMI 0,58.</details></li>
+    <li>Egy elemzésben a fő eredmény a 16 cellából 14-ben igaz. Hogyan jelentenéd?
+      <details><summary>Megoldás</summary>„Az eredmény a küszöb és a felbontás 16 vizsgált kombinációjából 14-ben fennáll; a két kivétel …” – megnevezve, melyik beállításoknál nem.</details></li>
+    <li>Miért nem elég a Louvaint egyszer lefuttatni egy cellában?
+      <details><summary>Megoldás</summary>Mert az algoritmus véletlen sorrendben dolgozik; több futás mutatja meg, hogy a különbség a beállításé vagy csak a véletlené.</details></li>
+    <li>(nehezebb) Egy kutató időablakot választ a napirend-hálózathoz (1 nap / 3 nap / 1 hét), és csak a 3 napos ablakkal jön ki szignifikáns QAP-korreláció a média és a közönség hálózata között. Mit mondanál?
+      <details><summary>Megoldás</summary>Hogy az eredmény az ablakméreten múlik, tehát gyenge. Mindhárom ablak eredményét közölni kell, és ha a 3 napot előre (elméleti okból) választotta, azt megindokolni. Ha utólag, az „kertek elágazó ösvényei” típusú hiba.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh10-106"></div>
+</section>
+
+<!-- ===================================================== 10.7 -->
+<section id="s107">
+<h2>10.7 Kitekintés: ERGM és időbeli hálózati modellek ★★★</h2>
+<p>A QAP és az MRQAP <b>tesztel</b>: a hálózat szerkezetét adottnak veszi, és azt kérdezi, egyezik-e két hálózat. Nem mondja meg, <b>miért</b> olyan a hálózat, amilyen. Ha azt akarjuk tudni, hogy egy él valószínűbb-e, ha háromszöget zár, vagy ha két hasonló szereplőt köt össze, akkor <b>modellezni</b> kell az éleket – egymástól nem függetlenül.
+Ez az <b>exponenciális véletlengráf-modell</b> (ERGM, <em>exponential random graph model</em>) ötlete. Itt csak az alapgondolatot nézzük meg, egy olyan kis gráfon, ahol minden lehetőség felsorolható.</p>
+
+<h3 id="s107-a">1. lépés: egyetlen paraméter – az élek</h3>
+<div class="box example" id="s107-a-paw">
+  <span class="box-title">Kiinduló példa – 4 csúcs, 64 gráf</span>
+  Négy csúcson 6 csúcspár van, így $2^6 = 64$ lehetséges (címkézett) gráf. Megfigyeltünk egyet: egy háromszöget és egy hozzá lógó élt (4 él, 1 háromszög).
+  A legegyszerűbb modell: minden gráf valószínűsége csak az élszámától függ,
+  $$P(G) = \frac{e^{\theta \cdot \text{élszám}(G)}}{\kappa(\theta)},$$
+  ahol $\kappa(\theta)$ a 64 gráf $e^{\theta \cdot \text{élszám}}$-ainak összege (hogy az összes valószínűség 1 legyen).
+  Ha $\theta = 0$, mind a 64 gráf egyformán valószínű: ez minden élre $1/2$ esély. Ha $\theta \gt 0$, a sok élű gráfok valószínűbbek.
+</div>
+
+<div class="box def">
+  <span class="box-title">Tétel – az élparaméteres ERGM az Erdős–Rényi-gráf</span>
+  Ha a modellben csak az élszám szerepel, az élek <b>függetlenek</b>, és mindegyik
+  $$p = \frac{e^\theta}{1 + e^\theta}$$
+  eséllyel van meg – ez a $G(n, p)$ véletlen gráf (<a class="xref" href="../07-halozatmodellek/#s71-a">7.1</a>). Fordítva: $\theta = \ln\dfrac{p}{1-p}$, a $p$ <b>logitja</b>. A legjobban illeszkedő (maximum likelihood) $\theta$-nál a várható élszám = a megfigyelt.
+  <small>Miért? $e^{\theta \cdot \text{élszám}} = \prod_{\text{párok}} e^{\theta \cdot [\text{van él}]}$ – szorzattá bomlik a párok szerint, tehát a párok függetlenek. Egy párra a két eset aránya $e^\theta : 1$, ebből $p = e^\theta/(1 + e^\theta)$ – a logisztikus függvény (<a class="xref" href="../../mesterseges-intelligencia/05-osztalyozas/#s53-b">MI 5.3</a>).</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – illesztés a megfigyelt gráfra</span>
+    A megfigyelt 4 csúcsú gráfban 4 él van a 6 párból. Mennyi a legjobban illeszkedő $\theta$?
+    <details><summary>Megoldás</summary>$p = 4/6 = 2/3$, $\theta = \ln\dfrac{2/3}{1/3} = \ln 2 \approx 0{,}693$.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – hány háromszöget jósol?</span>
+    Ebben a modellben ($p = 2/3$) hány háromszög várható 4 csúcson? És mennyi van a megfigyelt gráfban?
+    <details><summary>Megoldás</summary>4 csúcson 4 lehetséges háromszög van, mindegyik $p^3 = 8/27$ eséllyel: $4 \cdot 8/27 \approx 1{,}185$. A megfigyeltben 1 van – kicsit kevesebb, mint amit a független élek jósolnak.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A $\theta$-t valószínűségnek olvasni.</b> A $\theta$ logit: $\theta = 0$ ↔ $p = 0{,}5$, $\theta = \ln 2$ ↔ $p = 2/3$, negatív $\theta$ ↔ $p \lt 0{,}5$. A ritka valós hálózatok élparamétere ezért erősen negatív.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – élparaméter</summary>
+  <ol>
+    <li>5 csúcson hány címkézett gráf van?
+      <details><summary>Megoldás</summary>$\binom52 = 10$ pár: $2^{10} = 1024$.</details></li>
+    <li>$\theta = 0$. Mekkora egy él esélye? És $\theta = -1$-nél?
+      <details><summary>Megoldás</summary>$0{,}5$; illetve $e^{-1}/(1 + e^{-1}) \approx 0{,}269$.</details></li>
+    <li>Egy 10 csúcsú hálózatban 9 él van. Mennyi az élparaméteres ERGM becsült $\theta$-ja?
+      <details><summary>Megoldás</summary>$p = 9/45 = 0{,}2$, $\theta = \ln(0{,}2/0{,}8) = \ln 0{,}25 \approx -1{,}386$.</details></li>
+    <li>4 csúcson $\theta = 0$-nál mekkora a várható élszám és a várható háromszögszám?
+      <details><summary>Megoldás</summary>$6 \cdot 0{,}5 = 3$ él és $4 \cdot 0{,}125 = 0{,}5$ háromszög.</details></li>
+    <li>(nehezebb) Miért nem jó modell a karateklubra az élparaméteres ERGM?
+      <details><summary>Megoldás</summary>Mert független éleket feltételez, így kevés háromszöget jósol: a karateklub klaszterezettsége sokkal nagyobb, mint egy ugyanilyen sűrű véletlen gráfé (<a class="xref" href="../07-halozatmodellek/#s76-c">7.6</a>). A háromszögeket külön paraméterrel kell beépíteni.</details></li>
+  </ol>
+</details>
+
+<h3 id="s107-b">2. lépés: háromszögek – amikor az élek függenek egymástól</h3>
+<p>Az ERGM igazi ereje, hogy <b>szerkezeti</b> tagokat is bevehetünk: pl. a háromszögek számát. Ekkor egy él valószínűsége attól is függ, hány háromszöget zárna be – az élek már nem függetlenek.</p>
+
+<div class="box def">
+  <span class="box-title">Definíció – ERGM él- és háromszögtaggal</span>
+  $$P(G) = \frac{1}{\kappa(\theta)} \exp\big(\theta_{\text{él}} \cdot \text{élszám}(G) + \theta_\Delta \cdot \text{háromszögszám}(G)\big).$$
+  <b>Változási statisztika:</b> ha minden mást rögzítünk, és az $(i, j)$ párról kérdezzük, van-e köztük él, akkor
+  $$\ln\frac{P(ij \text{ él van} \mid \text{a többi})}{P(ij \text{ él nincs} \mid \text{a többi})} = \theta_{\text{él}} + \theta_\Delta \cdot c_{ij},$$
+  ahol $c_{ij}$ az $i$ és $j$ <b>közös szomszédainak</b> száma – ennyi háromszöget zárna be az új él.
+  <small>Miért? Az él behúzása az élszámot 1-gyel, a háromszögszámot $c_{ij}$-vel növeli; a két eset valószínűségének aránya ezért $e^{\theta_{\text{él}} + \theta_\Delta c_{ij}}$. Ez egy <b>logisztikus regresszió</b> a csúcspárokon, ahol a magyarázó változó a „hány háromszöget zárna be”.</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a 64 gráf csoportjai</span>
+  4 csúcson a 64 gráf élszám és háromszögszám szerint (teljes felsorolás):
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>élszám</th><th>0</th><th>1</th><th>2</th><th>3</th><th>3</th><th>4</th><th>4</th><th>5</th><th>6</th></tr>
+    <tr><th>háromszög</th><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>0</td><td>1</td><td>2</td><td>4</td></tr>
+    <tr><th>gráfok száma</th><td>1</td><td>6</td><td>15</td><td>16</td><td>4</td><td>3</td><td>12</td><td>6</td><td>1</td></tr>
+  </table></div>
+  Pl. 3 élből 16-féleképpen nem lesz háromszög (út vagy csillag), 4-féleképpen lesz (a 4 lehetséges háromszög). 4 élből 3 gráf a 4-kör, 12 a „háromszög + lógó él”. Egy gráf valószínűsége: $e^{\theta_{\text{él}} \cdot e + \theta_\Delta \cdot t}/\kappa$, és a csoportét a gráfok számával szorozzuk.
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a változási statisztika</span>
+    $\theta_{\text{él}} = -1$, $\theta_\Delta = 0{,}5$. Mekkora egy él feltételes esélye, ha a két csúcsnak 0, 1, illetve 2 közös szomszédja van?
+    <details><summary>Megoldás</summary>A logit $-1$, $-0{,}5$, $0$: az esély $0{,}269$, $0{,}378$, $0{,}5$. Minden közös szomszéd növeli az él esélyét – a modell „szereti” a háromszögeket.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – két megfigyelt gráf, két előjel</span>
+    Illesszük a modellt (a várható élszám és háromszögszám = a megfigyelt) két 4 csúcsú gráfra: (a) háromszög + lógó él (4 él, 1 háromszög), (b) háromszög + magányos csúcs (3 él, 1 háromszög).
+    <details><summary>Megoldás</summary>(a) $\theta_{\text{él}} = 1{,}275$, $\theta_\Delta = -0{,}647$: ennyi élhez a független modell 1,185 háromszöget jósolna, az 1 <b>kevesebb</b> → negatív háromszögtag.
+      (b) $\theta_{\text{él}} = -0{,}865$, $\theta_\Delta = 1{,}469$: 3 élhez a 3 él „összezárása” egy háromszögbe ritka → erősen <b>pozitív</b> háromszögtag (Python).</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák – és a degeneráció</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Azt hinni, hogy mindig van becslés.</b> Ha a megfigyelt gráf egy „szélső” eset (pl. a 3 élű út: 3 él, 0 háromszög – kevesebb háromszög nem is lehetne), a becslés nem létezik: a $\theta_\Delta$ a $-\infty$ felé szalad.</li>
+    <li><b>A háromszögtagot ártalmatlannak hinni.</b> Nagyobb gráfon a pozitív $\theta_\Delta$ „elszabadul”: minden új él újabb háromszögeket zár, azok újabb éleket vonzanak, és a modell vagy majdnem üres, vagy majdnem teljes gráfot ad – a valódi, közepes sűrűségű hálózatot nem. 6 csúcson $\theta = (-1;\ 1)$-nél a várható élszám 10,6 a 15-ből, $(-1{,}5;\ 1{,}2)$-nél az élszám eloszlása kétpúpú (0–4 vagy 14–15 él). Ez a <b>degeneráció</b>; a gyakorlatban ezért szelídebb tagokat használnak (pl. GWESP: a közös szomszédok csökkenő súllyal; Snijders és mtsai, 2006).</li>
+    <li><b>A modellt bizonyítéknak venni.</b> A pozitív $\theta_\Delta$ azt jelenti, hogy a háromszögek gyakoribbak, mint amit a többi tag megmagyaráz – azt nem, hogy <b>miért</b> (barátok barátai lesznek barátok? közös esemény hozza össze őket?).</li>
+  </ul>
+</div>
+
+<p>Próbáld ki! Állítsd a két paramétert, és nézd, hogyan változik az élszám eloszlása; illessz a modellt egy kis gráfra; és keresd meg a degenerációt 6 csúcson.</p>
+<div class="widget" data-widget="ergm-toy"></div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – háromszögtag</summary>
+  <ol>
+    <li>4 csúcson hány gráfnak van pontosan 2 háromszöge, és hány éle van ezeknek?
+      <details><summary>Megoldás</summary>6 gráfnak, mindegyiknek 5 éle van (a teljes gráfból egy él hiányzik).</details></li>
+    <li>$\theta_{\text{él}} = -2$, $\theta_\Delta = 1$. Mekkora egy él feltételes esélye 3 közös szomszéd mellett?
+      <details><summary>Megoldás</summary>Logit $-2 + 3 = 1$, esély $e/(1 + e) \approx 0{,}731$.</details></li>
+    <li>Miért nem bomlik szorzattá a valószínűség, ha a háromszögtag is szerepel?
+      <details><summary>Megoldás</summary>Mert egy háromszög három élen múlik egyszerre: a tag ($e^{\theta_\Delta \cdot t}$) nem írható fel páronkénti szorzóként. Az élek ezért függenek egymástól.</details></li>
+    <li>Egy illesztett ERGM-ben $\theta_\Delta = 0{,}9$ és szignifikáns. Mit mondhatsz, és mit nem?
+      <details><summary>Megoldás</summary>Mondhatod: a háromszögek gyakoribbak, mint amit a modell többi tagja (pl. az élszám) magyaráz – a hálózatban erős a „háromszögzárás”. Nem mondhatod, hogy ezt a „barátom barátja” hatás <b>okozza</b>: más mechanizmus (közös fókusz, homofília) is adhat háromszögeket.</details></li>
+    <li>(nehezebb) 4 csúcson $\theta = (0, 0)$-nál mennyi a „háromszög + magányos csúcs” alakú gráfok együttes valószínűsége?
+      <details><summary>Megoldás</summary>Mind a 64 gráf egyformán $1/64$; ilyen alakú 4 van: $4/64 = 0{,}0625$.</details></li>
+  </ol>
+</details>
+
+<h3 id="s107-c">3. lépés: idő is van – SAOM és TERGM röviden</h3>
+<p>A hírekben a hálózatok <b>változnak</b>: hétről hétre új élek jönnek, régiek elhalnak. Két modellcsalád írja le ezt:</p>
+<div class="two-col">
+  <div class="box def">
+    <span class="box-title">TERGM – időbeli ERGM</span>
+    A $t$ időpont hálózatát egy ERGM írja le, amelyben a <b>korábbi</b> hálózat is szerepel tagként (pl. „volt-e él a múlt héten” – stabilitás). Hanneke, Fu és Xing (2010); Krivitsky és Handcock (2014) STERGM: külön modell az élek keletkezésére és megszűnésére.
+  </div>
+  <div class="box def">
+    <span class="box-title">SAOM – szereplő-központú modell</span>
+    A változást a <b>szereplők</b> döntéseiként modellezi: időnként egy szereplő „lép” – behúz vagy elenged egy élt –, és ezt a saját céljai (pl. háromszögzárás, hasonlók keresése) szerint teszi. Ugyanez a modell a viselkedés (vélemény) változását is leírja, így a kölcsönhatás (szelekció vagy befolyás?) szétválasztható (Snijders, 2001; RSiena).
+  </div>
+</div>
+
+<div class="box tip">
+  <span class="box-title">👍 Mikor melyiket?</span>
+  <ul style="margin:.2rem 0">
+    <li><b>„Hasonlít-e két hálózat?”</b> → QAP (<a class="xref" href="#s103">10.3</a>).</li>
+    <li><b>„Melyik hálózat / attribútum magyarázza ezt a hálózatot, a többit rögzítve?”</b> → MRQAP (<a class="xref" href="#s104">10.4</a>), bináris függőnél LRQAP.</li>
+    <li><b>„Miért olyan a szerkezet? (háromszögzárás, homofília, népszerűség együtt)”</b> → ERGM.</li>
+    <li><b>„Hogyan változik a hálózat, és együtt változik-e a véleményekkel?”</b> → TERGM / SAOM (vagy a <a class="xref" href="../09-terjedes/#s96">9.6</a> ágensalapú modelljei, ha szimulálni akarsz).</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – melyik modell?</summary>
+  <ol>
+    <li>Két lap napirend-hálózata egy adott héten – hasonlítanak-e?
+      <details><summary>Megoldás</summary>QAP-korreláció.</details></li>
+    <li>Egy osztály barátsági hálózata két időpontban, és a diákok dohányzása. Azért dohányoznak együtt a barátok, mert egymást befolyásolják, vagy mert a dohányosok egymást választják?
+      <details><summary>Megoldás</summary>SAOM (RSiena): pont a szelekció és a befolyás szétválasztására készült.</details></li>
+    <li>Egy hírkorpusz együttemlítési hálózatában több-e a háromszög, mint amit a szereplők gyakorisága és a pártállásuk magyaráz?
+      <details><summary>Megoldás</summary>ERGM (él-, gyakoriság-, homofília- és GWESP-taggal).</details></li>
+    <li>A közönség napirend-hálózatát a média és a közösségi média hálózata együtt magyarázza – melyik számít a másik mellett?
+      <details><summary>Megoldás</summary>MRQAP (DSP).</details></li>
+    <li>(nehezebb) Miért nem elég az ERGM helyett egyszerűen logisztikus regressziót futtatni a csúcspárokon, a „közös szomszédok számát” magyarázóként véve?
+      <details><summary>Megoldás</summary>Mert a közös szomszédok száma maga is a hálózatból jön, ami a függő változó: a párok nem függetlenek. A naiv logisztikus regresszió ugyanúgy túl magabiztos lenne, mint a <a class="xref" href="#s102-b">10.2</a> naiv próbája. Az ERGM a teljes gráf valószínűségét modellezi, így a függőséget kezeli (a „változási statisztika” csak a feltételes alakja).</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh10-107"></div>
+</section>
+
+<!-- ===================================================== 10.8 -->
+<section id="s108">
+<h2>10.8 Alkalmazás: hasonlít-e a két lap napirendje? ★★</h2>
+<p>Minden eszköz megvan: élátfedés (<a class="xref" href="#s101">10.1</a>), mátrixkorreláció (<a class="xref" href="#s102">10.2</a>), QAP (<a class="xref" href="#s103">10.3</a>), MRQAP (<a class="xref" href="#s104">10.4</a>), gerinc (<a class="xref" href="#s105">10.5</a>) és robusztusság (<a class="xref" href="#s106">10.6</a>). Térjünk vissza a fejezet kérdéséhez.</p>
+
+<h3 id="s108-a">1. lépés: a Vidéki Napló és a Nyitott Szó – a válasz</h3>
+<div class="tw" style="overflow-x:auto"><table>
+  <tr><th>mérőszám</th><th>érték</th><th>mit mond?</th></tr>
+  <tr><td>Jaccard</td><td>0,5 (2 közös él a 4-ből)</td><td>a négy lap közül ez a pár hasonlít a legjobban</td></tr>
+  <tr><td>súlyozott Jaccard</td><td>0,33</td><td>a NY legerősebb kapcsolata (La–Ön, 3) a VN-ből hiányzik</td></tr>
+  <tr><td>$r$, 4 szereplő (bináris / súlyozott)</td><td>0,33 / $-0{,}16$</td><td>a súlyozás megfordítja az előjelet</td></tr>
+  <tr><td>$r$, 7 szereplő (bináris)</td><td>0,61</td><td>a közös „hiányok” (Ko, Sz, Kl) emelik</td></tr>
+  <tr><td>naiv p (7 szereplő)</td><td>0,003</td><td>hamis: független cellákat feltételez</td></tr>
+  <tr><td>QAP p, 4 szereplő (24 permutáció)</td><td>0,75</td><td>két közös él a <b>legtipikusabb</b> eredmény</td></tr>
+  <tr><td>QAP p, 7 szereplő (5040 permutáció)</td><td>0,086</td><td>nem szignifikáns 5%-on</td></tr>
+</table></div>
+
+<div class="box example">
+  <span class="box-title">A válasz a fejezet kérdésére</span>
+  <ol style="margin:.2rem 0">
+    <li><b>A naiv „$p = 0{,}003$” rossz kérdésre felel.</b> 21 független cellát feltételez, holott a VN mindhárom éle a Polgármesteren megy át: az egyezések „csomagban” jönnek (<a class="xref" href="#s102-b">10.2</a>).</li>
+    <li><b>A QAP szerint ennyi egyezés két ilyen kis hálózatban véletlenül is gyakori.</b> A hét szereplőn $p = 3/35 \approx 0{,}086$; ha csak a lapokban előforduló négy szereplőt vesszük, $p = 0{,}75$. Egyik sem bizonyítja, hogy a két lap ugyanazt a napirendet követné.</li>
+    <li><b>Az eredmény a döntéseken múlik</b>: a csúcshalmazon (4 vagy 7 szereplő) és a súlyozáson (bináris $r = 0{,}33$, súlyozott $-0{,}16$). Mindkettőt meg kell mondani – és egy ekkora korpuszból (3 + 3 cikk) erős állítást nem lehet tenni.</li>
+    <li><b>És ha lenne is hasonlóság, nem biztos, hogy „napirend-átvétel”.</b> A két lap részben <b>ugyanazokról az eseményekről</b> írt (az elöntött pincék és a töltésbejárás napja, a segély és a gyűjtés – az E2 és az E6 esemény, <a class="xref" href="../03-graftipusok/#s34-a">3.4</a>): a közös ok maga az esemény. A keresztmetszeti QAP ezt nem választja szét.</li>
+  </ol>
+</div>
+
+<div class="box tip">
+  <span class="box-title">👍 Hüvelykujjszabály</span>
+  <b>Hálózati adaton a hasonlóságot QAP-pal teszteld, a csúcshalmazt és a súlyozást mondd ki, és kis hálózatnál ne várj szignifikanciát.</b> A valós NAS-vizsgálatok jellemzően 10–30 témával vagy szereplővel dolgoznak, és sok cikkből építik a hálózatokat.
+</div>
+
+<h3 id="s108-b">2. lépés: Krackhardt menedzserei – kitől kérsz tanácsot?</h3>
+<div class="box example">
+  <span class="box-title">Példa – a teljes elemzés egy táblázatban</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>kérdés</th><th>eszköz</th><th>eredmény</th></tr>
+    <tr><td>a barátodtól kérsz tanácsot?</td><td>QAP-korreláció</td><td>$r = 0{,}155$, $p \approx 0{,}02$ (naiv: 0,0015)</td></tr>
+    <tr><td>a főnöködtől?</td><td>QAP-korreláció</td><td>$r = 0{,}224$, $p \lt 0{,}001$</td></tr>
+    <tr><td>a barátság a főnök mellett is számít?</td><td>MRQAP (DSP)</td><td>$b = 0{,}136$, $p \approx 0{,}10$ – <b>nem</b></td></tr>
+    <tr><td>a régi motorosoktól?</td><td>MRQAP + attribútummátrix</td><td>évente +1,2 százalékpont, $R^2$ 0,063 → 0,100</td></tr>
+    <tr><td>a saját részlegedből?</td><td>MRQAP + „azonos részleg”</td><td>$b = -0{,}06$, $p \approx 0{,}36$ – nem</td></tr>
+  </table></div>
+  Összegezve: a tanácskérést leginkább a <b>hierarchia</b> és a <b>tapasztalat</b> szervezi; a barátság egyedül „szignifikánsnak” látszik, de a főnöki viszonyt figyelembe véve elveszíti a hatását – részben azért, mert a beosztottak a főnöküket gyakran barátjuknak is mondják. Az $R^2$ kicsi: a tanácskérés fő okai (a szakértelem) nincsenek a modellben.
+</div>
+
+<h3 id="s108-c">3. lépés: két hálózat összehasonlítása – menetrend</h3>
+<div class="box def">
+  <span class="box-title">Ellenőrző lista</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Rögzítsd a csúcshalmazt</b> – és indokold (minden szereplő? csak a közösek?). A QAP azonos csúcshalmazt feltételez; ami az egyik hálózatból hiányzik, az kiesik.</li>
+    <li><b>Rögzítsd az él definícióját és a súlyozást</b> (együttemlítés cikkben vagy mondatban? bináris vagy súlyozott? normált?).</li>
+    <li><b>Írd le</b> az átfedést: Jaccard, súlyozott Jaccard, mátrixkorreláció.</li>
+    <li><b>Tesztelj QAP-pal</b>, ne naiv próbával; elég permutációval ($\ge 5000$), egy- vagy kétoldalúan, ahogy előre eldöntötted.</li>
+    <li><b>Kontrollálj MRQAP-pal</b>: mi magyarázhatja még a hasonlóságot? A hírelemzésben a leggyakoribb a <b>gyakoriság</b>: ha egy szereplő mindkét hálózatban sokat szerepel, az élei mindkettőben erősek lesznek, és a hálózatok „hasonlítanak” – pusztán az első szintű (gyakorisági) egyezés miatt. Kontrollként vehető be pl. a gyakoriságok szorzata ($x_{ij} = f_i \cdot f_j$) vagy egy páros nullmodellből számolt várható súly (<a class="xref" href="#s105-c">10.5</a>).</li>
+    <li><b>Vizsgáld az érzékenységet</b>: küszöb, ablak, csúcshalmaz, súlyozás – a fő állítás hány beállításban igaz (<a class="xref" href="#s106-c">10.6</a>)?</li>
+    <li><b>Gondold végig a hiányt</b>: mi maradhatott ki a gyűjtésből, és az véletlen-e (<a class="xref" href="#s106-b">10.6</a>)?</li>
+    <li><b>Ne mondj okságot keresztmetszeti adatból</b>: a hasonlóságnak lehet közös oka (az esemény), és mehet mindkét irányba.</li>
+  </ol>
+</div>
+
+<div class="box tip">
+  <span class="box-title">⚖️ Konszenzus és vita</span>
+  <b>Egyetértés:</b> hálózati adaton a szokásos szignifikanciapróbák nem használhatók; a QAP és az MRQAP a minimum (Krackhardt, 1988; Dekker és mtsai, 2007). A küszöböket és a gerincmódszert közölni kell.
+  <b>Vita:</b> mennyit ér a QAP, ha a kérdés okságról szól? A kritikusok szerint a QAP csak a „csúcsok felcserélhetőségét” teszteli, a szerkezetet nem modellezi; az ERGM-et és a látenstér-modelleket ajánlják. A védők szerint a QAP éppen azért robusztus, mert a szerkezetet nem kell helyesen modellezni. A NAS-kutatásban a QAP a standard, de egyre több tanulmány egészíti ki időbeli (késleltetett) elemzéssel és MRQAP-kontrollokkal.
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – alkalmazás</summary>
+  <ol>
+    <li>Miért kisebb a VN–NY QAP p-értéke 7 szereplőn (0,086), mint 4-en (0,75)?
+      <details><summary>Megoldás</summary>Mert 7 szereplőnél a permutáció a csillag közepét és a háromszöget olyan szereplőkre is teheti, akik egyik lapban sem szerepelnek – így a véletlen egymásra tétel ritkábban ad 2 közös élt. A két p-érték két különböző kérdésre felel (ki tartozik a csúcshalmazba?).</details></li>
+    <li>Mit kellene látnod ahhoz, hogy a hét eleje és vége hálózatáról azt mondd: „a napirend stabil”?
+      <details><summary>Megoldás</summary>Nagy és QAP-szignifikáns korrelációt, ami több küszöbnél és súlyozásnál is megmarad. Itt $r = 0{,}22$, $p = 0{,}29$ (bináris) – nem stabil (vagy a korpusz túl kicsi a döntéshez).</details></li>
+    <li>Egy kutató két portál 30 szereplős hálózatát hasonlítja össze: $r = 0{,}52$, QAP $p \lt 0{,}001$. Mit kérdeznél tőle?
+      <details><summary>Megoldás</summary>Kontrollálta-e a gyakoriságot (MRQAP), hogy a hasonlóság ne csak a mindkét portálon gyakori szereplőkből jöjjön; hogyan rögzítette a csúcshalmazt és az él definícióját; mennyire érzékeny az eredmény a küszöbre / ablakra; és hogy az azonos eseményekről szóló tudósítás közös okként szóba jön-e.</details></li>
+    <li>A Krackhardt-adatban miért nem mondhatjuk, hogy „a barátság nem befolyásolja, kitől kérsz tanácsot”?
+      <details><summary>Megoldás</summary>Mert a nem szignifikáns eredmény nem bizonyítja a hatás hiányát (<a class="xref" href="../../matematikai-statisztika/07-hipotezisvizsgalat/#s72-c">Mat. stat. 7.2</a>): 21 emberrel kicsi a próba ereje, és a barátság egy része a főnöki viszonyon keresztül hathat.</details></li>
+    <li>(nehezebb) Tervezz NAS-vizsgálatot az Árvízhét-szerű korpuszra: mi a két hálózat, mi a próba, és mi a legalább egy kontroll?
+      <details><summary>Megoldás</summary>Pl.: (1) a média együttemlítési hálózata az 1. héten; (2) a közönség hálózata (kérdőív: „melyik szereplőket kapcsolod össze?”) a 2. héten. Próba: QAP-korreláció. Kontroll (MRQAP): a közönség 1. heti hálózata (stabilitás) és a gyakoriságok szorzata. Érzékenység: ablakméret, súlyozás. A közös ok (az események) miatt óvatos értelmezés.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh10-108"></div>
+</section>
+
+<!-- ===================================================== Összefoglalás -->
+<section id="s-sum">
+<h2>Összefoglalás</h2>
+<div class="tw" style="overflow-x:auto"><table>
+  <tr><th>Fogalom / módszer</th><th>Szabály / képlet</th><th>Mit ad, mire figyelj?</th><th>Példa</th></tr>
+  <tr><td>Jaccard-index</td><td>$|E_A \cap E_B| / |E_A \cup E_B|$</td><td>mennyi a közös – nem azt, hogy sok-e</td><td>VN–NY 2/4 = 0,5</td></tr>
+  <tr><td>súlyozott Jaccard</td><td>$\sum\min / \sum\max$</td><td>a terjedelem is számít – normálj</td><td>VN–NY 2/6</td></tr>
+  <tr><td>mátrixkorreláció</td><td>Pearson a főátlón kívüli cellákon ($N$ = $n(n-1)/2$ vagy $n(n-1)$)</td><td>bináris = $\varphi$; a csúcshalmaz és a súlyozás döntés</td><td>VN–NY: 0,33 (4) / 0,61 (7); súlyozva $-0{,}16$</td></tr>
+  <tr><td>naiv p-érték</td><td>$t = r\sqrt{N-2}/\sqrt{1 - r^2}$</td><td><b>hamis</b>: a diádok nem függetlenek (sor- és oszlopautokorreláció)</td><td>független hálózatok: 46% hamis riasztás</td></tr>
+  <tr><td>QAP</td><td>$b^*_{ij} = b_{\pi(i)\pi(j)}$; $p$ = arány($r^* \ge r$)</td><td>a szerkezet marad, csak a megfeleltetés véletlen; kevés csúcson nincs erő</td><td>24 perm.: 0,75; 5040: 0,086</td></tr>
+  <tr><td>QAP, véletlen perm.</td><td>$\hat p = (k+1)/(M+1)$, hiba $\approx\sqrt{p(1-p)/M}$</td><td>sorok és oszlopok együtt; $\ge 5000$ permutáció</td><td>Krackhardt: 0,155, $p \approx 0{,}02$</td></tr>
+  <tr><td>MRQAP</td><td>OLS a cellákon; p: Y-permutáció vagy DSP</td><td>az együttható a szokásos, a p permutációs; DSP összefüggő magyarázóknál</td><td>barátság 0,136, $p \approx 0{,}10$; jelent 0,472</td></tr>
+  <tr><td>globális küszöb</td><td>$w_{ij} \ge t$</td><td>a nagyok gerince; a kicsik leválnak</td><td>Árvízhét $t = 2$: Sz–Kl külön</td></tr>
+  <tr><td>diszparitásszűrő</td><td>$\alpha_{ij} = (1 - w_{ij}/s_i)^{k_i - 1} \lt \alpha$ valamelyik végről</td><td>helyi mérce; kis fokszámnál nem tart meg semmit</td><td>10, 1, 1, 1: 0,012 / 0,79</td></tr>
+  <tr><td>páros vetület gerince</td><td>páros nullmodell p-értéke párokra</td><td>a gyakoriságot kiszűri; többszörös tesztelés</td><td>Sz–Kl, La–Ön igen; Ko–Vi nem</td></tr>
+  <tr><td>hiányzó adat</td><td>véletlen / mintázatos törlés → $\rho$, első helyek</td><td>a köztesség érzékenyebb; a szoros első hely törékeny</td><td>egy él: Po → Vi; karate 20%: $\rho$ 0,86</td></tr>
+  <tr><td>érzékenységvizsgálat</td><td>döntések rácsa → egyezés az alapesettel</td><td>a teljes térképet közöld, ne a legszebb cellát</td><td>Les Mis: a küszöb > a felbontás</td></tr>
+  <tr><td>ERGM</td><td>$P(G) \propto \exp(\sum \theta_k s_k(G))$; logit $= \theta_{\text{él}} + \theta_\Delta c_{ij}$</td><td>csak élek: ER, $\theta$ = logit $p$; háromszög: függés, degeneráció</td><td>4 csúcs: $\ln 2$; $(1{,}275; -0{,}647)$</td></tr>
+  <tr><td>TERGM, SAOM</td><td>időbeli ERGM; szereplők döntései</td><td>változás, szelekció vs. befolyás</td><td>–</td></tr>
+</table></div>
+
+<div class="box tip">
+  <span class="box-title">Melyik módszer mikor? – döntési táblázat</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>Ha a kérdésben ez áll…</th><th>…akkor ezt használd</th></tr>
+    <tr><td>„hány kapcsolat közös a két hálózatban?”</td><td>Jaccard (súlyozott, ha a mennyiség is számít)</td></tr>
+    <tr><td>„mennyire hasonlít a két hálózat?” (leíró)</td><td>mátrixkorreláció – a csúcshalmaz és a súlyozás megadásával</td></tr>
+    <tr><td>„szignifikáns-e a hasonlóság?”</td><td>QAP (kis $n$: teljes felsorolás, nagy $n$: $\ge 5000$ véletlen permutáció) – <b>nem</b> naiv t-próba</td></tr>
+    <tr><td>„melyik hálózat / attribútum magyaráz, a többit rögzítve?”</td><td>MRQAP, DSP-vel (bináris függőnél LRQAP)</td></tr>
+    <tr><td>„túl sűrű a hálózat, melyik él számít?”</td><td>gerinc: globális küszöb (a nagyokra), diszparitásszűrő (helyi), páros nullmodell (vetületnél)</td></tr>
+    <tr><td>„mennyire bízhatok az eredményben?”</td><td>hiányzóadat-szimuláció + érzékenységi rács a saját döntéseidre</td></tr>
+    <tr><td>„miért ilyen a szerkezet (háromszögek, homofília)?”</td><td>ERGM (szelíd tagokkal, pl. GWESP)</td></tr>
+    <tr><td>„hogyan változik, és együtt a véleményekkel?”</td><td>TERGM / SAOM</td></tr>
+  </table></div>
+</div>
+</section>
+
+<!-- ===================================================== Ellenőrző kérdések -->
+<section id="s-check">
+<h2>Ellenőrző kérdések</h2>
+<p>Gondold végig a választ, aztán kattints a kártyára a megfordításhoz!</p>
+<div class="flashcards">
+  <div class="flash"><div class="inner"><div class="face front">Mi a Jaccard-index két élhalmazra?</div>
+    <div class="face back">A közös élek száma osztva a legalább az egyikben meglévő élek számával: $|E_A \cap E_B| / |E_A \cup E_B|$.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a súlyozott Jaccard?</div>
+    <div class="face back">$\sum\min(a_{ij}, b_{ij}) / \sum\max(a_{ij}, b_{ij})$ – a közös „mennyiség” aránya az összeshez.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mely cellákat korreláljuk a mátrixkorrelációban?</div>
+    <div class="face back">A főátlón kívülieket: irányítatlan gráfnál az $i \lt j$ párokat, irányítottnál minden $i \ne j$ cellát.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért hamis a naiv p-érték hálózati korrelációnál?</div>
+    <div class="face back">Mert a cellák nem függetlenek: egy csúcs sora és oszlopa együtt mozog (sor- és oszlopautokorreláció), így a próba alábecsüli a véletlen ingadozást.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit permutál a QAP?</div>
+    <div class="face back">A csúcsokat: az egyik mátrix sorait és oszlopait együtt, ugyanazzal a permutációval. A hálózat szerkezete megmarad, csak a megfeleltetés lesz véletlen.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mennyi a legkisebb elérhető QAP p-érték 4 csúcson?</div>
+    <div class="face back">$1/24 \approx 0{,}042$ (az identitás mindig beleszámít) – kis hálózaton a QAP-nak alig van ereje.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Hogyan becsüljük a p-értéket véletlen permutációkkal?</div>
+    <div class="face back">$\hat p = (k+1)/(M+1)$, ahol $k$ a megfigyeltet elérő permutációk száma; a hiba kb. $\sqrt{p(1-p)/M}$.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a különbség az Y-permutáció és a DSP között?</div>
+    <div class="face back">Az Y-permutáció a függő hálózatot permutálja; a DSP egy magyarázó <b>maradékát</b> (a többi magyarázóra regresszálva) permutálja. Összefüggő magyarázóknál a DSP a pontosabb.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért vesztette el a barátság a hatását Krackhardt adatában?</div>
+    <div class="face back">Mert a főnöki viszony is benne lett a modellben: a főnöktől kérnek tanácsot, és a főnököt gyakran barátnak is mondják.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a baj a globális küszöbbel?</div>
+    <div class="face back">Mindenkire ugyanazt a mércét alkalmazza: a nagy szereplők kapcsolatai maradnak, a kisebbek legfontosabb (de gyenge) kapcsolatai kiesnek.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit mér a diszparitásszűrő $\alpha_{ij}$-je?</div>
+    <div class="face back">Annak esélyét, hogy ha a csúcs a súlyát véletlenül osztaná szét a $k$ éle között, egy él legalább ekkora részt kapjon: $(1 - w_{ij}/s_i)^{k-1}$.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Melyik centralitás érzékenyebb a hiányzó élekre?</div>
+    <div class="face back">A köztesség (utakon múlik, egy híd átírhatja); a fokszám csak a két végpontnál változik egy-egy egységgel.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi az érzékenységvizsgálat?</div>
+    <div class="face back">Az elemzés lefuttatása a saját döntéseid (küszöb, ablak, felbontás…) rácsán, és annak jelentése, mely állítások maradnak igazak.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi az élparaméteres ERGM?</div>
+    <div class="face back">Az Erdős–Rényi-gráf: minden él független, $p = e^\theta/(1 + e^\theta)$.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a változási statisztika a háromszögtagnál?</div>
+    <div class="face back">Egy él feltételes logitja: $\theta_{\text{él}} + \theta_\Delta \cdot c_{ij}$, ahol $c_{ij}$ a közös szomszédok száma.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi az ERGM-degeneráció?</div>
+    <div class="face back">Amikor a modell (főleg pozitív háromszögtaggal) szinte csak üres vagy szinte teljes gráfot ad – a valódi, közepes sűrűségű hálózatot nem.</div></div></div>
+</div>
+</section>
+
+<!-- ===================================================== Vegyes gyakorló feladatok -->
+<section id="s-ex">
+<h2>Vegyes gyakorló feladatok</h2>
+<p>Itt már nincs megmondva, melyik részhez tartozik a feladat: neked kell eldönteni, melyik eszköz kell.</p>
+<details class="box practice">
+  <summary>✏️ Vegyes gyakorló feladatok – kattints a kinyitáshoz</summary>
+  <ol>
+    <li>Két hálózat élei: $\{AB, AC, AD, BC\}$ és $\{AB, AC, CD\}$. Mennyi a Jaccard-index?
+      <details><summary>Tipp</summary>Közös élek / unió.</details>
+      <details><summary>Megoldás</summary>Közös: AB, AC (2). Unió: AB, AC, AD, BC, CD (5). $J = 0{,}4$.</details></li>
+    <li>Ugyanez a két hálózat 4 csúcson (6 cella). Mennyi a $\varphi$?
+      <details><summary>Tipp</summary>$a$, $b$, $c$, $d$ – és az $ad - bc$.</details>
+      <details><summary>Megoldás</summary>$a = 2$, $b = 2$ (AD, BC), $c = 1$ (CD), $d = 1$ (BD). $r = (2 - 2)/\sqrt{4 \cdot 2 \cdot 3 \cdot 3} = 0$. Két közös él ellenére nulla a korreláció: a 6 cellából csak 1 közös hiány van.</details></li>
+    <li>Egy kutató 25 szereplő két hálózatát korrelálja, $r = 0{,}3$, és Excelben $p = 10^{-7}$-t kap. Mit javasolsz?
+      <details><summary>Tipp</summary>Hány cellával számolt az Excel, és függetlenek-e?</details>
+      <details><summary>Megoldás</summary>Az Excel 300 független cellát feltételez – hálózatban hamis. QAP-pal kell újraszámolni (5000+ permutáció); a p-érték várhatóan sokkal nagyobb lesz.</details></li>
+    <li>5 csúcson egy QAP-ban a 120 permutációból 4 éri el a megfigyelt korrelációt. Szignifikáns 5%-on?
+      <details><summary>Tipp</summary>$p = k/n!$.</details>
+      <details><summary>Megoldás</summary>$4/120 \approx 0{,}033$ – igen (egyoldali próbánál).</details></li>
+    <li>Egy MRQAP-ban a média-hálózat együtthatója 0,4, naiv $p = 0{,}001$, DSP $p = 0{,}08$. Mit írsz a cikkbe?
+      <details><summary>Tipp</summary>Melyik p-érték hiteles hálózati adaton?</details>
+      <details><summary>Megoldás</summary>A DSP-t: az együttható 0,4, de 5%-on nem szignifikáns ($p = 0{,}08$, $M$ permutációval). A naivat legfeljebb összevetésként.</details></li>
+    <li>Egy csúcs élei: 12, 2, 2, 2, 2. Megmarad-e a 12-es él a diszparitásszűrőben $\alpha = 0{,}05$-nél (ennek a csúcsnak a felől)?
+      <details><summary>Tipp</summary>$s = 20$, $k = 5$.</details>
+      <details><summary>Megoldás</summary>$(1 - 0{,}6)^4 = 0{,}0256 \lt 0{,}05$: megmarad.</details></li>
+    <li>Az Árvízhéten a Ko–Kl él hiányzik. Ki lesz a fő közvetítő (köztesség)?
+      <details><summary>Tipp</summary>A Kl ilyenkor csak a Sz-en át érhető el.</details>
+      <details><summary>Megoldás</summary>A Po marad az első (8), de a Sz köztessége 0,5-ről 5-re nő (a Kl minden útja rajta megy át), a Ko-é 5-ről 3-ra csökken, a Vi-é 1,5-ről 3-ra nő.</details></li>
+    <li>Egy közösségkeresés eredménye a 4 × 3-as érzékenységi rács 12 cellájából 5-ben ugyanaz. Robusztus?
+      <details><summary>Tipp</summary>Mit jelentenél, ha a legszebb cellát választanád?</details>
+      <details><summary>Megoldás</summary>Nem: a cellák többségében más jön ki. Az eredmény a beállításokon múlik – így kell jelenteni, a teljes térképpel.</details></li>
+    <li>Egy élparaméteres ERGM-ben $\theta = -2$. Mekkora egy él esélye, és milyen sűrű egy 20 csúcsú gráf várhatóan?
+      <details><summary>Tipp</summary>$p = e^\theta/(1 + e^\theta)$.</details>
+      <details><summary>Megoldás</summary>$p = e^{-2}/(1 + e^{-2}) \approx 0{,}119$; várható élszám $190 \cdot 0{,}119 \approx 22{,}6$.</details></li>
+    <li>(nehezebb) Két hírportál szereplőhálózata $r = 0{,}45$ (QAP $p \lt 0{,}001$), de amikor az MRQAP-ba a gyakoriságok szorzatát is beveszed, a média-hálózat együtthatója 0,05-re esik, $p = 0{,}6$. Mi a következtetés?
+      <details><summary>Tipp</summary>Mi okozhatja a hasonlóságot a kapcsolatok szintjén túl?</details>
+      <details><summary>Megoldás</summary>Hogy a hasonlóság szinte teljesen abból jön, hogy ugyanazok a szereplők gyakoriak mindkét portálon (első szintű egyezés); azon felül, <b>mit mivel kapcsolnak össze</b>, abban nem hasonlítanak kimutathatóan. A NAS-állításhoz ez kevés.</details></li>
+  </ol>
+</details>
+</section>
+
+<!-- ===================================================== Fejezetzáró teszt -->
+<section id="s-final">
+<h2>Fejezetzáró teszt</h2>
+<p>Vegyes kérdések a teljes fejezetből. Minden kérdésnél van tipp, és a válasz után részletes magyarázat.</p>
+<div class="quiz" data-quiz="gh10-final"></div>
+</section>
+
+<!-- ===================================================== Szómagyarázó -->
+<section id="s-gloss">
+<h2>Szómagyarázó</h2>
+<p>A fejezetben előforduló idegen vagy kevésbé ismert szakkifejezések, betűrendben.</p>
+<dl class="glossary">
+  <dt id="g-autokorrelacio">autokorreláció <span class="etym">gör. <em>autosz</em> „ön-” + lat. <em>correlatio</em> „kölcsönös viszony”</span></dt>
+  <dd><p>Egy adatsor elemeinek összefüggése önmagukkal. Hálózatban: egy csúcs sorának (oszlopának) cellái együtt mozognak – ezért nem függetlenek a diádok.</p></dd>
+
+  <dt id="g-diad">diád <span class="etym">gör. <em>dyasz</em> „kettősség, pár”</span></dt>
+  <dd><p>Két csúcs (szereplő) párja – a hálózati elemzés megfigyelési egysége. A mátrix egy cellája.</p></dd>
+
+  <dt id="g-diszparitas">diszparitás <span class="etym">lat. <em>disparitas</em> „egyenlőtlenség” (<em>dis-</em> „szét” + <em>par</em> „egyenlő”)</span></dt>
+  <dd><p>A diszparitásszűrőben: mennyire egyenlőtlenül osztja el egy csúcs a súlyát az élei között. A nagyon egyenlőtlen rész meglepő – az az él marad a gerincben.</p></dd>
+
+  <dt id="g-ergm">ERGM <span class="etym">ang. <em>exponential random graph model</em>, „exponenciális véletlengráf-modell”</span></dt>
+  <dd><p>A gráfok feletti valószínűségi modell, amelyben a gráf valószínűsége szerkezeti statisztikái (élek, háromszögek…) súlyozott összegének exponenciálisával arányos.</p></dd>
+
+  <dt id="g-jaccard">Jaccard-index <span class="etym">Paul Jaccard (1868–1944) svájci botanikus nevéből, aki növénylisták hasonlóságára használta (1901)</span></dt>
+  <dd><p>Két halmaz metszetének és uniójának aránya. Itt: két élhalmaz átfedése.</p></dd>
+
+  <dt id="g-logit">logit <span class="etym">ang. <em>logistic unit</em>; Joseph Berkson (1944)</span></dt>
+  <dd><p>Egy valószínűség esélyhányadosának logaritmusa: $\ln(p/(1-p))$. Az ERGM paraméterei és a logisztikus regresszió együtthatói ezen a skálán értendők.</p></dd>
+
+  <dt id="g-permutacio">permutáció <span class="etym">lat. <em>permutatio</em> „csere” (<em>per</em> „át” + <em>mutare</em> „változtat”)</span></dt>
+  <dd><p>Elemek sorrendjének átrendezése. A QAP-ban a csúcsok átnevezése: $n$ csúcsnak $n!$ permutációja van.</p></dd>
+
+  <dt id="g-qap">QAP <span class="etym">ang. <em>quadratic assignment procedure</em>, „kvadratikus hozzárendelési eljárás” – a kvadratikus hozzárendelési feladatból (Koopmans–Beckmann, 1957)</span></dt>
+  <dd><p>Permutációs próba két (vagy több) mátrix összefüggésére: az egyik mátrix sorait és oszlopait együtt permutálja, és a kapott korrelációkhoz méri a megfigyeltet.</p></dd>
+
+  <dt id="g-robusztus">robusztus <span class="etym">lat. <em>robustus</em> „erős, tölgyből való” (<em>robur</em> „tölgy”)</span></dt>
+  <dd><p>Olyan eredmény, amely kis változtatásokra (hiányzó adat, más beállítás) nem változik lényegesen.</p></dd>
+
+  <dt id="g-szemiparcialis">szemi-parciális <span class="etym">lat. <em>semi</em> „fél” + <em>partialis</em> „részleges”</span></dt>
+  <dd><p>Olyan korreláció / regresszió, amelyben a többi változó hatását csak az egyik oldalból (itt: a magyarázóból) szűrjük ki. A DSP („kettős szemi-parciális”) ezt a maradékot permutálja.</p></dd>
+</dl>
+</section>
+
+<nav class="pager">
+  <a href="../09-terjedes/">← 9. Terjedés hálózatokon</a>
+  <span class="next muted">11. Csúcsbeágyazások és kapcsolat-előrejelzés (hamarosan) →</span>
+</nav>
+
+</main>
+</div>
+
+<footer class="site">
+  Források: M. E. J. Newman: <em>Networks</em> (2. kiad., Oxford UP, 2018), 6., 15. fejezet · S. P. Borgatti – M. G. Everett – J. C. Johnson – F. Agneessens: <em>Analyzing Social Networks Using R</em> (SAGE, 2022), 14–15. fejezet ·
+  L. Hubert (1987) · D. Krackhardt (1987) Cognitive social structures, <em>Social Networks</em> 9 · D. Krackhardt (1988) Predicting with networks, <em>Social Networks</em> 10 · D. Dekker – D. Krackhardt – T. A. B. Snijders (2007) <em>Psychometrika</em> 72 ·
+  M. Á. Serrano – M. Boguñá – A. Vespignani (2009) <em>PNAS</em> 106 · Z. Neal (2014) <em>Social Networks</em> 39 · S. P. Borgatti – K. M. Carley – D. Krackhardt (2006) <em>Social Networks</em> 28 ·
+  D. Lusher – J. Koskinen – G. Robins: <em>Exponential Random Graph Models for Social Networks</em> (Cambridge UP, 2013) · T. A. B. Snijders – P. E. Pattison – G. L. Robins – M. S. Handcock (2006) · T. A. B. Snijders (2001) · S. Hanneke – W. Fu – E. P. Xing (2010) · P. N. Krivitsky – M. S. Handcock (2014) ·
+  L. Guo – M. McCombs (2011) · L. Guo – H. T. Vu – M. McCombs (2012) · P. Jaccard (1901) · A Les Misérables adatai: D. E. Knuth (1993) · Az Árvízhét kitalált példa.
+</footer>
+</body>
+</html>
