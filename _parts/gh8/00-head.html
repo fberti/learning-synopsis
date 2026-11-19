@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>8. Közösségek keresése – Gráfelmélet és hálózattudomány – Synopsis</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="../../assets/common.js"></script>
+  <script defer src="../../assets/quiz.js"></script>
+  <script defer src="../../assets/graph.js"></script>
+  <script defer src="../arvizhet-data.js"></script>
+  <script defer src="../../mesterseges-intelligencia/13-graf-neuralis-halok/graph-data.js"></script>
+  <script defer src="lesmis-data.js"></script>
+  <script defer src="widgets.js"></script>
+  <script defer src="quizzes.js"></script>
+</head>
+<body>
+<div class="progressbar"></div>
+<header class="topbar">
+  <a class="brand" href="../../">📚 Synopsis</a>
+  <span class="crumbs"><a href="../../">Tartalomjegyzék</a> › <a href="../">Gráfelmélet és hálózattudomány</a> › 8. fejezet</span>
+  <button class="icon-btn" data-theme-toggle title="Téma váltása">🌙</button>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <div class="toc-title">8. fejezet</div>
+  <ol>
+    <li><a href="#s81">8.1 Mi a közösség?</a></li>
+    <li><a href="#s82">8.2 Girvan–Newman</a></li>
+    <li><a href="#s83">8.3 Modularitás</a></li>
+    <li><a href="#s84">8.4 Louvain és Leiden</a></li>
+    <li><a href="#s85">8.5 Címketerjesztés, spektrális vágás</a></li>
+    <li><a href="#s86">8.6 Sztochasztikus blokkmodell</a></li>
+    <li><a href="#s87">8.7 Megbízhatóság</a></li>
+    <li><a href="#s88">8.8 Alkalmazás</a></li>
+    <li><a href="#s-sum">Összefoglalás</a></li>
+    <li><a href="#s-check">Ellenőrző kérdések</a></li>
+    <li><a href="#s-ex">Vegyes gyakorló feladatok</a></li>
+    <li><a href="#s-final">Fejezetzáró teszt</a></li>
+    <li><a href="#s-gloss">Szómagyarázó</a></li>
+  </ol>
+</nav>
+
+<main class="content">
+
+<section class="hero" style="padding-top:.5rem">
+  <div class="kicker">Gráfelmélet és hálózattudomány · 8. fejezet · ★★–★★★</div>
+  <h1>Közösségek keresése</h1>
+  <p class="lead">Ha ránézel egy hálózat rajzára, a szemed rögtön csoportokat lát: sűrű csomókat, amelyeket csak néhány él köt össze. Ezek a <b>közösségek</b>.
+  A hírekben ilyen csomó lehet egy keret, egy tábor vagy egy téma. De a szem könnyen becsap. Ebben a fejezetben megnézzük, hogyan talál csoportokat egy algoritmus,
+  mit jelent az, hogy egy felbontás „jó”, és mennyire bízhatunk abban, amit kapunk.</p>
+</section>
+
+<div class="box tip">
+  <span class="box-title">Mit fogsz megtanulni?</span>
+  <ul style="margin:.2rem 0">
+    <li>megfogalmazni, mi a <b>közösség</b>, és leírni egy <b>felbontást</b> (partíciót): belső élek, kifelé futó élek, fokszámösszeg;</li>
+    <li>lefuttatni kézzel a <b>Girvan–Newman-algoritmust</b>: mindig a legnagyobb köztességű élt töröljük;</li>
+    <li>kiszámolni a <b>modularitást</b> ($Q$) kézzel, és megérteni, miért a <b>konfigurációs nullmodell</b> (<a href="../07-halozatmodellek/#s74">7.4</a>) a mérce benne – és mi a <b>felbontási határ</b>;</li>
+    <li>követni a <b>Louvain-algoritmus</b> két fázisát, használni a <b>felbontási paramétert</b> ($\gamma$), és tudni, mit javít a <b>Leiden</b>;</li>
+    <li>megismerni két másik ötletet: a <b>címketerjesztést</b> és a <b>spektrális kettévágást</b>;</li>
+    <li>érteni a <b>sztochasztikus blokkmodellt</b> (SBM), amely nemcsak „sűrű belül” szerkezetet talál;</li>
+    <li>két felbontást összevetni (<b>NMI</b>, <b>ARI</b>), ellenőrizni a <b>stabilitást</b>, és nullmodellhez mérni a modularitást.</li>
+  </ul>
+</div>
+
+<div class="box">
+  <span class="box-title">🔁 Amit használni fogunk</span>
+  Az <a href="../02-setak-utak-fak/">2. fejezetből</a>: <b>komponens</b>, legrövidebb út. Az <a href="../04-grafok-es-matrixok/">4. fejezetből</a>: a <b>vágás</b>, a kiegyensúlyozás és a <b>Fiedler-vektor</b> (<a href="../04-grafok-es-matrixok/#s45">4.5</a>).
+  Az <a href="../05-centralitas/">5. fejezetből</a>: a <b>köztesség</b> (<a href="../05-centralitas/#s53">5.3</a>). A <a href="../06-helyi-szerkezet/">6. fejezetből</a>: a csoporton belüli élek aránya és a <b>véletlen szint</b>, $\sum_g e_{gg}$ és $\sum_g a_g^2$ (<a href="../06-helyi-szerkezet/#s62-a">6.2</a>).
+  A <a href="../07-halozatmodellek/">7. fejezetből</a>: a <b>konfigurációs modell</b>, $k_i k_j/2m$ (<a href="../07-halozatmodellek/#s74-b">7.4</a>), a $G(n, m)$ és a z-érték.
+</div>
+
+<div class="box example">
+  <span class="box-title">🎯 A fejezet kérdése</span>
+  Az Árvízhét három kerettel dolgozott: <b>védekezés</b>, <b>felkészülési hiány</b> és <b>lakossági veszteség</b>. Ha minden szereplőt a „saját” keretéhez sorolunk, három csoport adódik:
+  {Kormány, Vízügy}, {Lakók, Önkéntesek, Polgármester} és {Szakértő, Klímaváltozás}.
+  <b>Megtalálja-e ezt a három csoportot egy közösségkereső algoritmus a szereplőgráfból?</b> Ha nem, mit talál helyette, és mit tanulunk ebből a „közösség = keret” feltevésről? A válasz a <a href="#s88">8.8</a>-ban.
+</div>
+
+<div class="two-col">
+  <div><div class="gfig" data-edges="Ko-Vi,Ko-Po,Vi-Po,Vi-Sz,Sz-Kl,Sz-Ko,Kl-Ko,La-Ön,La-Po,Po-Ön" data-weights="2,2,2,1,2,1,1,3,2,2" data-show-weights
+    data-color="Ko:--setA Vi:--setA Po:--setB La:--setB Ön:--setB Sz:--setC Kl:--setC"
+    data-pos="Kl:.6,0 Sz:0,.5 Ko:1.3,.5 Vi:.65,1 Po:1.6,1.3 La:2.4,1 Ön:2.3,1.9" data-w="300" data-h="200" data-r="16"
+    data-caption="Az Árvízhét szereplőgráfja (a szám: hány közös cikk), a szereplők a „saját” keretük színével"></div></div>
+  <div>
+    <div class="tw" style="overflow-x:auto"><table>
+      <tr><th>keret</th><th>cikkek</th><th>szereplők</th></tr>
+      <tr><td>védekezés</td><td>1, 2, 3, 10</td><td>$\mathrm{Ko}$, $\mathrm{Vi}$, ($\mathrm{Po}$)</td></tr>
+      <tr><td>felkészülési hiány</td><td>4, 5, 6</td><td>$\mathrm{Sz}$, $\mathrm{Kl}$ (+ $\mathrm{Vi}$, $\mathrm{Ko}$)</td></tr>
+      <tr><td>lakossági veszteség</td><td>7, 8, 9, 11, 12</td><td>$\mathrm{La}$, $\text{Ön}$, ($\mathrm{Po}$)</td></tr>
+    </table></div>
+    <p class="muted" style="font-size:.92rem">A Polgármester 3 védekezés- és 3 veszteség-keretes cikkben szerepel – őt most a lakókhoz soroltuk. A Kormány és a Vízügy egy-egy „hiány”-cikkben is feltűnik.</p>
+  </div>
+</div>
+
+<p><b>Útiterv</b> – a szemmel látott csoportoktól a megbízható felbontásig:</p>
+<ol>
+  <li><a href="#s81">Mi a közösség?</a> – sűrű belül, ritka kívül. Hogyan írjuk le, és miért nem elég „kevés élt vágni”?</li>
+  <li><a href="#s82">Girvan–Newman</a> – az első algoritmus: a hidakat bontjuk le, egyenként. De hol álljunk meg?</li>
+  <li><a href="#s83">Modularitás</a> – egy szám, amely megmondja, mennyivel sűrűbbek a csoportok a véletlennél. Mire képes, és hol vak?</li>
+  <li><a href="#s84">Louvain és Leiden</a> – a modularitást mohón, gyorsan növeljük. Mi lesz a sorrenddel és a felbontással?</li>
+  <li><a href="#s85">Címketerjesztés és spektrális vágás</a> – két másik ötlet: szavazás a szomszédok közt, és sajátvektorok.</li>
+  <li><a href="#s86">Sztochasztikus blokkmodell</a> – ha a „közösség” nem csak sűrű csomót jelenthet: generatív modell.</li>
+  <li><a href="#s87">Megbízhatóság</a> – két felbontás összevetése, stabilitás, és a véletlen gráf modularitása.</li>
+  <li><a href="#s88">Alkalmazás</a> – a karateklub, a Les Misérables és az Árvízhét kereteinek kérdése.</li>
+</ol>
+
+<div class="box tip">
+  <span class="box-title">📐 Jelölések ebben a fejezetben</span>
+  $n$ csúcs, $m$ él, $k_i$ az $i$ csúcs fokszáma. Egy <b>felbontás</b> (partíció) minden csúcsnak megad egy közösséget: $c_i$ az $i$ csúcs közössége.
+  Egy $c$ közösségre: $L_c$ a <b>belső élek</b> száma, $K_c$ a <b>kifelé futó</b> (vágott) élek száma, $d_c = \sum_{i \in c} k_i$ a <b>fokszámösszeg</b>.
+  $Q$ a modularitás, $\gamma$ a felbontási paraméter. Súlyozott gráfban az élszám helyett a súlyösszeg, a fokszám helyett az erősség szerepel.
+  A <code>networkx</code>-ben: <code>community.girvan_newman</code>, <code>community.modularity</code>, <code>community.louvain_communities</code>, <code>community.asyn_lpa_communities</code>, <code>community.k_clique_communities</code>.
+</div>

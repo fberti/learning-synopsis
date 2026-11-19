@@ -1,0 +1,137 @@
+
+<!-- ===================================================== 8.8 -->
+<section id="s88">
+<h2>8.8 Alkalmazás ★★</h2>
+<p>Most minden eszköz megvan: Girvan–Newman, modularitás, Louvain $\gamma$-val, címketerjesztés, spektrális vágás, SBM, NMI / ARI, stabilitás és nullmodell. Három hálózaton próbáljuk ki őket – és végül megválaszoljuk a fejezet kérdését.</p>
+
+<h3 id="s88-a">1. lépés: a karateklub – az algoritmusok a valódi kettéváláshoz mérve</h3>
+<div class="two-col">
+  <div><div class="gfig" {{KARATE_EP}} data-color="{{KARATE_GN2}}" data-w="300" data-h="210" data-r="8"
+    data-caption="Girvan–Newman, első kettéesés (15 + 19 tag)"></div></div>
+  <div><div class="gfig" {{KARATE_EP}} data-color="{{KARATE_LOUV}}" data-w="300" data-h="210" data-r="8"
+    data-caption="Louvain, $\gamma = 1$: 4 közösség, $Q = 0{,}420$"></div></div>
+</div>
+<div class="tw" style="overflow-x:auto"><table>
+  <tr><th>módszer</th><th>közösségek</th><th>$Q$</th><th>NMI</th><th>ARI</th><th>„rossz” oldalon</th></tr>
+  <tr><td>valódi kettéválás</td><td>2</td><td>0,358</td><td>1</td><td>1</td><td>–</td></tr>
+  <tr><td>Girvan–Newman, első kettéesés</td><td>2</td><td>0,360</td><td>0,73</td><td>0,77</td><td>3, 9</td></tr>
+  <tr><td>Fiedler-vektor (4.5)</td><td>2</td><td>0,360</td><td>0,73</td><td>0,77</td><td>3, 9</td></tr>
+  <tr><td>modularitásmátrix (8.5)</td><td>2</td><td>0,371</td><td>0,84</td><td>0,88</td><td>9</td></tr>
+  <tr><td>Louvain, $\gamma = 0{,}5$</td><td>2</td><td>0,372</td><td>0,68</td><td>0,77</td><td>9, 10</td></tr>
+  <tr><td>Girvan–Newman, legjobb $Q$</td><td>5</td><td>0,401</td><td colspan="3" rowspan="2">a táborokon belüli kisebb köröket is szétválasztja</td></tr>
+  <tr><td>Louvain, $\gamma = 1$</td><td>4</td><td>0,420</td></tr>
+  <tr><td>címketerjesztés</td><td>1–6</td><td>változó</td><td colspan="3">átlagos NMI 0,57 (100 futás) – instabil</td></tr>
+</table></div>
+<p class="muted" style="font-size:.92rem">Python (<code>networkx</code>, <code>scikit-learn</code>); a Louvain-sorok 50 futás legjobbjai. A Louvain $\gamma = 1$ felbontása a kettéváláshoz mérve NMI 0,59, ARI 0,47.</p>
+
+<div class="box example">
+  <span class="box-title">Példa – mit olvasunk ki a táblázatból?</span>
+  Melyik módszer a „legjobb”?
+  <details><summary>Megoldás</summary>Ha a kérdés a kettéválás megjóslása: a modularitásmátrix kettévágása (egyetlen tévedés, a 9-es – akinek a története a szerkezettel ellentétes). Ha a kérdés a barátsági szerkezet: a Louvain négy közössége a legmodulárisabb, és a 8.7 szerint stabil és a nullmodell fölött van.
+    A két válasz nem mond ellent egymásnak: a négy közösség két-két csoportja nagyjából egy-egy tábor.</details>
+</div>
+
+<h3 id="s88-b">2. lépés: a Les Misérables – ki kivel szerepel</h3>
+<p>Donald Knuth (1993) Victor Hugo regényének 77 szereplőjét kötötte össze, ha egy fejezetben együtt szerepelnek; az él súlya a közös fejezetek száma (254 él, összsúly 820). Ez a „ki kivel jelenik meg” hálózat irodalmi előképe – a hírek <b>együttemlítési</b> hálózata ugyanígy épül.</p>
+
+<div class="box example">
+  <span class="box-title">Példa – a súlyozott Louvain hat közössége</span>
+  100 futás legjobbja (Python, súlyozva): 6 közösség, $Q = 0{,}567$; a futások $Q$-ja 0,559 és 0,567 között szór. A közösségek (méret szerint):
+  <ul style="margin:.2rem 0">
+    <li><b>22:</b> Valjean, Cosette, Marius, Javert, Fauchelevent, Gillenormand-ék – a főszál;</li>
+    <li><b>17:</b> Enjolras, Courfeyrac, Combeferre és az ABC barátai, Gavroche, Mabeuf – a barikád;</li>
+    <li><b>11:</b> Thénardier-ék, Éponine és a Patron-Minette banda;</li>
+    <li><b>11:</b> Fantine, Tholomyès és a diáktársaság – a regény első része;</li>
+    <li><b>10:</b> Myriel püspök és környezete – a nyitófejezetek;</li>
+    <li><b>6:</b> Champmathieu és a tárgyalás szereplői.</li>
+  </ul>
+  Melyik szereplő nem illik egyetlen közösségbe sem igazán?
+  <details><summary>Megoldás</summary>Valjean. Messze ő a legnagyobb fokszámú (36) és köztességű (0,57) szereplő: szinte minden szálban megjelenik. A felbontás egy közösségbe kell tegye (a főszálba), de valójában <b>híd</b> – ahogy az Árvízhéten a Polgármester. Ezt a kemény (nem átfedő) felbontás elrejti.</details>
+</div>
+
+<div class="widget" data-widget="community-explorer"></div>
+
+<h3 id="s88-c">3. lépés: az Árvízhét – közösség vagy keret?</h3>
+<p>Itt a fejezet kérdése. A keretek szerinti csoportok: $\{\mathrm{Ko}, \mathrm{Vi}\}$, $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$, $\{\mathrm{Sz}, \mathrm{Kl}\}$. Mit mondanak az algoritmusok?</p>
+
+<div class="box example">
+  <span class="box-title">Példa – négy beállítás, négy válasz</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>beállítás</th><th>legjobb felbontás (mind a 877-ből)</th><th>a keretfelbontás helye</th></tr>
+    <tr><td>súly nélkül, $\gamma = 1$</td><td>$\{\mathrm{Ko}, \mathrm{Vi}, \mathrm{Sz}, \mathrm{Kl}\}$ · $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$, $Q = 0{,}28$</td><td>7. ($Q = 0{,}155$)</td></tr>
+    <tr><td>súlyozva, $\gamma = 1$</td><td>ugyanez, $Q^w = 0{,}278$</td><td>2. ($Q^w = 0{,}230$)</td></tr>
+    <tr><td>súlyozva, $1{,}40 \le \gamma \le 1{,}80$</td><td><b>a keretfelbontás</b></td><td><b>1.</b></td></tr>
+    <tr><td>súly nélkül, $\gamma \gtrsim 1{,}48$</td><td>$\{\mathrm{Ko}, \mathrm{Sz}, \mathrm{Kl}\}$ · $\{\mathrm{Vi}\}$ · $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$ (majd egyre több darab)</td><td>–</td></tr>
+  </table></div>
+  A Girvan–Newman, a Fiedler-vektor (4.6) és a Louvain is a <b>kétcsoportos</b> felbontást adja alapbeállításban. A keretek csak <b>súlyozva és nagyobb felbontással</b> jönnek ki.
+  <details><summary>Hol a határ? – a $\gamma$ kézzel</summary>
+    Súlyozva: $Q_\gamma(\text{két csoport}) = 14/18 - \gamma \cdot 2 \cdot (18/36)^2 = 0{,}778 - 0{,}5\gamma$; $Q_\gamma(\text{keretek}) = 11/18 - \gamma\,(11^2 + 18^2 + 7^2)/36^2 = 0{,}611 - 0{,}381\gamma$.
+    Egyenlők, ha $\gamma = (1/6)/(154/1296) \approx 1{,}40$. Felül: $\gamma \approx 1{,}80$-tól a Polgármester is leválik (négy csoport).
+  </details>
+</div>
+
+<div class="box tip">
+  <span class="box-title">A fejezet kérdésének válasza</span>
+  <b>Alapbeállításban nem.</b> A szereplőgráf legerősebb szerkezete nem a három keret, hanem két <b>szál</b>: az országos–szakpolitikai ($\mathrm{Ko}$, $\mathrm{Vi}$, $\mathrm{Sz}$, $\mathrm{Kl}$) és a helyi–lakossági ($\mathrm{Po}$, $\mathrm{La}$, $\text{Ön}$). A „védekezés” és a „felkészülési hiány” keret ugyanazokról a szereplőkről szól, csak <em>másképp</em> – ezt az együttemlítés nem látja.
+  A keretek csak akkor jönnek ki, ha a súlyokat (hányszor szerepelnek együtt) figyelembe vesszük, és nagyobb nagyítást ($\gamma \approx 1{,}4$–$1{,}8$) választunk. Ez nem „bizonyítja”, hogy a közösségek a keretek: mi választottuk a $\gamma$-t, és tudtuk, mit keresünk.
+  <b>Tanulság:</b> a közösség ≠ keret ≠ téma. A közösségkeresés <b>keretjelölteket</b> ad, amelyeket a szövegen kell ellenőrizni (17. fejezet).
+</div>
+
+<div class="two-col">
+  <div><div class="gfig" data-edges="Ko-Vi,Ko-Po,Vi-Po,Vi-Sz,Sz-Kl,Sz-Ko,Kl-Ko,La-Ön,La-Po,Po-Ön" data-weights="2,2,2,1,2,1,1,3,2,2" data-show-weights
+    data-color="Ko:--setA Vi:--setA Sz:--setA Kl:--setA Po:#a855f7 La:--setB Ön:--setB" data-hl="Ko-Po,Vi-Po"
+    data-pos="Kl:.6,0 Sz:0,.5 Ko:1.3,.5 Vi:.65,1 Po:1.6,1.3 La:2.4,1 Ön:2.3,1.9" data-w="300" data-h="200" data-r="16"
+    data-caption="Klikkperkoláció ($k = 3$): két átfedő közösség, a Polgármester (lila) mindkettőben"></div></div>
+  <div class="box def">
+    <span class="box-title">Átfedő közösségek – klikkperkoláció</span>
+    A kemény felbontás minden csúcsot <b>egy</b> csoportba tesz. A Polgármester viszont 3 védekezés- és 3 veszteség-keretes cikkben szerepel – két csoporthoz is tartozik.
+    A <b>klikkperkoláció</b> (Palla, Derényi, Farkas és Vicsek, 2005) $k$-klikkekből (itt háromszögekből) épít közösséget: két háromszög szomszédos, ha két közös csúcsuk van, és a szomszédos háromszögek láncai a közösségek.
+    Az Árvízhét 4 háromszögéből ($\mathrm{Ko}\mathrm{Vi}\mathrm{Po}$, $\mathrm{Ko}\mathrm{Vi}\mathrm{Sz}$, $\mathrm{Ko}\mathrm{Sz}\mathrm{Kl}$, $\mathrm{Po}\mathrm{La}\text{Ön}$) két közösség lesz:
+    $\{\mathrm{Ko}, \mathrm{Vi}, \mathrm{Po}, \mathrm{Sz}, \mathrm{Kl}\}$ és $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$ – a <b>Polgármester mindkettőben</b>.
+  </div>
+</div>
+
+<div class="box history">
+  <span class="box-title">📜 Magyar szál: a CFinder</span>
+  A klikkperkolációs módszert az ELTE Biológiai Fizika Tanszékén dolgozta ki Palla Gergely, Derényi Imre, Farkas Illés és Vicsek Tamás (<em>Nature</em>, 2005), és a <b>CFinder</b> programmal tették elérhetővé.
+  Fehérjehálózatokon, szóasszociációs és együttműködési hálózatokon mutatták meg, hogy a valódi közösségek erősen átfednek. Ma az átfedő közösségek kutatásának egyik kiindulópontja – mellette az élközösségek (Ahn, Bagrow és Lehmann, 2010) a legismertebbek.
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – az Árvízhét közösségei</summary>
+  <ol>
+    <li>Ellenőrizd, hogy $\gamma = 1{,}5$-nél (súlyozva) a keretfelbontás $Q_\gamma$-ja nagyobb a kétcsoportosénál!
+      <details><summary>Megoldás</summary>Két csoport: $0{,}778 - 0{,}75 = 0{,}028$. Keretek: $0{,}611 - 0{,}381 \cdot 1{,}5 \approx 0{,}039$. ✓</details></li>
+    <li>Miért segít a súlyozás a keretfelbontásnak?
+      <details><summary>Megoldás</summary>A $\mathrm{Ko}$–$\mathrm{Vi}$ és az $\mathrm{Sz}$–$\mathrm{Kl}$ két-két közös cikkben szerepel: súlyozva ezek a kapcsolatok erősebbek, a „hiányzó” élek (pl. $\mathrm{Ko}$–$\mathrm{Sz}$, 1 cikk) gyengébbek.</details></li>
+    <li>Melyik két háromszög szomszédos a klikkperkolációban a $\mathrm{Ko}\mathrm{Vi}\mathrm{Po}$-val?
+      <details><summary>Megoldás</summary>Csak a $\mathrm{Ko}\mathrm{Vi}\mathrm{Sz}$ (közös: $\mathrm{Ko}$, $\mathrm{Vi}$). A $\mathrm{Po}\mathrm{La}\text{Ön}$-nal egy közös csúcsa van ($\mathrm{Po}$) – az nem elég.</details></li>
+    <li>Hány csúcs tartozik egynél több közösséghez a klikkperkolációs felbontásban?
+      <details><summary>Megoldás</summary>Egy: a $\mathrm{Po}$.</details></li>
+    <li>(nehezebb) Egy kutató a korpusza szereplőhálózatán Louvain-nal 3 közösséget talál, és „3 keretet” jelent. Mit kérdezel tőle?
+      <details><summary>Megoldás</summary>Milyen $\gamma$ és súlyozás mellett; hány futásból, mennyire stabilan (8.7); mihez képest jelentős a $Q$ (nullmodell); és főleg: ellenőrizte-e a szövegen, hogy a közösségek tényleg keretek (értelmezés, problémadefiníció, értékelés, javaslat), nem csak témák vagy szereplőcsoportok.</details></li>
+  </ol>
+</details>
+
+<h3 id="s88-d">4. lépés: közösségkeresés a hírkutatásban</h3>
+<div class="box tip">
+  <span class="box-title">⚖️ Konszenzus és vita – közösségek mint keretek <span class="muted">(📅 Állapot: 2026)</span></span>
+  <ul style="margin:.2rem 0">
+    <li><b>ANTMN</b> (Walter és Ophir, 2019): a hírkorpuszból LDA-témákat nyernek ki, a témákat összekötik, ha ugyanazokban a cikkekben fordulnak elő, és a témahálózat Louvain-közösségeit „keretcsomagoknak” tekintik. Magyar hírportálokon (BERTopic + ANTMN) Nagy M. (2024) alkalmazta.</li>
+    <li><b>Keretelem-hálózat</b> (Jiang és mtsai, 2025, <em>JMCQ</em>): a csúcsok szereplők <em>és</em> témák, az élek az együttes előfordulás (plusz szemantikai hasonlóság). 1300 amerikai lövöldözéses hír elemzésénél spektrális klaszterezéssel (2–20 csoportot kipróbálva) az LDA-val összemérhető kereteket kaptak, és egy addig nem leírt keretet is („politikai álláspont a fegyvertartásról”).</li>
+    <li><b>Egyetértés:</b> a közösségek hasznos <em>jelöltek</em>, gyorsabbak a kézi kódolásnál, és az együttelőfordulási hálózatot <b>vázkinyerés</b> (backbone) nélkül a gyakori, semleges szavak uralják.</li>
+    <li><b>Vita:</b> mennyire keret egy közösség (és nem csak téma); melyik algoritmus és felbontás illik a hírhálózatokhoz – egységes ajánlás nincs. A közös minimum: több módszer, több futás, a robusztusság közlése, és validálás a szövegen.</li>
+  </ul>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Módszertani józanság</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az él definíciója döntés.</b> Együttemlítés, megszólaltatás, idézés – mindegyik más hálózatot és más közösségeket ad (3. fejezet).</li>
+    <li><b>Az együttelőfordulás nem kapcsolat.</b> Két szereplő azért is szerepelhet együtt, mert mindkettő gyakori. A modularitás ezt a fokszámon keresztül kezeli, a páros (cikk–szereplő) nullmodell (7.5) még pontosabban.</li>
+    <li><b>Hét csúcs kevés.</b> Az Árvízhét szemléltetés, nem felfedezés: 877 felbontás közül választunk, és a különbségek kicsik.</li>
+  </ul>
+</div>
+
+<div class="quiz" data-quiz="gh8-88"></div>
+</section>

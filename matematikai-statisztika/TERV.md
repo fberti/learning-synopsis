@@ -451,6 +451,12 @@ OB II.3.1–3.4 + V. feladatok; OI 6.1–6.2, 7.1–7.4; PSDS 3. (t-Tests, A/B T
 
 ## 9. fejezet – Khi-négyzet-próbák és nemparaméteres módszerek ★★
 
+> **Megvalósítás (2026-11-19):** `09-khi-negyzet-es-nemparameteres-probak/`, 8 szakasz: 9.1 illeszkedés (érme = $z^2$, kocka 60 dobás $\chi^2 = 4{,}2$, esküdtek, OB 1400 dobás, Bortkiewicz-lovak becsült $\lambda$-val),
+> 9.2 homogenitás (A/B 20/200 vs 34/200 = 8.7-b, két gép 3 minőségi osztály), 9.3 függetlenség (3.2 dohányzás × nem, lakóhely × párt 3×3, reziduumok, $V$, Yates kiegészítés),
+> 9.4 Fisher (6 és 8 csésze, 16 beteg 7|1 vs 2|6), 9.5 előjelpróba + Wilcoxon (a 8.4 hat dolgozója, kiugró érték), 9.6 Mann–Whitney (7.6 adatai, kiugró 150, Kruskal–Wallis kitekintés),
+> 9.7 Kolmogorov–Szmirnov (egy- és kétmintás, Lilliefors), 9.8 alkalmazás (a fejezet kérdései, Benford, Mendel–Fisher, menetrend). OB II.3.5–3.6 most elérhető volt (Probability/resources PDF).
+> Kvízek `ms9-91…97` + `ms9-final`. 6 widget: `chi-square-dice`, `independence-table`, `fisher-exact`, `rank-test`, `ecdf-ks`, `benford`.
+
 **Nagy kérdés:** *Szabályos-e a kocka? Független-e a pártpreferencia a lakóhelytől? Mit tegyünk, ha az adat nem normális?*
 
 ### Felépítés

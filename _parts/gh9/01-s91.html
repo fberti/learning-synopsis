@@ -1,0 +1,282 @@
+
+<!-- ===================================================== 9.1 -->
+<section id="s91">
+<h2>9.1 SI, SIS és SIR egy kis gráfon ★</h2>
+<p>A terjedés legrégebbi modelljei a járványtanból jönnek. Egy ember háromféle állapotban lehet: <b>fogékony</b> (S, <em>susceptible</em>), <b>fertőző</b> (I, <em>infectious</em>) vagy <b>gyógyult</b> (R, <em>recovered</em> / <em>removed</em>).
+A modell neve azt mondja meg, milyen sorrendben járja be őket: SI (egyszer elkapja, örökre fertőző marad), SIS (meggyógyul, de újra elkaphatja), SIR (meggyógyul és immunis lesz).
+Kezdjük a legegyszerűbbel, ahol semmi sem véletlen.</p>
+
+<h3 id="s91-a">1. lépés: ha mindenki biztosan továbbadja – a terjedés mint szélességi bejárás</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – SI, biztos fertőzéssel</span>
+  Szabály: minden lépésben minden fertőző <b>minden</b> fogékony szomszédját megfertőzi. Indítsuk a fertőzést az Árvízhét szereplőgráfjában a Klímaváltozásból (súly nélkül, 7 csúcs, 10 él)!
+  <div class="two-col">
+    <div><div class="gfig" data-edges="Ko-Vi,Ko-Po,Vi-Po,Vi-Sz,Sz-Kl,Sz-Ko,Kl-Ko,La-Ön,La-Po,Po-Ön"
+      data-color="Kl:--setB Sz:--setB Ko:--setB" data-hl="Kl-Sz,Kl-Ko"
+      data-pos="Kl:.6,0 Sz:0,.5 Ko:1.3,.5 Vi:.65,1 Po:1.6,1.3 La:2.4,1 Ön:2.3,1.9" data-w="300" data-h="200" data-r="16"
+      data-caption="Az 1. lépés után: a Kl két szomszédja (Sz, Ko) is fertőző"></div></div>
+    <div>
+      <div class="tw" style="overflow-x:auto"><table>
+        <tr><th>lépés $t$</th><th>új fertőzöttek</th><th>összesen</th></tr>
+        <tr><td>0</td><td>$\mathrm{Kl}$</td><td>1</td></tr>
+        <tr><td>1</td><td>$\mathrm{Sz}$, $\mathrm{Ko}$</td><td>3</td></tr>
+        <tr><td>2</td><td>$\mathrm{Vi}$, $\mathrm{Po}$</td><td>5</td></tr>
+        <tr><td>3</td><td>$\mathrm{La}$, $\text{Ön}$</td><td>7</td></tr>
+      </table></div>
+    </div>
+  </div>
+  Ismerős? Ez pontosan a <a href="../02-setak-utak-fak/#s23-a">2.3</a> <b>szélességi bejárása</b> (BFS): a $t$-edik lépésben azok fertőződnek meg, akik a forrástól $t$ távolságra vannak.
+</div>
+
+<div class="box def">
+  <span class="box-title">Szabály – determinisztikus terjedés</span>
+  Ha minden fertőző biztosan átadja a fertőzést minden szomszédjának, akkor
+  <ul style="margin:.2rem 0">
+    <li>a $v$ csúcs pontosan a $t = d(s, v)$ lépésben fertőződik meg (a forrástól mért <b>távolság</b>);</li>
+    <li>mindenkihez $\mathrm{ecc}(s)$ lépés alatt jut el (a forrás <b>excentricitása</b>, <a href="../02-setak-utak-fak/#s23-b">2.3</a>);</li>
+    <li>akit egyáltalán nem ér el, az másik <b>komponensben</b> van.</li>
+  </ul>
+  <small>Miért? Az 1. lépésben a szomszédok (távolság 1) kapják el. Ha a $t$-edik lépés végéig pontosan a legfeljebb $t$ távolságúak fertőzöttek, a következőben az ő szomszédaik jönnek – éppen a $t + 1$ távolságúak. Ez teljes indukció.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – út és csillag</span>
+    Egy 6 csúcsú út egyik végéből, illetve egy 6 csúcsú csillag közepéből és egyik leveléből indulva hány lépés alatt fertőződik meg mindenki?
+    <details><summary>Megoldás</summary>Út, végpontból: 5 lépés (az excentricitás 5). Az út közepéről (3. csúcs) 3 lépés. Csillag, középről: 1 lépés. Levélről: 2 lépés (levél → közép → többi levél).
+      A hub nemcsak sok szomszédot ér el, hanem mindenkit <b>gyorsan</b>.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – honnan érdemes indulni?</span>
+    Az Árvízhéten melyik szereplőből indulva fertőződik meg leghamarabb mindenki?
+    <details><summary>Megoldás</summary>Az excentricitások: $\mathrm{Ko}$, $\mathrm{Vi}$, $\mathrm{Po}$: 2; $\mathrm{La}$, $\text{Ön}$, $\mathrm{Sz}$, $\mathrm{Kl}$: 3. A Ko, a Vi vagy a Po 2 lépés alatt mindenkit elér. A Po-ból: 1 → 5 → 7 fertőzött.
+      Ez a gráf <b>centruma</b> (<a href="../02-setak-utak-fak/#s23-b">2.3</a>) – és a közelségi centralitás (<a href="../05-centralitas/#s52-a">5.2</a>) is ezt jutalmazza.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Egy lépésben „tovább futtatni” a fertőzést.</b> Aki a $t$-edik lépésben fertőződött, csak a $t + 1$-edikben ad tovább. Ezért számít a lépés <b>eleji</b> állapot (szinkron frissítés).</li>
+    <li><b>A fokszámot összekeverni az elérési idővel.</b> A Ko-nak és a Po-nak is 4 a fokszáma, és mindkettőnek 2 az excentricitása – de a Vi-nek csak 3 a fokszáma, mégis 2 lépés alatt mindenkit elér.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – determinisztikus terjedés</summary>
+  <ol>
+    <li>Egy 5 csúcsú körön (C₅) egy csúcsból indulva lépésenként hány fertőzött van?
+      <details><summary>Megoldás</summary>1, 3, 5: két lépés (a kör két irányban terjed, az excentricitás 2).</details></li>
+    <li>Az Árvízhéten a Lakókból indulva lépésenként hány fertőzött van?
+      <details><summary>Megoldás</summary>$t = 0$: La; $t = 1$: Ön, Po (3); $t = 2$: Ko, Vi (5); $t = 3$: Sz, Kl (7). 1, 3, 5, 7.</details></li>
+    <li>Egy gráf két komponensből áll (5 és 3 csúcs). Az 5-ösből indítunk biztos SI-fertőzést. Hány csúcs fertőződik meg végül?
+      <details><summary>Megoldás</summary>5 – a másik komponensbe nem vezet út.</details></li>
+    <li>Egy $4 \times 4$-es négyzetrács sarkából hány lépés alatt jut el a fertőzés a szemközti sarokig?
+      <details><summary>Megoldás</summary>A távolság $3 + 3 = 6$ lépés.</details></li>
+    <li>(nehezebb) Egy 10 csúcsú gráfban a biztos SI a $v$-ből 4 lépés alatt mindenkit elér, a $w$-ből 2 alatt. Mit tudunk a gráf átmérőjéről?
+      <details><summary>Megoldás</summary>Az átmérő a legnagyobb excentricitás, így legalább 4. Felülről: bármely két csúcs legfeljebb $2 + 2 = 4$ lépésre van egymástól (a $w$-n át). Tehát az átmérő pontosan 4.</details></li>
+  </ol>
+</details>
+
+<h3 id="s91-b">2. lépés: ha csak eséllyel adja tovább – a $\beta$ fertőzési valószínűség</h3>
+<p>A valóságban nem minden találkozásból lesz fertőzés, és nem minden olvasó osztja meg a hírt. Legyen a fertőzés esélye egy lépésben, egy fertőző–fogékony élen <b>$\beta$</b>. Az élek egymástól függetlenül „próbálkoznak”.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két fertőző szomszéd</span>
+  Bencének két fertőző barátja van, $\beta = 0{,}3$. Mekkora eséllyel fertőződik meg a következő lépésben?
+  Sorold fel a négy esetet: mindkettő átadja ($0{,}3 \cdot 0{,}3 = 0{,}09$), csak az első ($0{,}3 \cdot 0{,}7 = 0{,}21$), csak a második ($0{,}21$), egyik sem ($0{,}7 \cdot 0{,}7 = 0{,}49$).
+  Az első három esetben megfertőződik: $0{,}09 + 0{,}21 + 0{,}21 = 0{,}51$. Rövidebben: $1 - 0{,}49 = 0{,}51$ – az ellentett eseménnyel.
+</div>
+
+<div class="box def">
+  <span class="box-title">Szabály – fertőződés $k$ fertőző szomszédtól</span>
+  Ha egy fogékony csúcsnak $k$ fertőző szomszédja van, és mindegyik egymástól függetlenül $\beta$ eséllyel adja át, akkor a következő lépésben
+  $$P(\text{megfertőződik}) = 1 - (1 - \beta)^k.$$
+  <small>Miért? Akkor <b>nem</b> fertőződik meg, ha egyik szomszédja sem adja át: ennek esélye a független események szorzata, $(1 - \beta)^k$. A keresett esemény ennek az ellentettje.</small>
+</div>
+
+<div class="box tip">
+  <span class="box-title">👍 Hüvelykujjszabály</span>
+  „Legalább egy” helyett számolj az <b>ellentettel</b>: $1 - P(\text{egyik sem})$. És vigyázz: $k$ szomszéd esélye <b>nem</b> $k\beta$ – az csak kis $\beta$-nál jó közelítés (két szomszéd, $\beta = 0{,}3$: $0{,}6$ helyett $0{,}51$).
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – három szomszéd</span>
+    $\beta = 0{,}3$, három fertőző szomszéd. Mekkora a fertőződés esélye egy lépésben?
+    <details><summary>Megoldás</summary>$1 - 0{,}7^3 = 1 - 0{,}343 = 0{,}657$.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – meddig tart egy úton?</span>
+    Út: $A$–$B$–$C$, az $A$ fertőző, SI-modell, $\beta = 0{,}5$. Mekkora eséllyel fertőző a $C$ a 2., illetve a 3. lépés végére?
+    <details><summary>Megoldás</summary>2. lépés végére csak úgy, ha a $B$ az 1., a $C$ a 2. lépésben kapja el: $0{,}5 \cdot 0{,}5 = 0{,}25$.
+      3. lépés végére: $B$ az 1.-ben, $C$ a 2.-ban vagy a 3.-ban ($0{,}5 \cdot 0{,}75 = 0{,}375$), vagy $B$ a 2.-ban és $C$ a 3.-ban ($0{,}25 \cdot 0{,}5 = 0{,}125$): összesen $0{,}5$.
+      SI-ben előbb-utóbb mindenki megfertőződik a komponensben – a $\beta$ csak azt dönti el, <b>mikor</b>.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az esélyeket összeadni.</b> $2 \cdot 0{,}3 = 0{,}6$ helyett $0{,}51$; öt szomszédnál $5 \cdot 0{,}3 = 1{,}5$ – ami nem is valószínűség.</li>
+    <li><b>A $\beta$-t a terjedés végkimenetelének hinni SI-ben.</b> SI-ben senki sem gyógyul meg: egy összefüggő gráfban végül mindenki fertőző lesz. A $\beta$ a sebességet állítja.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a $\beta$</summary>
+  <ol>
+    <li>$\beta = 0{,}5$, két fertőző szomszéd. Mekkora a fertőződés esélye egy lépésben?
+      <details><summary>Megoldás</summary>$1 - 0{,}5^2 = 0{,}75$.</details></li>
+    <li>$\beta = 0{,}5$, három fertőző szomszéd?
+      <details><summary>Megoldás</summary>$1 - 0{,}5^3 = 0{,}875$.</details></li>
+    <li>$\beta = 0{,}1$. Kb. hány fertőző szomszéd kell ahhoz, hogy egy lépésben legalább 50% eséllyel elkapja?
+      <details><summary>Megoldás</summary>$1 - 0{,}9^k \ge 0{,}5$, azaz $0{,}9^k \le 0{,}5$: $0{,}9^6 \approx 0{,}531$ még több mint 0,5, $0{,}9^7 \approx 0{,}478$ már kevesebb – 7 szomszéd kell.</details></li>
+    <li>Az $A$–$B$–$C$ úton, $\beta = 0{,}5$ mellett mekkora eséllyel nem fertőző még a $B$ a 2. lépés végén?
+      <details><summary>Megoldás</summary>Kétszer egymás után nem kapja el: $0{,}5^2 = 0{,}25$.</details></li>
+    <li>(nehezebb) Egy fogékony csúcsnak két fertőző szomszédja van; az egyik $\beta_1 = 0{,}2$, a másik $\beta_2 = 0{,}5$ eséllyel ad át. Mennyi a fertőződés esélye?
+      <details><summary>Megoldás</summary>$1 - 0{,}8 \cdot 0{,}5 = 0{,}6$.</details></li>
+  </ol>
+</details>
+
+<h3 id="s91-c">3. lépés: gyógyulás – SIS, SIR és az átvitel $T$</h3>
+<p>Eddig a fertőző örökre fertőző maradt. Most minden lépés végén $\gamma$ eséllyel meggyógyul. Az <b>SIS</b>-ben utána újra fogékony (nátha, de egy hírre is újra rákattinthatsz), az <b>SIR</b>-ben immunis (bárányhimlő; a hírt már láttad).
+Egy lépés sorrendje: (1) minden fertőző $\beta$ eséllyel megfertőzi a fogékony szomszédait, (2) minden fertőző $\gamma$ eséllyel meggyógyul.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egyetlen él</span>
+  Az $A$ fertőző, a $B$ fogékony szomszéd. $\beta = 0{,}5$, $\gamma = 0{,}5$, SIR. Mekkora eséllyel kapja el végül a $B$?
+  Lépésenként: az 1. lépésben $0{,}5$ eséllyel átadja. Ha nem, $A$ $0{,}5$ eséllyel még fertőző marad, és újra próbál. Az esetek:
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>mi történik</th><th>esély</th></tr>
+    <tr><td>az 1. lépésben átadja</td><td>$0{,}5$</td></tr>
+    <tr><td>nem adja át, nem gyógyul, a 2. lépésben átadja</td><td>$0{,}5 \cdot 0{,}5 \cdot 0{,}5 = 0{,}125$</td></tr>
+    <tr><td>… a 3. lépésben</td><td>$0{,}25^2 \cdot 0{,}5 = 0{,}031$</td></tr>
+    <tr><td>összesen (mértani sor)</td><td>$0{,}5 \cdot (1 + 0{,}25 + 0{,}25^2 + \dots) = 0{,}5/0{,}75 = 2/3$</td></tr>
+  </table></div>
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – átvitel (transmissibility)</span>
+  Az <b>átvitel</b>, $T$, annak az esélye, hogy egy fertőző a teljes fertőző időszaka alatt átadja a fertőzést egy adott fogékony szomszédjának. A fenti lépésrenddel
+  $$T = \frac{\beta}{\beta + \gamma - \beta\gamma}.$$
+  A fertőző időszak átlagos hossza $1/\gamma$ lépés. Két fontos speciális eset: $\gamma = 1$ (pontosan egy lépésig fertőző) → $T = \beta$; $\gamma = 0$ (SI) → $T = 1$.
+  <small>Miért? Egy lépésben három dolog történhet: átadja ($\beta$), nem adja át és meggyógyul ($(1-\beta)\gamma$), vagy semmi sem történik, és ugyanott vagyunk. Az első kettő közül az első jön előbb $\beta / (\beta + (1-\beta)\gamma)$ eséllyel.</small>
+</div>
+
+<details><summary>📐 Bizonyítás a mértani sorral</summary>
+  A $t$-edik lépésben akkor adja át először, ha előtte $t - 1$-szer „semmi sem történt”: nem adta át és nem gyógyult, ennek esélye $q = (1 - \beta)(1 - \gamma)$ lépésenként. Így
+  $$T = \sum_{t \ge 1} q^{t-1}\beta = \frac{\beta}{1 - (1-\beta)(1-\gamma)} = \frac{\beta}{\beta + \gamma - \beta\gamma}.$$
+</details>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – lassú gyógyulás</span>
+    $\beta = 0{,}2$, $\gamma = 0{,}5$. Mennyi a $T$?
+    <details><summary>Megoldás</summary>$0{,}2/(0{,}2 + 0{,}5 - 0{,}1) = 0{,}2/0{,}6 = 1/3$. Egy lépésben csak 20% az esély, de átlagosan 2 lépésig próbálkozhat.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – végig az úton</span>
+    $A$–$B$–$C$ út, $A$ fertőző, $\beta = \gamma = 0{,}5$, SIR. Mekkora eséllyel kapja el végül a $C$?
+    <details><summary>Megoldás</summary>Előbb a $B$-nek kell elkapnia ($T = 2/3$), aztán neki átadnia a $C$-nek (újra $2/3$, a $B$ saját fertőző időszakában): $(2/3)^2 = 4/9 \approx 0{,}444$. (Szimulációval 100 000 futásból: 0,445.)</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>$T = \beta$-t írni, amikor $\gamma \lt 1$.</b> A fertőző több lépésen át próbálkozik; $T \ge \beta$.</li>
+    <li><b>$T = \beta/\gamma$-t írni.</b> Ez a folytonos idejű modellek $R_0$-szerű hányadosa, nem valószínűség: lehet 1-nél nagyobb is. A diszkrét modellben $T$ mindig 0 és 1 közé esik.</li>
+    <li><b>SIS-ben „végső méretet” keresni.</b> Az SIS-ben nincs immunitás: a fertőzés vagy kihal, vagy tartósan fennmarad (<b>endémiás</b> állapot), ahol a fertőzöttek aránya egy szint körül ingadozik.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – gyógyulás és átvitel</summary>
+  <ol>
+    <li>$\beta = 0{,}3$, $\gamma = 1$. Mennyi a $T$?
+      <details><summary>Megoldás</summary>$0{,}3/(0{,}3 + 1 - 0{,}3) = 0{,}3$ – egylépéses fertőző időszakban $T = \beta$.</details></li>
+    <li>$\beta = \gamma = 0{,}3$. Mennyi a $T$?
+      <details><summary>Megoldás</summary>$0{,}3/(0{,}6 - 0{,}09) = 0{,}3/0{,}51 \approx 0{,}588$.</details></li>
+    <li>$\gamma = 0{,}2$. Átlagosan hány lépésig fertőző valaki?
+      <details><summary>Megoldás</summary>$1/\gamma = 5$ lépésig.</details></li>
+    <li>$\beta = 0{,}1$, $\gamma = 0{,}2$. Mennyi a $T$? És ha a $\gamma$ a felére csökken?
+      <details><summary>Megoldás</summary>$0{,}1/(0{,}1 + 0{,}2 - 0{,}02) = 0{,}1/0{,}28 \approx 0{,}357$. $\gamma = 0{,}1$-nél $0{,}1/0{,}19 \approx 0{,}526$: a hosszabb fertőző időszak majdnem megduplázza az átvitelt.</details></li>
+    <li>(nehezebb) Egy 4 csúcsú úton az egyik végpont fertőző, minden élen $T = 0{,}5$. Mekkora eséllyel jut el a fertőzés a másik végpontig, és hány csúcs fertőződik meg átlagosan (a forrással együtt)?
+      <details><summary>Megoldás</summary>Három élen kell átjutnia: $0{,}5^3 = 0{,}125$. Átlag: $1 + 0{,}5 + 0{,}25 + 0{,}125 = 1{,}875$ (minden csúcs annyi eséllyel fertőződik, amennyi az odavezető út összes élének szorzata).</details></li>
+  </ol>
+</details>
+
+<h3 id="s91-d">4. lépés: keverő populáció vagy hálózat?</h3>
+<p>A klasszikus járványmodellek (Kermack és McKendrick, 1927) nem ismernek hálózatot. Feltételezik, hogy a népesség <b>jól elkevert</b>: minden lépésben mindenki $\langle k \rangle$ <b>véletlen</b> emberrel találkozik, mindig újakkal.
+Ez az <b>átlagtér-közelítés</b> (<em>mean-field</em>). Mit veszítünk vele?</p>
+
+<div class="box def">
+  <span class="box-title">Keverő populáció – az alapszaporodási szám és a végső méret</span>
+  Az <b>alapszaporodási szám</b>, $R_0$, azt mondja meg, hány embert fertőz meg átlagosan egy fertőző egy teljesen fogékony népességben. Keverő populációban, ha mindenkinek $\langle k \rangle$ kapcsolata van:
+  $$R_0 = T\,\langle k \rangle.$$
+  Ha $R_0 \gt 1$, járvány tör ki; a végül megfertőzöttek $r_\infty$ aránya (SIR, nagy népesség) a
+  $$r_\infty = 1 - e^{-R_0\, r_\infty}$$
+  egyenlet pozitív megoldása. Ha $R_0 \le 1$, a fertőzés elhal ($r_\infty = 0$).
+  <small>Miért? Egy ember akkor marad ki, ha a járvány alatt egyetlen fertőzés sem éri. Átlagosan $R_0 r_\infty$ „fertőzési kísérlet” jut rá; ha ezek ritkák és függetlenek (Poisson), az esélye, hogy egy sem éri: $e^{-R_0 r_\infty}$.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – $R_0$ keverő populációban</span>
+    Mindenkinek 4 kapcsolata van, $\beta = 0{,}5$, $\gamma = 1$. Mennyi az $R_0$, és nagyjából hányan fertőződnek meg?
+    <details><summary>Megoldás</summary>$T = 0{,}5$, $R_0 = 0{,}5 \cdot 4 = 2$. Az egyenlet megoldása $r_\infty \approx 0{,}797$: kb. a népesség 80%-a.
+      (Más $R_0$-ra: $1{,}5 \to 0{,}583$; $3 \to 0{,}941$.)</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – mit hagy ki a keverés?</span>
+    Egy gyűrűrácsban ($k = 4$, mindenki a két-két legközelebbi szomszédjával kapcsolatban) ugyanez a $T = 0{,}5$. Miért terjed itt sokkal kevésbé?
+    <details><summary>Megoldás</summary>Mert a szomszédok <b>átfednek</b>: akit megfertőzök, annak a szomszédai jórészt az én szomszédaim – már fertőzöttek vagy éppen most próbálkozom náluk. Ráadásul az él, amelyen én kaptam el, „elhasznált”: arra már nincs kit fertőznöm. A keverő modellben minden kontaktus új ember. Szimulálva (1000 csúcsú gyűrűrács, $T = 0{,}5$, 1000 kezdés): a fertőzés átlagosan a csúcsok <b>1,5%-át</b> éri el, a legnagyobb kitörés is csak 63 csúcsot – a keverő modell 80%-ával szemben.</details>
+  </div>
+</div>
+
+<p>Próbáld ki! Válaszd ki a hálózatot, állítsd a $\beta$-t és a $\gamma$-t, és nézd, hogyan tér el a hálózati járvány a keverő populáció (szaggatott vonal) görbéjétől.</p>
+
+<div class="widget" data-widget="sir-network"></div>
+
+<details><summary>🐍 Python – SIR egy gráfon, 12 sorban</summary>
+<pre><code>import random, networkx as nx
+def sir(G, seed, beta, gamma, rng=random.Random(1)):
+    state = {v: "S" for v in G}; state[seed] = "I"; total = 1
+    while any(s == "I" for s in state.values()):
+        inf = [v for v in G if state[v] == "I"]
+        new = {u for v in inf for u in G[v] if state[u] == "S" and rng.random() &lt; beta}
+        for v in inf:
+            if rng.random() &lt; gamma: state[v] = "R"
+        for u in new: state[u] = "I"
+        total += len(new)
+    return total                      # ennyien fertőződtek meg összesen
+G = nx.watts_strogatz_graph(1000, 4, 0.1, seed=1)
+print(sum(sir(G, 0, 0.5, 1.0) for _ in range(100)) / 100)   # kb. 220</code></pre>
+<p class="muted">Egy fogékony csúcsot egy lépésben több szomszéd is „próbálhat” – a halmaz (<code>new</code>) miatt csak egyszer számít, ez adja az $1 - (1 - \beta)^k$-t.</p>
+</details>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Módszertani józanság – egy szimuláció nem a várható viselkedés</span>
+  Ugyanazzal a $\beta$-val és $\gamma$-val egyszer kihal a fertőzés az első lépésben, máskor a fél hálózatot eléri. Egy futás egy minta. Állítást <b>sok futás eloszlásáról</b> teszünk (a widget „100 futás” gombja ezt mutatja): mekkora a kihalás esélye, és ha nem hal ki, mekkora lesz.
+  A hírekre ugyanez igaz: egy „virális” hír utólag könnyen magyarázható, de előre sokkal nehezebb megjósolni (9.4).
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – keverő populáció</summary>
+  <ol>
+    <li>Keverő populációban mindenkinek 5 kapcsolata van, $T = 0{,}3$. Mennyi az $R_0$? Kitör-e a járvány?
+      <details><summary>Megoldás</summary>$R_0 = 1{,}5 \gt 1$: kitörhet (a végső méret kb. 58%).</details></li>
+    <li>Mekkora $T$ mellett kerül éppen a határra egy 4 kapcsolatos keverő populáció?
+      <details><summary>Megoldás</summary>$T \cdot 4 = 1$, azaz $T = 0{,}25$.</details></li>
+    <li>Ellenőrizd, hogy $r_\infty = 0{,}797$ jó megoldás $R_0 = 2$-re!
+      <details><summary>Megoldás</summary>$1 - e^{-2 \cdot 0{,}797} = 1 - e^{-1{,}594} \approx 1 - 0{,}203 = 0{,}797$. ✓</details></li>
+    <li>Miért mindig megoldás az $r_\infty = 0$, és miért nem azt választjuk, ha $R_0 \gt 1$?
+      <details><summary>Megoldás</summary>$1 - e^0 = 0$, így a 0 mindig megoldás – ez az „el sem indult” eset. $R_0 \gt 1$ esetén van egy második, pozitív megoldás is: ha a járvány beindul (nem hal ki az elején véletlenül), akkor ez a mérete.</details></li>
+    <li>(nehezebb) Egy hírt az olvasók átlagosan 8 ismerősüknek mutathatnak meg, egy ismerős 10% eséllyel adja tovább (és csak egyszer). Keverő populációt feltételezve elterjed-e? Miért lehet, hogy a valóságban mégsem?
+      <details><summary>Megoldás</summary>$R_0 = 0{,}1 \cdot 8 = 0{,}8 \lt 1$: a keverő modell szerint nem. Hálózatban fordítva is lehet: ha a fokszámok nagyon egyenlőtlenek (hubok), a 9.2 szerint a küszöb alacsonyabb. A klaszterezettség viszont tovább csökkenti az esélyét. A keverő modell itt csak kiindulópont.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh9-91"></div>
+</section>

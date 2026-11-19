@@ -1,0 +1,155 @@
+
+<!-- ===================================================== 8.2 -->
+<section id="s82">
+<h2>8.2 Élek eltávolítása: a Girvan–Newman-algoritmus ★★</h2>
+<p>Az első ötlet fordított irányú: ne a csoportokat keressük, hanem a köztük futó <b>hidakat</b>. Ha a közösségeket kevés él köti össze, akkor a csoportok közti forgalom – a legrövidebb utak – ezeken a kevés élen torlódik.
+Töröljük a legforgalmasabb élt, és nézzük, mi esik szét.</p>
+
+<h3 id="s82-a">1. lépés: élköztesség – melyik élen torlódnak az utak?</h3>
+<p>Az <a href="../05-centralitas/#s53">5.3</a>-ban a <b>csúcsok</b> köztességét számoltuk: hány legrövidebb út halad át egy csúcson. Ugyanez megy élekre is.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két háromszög + híd, teljes felsorolással</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="1-2,1-3,2-3,3-4,4-5,4-6,5-6" data-hl="3-4" data-weights="1,4,4,9,4,4,1" data-show-weights
+      data-pos="1:0,0 2:0,1.2 3:1,.6 4:2.2,.6 5:3.2,0 6:3.2,1.2" data-w="280" data-h="150" data-caption="A szám az élen: hány csúcspár legrövidebb útja halad át rajta"></div></div>
+    <div>
+      A 6 csúcs $\binom62 = 15$ párjának mindegyikét egyetlen legrövidebb út köti össze. Nézzük élenként:
+      <ul style="margin:.2rem 0">
+        <li><b>3–4 (a híd):</b> minden pár, amelynek egyik tagja $\{1, 2, 3\}$-ban, a másik $\{4, 5, 6\}$-ban van: $3 \cdot 3 = 9$ pár.</li>
+        <li><b>1–3:</b> az 1-es útja a 3-hoz, 4-hez, 5-höz és 6-hoz: 4 pár.</li>
+        <li><b>1–2:</b> csak az $(1, 2)$ pár: 1.</li>
+      </ul>
+    </div>
+  </div>
+  A híd köztessége messze a legnagyobb. Ha töröljük, a gráf pontosan a két háromszögre esik szét.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – élköztesség</span>
+  Az $e$ él köztessége (<em>edge betweenness</em>):
+  $$b(e) = \sum_{s \lt t} \frac{\sigma_{st}(e)}{\sigma_{st}},$$
+  ahol $\sigma_{st}$ az $s$ és $t$ közötti legrövidebb utak száma, $\sigma_{st}(e)$ pedig azoké, amelyek átmennek az $e$ élen. Ha egy párt több legrövidebb út köt össze, a pár „egy szavazata” egyenlően oszlik el köztük (törtek, mint az 5.3-ban).
+  <small>Miért jó ez híd-detektornak? Két sűrű csoport között kevés él fut, de minden csoportközi párnak ezek valamelyikén kell átmennie. A csoporton belüli éleken viszont sok kerülőút van, a forgalom szétoszlik.
+  Hasznos ellenőrzés: $\sum_e b(e) = \sum_{s \lt t} d(s, t)$, mert minden legrövidebb út annyi élen megy át, amilyen hosszú. A két háromszögnél $1 + 4 + 4 + 9 + 4 + 4 + 1 = 27$.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – négycsúcsú út</span>
+    Mennyi az élköztesség az $1$–$2$–$3$–$4$ úton?
+    <details><summary>Megoldás</summary>A középső él (2–3) minden olyan páron rajta van, amely átér a közepén: $2 \cdot 2 = 4$. A szélső élek: 3–3 (az 1-es mindhárom társához, illetve a 4-esé). A középső él „hídabb” – az út közepén vágnánk.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – az Árvízhét</span>
+    A Pythonnal számolt élköztességek (súly nélkül): $\mathrm{Ko}$–$\mathrm{Po}$ 7,5 · $\mathrm{Po}$–$\mathrm{La}$ és $\mathrm{Po}$–$\text{Ön}$ 5 · $\mathrm{Ko}$–$\mathrm{Kl}$ és $\mathrm{Vi}$–$\mathrm{Po}$ 4,5 · $\mathrm{Vi}$–$\mathrm{Sz}$ 3 · $\mathrm{Ko}$–$\mathrm{Sz}$ 2,5 · $\mathrm{Ko}$–$\mathrm{Vi}$ és $\mathrm{Sz}$–$\mathrm{Kl}$ 1,5 · $\mathrm{La}$–$\text{Ön}$ 1. Miért a $\mathrm{Ko}$–$\mathrm{Po}$ vezet?
+    <details><summary>Megoldás</summary>A „hivatalos” oldal négy szereplőjének ($\mathrm{Ko}$, $\mathrm{Vi}$, $\mathrm{Sz}$, $\mathrm{Kl}$) és a „helyi” oldal háromnak ($\mathrm{Po}$, $\mathrm{La}$, $\text{Ön}$) $4 \cdot 3 = 12$ párja van, és mindegyik útja a $\mathrm{Ko}$–$\mathrm{Po}$ vagy a $\mathrm{Vi}$–$\mathrm{Po}$ élen megy át. A $\mathrm{Kl}$ és az $\mathrm{Sz}$ felől a $\mathrm{Ko}$-n át rövidebb, ezért a $\mathrm{Ko}$–$\mathrm{Po}$ kapja a nagyobb részt: $7{,}5 + 4{,}5 = 12$.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A csúcsköztességet használni.</b> A legnagyobb köztességű <em>csúcs</em> (az Árvízhéten a $\mathrm{Po}$) nem törölhető úgy, hogy a közösségek megmaradjanak – őt is el kellene veszíteni. Élt törlünk, nem csúcsot.</li>
+    <li><b>Párokat kétszer számolni.</b> Irányítatlan gráfban az $(s, t)$ és $(t, s)$ ugyanaz a pár. (A <code>networkx</code> <code>edge_betweenness_centrality(G, normalized=False)</code> is így számol.)</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – élköztesség</summary>
+  <ol>
+    <li>Mennyi az élköztesség egy 3 levelű csillag minden élén?
+      <details><summary>Megoldás</summary>Egy levél–középpont él: a levél útja a középponthoz (1) és a másik két levélhez (2): 3.</details></li>
+    <li>A „csokornyakkendőben” (két háromszög egy közös $C$ csúccsal: $AB$, $AC$, $BC$, $CD$, $CE$, $DE$) mennyi az $A$–$B$ és az $A$–$C$ él köztessége?
+      <details><summary>Megoldás</summary>$A$–$B$: csak az $(A, B)$ pár: 1. $A$–$C$: $(A, C)$, $(A, D)$, $(A, E)$: 3. Itt nincs kiugró él – a két háromszöget csúcs köti össze, nem él.</details></li>
+    <li>Ellenőrizd a négycsúcsú úton, hogy az élköztességek összege a távolságok összege!
+      <details><summary>Megoldás</summary>$3 + 4 + 3 = 10$. Távolságok: 1, 2, 3, 1, 2, 1 → 10. ✓</details></li>
+    <li>Két háromszög ($\{1, 2, 3\}$, $\{4, 5, 6\}$) a 3–4 híddal, és egy 7-es csúcs, amely csak az 1-eshez kapcsolódik. Mennyi a 3–4 híd köztessége?
+      <details><summary>Megoldás</summary>Az egyik oldalon most 4 csúcs van ($1, 2, 3, 7$), a másikon 3: $4 \cdot 3 = 12$.</details></li>
+    <li>(nehezebb) Ugyanebben a gráfban mennyi az 1–7 él köztessége? Nagyobb vagy kisebb, mint a hídé?
+      <details><summary>Megoldás</summary>A 7-es mind a 6 társának útja ezen megy át: 6. Kisebb, mint a hídé (12), és kisebb az 1–3 élénél is (8: rajta megy át a $\{1, 7\} \times \{3, 4, 5, 6\}$ párok útja), de nagyobb, mint a 2–3 élé (4). Egy lógó csúcs éle is „híd” – a Girvan–Newman ezt is levágja, csak később.</details></li>
+  </ol>
+</details>
+
+<h3 id="s82-b">2. lépés: töröld a legforgalmasabbat, és számolj újra</h3>
+<div class="box def">
+  <span class="box-title">Algoritmus – Girvan–Newman (2002)</span>
+  <ol style="margin:.2rem 0">
+    <li>Számold ki minden él köztességét.</li>
+    <li>Töröld a legnagyobb köztességű élt.</li>
+    <li><b>Számold újra</b> a köztességeket a megmaradt gráfban.</li>
+    <li>Ismételd, amíg van él. Valahányszor egy komponens kettéesik, jegyezd fel: ez a <b>dendrogram</b> (elágazási fa) egy szintje.</li>
+  </ol>
+  <small>Miért kell újraszámolni? Mert a törlés átrendezi a forgalmat. Ha két csoportot két híd köt össze, kezdetben mindkettő csak a forgalom egy részét viszi. Az egyik törlése után a másikon torlódik minden – és ő lesz a következő.</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa – az Árvízhét lépésről lépésre</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>lépés</th><th>legnagyobb köztesség</th><th>törölt él</th><th>komponensek utána</th></tr>
+    <tr><td>1.</td><td>7,5</td><td>$\mathrm{Ko}$–$\mathrm{Po}$</td><td>1 (még egyben)</td></tr>
+    <tr><td>2.</td><td><b>12</b></td><td>$\mathrm{Vi}$–$\mathrm{Po}$</td><td>2: $\{\mathrm{Ko}, \mathrm{Vi}, \mathrm{Sz}, \mathrm{Kl}\}$, $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$</td></tr>
+    <tr><td>3.</td><td>1,5 (holtverseny)</td><td>$\mathrm{Ko}$–$\mathrm{Vi}$</td><td>2</td></tr>
+    <tr><td>4.</td><td>3</td><td>$\mathrm{Vi}$–$\mathrm{Sz}$</td><td>3: a $\mathrm{Vi}$ leválik</td></tr>
+    <tr><td>…</td><td colspan="3">a többi él már 1 köztességű; végül mindenki egyedül marad</td></tr>
+  </table></div>
+  A $\mathrm{Ko}$–$\mathrm{Po}$ törlése után a $\mathrm{Vi}$–$\mathrm{Po}$ köztessége 4,5-ről 12-re ugrik: most már minden „hivatalos–helyi” út rajta megy át. Holtversenynél (3. lépés) a sorrend önkényes – a <code>networkx</code> az elsőként talált élt veszi.
+</div>
+
+<div class="widget" data-widget="girvan-newman"></div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a karateklub első vágása</span>
+    A karateklubban az első törölt él az $1$–$32$ (köztessége 71,4). Hány törlés kell, amíg a gráf először kettéesik?
+    <details><summary>Megoldás</summary>11 törlés (Pythonból). A két rész 15 és 19 tagú. A valódi kettéváláshoz képest csak két tag van „rossz” oldalon: a 3-as és a 9-es – 32/34 egyezés.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a dendrogram olvasása</span>
+    Az Árvízhét dendrogramjában a komponensszám a kiinduló állapotban és a 10 törlés után (a widget sorrendjében; holtversenynél más sorrend is lehet): 1 | 1, 2, 2, 3, 3, 4, 5, 5, 6, 7. Hány szintje van a fának, ahol valóban szétesés történik?
+    <details><summary>Megoldás</summary>Ahol a szám nő: a 2., 4., 6., 7., 9. és 10. törlésnél – 6 elágazás, mert 7 csúcsot 6 lépésben lehet teljesen szétszedni. A többi törlés csak „ritkít”, nem vág.</details>
+  </div>
+</div>
+
+<div class="box history">
+  <span class="box-title">📜 Girvan és Newman (2002)</span>
+  Michelle Girvan és Mark Newman 2002-es cikke (<em>PNAS</em>) indította el a közösségkeresés modern korszakát. A korábbi hierarchikus klaszterezés (a szociológiában a CONCOR, a statisztikában az összevonó módszerek) a <b>hasonló</b> csúcsokat vonta össze;
+  ők megfordították: a <b>legkevésbé „belső”</b> éleket bontották le. Példáik között ott volt a karateklub és egy amerikai főiskolai futballbajnokság – ahol az algoritmus a konferenciákat (csoportokat) is visszaadta.
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Egyszer kiszámolni, aztán sorban törölni.</b> Az első köztességi sorrend szerint törölve a 2. lépésben a $\mathrm{Po}$–$\mathrm{La}$ jönne (5), nem a $\mathrm{Vi}$–$\mathrm{Po}$ – és rossz helyen vágnánk.</li>
+    <li><b>Lassú nagy gráfon.</b> Minden lépés egy teljes köztességszámítás ($O(nm)$), és $m$ lépés van: összesen $O(m^2 n)$. Néhány ezer élnél már percek. Nagy hálózatra a 8.4 módszerei kellenek.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a Girvan–Newman lépései</summary>
+  <ol>
+    <li>A két háromszög + híd gráfban mi az első törölt él, és mi lesz utána?
+      <details><summary>Megoldás</summary>A 3–4 híd (köztesség 9). Utána két komponens: $\{1, 2, 3\}$ és $\{4, 5, 6\}$.</details></li>
+    <li>Ugyanitt a híd törlése után mennyi minden él köztessége?
+      <details><summary>Megoldás</summary>Egy háromszögben minden pár szomszédos: minden él köztessége 1. Innentől holtverseny – a háromszögek szétszedése önkényes sorrendben megy.</details></li>
+    <li>A négycsúcsú úton ($1$–$2$–$3$–$4$) mi az első két törlés eredménye?
+      <details><summary>Megoldás</summary>Először a 2–3 (köztesség 4): $\{1, 2\}$ és $\{3, 4\}$. Utána minden él köztessége 1, a következő törlés egy párt bont szét.</details></li>
+    <li>Az Árvízhéten a $\mathrm{Ko}$–$\mathrm{Po}$ törlése után miért ugrik a $\mathrm{Vi}$–$\mathrm{Po}$ köztessége 12-re?
+      <details><summary>Megoldás</summary>Ő maradt az egyetlen él a két oldal között. A $4 \cdot 3 = 12$ csoportközi pár mindegyikének rajta kell átmennie.</details></li>
+    <li>(nehezebb) Egy gráf két 10 csúcsú klikkből áll, amelyeket <b>két</b> él köt össze (különböző csúcspárok között). Mekkora a két híd köztessége, és mi történik az első törlés után?
+      <details><summary>Megoldás</summary>A $10 \cdot 10 = 100$ csoportközi pár útjai a két híd között oszlanak meg. A helyzet szimmetrikus, ezért pontosan fele-fele: mindkét híd köztessége 50 (Pythonnal ellenőrizve; a klikkeken belüli élek legfeljebb 6-ot kapnak). Az egyik törlése után a másikon megy mind a 100: ő jön következőnek, és a gráf a két klikkre esik szét.</details></li>
+  </ol>
+</details>
+
+<h3 id="s82-c">3. lépés: de hol álljunk meg?</h3>
+<p>A Girvan–Newman nem egy felbontást ad, hanem egy egész <b>sorozatot</b>: 1, 2, 3, … csoportot. Az Árvízhéten a 2 csoportos szint tetszetős. De melyik szintet válasszuk egy 1000 csúcsú gráfon, ahol nem tudunk ránézni?
+Ehhez egy <b>számra</b> van szükség, amely minden felbontást pontoz. Girvan és Newman erre vezette be a <b>modularitást</b> – a 8.1 „többletét”, minden közösségre összeadva.</p>
+
+<div class="box tip">
+  <span class="box-title">Előretekintés</span>
+  Az Árvízhét Girvan–Newman-szintjein a modularitás (a 8.3-ban számoljuk): 1 csoport: 0 · 2 csoport: <b>0,28</b> · 3 csoport: 0,215 · 4 csoport: 0,105 (vagy 0,115 – a holtversenyek feloldásától függ) · … · 7 csoport: $-0{,}155$.
+  A legjobb szint a két csoportos. A karateklubon a csúcs 5 csoportnál van ($Q = 0{,}401$), nem a kettéválásnál.
+</div>
+
+<div class="quiz" data-quiz="gh8-82"></div>
+</section>

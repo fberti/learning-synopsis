@@ -1,0 +1,168 @@
+
+<!-- ===================================================== 9.5 -->
+<section id="s95">
+<h2>9.5 Befolyásmaximalizálás ★★★</h2>
+<p>Egy kampány (egy hírlap, egy egészségügyi szervezet, egy hirdető) néhány embert „megnyerhet” kezdőnek. Kiket válasszon, hogy a hír a lehető legtöbb emberhez eljusson? Ez a <b>befolyásmaximalizálás</b> (<em>influence maximization</em>) kérdése.
+A szakasz kihagyható; a többihez nem kell.</p>
+
+<h3 id="s95-a">1. lépés: a várható terjedés $\sigma(S)$</h3>
+<div class="box def">
+  <span class="box-title">Definíció – várható terjedés</span>
+  Egy $S$ kezdőhalmaz <b>várható terjedése</b>, $\sigma(S)$, a végül aktív csúcsok számának várható értéke egy terjedési modellben (itt: független kaszkád $p$-vel). A feladat: adott $k$-ra
+  $$\max_{|S| = k} \sigma(S).$$
+  <small>Kis gráfon $\sigma(S)$ pontosan kiszámolható az élperkolációval (9.3): az összes $2^m$ élhalmazra a „nyitott” élek gráfjában az $S$-ből elérhető csúcsok száma, az élhalmaz esélyével súlyozva. Nagy gráfon Monte-Carlo-szimulációval becsüljük (sok futás átlaga).</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy kezdő az Árvízhéten</span>
+  $p = 0{,}3$, pontos számolással (Python, $2^{10}$ élhalmaz):
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>kezdő</th><th>$\mathrm{Ko}$</th><th>$\mathrm{Po}$</th><th>$\mathrm{Vi}$</th><th>$\mathrm{Sz}$</th><th>$\mathrm{Kl}$</th><th>$\mathrm{La}$</th><th>$\text{Ön}$</th></tr>
+    <tr><td>fokszám</td><td>4</td><td>4</td><td>3</td><td>3</td><td>2</td><td>2</td><td>2</td></tr>
+    <tr><td>$\sigma$</td><td>2,898</td><td>2,858</td><td>2,696</td><td>2,578</td><td>2,247</td><td>2,137</td><td>2,137</td></tr>
+  </table></div>
+  Egy kezdőnél a fokszám jó útmutató. A kérdés a második kezdőnél lesz izgalmas.
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Egyetlen szimulációból becsülni a $\sigma$-t.</b> Egy futás egy minta (9.1); a $\sigma$ várható érték, sok futás átlaga kell hozzá – vagy kis gráfon a pontos számolás.</li>
+    <li><b>A kezdőt nem számolni bele.</b> A $\sigma(S)$-ben a kezdők is benne vannak: egyetlen kezdő, akitől semmi sem terjed, $\sigma = 1$.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – várható terjedés</summary>
+  <ol>
+    <li>Két csúcs, egy él, $p = 0{,}4$. Mennyi a $\sigma(\{A\})$?
+      <details><summary>Megoldás</summary>$1 + 0{,}4 = 1{,}4$.</details></li>
+    <li>$A$–$B$–$C$ út, $p = 0{,}5$. Mennyi a $\sigma(\{B\})$ és a $\sigma(\{A\})$?
+      <details><summary>Megoldás</summary>$B$: $1 + 2 \cdot 0{,}5 = 2$. $A$: $1 + 0{,}5 + 0{,}25 = 1{,}75$. A középső jobb kezdő.</details></li>
+    <li>Háromszög, $p = 0{,}4$. Mennyi a $\sigma(\{A\})$?
+      <details><summary>Megoldás</summary>Egy másik csúcs esélye: $0{,}4 + 0{,}6 \cdot 0{,}4 \cdot 0{,}4 = 0{,}496$. $\sigma = 1 + 2 \cdot 0{,}496 = 1{,}992$.</details></li>
+    <li>A táblázatban miért pontosan egyenlő a La és az Ön $\sigma$-ja?
+      <details><summary>Megoldás</summary>A gráfban szimmetrikus a helyzetük: mindkettő a másikkal és a Po-val szomszédos. Ha felcseréled a nevüket, ugyanazt a gráfot kapod, így minden mérőszámuk egyenlő.</details></li>
+    <li>(nehezebb) Miért nem lehet a karateklubon pontosan, az összes élhalmaz végigszámolásával kiszámolni a $\sigma$-t?
+      <details><summary>Megoldás</summary>78 él: $2^{78} \approx 3 \cdot 10^{23}$ élhalmaz – reménytelen. Ott Monte-Carlo-becslés kell (pl. 2000 futás átlaga, hibahatárral).</details></li>
+  </ol>
+</details>
+
+<h3 id="s95-b">2. lépés: csökkenő hozadék – miért nem a két legnagyobb?</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két hub és egy kis csillag</span>
+  <div style="display:flow-root;text-align:center">  <div class="gfig" data-edges="A-B,A-1,A-2,A-3,A-4,A-5,B-1,B-2,B-3,B-4,B-5,C-x,C-y,C-z" data-color="A:--setB B:--setB C:--setC"
+    data-pos="A:0,.3 B:0,1.7 1:1.2,0 2:1.2,.5 3:1.2,1 4:1.2,1.5 5:1.2,2 C:2.6,1 x:3.4,.4 y:3.6,1 z:3.4,1.6" data-w="320" data-h="190" data-r="12"
+    data-caption="A és B: 6–6 szomszéd, ugyanazokkal; C: 3 szomszéd, külön"></div></div>
+  Két kezdőt választhatunk. Először a legegyszerűbb változat: mindenki, akit egy kezdő <b>közvetlenül</b> elér, megkapja (lefedés, $p = 1$, egy lépés).
+  <ul style="margin:.2rem 0">
+    <li>$\{A\}$: $A$ és 6 szomszédja = 7.</li>
+    <li>$\{A, B\}$: a $B$ szomszédai ($A$, 1–5) már mind benne vannak → még mindig 7. A $B$ <b>határhaszna</b> 0.</li>
+    <li>$\{A, C\}$: $7 + 4 = 11$. A $C$ határhaszna 4.</li>
+  </ul>
+  A „két legnagyobb fokszámú” ($A$, $B$) rossz választás: egymás közönségét fedik le. Független kaszkáddal, $p = 0{,}2$ mellett (pontosan): $\sigma(\{A, B\}) = 3{,}80$, $\sigma(\{A, C\}) = 4{,}20$.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – határhaszon és szubmodularitás</span>
+  Egy $v$ csúcs <b>határhaszna</b> az $S$ halmazhoz: $\sigma(S \cup \{v\}) - \sigma(S)$. A $\sigma$ <b>szubmoduláris</b> (csökkenő hozadékú), ha egy nagyobb halmazhoz ugyanaz a csúcs legfeljebb annyit tesz hozzá, mint egy kisebbhez:
+  $$S \subseteq S' \;\Rightarrow\; \sigma(S \cup \{v\}) - \sigma(S) \;\ge\; \sigma(S' \cup \{v\}) - \sigma(S') .$$
+  <b>Tétel</b> (Kempe, Kleinberg és Tardos, 2003): a független kaszkád és a lineáris küszöbmodell $\sigma$-ja <b>monoton</b> (több kezdő nem ront) és <b>szubmoduláris</b>.
+  <small>Miért? Az élperkoláció egy rögzített kimenetelében az aktív csúcsok halmaza a kezdők komponenseinek uniója – ez egy lefedési feladat, és a lefedés szubmoduláris: amit már lefedtél, azt az új kezdő nem fedi le „újra”. A $\sigma$ ilyen lefedések átlaga, és az átlag is szubmoduláris.</small>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A kezdőket egyenként rangsorolni.</b> „A legjobb egyedül” + „a második legjobb egyedül” ≠ a legjobb pár. A második kezdőt a <b>határhaszon</b> szerint kell választani.</li>
+    <li><b>A $\sigma$-kat összeadni.</b> $\sigma(\{A\}) + \sigma(\{B\}) = 5{,}21 \ne \sigma(\{A, B\}) = 3{,}80$ ($p = 0{,}2$): az átfedést kétszer számolnád.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – határhaszon</summary>
+  <ol>
+    <li>A fenti gráfban (lefedés, $p = 1$, egy lépés) mennyi az 1-es csúcs határhaszna az $\{A\}$ halmazhoz?
+      <details><summary>Megoldás</summary>Az 1-es szomszédai: $A$, $B$. Az $\{A\}$ lefedése már tartalmazza az 1-est és az $A$-t, a $B$-t is. Határhaszon 0.</details></li>
+    <li>És a $C$ határhaszna az $\{A, B\}$ halmazhoz?
+      <details><summary>Megoldás</summary>4 ($C$, $x$, $y$, $z$) – ugyanannyi, mint az $\{A\}$-hoz: ezek nem fedik át egymást.</details></li>
+    <li>Lefedéssel melyik a legjobb három kezdő, és hányat fednek le?
+      <details><summary>Megoldás</summary>$A$ (7), $C$ (+4 = 11) – ekkor mindenki le van fedve, a harmadik határhaszna 0. Két kezdő elég.</details></li>
+    <li>Mutasd meg a lefedésen, hogy a $C$ határhaszna az üres halmazhoz (4) legalább akkora, mint az $\{A\}$-hoz!
+      <details><summary>Megoldás</summary>Üreshez: 4; $\{A\}$-hoz: szintén 4 (nincs átfedés). $4 \ge 4$ ✓. A $B$-nél: üreshez 7, $\{A\}$-hoz 0: $7 \ge 0$ ✓ – itt csökken a hozadék.</details></li>
+    <li>(nehezebb) Adj meg egy olyan „terjedési” szabályt, amely <b>nem</b> szubmoduláris!
+      <details><summary>Megoldás</summary>Az összetett fertőzés (küszöb 2 abszolút): egy csúcs egyedül semmit sem aktivál, de egy másikkal együtt (ha van közös szomszédjuk) igen. A második kezdő határhaszna nagyobb lehet, mint az elsőé – nő a hozadék. Ilyenkor a mohó algoritmus garanciája nem érvényes.</details></li>
+  </ol>
+</details>
+
+<h3 id="s95-c">3. lépés: a mohó algoritmus és a garanciája</h3>
+<div class="box def">
+  <span class="box-title">Algoritmus – mohó kezdőválasztás</span>
+  <ol style="margin:.2rem 0">
+    <li>$S = \emptyset$.</li>
+    <li>$k$-szor: válaszd azt a $v$ csúcsot, amelynek a legnagyobb a határhaszna, $\sigma(S \cup \{v\}) - \sigma(S)$, és tedd $S$-be.</li>
+  </ol>
+  <b>Garancia</b> (Nemhauser, Wolsey és Fisher, 1978; Kempe és mtsai, 2003): monoton szubmoduláris $\sigma$-ra a mohó eredmény legalább
+  $$\left(1 - \frac1e\right) \approx 63\%$$
+  -a az optimumnak. A pontos optimum megtalálása NP-nehéz – nagy gráfon reménytelen.
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa – két kezdő az Árvízhéten ($p = 0{,}3$)</span>
+  Mohó: az első a $\mathrm{Ko}$ (2,898). A második határhaszna:
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>+ második</th><th>$\mathrm{Vi}$</th><th>$\mathrm{Po}$</th><th>$\mathrm{La}$</th><th>$\text{Ön}$</th><th>$\mathrm{Sz}$</th><th>$\mathrm{Kl}$</th></tr>
+    <tr><td>$\sigma(\{\mathrm{Ko}, \cdot\})$</td><td>3,841</td><td>4,135</td><td><b>4,327</b></td><td><b>4,327</b></td><td>3,767</td><td>3,689</td></tr>
+  </table></div>
+  A mohó $\{\mathrm{Ko}, \mathrm{La}\}$-t választja: 4,327. A második legnagyobb fokszámú (Po) csak 4,135-öt adna – a Ko közönségét fedi át. A pontos optimum (mind a 21 pár kipróbálásával) $\{\mathrm{Po}, \mathrm{Sz}\}$: 4,363.
+  A mohó itt nem optimális, de 99%-on belül van – jóval a 63%-os garancia fölött.
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – nagyobb $p$ mellett</span>
+    $p = 0{,}5$: Ko 4,643. Mohó: Ko + La 5,804. Optimum: La + Sz (vagy Ön + Sz) 5,840. A két legnagyobb fokszámú (Ko + Po): 5,516.
+    <details><summary>Mit mutat ez?</summary>Az optimum két, a gráf <b>két szélén</b> álló kezdőt választ: a lakossági és a szakértői oldalt. A két hub (Ko, Po) a gráf közepén van, és átfedő közönséget ér el.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a hub mellett egy „csendes” kezdő</span>
+    A két hub + kis csillag gráfban, $p = 0{,}5$: $\sigma(\{A, B\}) = 5{,}75$, $\sigma(\{A, C\}) = 7{,}93$, $\sigma(\{A, 1\}) = 5{,}82$.
+    <details><summary>Mit mutat ez?</summary>Még egy 2 fokú csúcs (1) is jobb második kezdő, mint a 6 fokú $B$ – ugyanis $p = 0{,}5$ mellett az $A$-ból indulva a $B$ és a szomszédai amúgy is jó eséllyel aktiválódnak. A $C$ viszont egy egészen új részt nyit meg.</details>
+  </div>
+</div>
+
+<div class="widget" data-widget="seed-picker"></div>
+
+<div class="box tip">
+  <span class="box-title">Kiegészítés – a gyakorlatban</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Gyorsítás:</b> a mohó algoritmus minden lépésben minden csúcsra sok szimulációt futtatna. A <b>lusta mohó</b> (CELF; Leskovec és mtsai, 2007) a szubmodularitást használja ki: egy csúcs régi határhaszna felső korlát, így a legtöbbet nem kell újraszámolni.</li>
+    <li><b>Ki a jó terjesztő?</b> Kitsak és munkatársai (2010) szerint egyetlen kezdőnél a hálózat „magjában” álló csúcsok (nagy <b>k-mag</b>-szám: sűrűn összekötött belső rész) jobb terjesztők, mint a periférián álló, de nagy fokszámú hubok.</li>
+    <li><b>Modellfüggés:</b> a választás a $p$-n és a modellen múlik. Összetett fertőzésnél (9.3) a kezdőket inkább <b>egy helyre</b> kell tenni, nem szétszórni – és a mohó garancia nem érvényes.</li>
+  </ul>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Módszertani józanság – a „befolyásos” csúcs modellfüggő</span>
+  A befolyásmaximalizálás egy modellen belül optimalizál. Ha a valódi terjedés más ($p$ élenként eltér, az emberek nem egyszer próbálkoznak, a platform algoritmusa is „terjeszt”), a modellbeli legjobb kezdők nem feltétlenül a valóságban is a legjobbak.
+  A befolyásos emberek utólagos azonosítása (ki indított nagy kaszkádot?) ráadásul a 9.4 szerencseeleme miatt gyakran csalóka: Bakshy és munkatársai (2011) Twitter-adaton azt találták, hogy a nagy kaszkádok forrásai előre csak gyengén jósolhatók, és a sok „átlagos” kezdő gyakran költséghatékonyabb, mint néhány drága „influenszer”.
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – mohó választás</summary>
+  <ol>
+    <li>Az Árvízhéten ($p = 0{,}3$) a mohó algoritmus első választása a Ko. Miért nem a Po, ha ugyanannyi a fokszámuk?
+      <details><summary>Megoldás</summary>Mert $\sigma(\{\mathrm{Ko}\}) = 2{,}898 \gt \sigma(\{\mathrm{Po}\}) = 2{,}858$: a Ko szomszédai (Vi, Sz, Kl) egymással is összekötöttek, így a hír többféle úton jut tovább a gráf nagyobb felébe.</details></li>
+    <li>Mekkora a mohó eredmény aránya az optimumhoz a $p = 0{,}3$-as példában?
+      <details><summary>Megoldás</summary>$4{,}327/4{,}363 \approx 0{,}992$, kb. 99%.</details></li>
+    <li>Ha az optimum 100 aktivált csúcs, legalább hányat garantál a mohó algoritmus?
+      <details><summary>Megoldás</summary>$(1 - 1/e) \cdot 100 \approx 63{,}2$, tehát legalább 63-at (várható értékben).</details></li>
+    <li>Az Árvízhéten, $p = 0{,}3$ mellett a Ko után miért a La (vagy az Ön) a második, és nem a Vi?
+      <details><summary>Megoldás</summary>A Vi a Ko közvetlen szomszédja, a közönségük nagyon átfed (határhaszon $3{,}841 - 2{,}898 \approx 0{,}94$). A La a gráf másik szélén van, a Ko-tól 2 lépésre: új részt nyit meg (határhaszon $\approx 1{,}43$).</details></li>
+    <li>(nehezebb) Miért nem érdemes nagy gráfon „az összes $k$ elemű halmaz kipróbálásával” keresni az optimumot? Számolj: 1000 csúcs, $k = 5$.
+      <details><summary>Megoldás</summary>$\binom{1000}{5} \approx 8{,}25 \cdot 10^{12}$ halmaz, mindegyikre sok szimulációval. A mohó csak kb. $5 \cdot 1000 = 5000$ határhaszon-becslést igényel.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh9-95"></div>
+</section>

@@ -1,0 +1,148 @@
+
+<!-- ===================================================== 10.4 -->
+<section id="s104">
+<h2>10.4 MRQAP-regresszió ★★★</h2>
+<p>A QAP-korreláció két hálózatot vet össze. De mi van, ha egy hálózatot <b>több</b> másik is magyarázhat – és ezek egymással is összefüggnek? Krackhardt menedzsereinél a tanácskérés a barátsággal is (<a class="xref" href="#s103-b-krack">10.3</a>), a főnöki viszonnyal is együtt jár. Melyik számít, ha a másikat <b>rögzítjük</b>?
+Erre a <b>regresszió</b> felel – a cellákon, és QAP-típusú p-értékkel: ez az <b>MRQAP</b> (<em>multiple regression QAP</em>).</p>
+
+<h3 id="s104-a">1. lépés: regresszió a cellákon</h3>
+<div class="box example" id="s104-a-tabla">
+  <span class="box-title">Kiinduló példa – egy bináris magyarázó: két arány különbsége</span>
+  A 420 cellát két csoportba osztjuk aszerint, hogy $i$ barátjának tartja-e $j$-t, és mindkét csoportban megnézzük, hányszor kér $i$ tanácsot $j$-től:
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th></th><th>cellák</th><th>ebből tanácskérés</th><th>arány</th></tr>
+    <tr><td>barát</td><td>102</td><td>60</td><td>0,588</td></tr>
+    <tr><td>nem barát</td><td>318</td><td>130</td><td>0,409</td></tr>
+  </table></div>
+  A barátoktól $0{,}588 - 0{,}409 = 0{,}179$-del gyakrabban kérnek tanácsot. Ha a tanácskérést (0/1) a barátságra (0/1) regresszáljuk, pontosan ezt kapjuk: tengelymetszet $b_0 = 0{,}409$ (a nem barátok aránya), meredekség $b_1 = 0{,}179$ (a különbség).
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – hálózati regresszió (QAP-regresszió)</span>
+  A függő hálózat $Y$, a magyarázó hálózatok $X_1, \dots, X_K$ – mind ugyanazon a csúcshalmazon. Minden cellára ($i \ne j$):
+  $$y_{ij} = b_0 + b_1 x_{1,ij} + \dots + b_K x_{K,ij} + e_{ij},$$
+  és a $b$-ket a szokásos legkisebb négyzetek módszerével becsüljük az $N$ cellán. A magyarázó „hálózat” lehet <b>attribútumból</b> gyártott mátrix is: pl. $x_{ij} = 1$, ha $i$ és $j$ ugyanabban a részlegben dolgozik, vagy $x_{ij} = $ a $j$ szolgálati ideje.
+  <small>Miért működik a „két arány különbsége”? Egyetlen 0/1 magyarázónál a legkisebb négyzetes egyenes a két csoport átlagán megy át: $b_0$ = az $x = 0$ csoport átlaga, $b_0 + b_1$ = az $x = 1$ csoporté.</small>
+  <b>Az együtthatók rendben vannak – a szokásos p-értékek nem.</b> A cellák itt is függenek egymástól (<a class="xref" href="#s102-b">10.2</a>), ezért a p-értéket permutációval kell előállítani.
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a főnök</span>
+    A 20 „$j$ az $i$ főnöke” cellából 19-ben van tanácskérés, a többi 400-ból 171-ben. Mennyi a meredekség, ha a tanácskérést a „kinek jelent” mátrixra regresszáljuk?
+    <details><summary>Megoldás</summary>$19/20 = 0{,}95$ és $171/400 = 0{,}4275$: $b_1 = 0{,}5225$, $b_0 = 0{,}4275$. A főnöktől szinte mindenki kér tanácsot.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a két magyarázó összefügg</span>
+    A 20 főnöki cellából 12-ben a beosztott a főnökét barátjának is mondja (60%), miközben a barátság sűrűsége csak 24%. Mit jelent ez a barátság 0,179-es hatására nézve?
+    <details><summary>Megoldás</summary>Hogy annak egy része „kölcsönvett” hatás: a barátok között sok a főnök–beosztott pár, és a főnöktől amúgy is kérnek tanácsot. Ha csak a nem főnöki cellákat nézzük: barátoktól 49/90 = 0,544, nem barátoktól 122/310 = 0,394 – a különbség már csak 0,15.</details>
+  </div>
+</div>
+
+<p>Mindkét magyarázóval egyszerre (Python, 420 cella):</p>
+<div class="tw" style="overflow-x:auto"><table>
+  <tr><th>modell: tanácskérés ~</th><th>tengelymetszet</th><th>barátság</th><th>jelent</th><th>$R^2$</th></tr>
+  <tr><td>barátság</td><td>0,409</td><td>0,179</td><td>–</td><td>0,024</td></tr>
+  <tr><td>jelent</td><td>0,428</td><td>–</td><td>0,523</td><td>0,050</td></tr>
+  <tr><td>barátság + jelent</td><td>0,397</td><td>0,136</td><td>0,472</td><td>0,063</td></tr>
+</table></div>
+<p>A barátság együtthatója 0,179-ről 0,136-ra csökken, ha a főnöki viszonyt is bevesszük: a többszörös regresszió azt méri, mennyit ad a barátság <b>a főnöki viszonyon felül</b>.</p>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az $R^2$-ből „rossz modellt” olvasni.</b> A 6,3% kevés – a tanácskérést főleg olyan dolgok döntik el (szakértelem, elérhetőség), amiket nem mértünk. De a kis $R^2$ mellett is lehet egy hatás erős és biztos.</li>
+    <li><b>A 0/1 függő változó együtthatóját valószínűségként túlolvasni.</b> A lineáris modell jóslata lehet 1 fölött is (0,397 + 0,136 + 0,472 = 1,005). Bináris függő hálózatnál a <b>logisztikus</b> QAP (LRQAP) a pontosabb – az ötlet ugyanaz.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – regresszió a cellákon</summary>
+  <ol>
+    <li>Egy hálózatban az „azonos részleg” cellák 30%-ában, a többiben 10%-ában van él. Mennyi a $b_0$ és a $b_1$, ha az élt az „azonos részleg” mátrixra regresszáljuk?
+      <details><summary>Megoldás</summary>$b_0 = 0{,}10$, $b_1 = 0{,}20$.</details></li>
+    <li>A „barátság + jelent” modellben mekkora a jósolt tanácskérési arány egy olyan párra, amely nem barát, de főnök–beosztott?
+      <details><summary>Megoldás</summary>$0{,}397 + 0{,}472 = 0{,}869$. (A tényleges arány ebben a csoportban 8/8 = 1.)</details></li>
+    <li>Hány cellán fut a regresszió 15 csúcsú irányított, illetve irányítatlan hálózatnál?
+      <details><summary>Megoldás</summary>$15 \cdot 14 = 210$, illetve $105$.</details></li>
+    <li>Hogyan gyártanál mátrixot abból a hipotézisből, hogy „az idősebbektől kérnek tanácsot”?
+      <details><summary>Megoldás</summary>$x_{ij} = $ a $j$ életkora (minden oszlop állandó: a megkérdezett tulajdonsága). Vagy $x_{ij} = \text{kor}(j) - \text{kor}(i)$, ha az idősebb–fiatalabb viszony érdekel.</details></li>
+    <li>(nehezebb) A „jelent” együtthatója az egyváltozós 0,523-ról 0,472-re csökken a barátság bevételével. Miért csökken ez is?
+      <details><summary>Megoldás</summary>Mert a két magyarázó pozitívan korrelál ($r = 0{,}19$): a főnök gyakran barát is, és a barátság maga is emeli a tanácskérést. Az egyváltozós modellben a „jelent” ezt a barátsági részt is magának számolta.</details></li>
+  </ol>
+</details>
+
+<h3 id="s104-b">2. lépés: a p-érték permutációval – Y-permutáció és DSP</h3>
+<p>Hogyan permutáljunk, ha több magyarázó van? Két bevett eljárás létezik.</p>
+
+<div class="box def">
+  <span class="box-title">Két permutációs eljárás az MRQAP-ban</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Y-permutáció.</b> A függő hálózat $Y$ csúcsait permutáljuk (sorok és oszlopok együtt), a magyarázókat békén hagyjuk, és újra lefuttatjuk a regressziót. A p-érték: hányszor lett a permutált $|t^*| \ge |t|$ (változónként).
+      Egyszerű, de ha a magyarázók erősen összefüggnek, pontatlan lehet.</li>
+    <li><b>Kettős szemi-parciális eljárás</b> (DSP, <em>double semi-partialling</em>; Dekker, Krackhardt és Snijders, 2007). Az $X_k$ hatásának p-értékéhez: (1) regresszáld $X_k$-t a <b>többi</b> magyarázóra, és vedd a <b>maradékát</b> – ez az $X_k$-nak az a része, amit a többiek nem magyaráznak; (2) ezt a maradék-mátrixot permutáld QAP-szerűen; (3) futtasd a regressziót $Y$-ra a permutált maradékkal és a többi (eredeti) magyarázóval; (4) hasonlítsd a $|t^*|$-ot a megfigyelt $|t|$-hez.</li>
+  </ul>
+  <small>Miért a $t$, és nem a $b$? Mert a $t = b/\mathrm{se}(b)$ eloszlása kevésbé függ attól, hogy a magyarázó mennyire szóródik és mennyire fedi a többit – a permutációs próba így pontosabb (Dekker és mtsai, 2007).</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – tanácskérés ~ barátság + jelent</span>
+  10&nbsp;000 permutációval (Python):
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>változó</th><th>$b$</th><th>naiv $p$</th><th>Y-permutáció $p$</th><th>DSP $p$</th></tr>
+    <tr><td>barátság (egyedül)</td><td>0,179</td><td>0,0015</td><td>0,032</td><td>0,034</td></tr>
+    <tr><td>barátság (a „jelent” mellett)</td><td>0,136</td><td><b>0,016</b></td><td><b>0,11</b></td><td><b>0,10</b></td></tr>
+    <tr><td>jelent (a barátság mellett)</td><td>0,472</td><td>$\lt 0{,}001$</td><td>$\lt 0{,}001$</td><td>$\lt 0{,}001$</td></tr>
+  </table></div>
+  A naiv próba szerint a barátság a főnöki viszony mellett is szignifikáns ($p = 0{,}016$). A QAP-alapú p-értékek szerint <b>nem</b> ($p \approx 0{,}10$). A főnöki viszony hatása viszont minden eljárással nagyon erős.
+  Ugyanezt kapta Borgatti, Everett, Johnson és Agneessens (2022) is ugyanezen az adaton: barátság 0,136 (nem szignifikáns), jelent 0,472 ($p \lt 0{,}001$), $R^2 = 0{,}063$.
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy attribútummátrix</span>
+    Vegyük be harmadikként azt is, hogy a megkérdezett mióta dolgozik a cégnél ($x_{ij}$ = $j$ szolgálati ideje, években). Mit kapunk?
+    <details><summary>Megoldás</summary>Tengelymetszet 0,254, barátság 0,140, jelent 0,415, szolgálati idő 0,012 (évente 1,2 százalékponttal több tanácskérés), $R^2 = 0{,}100$. A régi motorosoktól többen kérnek tanácsot – függetlenül attól, hogy kinek a főnökei.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – azonos részleg</span>
+    A „barátság + jelent” modellhez az „azonos részleg” mátrixot adva az együtthatója $-0{,}062$, DSP-vel $p \approx 0{,}36$. Mit mondasz?
+    <details><summary>Megoldás</summary>Hogy a részlegen belüli tanácskérés nem gyakoribb, ha a főnöki viszonyt és a barátságot már figyelembe vettük – a részleg hatását a főnök „elviszi” (a főnök a részlegében van).</details>
+  </div>
+</div>
+
+<p>Próbáld ki! Kapcsold be és ki a magyarázókat, és nézd, hogyan változik a barátság együtthatója és a háromféle p-érték.</p>
+<div class="widget" data-widget="mrqap-lab"></div>
+
+<div class="box tip">
+  <span class="box-title">👍 Hüvelykujjszabály</span>
+  <b>MRQAP-ban az együttható a szokásos regresszióé, csak a p-érték jön permutációból.</b> Ha a magyarázók összefüggenek, a DSP a biztosabb; ha nem, a két eljárás nagyjából ugyanazt adja (mint itt).
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A magyarázókat (vagy csak a magyarázókat) cellánként keverni.</b> Ez megint a függetlenséget tételezi fel. Mindig csúcsokat permutálunk.</li>
+    <li><b>Okságot olvasni ki a regresszióból.</b> A barátság és a tanácskérés kapcsolata mehet mindkét irányba (akitől tanácsot kérsz, az barátod lesz), és lehet közös oka is. A keresztmetszeti MRQAP csak az együttjárást vizsgálja „a többiek rögzítésével”.</li>
+    <li><b>Kihagyni a nyilvánvaló kontrollt.</b> Ha a főnöki viszonyt kihagyjuk, a barátság „szignifikáns” – egy hiányzó magyarázó egy másikat feljebb tol. Ugyanez a hírelemzésben: ha két szereplő mindkét hálózatban <b>gyakori</b>, az élei is erősek lesznek – a gyakoriságot érdemes kontrollként bevenni (<a class="xref" href="#s108-c">10.8</a>).</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – Y-permutáció és DSP</summary>
+  <ol>
+    <li>Egy MRQAP-ban a barátság $t = 2{,}43$. 2000 DSP-permutációból 208-ban lett $|t^*| \ge 2{,}43$. Mennyi a p?
+      <details><summary>Megoldás</summary>$208/2000 \approx 0{,}10$ – nem szignifikáns 5%-on.</details></li>
+    <li>A DSP első lépésében mit regresszálsz mire, ha a barátság p-értékét keresed a „barátság + jelent” modellben?
+      <details><summary>Megoldás</summary>A barátság mátrixát a „jelent” mátrixra (+ tengelymetszet), és a maradékot (a barátságnak a főnöki viszonytól független részét) permutálod.</details></li>
+    <li>Mit permutálsz Y-permutációnál, és mit hagysz változatlanul?
+      <details><summary>Megoldás</summary>A függő hálózat ($Y$) csúcsait permutálod (sorok és oszlopok együtt); a magyarázók egymáshoz viszonyított elrendezése (és így az összefüggésük) változatlan marad.</details></li>
+    <li>Miért nem elég a barátság egyváltozós QAP-korrelációjának p-értéke ($\approx 0{,}02$) ahhoz, hogy kimondd: „a barátoktól kérnek tanácsot”?
+      <details><summary>Megoldás</summary>Mert az egyváltozós kapcsolat egy része a főnöki viszonyon keresztül jön; a többváltozós modellben, a főnöki viszony mellett a barátság hatása már nem szignifikáns ($p \approx 0{,}10$).</details></li>
+    <li>(nehezebb) Egy NAS-kutatásban a közönség napirend-hálózatát ($Y$) a média hálózatával ($X_1$) és a közönség egy hónappal korábbi hálózatával ($X_2$) magyarázzák. Mit jelent, ha az $X_1$ együtthatója az $X_2$ bevétele után eltűnik?
+      <details><summary>Megoldás</summary>Hogy a média és a közönség hasonlósága nagyrészt abból jön, hogy a közönség „napirendje” amúgy is stabil, és a média a már meglévő kapcsolatokat ismétli – a média <b>új</b> hatását a modell nem mutatja ki. (Okságot ez sem bizonyít, de a „csak korreláció” magyarázatnál erősebb próba.)</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh10-104"></div>
+</section>

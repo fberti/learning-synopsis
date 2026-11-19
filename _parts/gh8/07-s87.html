@@ -1,0 +1,179 @@
+
+<!-- ===================================================== 8.7 -->
+<section id="s87">
+<h2>8.7 Megbízhatóság: összevetés, stabilitás, nullmodell ★★</h2>
+<p>Láttuk: a Louvain eredménye a sorrendtől, a címketerjesztésé a véletlentől, mindegyiké a $\gamma$-tól függ. Három kérdés marad. <b>Mennyire hasonlít</b> két felbontás? <b>Mennyire stabil</b> egy felbontás, ha újrafuttatjuk? És <b>több-e</b> a talált szerkezet annál, ami egy véletlen gráfban is kijönne?</p>
+
+<h3 id="s87-a">1. lépés: két felbontás összevetése – NMI és ARI</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy csúcs „átcsúszik”</span>
+  Hat csúcs; az A felbontás $\{1, 2, 3\}$, $\{4, 5, 6\}$, a B felbontás $\{1, 2\}$, $\{3, 4, 5, 6\}$. Mennyire egyeznek?
+  Nézzük a $\binom62 = 15$ csúcspárt! Egy pár „egyetértés”, ha mindkét felbontás egy csoportba teszi, vagy mindkettő külön.
+  <ul style="margin:.2rem 0">
+    <li>Mindkettőben együtt: $(1, 2)$, $(4, 5)$, $(4, 6)$, $(5, 6)$ – 4 pár.</li>
+    <li>Mindkettőben külön: az $\{1, 2\}$ és a $\{4, 5, 6\}$ közti 6 pár – 6 pár.</li>
+    <li>Vita: $(1, 3)$, $(2, 3)$ (A-ban együtt, B-ben külön) és $(3, 4)$, $(3, 5)$, $(3, 6)$ (fordítva) – 5 pár.</li>
+  </ul>
+  Az egyetértés $10/15 \approx 0{,}67$ (ez a <b>Rand-index</b>). Ez soknak tűnik – de két teljesen véletlen felbontás is sok párban „egyetért” (a legtöbb pár mindkettőben külön van). Ezért kell korrekció.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – korrigált Rand-index (ARI) és normalizált kölcsönös információ (NMI)</span>
+  <b>ARI</b> (Hubert–Arabie, 1985): a páronkénti egyezést a véletlen várható értékéhez méri:
+  $$\mathrm{ARI} = \frac{\text{egyezés} - \text{várható egyezés}}{\text{lehetséges legnagyobb} - \text{várható}},$$
+  az „együtt” párok számával: $\sum_{ij}\binom{n_{ij}}{2}$ a megfigyelt, $\big[\sum_i\binom{a_i}{2}\sum_j\binom{b_j}{2}\big]\big/\binom n2$ a várható, $\tfrac12\big[\sum_i\binom{a_i}{2} + \sum_j\binom{b_j}{2}\big]$ a legnagyobb ($n_{ij}$: hány csúcs van A $i$-edik és B $j$-edik csoportjában is; $a_i$, $b_j$ a csoportméretek).
+  Azonos felbontásra 1, véletlen egyezésnél kb. 0, lehet negatív is.
+  <br><b>NMI</b>: mennyit árul el az egyik felbontás a másikról, az információelmélet nyelvén:
+  $$\mathrm{NMI} = \frac{I(A; B)}{\tfrac12\big[H(A) + H(B)\big]},$$
+  ahol $H$ a csoportméretek entrópiája, $I$ a kölcsönös információ. Azonos felbontásra 1, független felbontásokra 0.
+  <small>Mindkettő <b>címkefüggetlen</b>: ha a csoportokat átszámozod (az „1-es” és „2-es” csoport helyet cserél), az érték nem változik. A „hány csúcs van jó helyen” típusú pontosság erre nem képes.</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa – a kiinduló pár kézzel</span>
+  <details><summary>Megoldás (ARI és NMI)</summary>
+    Csoportméretek: A: 3, 3; B: 2, 4. Közös csoportok ($n_{ij}$): $\{1, 2\}$: 2, $\{3\}$: 1, $\{4, 5, 6\}$: 3.<br>
+    <b>ARI:</b> megfigyelt $\binom22 + \binom32 = 1 + 3 = 4$; $\sum\binom{a_i}{2} = 3 + 3 = 6$, $\sum\binom{b_j}{2} = 1 + 6 = 7$; várható $6 \cdot 7/15 = 2{,}8$; legnagyobb $(6 + 7)/2 = 6{,}5$. $\mathrm{ARI} = (4 - 2{,}8)/(6{,}5 - 2{,}8) = 1{,}2/3{,}7 \approx 0{,}32$.<br>
+    <b>NMI:</b> $H(A) = \ln 2 \approx 0{,}693$, $H(B) = -\tfrac13\ln\tfrac13 - \tfrac23\ln\tfrac23 \approx 0{,}637$, $I(A; B) \approx 0{,}318$ (Pythonból). $\mathrm{NMI} \approx 0{,}318/0{,}665 \approx 0{,}48$.<br>
+    Egyetlen csúcs elmozdulása hat csúcson nagy változás – mindkét mérőszám jócskán 1 alá esik.
+  </details>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – mindenki külön</span>
+    Mennyi az NMI és az ARI az A ($\{1, 2, 3\}$, $\{4, 5, 6\}$) és a „mindenki külön” felbontás között?
+    <details><summary>Megoldás</summary>ARI = 0: a „mindenki külön” egyetlen párt sem tesz együvé, ez a véletlen szintje. Az NMI viszont $\approx 0{,}56$ (Python)! A sok kis csoport „sok információt” hordoz – az NMI ezt jutalmazza. Ezért sok csoportnál az NMI félrevezető lehet; ilyenkor az ARI megbízhatóbb.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a karateklub felbontásai a kettéváláshoz mérve</span>
+    Girvan–Newman, 2 csoport: NMI 0,73, ARI 0,77. Louvain, 4 csoport: NMI 0,59, ARI 0,47 (Python). Rosszabb-e a Louvain?
+    <details><summary>Megoldás</summary>Nem feltétlenül. A 4 csoport a két táboron belüli köröket is szétválasztja; a kétcsoportos „igazsághoz” mérve ez eltérésnek számít. A mérce dönti el az ítéletet (8.1).</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>„Pontosságot” számolni címkék alapján.</b> Ha az egyik algoritmus a 0-s, a másik az 1-es címkét adja ugyanannak a csoportnak, a pontosság 0 lesz, pedig a felbontás azonos. NMI vagy ARI kell.</li>
+    <li><b>A Rand-indexet korrekció nélkül használni.</b> Sok csoportnál két véletlen felbontás Rand-indexe is közel 1.</li>
+    <li><b>Az NMI-t sok kis csoportnál túlértékelni.</b> Lásd a „mindenki külön” példát.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – NMI és ARI</summary>
+  <ol>
+    <li>Mennyi az NMI és az ARI, ha B ugyanaz, mint A, csak a csoportok sorszáma fordított?
+      <details><summary>Megoldás</summary>Mindkettő 1: címkefüggetlenek.</details></li>
+    <li>Mennyi az NMI és az ARI az A és a „mindenki egy csoportban” között?
+      <details><summary>Megoldás</summary>Mindkettő 0: az egy csoport semmit sem árul el, és a páregyezése a véletlen szintje.</details></li>
+    <li>Hány „egyetértő” pár van az A ($\{1, 2, 3\}$, $\{4, 5, 6\}$) és a „mindenki külön” között?
+      <details><summary>Megoldás</summary>Az A-ban külön lévő 9 pár; az A-ban együtt lévő 6 pár vita. Rand-index $9/15 = 0{,}6$ – pedig az ARI 0.</details></li>
+    <li>Számold ki az ARI-t az A és a $\{1, 2, 3, 4\}$, $\{5, 6\}$ felbontás között!
+      <details><summary>Megoldás</summary>Ez ugyanaz a helyzet, mint a kiinduló példa (a 4-es csúszott át): ARI $\approx 0{,}32$.</details></li>
+    <li>(nehezebb) Egy kutató két Louvain-futást hasonlít össze: NMI = 0,95. Jelenti-e ez, hogy a csúcsok 95%-a ugyanott van?
+      <details><summary>Megoldás</summary>Nem. Az NMI információs mérték, nem a „jó helyen lévő” csúcsok aránya. Magas NMI mellett is lehet néhány csúcs, amely futásról futásra vándorol – ezt a 2. lépés csúcsonkénti stabilitása mutatja meg.</details></li>
+  </ol>
+</details>
+
+<h3 id="s87-b">2. lépés: stabilitás – futtasd sokszor, és nézd, mi marad együtt</h3>
+<p>Egy futás egy vélemény. A józan eljárás: futtasd az algoritmust sokszor (más magokkal, esetleg más $\gamma$-kkal), és számold meg, két csúcs a futások <b>hány százalékában</b> került egy közösségbe.</p>
+
+<div class="box def">
+  <span class="box-title">Definíció – együttes besorolási mátrix és konszenzus</span>
+  $N$ futás után $C_{ij}$ = azoknak a futásoknak az aránya, amelyekben $i$ és $j$ egy közösségben van.
+  <ul style="margin:.2rem 0">
+    <li>$C_{ij} \approx 1$: mindig együtt – erre lehet építeni;</li>
+    <li>$C_{ij} \approx 0$: soha;</li>
+    <li>köztes érték: a pár a határon áll.</li>
+  </ul>
+  <b>Konszenzus-klaszterezés</b> (Lancichinetti–Fortunato, 2012): a $C$-t súlyozott gráfként kezeljük (a kis értékeket levágva), és azon futtatjuk újra a közösségkeresést, amíg a futások egyeznek.
+  Egy csúcs <b>stabilitása</b> pl. az, hogy a futások hány százalékában van együtt a konszenzus-társaival.
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – öt futás, egy csúcs</span>
+    Öt Louvain-futásban a 9-es tag 3-szor van együtt a 34-essel, 2-szer az 1-essel. Mennyi a $C_{9,34}$ és a $C_{9,1}$?
+    <details><summary>Megoldás</summary>$3/5 = 0{,}6$ és $2/5 = 0{,}4$ (ha az 1-es és a 34-es sosincs együtt). A 9-es határcsúcs – ahogy a 8.1 története is mondja.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – Louvain vs. címketerjesztés a karateklubon</span>
+    20 futás (widget): a Louvain mindig 4 közösséget ad, a futások páronkénti átlagos NMI-je 0,90. A címketerjesztés 50 futásból 1 és 6 közötti számú közösséget. Mit közölsz?
+    <details><summary>Megoldás</summary>A Louvain-eredmény stabil – közölheted, a stabilitással együtt. A címketerjesztés egy futásának eredményét nem; legfeljebb a konszenzusát, és azt is jelezve, hogy a futások mennyire szórnak.</details>
+  </div>
+</div>
+
+<div class="widget" data-widget="stability-check"></div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – stabilitás</summary>
+  <ol>
+    <li>10 futásból két csúcs 7-szer volt együtt. Mennyi a $C_{ij}$?
+      <details><summary>Megoldás</summary>$0{,}7$.</details></li>
+    <li>Ha minden $C_{ij}$ vagy 0, vagy 1, mit tudsz a futásokról?
+      <details><summary>Megoldás</summary>Mind ugyanazt a felbontást adták (legfeljebb a címkék sorszáma más). Tökéletesen stabil.</details></li>
+    <li>A Les Misérables-on a legkevésbé stabil szereplők Perpetue, Simplice és Magnon (widget). Mi lehet az oka?
+      <details><summary>Megoldás</summary>Kevés (1–3) kapcsolatuk van, és azok két közösség felé is futnak – a sorrend dönti el, hová kerülnek. A mellékszereplők gyakran ilyen határcsúcsok.</details></li>
+    <li>Miért nem elég a futások közül a legnagyobb $Q$-jút közölni?
+      <details><summary>Megoldás</summary>Mert a közel azonos $Q$-jú felbontások nagyon különbözhetnek (Good, de Montjoye és Clauset, 2010). Ha nem mutatod meg, mennyire egyeznek a futások, az olvasó nem tudja, melyik csoport „biztos”.</details></li>
+    <li>(nehezebb) Egy hírkorpusz entitáshálózatán a Louvain 20 futása közt az átlagos NMI 0,6. Mit teszel?
+      <details><summary>Megoldás</summary>Konszenzus-klaszterezést, és csak a stabil magokat értelmezed. Megnézed több $\gamma$-ra és egy másik módszerrel (pl. Leiden, SBM). Ha a szerkezet így sem stabil, lehet, hogy a hálózatban nincs erős közösségszerkezet – ezt a 3. lépés nullmodellje dönti el.</details></li>
+  </ol>
+</details>
+
+<h3 id="s87-c">3. lépés: a véletlen gráf is moduláris – mihez mérjük a $Q$-t?</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy véletlen gráf a karateklub méretében</span>
+  Sorsolj 200 $G(34, 78)$ gráfot (7.1), és mindegyiken keresd meg a Louvain-nal a legjobb felbontást (5 futásból a legjobbat). Az eredmény (Python):
+  $$Q_{\text{véletlen}} = 0{,}354 \pm 0{,}019 \qquad (\text{legnagyobb: } 0{,}402).$$
+  A karateklub <b>valódi kettéválásának</b> modularitása $0{,}358$ – gyakorlatilag ugyanennyi! Egy szerkezet nélküli véletlen gráfban is található olyan felbontás, amely ennyit ér.
+</div>
+
+<div class="box thm">
+  <span class="box-title">Guimerà, Sales-Pardo és Amaral (2004)</span>
+  Ritka véletlen gráfokban a <b>legnagyobb</b> modularitás jóval 0 fölött van, mert a sok lehetséges felbontás közül mindig akad egy, amely véletlenül „szerencsés”. Minél ritkább a gráf, annál nagyobb ez a $Q$.
+  <b>Következmény:</b> a megtalált $Q$-t nem a 0-hoz, hanem egy <b>nullmodell legjobb $Q$-jához</b> kell mérni – ugyanazzal az algoritmussal optimalizálva (7.4: z-érték, empirikus p).
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa – a karateklub két nullmodellel</span>
+  A karateklub legjobb $Q$-ja $0{,}420$. A fokszámtartó nullmodellben (élcsere, 7.4) 200 sorsolás legjobb $Q$-ja $0{,}298 \pm 0{,}015$. Mennyi a $z$ a két nullmodellhez képest?
+  <details><summary>Megoldás</summary>$G(34, 78)$-hez: $(0{,}420 - 0{,}354)/0{,}019 \approx 3{,}5$. Fokszámtartóhoz: $(0{,}420 - 0{,}298)/0{,}015 \approx 8{,}1$ (a kerekítetlen Python-értékekkel 7,85 – ekkora $z$-nél ez a különbség mindegy).
+    Mindkét mérce szerint van szerkezet. Érdekes, hogy a fokszámtartó null <em>kisebb</em> $Q$-t ad: a hubok sok élt kötnek össze, ezért egy ilyen véletlen gráf nehezebben bontható „szerencsés” csoportokra. A két null tehát más-más mércét ad; a fokszámtartó illik a modularitáshoz, mert a $Q$ képlete is a fokszámtartó (konfigurációs) modellhez mér.</details>
+</div>
+
+<div class="box def">
+  <span class="box-title">Hüvelykujjszabály</span>
+  <b>„Egy közösségfelbontás hipotézis, nem eredmény.”</b> Közöld: a módszert és a paramétereit ($\gamma$, súlyok), a futások számát és egyezését (NMI / ARI, konszenzus), a $Q$-t a nullmodell $Q$-jához mérve – és ha van, egy külső mércét (pl. ismert csoportokat).
+  A szakirodalom gyakorlati minimuma: <b>több módszer, több futás, a robusztusság jelentése</b>.
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>„$Q = 0{,}4$, tehát erős a közösségszerkezet.”</b> Ritka gráfban a véletlen is adhat ennyit. Nullmodell nélkül a $Q$ nem értelmezhető.</li>
+    <li><b>A nullmodellben más algoritmust (vagy kevesebb futást) használni.</b> A null $Q$-ját ugyanazzal az optimalizálóval kell keresni, különben a két szám nem összemérhető.</li>
+    <li><b>Egyetlen véletlen gráffal összevetni.</b> Ahogy a 7.4-ben: sok sorsolás kell (átlag, szórás, empirikus p).</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – nullmodell a modularitáshoz</summary>
+  <ol>
+    <li>Megfigyelt $Q = 0{,}52$, a nullmodell 500 sorsolásának legjobb $Q$-ja $0{,}41 \pm 0{,}02$. Mennyi a $z$?
+      <details><summary>Megoldás</summary>$(0{,}52 - 0{,}41)/0{,}02 = 5{,}5$.</details></li>
+    <li>Ugyanitt a sorsolások egyikében sem volt $Q \ge 0{,}52$. Mennyi az empirikus p?
+      <details><summary>Megoldás</summary>$\hat p = 1/501 \approx 0{,}002$ (7.4).</details></li>
+    <li>Egy 40 csúcsú, 60 élű gráfban $Q = 0{,}40$. Biztos-e, hogy van közösségszerkezet?
+      <details><summary>Megoldás</summary>Nem: egy ennyire ritka ($\langle k\rangle = 3$) véletlen gráf legjobb $Q$-ja is ekkora lehet. Nullmodellel kell összevetni.</details></li>
+    <li>Miért nő a véletlen gráf legjobb $Q$-ja, ha a gráf ritkább?
+      <details><summary>Megoldás</summary>Ritka gráfban kevés él köti össze a csúcsokat, így könnyebb olyan csoportokat találni, amelyek között véletlenül alig fut él. Sűrű gráfban ez nehezebb.</details></li>
+    <li>(nehezebb) Egy kutató a hírkorpusza szereplőhálózatán $Q = 0{,}35$-öt talál, a fokszámtartó null $0{,}33 \pm 0{,}02$-t. Mit írsz a bírálatba?
+      <details><summary>Megoldás</summary>$z = 1$: a talált modularitás nem tér el lényegesen attól, ami a szereplők gyakoriságából véletlenül is kijön. A „közösségek” lehet, hogy csak a gyakori és ritka szereplők elrendeződését tükrözik. Kérj stabilitást, más nullmodellt (pl. a cikk–szereplő páros nullmodellt, 7.5), és óvatos értelmezést.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh8-87"></div>
+</section>

@@ -1,0 +1,192 @@
+
+<!-- ===================================================== 10.6 -->
+<section id="s106">
+<h2>10.6 Mintavétel, hiányzó adat, robusztusság ★★</h2>
+<p>Egy hálózat nem „adott”: a gyűjtés eredménye. Kimaradhat egy cikk, egy szereplőt rosszul ismer fel az entitáskinyerő, egy platform nem adja ki az adatot, egy kérdőívre nem válaszol valaki.
+És a feldolgozás is tele van döntésekkel: küszöb, időablak, algoritmus, felbontás. A kérdés: <b>mennyire múlik az eredmény ezeken?</b></p>
+
+<h3 id="s106-a">1. lépés: egyetlen hiányzó él</h3>
+<div class="box example" id="s106-a-el">
+  <span class="box-title">Kiinduló példa – ki a fő közvetítő az Árvízhéten?</span>
+  A köztességi centralitás (<a class="xref" href="../05-centralitas/#s53-c">5.3</a>) szerint az Árvízhét fő közvetítője a Polgármester (8), utána a Kormány (5), a Vízügy (1,5) és a Szakértő (0,5). Tegyük fel, hogy egyetlen cikk hiányzik a gyűjtésből – és vele egy él. Mi történik?
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>hiányzó él</th><th>Ko</th><th>Vi</th><th>Po</th><th>Sz</th><th>La</th><th>Ön</th><th>első</th></tr>
+    <tr><td>(semmi)</td><td>5</td><td>1,5</td><td><b>8</b></td><td>0,5</td><td>0</td><td>0</td><td>Po</td></tr>
+    <tr><td>Ko–Po</td><td>2</td><td><b>9</b></td><td>8</td><td>2</td><td>0</td><td>0</td><td><b>Vi</b></td></tr>
+    <tr><td>Vi–Po</td><td><b>9,5</b></td><td>0</td><td>8</td><td>0,5</td><td>0</td><td>0</td><td><b>Ko</b></td></tr>
+    <tr><td>Vi–Sz</td><td><b>8</b></td><td>0</td><td><b>8</b></td><td>0</td><td>0</td><td>0</td><td>Ko = Po</td></tr>
+    <tr><td>La–Ön</td><td>5</td><td>1,5</td><td><b>9</b></td><td>0,5</td><td>0</td><td>0</td><td>Po</td></tr>
+  </table></div>
+  Egyetlen hiányzó él (a Ko–Po) után a <b>Vízügy</b> lesz a fő közvetítő; egy másik (a Vi–Po) után a <b>Kormány</b>. A fokszámok közben alig változnak: két szereplő veszít egy-egy élt.
+</div>
+
+<div class="box def">
+  <span class="box-title">Szabály – melyik mérőszám érzékeny?</span>
+  A <b>helyi</b> mérőszámok (fokszám, erősség) egy hiányzó éltől csak a két végpontnál változnak, egy-egy egységgel. A <b>globális</b>, utakra épülő mérőszámok (köztesség, közelség) egy él miatt sok csúcspár legrövidebb útját változtathatják meg – különösen, ha az él egy <b>híd</b> vagy egy alternatív út része.
+  <small>Miért? A köztesség az összes csúcspár legrövidebb útjait számolja. Ha a Ko–Po él kiesik, a Ko-oldal (Ko, Sz, Kl) és a Po-oldal (Po, La, Ön) közti utak mind a Vízügyön át mennek – a Vi hirtelen sok pár egyetlen közvetítője.</small>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Egy kis hálózat rangsorát erős állításnak venni.</b> Ha egyetlen él megfordítja az első helyet, akkor a „fő közvetítő” állítás az adatgyűjtés véletlenjein múlik. Mondd ki, és nézd meg, mi változik egy-egy él elhagyásával („egyet kihagyó” ellenőrzés).</li>
+    <li><b>Azt hinni, hogy a hiányzó adat csak „zaj”, ami kiátlagolódik.</b> Ha a hiány nem véletlen (pl. a kis lapok cikkei hiányoznak, vagy az API csak a népszerű posztokat adja), az torzít, és nem átlagolódik ki.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – egy hiányzó él</summary>
+  <ol>
+    <li>Az Árvízhéten melyik él hiánya nem változtat a köztességi rangsor első helyén, de a Po értékét 9-re emeli?
+      <details><summary>Megoldás</summary>A La–Ön: a La és az Ön között ilyenkor csak a Po-n át vezet út.</details></li>
+    <li>Hogyan változik a Kormány fokszáma, ha a Ko–Po él hiányzik? És a köztessége?
+      <details><summary>Megoldás</summary>Fokszám: 4 → 3. Köztesség: 5 → 2. A helyi mérőszám egyet, a globális sokat változik.</details></li>
+    <li>A Po–La él hiányában mennyi lesz az Önkéntesek köztessége?
+      <details><summary>Megoldás</summary>5: a La ilyenkor csak az Ön-ön át éri el a többieket (a La–X párok, X ≠ Ön: 5 pár).</details></li>
+    <li>Miért nem változik egyik köztesség sem a Sz–Kl él eltávolításakor… vagy mégis?
+      <details><summary>Megoldás</summary>Változik: a Kl ilyenkor csak a Ko-n át érhető el, így a Ko köztessége 5-ről 6,5-re nő, a Sz-é 0,5-ről 0-ra csökken. A Po marad az első (8).</details></li>
+    <li>(nehezebb) Egy cikkben 3 szereplő szerepel. Ha ez a cikk hiányzik, legfeljebb hány él tűnhet el a szereplőgráfból?
+      <details><summary>Megoldás</summary>3 (a három pár) – ha egyik pár sem szerepel együtt másik cikkben. Az Árvízhét 2. cikkének hiányakor (Ko, Vi, Po) egy él sem tűnik el (mindhárom pár szerepel máshol is, csak a súlyuk csökken).</details></li>
+  </ol>
+</details>
+
+<h3 id="s106-b">2. lépés: sok hiányzó él – véletlen hiány</h3>
+<p>Egy él helyett most az élek egy $f$ hányada hiányzik, véletlenszerűen. Mennyire marad hasonló a centralitás-rangsor? A rangsorok egyezését a <b>Spearman-féle rangkorrelációval</b> mérjük (<a class="xref" href="../05-centralitas/#s57-b">5.7</a>, <a class="xref" href="../../matematikai-statisztika/03-ket-valtozo-kapcsolata/#s36-a">Mat. stat. 3.6</a>).</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a karateklub, élek véletlen hiányával</span>
+  A karateklub 78 élének $f$ részét véletlenül töröljük (300 ismétlés, Python), és összevetjük a fokszám- és a köztességi rangsort az eredetivel:
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>hiányzó élek $f$</th><th>5%</th><th>10%</th><th>20%</th><th>30%</th><th>50%</th></tr>
+    <tr><td>fokszám: Spearman $\rho$</td><td>0,97</td><td>0,95</td><td>0,90</td><td>0,85</td><td>0,74</td></tr>
+    <tr><td>köztesség: Spearman $\rho$</td><td>0,96</td><td>0,93</td><td>0,86</td><td>0,80</td><td>0,70</td></tr>
+    <tr><td>a köztesség első helyezettje ugyanaz</td><td>100%</td><td>99%</td><td>90%</td><td>83%</td><td>46%</td></tr>
+  </table></div>
+  Ha a <b>csúcsok</b> hiányoznak (a megmaradtakon mérve): 10% / 20% / 30% hiánynál a fokszám $\rho$-ja 0,96 / 0,90 / 0,87, a köztességé 0,95 / 0,89 / 0,84.
+</div>
+
+<div class="box def">
+  <span class="box-title">Szabály – a robusztusság mérése</span>
+  <ol style="margin:.2rem 0">
+    <li>Töröld az élek (vagy csúcsok) $f$ hányadát véletlenül – vagy a valószínű hiány mintája szerint (pl. a gyenge élek, a kis lapok).</li>
+    <li>Számold újra a mérőszámot, és vesd össze az eredetivel: rangkorreláció, az első $k$ egyezése, a közösségek NMI-je (<a class="xref" href="../08-kozossegek/#s87-a">8.7</a>).</li>
+    <li>Ismételd sokszor, és add meg az átlagot és a szóródást $f$ függvényében.</li>
+  </ol>
+  <small>Miért véletlen törlés, ha az adat már hiányos? Mert nem tudjuk, mi hiányzik – de azt meg tudjuk nézni, hogy <b>további</b> hiány mennyit rontana. Ha 10% plusz hiány is nagyot változtat, a mostani eredmény sem stabil. Borgatti, Carley és Krackhardt (2006) szimulációi szerint a centralitások pontossága a hiánnyal fokozatosan, kiszámíthatóan romlik – de a rangsor teteje kis hálózatban könnyen felborul.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a rangsor eleje</span>
+    20% hiányzó élnél a köztesség $\rho = 0{,}86$ – ez elég jónak tűnik. Mégis: az esetek hány százalékában változik meg, ki a fő közvetítő?
+    <details><summary>Megoldás</summary>10%-ában. Az átlagos rangegyezés jó, de egyetlen konkrét állítás („X a legfontosabb közvetítő”) jóval törékenyebb, mint a rangsor egésze.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a nem véletlen hiány</span>
+    Egy kutató a hírportálok cikkeit API-n gyűjti, de az API csak a 100 legnépszerűbb cikket adja naponta. Melyik szereplők élei hiányoznak inkább?
+    <details><summary>Megoldás</summary>A kevésbé népszerű témák szereplőié (helyi ügyek, kis szereplők). A hiány <b>rendszerszerű</b>: a nagy szereplők centralitása felfelé torzul. Ezt a véletlen törléses ellenőrzés nem mutatja meg – ehhez a hiány valószínű mechanizmusát kell szimulálni.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A szoros versenyt biztos győzelemnek olvasni.</b> A karateklub legnagyobb fokszámú tagja a 34-es (17 él), de az 1-esnek 16 van. Már 5% hiányzó élnél is csak kb. az esetek 60%-ában marad a 34-es egyedül az első (1000 ismétlés, Python) – pedig a fokszám összességében a robusztusabb mérőszám. Ha az első kettő közel van, az „első hely” állítás gyenge.</li>
+    <li><b>Az átlagos $\rho$-ból egyéni állítást levezetni.</b> A rangsor egésze és a rangsor egy-egy pontja (ki az első, benne van-e X az első ötben) mást mér – mindkettőt meg kell nézni.</li>
+  </ul>
+</div>
+
+<p>Próbáld ki! Válaszd ki, mi hiányozzon és mennyi, és nézd, hogyan romlik a rangsor egyezése.</p>
+<div class="widget" data-widget="missing-data"></div>
+
+<div class="box tip">
+  <span class="box-title">📅 Állapot: 2026 – platform-hozzáférés</span>
+  A közösségimédia-kutatás adatforrásai az elmúlt években szűkültek: az X (Twitter) 2023-ban megszüntette az ingyenes kutatói API-t, a Meta 2024 augusztusában leállította a CrowdTangle-t. Az EU digitális szolgáltatásokról szóló rendelete (DSA, 40. cikk) kutatói adathozzáférést ír elő a nagy platformoknak, de ennek gyakorlata 2026-ban is alakul.
+  A hálózati adatok „hiányát” tehát sokszor nem a kutató, hanem a hozzáférés szabja meg – ezt a módszertani részben ki kell mondani.
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – véletlen hiány</summary>
+  <ol>
+    <li>A karateklubban 30% hiányzó élnél mekkora a köztességi rangsor átlagos Spearman-korrelációja az eredetivel?
+      <details><summary>Megoldás</summary>Kb. 0,80.</details></li>
+    <li>Melyik romlik gyorsabban a hiánnyal: a fokszám- vagy a köztességi rangsor?
+      <details><summary>Megoldás</summary>A köztességi – minden $f$-nél kicsit kisebb a $\rho$-ja (pl. 50%-nál 0,70 vs. 0,74).</details></li>
+    <li>Miért kell ugyanazt a törlést 300-szor megismételni?
+      <details><summary>Megoldás</summary>Mert egy-egy törlés véletlen: egyszer egy hidat visz el, máskor egy jelentéktelen élt. Az átlag és a szóródás mondja meg, mire számíthatunk.</details></li>
+    <li>Egy kérdőíves hálózati vizsgálatban a 30 fős osztályból 6-an nem válaszoltak. Hány százalékos a csúcshiány, és kb. mennyire bízhatsz a fokszám-rangsorban a karateklub eredményei alapján?
+      <details><summary>Megoldás</summary>20%; a karateklubnál ilyenkor $\rho \approx 0{,}90$ – a rangsor nagy vonalakban megbízható, a pontos sorrend nem. (Ez csak tájékoztató: más hálózatban más lehet.)</details></li>
+    <li>(nehezebb) Egy kutató azt írja: „a köztesség rangsora 20% hiányzó élnél is $\rho = 0{,}86$-tal egyezik, tehát a fő közvetítőre vonatkozó eredményünk robusztus”. Mi a gond az érveléssel?
+      <details><summary>Megoldás</summary>Az átlagos rangegyezés a <b>teljes</b> rangsorról szól; az első hely 20% hiánynál az esetek 10%-ában megváltozik. Az állítás a fő közvetítőről szól – azt külön kell ellenőrizni (első-hely-egyezés).</details></li>
+  </ol>
+</details>
+
+<h3 id="s106-c">3. lépés: a saját döntéseid – érzékenységvizsgálat</h3>
+<p>A hiányzó adatnál is gyakoribb forrása a bizonytalanságnak a <b>feldolgozás</b>: mekkora küszöbbel vágtunk (<a class="xref" href="#s105-a">10.5</a>), mekkora időablakot vettünk (<a class="xref" href="../03-graftipusok/#s35-c">3.5</a>), milyen felbontással kerestünk közösséget (<a class="xref" href="../08-kozossegek/#s84-c">8.4</a>), melyik entitáskinyerőt használtuk. Ezek a te döntéseid – az eredménynek nem szabad csak egyetlen beállításon múlnia.</p>
+
+<div class="box example" id="s106-c-racs">
+  <span class="box-title">Kiinduló példa – a Les Misérables közösségei, 4 × 4 beállítással</span>
+  Két döntés: az élküszöb ($t$: csak a legalább $t$ súlyú élek) és a Louvain felbontása ($\gamma$). Minden párosításra lefuttatjuk a közösségkeresést, és összevetjük az alapesettel ($t = 1$, $\gamma = 1$, 6 közösség) – NMI-vel (Python):
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>küszöb \ felbontás</th><th>$\gamma = 0{,}5$</th><th>$\gamma = 1$</th><th>$\gamma = 1{,}5$</th><th>$\gamma = 2$</th></tr>
+    <tr><th>$t = 1$</th><td>0,86</td><td>1</td><td>0,93</td><td>0,85</td></tr>
+    <tr><th>$t = 2$</th><td>0,63</td><td>0,80</td><td>0,76</td><td>0,74</td></tr>
+    <tr><th>$t = 3$</th><td>0,60</td><td>0,63</td><td>0,63</td><td>0,63</td></tr>
+    <tr><th>$t = 5$</th><td>0,58</td><td>0,60</td><td>0,59</td><td>0,59</td></tr>
+  </table></div>
+  A felbontás (egy soron belül) viszonylag keveset változtat; a <b>küszöb</b> (egy oszlopon belül) sokat. Ha egy állítást („Javert külön közösségben van”) csak a $t = 1$ sorban kapunk meg, az a küszöb választásán múlik.
+</div>
+
+<div class="box def">
+  <span class="box-title">Szabály – érzékenységvizsgálat (robusztussági térkép)</span>
+  <ol style="margin:.2rem 0">
+    <li>Sorold fel a döntéseidet, és mindegyikhez egy ésszerű <b>tartományt</b> (pl. küszöb 1–5, ablak 1 nap – 1 hét, $\gamma$ 0,5–2).</li>
+    <li>Futtasd le az elemzést a tartományok rácsán.</li>
+    <li>Minden cellában mérd, mennyire egyezik az eredmény az alapesettel (NMI, rangkorreláció, a fő állítás igaz-e).</li>
+    <li>Jelentsd a térképet: mely állítások igazak (szinte) minden cellában, és melyek csak néhányban.</li>
+  </ol>
+  <small>Miért rács, és nem egyenként? Mert a döntések kölcsönhatnak: egy küszöb mellett a felbontás mást csinál, mint egy másik mellett. Egyenként változtatva ezt nem látnád.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – maga az algoritmus is véletlen</span>
+    Az alapesetet ($t = 1$, $\gamma = 1$) 20-szor futtattuk különböző véletlen kezdéssel. Mennyire stabil?
+    <details><summary>Megoldás</summary>Mindig 6 közösség, NMI 0,93–1 az első futáshoz. A Louvain véletlensége itt kicsi – a küszöb választása sokkal többet számít (<a class="xref" href="../08-kozossegek/#s87-b">8.7</a>).</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – az Árvízhét és a küszöb</span>
+    Mit mond az Árvízhét gerince a <a class="xref" href="#s105-a-arviz">10.5</a> alapján: robusztus-e az az állítás, hogy „a Szakértő és a Klímaváltozás külön csoport”?
+    <details><summary>Megoldás</summary>Nem: $t = 1$-nél a Sz–Kl három éllel kötődik a többiekhez, $t = 2$-nél külön komponens, $t = 3$-nál el is tűnik. Az állítás a küszöbön múlik – így kell jelenteni.</details>
+  </div>
+</div>
+
+<p>Próbáld ki! A rács minden cellája egy beállítás; kattints rá, és nézd meg a közösségeket.</p>
+<div class="widget" data-widget="sensitivity-grid"></div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A legszebb cellát jelenteni.</b> Ha sok beállítást kipróbálsz, és csak azt közlöd, amelyik a legérdekesebb eredményt adja, az a hálózati p-hacking (<a class="xref" href="../../matematikai-statisztika/07-hipotezisvizsgalat/#s77-b">Mat. stat. 7.7</a>). A beállításokat előre rögzítsd, vagy közöld a teljes térképet.</li>
+    <li><b>Csak egy döntést változtatni.</b> A döntések kölcsönhatnak; egyenkénti próbálgatással a „robusztus” könnyen csak „egy irányban robusztus”.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – érzékenységvizsgálat</summary>
+  <ol>
+    <li>Három döntésed van, mindegyikhez 4 lehetséges érték. Hány cellás a rács?
+      <details><summary>Megoldás</summary>$4^3 = 64$.</details></li>
+    <li>A Les Misérables-rácsban melyik cellában a legkisebb az egyezés az alapesettel?
+      <details><summary>Megoldás</summary>$t = 5$, $\gamma = 0{,}5$: NMI 0,58.</details></li>
+    <li>Egy elemzésben a fő eredmény a 16 cellából 14-ben igaz. Hogyan jelentenéd?
+      <details><summary>Megoldás</summary>„Az eredmény a küszöb és a felbontás 16 vizsgált kombinációjából 14-ben fennáll; a két kivétel …” – megnevezve, melyik beállításoknál nem.</details></li>
+    <li>Miért nem elég a Louvaint egyszer lefuttatni egy cellában?
+      <details><summary>Megoldás</summary>Mert az algoritmus véletlen sorrendben dolgozik; több futás mutatja meg, hogy a különbség a beállításé vagy csak a véletlené.</details></li>
+    <li>(nehezebb) Egy kutató időablakot választ a napirend-hálózathoz (1 nap / 3 nap / 1 hét), és csak a 3 napos ablakkal jön ki szignifikáns QAP-korreláció a média és a közönség hálózata között. Mit mondanál?
+      <details><summary>Megoldás</summary>Hogy az eredmény az ablakméreten múlik, tehát gyenge. Mindhárom ablak eredményét közölni kell, és ha a 3 napot előre (elméleti okból) választotta, azt megindokolni. Ha utólag, az „kertek elágazó ösvényei” típusú hiba.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh10-106"></div>
+</section>

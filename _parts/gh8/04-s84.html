@@ -1,0 +1,218 @@
+
+<!-- ===================================================== 8.4 -->
+<section id="s84">
+<h2>8.4 Louvain és Leiden ★★</h2>
+<p>Most már van egy számunk ($Q$), amelyet maximalizálni szeretnénk. Az összes felbontást nem próbálhatjuk ki, és a pontos maximum megtalálása NP-nehéz.
+A gyakorlatban egy <b>mohó</b> eljárás győzött: a <b>Louvain-algoritmus</b> (Blondel és mtsai, 2008; a nevét a szerzők belgiumi egyeteméről kapta). Másodpercek alatt fut millió csúcsú gráfon is.</p>
+
+<h3 id="s84-a">1. lépés: helyi áthelyezés – minden csúcs oda megy, ahol a legjobb</h3>
+<p>Kezdetben minden csúcs külön közösség. Sorra vesszük a csúcsokat, és mindegyiket átrakjuk abba a <b>szomszédos</b> közösségbe, ahol a $Q$ a legtöbbet nő. Ha egyik sem javít, marad.
+Ehhez a 8.3 utolsó gyakorlófeladatának képlete kell, egyetlen csúcsra.</p>
+
+<div class="box def">
+  <span class="box-title">A Louvain lépésének képlete</span>
+  Ha az $i$ csúcsot (amely most egyedül áll) a $C$ közösségbe tesszük, a modularitás változása
+  $$\Delta Q = \frac{k_{i,C}}{m} - \frac{\Sigma_C\, k_i}{2m^2},$$
+  ahol $k_{i,C}$ az $i$-ből $C$-be futó élek száma, $\Sigma_C$ pedig a $C$ csúcsainak fokszámösszege.
+  <small>Miért? Ez két közösség összevonása (8.3): az egyik maga az $i$ ($d_1 = k_i$), a másik $C$ ($d_2 = \Sigma_C$), köztük $\ell_{12} = k_{i,C}$ él. Az első tag a megnyert belső élek, a második a megnövő véletlen szint.
+  Ha $i$ egy közösségben van, először „kivesszük” (gondolatban egyedül marad), és a saját régi közösségét is jelöltként kezeljük – így a „marad” is egy lehetőség.</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a két háromszög, sorrendben 1, 2, …, 6</span>
+  $m = 7$, így $\Delta Q = k_{i,C}/7 - \Sigma_C k_i/98$. Holtversenynél a kisebb sorszámú közösséget választjuk.
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>csúcs ($k_i$)</th><th>jelöltek: $\Delta Q$</th><th>döntés</th><th>állapot</th></tr>
+    <tr><td>1 (2)</td><td>$\{2\}$: $1/7 - 2 \cdot 2/98 = 0{,}102$ · $\{3\}$: $1/7 - 3 \cdot 2/98 = 0{,}082$</td><td>→ $\{2\}$</td><td>$\{1, 2\}$</td></tr>
+    <tr><td>2 (2)</td><td>$\{1\}$: 0,102 · $\{3\}$: 0,082</td><td>marad</td><td>$\{1, 2\}$</td></tr>
+    <tr><td>3 (3)</td><td>$\{1, 2\}$: $2/7 - 4 \cdot 3/98 = 0{,}163$ · $\{4\}$: $1/7 - 3 \cdot 3/98 = 0{,}051$</td><td>→ $\{1, 2\}$</td><td>$\{1, 2, 3\}$</td></tr>
+    <tr><td>4 (3)</td><td>$\{1, 2, 3\}$: $1/7 - 7 \cdot 3/98 = -0{,}071$ · $\{5\}$: 0,082 · $\{6\}$: 0,082</td><td>→ $\{5\}$</td><td>$\{4, 5\}$</td></tr>
+    <tr><td>5 (2)</td><td>$\{4\}$: $1/7 - 3 \cdot 2/98 = 0{,}082$ · $\{6\}$: $1/7 - 2 \cdot 2/98 = 0{,}102$</td><td>→ $\{6\}$</td><td>$\{4\}$, $\{5, 6\}$</td></tr>
+    <tr><td>6 (2)</td><td>$\{5\}$: 0,102 · $\{4\}$: 0,082</td><td>marad</td><td>$\{5, 6\}$</td></tr>
+  </table></div>
+  Az első kör után: $\{1, 2, 3\}$, $\{4\}$, $\{5, 6\}$. A második körben a 4-es: $\{5, 6\}$-hoz $2/7 - 4 \cdot 3/98 = 0{,}163$ – átmegy. Utána senki sem mozdul: <b>$\{1, 2, 3\}$, $\{4, 5, 6\}$</b>, $Q = 0{,}357$.
+  Figyeld meg az 5-ös lépését: elhagyta a 4-est, mert a 6-os „olcsóbb” társ volt (kisebb a fokszáma). Mohó döntés – a következő kör javította ki.
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – negatív $\Delta Q$</span>
+    Miért nem megy a 4-es az $\{1, 2, 3\}$-hoz, pedig van vele közös éle?
+    <details><summary>Megoldás</summary>Egyetlen él köti össze ($k_{i,C} = 1$), de a közösség fokszámösszege már 7, és a 4-es fokszáma 3: a véletlen szint $7 \cdot 3/98 \approx 0{,}214$-gyel nőne, a nyereség csak $1/7 \approx 0{,}143$. $\Delta Q = -0{,}071 \lt 0$.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – az Árvízhét Vízügye</span>
+    Tegyük fel, hogy már kialakult a $\{\mathrm{Ko}, \mathrm{Sz}, \mathrm{Kl}\}$ ($\Sigma = 9$) és a $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$ ($\Sigma = 8$), a $\mathrm{Vi}$ ($k = 3$) egyedül áll. Hova megy?
+    <details><summary>Megoldás</summary>$m = 10$. Az első csoportba 2 éle fut ($\mathrm{Ko}$, $\mathrm{Sz}$): $2/10 - 9 \cdot 3/200 = 0{,}2 - 0{,}135 = 0{,}065$. A másodikba 1 ($\mathrm{Po}$): $0{,}1 - 8 \cdot 3/200 = -0{,}02$. Az elsőbe megy, $Q$: $0{,}215 \to 0{,}28$.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A csúcsot nem venni ki a saját közösségéből.</b> Ha a $\Sigma_C$-be a saját fokszáma is beleszámít, a „marad” lehetőség hamis értéket kap.</li>
+    <li><b>Nem szomszédos közösséget is vizsgálni.</b> Felesleges: ha $k_{i,C} = 0$, a $\Delta Q$ biztosan negatív. Ettől gyors az algoritmus – csak a szomszédokat nézi.</li>
+    <li><b>Egy kör után megállni.</b> A kör addig ismétlődik, amíg van javító lépés – a két háromszögnél is kellett a második.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – $\Delta Q$ kézzel</summary>
+  <ol>
+    <li>Egy 20 élű gráfban az $i$ csúcs fokszáma 4, és 3 éle fut a $C$ közösségbe, amelynek fokszámösszege 10. Mennyi a $\Delta Q$?
+      <details><summary>Megoldás</summary>$3/20 - 10 \cdot 4/800 = 0{,}15 - 0{,}05 = 0{,}10$.</details></li>
+    <li>Ugyanez az $i$ egy másik, $D$ közösségbe 2 éllel kötődik, $\Sigma_D = 4$. Hová megy?
+      <details><summary>Megoldás</summary>$2/20 - 4 \cdot 4/800 = 0{,}1 - 0{,}02 = 0{,}08 \lt 0{,}10$: a $C$-be.</details></li>
+    <li>Mekkora $\Sigma_C$ mellett lenne negatív az 1. feladat $\Delta Q$-ja?
+      <details><summary>Megoldás</summary>$3/20 \lt \Sigma_C \cdot 4/800 \iff \Sigma_C \gt 30$.</details></li>
+    <li>A két háromszögben a 3-as csúcs a második körben $\{1, 2\}$-ben van. Mennyi a „marad” $\Delta Q$-ja, és mennyi az $\{4, 5, 6\}$-ba lépésé?
+      <details><summary>Megoldás</summary>Kivéve: $\{1, 2\}$ ($\Sigma = 4$), 2 él: $2/7 - 4 \cdot 3/98 = 0{,}163$. $\{4, 5, 6\}$ ($\Sigma = 7$), 1 él: $1/7 - 21/98 = -0{,}071$. Marad.</details></li>
+    <li>(nehezebb) Indulj a két háromszögben a 4, 5, 6, 3, 2, 1 sorrenddel! Mi lesz az első kör után?
+      <details><summary>Megoldás</summary>4: $\{3\}$: $1/7 - 9/98 = 0{,}051$; $\{5\}$, $\{6\}$: 0,082 → $\{4, 5\}$. 5: $\{4\}$: 0,082; $\{6\}$: 0,102 → $\{5, 6\}$, a 4-es egyedül. 6: marad. 3: $\{1\}$, $\{2\}$: $1/7 - 6/98 = 0{,}082$; $\{4\}$: 0,051 → $\{1, 3\}$. 2: $\{1, 3\}$: $2/7 - 5 \cdot 2/98 = 0{,}184$ → $\{1, 2, 3\}$. 1: marad.
+        Az első kör után ugyanaz, mint az 1, …, 6 sorrendnél: $\{1, 2, 3\}$, $\{4\}$, $\{5, 6\}$ – és a második kör itt is helyre teszi a 4-est.</details></li>
+  </ol>
+</details>
+
+<h3 id="s84-b">2. lépés: összevonás – a közösségekből szuperpontok</h3>
+<p>Ha az első fázis megállt, a közösségeket egy-egy <b>szuperponttá</b> húzzuk össze. A belső élekből <b>hurok</b> lesz (a súlya a belső élek száma), a közösségek közötti élekből egy súlyozott él.
+Ezen az új, kisebb gráfon újra lefut az első fázis – most már egész közösségek vándorolnak. Ez a két fázis váltakozik, amíg semmi sem változik.</p>
+
+<div class="box example">
+  <span class="box-title">Példa – a két háromszög összevonva</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="A-B" data-weights="1" data-show-weights data-color="A:--setA B:--setB" data-pos="A:0,0 B:1,0" data-w="220" data-h="90" data-r="18"
+      data-caption="Két szuperpont; mindkettőn egy 3-as súlyú hurok (a belső élek)"></div></div>
+    <div>Az $A = \{1, 2, 3\}$ és a $B = \{4, 5, 6\}$ közt 1 él fut, mindkettő „fokszáma” 7. Megéri-e összevonni őket?
+      <details><summary>Megoldás</summary>$\Delta Q = 1/7 - 7 \cdot 7/98 = 0{,}143 - 0{,}5 = -0{,}357$. Nem – az algoritmus megáll. ($-0{,}357$: éppen a $Q$ elvesztése, hiszen egy közösség $Q$-ja 0.)</details></div>
+  </div>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa – a karateklub szintjei</span>
+  Egy futásban (a widget 1-es magjával) az első fázis után 9 közösség marad ($Q = 0{,}311$). Az összevonás után a 9 szuperponton még 5 áthelyezés történik: 4 közösség, $Q = 0{,}419$. A harmadik szinten már senki sem mozdul.
+  Miért gyorsabb ez, mint a Girvan–Newman?
+  <details><summary>Megoldás</summary>Az első fázis minden csúcsnál csak a szomszédos közösségeket nézi – egy kör kb. $m$ művelet. A második szinttől a gráf már kicsi. A Girvan–Newman minden törlés után a teljes köztességet újraszámolja ($O(nm)$, $m$-szer).</details>
+</div>
+
+<div class="widget" data-widget="louvain-steps"></div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A hurkot elfelejteni.</b> A szuperpont fokszámában a belső élek kétszer szerepelnek (hurok); nélkülük a véletlen szint rossz.</li>
+    <li><b>„A Louvain a maximumot adja.”</b> Mohó: helyi optimumban áll meg. A karateklubon 100 futásból a $Q$ nagyjából 0,38 és 0,42 között szóródik (Python; a pontos tartomány a magoktól és a programverziótól függ), és a közösségek száma 3 vagy 4.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – összevonás</summary>
+  <ol>
+    <li>Három szuperpont: $A$ ($\Sigma = 10$), $B$ ($\Sigma = 6$), $C$ ($\Sigma = 4$); $m = 10$; $A$–$B$ között 3 él, $B$–$C$ között 1. Megéri-e $B$-t $A$-hoz vonni?
+      <details><summary>Megoldás</summary>$3/10 - 10 \cdot 6/200 = 0{,}3 - 0{,}3 = 0$. Pontosan semleges: a Louvain (szigorú javítást kérve) nem mozdítja.</details></li>
+    <li>És $C$-t $B$-hez?
+      <details><summary>Megoldás</summary>$1/10 - 6 \cdot 4/200 = 0{,}1 - 0{,}12 = -0{,}02$. Nem.</details></li>
+    <li>Egy szuperpont 4 csúcsból áll, köztük 5 él, és 3 él fut ki belőle. Mennyi a hurok súlya és a szuperpont fokszáma?
+      <details><summary>Megoldás</summary>A hurok súlya 5 (a belső élek); a fokszám $2 \cdot 5 + 3 = 13$ (= $d_c$, a 8.1 képlete).</details></li>
+    <li>Miért nem változik a $Q$, amikor a közösségeket szuperpontokká húzzuk össze?
+      <details><summary>Megoldás</summary>Az összevont gráfban minden szuperpont egy külön közösség; a belső élek a hurokban, a fokszámösszeg a szuperpont fokszámában van megőrizve – a $Q$ képletének minden tagja ugyanaz.</details></li>
+    <li>(nehezebb) A gyűrűbe fűzött 10 háromszögön (8.3) mit ad a Louvain?
+      <details><summary>Megoldás</summary>Az első fázis a háromszögeket találja meg (a 10 háromszög a helyi optimum). Az összevonás után viszont két szomszédos háromszög egyesítése $\Delta Q = 1/40 - 8 \cdot 8/3200 = 0{,}025 - 0{,}02 = 0{,}005 \gt 0$: párok lesznek – a felbontási határ itt is működik. (A w0 Louvain-ja 3 magból kétszer 5, egyszer 6 közösséget adott: a párosítás a sorrendtől függ, és páratlan maradék is lehet.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s84-c">3. lépés: a felbontási paraméter – nagyító a közösségekhez</h3>
+<p>A felbontási határ ellen egy egyszerű módosítás segít: a véletlen szintet egy $\gamma$ számmal szorozzuk. Nagy $\gamma$: a véletlen szint „drága”, csak a nagyon sűrű, kis csoportok érik meg – sok kis közösség.
+Kis $\gamma$: kevés, nagy közösség.</p>
+
+<div class="box def">
+  <span class="box-title">Definíció – modularitás felbontási paraméterrel (Reichardt–Bornholdt, 2006)</span>
+  $$Q_\gamma = \sum_c\left[\frac{L_c}{m} - \gamma\left(\frac{d_c}{2m}\right)^{2}\right], \qquad \Delta Q_\gamma = \frac{k_{i,C}}{m} - \gamma\,\frac{\Sigma_C\, k_i}{2m^2}.$$
+  $\gamma = 1$ a szokásos modularitás. Két közösség összevonása akkor éri meg, ha $\ell_{12} \gt \gamma\, d_1 d_2/2m$.
+  <small>Miért segít? A felbontási határnál az összevonás feltétele $d_1 d_2 \lt 2m$ volt; most $d_1 d_2 \lt 2m/\gamma$. Nagyobb $\gamma$-val a határ lejjebb csúszik, a kis csoportok külön maradhatnak.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a gyűrű $\gamma$-val</span>
+    A 10 háromszögnél ($m = 40$, $d = 8$) mekkora $\gamma$-tól maradnak külön a háromszögek?
+    <details><summary>Megoldás</summary>$Q_\gamma(\text{külön}) = 10 \cdot (3/40 - \gamma \cdot 0{,}01) = 0{,}75 - 0{,}1\gamma$; $Q_\gamma(\text{párok}) = 5 \cdot (7/40 - \gamma \cdot 0{,}04) = 0{,}875 - 0{,}2\gamma$. Egyenlők, ha $\gamma = 1{,}25$; efölött a háromszögek nyernek.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a karateklub három nagyítással</span>
+    A Louvain a karateklubon: $\gamma = 0{,}5$: 2 közösség · $\gamma = 1$: 4 · $\gamma = 2$: 7. Melyik a „helyes”?
+    <details><summary>Megoldás</summary>Mindegyik egy-egy nagyítás. A $\gamma = 0{,}5$ felbontás szinte a valódi kettéválás (két tag, a 9-es és a 10-es a „rossz” oldalon), a $\gamma = 1$ a táborokon belüli köröket is szétválasztja. A kérdés dönti el, melyik kell.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A $\gamma$-t addig hangolni, amíg „szép” nem lesz.</b> Ha a $\gamma$-t az eredmény alapján választod, a felbontás a te elvárásodat tükrözi. Közöld a $\gamma$-t, és nézd meg több értékre (8.7).</li>
+    <li><b>Különböző $\gamma$-k $Q_\gamma$-it összevetni.</b> A $Q_\gamma$ értéke a $\gamma$-val együtt változik; a különböző nagyítások <em>felbontásait</em> érdemes összevetni (pl. a szokásos $Q$-val vagy NMI-vel), nem a $Q_\gamma$-kat.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – felbontási paraméter</summary>
+  <ol>
+    <li>A két háromszögnél mennyi a $Q_\gamma$ a természetes felbontásra $\gamma = 2$-nél?
+      <details><summary>Megoldás</summary>$2 \cdot (3/7 - 2 \cdot 0{,}25) = 2 \cdot (0{,}429 - 0{,}5) = -0{,}143$. Negatív – de a $Q_\gamma$-t a többi felbontáshoz kell mérni, nem a nullához.</details></li>
+    <li>Ugyanitt mennyi a „mindenki egy csoportban” $Q_\gamma$-ja $\gamma = 2$-nél?
+      <details><summary>Megoldás</summary>$1 - 2 \cdot 1 = -1$. A két háromszög még mindig jobb nála.</details></li>
+    <li>Két közösség között 2 él fut, $d_1 = 8$, $d_2 = 10$, $m = 30$. Mely $\gamma$-kra éri meg összevonni őket?
+      <details><summary>Megoldás</summary>$2 \gt \gamma \cdot 80/60 \iff \gamma \lt 1{,}5$.</details></li>
+    <li>Kis vagy nagy $\gamma$ kell, ha egy hírhálózatban a néhány cikkes alcsoportokat is látni szeretnéd?
+      <details><summary>Megoldás</summary>Nagy $\gamma$ (pl. 1,5–3): a véletlen szint „drágább”, a kis csoportok külön maradnak.</details></li>
+    <li>(nehezebb) $\gamma = 0$-nál mi a $Q_\gamma$-t maximalizáló felbontás?
+      <details><summary>Megoldás</summary>$Q_0 = \sum_c L_c/m$: a belső élek aránya. Ezt a „mindenki egy csoportban” maximalizálja ($Q_0 = 1$). Nagyon nagy $\gamma$-nál fordítva: mindenki külön.</details></li>
+  </ol>
+</details>
+
+<h3 id="s84-d">4. lépés: a Louvain hibája és a Leiden-javítás ★★★</h3>
+<p>A Louvain egy kellemetlen hibája: egy közösség <b>szétszakadhat</b>. Ha egy csúcs, amely két részt összetartott, átvándorol egy másik közösségbe, a régi közössége két, egymással nem összekötött darabra esik – de az algoritmus ezt nem veszi észre, mert a szétesett közösséget már egyetlen szuperpontként kezeli.</p>
+
+<div class="two-col">
+  <div><div class="gfig" data-edges="h-a1,h-a2,a1-a2,h-b1,h-b2,b1-b2,h-x1,h-x2,h-x3,x1-x2,x2-x3,x1-x3"
+    data-color="h:--setA a1:--setA a2:--setA b1:--setA b2:--setA x1:--setB x2:--setB x3:--setB"
+    data-pos="a1:0,0 a2:0,1 h:1,.5 b1:.5,1.6 b2:1.5,1.6 x1:2,0 x2:2.6,.5 x3:2,1" data-w="250" data-h="170" data-r="11"
+    data-caption="Előtte: a $\mathrm{h}$ összetartja az első közösséget"></div></div>
+  <div><div class="gfig" data-edges="h-a1,h-a2,a1-a2,h-b1,h-b2,b1-b2,h-x1,h-x2,h-x3,x1-x2,x2-x3,x1-x3"
+    data-color="h:--setB a1:--setA a2:--setA b1:--setA b2:--setA x1:--setB x2:--setB x3:--setB" data-hl="h-a1,h-a2,h-b1,h-b2" data-dim-others
+    data-pos="a1:0,0 a2:0,1 h:1,.5 b1:.5,1.6 b2:1.5,1.6 x1:2,0 x2:2.6,.5 x3:2,1" data-w="250" data-h="170" data-r="11"
+    data-caption="Utána: a $\mathrm{h}$ átment; az első „közösség” két szigetre esett"></div></div>
+</div>
+
+<div class="box def">
+  <span class="box-title">A Leiden-algoritmus (Traag, Waltman és van Eck, 2019)</span>
+  A Louvain két fázisa közé egy harmadikat iktat: a <b>finomítást</b>. Az első fázis után minden közösséget külön megvizsgál, és csak a jól összekötött részeit vonja össze szuperponttá.
+  Így a szétesett vagy rosszul összekötött közösségek darabjai külön szuperpontként folytatják. Garancia: <b>minden közösség összefüggő</b> (sőt, $\gamma$-szerint jól összekötött).
+  <small>A szerzők tesztjeiben a Louvain közösségeinek akár negyede rosszul összekötött, akár 16%-a szétesett volt. A Leiden emellett gyorsabb is, mert csak a szomszédságukban változott csúcsokat vizsgálja újra.
+  Ma a Leiden a javasolt alapértelmezés (Python: <code>leidenalg</code> az <code>igraph</code>-fal; a <code>networkx</code> újabb változataiban <code>community.leiden_communities</code>).</small>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>„A Leiden jobb, tehát a felbontása az igazi.”</b> A Leiden is a modularitást (vagy hasonló célfüggvényt) optimalizálja: a felbontási határ, a $\gamma$-függés és a sok közel optimális felbontás nála is megvan. A kapcsolatosság egy hibát javít, nem mindet.</li>
+    <li><b>Közösségként jelenteni egy szétesett csoportot.</b> Ha Louvaint használsz, ellenőrizd, hogy minden közösség összefüggő-e (a <code>louvain-steps</code> widget is mutatja).</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – Louvain és Leiden</summary>
+  <ol>
+    <li>Az ábra „utána” állapotában hány komponensből áll az első közösség a saját élein?
+      <details><summary>Megoldás</summary>Kettőből: $\{\mathrm{a1}, \mathrm{a2}\}$ és $\{\mathrm{b1}, \mathrm{b2}\}$ – a köztük futó utak mind a $\mathrm{h}$-n át mentek.</details></li>
+    <li>Miért nem veszi észre a Louvain a szétesést a következő szinten?
+      <details><summary>Megoldás</summary>Mert az összevonás után a közösség egyetlen szuperpont – a belsejét többé nem vizsgálja.</details></li>
+    <li>Mit tesz ugyanebben a helyzetben a Leiden?
+      <details><summary>Megoldás</summary>A finomításban észreveszi, hogy a közösség két nem összekötött részből áll, és két külön szuperpontot csinál belőlük.</details></li>
+    <li>Ha a Louvain két futása eltérő $Q$-t ad, melyiket közlöd?
+      <details><summary>Megoldás</summary>Általában a nagyobb $Q$-jút, de <b>jelezve, hogy több futás volt</b>, és mennyire szórtak az eredmények. A 8.7 mutatja, hogyan lehet a futásokból konszenzust építeni.</details></li>
+    <li>(nehezebb) Igaz-e, hogy a Leiden mindig nagyobb $Q$-t ad, mint a Louvain?
+      <details><summary>Megoldás</summary>Nem garantáltan – mindkettő heurisztika. A gyakorlatban a Leiden többnyire legalább olyan jó $Q$-t ér el, gyorsabban, és összefüggő közösségekkel. Egy-egy futáson a Louvain véletlenül jobb is lehet.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh8-84"></div>
+</section>

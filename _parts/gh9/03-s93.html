@@ -1,0 +1,219 @@
+
+<!-- ===================================================== 9.3 -->
+<section id="s93">
+<h2>9.3 Független kaszkád és küszöbmodellek ★★</h2>
+<p>A hír nem pontosan vírus. Egy cikket általában <b>egyszer</b> látsz egy ismerősödtől, és akkor vagy továbbadod, vagy nem. Egy új szokást (egy petíció aláírását, egy tüntetésen való részvételt) pedig sokszor csak akkor veszel át, ha <b>több</b> ismerősöd is csinálja.
+Ebben a szakaszban ez a két ötlet két modellé válik: a <b>független kaszkád</b> és a <b>küszöbmodell</b>.</p>
+
+<h3 id="s93-a">1. lépés: független kaszkád – minden él egyszer próbálkozik</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy háromszög</span>
+  Egy háromszögben ($A$, $B$, $C$) az $A$ megosztja a hírt. Minden él <b>egyszer</b>, $p = 0{,}5$ eséllyel adja át: amikor valaki aktív lesz, a következő lépésben egyetlen esélye van minden még inaktív szomszédjánál.
+  Mekkora eséllyel kapja meg a $B$?
+  <ul style="margin:.2rem 0">
+    <li>közvetlenül az $A$-tól: $0{,}5$;</li>
+    <li>vagy az $A$ nem adja át neki ($0{,}5$), de a $C$-nek igen ($0{,}5$), és a $C$ továbbadja a $B$-nek ($0{,}5$): $0{,}125$.</li>
+  </ul>
+  Összesen $0{,}625$. Ugyanennyi a $C$-re. A hír átlagosan $1 + 2 \cdot 0{,}625 = 2{,}25$ emberhez jut el (a forrással együtt).
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – független kaszkád (IC-modell)</span>
+  A <b>független kaszkád</b>ban (<em>independent cascade</em>; Goldenberg, Libai és Muller, 2001; Kempe, Kleinberg és Tardos, 2003) a kezdő csúcsok aktívak. Ha egy csúcs a $t$-edik lépésben lesz aktív,
+  a $t + 1$-edikben <b>egyetlen</b> esélyt kap minden inaktív szomszédjára: $p$ (vagy élenként $p_{uv}$) eséllyel aktiválja, egymástól függetlenül. Utána többé nem próbálkozik. A folyamat akkor áll meg, ha egy lépésben senki sem lesz aktív.
+  <br><b>Két egyenértékű alak:</b>
+  <ul style="margin:.2rem 0">
+    <li>ez a 9.1 SIR-modellje $\gamma = 1$-gyel és $\beta = p$-vel (mindenki pontosan egy lépésig „fertőző”), tehát $T = p$;</li>
+    <li><b>élperkoláció:</b> dobj fel minden élre előre egy $p$ esélyű érmét, és tartsd meg a „fej” éleket. Az aktivált csúcsok pontosan a kezdőpont komponense a megtartott élekből álló gráfban.</li>
+  </ul>
+</div>
+
+<details><summary>📐 Miért ugyanaz az élperkoláció?</summary>
+  Minden él legfeljebb egyszer próbálkozik: amikor az egyik vége aktív lesz, és a másik még nem. Hogy ez a próba sikeres-e, az egyetlen, $p$ esélyű, a többitől független érme. Mindegy, hogy az érmét a próba pillanatában dobjuk fel, vagy előre.
+  Ha előre dobjuk, a kezdőponttól a „fej” éleken át elérhető csúcsok aktiválódnak – a többiekhez minden út egy „írás” élen akad el. (A sorrend és az időzítés ettől még a próbák sorrendjén múlik, de a <b>végső halmaz</b> nem.)
+</details>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – csillag, középről és levélről</span>
+    Egy 4 levelű csillag, $p = 0{,}5$. Mekkora a várható terjedés, ha a közép, illetve ha egy levél kezd?
+    <details><summary>Megoldás</summary>Közép: minden levél $0{,}5$ eséllyel: $1 + 4 \cdot 0{,}5 = 3$. Levél: a közép $0{,}5$, a másik 3 levél csak a középen át, $0{,}5 \cdot 0{,}5 = 0{,}25$ eséllyel: $1 + 0{,}5 + 3 \cdot 0{,}25 = 2{,}25$.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – az Árvízhéten</span>
+    $p = 0{,}5$, egy kezdő. Kit válasszunk? (Az összes $2^{10} = 1024$ élhalmaz végigszámolásával, Python.)
+    <details><summary>Megoldás</summary>Várható terjedés: $\mathrm{Ko}$ 4,64; $\mathrm{Po}$ 4,59; $\mathrm{Vi}$ 4,48; $\mathrm{Sz}$ 4,33; $\mathrm{Kl}$ 3,91; $\mathrm{La}$ és $\text{Ön}$ 3,71.
+      A két 4 fokú szereplő a legjobb; a Ko egy hajszállal jobb, mert a szomszédai (Vi, Sz, Kl) szorosan összekötöttek, és többféle úton érik el a gráf többi részét.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az IC-ben ismételt próbálkozást engedni.</b> Egy él csak egyszer próbálkozik. Ha többször is lehetne (amíg a forrás aktív), az az SI-modell lenne, ahol végül mindenki aktív.</li>
+    <li><b>A háromszögben a $B$ esélyét $0{,}5$-nek venni.</b> A $C$-n át is eljuthat hozzá a hír: minden utat számolni kell, de úgy, hogy ugyanazt az esetet ne számoljuk kétszer (ezért $0{,}5 \cdot 0{,}5 \cdot 0{,}5$, nem $0{,}5 \cdot 0{,}5$).</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – független kaszkád</summary>
+  <ol>
+    <li>Egy 3 élű úton ($A$–$B$–$C$–$D$) az $A$ kezd, $p = 0{,}5$. Mekkora eséllyel jut el a hír a $D$-hez?
+      <details><summary>Megoldás</summary>Mindhárom élnek át kell adnia: $0{,}5^3 = 0{,}125$.</details></li>
+    <li>Ugyanitt mennyi a várható terjedés?
+      <details><summary>Megoldás</summary>$1 + 0{,}5 + 0{,}25 + 0{,}125 = 1{,}875$.</details></li>
+    <li>Egy háromszögben $p = 0{,}2$. Mekkora eséllyel kapja meg a $B$ a hírt az $A$-tól (közvetlenül vagy a $C$-n át)?
+      <details><summary>Megoldás</summary>$0{,}2 + 0{,}8 \cdot 0{,}2 \cdot 0{,}2 = 0{,}232$.</details></li>
+    <li>Egy 4 levelű csillag középpontja kezd, $p = 0{,}3$. Mekkora eséllyel nem jut el a hír senkihez?
+      <details><summary>Megoldás</summary>Mind a négy él „írás”: $0{,}7^4 \approx 0{,}24$.</details></li>
+    <li>(nehezebb) Egy 4 hosszú kör ($A$–$B$–$C$–$D$–$A$), az $A$ kezd, $p = 0{,}5$. Mekkora eséllyel kapja meg a szemközti $C$?
+      <details><summary>Megoldás</summary>Két független út: $A$–$B$–$C$ és $A$–$D$–$C$, mindkettő $0{,}25$ eséllyel „nyitott”. Legalább egyik: $1 - 0{,}75^2 = 0{,}4375$. (Az élperkoláció miatt itt az utak tényleg függetlenek: nincs közös élük.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s93-b">2. lépés: küszöbmodell – ha több forrás kell</h3>
+<p>Egy pletykát egyetlen embertől is elhiszel. De elmennél-e egy tüntetésre, mert <b>egy</b> ismerősöd ott lesz? Mark Granovetter (1978) szerint sok viselkedésnél mindenkinek van egy <b>küszöbe</b>: ennyi másnak kell már csinálnia, hogy ő is beálljon.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – Granovetter tömege</span>
+  Egy téren 100 ember áll. Az egyiknek 0 a küszöbe (bármi áron rendbontó), a másiknak 1 (elég neki egy társ), a harmadiknak 2, … a századiknak 99. Mi történik?
+  <ul style="margin:.2rem 0">
+    <li>A 0-s elkezdi → 1 rendbontó. Ez elég az 1-es küszöbűnek → 2. Ez elég a 2-esnek → 3 … A dominók végigdőlnek: <b>mind a 100</b> beáll.</li>
+  </ul>
+  Most cseréljük ki az 1-es küszöbű embert egy 2-esre (így két 2-es lesz, 1-es egy sem). A 0-s elkezdi → 1 rendbontó. A legkisebb hátralévő küszöb 2 → senki sem csatlakozik. <b>Egyetlen</b> rendbontó marad.
+  <br>A két tömeg átlagos küszöbe szinte ugyanaz (49,5 és 49,51). A kimenetel mégis ég és föld.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – küszöbmodell</span>
+  Minden $v$ csúcsnak van egy $\theta_v$ <b>küszöbe</b>. Egy inaktív csúcs akkor lesz aktív, ha az aktív szomszédai
+  <ul style="margin:.2rem 0">
+    <li><b>száma</b> legalább $\theta_v$ (abszolút küszöb), vagy</li>
+    <li><b>aránya</b> a szomszédai között legalább $\theta_v$ (arány-küszöb, $0 \lt \theta_v \le 1$; ez a <b>lineáris küszöbmodell</b> egyszerű, egyenlő súlyú változata).</li>
+  </ul>
+  Az aktív csúcs aktív marad. A folyamat <b>determinisztikus</b>: a kezdőhalmaz és a küszöbök egyértelműen megszabják a végeredményt.
+  <small>A Granovetter-tömeg a „mindenki mindenkit lát” eset (teljes gráf, abszolút küszöb). Hálózaton mindenki csak a <b>szomszédait</b> látja.</small>
+</div>
+
+<div class="widget" data-widget="threshold-crowd"></div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – az Árvízhét, arány-küszöbbel</span>
+    Mindenki küszöbe $\theta = 0{,}5$: akkor veszi át a keretet, ha a szomszédai legalább fele már átvette. A Lakók és az Önkéntesek kezdenek. Meddig jut?
+    <details><summary>Megoldás</summary>A Po 4 szomszédjából 2 aktív: $2/4 = 0{,}5$ → aktív. A Ko szomszédai: Vi, Po, Sz, Kl – csak a Po aktív, $1/4$; a Vi-nél $1/3$. Itt megáll: $\{\mathrm{La}, \text{Ön}, \mathrm{Po}\}$.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – ugyanez a Kormányból</span>
+    Ugyanez, de egyedül a Ko kezd. Meddig jut?
+    <details><summary>Megoldás</summary>Kl: szomszédai Sz, Ko – $1/2$ → aktív. Sz: Vi, Kl, Ko – $2/3$ → aktív. Vi: Ko, Po, Sz – $2/3$ → aktív. Po: Ko, Vi, La, Ön – $2/4$ → aktív. La: Ön, Po – $1/2$, Ön ugyanígy → mindenki.
+      Egy jól beágyazott kezdő többet ér, mint két, a szélen álló.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az átlagos küszöbből jósolni.</b> Granovetter példája pont ezt cáfolja: a kimenetelt a küszöbök <b>eloszlása</b> (a láncban nincs-e „hiányzó láncszem”) dönti el.</li>
+    <li><b>Abszolút és arány-küszöb összekeverése.</b> Két aktív szomszéd egy 3 fokú csúcsnak $2/3$, egy 10 fokúnak csak $0{,}2$. A nagy fokú csúcsot arány-küszöbbel <b>nehezebb</b> aktiválni.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – küszöbmodell</summary>
+  <ol>
+    <li>Egy tömeg küszöbei: 0, 1, 1, 3, 4, 5. Hányan állnak be végül?
+      <details><summary>Megoldás</summary>0 → 1 fő; az 1-esek beállnak → 3 fő; a 3-as beáll → 4; a 4-es → 5; az 5-ös → 6. Mind a 6.</details></li>
+    <li>És ha a küszöbök 0, 1, 3, 3, 4, 5?
+      <details><summary>Megoldás</summary>0 → 1; az 1-es → 2; a következő küszöb 3, de csak 2-en vannak → megáll 2-nél.</details></li>
+    <li>Egy 5 fokú csúcsnak 2 aktív szomszédja van. Aktív lesz-e $\theta = 0{,}5$ arány-küszöbbel? És $\theta = 2$ abszolút küszöbbel?
+      <details><summary>Megoldás</summary>Arány: $2/5 = 0{,}4 \lt 0{,}5$ → nem. Abszolút: $2 \ge 2$ → igen.</details></li>
+    <li>Az Árvízhéten $\theta = 0{,}5$ mellett a Sz és a Kl kezd. Meddig jut?
+      <details><summary>Megoldás</summary>Ko: Sz, Kl aktív, $2/4$ → aktív. Vi: Sz és (a következő körben) Ko, $2/3$ → aktív. Po: Ko, Vi, $2/4$ → aktív. La, Ön: Po, $1/2$ → aktív. Mindenki.</details></li>
+    <li>(nehezebb) Miért lehet, hogy egy küszöbmodellben egy <b>több</b> kapcsolatú ember <b>később</b> csatlakozik, mint egy kevés kapcsolatú?
+      <details><summary>Megoldás</summary>Arány-küszöbnél a sok kapcsolatúnak sok aktív szomszéd kell ugyanahhoz az arányhoz. Egy 2 fokú csúcsnak 1 aktív szomszéd már 50%, egy 10 fokúnak 5 kell. A hubok itt nem gyorsítanak, hanem „fékeznek” – szemben a járványmodellel.</details></li>
+  </ol>
+</details>
+
+<h3 id="s93-c">3. lépés: egyszerű és összetett fertőzés – a gyenge kötések másik arca</h3>
+<p>A két modell két különböző terjedést ír le. Damon Centola és Michael Macy (2007) így nevezte el őket:</p>
+<ul>
+  <li><b>egyszerű fertőzés</b> (<em>simple contagion</em>): egyetlen forrás elég (betegség, hír, pletyka) – ilyen az SIR és a független kaszkád;</li>
+  <li><b>összetett fertőzés</b> (<em>complex contagion</em>): több, egymástól független forrás kell (költséges, kockázatos, „furcsa” viselkedés: egy új technológia, egy tüntetés, egy egészséges szokás) – ilyen a küszöbmodell $\theta \ge 2$-vel.</li>
+</ul>
+<p>A kérdés: ugyanazon a hálózaton ugyanúgy terjednek-e?</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két 8 csúcsú, 4-reguláris gráf</span>
+  <div class="two-col">
+    <div><div class="gfig" data-edges="0-1,1-2,2-3,3-4,4-5,5-6,6-7,7-0,0-2,1-3,2-4,3-5,4-6,5-7,6-0,7-1" data-layout="circle" data-color="0:--setB 1:--setB" data-hl="0-1"
+      data-w="220" data-h="190" data-r="12" data-caption="gyűrűrács: mindenki a ±1 és ±2 szomszédjával"></div></div>
+    <div><div class="gfig" data-edges="0-1,1-2,2-3,3-4,4-5,5-6,6-7,7-0,0-3,1-4,2-5,3-6,4-7,5-0,6-1,7-2" data-layout="circle" data-color="0:--setB 1:--setB" data-hl="0-1"
+      data-w="220" data-h="190" data-r="12" data-caption="„átkötött”: mindenki a ±1 és ±3 szomszédjával"></div></div>
+  </div>
+  Mindkettőben 8 csúcs, 16 él, mindenki fokszáma 4. Küszöb: <b>2 aktív szomszéd</b>. Kezdők: a szomszédos 0 és 1.
+  <ul style="margin:.2rem 0">
+    <li><b>Gyűrűrács:</b> a 2-es szomszédja a 0-nak és az 1-nek is → aktív; a 7-es szintén. Aztán a 3-as (1, 2) és a 6-os (7, 0)… Körönként 2, 4, 6, 8: <b>mindenki</b>.</li>
+    <li><b>Átkötött gráf:</b> a 0 szomszédai 1, 7, 3, 5, az 1-é 0, 2, 4, 6. <b>Nincs közös szomszédjuk</b> – senki sem kap két jelet. Megáll 2-nél.</li>
+  </ul>
+  Egyszerű fertőzéssel (küszöb 1, a 0-ból) mindkét gráfban 2 lépés alatt mindenki aktív (1 → 5 → 8). A különbség csak az összetett fertőzésnél jön elő – és a <b>háromszögeken</b> múlik: a gyűrűrács klaszterezettsége 0,5, az átkötötté 0 (valójában ez a $K_{4,4}$ páros gráf).
+</div>
+
+<div class="box thm">
+  <span class="box-title">Állítás – a hosszú élek két arca (Centola és Macy, 2007)</span>
+  <ul style="margin:.2rem 0">
+    <li>Egyszerű fertőzésnél a véletlen, hosszú élek (a <a href="../07-halozatmodellek/#s72-c">7.2</a> kisvilág-hídjai, a <a href="../06-helyi-szerkezet/#s63-c">6.3</a> gyenge kötései) <b>gyorsítják</b> a terjedést: rövidítik az utakat.</li>
+    <li>Összetett fertőzésnél ugyanezek a hosszú élek <b>lassítják vagy megállítják</b>: egy hosszú él csak egy jelet visz át, a túloldalon pedig nincs második, amely megerősítené. Az összetett fertőzéshez <b>széles hidak</b> kellenek – átfedő, háromszögekkel teli környezetek.</li>
+  </ul>
+</div>
+
+<div class="box example">
+  <span class="box-title">Példa – egyre több átkötés (Python, 100 csúcsú gyűrűrács, $k = 4$, 300 minta)</span>
+  Az éleket $q$ eséllyel véletlenszerűen átkötjük (Watts–Strogatz). Egyszerű fertőzés: hány lépés alatt jut el mindenkihez? Összetett ($\theta = 2$, két szomszédos kezdő): a csúcsok hányad részét éri el?
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>átkötés $q$</th><th>0</th><th>0,05</th><th>0,1</th><th>0,2</th><th>0,5</th><th>1 (véletlen)</th></tr>
+    <tr><td>egyszerű: lépések a teljes lefedésig</td><td>25</td><td>11,2</td><td>8,5</td><td>6,9</td><td>5,6</td><td>5,3</td></tr>
+    <tr><td>összetett: elért arány (átlag)</td><td>100%</td><td>25%</td><td>12%</td><td>6%</td><td>3%</td><td>2%</td></tr>
+  </table></div>
+  Már 5% átkötés is felére vágja az egyszerű fertőzés idejét – és negyedére az összetett fertőzés elérését.
+</div>
+
+<div class="widget" data-widget="simple-vs-complex"></div>
+
+<div class="box history">
+  <span class="box-title">📜 Kísérlet egy online közösségben (Centola, 2010)</span>
+  Damon Centola egy egészségügyi online közösség tagjait két hálózatba szervezte: egy <b>klaszterezett</b> (rácsszerű, sok háromszöggel) és egy <b>véletlen</b> (rövid utakkal) hálózatba, azonos fokszámmal. Egy új egészségügyi fórumra való regisztráció a klaszterezett hálózatban terjedt el jobban és gyorsabban: az emberek többsége akkor csatlakozott, ha <b>több</b> szomszédjától kapott jelzést. (D. Centola: <em>The spread of behavior in an online social network experiment</em>, Science, 2010.)
+</div>
+
+<div class="box tip">
+  <span class="box-title">👍 Hüvelykujjszabály</span>
+  <b>Információhoz gyenge kötés kell, viselkedéshez erős (és több).</b> Egy hír a hidakon ugrik át a csoportok között; egy viselkedést a sűrű, átfedő baráti körök visznek tovább. A hírek világában ez azt jelenti: <em>tudni</em> valamiről könnyű, <em>tenni</em> érte (megosztani egy vitatott állítást, aláírni, kimenni) sokszor összetett fertőzés.
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>„A kisvilág mindenre gyorsít.”</b> Csak az egyszerű fertőzésre. Az összetett fertőzést a véletlen hidak lefojthatják.</li>
+    <li><b>Az ismételt kitettséget összetett fertőzésnek venni.</b> Ha ugyanaz az ember tízszer mutatja meg ugyanazt, az nem tíz független forrás. Az összetett fertőzés <b>különböző</b> szomszédokból jövő megerősítést jelent.</li>
+    <li><b>A valódi adatban egyértelműen eldönteni, melyik.</b> A „több ismerős után vette át” lehet összetett fertőzés, de lehet homofília is (a hasonló emberek egymástól függetlenül, hasonló okból teszik ugyanazt) – lásd <a href="../06-helyi-szerkezet/#s62">6.2</a>. A megfigyelt adat ritkán választja szét a kettőt.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – egyszerű vagy összetett?</summary>
+  <ol>
+    <li>Sorold be: (a) egy hír elolvasása, (b) egy új, drága sportág kipróbálása, (c) egy influenza, (d) egy online petíció aláírása, amelyet a munkáltatód is láthat.
+      <details><summary>Megoldás</summary>(a) és (c) egyszerű, (b) és (d) inkább összetett: költséges, kockázatos vagy társadalmi megerősítést igénylő viselkedés.</details></li>
+    <li>A gyűrűrácsban ($n = 8$, $k = 4$) hány körben ér el mindenkit az összetett fertőzés két szomszédos kezdőből? És ha a kezdők a 0 és a 4 (szemközti csúcsok)?
+      <details><summary>Megoldás</summary>Szomszédosból: 3 kör (2, 4, 6, 8). A 0 és a 4: a 2-es szomszédja mindkettőnek (0, 1, 3, 4), és a 6-os is (4, 5, 7, 0) → 4 aktív; aztán az 1-es (0, 2, 3, 7 közül 0 és 2) és a többiek → mindenki, 2 kör alatt.</details></li>
+    <li>Miért nem terjed összetett fertőzés egy fában, ha két szomszédos csúcs kezd és $\theta = 2$?
+      <details><summary>Megoldás</summary>Egy fában két szomszédos csúcsnak nincs közös szomszédja (különben kör, sőt háromszög lenne). Egy harmadik csúcs legfeljebb egy aktív szomszédot lát. Nem terjed.</details></li>
+    <li>A táblázat szerint $q = 0{,}05$-nél az egyszerű fertőzés 11,2, az összetett 25%. Mi történne a $q = 0$ és a $q = 0{,}05$ között egy $q = 0{,}01$-es gráfban?
+      <details><summary>Megoldás</summary>Néhány átkötés: az egyszerű fertőzés már jelentősen gyorsul (egy-két hosszú ugrás felezi a távolságokat), az összetett még legtöbbször végigér a gyűrűn, de ahol egy kezdőt vagy egy rácsrészletet „szétszakít” az átkötés, ott elakadhat. (A widget görbéje ezt pontosan mutatja.)</details></li>
+    <li>(nehezebb) Egy kampány egy viselkedést akar elterjeszteni (összetett fertőzés). 10 kezdőt választhat. Szétszórja őket a hálózatban, vagy egy csoportba teszi?
+      <details><summary>Megoldás</summary>Egy összefüggő, sűrű csoportba: így a szomszédaik több aktív ismerőst látnak, és átlépik a küszöböt. Szétszórva minden kezdő egyedül van, és senki sem kap két jelet. (Egyszerű fertőzésnél éppen fordítva: a szétszórás a jobb, hogy ne fedjék át egymás közönségét – 9.5.)</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh9-93"></div>
+</section>

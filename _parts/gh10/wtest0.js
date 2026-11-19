@@ -1,0 +1,28 @@
+// node wtest0.js – a w0 10. fejezeti segédfüggvényeinek ellenőrzése (a számok a Pythonnal egyeznek: calc1–9.py)
+global.document={createElement:()=>({getContext:()=>({})}),documentElement:{}};
+global.window={GraphKit:{edgeKey:(a,b)=>a<b?a+"-"+b:b+"-"+a,normalize:p=>p,css:()=>"#000"}};
+const fs=require("fs");
+eval(fs.readFileSync(__dirname+"/../../grafelmelet-halozattudomany/arvizhet-data.js","utf8").replace(/window\./g,"global.window."));
+eval(fs.readFileSync(__dirname+"/../../grafelmelet-halozattudomany/10-halozatok-osszehasonlitasa/krack-data.js","utf8").replace(/window\./g,"global.window."));
+let src=fs.readFileSync(__dirname+"/w0.js","utf8");
+src=src.replace("const W = {};","const W = {}; global.T={arvizMatrix,offdiag,pearson,matCorr,jaccard,naiveCorrP,qap,ols,mrqap,disparity,spearman,ergmEnum,ergmDist,krackData,rng,toMatrix,tTwoSided};");
+eval(src+"})();");
+const t=global.T, f=x=>x.toFixed(4);
+const VN=t.arvizMatrix(a=>a.paper==="VN"), NY=t.arvizMatrix(a=>a.paper==="NY");
+const B=M=>M.map(r=>r.map(v=>v>0?1:0));
+console.log("jaccard VN NY",JSON.stringify(t.jaccard(VN,NY)));
+const F=t.arvizMatrix(a=>["H","K","Sze"].includes(a.day)), S=t.arvizMatrix(a=>!["H","K","Sze"].includes(a.day));
+console.log("halves",JSON.stringify(t.jaccard(F,S)), "r bin",f(t.matCorr(B(F),B(S))),"r w",f(t.matCorr(F,S)));
+const ids4=["Po","Vi","La","Ön"], V4=t.arvizMatrix(a=>a.paper==="VN",ids4), Y4=t.arvizMatrix(a=>a.paper==="NY",ids4);
+let q=t.qap(B(V4),B(Y4),{exact:true}); console.log("4 node qap r",f(q.r),"p",f(q.pGe),q.runs, "w r",f(t.matCorr(V4,Y4)));
+q=t.qap(B(VN),B(NY),{exact:true}); console.log("7 node qap r",f(q.r),"p",f(q.pGe),q.runs,"naive p",f(t.naiveCorrP(q.r,21)));
+const K=t.krackData(); q=t.qap(K.advice,K.friendship,{directed:true,runs:5000,R:t.rng(1)}); console.log("krack adv~fr r",f(q.r),"pGe",f(q.pGe),"naive",f(t.naiveCorrP(q.r,420)));
+let m=t.mrqap(K.advice,[K.friendship,K.reports],{method:"dsp",runs:2000,R:t.rng(2)}); console.log("mrqap b",m.fit.b.map(f),"r2",f(m.fit.r2),"naiveP",m.naiveP.map(f),"dsp",m.permP);
+m=t.mrqap(K.advice,[K.friendship,K.reports],{method:"y",runs:2000,R:t.rng(2)}); console.log("yperm",m.permP);
+const AE=[["Ko","Vi",2],["Ko","Po",2],["Vi","Po",2],["Vi","Sz",1],["Sz","Kl",2],["Ko","Sz",1],["Ko","Kl",1],["La","Ön",3],["Po","La",2],["Po","Ön",2]].map(([a,b,w])=>({a:t.arvizMatrix?["Ko","Vi","Po","La","Ön","Sz","Kl"].indexOf(a):0,b:["Ko","Vi","Po","La","Ön","Sz","Kl"].indexOf(b),w}));
+console.log("disparity arv",t.disparity(7,AE).map(e=>f(e.alpha)).join(" "));
+console.log("disparity hand",t.disparity(5,[{a:0,b:1,w:10},{a:0,b:2,w:1},{a:0,b:3,w:1},{a:0,b:4,w:1}]).map(e=>f(e.alphaA)).join(" "));
+console.log("spearman",f(t.spearman([1,2,3,4],[1,3,2,4])));
+const E4=t.ergmEnum(4); let p=t.ergmDist(E4,[Math.log(2),0]); let ee=0,tt=0; for(let g=0;g<E4.count;g++){ee+=p[g]*E4.edges[g];tt+=p[g]*E4.tri[g];} console.log("ergm4 ln2",f(ee),f(tt));
+p=t.ergmDist(E4,[1.27500912,-0.64683968]); ee=0;tt=0; for(let g=0;g<E4.count;g++){ee+=p[g]*E4.edges[g];tt+=p[g]*E4.tri[g];} console.log("ergm4 paw mle",f(ee),f(tt));
+const E6=t.ergmEnum(6); p=t.ergmDist(E6,[-1,1]); ee=0; for(let g=0;g<E6.count;g++) ee+=p[g]*E6.edges[g]; console.log("ergm6 (-1,1) E edges",f(ee));

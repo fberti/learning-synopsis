@@ -1,0 +1,123 @@
+
+<!-- ===================================================== 8.5 -->
+<section id="s85">
+<h2>8.5 Címketerjesztés és spektrális kettévágás ★★</h2>
+<p>A modularitás nem az egyetlen út. Két egészen más ötlet: (1) a csúcsok <b>szavaznak</b> – mindenki átveszi a szomszédai közt legelterjedtebb címkét; (2) a gráf mátrixának <b>sajátvektora</b> rajzolja ki a csoportokat (ezt a 4.5-ből már ismered).</p>
+
+<h3 id="s85-a">1. lépés: címketerjesztés – a többség dönt</h3>
+<div class="box def">
+  <span class="box-title">Algoritmus – címketerjesztés (Raghavan, Albert és Kumara, 2007)</span>
+  <ol style="margin:.2rem 0">
+    <li>Minden csúcs kap egy saját címkét.</li>
+    <li>Véletlen sorrendben minden csúcs átveszi azt a címkét, amely a <b>szomszédai közt a leggyakoribb</b>. Holtversenynél véletlenül választ (ha a saját címkéje is a legjobbak közt van, megtartja).</li>
+    <li>Ismételd, amíg minden csúcs címkéje a szomszédai közt (holtversennyel együtt) leggyakoribb. Az egyforma címkék a közösségek.</li>
+  </ol>
+  <small>Miért működik? Egy sűrű csoportban egy címke gyorsan elterjed (sok belső szomszéd „szavaz” rá), de a csoport határán megreked, mert kívülről kevés él jön. Nincs célfüggvény és nincs paraméter; egy kör $O(m)$ – nagyon gyors.</small>
+</div>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a két háromszög</span>
+  Kezdetben a címkék $a, b, c, d, e, f$ (az 1–6 csúcson). A sorrend legyen 1, 2, 3, 4, 5, 6.
+  <ul style="margin:.2rem 0">
+    <li><b>1:</b> szomszédai 2 ($b$) és 3 ($c$) – holtverseny, véletlenül pl. $b$. Címkék: $b, b, c, d, e, f$.</li>
+    <li><b>2:</b> szomszédai 1 ($b$) és 3 ($c$) – holtverseny, a saját ($b$) is a legjobbak közt: marad $b$.</li>
+    <li><b>3:</b> szomszédai 1 ($b$), 2 ($b$), 4 ($d$) – a $b$ nyer: $b, b, b, d, e, f$.</li>
+    <li><b>4:</b> szomszédai 3 ($b$), 5 ($e$), 6 ($f$) – hármas holtverseny, pl. $e$: $b, b, b, e, e, f$.</li>
+    <li><b>5:</b> 4 ($e$), 6 ($f$) – marad $e$. <b>6:</b> 4 ($e$), 5 ($e$) → $e$.</li>
+  </ul>
+  Eredmény: $\{1, 2, 3\}$, $\{4, 5, 6\}$. De ha a 4-es a $b$-t választja (1/3 esély), a $b$ átcsúszhat a másik háromszögbe is: 1000 futásból (Python) 959-szer két közösség, 41-szer <b>egyetlen</b> közösség lett.
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a karateklub 100-szor</span>
+    100 futás közösségszámai (a widgetek motorjával): 1: 3-szor · 2: 20 · 3: 32 · 4: 29 · 5: 15 · 6: 1. A <code>networkx</code> 100 futása: 1: 1 · 2: 27 · 3: 28 · 4: 36 · 5: 8. Mit mond ez?
+    <details><summary>Megoldás</summary>Ugyanaz a gráf, ugyanaz az algoritmus – csak a sorrend és a holtversenyek döntései mások. Egyetlen futás alapján bármelyik „eredményt” közölhetnénk. A címketerjesztés gyors, de <b>instabil</b>; csak több futás összesítésével (8.7) érdemes használni.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy út</span>
+    Egy 4 csúcsú úton ($1$–$2$–$3$–$4$) mi lehet a végeredmény?
+    <details><summary>Megoldás</summary>Mivel minden csúcsnak legfeljebb 2 szomszédja van, sok a holtverseny; a kimenet lehet $\{1, 2\}\{3, 4\}$ vagy egyetlen közösség is (ha egy címke végigfut). Egy útnak nincs igazi közösségszerkezete – a címketerjesztés ezt nem tudja „megmondani”, csak valamit visszaad.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Egy futás eredményét közölni.</b> A címketerjesztés kimenete a véletlen sorrendtől függ, és sűrű hálózatban egyetlen címke „mindent elönthet”.</li>
+    <li><b>Szinkron frissítés páros gráfon.</b> Ha minden csúcs egyszerre frissít, egy páros gráfban (pl. egy csillagon) a címkék örökké oda-vissza váltakozhatnak. Ezért aszinkron (egyenként, véletlen sorrendben) frissítünk.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – címketerjesztés</summary>
+  <ol>
+    <li>A két háromszögben az első lépésnél (1-es csúcs) mekkora eséllyel veszi át a 2-es címkéjét?
+      <details><summary>Megoldás</summary>Két szomszéd, két különböző címke, a saját nincs köztük: 1/2.</details></li>
+    <li>Egy csúcs szomszédainak címkéi: $a, a, b, c$. Mit vesz át?
+      <details><summary>Megoldás</summary>Az $a$-t (2 szavazat).</details></li>
+    <li>Egy csúcs címkéje $b$, a szomszédaié $a, b, c$. Változik-e?
+      <details><summary>Megoldás</summary>Nem: hármas holtverseny, és a saját címkéje a legjobbak közt van – megtartja.</details></li>
+    <li>Súlyozott változatban a szomszédok címkéi és élsúlyai: $a$ (3), $b$ (1), $b$ (1). Mit vesz át?
+      <details><summary>Megoldás</summary>Az $a$-t: $3 \gt 1 + 1$. Súlyozva nem a szomszédok száma, hanem a súlyösszeg szavaz.</details></li>
+    <li>(nehezebb) Egy csillagon (középpont $K$, 4 levél) aszinkron frissítéssel mi lesz a végeredmény?
+      <details><summary>Megoldás</summary>Amint a $K$ átvesz egy levélcímkét, a többi levél (egyetlen szomszédjuk a $K$) mind azt veszi át: egyetlen közösség. Ez itt helyes is – a csillagnak nincs közösségszerkezete.</details></li>
+  </ol>
+</details>
+
+<h3 id="s85-b">2. lépés: spektrális kettévágás – a Fiedler-vektor és a modularitásmátrix</h3>
+<p>A <a href="../04-grafok-es-matrixok/#s45-c">4.5</a>-ben a Laplace-mátrix második sajátvektorának (Fiedler-vektor) előjele vágta ketté a gráfot. A modularitásnak is van ilyen spektrális alakja.</p>
+
+<div class="box def">
+  <span class="box-title">A modularitásmátrix (Newman, 2006)</span>
+  $$B_{ij} = A_{ij} - \frac{k_i k_j}{2m}, \qquad Q = \frac{1}{4m}\,\mathbf s^\top B\,\mathbf s \quad \text{két csoportra}, \ s_i = \pm 1.$$
+  Lazítsuk a $\pm 1$ feltételt (mint a 4.5-ben): a $\mathbf s^\top B\mathbf s$ maximumát a $B$ <b>legnagyobb</b> sajátértékéhez tartozó sajátvektor adja. Az előjelei a kettévágás.
+  <small>Miért $1/4m$? A $\delta(c_i, c_j) = (1 + s_i s_j)/2$, és $\sum_{ij} B_{ij} = 0$, így a 8.3 páros alakjából $Q = \tfrac{1}{4m}\sum_{ij} B_{ij} s_i s_j$.
+  A különbség a Fiedler-vektorhoz képest: a Laplace-vágás a vágott éleket minimalizálja (méretkorlát mellett), a modularitásmátrix a nullmodellhez mér – és ha a $B$ legnagyobb sajátértéke 0 (nincs pozitív), a gráfot <b>nem</b> érdemes kettévágni.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a két háromszög</span>
+    A $B$ legnagyobb sajátértéke $\approx 1{,}73$, a sajátvektora (0,44; 0,44; 0,33; −0,33; −0,44; −0,44). Mi a kettévágás és a $Q$?
+    <details><summary>Megoldás</summary>Előjel szerint $\{1, 2, 3\}$ és $\{4, 5, 6\}$, $\mathbf s = (1, 1, 1, -1, -1, -1)$. $\mathbf s^\top B\mathbf s/(4 \cdot 7) = 0{,}357$ – ugyanaz, mint kézzel.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a karateklub</span>
+    A Fiedler-vektor előjele 32 tagot, a modularitásmátrix vezető sajátvektora 33-at sorol a valódi táborába. Ki a „rossz” oldalon?
+    <details><summary>Megoldás</summary>A Fiedler-vágásnál a 3-as és a 9-es, a modularitásmátrixnál csak a 9-es – a 8.1 története szerint ő a barátai ellenére állt át. A modularitásmátrix vágásának $Q = 0{,}371$, a valódi kettéválásé $0{,}358$.</details>
+  </div>
+</div>
+
+<div class="box tip">
+  <span class="box-title">Több csoport? – spektrális klaszterezés</span>
+  Kettőnél több csoporthoz két út van: (1) <b>ismételt kettévágás</b> – minden részt újra kettévágunk, amíg a $Q$ nő (Newman, 2006); (2) <b>spektrális klaszterezés</b> – az első $k$ sajátvektorból minden csúcsnak $k$ koordinátát adunk, és a pontokat a $k$-közép módszerrel csoportosítjuk.
+  Ez utóbbi a gépi tanulás egyik alapeszköze (<code>sklearn.cluster.SpectralClustering</code>); a csoportok számát ($k$) neked kell megadni. Jiang és mtsai (2025) hírkeretezési vizsgálata (8.8) is spektrális klaszterezést használt.
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A Laplace- és a modularitásmátrix sajátvektorait összekeverni.</b> Laplace-nál a <em>második legkisebb</em> sajátértékhez tartozó vektor (a legkisebb a konstans), a modularitásmátrixnál a <em>legnagyobb</em>.</li>
+    <li><b>Mindig kettévágni.</b> A Fiedler-vektor akkor is két részt ad, ha nincs két csoport. A modularitásmátrix legalább jelez: nem pozitív legnagyobb sajátértéknél nincs értelmes vágás.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – spektrális kettévágás</summary>
+  <ol>
+    <li>A két háromszögben mennyi a $B_{12}$ és a $B_{34}$ elem?
+      <details><summary>Megoldás</summary>$B_{12} = 1 - 2 \cdot 2/14 \approx 0{,}714$; $B_{34} = 1 - 3 \cdot 3/14 \approx 0{,}357$. A híd kevésbé „meglepő” él, mert két nagyobb fokszámú csúcsot köt.</details></li>
+    <li>És a $B_{15}$ (nem él)?
+      <details><summary>Megoldás</summary>$0 - 2 \cdot 2/14 \approx -0{,}286$: hiányzó él, amelyet a nullmodell várna – negatív.</details></li>
+    <li>Miért 0 a $B$ minden sorösszege?
+      <details><summary>Megoldás</summary>$\sum_j A_{ij} = k_i$ és $\sum_j k_i k_j/2m = k_i \cdot 2m/2m = k_i$. A különbség 0. Ezért a konstans vektor sajátvektor 0 sajátértékkel (az „egy közösség” felbontás, $Q = 0$).</details></li>
+    <li>Ha a Fiedler-vektor a karateklubon 32/34-et talál el, a modularitásmátrix 33/34-et, melyik a „jobb”?
+      <details><summary>Megoldás</summary>Ezen a gráfon a modularitásmátrix egyezik jobban a kettéválással. De ez egy gráf és egy mérce; általános rangsor nem következik belőle.</details></li>
+    <li>(nehezebb) Egy 4 csúcsú négyzetben ($m = 4$, minden fok 2) mennyi a $B$ legnagyobb sajátértéke? Érdemes-e kettévágni?
+      <details><summary>Megoldás</summary>$B = A - \tfrac12 J$ ($J$: csupa 1). Az $A$ sajátértékei 2, 0, 0, −2; a csupa 1 vektorra $B$ sajátértéke $2 - 2 = 0$, a többire az $A$-é marad: 0, 0, −2. A legnagyobb 0: nincs pozitív – a négyzetet nem érdemes kettévágni (a 8.3 gyakorlójában is $Q = 0$ jött ki).</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh8-85"></div>
+</section>
