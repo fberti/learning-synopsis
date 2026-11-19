@@ -1,0 +1,1692 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>15. Megerősítéses tanulás – Mesterséges intelligencia – Synopsis</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="../../assets/common.js"></script>
+  <script defer src="../../assets/quiz.js"></script>
+  <script defer src="../../assets/calc.js"></script>
+  <script defer src="widgets.js"></script>
+  <script defer src="quizzes.js"></script>
+</head>
+<body>
+<div class="progressbar"></div>
+<header class="topbar">
+  <a class="brand" href="../../">📚 Synopsis</a>
+  <span class="crumbs"><a href="../../">Tartalomjegyzék</a> › <a href="../">Mesterséges intelligencia</a> › 15. fejezet</span>
+  <button class="icon-btn" data-theme-toggle title="Téma váltása">🌙</button>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <div class="toc-title">15. fejezet</div>
+  <ol>
+    <li><a href="#s151">15.1 Ágens, környezet, jutalom</a></li>
+    <li><a href="#s152">15.2 Felfedezés vagy kiaknázás: a többkarú bandita</a></li>
+    <li><a href="#s153">15.3 Hozam, érték és a Bellman-egyenlet</a></li>
+    <li><a href="#s154">15.4 Q-tanulás</a></li>
+    <li><a href="#s155">15.5 Mély RL és stratégia-gradiens</a></li>
+    <li><a href="#s156">15.6 A jutalom tervezése – és kijátszása</a></li>
+    <li><a href="#s157">15.7 RL a nagy nyelvi modellekben – előzetes</a></li>
+    <li><a href="#s158">15.8 Alkalmazás: a raktár és a szirt</a>
+      <ol>
+        <li><a href="#s158-a">Tervezés vagy tanulás?</a></li>
+        <li><a href="#s158-b">Bátor vagy óvatos?</a></li>
+        <li><a href="#s158-c">Válaszok a fejezet kérdéseire</a></li>
+      </ol>
+    </li>
+    <li><a href="#s-sum">Összefoglalás</a></li>
+    <li><a href="#s-check">Ellenőrző kérdések</a></li>
+    <li><a href="#s-ex">Vegyes gyakorló feladatok</a></li>
+    <li><a href="#s-final">Fejezetzáró teszt</a></li>
+    <li><a href="#s-gloss">Szómagyarázó</a></li>
+  </ol>
+</nav>
+
+<main class="content">
+
+<section class="hero" style="padding-top:.5rem">
+  <div class="kicker">Mesterséges intelligencia · 15. fejezet · ★★–★★★</div>
+  <h1>Megerősítéses tanulás</h1>
+  <p class="lead">Eddig a modelljeink kész adatból tanultak: minden képhez, levélhez, molekulához ott volt a helyes válasz (felügyelt tanulás), vagy legalább maguk az adatok (felügyelet nélküli és generatív modellek). Most egy egészen más helyzet jön. Egy <b>ágens</b> cselekszik egy világban, és senki nem mondja meg neki, mi lett volna a jó lépés. Csak <b>jutalmat</b> kap – sokszor csak a legvégén: nyert vagy vesztett, célba ért vagy leesett.
+  Ebből kell kitalálnia, melyik lépése volt jó. Ez a <b>megerősítéses tanulás</b> (<em>reinforcement learning</em>, RL). Ezzel tanult meg egy program go-t játszani a világbajnoknál jobban, és ez csiszolja ma a nagy nyelvi modellek válaszait is.</p>
+</section>
+
+<div class="box tip">
+  <span class="box-title">Mit fogsz megtanulni?</span>
+  <ul style="margin:.2rem 0">
+    <li>mi az <b>ágens</b>, a <b>környezet</b>, az <b>állapot</b>, a <b>cselekvés</b>, a <b>jutalom</b> és a <b>stratégia</b>, és mi a <b>Markov-döntési folyamat</b>;</li>
+    <li>miért kell <b>felfedezni</b> is, nem csak a legjobbnak hitt lépést választani – a <b>többkarú bandita</b>, az <b>ε-mohó</b> stratégia és a <b>megbánás</b>;</li>
+    <li>mit jelent a <b>diszkontált hozam</b>, az <b>értékfüggvény</b> és a <b>Q-függvény</b>, és hogyan köti össze őket a <b>Bellman-egyenlet</b>;</li>
+    <li>hogyan tanul egy ágens térkép nélkül: <b>időbeli különbség</b> (TD), <b>Q-tanulás</b>, <b>SARSA</b>, és mi a különbség az <b>on-policy</b> és az <b>off-policy</b> tanulás között;</li>
+    <li>hogyan lesz ebből <b>mély RL</b> (DQN), mi a <b>stratégia-gradiens</b> (REINFORCE, aktor–kritikus, PPO), és hogyan játszott az <b>AlphaGo</b>;</li>
+    <li>miért nehéz jó <b>jutalmat</b> adni, mi a <b>jutalom-kijátszás</b>, és hogyan segít a <b>potenciál-alapú jutalomalakítás</b>;</li>
+    <li>hogyan használják az RL-t a <b>nagy nyelvi modellek</b> tanításában (RLHF, KL-büntetés, ellenőrizhető jutalom, GRPO – 📅 2026).</li>
+  </ul>
+</div>
+
+<div class="box">
+  <span class="box-title">🔁 Amit használni fogunk</span>
+  Az <a class="xref" href="../01-mi-a-mesterseges-intelligencia/#s13-c">1. fejezet</a> rövid bevezetője a megerősítéses tanulásról (a raktári robot és a körbeforgó hajó).
+  A <a class="xref" href="../02-matematikai-eszkoztar/">2. fejezetből</a>: a várható érték (<a class="xref" href="../02-matematikai-eszkoztar/#s25-c">2.5</a>), a softmax (<a class="xref" href="../02-matematikai-eszkoztar/#s25-d">2.5</a>), a KL-divergencia (<a class="xref" href="../02-matematikai-eszkoztar/#s26-d">2.6</a>), a gradiens és a gradiens módszer (<a class="xref" href="../02-matematikai-eszkoztar/#s27-c">2.7</a>, <a class="xref" href="../02-matematikai-eszkoztar/#s28-a">2.8</a>).
+  A <a class="xref" href="../03-tanulas-anatomiaja/#s33-b">3. fejezetből</a> az átlagos négyzetes hiba, a <a class="xref" href="../09-neuralis-halozatok/">9.</a>–<a class="xref" href="../11-konvolucios-halok/">11. fejezetből</a> a neurális hálók, a <a class="xref" href="../12-beagyazasok-figyelem/#s126-b">12.</a> és a <a class="xref" href="../14-generativ-modellek/#s142-c">14. fejezetből</a> a következő tokent jósló nyelvi modell.
+  A matematikai háttér: a mértani sor (<a class="xref" href="../../analizis/02-szamsorozatok-es-sorok/#s26-b">Analízis 2.6</a>) és a várható érték mint egy játék „ára” (<a class="xref" href="../../valoszinusegszamitas/03-valoszinusegi-valtozok/#s33-b">Valószínűségszámítás 3.3</a>).
+  <br><small>Jelölések: ★ alap · ★★ közép · ★★★ haladó (kihagyható). A 📐 jelű lenyílók levezetéseket rejtenek, a 🐍 jelűek rövid Python-kódot – a továbbhaladáshoz egyik sem kell. A 📅 jelű dobozok a terület mai állását írják le (2026. november), forrással.
+  $s$ egy állapot, $a$ egy cselekvés, $r$ a jutalom, $s'$ a következő állapot; $\pi$ a stratégia; $\gamma$ a diszkonttényező; $\alpha$ a tanulási ráta; $V(s)$ az állapot értéke, $Q(s, a)$ a cselekvés értéke; $\mathbb E$ a várható érték.</small>
+</div>
+
+<div class="box example" id="s-kerdes">
+  <span class="box-title">🎯 A fejezet kérdése – hogyan tanul valaki, akinek senki nem mondja meg a jó választ?</span>
+  Három rejtvény.
+  <div class="two-col" style="margin-top:.4rem">
+    <div>
+      <b>1. A késő jutalom.</b><br>
+      Egy porszívórobot egy keskeny folyosón áll. Az egyik végén a töltője (+10), a másikon egy lépcső, ahol leesik (−10). Útközben semmilyen visszajelzést nem kap. Ha célba ér, honnan tudja meg, hogy a <b>harmadik</b> lépése volt jó, és nem csak az utolsó? (Go-ban ugyanez: egy játszma 200 lépés, a jutalom egyetlen +1 vagy −1 a végén.)
+    </div>
+    <div>
+      <b>2. Három automata, száz érme.</b><br>
+      Egy játékteremben három félkarú rabló áll, mindegyik más eséllyel fizet, de nem tudod, melyik mennyivel. Száz érméd van. Ha mindig azt húzod, amelyik eddig a legjobb volt, lehet, hogy sosem tudod meg, hogy egy másik jobb. Ha sokat próbálgatsz, elpazarolod az érméidet. <b>Mennyit érdemes próbálgatni?</b>
+    </div>
+  </div>
+  <div style="margin-top:.4rem"><b>3. A győztes, aki nem ér célba.</b> Egy hajóverseny-játékban a program egy kis öbölben körbe-körbe forog, ég és ütközik – és <b>több pontot</b> szerez, mint bármelyik ember, aki végigmegy a pályán (<a class="xref" href="../01-mi-a-mesterseges-intelligencia/#s13-c">1. fejezet</a>). Hibás az algoritmus? Vagy pontosan azt csinálja, amit kértünk tőle?</div>
+  Négy kérdés:
+  <ol style="margin:.3rem 0">
+    <li>Hogyan írjuk le egyetlen keretben a robotot, a játékost és a go-programot?</li>
+    <li>Mikor érdemes <b>újat kipróbálni</b>, és mikor a bevált lépést ismételni?</li>
+    <li>Hogyan „szivárog vissza” a késői jutalom a korábbi lépésekhez – térképpel és térkép nélkül?</li>
+    <li>Mit kell tudnia a <b>jutalomnak</b>, hogy az ágens azt tanulja meg, amit mi szeretnénk – és hogyan használják mindezt a nyelvi modellek?</li>
+  </ol>
+  A fejezet végén (<a class="xref" href="#s158">15.8</a>) két kis világon minden eszközt kipróbálunk, és mindhárom rejtvényre visszatérünk.
+</div>
+
+<p><b>Útiterv</b> – lépésről lépésre, az egyszerűtől a bonyolultig:</p>
+<ol>
+  <li><b>A keret</b>
+    <ol>
+      <li><a href="#s151">Ágens, környezet, jutalom</a>: a hurok és az epizód; a stratégia; a Markov-döntési folyamat.</li>
+    </ol></li>
+  <li><b>Egyetlen döntés, ismeretlen jutalom</b>
+    <ol start="2">
+      <li><a href="#s152">A többkarú bandita</a>: becslés átlagolással; a mohó stratégia beragad, az ε-mohó nem; megbánás, optimizmus, UCB.</li>
+    </ol></li>
+  <li><b>Döntések sorozata</b>
+    <ol start="3">
+      <li><a href="#s153">Hozam, érték, Bellman-egyenlet</a>: diszkontálás; $V$ és $Q$; értékiteráció – ha ismerjük a térképet.</li>
+      <li><a href="#s154">Q-tanulás</a>: TD-hiba; a Q-frissítés; Q-tanulás és SARSA – térkép nélkül.</li>
+    </ol></li>
+  <li><b>Nagyban</b>
+    <ol start="5">
+      <li><a href="#s155">Mély RL és stratégia-gradiens</a>: DQN; REINFORCE; aktor–kritikus, PPO, AlphaGo. ★★★</li>
+      <li><a href="#s156">A jutalom tervezése</a>: ritka jutalom és alakítás; jutalom-kijátszás; a valóság nehézségei.</li>
+      <li><a href="#s157">RL a nyelvi modellekben</a>: a szöveg mint cselekvéssorozat; RLHF; ellenőrizhető jutalom és GRPO. 📅</li>
+    </ol></li>
+  <li><b>Összerakva</b>
+    <ol start="8">
+      <li><a href="#s158">Alkalmazás</a>: tervezés és tanulás a raktárban; Q-tanulás és SARSA a szirt szélén.</li>
+    </ol></li>
+</ol>
+
+<!-- ===================================================== 15.1 -->
+<section id="s151">
+<h2>15.1 Ágens, környezet, jutalom ★</h2>
+<p>Kezdjük egy olyan kicsi világgal, amelyben minden kézzel kiszámolható. Ez lesz a fejezet futó példája.</p>
+<div class="box example" id="s151-folyoso">
+  <span class="box-title">A fejezet futó példája – a porszívórobot a folyosón</span>
+  Egy keskeny folyosó öt cellából áll. A bal szélén lépcső van (ha a robot odalép, leesik), a jobb szélén a töltője. Közben három cella: 1., 2., 3. A robot a <b>2. cellából</b> indul, és minden lépésben <b>balra</b> vagy <b>jobbra</b> léphet egyet.
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:560px">
+    <tr><th>cella</th><td>lépcső</td><td>1.</td><td>2. (start)</td><td>3.</td><td>töltő</td></tr>
+    <tr><th>jutalom, ha odalép</th><td>−10, vége</td><td>0</td><td>0</td><td>0</td><td>+10, vége</td></tr>
+  </table></div>
+  A robot nem látja a folyosót, nem tudja, hol a töltő. Csak azt tudja, melyik cellában áll, és lépés után megkapja a jutalmat.
+</div>
+
+<h3 id="s151-a">1. lépés: a hurok – állapot, cselekvés, jutalom, epizód</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy próbálkozás lépésről lépésre</span>
+  A robot elindul a 2. cellából. Ezt teszi:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:560px">
+    <tr><th>idő $t$</th><th>állapot $s_t$</th><th>cselekvés $a_t$</th><th>jutalom $r_t$</th><th>új állapot</th></tr>
+    <tr><td>0</td><td>2.</td><td>jobbra</td><td>0</td><td>3.</td></tr>
+    <tr><td>1</td><td>3.</td><td>balra</td><td>0</td><td>2.</td></tr>
+    <tr><td>2</td><td>2.</td><td>jobbra</td><td>0</td><td>3.</td></tr>
+    <tr><td>3</td><td>3.</td><td>jobbra</td><td>+10</td><td>töltő – vége</td></tr>
+  </table></div>
+  Négy lépés, a jutalmak összege $0 + 0 + 0 + 10 = 10$. Három lépésnél semmit nem kapott: a jutalom csak a végén jött. Egy másik próbálkozás lehetett volna „2. → balra → 1. → balra → lépcső”: két lépés, összesen −10.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – az ágens–környezet hurok</span>
+  <ul style="margin:.2rem 0">
+    <li>Az <b>ágens</b> a döntéshozó (a robot, a játékos, a program). A <b>környezet</b> minden más: a folyosó, a tábla, az ellenfél.</li>
+    <li>Minden $t$ időpontban: az ágens megfigyeli az <b>állapotot</b> $s_t$, választ egy <b>cselekvést</b> $a_t$, a környezet erre <b>jutalmat</b> ad, $r_t$ (egyetlen szám), és új állapotba kerül, $s_{t+1}$. Aztán újra.</li>
+    <li>Egy <b>epizód</b> az indulástól egy <b>végállapotig</b> (töltő, lépcső, a játszma vége) tart. Az epizód lépéseinek sorozata a <b>pálya</b> (trajektória): $s_0, a_0, r_0, s_1, a_1, r_1, \dots$</li>
+    <li>A cél: <b>a jutalmak összegét</b> (pontosabban a várható összegét) a lehető legnagyobbra tenni – nem egy-egy lépés jutalmát.</li>
+  </ul>
+  <b>Miért más ez, mint a felügyelt tanulás?</b> Nincs „helyes cselekvés” címke. A jutalom csak azt mondja meg, <b>mennyire volt jó</b>, ami történt – azt nem, mi lett volna jobb. Ráadásul <b>késik</b>, és az ágens maga dönti el, mit próbál ki, vagyis a saját tanítóadatát is maga gyűjti.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – sakk</span>
+    Állapot: a tábla állása (és ki következik). Cselekvés: egy szabályos lépés. Jutalom: +1 győzelem, −1 vereség, 0 döntetlen – csak a játszma végén, minden más lépésnél 0. Epizód: egy játszma.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – termosztát</span>
+    Állapot: a szoba és a kinti hőmérséklet, az időpont. Cselekvés: fűtés be / ki. Jutalom: minden negyedórában $-(\text{eltérés a kívánt hőmérséklettől}) - (\text{energiaköltség})$. Itt <b>nincs vége</b> az epizódnak – folyamatos feladat, ezért a jutalmakat majd súlyozni kell (<a class="xref" href="#s153-a">15.3</a>).
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A jutalom nem a cél, csak a jele.</b> Egyetlen számot adunk, és az ágens azt maximalizálja – akkor is, ha nem ezt akartuk (<a class="xref" href="#s156-b">15.6</a>).</li>
+    <li><b>Az ágens nem a robot teste.</b> A robot motorja, kereke, akkumulátora a környezet része: az ágens az, ami dönt. A határ ott van, ahol az ágens már nem tud közvetlenül változtatni.</li>
+    <li><b>Egy lépés jutalma ≠ a lépés értéke.</b> A folyosón az első lépés jutalma mindig 0, mégis van, amelyik jó, és van, amelyik rossz. A „mennyit ér” kérdésre a <a class="xref" href="#s153-b">15.3</a> felel.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a hurok</summary>
+  <ol>
+    <li>Mi az összjutalom ebben az epizódban: 2. → jobbra → 3. → balra → 2. → balra → 1. → jobbra → 2. → jobbra → 3. → jobbra → töltő? Hány lépés volt?
+      <details><summary>Megoldás</summary>Hat lépés; az első ötnél 0 a jutalom, az utolsónál +10: összesen 10. Ugyanannyi, mint a kiinduló példa négylépéses epizódjáé – az összeg nem bünteti a kerülőt (ezt a <a class="xref" href="#s153-a">15.3</a> diszkontálása teszi meg).</details></li>
+    <li>Mi a legrövidebb epizód a 2. cellából, és mennyi az összjutalma? És a „legjobb” epizód?
+      <details><summary>Megoldás</summary>A legrövidebb kétlépéses: 2. → 1. → lépcső (−10) vagy 2. → 3. → töltő (+10). A legjobb a második: +10, két lépésben.</details></li>
+    <li>Egy videojátékban az ágens a képernyő pixeleit látja, és a joystickot mozgatja; a jutalom a pontszám változása. Mi itt az állapot, a cselekvés, a jutalom, és mi az epizód?
+      <details><summary>Megoldás</summary>Állapot: a képernyő (pontosabban az utolsó néhány képkocka – egyetlen képből nem látszik, merre megy a labda). Cselekvés: a joystick-irányok és a tűzgomb kombinációi. Jutalom: a pontszám növekedése az adott lépésben. Epizód: egy játék a „Game Over”-ig.</details></li>
+    <li>Melyik feladat illik a megerősítéses tanuláshoz, és melyik a felügyelthez? (a) Kép alapján eldönteni, macska-e rajta. (b) Egy raktári robot útvonala, ahol csak a kiszállítás idejét mérjük. (c) Egy hirdetési rendszer, amely eldönti, melyik hirdetést mutassa, és csak azt látja, kattintottak-e rá.
+      <details><summary>Megoldás</summary>(a) felügyelt: minden képhez van címke. (b) RL: döntéssorozat, a jutalom (idő) a végén jön. (c) RL – pontosabban bandita (<a class="xref" href="#s152">15.2</a>): egy döntés, és csak a választott hirdetésről kapunk visszajelzést, a többiről nem.</details></li>
+    <li>(nehezebb) Miért nem lehet a folyosós robotot felügyelt tanulással tanítani, ha egy ember 100 epizódban távirányítóval vezette, és ezt felvették?
+      <details><summary>Megoldás</summary>Lehet – ez az <b>utánzásos tanulás</b>: „ebben az állapotban az ember jobbra lépett” címkéket tanul a modell. De legfeljebb olyan jó lesz, mint az ember, és ha egy olyan helyzetbe kerül, amilyet az ember sosem mutatott, nincs mit utánoznia. Az RL a saját próbálkozásaiból tanul, és túlszárnyalhatja a tanárt – az AlphaGo is így lett jobb a profiknál (<a class="xref" href="#s155-c">15.5</a>).</details></li>
+  </ol>
+</details>
+
+<h3 id="s151-b">2. lépés: a stratégia – egy szabály minden állapotra</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – az összes lehetséges szabály</span>
+  A robot minden cellában eldöntheti, merre lép. Egy <b>szabálykönyv</b> megmondja ezt mind a három cellára. Hány ilyen van? Cellánként 2 lehetőség, 3 cella: $2^3 = 8$. Íme mind a nyolc, és hogy mi történik a 2. cellából indulva:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.86rem;text-align:center;max-width:620px">
+    <tr><th>1.</th><th>2.</th><th>3.</th><th>mi történik a 2.-ből?</th><th>összjutalom</th></tr>
+    <tr><td>←</td><td>←</td><td>←</td><td>2. → 1. → lépcső</td><td>−10</td></tr>
+    <tr><td>→</td><td>←</td><td>←</td><td>2. → 1. → 2. → 1. … örökké</td><td>0, sosem ér véget</td></tr>
+    <tr><td>←</td><td>→</td><td>←</td><td>2. → 3. → 2. → 3. … örökké</td><td>0, sosem ér véget</td></tr>
+    <tr><td>→</td><td>→</td><td>←</td><td>2. → 3. → 2. … örökké</td><td>0, sosem ér véget</td></tr>
+    <tr><td>←</td><td>←</td><td>→</td><td>2. → 1. → lépcső</td><td>−10</td></tr>
+    <tr><td>→</td><td>←</td><td>→</td><td>2. → 1. → 2. → 1. … örökké</td><td>0, sosem ér véget</td></tr>
+    <tr><td>←</td><td>→</td><td>→</td><td>2. → 3. → töltő</td><td>+10</td></tr>
+    <tr><td>→</td><td>→</td><td>→</td><td>2. → 3. → töltő</td><td>+10</td></tr>
+  </table></div>
+  Kettő ér célba. Az „1. cellában balra” vagy „jobbra” mindegy, ha a 2.-ből indulunk – de nem mindegy, ha az 1.-ből: ott csak a „→ → →” jó.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – stratégia (policy)</span>
+  A <b>stratégia</b> (<em>policy</em>), jele $\pi$, megmondja, mit tegyen az ágens az egyes állapotokban.
+  <ul style="margin:.2rem 0">
+    <li><b>Determinisztikus</b> stratégia: minden állapothoz egy cselekvés, $a = \pi(s)$. Ilyen a fenti nyolc.</li>
+    <li><b>Sztochasztikus</b> (véletlen) stratégia: minden állapotban egy eloszlás a cselekvéseken, $\pi(a \mid s)$. Pl. „mindenhol 50% balra, 50% jobbra”.</li>
+  </ul>
+  A megerősítéses tanulás <b>célja egy jó stratégia megtalálása</b>. <b>Miért kell a sztochasztikus is?</b> Mert próbálkozni csak úgy lehet, ha az ágens néha mást is tesz, mint amit eddig jónak hitt (<a class="xref" href="#s152-b">15.2</a>), és mert a nagy rendszerek (pl. a nyelvi modellek) eleve valószínűségeket adnak (<a class="xref" href="#s155-b">15.5</a>).
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a véletlen stratégia</span>
+    „Minden cellában fej vagy írás.” A 2. cellából indulva a robot a szimmetria miatt 50% eséllyel ér a töltőhöz, 50% eséllyel esik le: az <b>átlagos</b> összjutalom $0{,}5 \cdot 10 + 0{,}5 \cdot (-10) = 0$. Próbáld ki a widgetben 100 epizóddal!
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy sztochasztikus termosztát</span>
+    „Ha 20 °C alatt van, 90% eséllyel bekapcsol, 10% eséllyel nem.” Ez a 10% a kísérletezés: így derülhet ki, hogy talán elég később bekapcsolni.
+  </div>
+</div>
+<div class="widget" data-widget="corridor"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A stratégia nem egy útvonal.</b> Az útvonal egy adott indulásból adódik; a stratégia <b>minden</b> állapotra megmondja a teendőt – arra is, ahová az ágens véletlenül kerül.</li>
+    <li><b>A stratégiák száma robban.</b> A folyosón 8, egy sakktáblán csillagászati. Ezért nem próbáljuk ki mindet: okosabb módszer kell (<a class="xref" href="#s153">15.3</a>).</li>
+    <li><b>Lehet végtelen ciklus.</b> Egy rossz stratégia sosem ér véget. A gyakorlatban ezért van lépéskorlát (a widgetben 200).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – stratégiák</summary>
+  <ol>
+    <li>Hány determinisztikus stratégia van egy folyosón, amelyben 5 belső cella van, és minden cellában 2 cselekvés közül lehet választani? És egy 3 × 3-as rácsban, ahol 9 cella van, és 4 irány?
+      <details><summary>Megoldás</summary>$2^5 = 32$; $4^9 = 262\,144$. Minden állapotban függetlenül választunk, ezért a lehetőségek száma szorzódik.</details></li>
+    <li>A „→ → →” stratégiával mi történik az 1. cellából indulva? És a „← → →” stratégiával?
+      <details><summary>Megoldás</summary>„→ → →”: 1. → 2. → 3. → töltő, +10. „← → →”: 1. → lépcső, −10. A 2.-ből mindkettő jó, az 1.-ből csak az első.</details></li>
+    <li>A véletlen stratégiával a 3. cellából indulva mennyi az esélye, hogy az első lépés a töltőbe visz? És hogy pontosan a második lépésben ér oda?
+      <details><summary>Megoldás</summary>Első lépésben 0,5. Pontosan a másodikban 0: ha az első lépés nem a töltőbe vitt, akkor a 2. cellába, és onnan egy lépéssel nem lehet a töltőben. Legkorábban a harmadik lépésben juthat oda újra (3. → 2. → 3. → töltő: $0{,}5^3 = 0{,}125$).</details></li>
+    <li>Írj fel egy sztochasztikus stratégiát, amely a 2. cellából 80% eséllyel a töltő felé lép! Mennyi az esélye, hogy két lépésben a töltőhöz ér, ha a 3.-ban is 80% a jobbra?
+      <details><summary>Megoldás</summary>$\pi(\text{jobbra} \mid 2.) = 0{,}8$, $\pi(\text{balra} \mid 2.) = 0{,}2$, és ugyanígy a 3.-ban. Két lépésben: $0{,}8 \cdot 0{,}8 = 0{,}64$.</details></li>
+    <li>(nehezebb) Kő–papír–olló egy olyan ellenfél ellen, amely megfigyeli a stratégiádat, és a legjobb választ adja rá. Mennyi a nyerési esélyed egy determinisztikus stratégiával (pl. „mindig kő”), és mennyi a várható eredményed (győzelem +1, vereség −1) a „mindhárom 1/3 eséllyel” stratégiával?
+      <details><summary>Megoldás</summary>A „mindig kő” ellen az ellenfél mindig papírt mutat: 0% nyerés, minden kör −1. A véletlen stratégia ellen bármit választ, $\tfrac13 \cdot 1 + \tfrac13 \cdot 0 + \tfrac13 \cdot (-1) = 0$ a várható eredményed. Ha a környezetben egy alkalmazkodó ellenfél van (játékelmélet), a véletlen stratégia lehet a legjobb – ezt determinisztikus szabály nem tudja.</details></li>
+  </ol>
+</details>
+
+<h3 id="s151-c">3. lépés: Markov-döntési folyamat – ha a világ véletlen</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – csúszós padló</span>
+  Felmosták a folyosót. Ha a robot lépni próbál, <b>80%</b> eséllyel sikerül, <b>20%</b> eséllyel megcsúszik, és helyben marad. A „3. cellában jobbra” cselekvés következménye már nem biztos:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:520px">
+    <tr><th>honnan, mit</th><th>hová</th><th>valószínűség</th><th>jutalom</th></tr>
+    <tr><td rowspan="2">3., jobbra</td><td>töltő</td><td>0,8</td><td>+10</td></tr>
+    <tr><td>3. (megcsúszott)</td><td>0,2</td><td>0</td></tr>
+  </table></div>
+  A következő állapot csak a <b>mostani cellától</b> és a <b>cselekvéstől</b> függ – attól nem, hogyan jutott ide a robot. Ez a lényeg.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – Markov-döntési folyamat (MDP)</span>
+  Egy <b>Markov-döntési folyamatot</b> (<em>Markov decision process</em>) öt dolog ad meg:
+  <ul style="margin:.2rem 0">
+    <li>az <b>állapotok</b> halmaza ($S$) és a <b>cselekvések</b> halmaza ($A$);</li>
+    <li>az <b>átmenet-valószínűségek</b>: $P(s' \mid s, a)$ – mekkora eséllyel jutunk $s$-ből az $a$ cselekvéssel $s'$-be;</li>
+    <li>a <b>jutalom</b>: $r(s, a, s')$ – mennyit kapunk ezért az átmenetért;</li>
+    <li>a <b>diszkonttényező</b>, $\gamma$ (<a class="xref" href="#s153-a">15.3</a>).</li>
+  </ul>
+  A <b>Markov-tulajdonság</b>: a jövő csak a jelentől függ, a múlttól nem: $P(s_{t+1} \mid s_t, a_t, s_{t-1}, a_{t-1}, \dots) = P(s_{t+1} \mid s_t, a_t)$. <b>Miért fontos?</b> Mert így elég az állapotra építeni a döntést: egy stratégia $\pi(a \mid s)$ alakú lehet, nem kell a teljes előzményt figyelnie. Ha a tulajdonság nem teljesül, az <b>állapotot kell bővíteni</b>, amíg teljesül (pl. a labda helye mellé a sebességét is beleírjuk).
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a csúszós folyosó egy lépése</span>
+    A 2. cellából jobbra: 0,8 eséllyel a 3.-ba kerül, 0,2 eséllyel a 2.-ben marad. A jutalom mindkét esetben 0. A két valószínűség összege 1 – minden $(s, a)$ párra a $P(\cdot \mid s, a)$ egy eloszlás.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – amikor egy kép nem elég</span>
+    Egy pingpongjátékban egyetlen képkockán látszik, hol a labda, de az nem, <b>merre</b> megy. Egy képkocka így nem Markov-állapot. A DeepMind Atari-játékosa (<a class="xref" href="#s155-a">15.5</a>) ezért az utolsó <b>négy</b> képkockát adta be együtt: abból már kiolvasható a sebesség.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Terminológia</span>
+  <table style="font-size:.88rem;max-width:620px">
+    <tr><th>magyar</th><th>angol</th></tr>
+    <tr><td>megerősítéses tanulás</td><td>reinforcement learning (RL)</td></tr>
+    <tr><td>ágens, környezet</td><td>agent, environment</td></tr>
+    <tr><td>állapot, cselekvés (akció), jutalom</td><td>state, action, reward</td></tr>
+    <tr><td>stratégia</td><td>policy (a játékelméletben: strategy)</td></tr>
+    <tr><td>epizód, pálya</td><td>episode, trajectory (rollout)</td></tr>
+    <tr><td>Markov-döntési folyamat</td><td>Markov decision process (MDP)</td></tr>
+  </table>
+  A „policy” fordítása ingadozik (stratégia, irányelv, viselkedés); mi a <b>stratégia</b> szót használjuk, ahogy a játékelméletben.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Véletlen környezetben a jó stratégia is veszíthet.</b> Egy lépés eredménye szerencse kérdése; a stratégiát az <b>átlagos</b> (várható) összjutalom alapján ítéljük meg, sok epizódon.</li>
+    <li><b>A Markov-tulajdonság a leírásunk tulajdonsága.</b> Ugyanaz a világ lehet Markov, ha jól választjuk az állapotot, és nem az, ha valami fontosat kihagyunk.</li>
+    <li><b>Az ágens általában nem ismeri $P$-t és $r$-t.</b> Ha ismeri, <b>tervezhet</b> (<a class="xref" href="#s153-c">15.3</a>); ha nem, <b>tanulnia</b> kell (<a class="xref" href="#s154">15.4</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – MDP</summary>
+  <ol>
+    <li>A csúszós folyosón mennyi az esélye, hogy a „mindig jobbra” stratégiával a robot a 3. cellából <b>pontosan két</b> lépés alatt ér a töltőhöz?
+      <details><summary>Megoldás</summary>Először megcsúszik (0,2), aztán sikerül (0,8): $0{,}2 \cdot 0{,}8 = 0{,}16$.</details></li>
+    <li>A csúszós folyosón a 3.-ból „mindig jobbra” – mennyi az esélye, hogy legfeljebb 3 lépésen belül célba ér?
+      <details><summary>Megoldás</summary>Az ellentett: háromszor egymás után megcsúszik, $0{,}2^3 = 0{,}008$. Tehát $1 - 0{,}008 = 0{,}992$.</details></li>
+    <li>Add meg a csúszós folyosón a $P(\cdot \mid 1., \text{balra})$ eloszlást és a jutalmakat!
+      <details><summary>Megoldás</summary>0,8 eséllyel a lépcsőre lép (−10, vége), 0,2 eséllyel az 1.-ben marad (0).</details></li>
+    <li>Markov-állapot-e (a) a sakktábla állása, (b) egy autó helye a térképen, ha a cél a forgalomban való haladás, (c) egy beteg mai vérnyomása, ha a gyógyszer adagolásáról döntünk?
+      <details><summary>Megoldás</summary>(a) Szinte: kell még, ki következik, és néhány apróság (sáncolási jog, en passant, ismétlés). (b) Nem: a sebesség és az irány is kell. (c) Nem: a korábbi értékek, a már beadott gyógyszer hatása is számít – az állapotba be kell venni az előzmények összefoglalását.</details></li>
+    <li>(nehezebb) Egy kártyajátékban az ellenfél lapjait nem látod. Miért nem Markov-állapot a saját lapjaid halmaza, és mit tehetsz?
+      <details><summary>Megoldás</summary>Mert a jövő attól is függ, mi van az ellenfélnél, és erről a korábbi lépések (amit kijátszott) információt adnak – a múlt tehát számít. Megoldás: az állapotba vedd bele a kijátszott lapokat is, vagy egy <b>hiedelmet</b> (valószínűség-eloszlást) arról, mi lehet az ellenfélnél. Ez a <em>részlegesen megfigyelhető</em> MDP (POMDP) esete.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai15-151"></div>
+</section>
+
+<!-- ===================================================== 15.2 -->
+<section id="s152">
+<h2>15.2 Felfedezés vagy kiaknázás: a többkarú bandita ★★</h2>
+<p>A folyosón minden lépés hatása a következő lépésekre is kihat – ez a nehéz rész. Előbb vegyük ki: mi van, ha <b>csak egyetlen döntés</b> van, és utána azonnal jön a jutalom? Ez a <b>többkarú bandita</b> (<em>multi-armed bandit</em>), a név a „félkarú rabló” játékautomatából jön. Itt egyetlen kérdés marad, de az a legfontosabb: <b>próbáljak újat, vagy maradjak a bevált mellett?</b></p>
+<div class="box example" id="s152-automatak">
+  <span class="box-title">A szakasz példája – három automata</span>
+  Három automata: <b>A</b>, <b>B</b>, <b>C</b>. Minden húzásnál egy érmét (jutalom 1) vagy semmit (0) adnak. Az esélyek: A 0,3, B 0,5, C 0,7 – de ezt <b>te nem tudod</b>. Minden húzás után csak azt látod, mit adott az, amelyiket húztad.
+</div>
+
+<h3 id="s152-a">1. lépés: becslés átlagolással</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – négy húzás a C automatán</span>
+  A C négyszer egymás után: 1, 0, 1, 1. A becsült nyerési esély az eddigi átlag:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:520px">
+    <tr><th>húzás $n$</th><td>1.</td><td>2.</td><td>3.</td><td>4.</td></tr>
+    <tr><th>jutalom</th><td>1</td><td>0</td><td>1</td><td>1</td></tr>
+    <tr><th>átlag $Q_n$</th><td>1</td><td>0,5</td><td>0,667</td><td>0,75</td></tr>
+  </table></div>
+  Nem kell minden jutalmat megjegyezni. A 4. húzás után: $0{,}667 + \tfrac14(1 - 0{,}667) = 0{,}75$ – a régi átlagot a <b>meglepetés</b> (új jutalom − régi becslés) negyedével toltuk el.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – cselekvésérték és lépésenkénti átlagolás</span>
+  Egy $a$ kar <b>valódi értéke</b> a várható jutalma, $q(a) = \mathbb E[r \mid a]$ (<a class="xref" href="../02-matematikai-eszkoztar/#s25-c">2.5</a>). A <b>becslése</b> az eddigi jutalmak átlaga, $Q(a)$. Az $n$-edik jutalom után:
+  $$Q \leftarrow Q + \frac1n\,\big(r - Q\big).$$
+  <b>Miért így?</b> Mert $\frac{(n-1)Q + r}{n} = Q + \frac1n(r - Q)$ – ugyanaz az átlag, csak egy szám tárolásával. Ez a forma a fejezet minden tanulási szabályának őse: <b>új becslés = régi + lépésköz · (cél − régi)</b>. Ha az $1/n$ helyett állandó $\alpha$-t használunk (pl. 0,1), a friss jutalmak többet számítanak – ez jó, ha a világ közben változik.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – állandó lépésköz</span>
+    $Q = 0{,}5$, új jutalom $r = 1$, $\alpha = 0{,}1$: $Q \leftarrow 0{,}5 + 0{,}1 \cdot 0{,}5 = 0{,}55$. Egy 0-s jutalom után: $0{,}55 + 0{,}1 \cdot (-0{,}55) = 0{,}495$.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – mennyire bízhatsz a becslésben?</span>
+    A nagy számok törvénye (<a class="xref" href="../../valoszinusegszamitas/05-nagy-szamok-torvenye/#s53-c">Valószínűségszámítás 5.3</a>) szerint az átlag a valódi esélyhez tart. De 4 húzás után a 0,75 még nagyon bizonytalan: a C valódi esélye 0,7, de egy 0,5-ös automata is könnyen ad 3 nyerést 4-ből (az esély 31%).
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktató – csak arról tudsz, amit kipróbálsz</span>
+  A felügyelt tanulásban minden mintához megkapod a helyes választ. Itt csak a <b>választott</b> kar jutalmát látod – a többiről semmit. Ha egy kart sosem húzol, a becslése örökre a kezdőérték marad. Ez a <b>részleges visszajelzés</b> az RL lényege.
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – átlagolás</summary>
+  <ol>
+    <li>A B automata jutalmai: 0, 0, 1, 0, 1. Írd fel az átlagot minden húzás után!
+      <details><summary>Megoldás</summary>0; 0; 0,333; 0,25; 0,4.</details></li>
+    <li>$Q = 0{,}6$ 9 húzás után. Jön egy 0. Mennyi az új átlag a $1/n$ szabállyal?
+      <details><summary>Megoldás</summary>$n = 10$: $0{,}6 + \tfrac1{10}(0 - 0{,}6) = 0{,}54$.</details></li>
+    <li>Állandó $\alpha = 0{,}5$-tel indulj $Q = 0$-ról, a jutalmak 1, 1, 0! Mennyi lesz $Q$?
+      <details><summary>Megoldás</summary>$0 \to 0{,}5 \to 0{,}75 \to 0{,}375$. Az utolsó jutalom erősen húz: állandó $\alpha$ mellett a régi jutalmak súlya mértani sorozat szerint csökken.</details></li>
+    <li>Mennyi egy 0,5-ös automatánál az esélye annak, hogy 4 húzásból legalább 3-szor fizet?
+      <details><summary>Megoldás</summary>$\binom43 0{,}5^4 + \binom44 0{,}5^4 = 4/16 + 1/16 = 5/16 \approx 0{,}31$.</details></li>
+    <li>(nehezebb) Állandó $\alpha$-val mekkora súllyal szerepel a 3 lépéssel korábbi jutalom a becslésben? Számold ki $\alpha = 0{,}1$-re!
+      <details><summary>Megoldás</summary>A legutóbbi jutalom súlya $\alpha$, az előtte lévőé $\alpha(1 - \alpha)$, a 3 lépéssel korábbié $\alpha(1 - \alpha)^3 = 0{,}1 \cdot 0{,}729 \approx 0{,}073$. A súlyok exponenciálisan csökkennek – ezért hívják <b>exponenciálisan súlyozott mozgóátlagnak</b>.</details></li>
+  </ol>
+</details>
+
+<h3 id="s152-b">2. lépés: a mohó stratégia beragad – az ε-mohó nem</h3>
+<div class="box example" id="s152-b-tabla">
+  <span class="box-title">Kiinduló példa – tíz húzás ε = 0,1-gyel</span>
+  A legegyszerűbb ötlet: <b>mindig azt húzd, amelyiknek a becslése a legnagyobb</b> (mohó stratégia). Az ε-mohó ezt csak 90%-ban teszi; 10%-ban (ε = 0,1) véletlenül választ egy kart. Kezdetben minden becslés 0, döntetlennél az ábécében első nyer. Egy lehetséges futás:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.86rem;text-align:center;max-width:640px">
+    <tr><th>lépés</th><th>miért?</th><th>kar</th><th>jutalom</th><th>$Q_A$</th><th>$Q_B$</th><th>$Q_C$</th></tr>
+    <tr><td>1</td><td>mohó (döntetlen)</td><td>A</td><td>1</td><td>1</td><td>0</td><td>0</td></tr>
+    <tr><td>2</td><td>mohó</td><td>A</td><td>0</td><td>0,5</td><td>0</td><td>0</td></tr>
+    <tr><td>3</td><td>mohó</td><td>A</td><td>0</td><td>0,333</td><td>0</td><td>0</td></tr>
+    <tr><td>4</td><td><b>felfedezés</b> (véletlen)</td><td>C</td><td>1</td><td>0,333</td><td>0</td><td>1</td></tr>
+    <tr><td>5</td><td>mohó</td><td>C</td><td>1</td><td>0,333</td><td>0</td><td>1</td></tr>
+    <tr><td>6</td><td>mohó</td><td>C</td><td>0</td><td>0,333</td><td>0</td><td>0,667</td></tr>
+    <tr><td>7</td><td>mohó</td><td>C</td><td>1</td><td>0,333</td><td>0</td><td>0,75</td></tr>
+    <tr><td>8</td><td>mohó</td><td>C</td><td>1</td><td>0,333</td><td>0</td><td>0,8</td></tr>
+    <tr><td>9</td><td>mohó</td><td>C</td><td>0</td><td>0,333</td><td>0</td><td>0,667</td></tr>
+    <tr><td>10</td><td>mohó</td><td>C</td><td>1</td><td>0,333</td><td>0</td><td>0,714</td></tr>
+  </table></div>
+  Az első húzás szerencsés volt, ezért a mohó választás az A-ra ragadt: $Q_A = 0{,}333 \gt 0$, a B-t és a C-t sosem próbálná ki. Egy <b>tisztán mohó</b> stratégia itt örökre az A-nál maradna. A 4. lépés véletlen felfedezése találta meg a C-t.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – felfedezés, kiaknázás, ε-mohó stratégia</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Kiaknázás</b> (<em>exploitation</em>): a legjobbnak <b>hitt</b> cselekvés választása – a mostani tudásból a legtöbbet kihozni.</li>
+    <li><b>Felfedezés</b> (<em>exploration</em>): egy másik cselekvés kipróbálása – a tudás bővítése, a mostani jutalom árán.</li>
+    <li><b>ε-mohó</b> stratégia: $1 - \varepsilon$ valószínűséggel kiaknáz ($\arg\max_a Q(a)$), $\varepsilon$ valószínűséggel egy egyenletesen véletlen cselekvést választ.</li>
+  </ul>
+  <b>Miért kell?</b> A becslés csak a kipróbált karokról javul. Ha soha nem fedezel fel, egy szerencsétlen kezdés örökre rossz döntésbe zárhat. Ha mindig felfedezel, sosem használod ki, amit megtanultál. Az ε-mohó mindkettőt adagolja: minden kar végtelen sokszor sorra kerül, így a becslések a valódi értékhez tartanak, és az idő $1 - \varepsilon$ részében a legjobbat húzod.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – mennyi felfedezés? (2000 futás átlaga, 1000 húzás)</span>
+    <table style="font-size:.86rem;text-align:center">
+      <tr><th>$\varepsilon$</th><th>a legjobb kar aránya</th><th>átlagos jutalom / húzás</th></tr>
+      <tr><td>0 (mohó)</td><td>46%</td><td>0,55</td></tr>
+      <tr><td>0,01</td><td>72%</td><td>0,63</td></tr>
+      <tr><td>0,1</td><td>88%</td><td>0,67</td></tr>
+      <tr><td>0,3</td><td>78%</td><td>0,64</td></tr>
+    </table>
+    A mohó stratégia a futások 54%-ában a rossz karnál ragadt (döntetlennél itt véletlenül választott). A túl sok felfedezés is árt: ε = 0,3-nál az idő 20%-ában (a véletlen húzások kétharmadában) rossz kart húzol.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – az ε-mohó húzások eloszlása</span>
+    Ha a C a legjobbnak hitt kar, ε = 0,1 mellett mennyi eséllyel húzod a C-t? A kiaknázás 0,9, és a véletlen választásban is $1/3$ eséllyel C jön: $0{,}9 + 0{,}1 \cdot \tfrac13 \approx 0{,}933$. Az A-t és a B-t $0{,}1 \cdot \tfrac13 \approx 0{,}033$ eséllyel.
+  </div>
+</div>
+<div class="widget" data-widget="bandit-lab"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Felfedezés ≠ hiba.</b> A véletlen lépés tudatos befektetés. Egy ágens, amely tanulás közben „rosszul játszik”, lehet, hogy éppen jól tanul.</li>
+    <li><b>Az ε-t a végén csökkenteni kell.</b> Ha már biztosan tudod, melyik a legjobb, a felfedezés tiszta veszteség. A gyakorlatban ε idővel csökken (pl. 1-ről 0,01-re).</li>
+    <li><b>A véletlen választás buta.</b> Az ε-mohó a nyilvánvalóan rossz kart is ugyanannyiszor próbálja, mint az ígéreteset. Okosabban: <a class="xref" href="#s152-c">3. lépés</a>.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – ε-mohó</summary>
+  <ol>
+    <li>Négy kar van, ε = 0,2. Mekkora eséllyel választja az ágens a legjobbnak hitt kart, és mekkorával egy adott másikat?
+      <details><summary>Megoldás</summary>$0{,}8 + 0{,}2 \cdot \tfrac14 = 0{,}85$; egy adott másikat $0{,}2 \cdot \tfrac14 = 0{,}05$.</details></li>
+    <li>A <a class="xref" href="#s152-b-tabla">tízlépéses táblázatban</a> mennyi volt az összes jutalom, és hányszor volt felfedezés?
+      <details><summary>Megoldás</summary>Összesen 6 érme; 1 felfedezés (a 4. lépés). Ez illik az ε = 0,1-hez: 10 lépésből várhatóan 1.</details></li>
+    <li>Tiszta mohó stratégia, kezdetben minden $Q = 0$, döntetlennél A. Az A első húzása 0-t ad. Mit húz a második lépésben? És ha mindig 0-t ad?
+      <details><summary>Megoldás</summary>$Q_A = 0$, ugyanúgy döntetlen: megint A. Ha mindig 0, örökre az A-t húzza – a B-t és a C-t sosem próbálja ki. A döntetlen-szabály is lehet csapda.</details></li>
+    <li>Mennyi a várható jutalom húzásonként, ha a C a legjobbnak hitt kar, ε = 0,1, és az esélyek 0,3; 0,5; 0,7?
+      <details><summary>Megoldás</summary>$0{,}9 \cdot 0{,}7 + 0{,}1 \cdot \tfrac13(0{,}3 + 0{,}5 + 0{,}7) = 0{,}63 + 0{,}05 = 0{,}68$. A szimulációk 0,67-je ennél kicsit kevesebb, mert az elején még nem mindig a C a legjobbnak hitt.</details></li>
+    <li>(nehezebb) Miért rosszabb ε = 0,3, mint ε = 0,1, ha az első gyorsabban talál rá a C-re?
+      <details><summary>Megoldás</summary>Mert miután megtalálta, is az idő 30%-ában véletlenül választ, és ebből kétharmad rossz kar: a jutalom $0{,}7 \cdot 0{,}7 + 0{,}3 \cdot 0{,}5 = 0{,}64$ körül marad. A gyorsabb tanulás nem hozza vissza az örökös felfedezés árát – 1000 húzás alatt biztosan nem.</details></li>
+  </ol>
+</details>
+
+<h3 id="s152-c">3. lépés: megbánás – és okosabb felfedezés</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – mennyit veszítettél?</span>
+  A <a class="xref" href="#s152-b-tabla">tízlépéses futásban</a> háromszor húztad az A-t és hétszer a C-t. Ha mindig a C-t húztad volna, várhatóan $10 \cdot 0{,}7 = 7$ érmét kapsz. A választásaid várható értéke $3 \cdot 0{,}3 + 7 \cdot 0{,}7 = 5{,}8$. A különbség, $7 - 5{,}8 = 1{,}2$ érme, a tanulás ára.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – megbánás (regret)</span>
+  $T$ húzás után a <b>megbánás</b>:
+  $$\text{megbánás}_T = T \cdot q^* - \sum_{t=1}^{T} q(a_t),$$
+  ahol $q^*$ a legjobb kar valódi értéke, $q(a_t)$ a ténylegesen választotté. <b>Miért ezt mérjük?</b> Mert nem a szerencsét akarjuk mérni (hány érme jött), hanem a <b>döntések</b> minőségét. Egy jó stratégia megbánása lassan nő – idővel szinte mindig a legjobbat húzza –, a mohóé vagy az állandó ε-mohóé egyenesen (húzásonként állandóan veszít).
+</div>
+<div class="box def">
+  <span class="box-title">Két okosabb ötlet</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Optimista kezdőérték:</b> minden becslés induljon magasról (pl. $Q = 1$, mintha minden kar már egyszer fizetett volna). A mohó ágens így mindent kipróbál, mert minden csalódás lejjebb viszi a kipróbált kart, és a többi „jobbnak tűnik”.</li>
+    <li><b>UCB</b> (<em>upper confidence bound</em>, felső konfidenciakorlát): azt a kart húzd, amelyiknél ez a legnagyobb:
+      $$Q(a) + c\,\sqrt{\frac{\ln t}{N(a)}},$$
+      ahol $N(a)$ a kar eddigi húzásainak száma, $t$ az összes húzásé. A második tag a <b>bizonytalanság</b>: ritkán próbált karnál nagy. „Optimizmus a bizonytalansággal szemben” – amiről keveset tudsz, az még lehet a legjobb.</li>
+  </ul>
+  <b>Miért jobbak?</b> Mert célzottan fedeznek fel: a kevéssé ismert, de ígéretes kart próbálják, nem vakon bármelyiket. Az UCB megbánása $\ln T$ szerint nő – ez elméletileg a lehető legjobb nagyságrend.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – UCB egy lépése</span>
+    10 húzás után: $Q = (0{,}7;\ 0{,}4;\ 0{,}5)$, $N = (6;\ 1;\ 3)$, $c = 1$, $\ln 10 \approx 2{,}303$.
+    A: $0{,}7 + \sqrt{2{,}303/6} \approx 1{,}32$; B: $0{,}4 + \sqrt{2{,}303/1} \approx 1{,}92$; C: $0{,}5 + \sqrt{2{,}303/3} \approx 1{,}38$.
+    Az UCB a <b>B</b>-t húzza – egyetlen húzásból nem lehet tudni, mennyit ér. A mohó az A-t húzná.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – optimista kezdés</span>
+    $Q = (1;\ 1;\ 1)$, mohó. A húzás: 0 → $Q_A = 0{,}5$. Most a B és a C „jobb”: B: 0 → $Q_B = 0{,}5$; C: 1 → $Q_C = 1$. Három húzás alatt mindhárom kart kipróbálta, és a C vezet – véletlen húzás nélkül.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hol találkozol banditákkal?</span>
+  Hirdetés- és címlapválasztás, ajánlórendszerek, klinikai vizsgálatok adaptív kiosztása, weboldalak A/B tesztelése: minden olyan helyzet, ahol <b>egy döntés</b> után azonnal jön a visszajelzés, és csak a választottról. Az összevetésben (2000 futás, 1000 húzás) a megbánás: mohó 149, ε = 0,1: 32, optimista: 29, UCB ($c = 1$): 29, UCB ($c = 0{,}5$): 11. Egy harmadik ismert módszer a <b>Thompson-mintavétel</b>: minden karra egy valószínűség-eloszlást tart fenn a nyerési esélyről, és egy onnan húzott érték alapján választ.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A megbánás nem mérhető közvetlenül</b> – a valódi esélyeket nem ismerjük. Szimulációban vagy utólag becsüljük.</li>
+    <li><b>Az optimista kezdés csak az elején fedez fel.</b> Ha a világ később megváltozik (egy automata esélye nő), már nem veszi észre.</li>
+    <li><b>Az UCB $c$-je hangolandó.</b> Kis $c$: kevés felfedezés, beragadhat; nagy $c$: sokáig a rossz karokat is próbálja.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – megbánás és UCB</summary>
+  <ol>
+    <li>100 húzásból 20 volt A, 30 B, 50 C (esélyek 0,3; 0,5; 0,7). Mennyi a megbánás?
+      <details><summary>Megoldás</summary>$100 \cdot 0{,}7 - (20 \cdot 0{,}3 + 30 \cdot 0{,}5 + 50 \cdot 0{,}7) = 70 - 56 = 14$.</details></li>
+    <li>Mennyi a tiszta mohó stratégia megbánása 1000 húzás alatt, ha végig az A-nál ragad?
+      <details><summary>Megoldás</summary>$1000 \cdot (0{,}7 - 0{,}3) = 400$. Egyenesen nő: húzásonként 0,4.</details></li>
+    <li>Az UCB-példában ($t = 10$) mennyi a három pontszám $c = 0{,}3$-mal? Melyiket húzza?
+      <details><summary>Megoldás</summary>A: $0{,}7 + 0{,}3 \cdot 0{,}620 \approx 0{,}886$; B: $0{,}4 + 0{,}3 \cdot 1{,}517 \approx 0{,}855$; C: $0{,}5 + 0{,}3 \cdot 0{,}876 \approx 0{,}763$. Az A-t – kis $c$-vel az UCB közel van a mohóhoz.</details></li>
+    <li>Ha egy kart nagyon sokszor húztál ($N(a) \to \infty$), mi történik a bónuszával? És ha sosem húzod ($t$ nő, $N(a)$ marad)?
+      <details><summary>Megoldás</summary>Sokszor húzva a bónusz 0-hoz tart: a pontszám a becslés. Ha sosem húzod, a bónusz lassan ($\sqrt{\ln t}$-vel) nő – előbb-utóbb újra sorra kerül. Így minden kar végtelen sokszor kipróbálásra kerül, de a rosszak egyre ritkábban.</details></li>
+    <li>(nehezebb) Egy hírportál naponta 100 000 olvasónak mutat egy címlapcikket 5 jelölt közül, és a kattintást méri. Miért jobb egy bandita, mint egy hagyományos A/B teszt, amely egy hétig egyenlően osztja szét az olvasókat, és utána választ?
+      <details><summary>Megoldás</summary>Az A/B teszt egy hétig az olvasók 80%-ának mutatja a nem legjobb cikkeket – ez a megbánása. A bandita menet közben egyre többször mutatja az ígéreteseket, így a kísérlet ára kisebb. Cserébe nehezebb utólag statisztikailag tisztán összehasonlítani a jelölteket (a kiosztás nem egyenletes, és függ a korábbi eredményektől).</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai15-152"></div>
+</section>
+
+<!-- ===================================================== 15.3 -->
+<section id="s153">
+<h2>15.3 Hozam, érték és a Bellman-egyenlet ★★</h2>
+<p>A banditánál minden döntés után azonnal jött a jutalom. A folyosón nem: az első lépés jutalma mindig 0, mégis van jó és rossz első lépés. Kell egy szám, amely azt méri, <b>mennyit ér egy állapot vagy egy cselekvés hosszú távon</b>. Ehhez előbb el kell döntenünk, hogyan adjuk össze a jövő jutalmait.</p>
+
+<h3 id="s153-a">1. lépés: a diszkontált hozam – mennyit ér a jövő?</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – rövid és hosszú út a töltőhöz</span>
+  A <a class="xref" href="#s151-a">15.1 kiinduló példájában</a> a robot négy lépésben ért a töltőhöz (2. → 3. → 2. → 3. → töltő), a jutalmak $0, 0, 0, 10$. A legrövidebb út kétlépéses: $0, 10$. A sima összeg mindkettőnél 10 – pedig a rövidebb jobb. Tegyük fel, hogy minden lépés után a jutalom <b>10%-ot veszít az értékéből</b> (szorzó: $\gamma = 0{,}9$):
+  $$\text{négy lépés: } 0 + 0{,}9 \cdot 0 + 0{,}9^2 \cdot 0 + 0{,}9^3 \cdot 10 = 7{,}29, \qquad \text{két lépés: } 0 + 0{,}9 \cdot 10 = 9.$$
+  Most már a rövidebb út ér többet.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – diszkontált hozam</span>
+  A $t$ időponttól számított <b>hozam</b> a jövőbeli jutalmak súlyozott összege:
+  $$G_t = r_t + \gamma\,r_{t+1} + \gamma^2\,r_{t+2} + \dots = \sum_{k=0}^{\infty} \gamma^k\,r_{t+k}, \qquad 0 \le \gamma \le 1.$$
+  $\gamma$ a <b>diszkonttényező</b>. A legfontosabb tulajdonsága a <b>rekurzió</b>: $G_t = r_t + \gamma\,G_{t+1}$ – a hozam a mostani jutalom plusz a <b>következő</b> állapottól számított hozam, egy kicsit leértékelve.
+  <br><b>Miért diszkontálunk?</b> (1) A közelebbi jutalom biztosabb (lehet, hogy a világ közben megszűnik, a robot lemerül). (2) A rövidebb út így többet ér. (3) Végtelen feladatban a sima összeg végtelen lehet, a diszkontált nem: ha minden jutalom legfeljebb $R$, akkor $G \le R/(1 - \gamma)$ (mértani sor, <a class="xref" href="../../analizis/02-szamsorozatok-es-sorok/#s26-b">Analízis 2.6</a>).
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy késő jutalom</span>
+    Jutalmak $0, 0, 1$, $\gamma = 0{,}9$: $G_0 = 0{,}9^2 \cdot 1 = 0{,}81$. Visszafelé a rekurzióval: $G_2 = 1$, $G_1 = 0 + 0{,}9 \cdot 1 = 0{,}9$, $G_0 = 0 + 0{,}9 \cdot 0{,}9 = 0{,}81$.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – örökké tartó jutalom</span>
+    Minden lépésben +1, végtelen sokáig, $\gamma = 0{,}9$: $G = 1 + 0{,}9 + 0{,}81 + \dots = \frac1{1 - 0{,}9} = 10$. Ezért mondjuk, hogy $\gamma = 0{,}9$ mellett az ágens <b>horizontja</b> nagyjából 10 lépés; $\gamma = 0{,}99$-nél 100.
+  </div>
+</div>
+<div class="widget" data-widget="discount"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>$\gamma$ a feladat része, nem csak egy hangolható szám.</b> $\gamma = 0$: az ágens csak a következő jutalmat nézi (rövidlátó). $\gamma \to 1$: messze előre néz, de lassabban tanul, és a becslései zajosabbak. Más $\gamma$ más legjobb stratégiát adhat (próbáld ki az A/B ajánlatot!).</li>
+    <li><b>A hozam egy epizód egy pályájára vonatkozik</b>, ezért véletlen. Ugyanabból az állapotból más-más pálya más hozamot ad – az érték ezek <b>átlaga</b> lesz (<a class="xref" href="#s153-b">2. lépés</a>).</li>
+    <li><b>Epizódos feladatnál a vég után nincs több jutalom</b>: a végállapot hozama 0. Ezt könnyű elfelejteni a képletekben.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – hozam</summary>
+  <ol>
+    <li>Jutalmak $1, 1, 1$, aztán vége, $\gamma = 0{,}9$. Mennyi $G_0$?
+      <details><summary>Megoldás</summary>$1 + 0{,}9 + 0{,}81 = 2{,}71$.</details></li>
+    <li>Jutalmak $2, 0, 0, 5$, $\gamma = 0{,}9$. Mennyi $G_0$?
+      <details><summary>Megoldás</summary>$2 + 0{,}9^3 \cdot 5 = 2 + 3{,}645 = 5{,}645$.</details></li>
+    <li>A folyosón a „mindig jobbra” stratégiával mennyi a hozam az 1. cellából $\gamma = 0{,}9$, illetve $\gamma = 0{,}5$ mellett?
+      <details><summary>Megoldás</summary>Három lépés, csak az utolsó jutalom 10: $0{,}9^2 \cdot 10 = 8{,}1$; $0{,}5^2 \cdot 10 = 2{,}5$. Kisebb $\gamma$ mellett a távoli cél sokkal kevesebbet ér.</details></li>
+    <li>A rekurzióval: ha $G_1 = 10$ és $r_0 = 2$, $\gamma = 0{,}9$, mennyi $G_0$?
+      <details><summary>Megoldás</summary>$G_0 = 2 + 0{,}9 \cdot 10 = 11$.</details></li>
+    <li>(nehezebb) Melyik $\gamma$ mellett egyforma jó a „+1 most” és a „+3 tíz lépés múlva”? Mit választ az ágens $\gamma = 0{,}8$-nál és $0{,}9$-nél?
+      <details><summary>Megoldás</summary>$3\gamma^{10} = 1$, $\gamma = 3^{-1/10} \approx 0{,}896$. $\gamma = 0{,}8$: $3 \cdot 0{,}8^{10} \approx 0{,}32 \lt 1$ → az azonnali +1-et. $\gamma = 0{,}9$: $3 \cdot 0{,}9^{10} \approx 1{,}05 \gt 1$ → a +3-at.</details></li>
+  </ol>
+</details>
+
+<h3 id="s153-b">2. lépés: az értékfüggvény – $V$ és $Q$</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – mennyit ér egy cella a véletlen robotnak?</span>
+  A robot <b>véletlen</b> stratégiával jár (50% balra, 50% jobbra), $\gamma = 0{,}9$. Mennyi a várható hozam az egyes cellákból? Jelöljük $V(1), V(2), V(3)$-mal. Egy lépés után a robot vagy végállapotba ér, vagy egy szomszéd cellába – ahonnan megint a szomszéd értéke számít:
+  $$\begin{aligned}
+  V(1) &= 0{,}5 \cdot (-10) + 0{,}5 \cdot (0 + 0{,}9\,V(2)),\\
+  V(2) &= 0{,}5 \cdot (0 + 0{,}9\,V(1)) + 0{,}5 \cdot (0 + 0{,}9\,V(3)),\\
+  V(3) &= 0{,}5 \cdot (0 + 0{,}9\,V(2)) + 0{,}5 \cdot 10.
+  \end{aligned}$$
+  A szimmetria miatt $V(2) = 0$, és akkor $V(1) = -5$, $V(3) = 5$. Ellenőrzés: $V(2) = 0{,}45 \cdot (-5) + 0{,}45 \cdot 5 = 0$ ✓. A 3. cella „jó hely”, az 1. „rossz” – pedig mindkettőben 0 a jutalom.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – állapotérték és cselekvésérték</span>
+  Egy $\pi$ stratégia mellett:
+  <ul style="margin:.2rem 0">
+    <li>az <b>állapotérték</b>: $V^\pi(s) = \mathbb E_\pi[\,G_t \mid s_t = s\,]$ – mennyi a várható hozam, ha $s$-ből indulunk, és $\pi$ szerint játszunk;</li>
+    <li>a <b>cselekvésérték</b> (Q-függvény): $Q^\pi(s, a) = \mathbb E_\pi[\,G_t \mid s_t = s, a_t = a\,]$ – mennyi, ha $s$-ben <b>először</b> $a$-t tesszük, <b>utána</b> $\pi$ szerint.</li>
+  </ul>
+  A kettő kapcsolata: $V^\pi(s) = \sum_a \pi(a \mid s)\,Q^\pi(s, a)$, és $Q^\pi(s, a) = \sum_{s'} P(s' \mid s, a)\,\big[r + \gamma\,V^\pi(s')\big]$. Ezekből a <b>Bellman-egyenlet</b> egy adott stratégiára:
+  $$V^\pi(s) = \sum_a \pi(a \mid s) \sum_{s'} P(s' \mid s, a)\,\big[r(s, a, s') + \gamma\,V^\pi(s')\big].$$
+  <b>Miért ilyen fontos?</b> Mert a hozam rekurzióját ($G_t = r_t + \gamma G_{t+1}$) viszi át a várható értékekre: <b>egy állapot értéke = a következő lépés jutalma + a következő állapot értéke, leértékelve</b> – átlagolva mindarra, ami történhet. A késői jutalom így „szivárog vissza” a korábbi állapotokba.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a véletlen robot $Q$-értékei</span>
+    $Q(2, \text{jobbra}) = 0 + 0{,}9 \cdot V(3) = 4{,}5$, $Q(2, \text{balra}) = 0 + 0{,}9 \cdot V(1) = -4{,}5$. Átlaguk $V(2) = 0$ ✓. A $Q$ megmutatja, hogy a 2. cellában a jobbra lépés jobb – <b>még a véletlen stratégia értékeiből is</b> kiolvasható, merre érdemes menni.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a „mindig jobbra” értékei</span>
+    $V(3) = 10$, $V(2) = 0{,}9 \cdot 10 = 9$, $V(1) = 0{,}9 \cdot 9 = 8{,}1$. Determinisztikus stratégiánál és világban nincs átlagolás: az érték egyetlen pálya hozama.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az érték mindig egy stratégiához tartozik.</b> Ugyanaz a cella a véletlen robotnak 0-t, a „mindig jobbra” robotnak 9-et ér. „Mennyit ér ez az állás?” – csak úgy értelmes, ha megmondod, ki játszik tovább.</li>
+    <li><b>$V$ vagy $Q$?</b> $V$-ből döntéshez a világ ismerete is kell (hová visz egy lépés?), $Q$-ból nem: elég a legnagyobb $Q(s, a)$-t választani. Ezért tanul a modell nélküli RL $Q$-t (<a class="xref" href="#s154">15.4</a>).</li>
+    <li><b>Érték ≠ jutalom.</b> A jutalom egy lépés azonnali visszajelzése, a környezet adja; az érték a jövő várható összege, az ágens becsli.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – értékek</summary>
+  <ol>
+    <li>A véletlen robotnál ($\gamma = 0{,}9$) mennyi $Q(1, \text{balra})$, $Q(1, \text{jobbra})$, $Q(3, \text{jobbra})$?
+      <details><summary>Megoldás</summary>$Q(1, \text{balra}) = -10$ (lépcső, vége); $Q(1, \text{jobbra}) = 0 + 0{,}9 \cdot V(2) = 0$; $Q(3, \text{jobbra}) = 10$.</details></li>
+    <li>Ellenőrizd, hogy $V(1) = -5$ kielégíti a Bellman-egyenletet!
+      <details><summary>Megoldás</summary>$0{,}5 \cdot Q(1, \text{balra}) + 0{,}5 \cdot Q(1, \text{jobbra}) = 0{,}5 \cdot (-10) + 0{,}5 \cdot 0 = -5$ ✓.</details></li>
+    <li>A „mindig jobbra” robotnál mennyi $Q(2, \text{balra})$? (Egyszer balra, utána mindig jobbra.)
+      <details><summary>Megoldás</summary>$0 + 0{,}9 \cdot V(1) = 0{,}9 \cdot 8{,}1 = 7{,}29$ – ugyanaz, mint a <a class="xref" href="#s151-a">15.1 négylépéses epizódjának</a> hozama. Rosszabb, mint $Q(2, \text{jobbra}) = 9$.</details></li>
+    <li>Csúszós padlón (20% helyben marad) mennyi $V(3)$ a „mindig jobbra” stratégiával, $\gamma = 0{,}9$?
+      <details><summary>Megoldás</summary>$V(3) = 0{,}8 \cdot 10 + 0{,}2 \cdot 0{,}9\,V(3)$, tehát $V(3)(1 - 0{,}18) = 8$, $V(3) = 8/0{,}82 \approx 9{,}76$.</details></li>
+    <li>(nehezebb) Ugyanígy számold ki $V(2)$-t a csúszós padlón!
+      <details><summary>Megoldás</summary>$V(2) = 0{,}8 \cdot 0{,}9\,V(3) + 0{,}2 \cdot 0{,}9\,V(2)$, $V(2) = 0{,}72 \cdot 9{,}756 / 0{,}82 \approx 8{,}57$. (A widgetben: „csúszós padló”, és figyeld a „mindig jobbra” értékét – a <a class="xref" href="#s153-c">3. lépés</a> widgetje pontosan ezt számolja ki.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s153-c">3. lépés: a legjobb stratégia – Bellman-optimalitás és értékiteráció</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – értékiteráció a folyosón, három söprésben</span>
+  Ismerjük a folyosó térképét. Indulj abból, hogy minden cella értéke 0, és minden söprésben minden cellára számold ki: <b>a legjobb cselekvés</b> értékét a <b>régi</b> számokból, $\max_a [r + 0{,}9\,V(s')]$.
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:560px">
+    <tr><th>söprés</th><th>$V(1)$</th><th>$V(2)$</th><th>$V(3)$</th><th>mi történt?</th></tr>
+    <tr><td>0</td><td>0</td><td>0</td><td>0</td><td>kezdés</td></tr>
+    <tr><td>1</td><td>$\max(-10;\ 0{,}9 \cdot 0) = 0$</td><td>$\max(0;\ 0) = 0$</td><td>$\max(0;\ 10) = 10$</td><td>a töltő jutalma megjelent a 3.-ban</td></tr>
+    <tr><td>2</td><td>0</td><td>$\max(0;\ 0{,}9 \cdot 10) = 9$</td><td>10</td><td>egy cellával odébb szivárgott</td></tr>
+    <tr><td>3</td><td>$\max(-10;\ 0{,}9 \cdot 9) = 8{,}1$</td><td>9</td><td>10</td><td>elérte az 1.-et</td></tr>
+    <tr><td>4</td><td>8,1</td><td>9</td><td>10</td><td>nem változik: kész</td></tr>
+  </table></div>
+  Söprésenként egy cellával messzebbre jut el a hír, hogy „arra van a töltő”. A végén minden cellában a <b>jobbra</b> adja a maximumot: ez a legjobb stratégia, $V^* = (8{,}1;\ 9;\ 10)$.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – Bellman-optimalitási egyenlet és értékiteráció</span>
+  A <b>legjobb</b> (optimális) stratégia értékei, $V^*$ és $Q^*$, kielégítik:
+  $$V^*(s) = \max_a \sum_{s'} P(s' \mid s, a)\,\big[r + \gamma\,V^*(s')\big], \qquad Q^*(s, a) = \sum_{s'} P(s' \mid s, a)\,\big[r + \gamma \max_{a'} Q^*(s', a')\big].$$
+  Az átlagolás a stratégián itt <b>maximumra</b> cserélődik: a legjobb ágens mindig a legjobb cselekvést választja. Ha $Q^*$ megvan, a legjobb stratégia egyszerű: $\pi^*(s) = \arg\max_a Q^*(s, a)$.
+  <br><b>Értékiteráció:</b> indulj tetszőleges $V$-ből (pl. 0), és ismételd minden állapotra: $V(s) \leftarrow \max_a \sum_{s'} P(s' \mid s, a)[r + \gamma V(s')]$, amíg a változás elhanyagolható. <b>Miért konvergál?</b> $\gamma \lt 1$ mellett minden söprés legalább $\gamma$-szorosára csökkenti a legnagyobb hibát (a frissítés <em>összehúzó leképezés</em>), így a hiba mértani sorozat szerint tűnik el. Ez <b>tervezés</b> (dinamikus programozás, R. Bellman, 1957): a térkép ($P$ és $r$) ismeretét kívánja.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy cella frissítése csúszós padlón</span>
+    Csúszós padló, $\gamma = 0{,}9$, a régi értékek $V(2) = 9$, $V(3) = 10$. A 3. cella „jobbra” értéke: $0{,}8 \cdot 10 + 0{,}2 \cdot (0 + 0{,}9 \cdot 10) = 9{,}8$; a „balra”: $0{,}8 \cdot 0{,}9 \cdot 9 + 0{,}2 \cdot 0{,}9 \cdot 10 = 8{,}28$. Az új $V(3) = 9{,}8$. (Végül 9,76-ra áll be.)
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a raktár</span>
+    Egy 5 × 4-es raktárban (falak, egy olajfolt −10, a töltő +10, minden lépés −1) az értékiteráció 8 söprés alatt áll be. A töltő melletti cella értéke 10, a következőé $-1 + 0{,}9 \cdot 10 = 8$, aztán 6,2; 4,58; … a startcelláé 0,63. Nézd meg a widgetben söprésenként!
+  </div>
+</div>
+<div class="widget" data-widget="bellman-backup"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Szinkron frissítés: a régi számokból.</b> Ha egy söprésen belül már az újonnan kiszámolt értékeket használod, az is konvergál (sőt gyorsabban), de a táblázat más lesz. A widget és a fenti táblázat a régieket használja.</li>
+    <li><b>Az értékiterációhoz ismerni kell a világot.</b> A valódi robot nem tudja, hová vezet egy lépés, és mekkora a jutalom. Ezt a korlátot oldja fel a <a class="xref" href="#s154">15.4</a>.</li>
+    <li><b>Nagy állapottérben reménytelen.</b> Minden söprés minden állapotot érint. A go-ban kb. $10^{170}$ szabályos állás van – itt táblázat helyett függvényközelítés kell (<a class="xref" href="#s155-a">15.5</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – értékiteráció</summary>
+  <ol>
+    <li>Végezd el a folyosó értékiterációját $\gamma = 0{,}5$-tel! Mi lesz $V^*$, és változik-e a legjobb stratégia?
+      <details><summary>Megoldás</summary>1. söprés: $(0;\ 0;\ 10)$; 2.: $(0;\ 5;\ 10)$; 3.: $(2{,}5;\ 5;\ 10)$. A stratégia ugyanaz (mindenhol jobbra): az 1. cellában $\max(-10;\ 2{,}5) = 2{,}5$.</details></li>
+    <li>Mennyi $Q^*(2, \text{balra})$ és $Q^*(1, \text{balra})$ $\gamma = 0{,}9$-nél?
+      <details><summary>Megoldás</summary>$Q^*(2, \text{balra}) = 0 + 0{,}9 \cdot V^*(1) = 7{,}29$; $Q^*(1, \text{balra}) = -10$.</details></li>
+    <li>A raktárban a töltőtől 3 lépésre lévő cella értéke 6,2 ($\gamma = 0{,}9$, lépésenként −1). Mennyi a 4 lépésre lévőé?
+      <details><summary>Megoldás</summary>$-1 + 0{,}9 \cdot 6{,}2 = 4{,}58$.</details></li>
+    <li>Egy söprés után a legnagyobb változás 2 volt. Legfeljebb mennyi lesz a következő söprés után, $\gamma = 0{,}9$ mellett?
+      <details><summary>Megoldás</summary>Legfeljebb $0{,}9 \cdot 2 = 1{,}8$: a frissítés a hibákat legalább $\gamma$-szorosukra húzza össze.</details></li>
+    <li>(nehezebb) A raktárban kapcsold be a csúszós padlót a widgetben! Melyik cellában változik meg a legjobb cselekvés, és miért?
+      <details><summary>Megoldás</summary>A jobb alsó sarokban: csúszás nélkül a „fel” és a „balra” egyformán jó (két nyíl), csúszósan csak a „balra” marad. A „fel” az olajfolt alatti cellába vinne, és onnan egy rossz csúszás az olajba. (A bal oszlop alsó két cellájában is eltűnik egy döntetlen.) Az értékek is mind csökkennek: a startcelláé 0,63-ról −1,4 körülire. A legjobb stratégia a <b>kockázatot is</b> figyelembe veszi – ezt a valószínűségekkel számoló Bellman-egyenlet adja.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai15-153"></div>
+</section>
+
+<!-- ===================================================== 15.4 -->
+<section id="s154">
+<h2>15.4 Q-tanulás ★★</h2>
+<p>Az értékiteráció tökéletes – ha ismered a térképet. A valódi robot viszont nem tudja előre, hová visz egy lépés, és mennyi jutalom jár érte. Csak <b>kipróbálhatja</b>. Kell egy módszer, amely a <b>tapasztalt</b> lépésekből becsli ugyanazokat az értékeket. Ez a <b>modell nélküli</b> (<em>model-free</em>) tanulás.</p>
+
+<h3 id="s154-a">1. lépés: tanulás egy lépés után – az időbeli különbség</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a késő villamos</span>
+  Reggel azt becsülöd, hogy 30 perc alatt érsz be. 10 perc után a villamos megáll: pályahiba, a kijelző szerint még 35 perc. Az <b>új</b> becslésed a teljes útra: $10 + 35 = 45$ perc. Nem kell megvárnod, hogy beérj: <b>már most</b> tudod, hogy 15 perccel tévedtél. Ha a becslésedet félúton közelíted ($\alpha = 0{,}5$), holnapra ezzel indulsz: $30 + 0{,}5 \cdot 15 = 37{,}5$ perc.
+  <br>A 15 perc az <b>időbeli különbség</b>: két egymást követő becslés eltérése.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – TD-hiba és TD-tanulás</span>
+  Egy lépés után ($s \to s'$, jutalom $r$) a <b>TD-cél</b> $r + \gamma\,V(s')$: a kapott jutalom plusz a következő állapot <b>becsült</b> értéke. A <b>TD-hiba</b>:
+  $$\delta = r + \gamma\,V(s') - V(s),$$
+  és a frissítés: $V(s) \leftarrow V(s) + \alpha\,\delta$. Végállapotnál $V(s') = 0$.
+  <br><b>Miért működik?</b> A Bellman-egyenlet szerint a helyes értékekre $\mathbb E[\delta] = 0$. Ha a hiba átlagosan pozitív, az érték túl kicsi – feljebb toljuk, és fordítva. Ugyanaz a „régi + lépésköz · (cél − régi)” forma, mint a banditánál (<a class="xref" href="#s152-a">15.2</a>), csak a cél most részben <b>saját becslés</b> – ezt hívják <b>bootstrapping</b>nek (R. Sutton, 1988).
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – TD a folyosón</span>
+    Minden $V = 0$, $\alpha = 0{,}5$, $\gamma = 0{,}9$. A robot a 3.-ból a töltőre lép (+10): $\delta = 10 + 0 - 0 = 10$, $V(3) = 5$. Később a 2.-ből a 3.-ba lép (0): $\delta = 0 + 0{,}9 \cdot 5 - 0 = 4{,}5$, $V(2) = 2{,}25$. A töltő híre egy lépéssel visszaszivárgott – térkép nélkül.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – Monte-Carlo: megvárni a végét</span>
+    A másik út: várd meg az epizód végét, és a <b>valódi hozam</b> felé told az értéket: $V(s) \leftarrow V(s) + \alpha\,(G - V(s))$. A 15.1 négylépéses epizódjában a 2. cella első látogatásának hozama $G = 7{,}29$; $\alpha = 0{,}5$-tel $V(2) = 3{,}645$. Pontos cél, de csak a végén, és egy pálya szerencséje (zaja) teljesen benne van (<a class="xref" href="../../valoszinusegszamitas/05-nagy-szamok-torvenye/#s55-b">Monte-Carlo-módszer</a>).
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Monte-Carlo vagy TD?</span>
+  <table style="font-size:.88rem;max-width:620px">
+    <tr><th></th><th>Monte-Carlo</th><th>TD</th></tr>
+    <tr><td>cél</td><td>a valódi hozam $G$</td><td>$r + \gamma V(s')$ – becslésből</td></tr>
+    <tr><td>mikor frissít?</td><td>az epizód végén</td><td>minden lépés után</td></tr>
+    <tr><td>torzítás</td><td>nincs</td><td>van, amíg $V$ rossz</td></tr>
+    <tr><td>zaj (variancia)</td><td>nagy: az egész pálya véletlenje</td><td>kicsi: csak egy lépésé</td></tr>
+    <tr><td>vég nélküli feladat</td><td>nem megy</td><td>megy</td></tr>
+  </table>
+  A kettő között átmenet is van: $n$ lépés valódi jutalom, utána becslés ($n$-lépéses TD, TD($\lambda$)).
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A TD-hiba nem a jóslat hibája a végeredményhez képest</b>, hanem két egymás utáni becslés különbsége. Lehet nagy, még ha a végén minden rendben is lesz.</li>
+    <li><b>Végállapotban a jövő értéke 0.</b> Ha itt is $\gamma V(s')$-t számolsz egy tetszőleges számmal, a hiba végigszivárog az egész táblán.</li>
+    <li><b>Kiegészítés – az agy is TD-t számol?</b> A dopamin-neuronok tüzelése majmokban a jutalom-előrejelzés hibájára hasonlít: a váratlan jutalomra erős, a megszokott jutalomra gyenge válasz, az elmaradó jutalomra visszaesés (W. Schultz, P. Dayan, P. R. Montague, 1997). Ez a mesterséges és a biológiai tanulás egyik legszebb találkozása.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – TD</summary>
+  <ol>
+    <li>A villamosos példában $\alpha = 0{,}1$-gyel mennyi lesz a holnapi becslés?
+      <details><summary>Megoldás</summary>$30 + 0{,}1 \cdot 15 = 31{,}5$ perc.</details></li>
+    <li>$V(s) = 6{,}2$, $r = -1$, $V(s') = 8$, $\gamma = 0{,}9$. Mennyi a TD-hiba? Mit jelent?
+      <details><summary>Megoldás</summary>$-1 + 7{,}2 - 6{,}2 = 0$: a becslések összhangban vannak – ezek épp a raktár helyes értékei.</details></li>
+    <li>$V(2) = 9$, a robot a 2.-ből a 3.-ba lép (0), $V(3) = 9$, $\gamma = 0{,}9$. Mennyi a TD-hiba?
+      <details><summary>Megoldás</summary>$0 + 8{,}1 - 9 = -0{,}9$: a 3. cellát (9) túl kicsinek, vagy a 2.-t túl nagynak gondoljuk. Ha $V(3)$ a helyes 10-re nő, a hiba 0 lesz.</details></li>
+    <li>A folyosós TD-példa folytatása: a robot ismét a 3.-ból a töltőre lép. Mennyi lesz $V(3)$?
+      <details><summary>Megoldás</summary>$5 + 0{,}5 \cdot (10 - 5) = 7{,}5$.</details></li>
+    <li>(nehezebb) Egy 200 lépéses go-játszmában a jutalom csak a végén jön. Miért tanul gyorsabban a TD, mint a Monte-Carlo, és mi az ára?
+      <details><summary>Megoldás</summary>A Monte-Carlo minden állást a játszma kimenetelével frissít – egyetlen végeredményben 200 lépés szerencséje keveredik, nagy a zaj. A TD minden állást a következő állás becsléséhez igazít, ami kevésbé zajos. Az ár: amíg a becslések rosszak, a TD rossz cél felé tolja az értékeket (torzítás), és a jó hír csak lépésenként szivárog vissza.</details></li>
+  </ol>
+</details>
+
+<h3 id="s154-b">2. lépés: a Q-tanulás frissítése</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – három epizód a folyosón</span>
+  A $V$-ből térkép nélkül nem tudsz dönteni (nem tudod, hová visz egy lépés). Tanuljunk inkább $Q$-t! Minden $Q = 0$, $\alpha = 0{,}5$, $\gamma = 0{,}9$. A robot háromszor egymás után ugyanazt teszi: 2. → jobbra → 3. → jobbra → töltő. Frissítés minden lépés után, a cél: $r + \gamma \max_{a'} Q(s', a')$.
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th>epizód</th><th>$Q(2, \to)$ frissítése</th><th>$Q(3, \to)$ frissítése</th></tr>
+    <tr><td>1.</td><td>$0 + 0{,}5\,(0 + 0{,}9 \cdot 0 - 0) = 0$</td><td>$0 + 0{,}5\,(10 - 0) = 5$</td></tr>
+    <tr><td>2.</td><td>$0 + 0{,}5\,(0 + 0{,}9 \cdot 5 - 0) = 2{,}25$</td><td>$5 + 0{,}5\,(10 - 5) = 7{,}5$</td></tr>
+    <tr><td>3.</td><td>$2{,}25 + 0{,}5\,(0{,}9 \cdot 7{,}5 - 2{,}25) = 4{,}5$</td><td>$7{,}5 + 0{,}5\,(10 - 7{,}5) = 8{,}75$</td></tr>
+  </table></div>
+  A $Q(3, \to)$ a 10 felé, a $Q(2, \to)$ a 9 felé tart – ezek épp a $Q^*$ értékek (<a class="xref" href="#s153-c">15.3</a>). Az első epizódban a 2. cella még semmit nem tanult: a hír csak a másodikban ért vissza.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – Q-tanulás (C. Watkins, 1989)</span>
+  Minden lépés után ($s, a, r, s'$):
+  $$Q(s, a) \leftarrow Q(s, a) + \alpha\,\Big[\,r + \gamma \max_{a'} Q(s', a') - Q(s, a)\,\Big],$$
+  végállapotnál a $\max$ tag 0. Cselekvéskor az ágens <b>ε-mohó</b>: többnyire a legnagyobb $Q(s, \cdot)$-t választja, néha véletlent (<a class="xref" href="#s152-b">15.2</a>).
+  <br><b>Miért ez?</b> Ez a Bellman-optimalitási egyenlet (<a class="xref" href="#s153-c">15.3</a>) mintavételes változata: a $\sum_{s'} P(s' \mid s, a)$ átlagot a <b>ténylegesen bekövetkezett</b> $s'$ helyettesíti, és sok frissítés teszi meg az átlagolást. Ha minden $(s, a)$ pár elég sokszor sorra kerül, és $\alpha$ megfelelően csökken, $Q$ a $Q^*$-hoz tart – térkép nélkül.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy rossz lépés</span>
+    $Q(1, \leftarrow) = 0$, a robot az 1.-ből balra lép, leesik (−10, vége): $Q(1, \leftarrow) = 0 + 0{,}5 \cdot (-10 - 0) = -5$. Ezután a mohó választás az 1.-ben már a jobbra lépés lesz.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy lépés a raktárban</span>
+    $Q(s, \uparrow) = 4$, a lépés jutalma −1, az új cellában a legnagyobb $Q$ 6, $\alpha = 0{,}5$, $\gamma = 0{,}9$: $4 + 0{,}5\,(-1 + 5{,}4 - 4) = 4{,}2$.
+  </div>
+</div>
+<div class="widget" data-widget="gridworld-q" data-map="raktar"></div>
+<div class="box tip">
+  <span class="box-title">💡 Mit látsz a widgetben?</span>
+  Az első epizód hosszú bolyongás: a Q-tábla csupa 0, a döntések véletlenek. Amikor a robot először eléri a töltőt, csak a töltő melletti egyetlen $Q$-érték nő. Epizódról epizódra egy-egy lépéssel messzebb ér a zöld. 100 futásból a mohó út <b>mediánban 11 epizód</b> után lett a legrövidebb (7 lépés). Hosszú tanulás után a start $\max Q$-ja 0,63 körül van – pontosan az értékiteráció $V^*$-a.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Felfedezés nélkül nincs Q-tanulás.</b> Ha egy cselekvést sosem próbál ki, a $Q$-ja nem változik. Állítsd a widgetben ε-t 0-ra, és nézd meg, hogyan ragad be.</li>
+    <li><b>A tanulási ráta kettős.</b> Nagy $\alpha$: gyors, de zajos (véletlen környezetben ugrál). Kis $\alpha$: stabil, de lassú. Csúszós padlón ez különösen látszik.</li>
+    <li><b>A Q-tábla mérete $|S| \cdot |A|$.</b> A raktárban $15 \cdot 4 = 60$ szám – egy képernyőt látó ágensnél ez kezelhetetlen (<a class="xref" href="#s155-a">15.5</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – Q-frissítés</summary>
+  <ol>
+    <li>Folytasd a három epizód táblázatát egy negyedikkel! Mennyi lesz $Q(2, \to)$ és $Q(3, \to)$?
+      <details><summary>Megoldás</summary>$Q(2, \to) = 4{,}5 + 0{,}5\,(0{,}9 \cdot 8{,}75 - 4{,}5) \approx 6{,}19$; $Q(3, \to) = 8{,}75 + 0{,}5 \cdot 1{,}25 = 9{,}375$.</details></li>
+    <li>$Q(s, a) = 2$, $r = 0$, $Q(s', \cdot) = (1;\ 3;\ -2;\ 0)$, $\alpha = 0{,}1$, $\gamma = 0{,}9$. Mennyi az új $Q(s, a)$?
+      <details><summary>Megoldás</summary>Cél: $0 + 0{,}9 \cdot 3 = 2{,}7$; $2 + 0{,}1 \cdot 0{,}7 = 2{,}07$.</details></li>
+    <li>Mi történik, ha $\alpha = 1$? Mikor jó ez, mikor rossz?
+      <details><summary>Megoldás</summary>Az új érték egyszerűen a cél: $Q(s, a) \leftarrow r + \gamma \max Q(s', \cdot)$, a régit elfelejti. Determinisztikus világban jó (gyors), véletlenben rossz: az utolsó kimenetel felülír mindent, nincs átlagolás.</details></li>
+    <li>A raktárban hány $Q$-érték van, ha 15 nem fal és nem végállapot cella van, és 4 irány?
+      <details><summary>Megoldás</summary>$15 \cdot 4 = 60$.</details></li>
+    <li>(nehezebb) Miért érdemes a Q-tanulás epizódjait <b>visszafelé</b> is lejátszani (a pálya lépéseit a végéről az eleje felé frissíteni)? Mennyi lenne a táblázat első epizódja után $Q(2, \to)$, ha előbb a $Q(3, \to)$-t frissítenénk?
+      <details><summary>Megoldás</summary>Mert így a végén kapott jutalom egyetlen epizód alatt végigszivároghat az egész pályán. Előbb $Q(3, \to) = 5$, aztán $Q(2, \to) = 0{,}5 \cdot (0{,}9 \cdot 5) = 2{,}25$ – már az első epizód után. Ezt az ötletet használja a tapasztalat-visszajátszás egyik változata (<a class="xref" href="#s155-a">15.5</a>).</details></li>
+  </ol>
+</details>
+
+<h3 id="s154-c">3. lépés: on-policy és off-policy – SARSA és a szirt</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – ugyanaz a lépés, két cél</span>
+  A robot a 2.-ből jobbra lép a 3.-ba (jutalom 0). A 3.-ban $Q(3, \leftarrow) = 1$, $Q(3, \to) = 5$. Felfedezés miatt a <b>következő</b> lépése a balra lesz. Mennyivel frissítsük $Q(2, \to) = 0$-t ($\alpha = 0{,}5$, $\gamma = 0{,}9$)?
+  <div class="two-col" style="margin-top:.3rem">
+    <div><b>Q-tanulás:</b> a legjobb következő cselekvés értéke számít, akármit is tesz valójában: cél $0 + 0{,}9 \cdot 5 = 4{,}5$, új érték 2,25.</div>
+    <div><b>SARSA:</b> a ténylegesen következő cselekvés értéke számít: cél $0 + 0{,}9 \cdot 1 = 0{,}9$, új érték 0,45.</div>
+  </div>
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – SARSA, on-policy és off-policy tanulás</span>
+  A <b>SARSA</b> (a név az $s, a, r, s', a'$ ötösből jön) frissítése:
+  $$Q(s, a) \leftarrow Q(s, a) + \alpha\,\big[\,r + \gamma\,Q(s', a') - Q(s, a)\,\big],$$
+  ahol $a'$ a cselekvés, amelyet az ágens $s'$-ben <b>valóban</b> választ (ε-mohón).
+  <ul style="margin:.2rem 0">
+    <li><b>On-policy</b> (stratégián belüli) tanulás: annak a stratégiának az értékét tanulja, amelyet követ – a felfedezéssel együtt. Ilyen a SARSA.</li>
+    <li><b>Off-policy</b> (stratégián kívüli) tanulás: egy <b>másik</b> (itt: a mohó, legjobb) stratégia értékét tanulja, miközben bármilyen viselkedéssel gyűjt adatot. Ilyen a Q-tanulás – ezért tanulhat régi tapasztalatból, más ágens vagy egy ember lépéseiből is.</li>
+  </ul>
+  <b>Miért számít?</b> Ha a felfedezés veszélyes, a SARSA ezt beárazza: tudja, hogy néha rosszul fog lépni, ezért óvatosabb utat tanul. A Q-tanulás a tökéletes jövőbeli viselkedést feltételezi.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a szirt</span>
+    Egy 4 × 10-es rács alsó sorában szakadék van a start és a cél között (−100, vissza a startra), minden lépés −1, ε = 0,1. A <b>Q-tanulás</b> a szakadék szélén vezető, legrövidebb utat tanulja (11 lépés) – de tanulás közben a véletlen lépések miatt sokszor leesik. A <b>SARSA</b> egy sorral feljebb, biztonságosabb úton megy (15 lépés). Részletesen: <a class="xref" href="#s158-b">15.8</a>.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – off-policy a gyakorlatban</span>
+    Egy hirdetési rendszer naplójában tegnapi döntések vannak, egy régi stratégia szerint. Off-policy módszerrel ebből egy <b>új</b> stratégia értéke tanulható, anélkül hogy élesben kipróbálnánk. Ez az <b>offline RL</b> alapja (<a class="xref" href="#s156-c">15.6</a>).
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az „off-policy” nem azt jelenti, hogy nincs stratégia</b>, hanem hogy a tanult (cél)stratégia és az adatgyűjtő (viselkedési) stratégia különbözik.</li>
+    <li><b>Ha ε → 0, a kettő ugyanoda tart.</b> A különbség a tanulás közbeni viselkedésben és az ε-t is tartalmazó stratégia értékében van.</li>
+    <li><b>A SARSA-hoz a következő cselekvést előre ki kell választani</b> – és azt is kell végrehajtani. Ha mást teszel, mint amivel frissítettél, már nem SARSA.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – Q-tanulás vagy SARSA?</summary>
+  <ol>
+    <li>$Q(s, a) = 1$, $r = -1$, $Q(s', \cdot) = (2;\ 4;\ 0;\ 1)$, a valóban választott $a'$ a harmadik (érték 0), $\alpha = 0{,}5$, $\gamma = 1$. Mennyi az új $Q(s, a)$ Q-tanulással és SARSA-val?
+      <details><summary>Megoldás</summary>Q-tanulás: cél $-1 + 4 = 3$, új $1 + 0{,}5 \cdot 2 = 2$. SARSA: cél $-1 + 0 = -1$, új $1 + 0{,}5 \cdot (-2) = 0$.</details></li>
+    <li>Ha a választott $a'$ épp a legjobb cselekvés, mi a különbség a két frissítés között?
+      <details><summary>Megoldás</summary>Nincs: $Q(s', a') = \max Q(s', \cdot)$. Csak felfedező lépések után térnek el.</details></li>
+    <li>Melyik tanulhat egy ember által vezetett robot felvételéből (a robot nem a saját stratégiáját követi)?
+      <details><summary>Megoldás</summary>A Q-tanulás (off-policy): a célja nem függ attól, ki választotta a következő lépést. A SARSA az ember stratégiájának értékét tanulná meg, nem a legjobbat.</details></li>
+    <li>A szirt mentén, ε = 0,1 mellett egy lépésben mekkora eséllyel lép a robot véletlen irányba? Négy irányból mekkora eséllyel épp lefelé, a szakadékba?
+      <details><summary>Megoldás</summary>0,1 eséllyel véletlen, abból 1/4 lefelé: $0{,}025$ lépésenként. Tíz lépésen át a szakadék mentén ez $1 - 0{,}975^{10} \approx 0{,}22$ eséllyel legalább egy esés.</details></li>
+    <li>(nehezebb) Melyiket választanád egy valódi, drága robothoz, amely tanulás közben sem törhet össze? Miért?
+      <details><summary>Megoldás</summary>A SARSA-t (vagy általában on-policy, óvatos módszert): a tanult stratégia számol a saját felfedezésével, ezért távol tartja magát a veszélytől. A Q-tanulás a végső, ε nélküli stratégiára optimalizál, de tanulás közben a szakadék szélén jár. Valódi robotnál ráadásul szimulátorban tanítanak, és csak utána élesben (<a class="xref" href="#s156-c">15.6</a>).</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai15-154"></div>
+</section>
+
+<!-- ===================================================== 15.5 -->
+<section id="s155">
+<h2>15.5 Mély RL és stratégia-gradiens ★★★</h2>
+<p>A Q-tábla minden állapotnak külön sort ad. A raktárban ez 15 sor, egy Atari-játékban viszont minden képernyőkép egy állapot – ott a tábla nemcsak óriási, hanem <b>haszontalan</b> is: két majdnem egyforma képről semmit nem tud átvinni. Ugyanaz a lépés, mint a <a class="xref" href="../09-neuralis-halozatok/">9. fejezetben</a>: táblázat helyett <b>függvény</b>, amely hasonló bemenetre hasonló kimenetet ad – egy neurális háló.</p>
+
+<h3 id="s155-a">1. lépés: amikor a táblázat elfogy – a mély Q-háló (DQN)</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – mennyi lenne a tábla?</span>
+  Egy Atari-képkocka 210 × 160 pixel, 128 lehetséges színnel. A különböző képek száma $128^{210 \cdot 160} = 128^{33\,600}$ – egy több mint 70 000 jegyű szám. Ezek közül a játék során legfeljebb néhány millió fordul elő, a többi sor <b>sosem</b> kapna frissítést. Egy neurális háló viszont, amely a képből a 18 joystick-cselekvés $Q$-értékét adja, néhány millió paraméterrel megoldja – és ha egy új képen a labda kicsit máshol van, a válasza is csak kicsit más.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – mély Q-háló (DQN; V. Mnih és társai, 2015)</span>
+  A $Q(s, a)$ táblázatot egy $\theta$ paraméterű háló helyettesíti: $Q_\theta(s, a)$. A Q-tanulás célja egy <b>regressziós</b> feladat lesz – a háló négyzetes hibát minimalizál (<a class="xref" href="../03-tanulas-anatomiaja/#s33-b">3. fejezet</a>):
+  $$L(\theta) = \Big(\underbrace{r + \gamma \max_{a'} Q_{\bar\theta}(s', a')}_{\text{cél, } y} - Q_\theta(s, a)\Big)^2.$$
+  Két trükk teszi stabillá:
+  <ul style="margin:.2rem 0">
+    <li><b>Tapasztalat-visszajátszás</b> (<em>experience replay</em>): az $(s, a, r, s')$ lépéseket egy nagy tárba (pl. 1 millió) gyűjtjük, és onnan <b>véletlenszerű kötegeket</b> tanítunk. Így az egymás utáni, nagyon hasonló lépések nem „rángatják” a hálót, és minden tapasztalat többször is felhasználható (ehhez off-policy módszer kell – <a class="xref" href="#s154-c">15.4</a>).</li>
+    <li><b>Célháló</b> (<em>target network</em>): a célban a háló egy <b>befagyasztott másolata</b>, $Q_{\bar\theta}$ szerepel, amelyet csak néhány ezer lépésenként frissítünk. Különben a cél a hálóval együtt mozogna – mintha a saját árnyékodat kergetnéd.</li>
+  </ul>
+  <b>Miért nem elég a sima Q-tanulás egy hálóval?</b> Mert a függvényközelítés, a bootstrapping és az off-policy tanulás együtt instabil lehet (a „halálos hármas”): a becslés hibája saját magát erősíti, és az értékek elszállnak. A két trükk ezt csillapítja.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy DQN-tanítólépés</span>
+    A tárból egy lépés: $r = 1$, a célháló legnagyobb értéke az új képen 3, $\gamma = 0{,}9$; a háló jelenlegi becslése $Q_\theta(s, a) = 2$. A cél $y = 1 + 0{,}9 \cdot 3 = 3{,}7$, a veszteség $(3{,}7 - 2)^2 = 2{,}89$. Visszaterjesztéssel (<a class="xref" href="../10-halo-tanitasa/#s103-b">10. fejezet</a>) a háló $\theta$-ját úgy toljuk, hogy $Q_\theta(s, a)$ nőjön.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – az Atari-eredmény</span>
+    A DeepMind DQN-je 49 Atari-játékot tanult meg <b>ugyanazzal</b> a hálóval és beállításokkal, csak a képernyőt (az utolsó 4 képkockát, 84 × 84 szürkeárnyalatban) és a pontszámot látva. A konvolúciós háló (<a class="xref" href="../11-konvolucios-halok/#s113-c">11. fejezet</a>) a játékok több mint felében elérte egy profi emberi játékos pontszámának 75%-át. Egyes játékokban (pl. a hosszú távú tervezést kívánó <em>Montezuma's Revenge</em>-ben) viszont szinte 0 pontot ért el: a ritka jutalmat sosem találta meg (<a class="xref" href="#s156-a">15.6</a>).
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A cél nem rögzített címke.</b> A felügyelt tanulásban a $y$ adott; itt a háló saját (régi) becsléséből jön, ezért a tanítás sokkal érzékenyebb a beállításokra.</li>
+    <li><b>A $\max$ túlbecsül.</b> Zajos becslések maximuma átlagosan nagyobb a valódi maximumnál – ezt javítja a <b>dupla DQN</b>: az egyik háló választ, a másik értékel.</li>
+    <li><b>Folytonos cselekvésnél nincs könnyű $\max$.</b> Egy robotkar ízületi nyomatékai valós számok; a $\max_a Q(s, a)$ itt maga egy optimalizálási feladat. Ilyenkor jobb közvetlenül a stratégiát tanulni (<a class="xref" href="#s155-b">2. lépés</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – DQN</summary>
+  <ol>
+    <li>Egy lépés: $r = 0$, a célháló értékei az új állapotban $(1{,}5;\ 2;\ 0{,}5)$, $\gamma = 0{,}99$, $Q_\theta(s, a) = 2{,}5$. Mennyi a cél és a veszteség?
+      <details><summary>Megoldás</summary>$y = 0 + 0{,}99 \cdot 2 = 1{,}98$; $(1{,}98 - 2{,}5)^2 = 0{,}2704$. A becslés túl nagy, csökkenteni kell.</details></li>
+    <li>Ha a lépés végállapotba vitt ($r = -1$), mi a cél?
+      <details><summary>Megoldás</summary>$y = -1$: végállapot után nincs jövő, a $\gamma \max$ tag 0.</details></li>
+    <li>Miért nem tanítjuk a hálót egyszerűen a legutóbbi 32 lépésen, sorban?
+      <details><summary>Megoldás</summary>Mert az egymás utáni képkockák szinte egyformák: a köteg nem független minták halmaza, a háló a pillanatnyi helyzethez túlilleszt, és elfelejti a korábbiakat. A véletlen visszajátszás közel független kötegeket ad.</details></li>
+    <li>Hány kimenete van a DQN-hálónak egy 18 cselekvéses játékban, és miért jobb ez, mint ha a cselekvés is bemenet lenne?
+      <details><summary>Megoldás</summary>18: egy előreszámolás az összes cselekvés $Q$-ját adja, így a $\max_a$ egyetlen hálóhívással megvan. Ha a cselekvés bemenet lenne, 18 hívás kellene.</details></li>
+    <li>(nehezebb) Három zajos becslés: a valódi értékek mind 0, a becslések $+0{,}3$, $-0{,}2$, $+0{,}1$. Mennyi a becsült és a valódi maximum? Mi ebből a tanulság?
+      <details><summary>Megoldás</summary>A becsült maximum 0,3, a valódi 0. A $\max$ a zajos becslések közül a felfelé tévedőt választja – a Q-tanulás célja ezért rendszeresen túl nagy. A dupla DQN ezt csökkenti.</details></li>
+  </ol>
+</details>
+
+<h3 id="s155-b">2. lépés: a stratégia közvetlen tanulása – REINFORCE</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a valószínűségek tologatása</span>
+  Vissza a három automatához (<a class="xref" href="#s152-automatak">15.2</a>), de most nem becsléseket tartunk, hanem <b>pontszámokat</b>: $\theta = (\theta_A, \theta_B, \theta_C) = (0;\ 0;\ 0)$, és a választás valószínűsége a softmax (<a class="xref" href="../02-matematikai-eszkoztar/#s25-d">2.5</a>): mindegyik $1/3$. Húzunk: a C jött ki, és fizetett ($r = 1$). Mit tegyünk? Növeljük a C esélyét, a többiét csökkentsük – annál erősebben, minél nagyobb volt a jutalom. $\alpha = 0{,}3$-mal:
+  $$\theta_C \mathrel{+}= 0{,}3 \cdot 1 \cdot (1 - \tfrac13) = 0{,}2, \qquad \theta_A,\ \theta_B \mathrel{+}= 0{,}3 \cdot 1 \cdot (0 - \tfrac13) = -0{,}1.$$
+  Az új esélyek: $\pi = (0{,}299;\ 0{,}299;\ 0{,}403)$. A C esélye 33%-ról 40%-ra nőtt.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – stratégia-gradiens, REINFORCE (R. Williams, 1992)</span>
+  A stratégia maga egy paraméteres függvény, $\pi_\theta(a \mid s)$ (pl. egy háló softmax kimenettel). A cél a várható hozam növelése, $J(\theta) = \mathbb E_{\pi_\theta}[G]$, <b>gradiens-emelkedéssel</b> (<a class="xref" href="../02-matematikai-eszkoztar/#s28-a">2.8</a>, csak felfelé). A <b>stratégia-gradiens tétel</b> szerint
+  $$\nabla_\theta J = \mathbb E\big[\,G \cdot \nabla_\theta \ln \pi_\theta(a \mid s)\,\big],$$
+  ezért egy kipróbált pálya után: $\theta \leftarrow \theta + \alpha\,G_t\,\nabla_\theta \ln \pi_\theta(a_t \mid s_t)$ minden lépésre. Softmax-stratégiánál $\partial \ln \pi(a) / \partial \theta_k = \mathbb 1[k = a] - \pi_k$ – ezt használtuk fent.
+  <br><b>Miért működik?</b> A $\nabla \ln \pi(a)$ az az irány, amerre $\theta$-t tolva az $a$ valószínűsége nő. A $G$ súlyozza: a jó kimenetelű cselekvések valószínűsége nagyon nő, a rosszaké kevésbé (vagy negatív $G$-nél csökken). Átlagban ez a hozam gradiense. <b>Kell hozzá deriválható jutalom?</b> Nem! A jutalmat csak megszorozzuk – lehet egy játék eredménye, egy ember ítélete, egy program lefutása. Ezért használható nyelvi modelleknél is (<a class="xref" href="#s157">15.7</a>).
+</div>
+<div class="box def">
+  <span class="box-title">Az alapvonal – „vártnál jobb vagy rosszabb?”</span>
+  A $G$ helyett vehetjük $G - b$-t, ahol $b$ egy <b>alapvonal</b> (pl. az átlagos jutalom). Az átlagos gradiens nem változik ($\mathbb E[b \cdot \nabla \ln \pi] = 0$, mert $\sum_a \pi(a)\nabla\ln\pi(a) = \nabla \sum_a \pi(a) = 0$), de a <b>zaj</b> sokkal kisebb lesz: csak a <b>vártnál jobb</b> kimenetel növeli a választott cselekvés esélyét. A $G - b$ az <b>előny</b> (<em>advantage</em>).
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – alapvonallal</span>
+    Ugyanaz a húzás (C, $r = 1$), de $b = 0{,}5$: az előny $0{,}5$, a lépés feleakkora. $\theta = (-0{,}05;\ -0{,}05;\ 0{,}1)$, $\pi_C = 0{,}367$.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy vártnál rosszabb húzás</span>
+    A C nem fizetett ($r = 0$), $b = 0{,}5$: az előny $-0{,}5$. $\theta_C \mathrel{+}= 0{,}3 \cdot (-0{,}5)(1 - \tfrac13) = -0{,}1$, a C esélye 30%-ra <b>csökken</b>. Alapvonal nélkül ($r = 0$) semmi sem változna.
+  </div>
+</div>
+<div class="widget" data-widget="policy-gradient"></div>
+<div class="box tip">
+  <span class="box-title">💡 Mit mutat a „20 futás” gomb?</span>
+  $\alpha = 0{,}3$-mal, alapvonal nélkül 200 húzás után a $\pi(C)$ futásonként nagyon szór (szórás 0,21), 1000 húzás után pedig 200 futásból 3-ban a stratégia a <b>rossz</b> automatára állt rá – minden nyerés növeli a választott kar esélyét, a gyengéét is. Alapvonallal a szórás 0,10, és egyik futás sem tévedt el.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Gradiens-<i>emelkedés</i>, nem -ereszkedés.</b> Itt a jutalmat növeljük; a keretrendszerekben ezért a $-G \ln \pi$ „veszteséget” minimalizálják.</li>
+    <li><b>Nagy a zaj.</b> Egy pálya hozama sok véletlen lépés eredménye; alapvonal nélkül a tanulás lassú és szeszélyes.</li>
+    <li><b>On-policy.</b> A képlet a <b>jelenlegi</b> stratégia mintáit kívánja: minden frissítés után új pályák kellenek, a régiek elavulnak (a PPO ezt részben enyhíti).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – REINFORCE</summary>
+  <ol>
+    <li>$\pi = (0{,}5;\ 0{,}3;\ 0{,}2)$ softmax-stratégia, a választott cselekvés a második. Mennyi $\nabla_\theta \ln \pi(a)$ a három pontszám szerint?
+      <details><summary>Megoldás</summary>$(0 - 0{,}5;\ 1 - 0{,}3;\ 0 - 0{,}2) = (-0{,}5;\ 0{,}7;\ -0{,}2)$. Az összege 0 – a softmax pontszámainak közös eltolása nem változtat semmin.</details></li>
+    <li>Az előző feladatban $G = 2$, $\alpha = 0{,}1$, $\theta = (0;\ 0;\ 0)$ helyett most legyen bármi. Mennyivel változik a három pontszám?
+      <details><summary>Megoldás</summary>$0{,}1 \cdot 2 \cdot (-0{,}5;\ 0{,}7;\ -0{,}2) = (-0{,}1;\ 0{,}14;\ -0{,}04)$.</details></li>
+    <li>$\theta = (0;\ 0;\ 1)$, $\pi \approx (0{,}212;\ 0{,}212;\ 0{,}576)$. Az A-t húzzuk, $r = 1$, $\alpha = 0{,}3$, nincs alapvonal. Mi lesz az új $\theta$?
+      <details><summary>Megoldás</summary>$\theta_A \mathrel{+}= 0{,}3 \cdot 0{,}788 = 0{,}236$; $\theta_B \mathrel{+}= -0{,}3 \cdot 0{,}212 = -0{,}064$; $\theta_C \mathrel{+}= -0{,}3 \cdot 0{,}576 = -0{,}173$. $\theta \approx (0{,}236;\ -0{,}064;\ 0{,}827)$, $\pi_A \approx 0{,}28$. Egy szerencsés húzás a gyenge kart is erősíti.</details></li>
+    <li>Melyik az előny, ha a hozam 7, az alapvonal 9? Mit tesz a frissítés a választott cselekvéssel?
+      <details><summary>Megoldás</summary>$7 - 9 = -2$: a vártnál rosszabb, a választott cselekvés esélye csökken – pedig a hozam pozitív volt.</details></li>
+    <li>(nehezebb) Mutasd meg két cselekvésre, hogy $\sum_a \pi(a)\,\partial \ln \pi(a)/\partial\theta_1 = 0$!
+      <details><summary>Megoldás</summary>$\partial \ln \pi(1)/\partial\theta_1 = 1 - \pi_1$, $\partial \ln \pi(2)/\partial\theta_1 = -\pi_1$. Súlyozva: $\pi_1(1 - \pi_1) + \pi_2(-\pi_1) = \pi_1(1 - \pi_1 - \pi_2) = 0$, mert $\pi_1 + \pi_2 = 1$. Ezért nem torzít az alapvonal.</details></li>
+  </ol>
+</details>
+
+<h3 id="s155-c">3. lépés: aktor–kritikus, PPO – és az AlphaGo</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – egy kritikus az alapvonal helyett</span>
+  A legjobb alapvonal nem egy közös átlag, hanem az <b>állapot értéke</b>: „ebből a helyzetből általában mennyit szoktam kapni?”. A folyosón a 2. cellából jobbra lépve jutalom 0, és a 3. cella becsült értéke $V(3) = 10$, a 2.-é $V(2) = 8$ ($\gamma = 0{,}9$). Az előny: $0 + 0{,}9 \cdot 10 - 8 = 1$ – a lépés a vártnál jobb volt, erősítsük. Ez épp a TD-hiba (<a class="xref" href="#s154-a">15.4</a>)!
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – aktor–kritikus és PPO</span>
+  <ul style="margin:.2rem 0">
+    <li>Az <b>aktor</b> a stratégia, $\pi_\theta$; a <b>kritikus</b> egy értékfüggvény, $V_w$. Minden lépés után a kritikus kiszámolja a TD-hibát, $\delta = r + \gamma V_w(s') - V_w(s)$; az aktor ezzel mint előnnyel frissít ($\theta \mathrel{+}= \alpha\,\delta\,\nabla \ln \pi_\theta(a \mid s)$), a kritikus pedig a saját becslését javítja ($V_w(s) \to r + \gamma V_w(s')$).</li>
+    <li>A <b>PPO</b> (<em>proximal policy optimization</em>, J. Schulman és társai, 2017) egy óvatos aktor–kritikus: egy adag pályán többször is tanít, de nem engedi, hogy egy cselekvés valószínűsége egy frissítés alatt túl sokat változzon. A régi és az új stratégia aránya, $\rho = \pi_{\text{új}}(a \mid s)/\pi_{\text{régi}}(a \mid s)$, a célban az $[1 - \epsilon;\ 1 + \epsilon]$ sávba van vágva (tipikusan $\epsilon = 0{,}2$): $\min\big(\rho A,\ \text{vág}(\rho)\,A\big)$.</li>
+  </ul>
+  <b>Miért?</b> A stratégia-gradiens egy lépése a régi stratégia mintáin csak a régi stratégia <b>közelében</b> érvényes. Egy túl nagy lépés összeomlaszthatja a stratégiát, és onnan rossz adatok jönnek. A PPO stabil és egyszerű – ezért lett 2017 után a mély RL és a nyelvi modellek igazításának igáslova (<a class="xref" href="#s157-b">15.7</a>).
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a PPO vágása</span>
+    Előny $A = 2$, az új stratégia a cselekvést másfélszer olyan valószínűnek tartja: $\rho = 1{,}5$. Vágás nélkül a cél $1{,}5 \cdot 2 = 3$, vágással $\min(3;\ 1{,}2 \cdot 2) = 2{,}4$. A 1,2 fölötti növekedésért már nem jár több „jutalom” – a háló nem húzza tovább.
+  </div>
+  <div class="box example" id="s155-c-alphago">
+    <span class="box-title">Példa – az AlphaGo receptje</span>
+    <ol style="margin:.2rem 0;padding-left:1.2rem">
+      <li><b>Utánzás:</b> egy stratégia-háló profi játszmák 30 millió állásából tanulja, hová lépne egy ember (felügyelt tanulás).</li>
+      <li><b>Önmaga ellen:</b> REINFORCE-szal, saját korábbi változatai ellen játszva javul.</li>
+      <li><b>Értékháló:</b> egy háló megtanulja, ki nyer egy adott állásból (az önjátszmák kimeneteléből).</li>
+      <li><b>Keresés:</b> játék közben Monte-Carlo-fakeresés (MCTS) vizsgálja a lehetséges folytatásokat; a stratégia-háló mondja meg, mit érdemes megnézni, az értékháló, mennyit ér egy állás.</li>
+    </ol>
+    2016 márciusában 4:1-re legyőzte Li Sze-dolt, a világ egyik legjobb játékosát.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">📅 Utána – emberi adat nélkül</span>
+  Az <b>AlphaGo Zero</b> (2017) kihagyta az utánzást: véletlen játékból indulva, csak önmaga ellen játszva tanult, és 100:0-ra verte a Li Sze-dolt legyőző változatot. Az <b>AlphaZero</b> (2017–2018) ugyanazzal az algoritmussal sakkban és sógiban is a legerősebb programok fölé nőtt. A <b>MuZero</b> (2019–2020) a játékszabályokat sem kapta meg: a keresés belső modelljét is megtanulta. Azóta RL vezérel kísérleti fúziós plazmát (2022), drónversenyen vert világbajnokokat (2023), és a nyelvi modellek érvelését tanítja (<a class="xref" href="#s157-c">15.7</a>).
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az AlphaGo nem „csak RL”.</b> A siker kulcsa a keresés, a mély hálók és az önjáték együtt – és óriási számítás (önjátszmák milliói).</li>
+    <li><b>A kritikus is tévedhet.</b> Ha a $V_w$ rossz, az előny is rossz: az aktor a kritikus hibáit tanulja. A kettőt együtt, óvatosan kell tanítani.</li>
+    <li><b>Az önjáték csak akkor működik, ha a játék zárt.</b> Go-ban a szabályok és a jutalom tökéletesen ismertek; a valódi világban (vezetés, orvoslás) ez nincs meg (<a class="xref" href="#s156-c">15.6</a>).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – aktor–kritikus és PPO</summary>
+  <ol>
+    <li>$V(s) = 4$, $r = -1$, $V(s') = 6$, $\gamma = 0{,}9$. Mennyi az előny (TD-hiba)? Nő vagy csökken a választott cselekvés esélye?
+      <details><summary>Megoldás</summary>$-1 + 5{,}4 - 4 = 0{,}4 \gt 0$: nő.</details></li>
+    <li>PPO, $\epsilon = 0{,}2$: $A = 2$, $\rho = 0{,}6$. Mennyi a vágott cél?
+      <details><summary>Megoldás</summary>$\min(0{,}6 \cdot 2;\ 0{,}8 \cdot 2) = \min(1{,}2;\ 1{,}6) = 1{,}2$. Pozitív előnynél a csökkenés felé nincs vágás: ha az új stratégia rosszabb, a teljes büntetés érvényes.</details></li>
+    <li>PPO: $A = -2$, $\rho = 1{,}5$. Mennyi a vágott cél?
+      <details><summary>Megoldás</summary>$\min(1{,}5 \cdot (-2);\ 1{,}2 \cdot (-2)) = \min(-3;\ -2{,}4) = -3$. Negatív előnynél a növekedést teljes súllyal bünteti.</details></li>
+    <li>Az AlphaGo négy összetevője közül melyik felügyelt tanulás, melyik RL, melyik keresés?
+      <details><summary>Megoldás</summary>Felügyelt: a stratégia-háló első tanítása emberi játszmákon (és lényegében az értékháló is, de az önjátszmák kimenetelén mint címkén). RL: az önmaga elleni játék stratégia-gradienssel. Keresés: az MCTS.</details></li>
+    <li>(nehezebb) Miért jobb alapvonal egy állapotérték, mint egy közös átlagjutalom?
+      <details><summary>Megoldás</summary>Mert a hozam nagy része az állapottól függ (egy jó állásból bármi jól végződik). Ha ezt levonjuk, csak a <b>cselekvés</b> hatása marad – kisebb zaj, pontosabb hitelkiosztás. A közös átlag ezt nem tudja: jó állásban minden cselekvés „jónak” tűnik.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai15-155"></div>
+</section>
+
+<!-- ===================================================== 15.6 -->
+<section id="s156">
+<h2>15.6 A jutalom tervezése – és kijátszása ★★</h2>
+<p>Eddig a jutalmat adottnak vettük: a töltő +10, a lépcső −10. A valódi feladatokban a jutalmat <b>nekünk kell megírnunk</b>, és ez az RL legkényesebb része. Az ágens pontosan azt maximalizálja, amit a jutalom mér – sem többet, sem kevesebbet.</p>
+<div class="box example" id="s156-palya">
+  <span class="box-title">A szakasz példája – egy kis versenypálya</span>
+  Egy 6 × 3-as pálya: a start a bal felső sarokban, a cél a jobb felsőben, 5 lépésre. Az alsó sorban egy bója áll, a felső és az alsó sor között fal (a két szélén lehet átjutni). A célba érés +10, és véget ér az epizód. Ezen a pályán próbálunk ki négy jutalmat.
+</div>
+
+<h3 id="s156-a">1. lépés: ritka jutalom – és a jutalomalakítás</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – mikor találja meg először a célt?</span>
+  Ha csak a cél fizet, a tanuló ágens az elején <b>véletlenül bolyong</b>, és amíg egyszer el nem éri a célt, semmit sem tanul (minden $Q$ 0 marad). Egy kis pályán ez néhány tucat lépés; egy nagy labirintusban, ahol a célhoz 100 jó döntés kell egymás után, a véletlen bolyongás szinte sosem jut el odáig. Ezért kudarcot vallott a DQN a <em>Montezuma's Revenge</em>-ben (<a class="xref" href="#s155-a">15.5</a>). Kézenfekvő ötlet: adjunk <b>részjutalmat</b> a haladásért – pl. +1-et minden lépésért, amely közelebb visz a célhoz.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – ritka jutalom, jutalomalakítás, potenciál-alapú alakítás</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Ritka jutalom</b> (<em>sparse reward</em>): a legtöbb lépésnél 0, csak ritkán (a végén) jön jel. Tiszta, de nehéz tanulni belőle.</li>
+    <li><b>Jutalomalakítás</b> (<em>reward shaping</em>): kiegészítő jutalom $F(s, s')$ a haladásért. Gyorsítja a tanulást – de <b>megváltoztathatja</b>, mi a legjobb stratégia.</li>
+    <li><b>Potenciál-alapú alakítás</b> (A. Ng, D. Harada, S. Russell, 1999): válassz egy $\Phi(s)$ „potenciált” (pl. $-$távolság a céltól), és legyen
+      $$F(s, s') = \gamma\,\Phi(s') - \Phi(s), \qquad \Phi(\text{végállapot}) = 0.$$
+      Egy teljes pályán ezek diszkontált összege <b>teleszkopikus</b>: $\sum_t \gamma^t\big(\gamma\Phi(s_{t+1}) - \Phi(s_t)\big) = -\Phi(s_0)$ (a végén $\Phi = 0$). Minden pályán ugyanannyi – ezért <b>a legjobb stratégia nem változik</b>, csak gyorsabban tanulható.</li>
+  </ul>
+  <b>Miért fontos a forma?</b> Mert a naiv „+1 a közeledésért” <b>nem</b> ilyen: a távolodás nem kerül semmibe, így oda-vissza lépkedve végtelenül gyűjthető (<a class="xref" href="#s156-b">2. lépés</a>).
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – potenciál-alapú jutalmak</span>
+    $\Phi = -$(távolság), $\gamma = 0{,}9$. 3 lépésről 2 lépésre a céltól: $F = 0{,}9 \cdot (-2) - (-3) = 1{,}2$. Vissza, 2-ről 3-ra: $F = 0{,}9 \cdot (-3) - (-2) = -0{,}7$. A közeledés jutalom, a távolodás büntetés.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy kör mérlege</span>
+    Oda-vissza (3 → 2 → 3) a diszkontált összeg $1{,}2 + 0{,}9 \cdot (-0{,}7) = 0{,}57$. Ez pozitív! De nem lehet belőle meggazdagodni: egy pálya összes alakító jutalma mindig $-\Phi(s_0)$ – amit most „előre felvett”, azt később kevesebbként kapja vissza. Ezt mutatja a widget „potenciál-alapú” változata: az értékek mind 5-tel nagyobbak, a nyilak ugyanazok.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Minden részjutalom egy új cél.</b> Ha a robot pontot kap a labda megérintéséért, lehet, hogy rezegtetni fogja a labdát ahelyett, hogy a kapuba rúgná.</li>
+    <li><b>A potenciál-alapú alakítás nem csodaszer.</b> A legjobb stratégiát megőrzi, de csak akkor gyorsít, ha a $\Phi$ jó tipp a valódi értékre. (Az ideális $\Phi$ maga a $V^*$.)</li>
+    <li><b>Ritka jutalomnál a felfedezés a kulcs.</b> A kiegészítő lehetőségek: kíváncsiság-jutalom (az új, meglepő állapotokért), bemutatásból (utánzásból) indítás, a cél részcélokra bontása.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – alakítás</summary>
+  <ol>
+    <li>$\Phi = -$(távolság), $\gamma = 0{,}9$. Mennyi $F$, ha a robot 1 lépésre van a céltól, és belép a célba ($\Phi = 0$)? És ha helyben marad 4 lépés távolságban?
+      <details><summary>Megoldás</summary>Célba lépés: $0{,}9 \cdot 0 - (-1) = 1$. Helyben maradás: $0{,}9 \cdot (-4) - (-4) = 0{,}4$. A helyben maradás is kicsit pozitív – de ez nem kiskapu: a teljes pálya összege akkor is $-\Phi(s_0)$.</details></li>
+    <li>A versenypályán a start 5 lépésre van a céltól. Mennyi az alakító jutalmak diszkontált összege bármely célba érő pályán?
+      <details><summary>Megoldás</summary>$-\Phi(\text{start}) = 5$. Ezért nagyobb a widgetben a start értéke pontosan 5-tel (6,56 helyett 11,56, $\gamma = 0{,}9$).</details></li>
+    <li>Naiv alakítás: +1, ha a robot közelebb lép, 0 egyébként. Mennyi a diszkontált összeg, ha végtelenül oda-vissza lép (közelebb, távolabb, …), $\gamma = 0{,}9$? És $\gamma = 0{,}99$-nél?
+      <details><summary>Megoldás</summary>$1 + \gamma^2 + \gamma^4 + \dots = 1/(1 - \gamma^2)$: $0{,}9$-nél $\approx 5{,}26$, $0{,}99$-nél $\approx 50{,}25$.</details></li>
+    <li>Ugyanitt a célba érés (5 lépés közeledés, mindegyik +1, plusz +10 a célban) diszkontált összege $1 + 0{,}9 + 0{,}81 + 0{,}729 + 0{,}656 + \dots$ – pontosan: $\sum_{k=0}^{4}\gamma^k + 10\gamma^4$. Mennyi ez $\gamma = 0{,}9$-nél és $0{,}99$-nél? Melyiket választja az ágens?
+      <details><summary>Megoldás</summary>$0{,}9$: $4{,}10 + 6{,}56 = 10{,}66 \gt 5{,}26$ → célba megy. $0{,}99$: $4{,}90 + 9{,}61 = 14{,}51 \lt 50{,}25$ → oda-vissza lépked. (Kb. $\gamma = 0{,}96$ fölött fordul át.)</details></li>
+    <li>(nehezebb) Egy robotporszívó +1-et kap minden összeszedett porszemért. Mi lehet a kiskapu? Hogyan írnád át a jutalmat?
+      <details><summary>Megoldás</summary>Kiboríthatja a tartályát, és újra felszívhatja ugyanazt a port – végtelen jutalom. Jobb: a padló <b>tisztaságát</b> jutalmazni (pl. az epizód végén mért pormennyiség negatívja), vagy a potenciál-alapú formát használni $\Phi = -$(a padlón lévő por mennyisége): így a por visszaszórása ugyanannyi büntetést kap, mint amennyi jutalmat a felszívása.</details></li>
+  </ol>
+</details>
+
+<h3 id="s156-b">2. lépés: jutalom-kijátszás – amit mérünk, nem amit gondolunk</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a bója, amely újratöltődik</span>
+  A versenypályán adjunk +1-et minden belépésért a bójába, hogy „a pálya mentén haladjon”. A bója azonnal újratöltődik. Két lehetőség:
+  <ul style="margin:.2rem 0">
+    <li><b>célba megy</b> (5 lépés): $10\gamma^4$;</li>
+    <li><b>a bója körül köröz</b>: 4 lépés a bójáig, aztán minden második lépésben +1, örökké: $\gamma^3 + \gamma^5 + \gamma^7 + \dots = \gamma^3/(1 - \gamma^2)$.</li>
+  </ul>
+  $\gamma = 0{,}9$: célba 6,56, körözés 3,84 – célba megy. $\gamma = 0{,}99$: célba 9,61, körözés 48,76 – <b>örökké köröz</b>. A türelmes ágens találja meg a kiskaput (kb. $\gamma = 0{,}95$ fölött)! Ugyanez történt a hajóverseny-játékban (OpenAI, 2016, <a class="xref" href="../01-mi-a-mesterseges-intelligencia/#s13-c">1. fejezet</a>).
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – jutalom-kijátszás (specification gaming, reward hacking)</span>
+  <b>Jutalom-kijátszásról</b> beszélünk, ha az ágens magas jutalmat ér el olyan viselkedéssel, amelyet a jutalom tervezője nem akart. Az algoritmus <b>nem hibás</b>: tökéletesen optimalizálja azt, amit leírtunk. A hiba a <b>leírásban</b> van – a jutalom csak egy mérőszám a valódi célra.
+  <br><b>Goodhart törvénye:</b> „ha egy mérőszám céllá válik, megszűnik jó mérőszám lenni.” Minél erősebb az optimalizáló, annál biztosabban megtalálja a mérőszám és a cél közötti rést.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a Tetris, amelyet nem lehet elveszíteni</span>
+    Egy játékokat tanuló program (T. Murphy, 2013) a Tetrisben, amikor már biztos volt a vereség, <b>szüneteltette</b> a játékot – örökre. A cél „ne veszíts” volt; a szünet ezt tökéletesen teljesítette.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a kéz a kamera előtt</span>
+    Egy robotkart emberi értékelők jutalmaztak, ha „megfogta a labdát” (P. Christiano és társai, 2017). A kar megtanulta a kezét a kamera és a labda <b>közé</b> tenni: a képen úgy tűnt, mintha fogná. Az emberi értékelés is kijátszható – ez a nyelvi modelleknél is gond (<a class="xref" href="#s157-b">15.7</a>).
+  </div>
+</div>
+<div class="widget" data-widget="reward-hacking"></div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>„Majd az ágens tudja, mit akartam.”</b> Nem tudja. Csak a számot látja. Amit nem írtál bele a jutalomba (ne törd össze a vázát, ne kerülj meg szabályokat), arról az ágens nem tud.</li>
+    <li><b>A jobb algoritmus több kijátszást talál.</b> Egy gyenge tanuló észre sem veszi a kiskaput; egy erős (nagy $\gamma$, sok tanítás) igen.</li>
+    <li><b>Szimulátorhiba is kiskapu.</b> Ágensek gyakran a fizikai szimuláció hibáit használják ki (pl. egy ugrálás, amely a valóságban lehetetlen) – ami a valódi robotra nem vihető át.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – kijátszás</summary>
+  <ol>
+    <li>Ellenőrizd: $\gamma = 0{,}95$-nél mennyi a célba érés és a bója körüli körözés értéke?
+      <details><summary>Megoldás</summary>Célba: $10 \cdot 0{,}95^4 \approx 8{,}15$; körözés: $0{,}95^3/(1 - 0{,}9025) \approx 8{,}79$. Kicsivel a körözés jobb – a widget is ezt mutatja.</details></li>
+    <li>Hogyan javítanád a bója-jutalmat, hogy ne lehessen kijátszani?
+      <details><summary>Megoldás</summary>Például: a bója epizódonként csak egyszer fizessen (az állapotnak tartalmaznia kell, hogy már felvette – különben nem Markov!); vagy a bója-pontok helyett potenciál-alapú alakítást használj a céltól mért távolsággal.</details></li>
+    <li>Egy ügyfélszolgálati csevegőrobot jutalma: „az ügyfél 5 percen belül bezárja az ablakot”. Mi a kiskapu?
+      <details><summary>Megoldás</summary>Elég az ügyfelet elriasztani vagy egy semmitmondó, de lezáró választ adni – a beszélgetés gyorsan véget ér, a probléma megoldatlan marad. A mérőszám (gyors lezárás) nem azonos a céllal (megoldott probléma).</details></li>
+    <li>Egy takarítórobot jutalma: −1 minden látott szemétdarabért. Mi a kiskapu?
+      <details><summary>Megoldás</summary>Becsukja a szemét (letakarja a kameráját), vagy a szemetet a szőnyeg alá söpri. A jutalom a <b>látottat</b> méri, nem a valóságot.</details></li>
+    <li>(nehezebb) Miért nő a kijátszás veszélye $\gamma$-val a bója-példában? Fogalmazd meg általánosan!
+      <details><summary>Megoldás</summary>A körözés jutalma lassan, de végtelen sokáig csordogál; ennek az értéke $\gamma \to 1$-nél korlátlanul nő ($1/(1-\gamma^2)$), a cél egyszeri +10-e viszont legfeljebb 10. Általában: ha a jutalomban van egy ismételhető forrás, a messzire néző ágens előbb-utóbb ezt fogja „bányászni”.</details></li>
+  </ol>
+</details>
+
+<h3 id="s156-c">3. lépés: a valóság nehézségei – minta, biztonság, szimuláció</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – hány próbálkozás?</span>
+  A szirten a Q-tanulás néhány száz epizód alatt tanul (<a class="xref" href="#s158-b">15.8</a>); minden epizódban többször leesik. Egy szimulátorban ez ingyen van. Egy valódi robotnál minden esés egy összetört gép, egy önvezető autónál egy baleset, egy orvosi alkalmazásnál egy beteg. A DQN egy-egy Atari-játékot 50 millió döntési lépésen tanult (minden lépés 4 képkockáig tart) – ez kb. 38 nap folyamatos játék.
+</div>
+<div class="box def">
+  <span class="box-title">Három valódi akadály és a válaszok</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Mintaigény:</b> az RL sok próbálkozást kíván. Válasz: <b>szimuláció</b> (játékban, robotikában), <b>modellalapú RL</b> (az ágens megtanulja a világ modelljét, és abban tervez – mint a MuZero), <b>utánzásból indítás</b>.</li>
+    <li><b>Biztonságos felfedezés:</b> egyes hibák nem javíthatók. Válasz: korlátok a cselekvésekre, óvatos (on-policy) módszerek, emberi felügyelet, és a felfedezés szimulátorba szorítása.</li>
+    <li><b>A szimuláció és a valóság rése</b> (<em>sim-to-real gap</em>): ami a szimulátorban működik, a valóságban nem feltétlenül (súrlódás, zaj, kopás). Válasz: <b>tartomány-véletlenítés</b> – a szimulátor paramétereit (tömeg, súrlódás, fények) tanításkor véletlenül változtatjuk, hogy a stratégia ne egyetlen világra illesszen túl.</li>
+    <li><b>Offline RL:</b> tanulás kizárólag meglévő naplókból, új próbálkozás nélkül. Off-policy módszer kell (<a class="xref" href="#s154-c">15.4</a>), és óvatosság: a naplóban sosem szereplő cselekvések becsült értéke megbízhatatlan.</li>
+  </ul>
+  <b>Mi a közös?</b> A felügyelt tanulásban az adat adott; itt az ágens <b>maga gyűjti</b>, és a gyűjtésnek ára van. Ez az RL legnagyobb gyakorlati korlátja – és az oka, hogy a legnagyobb sikerek (játékok, nyelvi modellek) olyan területen születtek, ahol a próbálkozás olcsó.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – tartomány-véletlenítés</span>
+    Az OpenAI robotkeze (2019) egy Rubik-kockát forgatott. Szimulátorban tanult, ahol minden epizódban más volt a kocka mérete, a súrlódás, a kéz ujjainak ereje, sőt a gravitáció is. A valódi kézen is működött – egyik szimulált világgal sem volt azonos, de „csak egy újabb változat” volt.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – offline RL a kórházban</span>
+    Egy kórház intenzív osztályának naplóiból (milyen kezelést kapott a beteg, mi lett az eredmény) egy kezelési stratégiát tanulnak – próbálgatás nélkül. A buktató: a naplóban egy szokatlan kezelés ritka, így a modell becslése róla zajos, és könnyen túlértékeli.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Ne használj RL-t, ha nem kell.</b> Ha van címkézett adat (mi lett volna a jó döntés), a felügyelt tanulás egyszerűbb és megbízhatóbb. Ha egyetlen döntés van, azonnali visszajelzéssel, a bandita elég (<a class="xref" href="#s152">15.2</a>).</li>
+    <li><b>Az RL-eredmények érzékenyek a véletlenre.</b> Ugyanaz az algoritmus más véletlen maggal nagyon különböző eredményt adhat – mindig több futás átlagát nézd (mint a <a class="xref" href="#s155-b">20 futás</a> gombnál).</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a valóság</summary>
+  <ol>
+    <li>50 millió lépés, lépésenként 4 képkocka, másodpercenként 60 képkocka. Hány nap folyamatos játék ez?
+      <details><summary>Megoldás</summary>$50\,000\,000 \cdot 4 / 60 \approx 3{,}33$ millió másodperc $\approx 38{,}6$ nap. Egy ember ennyit hónapok alatt sem játszik egyetlen játékkal – és ez még csak egy játék.</details></li>
+    <li>Melyik feladathoz illik az offline RL: (a) sakkprogram, (b) egy bank hitelbírálati stratégiája a régi döntések naplójából, (c) egy szimulált robotkar?
+      <details><summary>Megoldás</summary>(b): a próbálgatás drága (rossz hitelek), de vannak naplók. A sakkban és a szimulált karnál a próbálkozás olcsó – ott online tanulhatunk.</details></li>
+    <li>Miért segít a tartomány-véletlenítés a sim-to-real résen?
+      <details><summary>Megoldás</summary>Mert a stratégia nem egyetlen (hibás) szimulált világra illeszkedik, hanem sokféle világban kell működnie. Ha a valóság „belefér” a változatok közé, a stratégia ott is jó lesz – ugyanaz a gondolat, mint az adatbővítés a képosztályozásban (<a class="xref" href="../11-konvolucios-halok/#s116-c">11. fejezet</a>).</details></li>
+    <li>Egy cég RL-lel szeretné optimalizálni a weboldala betűméretét a kattintások alapján. Mit javasolsz?
+      <details><summary>Megoldás</summary>Ez egyetlen döntés (betűméret) azonnali visszajelzéssel – egy bandita (vagy egy A/B teszt) elég, nem kell teljes RL. A „döntések sorozata” csak akkor kell, ha a mostani választás a későbbi állapotokat is befolyásolja.</details></li>
+    <li>(nehezebb) Miért veszélyes az offline RL-ben a $\max_a Q(s, a)$?
+      <details><summary>Megoldás</summary>Mert a $\max$ olyan cselekvést is választhat, amely a naplóban sosem fordult elő; ennek a becslése tetszőlegesen rossz (gyakran túl nagy), és ki sem próbálhatjuk, hogy kiderüljön. A túlbecslés (<a class="xref" href="#s155-a">15.5</a>) itt nem javul magától. Az offline módszerek ezért „óvatosak”: büntetik a naplótól eltérő cselekvéseket.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai15-156"></div>
+</section>
+
+<!-- ===================================================== 15.7 -->
+<section id="s157">
+<h2>15.7 RL a nagy nyelvi modellekben – előzetes ★★</h2>
+<p>Egy előtanított nyelvi modell (<a class="xref" href="../12-beagyazasok-figyelem/#s127-b">12. fejezet</a>) azt tanulta meg, <b>hogyan folytatódik</b> egy szöveg az interneten. Ebből még nem lesz segítőkész asszisztens: a „hogyan folytatná az internet?” nem ugyanaz, mint a „mi lenne a jó válasz?”. A jó választ nehéz címkével megadni – de <b>megítélni</b> könnyebb. Ez pont az RL helyzete. A részleteket (SFT, RLHF, DPO, érvelő modellek) a 17. fejezet tárgyalja; itt azt nézzük meg, hogyan illik bele mindez a fejezet keretébe.</p>
+
+<h3 id="s157-a">1. lépés: a nyelvi modell mint ágens</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két lehetséges válasz</span>
+  Kérdés: „Mennyi 2 + 2?” Tegyük fel, hogy a modell két választ adhat: „4” (valószínűség 0,6) és „5” (0,4). A jutalom: 1, ha helyes, 0, ha nem. A várható jutalom $0{,}6$. Ha alapvonalnak ezt vesszük, a „4” előnye $1 - 0{,}6 = 0{,}4$, az „5”-é $0 - 0{,}6 = -0{,}6$. A REINFORCE (<a class="xref" href="#s155-b">15.5</a>) a „4” valószínűségét növeli, az „5”-ét csökkenti – <b>pontosan úgy, mint a három automatánál</b>.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – a szöveggenerálás mint döntéssorozat</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Állapot:</b> a prompt és az eddig generált tokenek.</li>
+    <li><b>Cselekvés:</b> a következő token – a szótár több tízezer, sokszor több mint 100 000 eleméből.</li>
+    <li><b>Stratégia:</b> maga a nyelvi modell, $\pi_\theta(\text{token} \mid \text{eddigi szöveg})$ – egy softmax kimenetű háló (<a class="xref" href="../14-generativ-modellek/#s142-c">14. fejezet</a>).</li>
+    <li><b>Átmenet:</b> determinisztikus – a token hozzáíródik a szöveghez.</li>
+    <li><b>Epizód és jutalom:</b> egy teljes válasz; a jutalom tipikusan <b>csak a végén</b> jön (egy értékelő modelltől, egy embertől vagy egy ellenőrző programtól).</li>
+  </ul>
+  Egy válasz valószínűsége a tokenek valószínűségeinek szorzata, a logaritmusa az összegük: $\ln \pi(\text{válasz}) = \sum_t \ln \pi_\theta(y_t \mid \text{prompt}, y_{\lt t})$. A stratégia-gradiens ezzel dolgozik. <b>Miért stratégia-gradiens és nem Q-tanulás?</b> Mert a cselekvéstér óriási, és a modell eleve egy valószínűségi stratégia – a $\max$ helyett a valószínűségeket kell tolni.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy háromtokenes válasz</span>
+    A modell a „Buda”, „pest”, „.” tokeneket 0,5; 0,8; 0,9 valószínűséggel adta. A válasz valószínűsége $0{,}5 \cdot 0{,}8 \cdot 0{,}9 = 0{,}36$, a logaritmusa $-1{,}02$. Ha a jutalom előnye pozitív, mindhárom token $\ln\pi$-jét felfelé toljuk.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a hitelkiosztás problémája</span>
+    Egy 500 tokenes válasz végén egyetlen jutalom jön. Melyik token tette jóvá vagy rosszá? Ugyanaz a kérdés, mint a <a class="xref" href="#s-kerdes">fejezet első rejtvényében</a> a robot harmadik lépéséről – itt 500 „lépéssel”.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az RL nem tanít új tudást a semmiből.</b> Csak olyan válaszokat erősíthet, amelyeket a modell már néha előállít; a lehetőségeket az előtanítás adja.</li>
+    <li><b>Az „ágens” szó itt kétféle.</b> RL-ben a nyelvi modell már egy szöveg generálása közben is ágens. A 19. fejezet „AI-ágensei” ennél többet tesznek: eszközöket hívnak, a világban cselekszenek.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – nyelvi modell és RL</summary>
+  <ol>
+    <li>Egy modell három választ adhat egy kérdésre 0,5; 0,3; 0,2 valószínűséggel, a jutalmuk 1; 0; 1. Mennyi a várható jutalom, és mennyi az egyes válaszok előnye ezzel az alapvonallal?
+      <details><summary>Megoldás</summary>$0{,}5 + 0{,}2 = 0{,}7$. Előnyök: $0{,}3$; $-0{,}7$; $0{,}3$.</details></li>
+    <li>Mi a „cselekvés” és mi az „állapot”, amikor a modell egy kódot ír, és a jutalom az, hogy a tesztek lefutnak-e?
+      <details><summary>Megoldás</summary>Állapot: a feladat leírása és az eddig megírt kód. Cselekvés: a következő token. Jutalom: az epizód (a teljes program) végén a tesztek eredménye – pl. 1, ha mind sikeres.</details></li>
+    <li>Egy válasz tokenjeinek valószínűségei 0,9; 0,9; 0,5. Mennyi a válasz valószínűsége?
+      <details><summary>Megoldás</summary>$0{,}9 \cdot 0{,}9 \cdot 0{,}5 = 0{,}405$.</details></li>
+    <li>Miért determinisztikus itt az átmenet, és miért jó ez?
+      <details><summary>Megoldás</summary>A választott token egyszerűen a szöveg végére kerül – nincs „megcsúszás”. Az egyetlen véletlen a stratégiáé (a mintavétel), így a hozam zaját csak a modell és a jutalom adja.</details></li>
+    <li>(nehezebb) Ha minden válasz jutalma ugyanaz (pl. mind helyes), mi történik a REINFORCE-frissítéssel alapvonallal?
+      <details><summary>Megoldás</summary>Minden előny 0, nincs változás. Ez helyes: ha minden válasz egyformán jó, nincs mit tanulni. (Ugyanez lesz a GRPO-ban – <a class="xref" href="#s157-c">3. lépés</a>.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s157-b">2. lépés: RLHF – jutalommodell és KL-póráz</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két válasz, egy ember</span>
+  Egy embernek két választ mutatunk ugyanarra a kérdésre, és ő az <b>A</b>-t választja. Ezer ilyen ítéletből egy <b>jutalommodell</b> tanulja meg, melyik válasz mennyit ér. Ha a jutalommodell az A-ra 2-t, a B-re 0,5-öt mond, akkor szerinte az A-t $\sigma(2 - 0{,}5) = \sigma(1{,}5) \approx 0{,}82$ eséllyel választaná egy ember (a szigmoid: <a class="xref" href="../05-osztalyozas/#s53-b">5. fejezet</a>).
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – RLHF (megerősítéses tanulás emberi visszajelzésből)</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Felügyelt finomhangolás</b> (SFT): a modell néhány ezer–tízezer jó példaválaszon tanul.</li>
+    <li><b>Jutalommodell:</b> emberek válaszpárokat hasonlítanak össze; egy modell olyan $r(x, y)$ pontszámot tanul, amelyre $P(A \succ B) = \sigma(r_A - r_B)$ (Bradley–Terry-modell, logisztikus regresszió a különbségen).</li>
+    <li><b>RL:</b> a nyelvi modell (stratégia) PPO-val (<a class="xref" href="#s155-c">15.5</a>) a jutalommodell pontszámát maximalizálja – egy <b>KL-büntetéssel</b>:
+      $$r_{\text{teljes}} = r(x, y) - \beta\,\ln\frac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)},$$
+      ahol $\pi_{\text{ref}}$ a kiinduló (SFT) modell. A második tag várható értéke a KL-divergencia (<a class="xref" href="../02-matematikai-eszkoztar/#s26-d">2.6</a>).</li>
+  </ol>
+  <b>Miért kell a KL-póráz?</b> Mert a jutalommodell csak egy <b>mérőszám</b> – egy háló, amely az emberi ítéleteket közelíti, és amelynek vannak gyengéi. Ha a nyelvi modell túl messzire megy a kiindulástól, megtalálja ezeket a gyengéket: <b>jutalom-kijátszás</b> (<a class="xref" href="#s156-b">15.6</a>). A KL-büntetés a modellt a jól ismert területen tartja.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a KL-büntetés</span>
+    Egy válaszra a jutalommodell 2,0-t ad; a válasz logaritmikus valószínűség-aránya a referencia modellhez képest 3 (a tanított modell $e^3 \approx 20$-szor valószínűbbnek tartja), $\beta = 0{,}1$. A teljes jutalom $2{,}0 - 0{,}1 \cdot 3 = 1{,}7$.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – az InstructGPT</span>
+    Az OpenAI 2022-es kísérletében (L. Ouyang és társai) az emberi értékelők a RLHF-fel tanított 1,3 milliárd paraméteres modell válaszait többször választották, mint a 175 milliárd paraméteres GPT-3-éit. Nem a méret, hanem az igazítás döntött – ebből lett a ChatGPT receptje.
+  </div>
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók – a jutalommodell kijátszása</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Hosszúság:</b> ha az értékelők a részletes válaszokat kedvelték, a jutalommodell a hosszt jutalmazza – és a modell bőbeszédű lesz.</li>
+    <li><b>Hízelgés</b> (<em>sycophancy</em>): ha az emberek szívesebben választják azt, ami egyetért velük, a modell megtanul egyetérteni – akkor is, ha a felhasználó téved.</li>
+    <li><b>Magabiztosság:</b> a határozott, de hibás válasz meggyőzőbb lehet egy értékelőnek, mint a bizonytalan, de helyes. A <a class="xref" href="#s156-b">„kéz a kamera előtt”</a> nyelvi változata.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – RLHF</summary>
+  <ol>
+    <li>A jutalommodell az A-ra 1-et, a B-re 2-t ad. Mekkora eséllyel jósolja, hogy egy ember az A-t választja?
+      <details><summary>Megoldás</summary>$\sigma(1 - 2) = \sigma(-1) \approx 0{,}27$.</details></li>
+    <li>Mennyi a teljes jutalom, ha $r = 3$, a log-arány 8, $\beta = 0{,}2$? És ha $r = 2{,}5$, a log-arány 10, $\beta = 0{,}05$?
+      <details><summary>Megoldás</summary>$3 - 1{,}6 = 1{,}4$; $2{,}5 - 0{,}5 = 2{,}0$.</details></li>
+    <li>Mi történik, ha $\beta = 0$? És ha $\beta$ nagyon nagy?
+      <details><summary>Megoldás</summary>$\beta = 0$: nincs póráz, a modell bármilyen messzire elmehet, és kijátssza a jutalommodellt. Nagy $\beta$: a modell alig mozdul a kiindulástól – biztonságos, de nem tanul.</details></li>
+    <li>Ha a jutalommodell két válaszra 0,3 különbséget mond, mekkora esélyt jósol a jobbikra?
+      <details><summary>Megoldás</summary>$\sigma(0{,}3) \approx 0{,}57$: alig jobb a pénzfeldobásnál. Csak a <b>különbség</b> számít, az abszolút szint nem.</details></li>
+    <li>(nehezebb) Miért gyűjtenek az RLHF-hez összehasonlításokat („A vagy B jobb?”), és miért nem 1–10-es pontszámokat?
+      <details><summary>Megoldás</summary>Mert az emberek pontszámai következetlenek (ki szigorúbb, ki engedékenyebb, napszaktól függ), az összehasonlítás viszont sokkal megbízhatóbb. A Bradley–Terry-modell az összehasonlításokból is egy közös pontszámskálát épít – a skála eltolása nem számít, mert csak a különbség lép be.</details></li>
+  </ol>
+</details>
+
+<h3 id="s157-c">3. lépés: ellenőrizhető jutalom és GRPO – az érvelő modellek 📅</h3>
+<div class="box example">
+  <span class="box-title">Kiinduló példa – négy próbálkozás egy feladatra</span>
+  Egy matekfeladatra a modell <b>négy</b> megoldást ír. A végeredményt egy program ellenőrzi: két megoldás helyes (jutalom 1), kettő hibás (0). A csoport átlaga 0,5, szórása 0,5. Minden megoldás előnye: (saját jutalom − átlag) / szórás, azaz $(+1;\ -1;\ -1;\ +1)$. A helyes megoldások minden tokenjének valószínűségét növeljük, a hibásakét csökkentjük – <b>kritikus nélkül</b>: az alapvonal a csoport átlaga.
+</div>
+<div class="box def">
+  <span class="box-title">Definíció – ellenőrizhető jutalom (RLVR) és GRPO</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Ellenőrizhető jutalom</b> (<em>RL with verifiable rewards</em>, RLVR): a jutalmat nem egy tanult modell, hanem egy <b>ellenőrző program</b> adja – egyezik-e a végeredmény, lefutnak-e a tesztek, helyes-e a formátum. Ezt sokkal nehezebb kijátszani, mint egy jutalommodellt.</li>
+    <li><b>GRPO</b> (<em>group relative policy optimization</em>, Z. Shao és társai, 2024): minden promptra $G$ választ generálunk, és az $i$-edik előnye
+      $$A_i = \frac{r_i - \text{átlag}(r_1, \dots, r_G)}{\text{szórás}(r_1, \dots, r_G)}.$$
+      A frissítés PPO-szerű (vágással és KL-taggal), de az értékfüggvényt (kritikust) a csoport átlaga helyettesíti – ez memóriát és számítást takarít meg.</li>
+  </ul>
+  <b>Miért működik?</b> Ugyanaz az alapvonal-gondolat, mint a <a class="xref" href="#s155-b">REINFORCE-nál</a>: csak a <b>vártnál jobb</b> válasz erősödik, és a „várt” itt az, ahogy a modell ugyanerre a feladatra átlagosan teljesít.
+</div>
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – amikor nincs mit tanulni</span>
+    Négy válasz, mind helyes: $(1;\ 1;\ 1;\ 1)$. Az átlag 1, minden előny 0. A túl könnyű (vagy túl nehéz, mind 0) feladat nem ad jelet – ezért a tanítóadatot úgy válogatják, hogy a modell <b>néha</b> oldja meg.
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy helyes a négyből</span>
+    $(1;\ 0;\ 0;\ 0)$: átlag 0,25, szórás 0,433. Előnyök: $+1{,}73$; $-0{,}58$; $-0{,}58$; $-0{,}58$. A ritka siker erős jelet kap.
+  </div>
+</div>
+<div class="box tip">
+  <span class="box-title">📅 Állapot: 2026 – az érvelő modellek</span>
+  A DeepSeek-R1 (2025) megmutatta, hogy egy előtanított modell <b>pusztán</b> ellenőrizhető jutalommal és GRPO-val (az R1-Zero változatnál felügyelt finomhangolás nélkül) megtanul hosszú gondolatmenetet írni a válasz előtt, visszanézni, hibát javítani – senki nem mutatta meg neki, hogyan. Az OpenAI o-sorozata, a Google Gemini „thinking” módjai és az Anthropic Claude modelljeinek kiterjesztett gondolkodása is RL-lel tanított érvelés. 2025–2026-ban az RL a nyelvi modellek tanításának egyik fő szakasza lett: az ellenőrizhető feladatok (matek, programozás) mellett egyre inkább <b>ágensfeladatokon</b> is tanítanak (eszközhasználat, többlépéses munkák), ahol a jutalom a feladat sikeres elvégzése. A sikeresség azonban vitatott kérdést is felvet: <b>tanít-e új képességet</b> az RL, vagy csak a meglévő lehetőségek közül választja ki a jobbakat – a kutatások 2025–2026-ban mindkét irányban adtak érveket.
+</div>
+<div class="box warn">
+  <span class="box-title">⚠️ Buktatók</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az ellenőrző is kijátszható.</b> Ha a jutalom „lefutnak a tesztek”, egy modell megtanulhatja a teszteket módosítani vagy kikerülni ahelyett, hogy a kódot javítaná. Ilyet a gyakorlatban is megfigyeltek – jutalom-kijátszás új formában.</li>
+    <li><b>Csak a végeredményt nézi.</b> A helyes végeredményhez vezető hibás gondolatmenet is jutalmat kap. A gondolatmenet szövege ráadásul nem feltétlenül hű tükre annak, hogyan „számolt” valójában a modell.</li>
+    <li><b>Nem minden ellenőrizhető.</b> Egy esszé, egy tanács, egy vers jóságát nem lehet programmal eldönteni – ott marad a jutalommodell, minden gyengéjével.</li>
+  </ul>
+</div>
+<details class="box practice">
+  <summary>✏️ Gyakorlás – GRPO</summary>
+  <ol>
+    <li>Négy válasz jutalma $(1;\ 0;\ 0;\ 1)$. Mennyi az egyes előny?
+      <details><summary>Megoldás</summary>Átlag 0,5, szórás 0,5: $(+1;\ -1;\ -1;\ +1)$.</details></li>
+    <li>Nyolc válaszból öt helyes. Mennyi egy helyes és egy hibás válasz előnye?
+      <details><summary>Megoldás</summary>Átlag 0,625, szórás $\sqrt{0{,}625 \cdot 0{,}375} \approx 0{,}484$. Helyes: $0{,}375/0{,}484 \approx 0{,}77$; hibás: $-0{,}625/0{,}484 \approx -1{,}29$.</details></li>
+    <li>Melyik feladat ad ellenőrizhető jutalmat: (a) egy egyenlet megoldása, (b) egy vicc megírása, (c) egy függvény megírása tesztekkel, (d) egy e-mail udvariasságának javítása?
+      <details><summary>Megoldás</summary>(a) és (c): programmal ellenőrizhető. (b) és (d): ízlés kérdése, jutalommodell vagy emberi ítélet kell.</details></li>
+    <li>Miért nem tanul semmit a GRPO egy olyan feladatból, amelyet a modell mind a 8 próbálkozásban elront?
+      <details><summary>Megoldás</summary>Minden jutalom 0, az átlag 0, minden előny 0 (a szórás is 0 – ilyenkor az előnyt 0-nak vesszük). Nincs pozitív példa, amelyet erősíteni lehetne.</details></li>
+    <li>(nehezebb) Hasonlítsd össze a GRPO csoportátlagát a REINFORCE közös átlagjutalom-alapvonalával és az aktor–kritikus értékfüggvényével! Melyik mit tud?
+      <details><summary>Megoldás</summary>A közös átlag minden feladatra ugyanaz – egy könnyű feladat minden válasza „vártnál jobbnak” tűnik. Az értékfüggvény (kritikus) állapotonként becsli a várt hozamot, de egy egész külön hálót kell hozzá tanítani. A GRPO csoportátlaga feladatonként méri a „vártat”, pontosan a modell mostani tudásához – háló nélkül, csak több mintával. Ára: minden promptra $G$ választ kell generálni.</details></li>
+  </ol>
+</details>
+<div class="quiz" data-quiz="ai15-157"></div>
+</section>
+
+<!-- ===================================================== 15.8 -->
+<section id="s158">
+<h2>15.8 Alkalmazás: a raktár és a szirt</h2>
+<p>Minden eszköz megvan. Két kis világon összevetjük őket: a <b>raktárban</b> azt nézzük meg, mennyibe kerül, ha nem ismerjük a térképet; a <b>szirten</b> azt, hogy a felfedezés hogyan formálja a tanult stratégiát. Minden szám a widgetek motorjával, sok független futás átlagaként készült – a te futásaid a véletlen miatt kicsit eltérhetnek.</p>
+
+<h3 id="s158-a">Tervezés vagy tanulás? – a raktár</h3>
+<div class="box example">
+  <span class="box-title">A kísérlet</span>
+  A raktár 15 bejárható cellából áll, a töltő +10, az olajfolt −10, minden más lépés −1, $\gamma = 0{,}9$. A legrövidebb út a starttól 7 lépés; az optimális hozam (diszkont nélkül) $10 - 6 = 4$, a diszkontált érték $V^*(\text{start}) = 0{,}63$.
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th></th><th>értékiteráció (<a class="xref" href="#s153-c">15.3</a>)</th><th>Q-tanulás (<a class="xref" href="#s154-b">15.4</a>), $\alpha = 0{,}5$, $\varepsilon = 0{,}1$</th></tr>
+    <tr><td>mit kell tudnia?</td><td>a teljes térképet ($P$ és $r$)</td><td>semmit – csak lépni tud</td></tr>
+    <tr><td>munka a legjobb útig</td><td>8 söprés × 60 frissítés = 480 számolás</td><td>medián 11 epizód, 288 valódi lépés</td></tr>
+    <tr><td>az első próbálkozás</td><td>–</td><td>medián 58 lépés bolyongás a töltőig</td></tr>
+    <tr><td>$V(\text{start})$ a végén</td><td>0,629</td><td>0,629 (300 epizód után, 100 futás átlaga)</td></tr>
+    <tr><td>átlagos hozam tanulás közben (utolsó 50 epizód)</td><td>–</td><td>2,77 (a 4 helyett: a felfedezés ára)</td></tr>
+  </table></div>
+</div>
+<div class="box example">
+  <span class="box-title">Mit olvasunk ki belőle?</span>
+  <ul style="margin:.2rem 0">
+    <li>A Q-tanulás <b>ugyanoda</b> jut, mint a tervezés – térkép nélkül. Ez a Bellman-egyenlet mintavételes megoldása.</li>
+    <li>Az ára a <b>tapasztalat</b>: 288 valódi lépés (benne sok bolyongás). Egy valódi robotnál ez az idő, energia, kockázat.</li>
+    <li>Tanulás közben a hozam 2,77, nem 4: az ε = 0,1 felfedezés néha rossz lépést tesz. Ezért a betanítás után a felfedezést kikapcsolják (vagy nagyon kicsire veszik).</li>
+  </ul>
+  Próbáld ki a <a class="xref" href="#s154-b">Q-tanulás widgetjében</a>: „+10 epizód” néhányszor, és figyeld a mohó út hosszát!
+</div>
+
+<h3 id="s158-b">Bátor vagy óvatos? – Q-tanulás és SARSA a szirt szélén</h3>
+<div class="box example">
+  <span class="box-title">A kísérlet</span>
+  A szirt: 4 × 10-es rács, a start bal lent, a cél jobb lent, köztük 8 cellányi szakadék (−100, vissza a startra), minden lépés −1, $\gamma = 1$, $\alpha = 0{,}5$. 500 epizód, 50 független futás:
+  <div class="tw" style="overflow-x:auto"><table style="font-size:.88rem;text-align:center;max-width:620px">
+    <tr><th></th><th colspan="2">$\varepsilon = 0{,}1$</th><th colspan="2">$\varepsilon = 0{,}01$</th></tr>
+    <tr><th></th><th>Q-tanulás</th><th>SARSA</th><th>Q-tanulás</th><th>SARSA</th></tr>
+    <tr><td>a mohó út hossza</td><td>11 (a szakadék szélén)</td><td>15 (két sorral feljebb)</td><td>11</td><td>13</td></tr>
+    <tr><td>átlagos hozam az utolsó 100 epizódban</td><td>−39,9</td><td>−22,6</td><td>−13,4</td><td>−14,8</td></tr>
+    <tr><td>hány epizódban esett le (500-ból)</td><td>105</td><td>30</td><td>12</td><td>7</td></tr>
+  </table></div>
+</div>
+<div class="box example">
+  <span class="box-title">Mit olvasunk ki belőle?</span>
+  <ul style="margin:.2rem 0">
+    <li>A <b>Q-tanulás</b> a legjobb (11 lépéses) utat tanulja meg – off-policy, a tökéletes jövőt feltételezi. De amíg ε = 0,1, minden tizedik lépés véletlen, és a szakadék szélén ez sokszor esést jelent: tanulás közben rosszabbul teljesít.</li>
+    <li>A <b>SARSA</b> beárazza a saját felfedezését: a szélső sor „értéke” az ε-mohó viselkedés mellett rossz, ezért feljebb megy. Lassabb, de tanulás közben sokkal kevesebbet veszít.</li>
+    <li>Kis ε-nál a különbség eltűnik: ha alig fedez fel, a SARSA is közelebb merészkedik a széléhez (13 lépés), és a Q-tanulás is ritkán esik le.</li>
+  </ul>
+  Melyik a jobb? <b>Attól függ, mit mérsz</b>: a végső (felfedezés nélküli) stratégiát, vagy a tanulás közbeni teljesítményt. Egy szimulátorban az első számít, egy valódi robotnál a második is. Próbáld ki: a <a class="xref" href="#s154-b">widgetben</a> válts a „szirt” világra!
+</div>
+<div class="widget" data-widget="gridworld-q" data-map="szirt"></div>
+
+<h3 id="s158-c">Válaszok a fejezet kérdéseire</h3>
+<div class="box tip">
+  <span class="box-title">A négy kérdés</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Egyetlen keret:</b> ágens, környezet, állapot, cselekvés, jutalom – egy Markov-döntési folyamat (<a class="xref" href="#s151-c">15.1</a>). A robot, a játékos, a go-program és a nyelvi modell mind így írható le; a különbség az állapotok és a cselekvések számában és a jutalom forrásában van.</li>
+    <li><b>Felfedezés vagy kiaknázás:</b> mindkettő kell. A tiszta mohóság beragad (a futások felében a rossz automatánál), a sok véletlen pazarol; az ε-mohó, az optimista kezdés és az UCB adagolja a kettőt, a megbánás méri az árát (<a class="xref" href="#s152">15.2</a>).</li>
+    <li><b>A késői jutalom visszaszivárgása:</b> a Bellman-egyenlet szerint egy állapot értéke a következő jutalom plusz a következő állapot értéke. Ha ismerjük a térképet, értékiterációval terjesztjük vissza (söprésenként egy lépéssel); ha nem, a TD-hiba és a Q-tanulás minden tapasztalt lépés után egy kicsit visszaviszi (<a class="xref" href="#s153">15.3</a>, <a class="xref" href="#s154">15.4</a>).</li>
+    <li><b>A jutalom:</b> az ágens azt optimalizálja, amit mérünk. A részjutalom gyorsít, de kiskaput nyithat; a potenciál-alapú forma biztonságos (<a class="xref" href="#s156">15.6</a>). A nyelvi modelleknél a jutalommodell kijátszását KL-póráz fékezi, az ellenőrizhető jutalom nehezebben kijátszható (<a class="xref" href="#s157">15.7</a>).</li>
+  </ol>
+</div>
+<div class="box tip">
+  <span class="box-title">A három rejtvény</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A késő jutalom.</b> A robot nem az utolsó lépésből „tudja meg”, hogy a harmadik lépése jó volt, hanem abból, hogy a harmadik lépés egy <b>értékesebb</b> állapotba vitte. Az értékek epizódról epizódra visszaszivárognak a töltőtől (<a class="xref" href="#s154-b">három epizód táblázata</a>). A go-programnál ugyanez, egy értékhálóval (<a class="xref" href="#s155-c-alphago">AlphaGo</a>).</li>
+    <li><b>Három automata, száz érme.</b> Pontos szám nincs – függ az esélyek különbségétől. De: soha ne hagyd abba teljesen a felfedezést az elején, és ne fedezz fel végig ugyanannyit. A szimulációkban (1000 húzás) az ε = 0,1 a legjobb kar arányát 46%-ról 88%-ra emelte a mohóhoz képest; az UCB ennél is jobb volt.</li>
+    <li><b>A győztes, aki nem ér célba.</b> Az algoritmus nem hibás: tökéletesen maximalizálta a pontszámot. A jutalom volt hibás – egy újratöltődő pontforrás, amelyet a messzire néző ágens „bányászni” kezdett (<a class="xref" href="#s156-b">a bója-példa</a>: $\gamma \approx 0{,}95$ fölött). A tanulság az egész MI-re érvényes: <b>azt kapod, amit mérsz</b>.</li>
+  </ul>
+</div>
+<div class="quiz" data-quiz="ai15-158"></div>
+</section>
+
+<!-- ===================================================== Összefoglalás -->
+<section id="s-sum">
+<h2>Összefoglalás</h2>
+<div class="tw" style="overflow-x:auto"><table>
+  <tr><th>Fogalom</th><th>Lényeg</th></tr>
+  <tr><td>Ágens–környezet hurok</td><td>állapot $s_t$ → cselekvés $a_t$ → jutalom $r_t$, új állapot $s_{t+1}$; epizód: a végállapotig; nincs „helyes” címke, a jutalom késhet</td></tr>
+  <tr><td>Stratégia</td><td>$\pi(s)$ vagy $\pi(a \mid s)$: teendő minden állapotra; determinisztikus vagy sztochasztikus</td></tr>
+  <tr><td>MDP, Markov-tulajdonság</td><td>$S$, $A$, $P(s' \mid s, a)$, $r$, $\gamma$; a jövő csak a jelentől függ – ha nem, bővítsd az állapotot</td></tr>
+  <tr><td>Bandita, átlagolás</td><td>egy döntés, azonnali jutalom, csak a választottról; $Q \leftarrow Q + \frac1n(r - Q)$</td></tr>
+  <tr><td>Felfedezés vs. kiaknázás</td><td>mohó: beragadhat; ε-mohó: $1 - \varepsilon$ kiaknáz, $\varepsilon$ véletlen; optimista kezdés; UCB: $Q + c\sqrt{\ln t / N}$</td></tr>
+  <tr><td>Megbánás</td><td>$T q^* - \sum q(a_t)$: a döntések ára; jó stratégiánál lassan (UCB: $\ln T$) nő</td></tr>
+  <tr><td>Diszkontált hozam</td><td>$G_t = \sum_k \gamma^k r_{t+k} = r_t + \gamma G_{t+1}$; horizont $\approx 1/(1 - \gamma)$</td></tr>
+  <tr><td>$V^\pi$, $Q^\pi$</td><td>várható hozam egy állapotból / egy cselekvéssel kezdve, $\pi$ szerint folytatva; a véletlen robot: $(-5;\ 0;\ 5)$</td></tr>
+  <tr><td>Bellman-egyenlet</td><td>érték = következő jutalom + $\gamma$ · következő érték, átlagolva; optimálisan $\max$-szal; $\pi^* = \arg\max_a Q^*$</td></tr>
+  <tr><td>Értékiteráció</td><td>$V \leftarrow \max_a \sum P[r + \gamma V']$ söprésenként; térkép kell; a folyosón 3, a raktárban 8 söprés</td></tr>
+  <tr><td>TD-tanulás</td><td>$\delta = r + \gamma V(s') - V(s)$, $V \mathrel{+}= \alpha\delta$; minden lépés után, saját becslésből (bootstrapping); a Monte-Carlo a végét várja</td></tr>
+  <tr><td>Q-tanulás</td><td>$Q \mathrel{+}= \alpha[r + \gamma \max Q(s', \cdot) - Q]$; off-policy; térkép nélkül a $Q^*$-hoz tart</td></tr>
+  <tr><td>SARSA</td><td>$Q \mathrel{+}= \alpha[r + \gamma Q(s', a') - Q]$; on-policy, beárazza a felfedezést; a szirten óvatosabb</td></tr>
+  <tr><td>DQN</td><td>$Q_\theta$ háló, négyzetes TD-hiba; tapasztalat-visszajátszás, célháló; Atari 2015</td></tr>
+  <tr><td>REINFORCE, alapvonal</td><td>$\theta \mathrel{+}= \alpha (G - b) \nabla \ln \pi_\theta(a \mid s)$; softmaxnál $\mathbb 1[k = a] - \pi_k$; az alapvonal csökkenti a zajt</td></tr>
+  <tr><td>Aktor–kritikus, PPO</td><td>előny = TD-hiba a kritikus $V$-jéből; PPO: az arány vágása $[1 - \epsilon;\ 1 + \epsilon]$-ra</td></tr>
+  <tr><td>AlphaGo és utódai</td><td>utánzás + önjáték + értékháló + MCTS (2016); Zero: emberi adat nélkül; MuZero: szabályok nélkül</td></tr>
+  <tr><td>Jutalomalakítás</td><td>ritka jutalom: lassú; naiv részjutalom: kiskapu; potenciál-alapú $F = \gamma\Phi(s') - \Phi(s)$: a legjobb stratégia nem változik</td></tr>
+  <tr><td>Jutalom-kijátszás</td><td>az ágens a mérőszámot optimalizálja, nem a célt (hajó, Tetris, kéz a kamera előtt); Goodhart</td></tr>
+  <tr><td>Valóság</td><td>mintaigény, biztonságos felfedezés, sim-to-real rés (tartomány-véletlenítés), offline RL</td></tr>
+  <tr><td>RLHF</td><td>SFT → jutalommodell összehasonlításokból ($\sigma(r_A - r_B)$) → PPO KL-büntetéssel: $r - \beta \ln(\pi/\pi_{\text{ref}})$</td></tr>
+  <tr><td>RLVR, GRPO</td><td>ellenőrző program a jutalom; előny $= (r_i - \text{átlag})/\text{szórás}$ a csoporton belül, kritikus nélkül; érvelő modellek (📅 2025–2026)</td></tr>
+</table></div>
+
+<div class="box tip" id="s-sum-dontesi">
+  <span class="box-title">Melyik módszer mikor? – döntési táblázat</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>Ha a feladatban ez áll…</th><th>…akkor ezt használd</th></tr>
+    <tr><td>minden döntéshez megvan a helyes válasz (címke)</td><td>nem RL kell: felügyelt tanulás</td></tr>
+    <tr><td>egyetlen döntés, azonnali visszajelzés, csak a választottról (hirdetés, címlap, ajánlás)</td><td>bandita: ε-mohó, UCB, Thompson-mintavétel</td></tr>
+    <tr><td>döntéssorozat, kis állapottér, <b>ismert</b> térkép ($P$, $r$)</td><td>tervezés: értékiteráció (dinamikus programozás)</td></tr>
+    <tr><td>döntéssorozat, kis állapottér, <b>ismeretlen</b> világ, olcsó próbálkozás</td><td>táblázatos Q-tanulás</td></tr>
+    <tr><td>ugyanez, de a tanulás közbeni hibák drágák</td><td>SARSA (on-policy), kisebb ε, szimulátor</td></tr>
+    <tr><td>nagy, képi / folytonos állapottér, diszkrét cselekvések</td><td>DQN (visszajátszás + célháló)</td></tr>
+    <tr><td>folytonos vagy óriási cselekvéstér (robot, nyelvi modell)</td><td>stratégia-gradiens: aktor–kritikus, PPO, GRPO</td></tr>
+    <tr><td>zárt játék, ismert szabályok, önjáték lehetséges</td><td>keresés + háló + önjáték (AlphaZero-típus)</td></tr>
+    <tr><td>csak régi naplók vannak, próbálkozni nem lehet</td><td>offline RL – óvatosan, a naplótól eltérő cselekvéseket büntetve</td></tr>
+    <tr><td>ritka a jutalom</td><td>potenciál-alapú alakítás, kíváncsiság, utánzásból indítás</td></tr>
+    <tr><td>nyelvi modell igazítása ízlés szerint</td><td>RLHF: jutalommodell + KL-büntetés</td></tr>
+    <tr><td>nyelvi modell tanítása ellenőrizhető feladaton (matek, kód)</td><td>RLVR, GRPO</td></tr>
+  </table></div>
+</div>
+<div class="box tip">
+  <span class="box-title">💡 Hüvelykujjszabályok</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Új becslés = régi + lépésköz · (cél − régi).</b> A bandita, a TD, a Q-tanulás és a SARSA mind ez – csak a cél más.</li>
+    <li><b>Felfedezés nélkül nincs tanulás.</b> Amit sosem próbálsz ki, arról sosem tudsz meg semmit.</li>
+    <li><b>Az érték a jövő, a jutalom a jelen.</b> Egy 0 jutalmú lépés is lehet nagyon jó.</li>
+    <li><b>Ha ismered a térképet, tervezz; ha nem, tanulj.</b></li>
+    <li><b>Az alapvonal a „vártnál jobb?” kérdés</b> – csökkenti a zajt, nem változtat az irányon.</li>
+    <li><b>Azt kapod, amit mérsz.</b> Minden jutalom egy mérőszám, és az erős optimalizáló megtalálja a réseit.</li>
+    <li><b>Mindig több futás átlagát nézd.</b> Egy RL-futás szerencse is lehet.</li>
+  </ul>
+</div>
+</section>
+
+<!-- ===================================================== Ellenőrző kérdések -->
+<section id="s-check">
+<h2>Ellenőrző kérdések</h2>
+<p>Gondold végig a választ, aztán kattints a kártyára a megfordításhoz!</p>
+<div class="flashcards">
+  <div class="flash"><div class="inner"><div class="face front">Miben más a megerősítéses tanulás, mint a felügyelt?</div>
+    <div class="face back">Nincs helyes válasz címkeként, csak jutalom: azt mondja meg, mennyire volt jó, ami történt, azt nem, mi lett volna jobb. A jutalom késhet, és az ágens maga gyűjti az adatát a cselekvéseivel.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a stratégia?</div>
+    <div class="face back">Szabály, amely minden állapotra megmondja a teendőt: determinisztikusan $a = \pi(s)$, vagy valószínűségekkel $\pi(a \mid s)$. Az RL célja a legjobb stratégia megtalálása.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit mond ki a Markov-tulajdonság?</div>
+    <div class="face back">A következő állapot (és jutalom) csak a mostani állapottól és cselekvéstől függ, a korábbiaktól nem. Ha nem teljesül, az állapotot bővíteni kell (pl. a sebességgel, az utolsó néhány képkockával).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért ragad be a mohó stratégia?</div>
+    <div class="face back">Mert csak a választott kar becslése javul. Ha egy rossz kar az elején szerencsés, a mohó azt húzza tovább, a többit sosem próbálja ki – a becslésük örökre hibás marad.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi az ε-mohó stratégia?</div>
+    <div class="face back">$1 - \varepsilon$ valószínűséggel a legjobbnak hitt cselekvés, $\varepsilon$ valószínűséggel egyenletesen véletlen. Minden cselekvés sorra kerül, de a felfedezés ára állandó marad, ezért ε-t idővel csökkentik.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit mér a megbánás?</div>
+    <div class="face back">Mennyivel kaptál várhatóan kevesebbet, mintha végig a legjobb cselekvést választottad volna: $T q^* - \sum_t q(a_t)$. A döntések minőségét méri, nem a szerencsét.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit csinál az UCB?</div>
+    <div class="face back">A $Q(a) + c\sqrt{\ln t / N(a)}$ legnagyobb kart húzza: a ritkán próbált kar bizonytalanságát bónuszként adja hozzá – „optimizmus a bizonytalansággal szemben”.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a diszkontált hozam, és mire jó a $\gamma$?</div>
+    <div class="face back">$G_t = r_t + \gamma r_{t+1} + \gamma^2 r_{t+2} + \dots$ A közelebbi jutalom többet ér, a rövidebb út jobb, és a végtelen összeg véges marad. $\gamma$ kicsi: rövidlátó, $\gamma \to 1$: türelmes ágens.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a különbség $V^\pi(s)$ és $Q^\pi(s, a)$ között?</div>
+    <div class="face back">$V^\pi(s)$: várható hozam $s$-ből, $\pi$ szerint. $Q^\pi(s, a)$: várható hozam, ha $s$-ben először $a$-t tesszük, utána $\pi$ szerint. $Q$-ból térkép nélkül is lehet dönteni: $\arg\max_a Q(s, a)$.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit mond a Bellman-optimalitási egyenlet?</div>
+    <div class="face back">$V^*(s) = \max_a \sum_{s'} P(s' \mid s, a)[r + \gamma V^*(s')]$: a legjobb érték = a legjobb cselekvés várható azonnali jutalma + a következő állapot leértékelt legjobb értéke.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Hogyan működik az értékiteráció, és mi kell hozzá?</div>
+    <div class="face back">Minden állapotra ismételten $V(s) \leftarrow \max_a \sum P[r + \gamma V(s')]$, amíg be nem áll; söprésenként egy lépéssel terjed a hír. A teljes térkép ($P$ és $r$) kell hozzá – tervezés.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a TD-hiba?</div>
+    <div class="face back">$\delta = r + \gamma V(s') - V(s)$: két egymást követő becslés különbsége („a villamos késik: 45 perc a 30 helyett”). A TD-tanulás minden lépés után $\alpha\delta$-val javít, a végét nem várja meg.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Írd fel a Q-tanulás frissítését!</div>
+    <div class="face back">$Q(s, a) \leftarrow Q(s, a) + \alpha[r + \gamma \max_{a'} Q(s', a') - Q(s, a)]$; végállapotnál a $\max$ tag 0. A Bellman-optimalitás mintavételes változata.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a különbség a Q-tanulás és a SARSA között?</div>
+    <div class="face back">A Q-tanulás a következő állapot legjobb $Q$-ját használja (off-policy: a mohó stratégiát tanulja), a SARSA a ténylegesen választott következő cselekvését (on-policy: a felfedezéssel együtt). A szirten a Q-tanulás a szélen, a SARSA biztonságosabb úton megy.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a DQN két stabilizáló trükkje?</div>
+    <div class="face back">Tapasztalat-visszajátszás (véletlen kötegek egy nagy tárból – közel független minták, többszöri felhasználás) és célháló (a TD-célban egy ritkán frissített másolat – a cél nem mozog együtt a hálóval).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit csinál a REINFORCE?</div>
+    <div class="face back">A kipróbált cselekvések valószínűségét a hozammal arányosan növeli: $\theta \mathrel{+}= \alpha G \nabla \ln \pi_\theta(a \mid s)$. A jutalomnak nem kell deriválhatónak lennie.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mire jó az alapvonal?</div>
+    <div class="face back">$G - b$ használatával csak a vártnál jobb kimenetel erősíti a választott cselekvést. Az átlagos gradiens nem változik, de a zaj jóval kisebb (a 20 futás szórása 0,21-ről 0,10-re csökkent).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi az aktor–kritikus, és mit tesz hozzá a PPO?</div>
+    <div class="face back">Aktor: a stratégia; kritikus: egy értékfüggvény, amelynek TD-hibája az előny. A PPO a régi és az új stratégia arányát $[1 - \epsilon;\ 1 + \epsilon]$-ra vágja, így egy frissítés nem viheti túl messzire a stratégiát.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Hogyan tanult az AlphaGo?</div>
+    <div class="face back">Stratégia-háló emberi játszmákon (utánzás), javítás önjátékkal (stratégia-gradiens), értékháló a nyerési esélyre, és játék közben Monte-Carlo-fakeresés. Az AlphaGo Zero emberi adat nélkül, csak önjátékkal tanult.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a potenciál-alapú jutalomalakítás, és miért biztonságos?</div>
+    <div class="face back">$F = \gamma\Phi(s') - \Phi(s)$ kiegészítő jutalom. Egy pálya összege teleszkopikusan $-\Phi(s_0)$, minden pályán ugyanannyi, ezért a legjobb stratégia nem változik – a naiv „+1 a közeledésért” viszont kijátszható.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a jutalom-kijátszás?</div>
+    <div class="face back">Az ágens magas jutalmat ér el nem kívánt viselkedéssel (körbeforgó hajó, szüneteltetett Tetris, kéz a kamera előtt). Nem az algoritmus hibája, hanem a jutalomé: az ágens a mérőszámot optimalizálja, nem a célt.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi az RLHF három lépése?</div>
+    <div class="face back">Felügyelt finomhangolás példaválaszokon; jutalommodell emberi összehasonlításokból ($P(A \succ B) = \sigma(r_A - r_B)$); PPO a jutalommodell pontszámára, KL-büntetéssel a kiinduló modellhez képest.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért kell KL-büntetés az RLHF-ben?</div>
+    <div class="face back">Mert a jutalommodell csak közelíti az emberi ítéletet. Ha a nyelvi modell túl messzire megy, kijátssza a gyengéit (hosszúság, hízelgés). A KL-tag a kiinduló modell közelében tartja.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Hogyan számolja a GRPO az előnyt?</div>
+    <div class="face back">Egy promptra $G$ választ generál, és mindegyik előnye (saját jutalom − csoportátlag) / csoportszórás. Kritikus háló nem kell; ha minden válasz egyformán jó vagy rossz, nincs tanulási jel.</div></div></div>
+</div>
+</section>
+
+<!-- ===================================================== Vegyes gyakorló feladatok -->
+<section id="s-ex">
+<h2>Vegyes gyakorló feladatok</h2>
+<p>Itt már nincs megmondva, melyik szakaszhoz tartozik a feladat: neked kell eldönteni, melyik eszköz kell.</p>
+<details class="box practice">
+  <summary>✏️ Vegyes gyakorló feladatok – kattints a kinyitáshoz</summary>
+  <ol>
+    <li>Egy robot négy lépésben ér célba, a jutalmak $-1, -1, -1, +10$, $\gamma = 0{,}9$. Mennyi a hozam az indulástól? Melyik raktári cella értékével egyezik meg?
+      <details><summary>Tipp</summary>$G = \sum_k \gamma^k r_k$; a raktárban a töltőtől mért távolság számít.</details>
+      <details><summary>Megoldás</summary>$-1 - 0{,}9 - 0{,}81 + 7{,}29 = 4{,}58$ – a töltőtől 4 lépésre lévő cella értéke ($V^*$).</details></li>
+    <li>Öt kar, ε = 0,05. Mekkora eséllyel húzza az ágens a legjobbnak hitt kart, és mekkorával egy adott másikat?
+      <details><summary>Tipp</summary>A véletlen választásban a legjobbnak hitt kar is benne van.</details>
+      <details><summary>Megoldás</summary>$0{,}95 + 0{,}05/5 = 0{,}96$; egy adott másikat $0{,}01$.</details></li>
+    <li>20 húzás után két kar: $Q = (0{,}6;\ 0{,}55)$, $N = (15;\ 5)$, $c = 1$. Melyiket húzza az UCB, és melyiket a mohó?
+      <details><summary>Tipp</summary>$Q + c\sqrt{\ln t / N}$, $\ln 20 \approx 3{,}0$.</details>
+      <details><summary>Megoldás</summary>UCB: $0{,}6 + 0{,}447 \approx 1{,}05$ vs. $0{,}55 + 0{,}774 \approx 1{,}32$ → a második. A mohó az elsőt húzná.</details></li>
+    <li>Végezd el a folyosó értékiterációját $\gamma = 0{,}8$-cal! Mi lesz $V^*$?
+      <details><summary>Tipp</summary>Söprésenként egy cellával terjed a töltő híre.</details>
+      <details><summary>Megoldás</summary>$(0;\ 0;\ 10) \to (0;\ 8;\ 10) \to (6{,}4;\ 8;\ 10)$, és itt megáll. A stratégia: mindenhol jobbra.</details></li>
+    <li>$Q(s, a) = 3$, $r = 0$, $\max_{a'} Q(s', a') = 5$, a ténylegesen választott $a'$ értéke 2, $\alpha = 0{,}2$, $\gamma = 0{,}9$. Mennyi az új $Q(s, a)$ Q-tanulással és SARSA-val?
+      <details><summary>Tipp</summary>A két módszer csak a célban tér el.</details>
+      <details><summary>Megoldás</summary>Q-tanulás: $3 + 0{,}2\,(4{,}5 - 3) = 3{,}3$. SARSA: $3 + 0{,}2\,(1{,}8 - 3) = 2{,}76$.</details></li>
+    <li>Két cselekvés, softmax-stratégia, $\pi = (0{,}25;\ 0{,}75)$. Az első cselekvést választottuk, $G = 2$, alapvonal $b = 1$, $\alpha = 0{,}5$. Mennyivel változik a két pontszám? Nő vagy csökken az első esélye?
+      <details><summary>Tipp</summary>$\Delta\theta_k = \alpha (G - b)(\mathbb 1[k = a] - \pi_k)$.</details>
+      <details><summary>Megoldás</summary>$\Delta\theta_1 = 0{,}5 \cdot 1 \cdot 0{,}75 = 0{,}375$, $\Delta\theta_2 = 0{,}5 \cdot 1 \cdot (-0{,}75) = -0{,}375$. Az első esélye nő (az előny pozitív).</details></li>
+    <li>Potenciál-alapú alakítás, $\Phi = -$(távolság a céltól), $\gamma = 0{,}9$. Egy ágens 4 lépésről egyenesen célba megy. Mennyi az alakító jutalmak diszkontált összege? És ha közben kétszer oda-vissza lép?
+      <details><summary>Tipp</summary>Teleszkopikus összeg.</details>
+      <details><summary>Megoldás</summary>Mindkét esetben $-\Phi(s_0) = 4$. (Az első esetben pl. $1{,}3 + 0{,}9 \cdot 1{,}2 + 0{,}81 \cdot 1{,}1 + 0{,}729 \cdot 1 = 4$.) Az oda-vissza lépkedés nem hoz többet – a célba érés +10-e viszont később jön, és jobban le van értékelve, tehát az összes hozam kisebb.</details></li>
+    <li>Egy raktári robot jutalma: +1 minden csomagért, amelyet a „kész” polcra tesz. Mi lehet a kiskapu? Javíts a jutalmon!
+      <details><summary>Tipp</summary>Mit mér a jutalom, és mi a valódi cél?</details>
+      <details><summary>Megoldás</summary>Leveheti és visszateheti ugyanazt a csomagot – végtelen jutalom. Jobb: csak az új, a rendelésben szereplő csomag elhelyezése érjen pontot (az állapot tartalmazza, mi van már a polcon), vagy a „kész rendelések száma” növekedése legyen a jutalom (ez potenciálkülönbség, nem bányászható).</details></li>
+    <li>Egy nyelvi modell négy válasza egy prompttal a jutalommodell szerint $(0{,}9;\ 0{,}2;\ 0{,}5;\ 0{,}4)$. Mennyi a GRPO-előny? Melyik válasz valószínűsége nem változik?
+      <details><summary>Tipp</summary>Átlag 0,5; a szórás a csoporté.</details>
+      <details><summary>Megoldás</summary>Szórás $\approx 0{,}255$: előnyök $\approx (1{,}57;\ -1{,}18;\ 0;\ -0{,}39)$. A harmadik (átlagos) válaszé nem változik.</details></li>
+    <li>Melyik módszert választanád? (a) Egy webáruház azt akarja eldönteni, melyik kuponajánlatot mutassa, és a vásárlást méri. (b) Egy raktári robot ismert térképen, ismert akadályokkal. (c) Egy játékprogram, amely képernyőt lát, és 18 gombja van. (d) Egy nyelvi modell matekfeladatok megoldására.
+      <details><summary>Tipp</summary>Döntési táblázat: egy döntés vagy sorozat? Ismert-e a világ? Mekkora az állapot- és a cselekvéstér?</details>
+      <details><summary>Megoldás</summary>(a) Bandita (UCB, Thompson). (b) Tervezés (értékiteráció vagy egy egyszerű útkereső) – nem kell tanulni. (c) DQN (vagy PPO). (d) Ellenőrizhető jutalom + GRPO (vagy PPO).</details></li>
+  </ol>
+</details>
+</section>
+
+<!-- ===================================================== Fejezetzáró -->
+<section id="s-final">
+<h2>Fejezetzáró teszt</h2>
+<p>Vegyes feladatok az egész fejezetből. Ha legalább 80%-ot elérsz, nyugodtan továbbléphetsz.</p>
+<div class="quiz" data-quiz="ai15-final"></div>
+</section>
+
+<!-- ===================================================== Szómagyarázó -->
+<section id="s-gloss">
+<h2>Szómagyarázó</h2>
+<p>A fejezetben előforduló idegen vagy kevésbé ismert szakkifejezések, betűrendben.</p>
+<dl class="glossary">
+  <dt id="g-agens">ágens <span class="etym">lat. <em>agens</em> „cselekvő”; ang. <em>agent</em></span></dt>
+  <dd><p>A döntéshozó, amely megfigyeli a környezet állapotát, cselekszik, és jutalmat kap.</p></dd>
+
+  <dt id="g-aktor">aktor–kritikus <span class="etym">lat. <em>actor</em> „cselekvő”, gör. <em>kritikosz</em> „ítélőképes”</span></dt>
+  <dd><p>Módszer, amelyben a stratégia (aktor) a kritikus értékfüggvényének TD-hibáját használja előnyként.</p></dd>
+
+  <dt id="g-alapvonal">alapvonal <span class="etym">ang. <em>baseline</em></span></dt>
+  <dd><p>A hozamból levont szám (pl. átlagjutalom, állapotérték) a stratégia-gradiensben; a zajt csökkenti, az irányt nem változtatja.</p></dd>
+
+  <dt id="g-bandita">bandita (többkarú) <span class="etym">ang. <em>multi-armed bandit</em>; a „félkarú rabló” (<em>one-armed bandit</em>) játékautomatából</span></dt>
+  <dd><p>Egyetlen ismételt döntés ismeretlen, véletlen jutalmakkal; a felfedezés–kiaknázás dilemma legtisztább formája.</p></dd>
+
+  <dt id="g-bellman">Bellman-egyenlet <span class="etym">Richard Bellman amerikai matematikus (1920–1984) nevéből</span></dt>
+  <dd><p>Az érték rekurzív egyenlete: egy állapot értéke a következő jutalom plusz a következő állapot leértékelt értéke, várható értékben (optimálisan: maximummal).</p></dd>
+
+  <dt id="g-bootstrap">bootstrapping <span class="etym">ang. „a saját csizmahúzójánál fogva emeli fel magát”</span></dt>
+  <dd><p>Becslés frissítése egy másik (saját) becslés felhasználásával, mint a TD-célban $r + \gamma V(s')$.</p></dd>
+
+  <dt id="g-diszkont">diszkonttényező <span class="etym">ang. <em>discount</em> „leszámítolás”, a pénzügyből</span></dt>
+  <dd><p>A $\gamma$ szám, amellyel a jövőbeli jutalmak lépésenként leértékelődnek; a horizont kb. $1/(1 - \gamma)$.</p></dd>
+
+  <dt id="g-dqn">DQN <span class="etym">ang. <em>deep Q-network</em> „mély Q-háló” (V. Mnih és társai, 2013/2015)</span></dt>
+  <dd><p>Neurális hálóval közelített Q-függvény, tapasztalat-visszajátszással és célhálóval tanítva.</p></dd>
+
+  <dt id="g-epizod">epizód <span class="etym">gör. <em>epeiszodion</em> „közbeiktatott rész”</span></dt>
+  <dd><p>Egy próbálkozás az indulástól egy végállapotig.</p></dd>
+
+  <dt id="g-grpo">GRPO <span class="etym">ang. <em>group relative policy optimization</em> „csoport-relatív stratégiaoptimalizálás” (Z. Shao és társai, 2024)</span></dt>
+  <dd><p>PPO-szerű módszer, amelyben az előny egy promptra adott válaszcsoport átlagához és szórásához mért jutalom; kritikus nélkül.</p></dd>
+
+  <dt id="g-kijatszas">jutalom-kijátszás <span class="etym">ang. <em>reward hacking</em>, <em>specification gaming</em></span></dt>
+  <dd><p>Magas jutalom elérése nem kívánt viselkedéssel; a jutalom leírásának hibája, nem az algoritmusé.</p></dd>
+
+  <dt id="g-markov">Markov-döntési folyamat <span class="etym">Andrej Markov orosz matematikus (1856–1922) nevéből; ang. <em>Markov decision process</em>, MDP</span></dt>
+  <dd><p>Állapotok, cselekvések, átmenet-valószínűségek, jutalmak és diszkonttényező; a jövő csak a jelen állapottól és cselekvéstől függ.</p></dd>
+
+  <dt id="g-mcts">MCTS <span class="etym">ang. <em>Monte Carlo tree search</em> „Monte-Carlo-fakeresés”; Monte-Carlo: a monacói kaszinóról</span></dt>
+  <dd><p>Keresés, amely a lehetséges folytatások fáját véletlen és irányított kipróbálással építi; az AlphaGo játék közbeni „gondolkodása”.</p></dd>
+
+  <dt id="g-regret">megbánás <span class="etym">ang. <em>regret</em></span></dt>
+  <dd><p>A döntések várható vesztesége a mindig legjobb cselekvéshez képest.</p></dd>
+
+  <dt id="g-offpolicy">off-policy / on-policy <span class="etym">ang. „stratégián kívüli / belüli”</span></dt>
+  <dd><p>Off-policy: más stratégia (pl. a mohó) értékét tanulja, mint amellyel az adatot gyűjti (Q-tanulás). On-policy: a követett stratégia értékét (SARSA, REINFORCE).</p></dd>
+
+  <dt id="g-ppo">PPO <span class="etym">ang. <em>proximal policy optimization</em> „közeli stratégiaoptimalizálás” (J. Schulman és társai, 2017)</span></dt>
+  <dd><p>Aktor–kritikus módszer, amely a régi és az új stratégia arányát vágással korlátozza; az RLHF szokásos algoritmusa.</p></dd>
+
+  <dt id="g-q">Q-függvény <span class="etym">a <em>quality</em> „minőség” szóból (C. Watkins, 1989)</span></dt>
+  <dd><p>A cselekvésérték: a várható hozam, ha $s$-ben $a$-t tesszük, utána egy adott stratégia szerint folytatjuk.</p></dd>
+
+  <dt id="g-reinforce">REINFORCE <span class="etym">ang. „megerősít”; R. Williams (1992) betűszónak is szánta</span></dt>
+  <dd><p>Az alapvető stratégia-gradiens módszer: a kipróbált cselekvések log-valószínűségét a hozammal (vagy az előnnyel) arányosan növeli.</p></dd>
+
+  <dt id="g-rlhf">RLHF <span class="etym">ang. <em>reinforcement learning from human feedback</em></span></dt>
+  <dd><p>Megerősítéses tanulás emberi visszajelzésből: jutalommodell összehasonlításokból, aztán PPO KL-büntetéssel.</p></dd>
+
+  <dt id="g-rlvr">RLVR <span class="etym">ang. <em>reinforcement learning with verifiable rewards</em></span></dt>
+  <dd><p>Megerősítéses tanulás ellenőrizhető jutalommal: a jutalmat egy program adja (egyező végeredmény, lefutó tesztek).</p></dd>
+
+  <dt id="g-sarsa">SARSA <span class="etym">az $s, a, r, s', a'$ ötös kezdőbetűiből (G. Rummery, M. Niranjan, 1994)</span></dt>
+  <dd><p>On-policy TD-módszer: a célban a ténylegesen választott következő cselekvés $Q$-értéke szerepel.</p></dd>
+
+  <dt id="g-strategia">stratégia <span class="etym">gör. <em>sztratégia</em> „hadvezetés”; ang. <em>policy</em></span></dt>
+  <dd><p>Szabály, amely minden állapotban megadja a cselekvést vagy a cselekvések valószínűségét.</p></dd>
+
+  <dt id="g-td">TD-tanulás <span class="etym">ang. <em>temporal difference</em> „időbeli különbség” (R. Sutton, 1988)</span></dt>
+  <dd><p>Tanulás két egymást követő becslés különbségéből (TD-hiba), minden lépés után, az epizód végének megvárása nélkül.</p></dd>
+
+  <dt id="g-ucb">UCB <span class="etym">ang. <em>upper confidence bound</em> „felső konfidenciakorlát”</span></dt>
+  <dd><p>Bandita-stratégia: a becslés plusz egy, a bizonytalansággal arányos bónusz legnagyobb értékű karát húzza.</p></dd>
+</dl>
+</section>
+
+<nav class="pager">
+  <a href="../14-generativ-modellek/">← 14. Generatív modellek</a>
+  <span class="next muted">16. Hogyan működik egy nagy nyelvi modell? (hamarosan) →</span>
+</nav>
+
+</main>
+</div>
+
+<footer class="site">
+  Fő források: A. Glassner: <em>Deep Learning – A Visual Approach</em> (No Starch, 2021; 21. fejezet) · H. Roitman: <em>The Hitchhiker's Guide to Agentic AI</em> (arXiv 2606.24937, 2026; <em>Introduction to Reinforcement Learning</em>, <em>RL Foundations for Language Models</em>) · R. T. Kneusel: <em>How AI Works</em> (No Starch, 2023; 2. fejezet) · Khang Pham: <em>Machine Learning Design Interview</em> (2022; <em>Exploration vs. Exploitation</em>) · R. Sutton – A. Barto: <em>Reinforcement Learning: An Introduction</em> (2. kiad., MIT Press, 2018; a szirt-példa innen származik).<br>
+  Alapcikkek: R. Bellman (1957) · C. Watkins (1989, Q-tanulás) · R. Sutton (1988, TD) · R. Williams (1992, REINFORCE) · G. Rummery – M. Niranjan (1994, SARSA) · W. Schultz – P. Dayan – P. R. Montague (1997) · A. Ng – D. Harada – S. Russell (1999, potenciál-alapú alakítás) · V. Mnih és társai (2015, DQN) · D. Silver és társai (2016, AlphaGo; 2017, AlphaGo Zero; 2018, AlphaZero) · J. Schulman és társai (2017, PPO) · P. Christiano és társai (2017) · J. Schrittwieser és társai (2020, MuZero) · L. Ouyang és társai (2022, InstructGPT) · J. Degrave és társai (2022) · E. Kaufmann és társai (2023).<br>
+  📅 2024–2026: Z. Shao és társai (2024, GRPO) · DeepSeek-AI (2025, DeepSeek-R1).<br>
+  A kísérletek (bandita, raktár, szirt, versenypálya) a fejezet saját widgetmotorjával készültek, sok független futás átlagaként (2026. november).
+</footer>
+</body>
+</html>

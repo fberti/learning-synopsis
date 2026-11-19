@@ -91,7 +91,8 @@ synopsis/
     ├── 11-konvolucios-halok/       ← index.html, widgets.js (calc.js), quizzes.js, cnn-nets.js (előre tanított MLP és CNN-ek)
     ├── 12-beagyazasok-figyelem/    ← index.html, widgets.js (calc.js), quizzes.js, glove-data.js (GloVe-részhalmaz), real-attention.js (huBERT, opus-mt), review-models.js (hat kritikamodell)
     ├── 13-graf-neuralis-halok/     ← index.html, widgets.js (calc.js), quizzes.js, graph-data.js (karateklub), cora-data.js (Cora: t-SNE-térképek, jóslatok), mutag-data.js (188 molekula, keresztvalidált jóslatok, élő GIN súlyai)
-    └── 14-generativ-modellek/      ← index.html, widgets.js (calc.js), quizzes.js, gen-data.js (8×8 számjegyek: autoregresszív modell, AE/PCA-rekonstrukciók, AE/VAE-dekódolók, GAN-pillanatképek, DDPM-pálya, hét forrás mintái és mérőszámai)
+    ├── 14-generativ-modellek/      ← index.html, widgets.js (calc.js), quizzes.js, gen-data.js (8×8 számjegyek: autoregresszív modell, AE/PCA-rekonstrukciók, AE/VAE-dekódolók, GAN-pillanatképek, DDPM-pálya, hét forrás mintái és mérőszámai)
+    └── 15-megerositeses-tanulas/   ← index.html, widgets.js (calc.js; saját RL-motor: folyosó, raktár, szirt, versenypálya; értékiteráció, Q-tanulás, SARSA, bandita, REINFORCE – node-ból is futtatható), quizzes.js
 ```
 
 ## Közzététel GitHub Pages-en
