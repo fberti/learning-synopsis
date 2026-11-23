@@ -792,6 +792,10 @@ Borgatti–Carley–Krackhardt (2006); Lusher–Koskinen–Robins (2013) *ERGM*;
 **Nagy kérdés:** *Két szereplőt eddig egyetlen cikk sem említett együtt. Melyik pár fog a jövő héten valószínűleg együtt
 szerepelni – és hogyan lehet ezt egy algoritmusnak megjósolni?*
 
+> **Megvalósítás (2026-11-23):** mappa `11-csucsbeagyazasok/`; a TERV hat szakasza. A nagy kérdés az Árvízhét **időbeli felosztásán**: tanítógráf a hétfő–szerdai 6 cikk (6 él, a Kl elszigetelt), 15 jelölt, 4 pozitív (Ko–Sz, Ko–Kl, Sz–Kl, Po–Ön). AUC (44 összevetés): CN 0,614, Jaccard 0,659, AA = RA 0,648, PA 0,409; szivárgással (pontozás a teljes heten) PA 0,727, AA 0,807, a Jaccard 0,648-ra csökken. A válasz: a Ko–Sz-t (Jaccard 1.) és a Po–Ön-t (AA 1.) a heurisztikák megtalálják, a két Kl-es párt egyik gráfos módszer sem (új esemény, E5).
+> Kézi AUC: 3 + 3 pár, 6,5/9. Spektrális: 4 csúcsú út, Árvízhét 2D (La = Ön, Po–Sz a legközelebbi, Vi–Kl a legtávolabbi jelölt). Séták: az öt barát gráfja, „A B D E D B C” (12 / 22 pár), PMI; node2vec-lépés A → B. Karateklub, 10% tesztél, 100 felosztás: node2vec 0,748, RA 0,738, AA 0,728, PA 0,711, CN 0,691, PPMI 0,705, spektrális 2D 0,598; szivárgással a PA, a spektrális és a PPMI +0,14…+0,32; nehéz negatívakkal a CN 0,68 → 0,47. A GDELT-kivonat helyett a karateklub (statikus, véletlen rejtés).
+> Kvízek `gh11-111` … `gh11-116`, `gh11-final`. Widgetek: `link-heuristics`, `auc-builder`, `leakage-demo`, `spectral-embed`, `random-walk-corpus`, `link-pred-lab`. Számolások: `_parts/gh11/calc*.py`, közös JS-segédfüggvények `_parts/gh11/w0.js` (node-teszt: `wtest0.js`).
+
 **Cél:** a kapcsolat-előrejelzés mint gépi tanulási feladat; heurisztikák (közös szomszédok, Jaccard, Adamic–Adar,
 preferenciális kapcsolódás); csúcsbeágyazások (spektrális, DeepWalk / node2vec); helyes kiértékelés (időbeli felosztás,
 szivárgás, AUC / precision@k). Előkészíti a 12. fejezet GNN-jeit.

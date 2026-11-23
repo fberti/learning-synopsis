@@ -63,7 +63,8 @@ synopsis/
 │   ├── 07-halozatmodellek/        ← index.html, widgets.js (graph.js; ER-óriáskomponens, Watts–Strogatz, BA-növekedés, fokszámfarok-illesztés, félélpárosítás, nullmodell-labor), quizzes.js
 │   ├── 08-kozossegek/             ← index.html, widgets.js (graph.js; saját Girvan–Newman, Louvain, címketerjesztés, SBM, NMI/ARI), quizzes.js, lesmis-data.js (Knuth: Les Misérables)
 │   ├── 09-terjedes/               ← index.html, widgets.js (graph.js; SI/SIS/SIR, élperkoláció, független kaszkád, küszöbmodell, mohó kezdőválasztás, DeGroot/HK/Deffuant), quizzes.js
-│   └── 10-halozatok-osszehasonlitasa/ ← index.html, widgets.js (graph.js; Jaccard, QAP teljes felsorolással, MRQAP (Y-perm., DSP), diszparitásszűrő, érzékenységi rács, kis ERGM teljes felsorolással), quizzes.js, krack-data.js (Krackhardt menedzserei)
+│   ├── 10-halozatok-osszehasonlitasa/ ← index.html, widgets.js (graph.js; Jaccard, QAP teljes felsorolással, MRQAP (Y-perm., DSP), diszparitásszűrő, érzékenységi rács, kis ERGM teljes felsorolással), quizzes.js, krack-data.js (Krackhardt menedzserei)
+│   └── 11-csucsbeagyazasok/       ← index.html, widgets.js (graph.js; szomszédsági heurisztikák, ROC/AUC lépésenként, szivárgás, Laplace-sajátleképezés, node2vec-séták + PPMI, SGNS, kapcsolat-előrejelző labor), quizzes.js
 ├── halozatelemzes/
 │   ├── index.html                  ← a témakör fejezetlistája (27 lecke, 0–26)
 │   ├── TERV.md                     ← a kurzus részletes terve (a Vault „Hálózatelemzés TOC.md” jegyzetéből)

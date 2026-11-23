@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>11. Csúcsbeágyazások és kapcsolat-előrejelzés – Gráfelmélet és hálózattudomány – Synopsis</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="../../assets/common.js"></script>
+  <script defer src="../../assets/quiz.js"></script>
+  <script defer src="../../assets/graph.js"></script>
+  <script defer src="../arvizhet-data.js"></script>
+  <script defer src="../../mesterseges-intelligencia/13-graf-neuralis-halok/graph-data.js"></script>
+  <script defer src="../08-kozossegek/lesmis-data.js"></script>
+  <script defer src="widgets.js"></script>
+  <script defer src="quizzes.js"></script>
+</head>
+<body>
+<div class="progressbar"></div>
+<header class="topbar">
+  <a class="brand" href="../../">📚 Synopsis</a>
+  <span class="crumbs"><a href="../../">Tartalomjegyzék</a> › <a href="../">Gráfelmélet és hálózattudomány</a> › 11. fejezet</span>
+  <button class="icon-btn" data-theme-toggle title="Téma váltása">🌙</button>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <div class="toc-title">11. fejezet</div>
+  <ol>
+    <li><a href="#s111">11.1 A feladat</a></li>
+    <li><a href="#s112">11.2 Szomszédsági heurisztikák</a></li>
+    <li><a href="#s113">11.3 Kiértékelés</a></li>
+    <li><a href="#s114">11.4 Spektrális beágyazás</a></li>
+    <li><a href="#s115">11.5 Véletlen sétás beágyazások</a></li>
+    <li><a href="#s116">11.6 Alkalmazás</a></li>
+    <li><a href="#s-sum">Összefoglalás</a></li>
+    <li><a href="#s-check">Ellenőrző kérdések</a></li>
+    <li><a href="#s-ex">Vegyes gyakorló feladatok</a></li>
+    <li><a href="#s-final">Fejezetzáró teszt</a></li>
+    <li><a href="#s-gloss">Szómagyarázó</a></li>
+  </ol>
+</nav>
+
+<main class="content">
+
+<section class="hero" style="padding-top:.5rem">
+  <div class="kicker">Gráfelmélet és hálózattudomány · 11. fejezet · ★★ · III. blokk: gépi tanulás gráfokon</div>
+  <h1>Csúcsbeágyazások és kapcsolat-előrejelzés</h1>
+  <p class="lead">Eddig <b>leírtuk</b> a hálózatokat: ki a központi, hol vannak csoportok, mi terjed el, mennyire hasonlít két hálózat. Most <b>jóslunk</b>: melyik kapcsolat <b>fog</b> megjelenni?
+  Két szereplő, akit eddig egyetlen cikk sem említett együtt – jövő héten együtt lesznek-e a hírekben? Ehhez pontoznunk kell a párokat, és becsületesen meg kell mérnünk, mennyire jó a pontozás.
+  Útközben a csúcsok <b>koordinátákat</b> kapnak: ez a csúcsbeágyazás, a gráfos gépi tanulás alapja.</p>
+</section>
+
+<div class="box tip">
+  <span class="box-title">Mit fogsz megtanulni?</span>
+  <ul style="margin:.2rem 0">
+    <li>megfogalmazni a <b>kapcsolat-előrejelzést</b> gépi tanulási feladatként: jelöltek, pontozás, rangsor, tanító- és tesztélek;</li>
+    <li>kiszámolni kézzel a <b>szomszédsági heurisztikákat</b>: közös szomszédok, Jaccard, Adamic–Adar, erőforrás-allokáció, preferenciális kapcsolódás;</li>
+    <li>kiértékelni egy jóslást <b>precision@k</b>-val és <b>ROC-AUC</b>-val – és felismerni a <b>szivárgást</b>, a túl könnyű negatívakat és a rossz felosztást;</li>
+    <li>a Laplace-mátrix sajátvektoraiból <b>spektrális beágyazást</b> készíteni;</li>
+    <li>megérteni a <b>DeepWalk</b> és a <b>node2vec</b> ötletét: véletlen séták mint mondatok, csúcsok mint szavak;</li>
+    <li>összevetni a módszereket egy hírgráfon és a karateklubon – és megmondani, mit <b>nem</b> tud egyik sem.</li>
+  </ul>
+</div>
+
+<div class="box">
+  <span class="box-title">🔁 Amit használni fogunk</span>
+  Az <a href="../01-mi-a-halozat/">1. fejezetből</a>: az Árvízhét <b>szereplőgráfja</b> (<a class="xref" href="../01-mi-a-halozat/#s17-a">1.7</a>). A <a href="../02-setak-utak-fak/">2. fejezetből</a>: <b>távolság</b> (<a class="xref" href="../02-setak-utak-fak/#s23-a">2.3</a>), és hogy $(A^2)_{ij}$ a <b>közös szomszédok</b> száma (<a class="xref" href="../02-setak-utak-fak/#s27-a">2.7</a>).
+  A <a href="../04-grafok-es-matrixok/">4. fejezetből</a>: a <b>véletlen séta</b> (<a class="xref" href="../04-grafok-es-matrixok/#s42-a">4.2</a>), a <b>Laplace-mátrix</b> és az $\mathbf x^\top L\mathbf x$ simaság (<a class="xref" href="../04-grafok-es-matrixok/#s44-b">4.4</a>), a <b>Fiedler-vektor</b> (<a class="xref" href="../04-grafok-es-matrixok/#s45-c">4.5</a>).
+  A <a href="../06-helyi-szerkezet/">6. fejezetből</a>: a <b>triadikus zárás</b> (<a class="xref" href="../06-helyi-szerkezet/#s63-a">6.3</a>). A <a href="../07-halozatmodellek/">7. fejezetből</a>: a <b>preferenciális kapcsolódás</b> (<a class="xref" href="../07-halozatmodellek/#s73-b">7.3</a>).
+  A Mesterséges intelligenciából: a <b>ROC-görbe és az AUC</b> (<a class="xref" href="../../mesterseges-intelligencia/06-modellertekeles/#s62-b">MI 6.2</a>), az <b>időbeli felosztás</b> (<a class="xref" href="../../mesterseges-intelligencia/06-modellertekeles/#s64-b">MI 6.4</a>), a <b>word2vec</b> (<a class="xref" href="../../mesterseges-intelligencia/12-beagyazasok-figyelem/#s122-c">MI 12.2</a>) és a GNN-es kapcsolat-előrejelzés (<a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s136-b">MI 13.6</a>).
+</div>
+
+<div class="box example" id="s111-kerdes">
+  <span class="box-title">🎯 A fejezet kérdése</span>
+  Az Árvízhét első felében (hétfőtől szerdáig, 6 cikk) a hét szereplő közül <b>15 pár</b> egyetlen cikkben sem szerepelt együtt. A hét második felében ezek közül <b>négy</b> pár kerül először egy cikkbe.
+  Ha szerda este egy algoritmusnak csak az addigi szereplőgráfot adjuk oda, <b>megtalálja-e ezt a négyet</b>? Melyiket igen, melyiket nem – és miért nem lehet a kettőt semmilyen gráfos módszerrel megtalálni? A válasz a <a href="#s116">11.6</a>-ban.
+</div>
+
+<p><b>Útiterv</b> – a legegyszerűbb pontozástól a tanult beágyazásokig:</p>
+<ol>
+  <li><a href="#s111">A feladat</a> – mit jósolunk, és honnan tudjuk, hogy jól jósoltunk? Visszatekerjük az időt.</li>
+  <li><a href="#s112">Szomszédsági heurisztikák</a> – a barátom barátja: közös szomszédok és finomításaik.</li>
+  <li><a href="#s113">Kiértékelés</a> – precision@k, ROC-AUC, negatív minták és a szivárgás csapdája.</li>
+  <li><a href="#s114">Spektrális beágyazás</a> – a Laplace-mátrix sajátvektorai mint koordináták.</li>
+  <li><a href="#s115">Véletlen sétás beágyazások</a> – DeepWalk és node2vec: a séták mint mondatok.</li>
+  <li><a href="#s116">Alkalmazás</a> – a fejezet kérdése, a karateklub, és ami a gráfból nem jósolható.</li>
+</ol>
+
+<div class="box tip">
+  <span class="box-title">📐 Jelölések ebben a fejezetben</span>
+  $G = (V, E)$ a <b>tanítógráf</b> (amit a jósláskor látunk), $n$ csúcs, $m$ él. $N(u)$ az $u$ csúcs szomszédainak halmaza, $k_u = |N(u)|$ a fokszáma (a hálózattudományi szokás szerint $k$, nem $d$ – <a class="xref" href="../01-mi-a-halozat/#s13-a">1.3</a>).
+  $s(u, v)$ egy pár <b>pontszáma</b>. $E^+$ a pozitív (később megjelenő) párok, $E^-$ a negatív (meg nem jelenő) párok halmaza; $P = |E^+|$, $N = |E^-|$.
+  A beágyazásban $\mathbf z_u \in \mathbb R^d$ az $u$ csúcs vektora, $d$ a dimenzió. $L = D - A$ a Laplace-mátrix, $\mu_1 \le \mu_2 \le \dots$ a sajátértékei.
+  <br><small>⚠️ Az $N$ itt a negatív párok száma, az $N(u)$ a szomszédság – a kettőt az argumentum különbözteti meg. A <a class="xref" href="../10-halozatok-osszehasonlitasa/#s101-a">10. fejezetben</a> az $N$ a cellák száma volt.</small>
+</div>
+
+<!-- ===================================================== 11.1 -->
+<section id="s111">
+<h2>11.1 A feladat ★</h2>
+<p>Egy hírszerkesztő, egy elemző vagy egy ajánlórendszer ugyanazt kérdezi: <b>mi lesz a következő kapcsolat?</b> Kit fognak együtt említeni, ki kit fog követni, melyik cikk melyikre fog hivatkozni.
+Ebben a szakaszban pontosan megfogalmazzuk a feladatot: mit jósolunk, miből, és hogyan ellenőrizzük.</p>
+
+<h3 id="s111-a">1. lépés: a jelöltek – a nem létező élek</h3>
+<div class="box example" id="s111-a-het">
+  <span class="box-title">Kiinduló példa – mi jön jövő héten?</span>
+  Az Árvízhét teljes szereplőgráfjában (<a class="xref" href="../01-mi-a-halozat/#s17-a">1.7</a>) 7 szereplő és 10 él van:
+  <div class="gfig" data-nodes="Ko,Vi,Po,La,Ön,Sz,Kl" data-edges="Ko-Vi,Ko-Po,Vi-Po,Vi-Sz,Sz-Kl,Ko-Sz,Ko-Kl,La-Ön,Po-La,Po-Ön"
+    data-pos="Kl:.6,0 Sz:0,.5 Ko:1.3,.5 Vi:.65,1 Po:1.6,1.3 La:2.4,1 Ön:2.3,1.9" data-w="320" data-h="210" data-r="15"
+    data-caption="Az Árvízhét szereplőgráfja: 7 csúcs, 10 él"></div>
+  Ha az ár jövő héten is a hírekben marad, <b>mely új párok</b> kerülhetnek egy cikkbe? A 7 szereplőnek $\binom72 = 21$ párja van, ebből 10 már él. A maradék <b>11 pár a jelölt</b>:
+  Ko–La, Ko–Ön, Vi–La, Vi–Ön, Vi–Kl, Po–Sz, Po–Kl, La–Sz, La–Kl, Ön–Sz, Ön–Kl.
+  A kapcsolat-előrejelzés ennyi: <b>ezt a 11 párt sorba kell rakni</b> aszerint, mennyire valószínű, hogy él lesz belőlük. Hogy mi alapján, az a <a href="#s112">11.2</a> témája.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – kapcsolat-előrejelzés</span>
+  Adott egy $G = (V, E)$ gráf. A <b>jelöltek</b> a nem létező élek: az $\{u, v\} \notin E$ párok – irányítatlan egyszerű gráfban
+  $$\binom n2 - m = \frac{n(n-1)}{2} - m$$ darab. A <b>kapcsolat-előrejelzés</b> (link prediction) minden jelölthöz egy $s(u, v)$ <b>pontszámot</b> rendel; a nagyobb pontszám azt jelenti: „valószínűbb, hogy él lesz (vagy van, csak nem láttuk)”. Az eredmény egy <b>rangsor</b>; a felső $k$ párt jósoljuk élnek.
+  <small>Miért rangsor, és nem igen/nem válasz? Mert a pontszám skálája módszerenként más (darabszám, arány, szorzat), és a felhasználó (ajánló, elemző) általában úgyis a „legjobb $k$”-t kéri. A küszöb kiválasztása külön döntés (<a class="xref" href="../../mesterseges-intelligencia/06-modellertekeles/#s62-a">MI 6.2</a>).</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a karateklub jelöltjei</span>
+    Zachary karateklubjában (<a class="xref" href="../04-grafok-es-matrixok/#s45-c">4.5</a>) 34 tag és 78 él van. Hány jelölt pár van?
+    <details><summary>Megoldás</summary>$\binom{34}{2} = 561$ pár, ebből $561 - 78 = 483$ jelölt. A párok csak 13,9%-a él: a jelöltek <b>hatszor annyian</b> vannak, mint az élek.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy nagyobb hírkorpusz</span>
+    Egy év hírei 1000 szereplőt említenek, és minden szereplőnek átlagosan 10 együttemlítési partnere van. Hány él és hány jelölt van?
+    <details><summary>Megoldás</summary>Az élek száma a kézfogási lemmából (<a class="xref" href="../01-mi-a-halozat/#s13-b">1.3</a>) $1000 \cdot 10 / 2 = 5000$. A párok száma $\binom{1000}{2} = 499\,500$, a jelölteké $494\,500$ – a párok 99%-a nem él. A „melyik lesz él” kérdés a tű a szénakazalban.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A meglévő éleket is pontozni.</b> A jelöltek csak a <b>nem létező</b> párok. Egy meglévő él „jóslása” nem jóslás – az adatban már benne van.</li>
+    <li><b>A rendezett párokat számolni.</b> Irányítatlan gráfban a Ko–La és a La–Ko ugyanaz a pár: $\binom n2$, nem $n(n-1)$. (Irányított gráfban – ki kit követ – valóban $n(n-1) - m$ jelölt van.)</li>
+    <li><b>Elfelejteni, hogy a ritka gráf rengeteg jelöltet ad.</b> A jelöltek száma $n^2$-tel nő, az élek általában csak $n$-nel (<a class="xref" href="../01-mi-a-halozat/#s14-c">1.4</a>). Ezért a véletlen tippelés eltalálási aránya nagy gráfban szinte nulla.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – jelöltek</summary>
+  <ol>
+    <li>Egy 6 csúcsú gráfnak 7 éle van. Hány jelölt pár van?
+      <details><summary>Megoldás</summary>$\binom62 = 15$, $15 - 7 = 8$.</details></li>
+    <li>Az Árvízhét jelöltjei közül melyekben szerepel a Klímaváltozás (Kl)?
+      <details><summary>Megoldás</summary>Vi–Kl, Po–Kl, La–Kl, Ön–Kl – négy. (A Kl szomszédai: Ko és Sz; a 6 lehetséges partnerből kettővel már él.)</details></li>
+    <li>Egy 100 csúcsú, 300 élű gráfban hány jelölt van? A párok hány százaléka él?
+      <details><summary>Megoldás</summary>$\binom{100}{2} = 4950$, jelölt $4650$. Él: $300/4950 \approx 6{,}1\%$.</details></li>
+    <li>Egy közösségi oldalon (irányított: ki kit követ) 50 felhasználó és 400 követés van. Hány jelölt követés van?
+      <details><summary>Megoldás</summary>Irányítottan $50 \cdot 49 = 2450$ rendezett pár, jelölt $2450 - 400 = 2050$.</details></li>
+    <li>(nehezebb) Egy gráf csúcsainak átlagos fokszáma 4. Hány csúcsnál lesz a jelöltek száma legalább 100-szorosa az élekének?
+      <details><summary>Megoldás</summary>Élek: $m = 4n/2 = 2n$. Jelöltek: $n(n-1)/2 - 2n$. Feltétel: $n(n-1)/2 - 2n \ge 200n$ → $(n-1)/2 \ge 202$ → $n \ge 405$. Állandó átlagos fokszámnál a jelöltek aránya $n$-nel arányosan nő.</details></li>
+  </ol>
+</details>
+
+<h3 id="s111-b">2. lépés: honnan tudjuk, hogy jól jósoltunk? – visszatekerjük az időt</h3>
+<p>Az előző lépés 11 jelöltjéről nem tudjuk, melyik lesz jövő héten él – a jövő hét még nincs meg. Hogy egy módszert <b>kipróbáljunk</b>, a múltban kell jósolnunk: elrejtjük az adat egy részét, és megnézzük, megtalálja-e a módszer.
+A hírek esetében a természetes rejtés az <b>idő</b>: csak az addigi cikkeket adjuk oda.</p>
+
+<div class="box example" id="s111-b-felosztas">
+  <span class="box-title">Kiinduló példa – hét eleje → hét vége</span>
+  Vágjuk ketté az Árvízhetet: <b>hétfő–szerda</b> (1., 2., 4., 7., 10., 11. cikk) és <b>csütörtök–vasárnap</b> (a többi 6). A hét elejének szereplőgráfja a <b>tanítógráf</b>:
+  <div class="two-col">
+    <div><div class="gfig" data-nodes="Ko,Vi,Po,La,Ön,Sz,Kl" data-edges="Ko-Vi,Ko-Po,Vi-Po,Vi-Sz,La-Ön,Po-La"
+      data-pos="Kl:.6,0 Sz:0,.5 Ko:1.3,.5 Vi:.65,1 Po:1.6,1.3 La:2.4,1 Ön:2.3,1.9" data-w="280" data-h="190" data-r="15"
+      data-caption="Hétfő–szerda (tanítógráf): 6 él, a Kl elszigetelt"></div></div>
+    <div><div class="gfig" data-nodes="Ko,Vi,Po,La,Ön,Sz,Kl" data-edges="Ko-Po,Po-La,La-Ön,Ko-Sz,Ko-Kl,Sz-Kl,Po-Ön" data-hl="Ko-Sz,Ko-Kl,Sz-Kl,Po-Ön"
+      data-pos="Kl:.6,0 Sz:0,.5 Ko:1.3,.5 Vi:.65,1 Po:1.6,1.3 La:2.4,1 Ön:2.3,1.9" data-w="280" data-h="190" data-r="15"
+      data-caption="Csütörtök–vasárnap: 7 él, ebből 4 új (kiemelve)"></div></div>
+  </div>
+  A tanítógráfnak 6 éle van, tehát $21 - 6 = 15$ jelöltje. A hét második felében ezek közül <b>4</b> lesz él: <b>Ko–Sz, Ko–Kl, Sz–Kl, Po–Ön</b> – ezek a <b>pozitívak</b>. A többi 11 jelölt a <b>negatív</b>.
+  Most már ellenőrizni tudunk: egy módszer a tanítógráfból rangsorolja a 15 jelöltet, és megnézzük, hová kerül a 4 pozitív.
+  A <b>véletlen</b> rangsor egy tetszőleges párra $4/15 \approx 0{,}27$ eséllyel mutat pozitívra – ehhez mérünk.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – időbeli felosztás</span>
+  Rögzítünk egy $t$ időpontot. A <b>tanítógráf</b> a $t$ előtti élekből áll; a <b>jelöltek</b> a tanítógráf nem létező élei; a <b>pozitívak</b> ($E^+$) azok a jelöltek, amelyek $t$ után élek lesznek; a <b>negatívak</b> ($E^-$) a többi jelölt.
+  A módszer <b>csak a tanítógráfot</b> láthatja, a pontszámot abból számolja, és a rangsort a pozitívakkal vetjük össze.
+  <small>Miért az idő szerint vágunk? Mert a valóságban is így használnánk: szerda este a csütörtöki cikkeket még nem ismerjük. A „visszatekert idő” ugyanazt a helyzetet hozza létre, amelyben a módszer élesben dolgozna (<a class="xref" href="../../mesterseges-intelligencia/06-modellertekeles/#s64-b">MI 6.4</a>).</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – ami eltűnik</span>
+    A hét elején megvolt a Ko–Vi, a Vi–Po és a Vi–Sz él, a hét végén egyik sincs meg. Része-e ez a feladatnak?
+    <details><summary>Megoldás</summary>Nem: a kapcsolat-előrejelzés az <b>új</b> élekről szól. Az, hogy egy meglévő kapcsolat <b>megmarad-e</b>, külön kérdés (élmegmaradás / élbomlás), más pontszámokkal. Az együttemlítési gráfban egy él „eltűnése” csak annyit jelent, hogy abban az időablakban nem írtak róla együtt.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – statikus gráf, véletlen rejtés</span>
+    A karateklubnak nincs időbélyege – egyetlen pillanatfelvétel. Hogyan próbálhatunk ki rajta egy módszert?
+    <details><summary>Megoldás</summary>Véletlenül kiveszünk néhány élt (pl. a 10%-ot) – ezek a pozitívak –, és a maradék gráfból jósolunk. Ez azt méri, mennyire találja meg a módszer a <b>hiányzó</b> (meg nem figyelt) éleket. Ha van időbélyeg, az időbeli felosztás a becsületes; a véletlen rejtés a jövőből is „belelát” a tanítógráfba (<a class="xref" href="#s113-d">11.3</a>).</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A jelölteket a teljes gráfból venni.</b> A jelölt az, ami a <b>tanítógráfban</b> nem él. A Ko–Sz a teljes héten él, mégis jelölt – éppen ezt kell megtalálni.</li>
+    <li><b>A visszatérő éleket pozitívnak számolni.</b> A Ko–Po a hét mindkét felében megvan – a tanítógráfban él, tehát nem jelölt, és nem is pozitív.</li>
+    <li><b>Véletlenül vágni időbeli adatot.</b> Ha a 12 cikkből véletlenül választanánk 6-ot tanításra, a vasárnapi cikkből tanulnánk a csütörtöki jóslásához. A jóslás így könnyebbnek látszik, mint amilyen élesben lesz.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – időbeli felosztás</summary>
+  <ol>
+    <li>Hány jelölt van az Árvízhét hét eleji tanítógráfjában, és ebből hány pozitív?
+      <details><summary>Megoldás</summary>6 él → $21 - 6 = 15$ jelölt; pozitív 4 (Ko–Sz, Ko–Kl, Sz–Kl, Po–Ön).</details></li>
+    <li>A hét végének 7 élét sorold be: melyik pozitív, melyik nem jelölt?
+      <details><summary>Megoldás</summary>Pozitív (új): Ko–Sz, Ko–Kl, Sz–Kl, Po–Ön. Nem jelölt (már a tanítógráfban is élt): Ko–Po, Po–La, La–Ön.</details></li>
+    <li>Ha a 15 jelöltből véletlenül választunk 3-at, várhatóan hány pozitív lesz köztük?
+      <details><summary>Megoldás</summary>$3 \cdot 4/15 = 0{,}8$.</details></li>
+    <li>Vágjuk a hetet kedd este: a tanítógráf a hétfői és keddi cikkekből (1., 4., 7., 10.) áll. Hány éle és jelöltje van?
+      <details><summary>Megoldás</summary>Élek: Ko–Vi (1.), Vi–Sz (4.), La–Ön (7.), Po–Vi (10.) – 4 él. Jelölt: $21 - 4 = 17$.</details></li>
+    <li>(nehezebb) Miért nem jó ötlet a teljes hét 10 élének egy véletlen 40%-át tesztélnek rejteni, ha a kérdés az, hogy a hét második fele mit hoz?
+      <details><summary>Megoldás</summary>Mert a tanítógráfban a hét második felének élei is ott lehetnek (pl. a Sz–Kl, amely csak csütörtöktől van), a tesztben pedig hétfői élek is (pl. a Ko–Vi). Ez a <b>hiányzó élek</b> feladata, nem a jövőé: mást mér, és a jövőből tanul. Időbeli kérdésre időbeli felosztás kell.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh11-111"></div>
+</section>
+
+<!-- ===================================================== 11.2 -->
+<section id="s112">
+<h2>11.2 Szomszédsági heurisztikák ★★</h2>
+<p>Hogyan pontozzunk egy párt, ha csak a gráfot látjuk? A legrégebbi és máig erős ötlet a társadalomtudományból jön: <b>a barátom barátja valószínűleg a barátom lesz</b> – ez a triadikus zárás (<a class="xref" href="../06-helyi-szerkezet/#s63-a">6.3</a>).
+Ebből a gondolatból öt pontszám nő ki, mindegyik az előző egy hiányát javítja. Közös nevük: <b>szomszédsági heurisztikák</b> – „heurisztika”, mert nincs mögöttük tanítás, csak egy józan szabály.</p>
+
+<h3 id="s112-a">1. lépés: közös szomszédok</h3>
+<div class="box example" id="s112-a-kozos">
+  <span class="box-title">Kiinduló példa – Vízügy és Klímaváltozás</span>
+  A teljes hét gráfjában (<a class="xref" href="#s111-a-het">11.1</a>) a Vízügy (Vi) és a Klímaváltozás (Kl) még nem szerepelt egy cikkben. A szomszédaik:
+  $$N(\mathrm{Vi}) = \{\mathrm{Ko}, \mathrm{Po}, \mathrm{Sz}\}, \qquad N(\mathrm{Kl}) = \{\mathrm{Ko}, \mathrm{Sz}\}.$$
+  Közös szomszéd: a Kormány és a Szakértő – <b>2</b>. Ha a Kormányról szóló cikkek a Vízügyet is, a Klímát is említik, és a Szakértő is mindkettőről beszél, kézenfekvő, hogy előbb-utóbb egy cikkbe kerülnek.
+  A 11 jelöltből csak még egynek van 2 közös szomszédja: a <b>Po–Sz</b>-nek (Ko és Vi). Öt jelöltnek 1, négynek 0.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – közös szomszédok (CN)</span>
+  $$s_{\mathrm{CN}}(u, v) = |N(u) \cap N(v)| = (A^2)_{uv}.$$
+  <small>Miért éppen $A^2$? Mert $(A^2)_{uv}$ a két lépéses $u \to w \to v$ séták száma, és minden ilyen séta egy közös szomszédon, $w$-n megy át (<a class="xref" href="../02-setak-utak-fak/#s27-a">2.7</a>). Egyetlen mátrixszorzás az összes pár pontszámát megadja.
+  A „miért jó” pedig a zárás: sok közös ismerős sok alkalmat ad a találkozásra – hírekben: sok közös téma, amelyben a két szereplő egymás mellé kerülhet.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – kiolvasás az $A^2$-ből</span>
+    A teljes hét $A^2$-ének Ko sora (sorrend Ko, Vi, Po, La, Ön, Sz, Kl): $(4, 2, 1, 1, 1, 2, 1)$. Mi a CN pontszám a Ko–La párra, és mit jelent a 4-es?
+    <details><summary>Megoldás</summary>$(A^2)_{\mathrm{Ko,La}} = 1$ (a közös szomszéd a Po). A főátlóbeli 4 a Ko fokszáma – a $(A^2)_{uu}$ az $u$-ból induló és oda visszatérő két lépéses séták száma, ez nem pontszám.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a tanítógráfon</span>
+    A hét eleji tanítógráfban (<a class="xref" href="#s111-b-felosztas">11.1</a>) mely jelöltek kapnak 1-et, és van-e 2-es?
+    <details><summary>Megoldás</summary>Ko–La (Po), Ko–Sz (Vi), Vi–La (Po), Po–Ön (La), Po–Sz (Vi): öt pár, mind 1. 2-es nincs. A többi tíz jelölt 0. A CN tehát öt holtversenyes párt tesz az élre – <b>ebből kettő</b> valóban él lesz (Ko–Sz, Po–Ön).</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A párt magát is közös szomszédnak számolni.</b> Ha $u$ és $v$ már él, $v \in N(u)$ – de $v$ nem szomszédja önmagának, ezért nem közös szomszéd. (A jelölteknél ez fel sem merül.)</li>
+    <li><b>A holtversenyt elhallgatni.</b> Kis gráfon a CN egész szám, sok azonos pontszámmal. Egy rangsorban a holtversenyt jelezni kell (azonos helyezés), mert a sorrendjük önkényes.</li>
+    <li><b>A nagy csúcsok előnyét figyelmen kívül hagyni.</b> Két nagyon sok kapcsolatú szereplőnek véletlenül is sok közös szomszédja van. Erre a normált pontszámok kellenek (következő lépés).</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – közös szomszédok</summary>
+  <ol>
+    <li>A teljes hét gráfjában mennyi a CN a Ko–La párra?
+      <details><summary>Megoldás</summary>$N(\mathrm{Ko}) = \{\mathrm{Vi}, \mathrm{Po}, \mathrm{Sz}, \mathrm{Kl}\}$, $N(\mathrm{La}) = \{\mathrm{Po}, \text{Ön}\}$; közös: Po. CN $= 1$.</details></li>
+    <li>A teljes hét $A^2$-ének Vi sora $(2, 3, 1, 1, 1, 1, 2)$. Melyik jelölt párnak van a Vi-vel a legtöbb közös szomszédja?
+      <details><summary>Megoldás</summary>A Vi jelöltjei: La, Ön, Kl. Értékük 1, 1, 2 → a Vi–Kl (2). (A Ko, Po, Sz a Vi szomszédja, azok nem jelöltek.)</details></li>
+    <li>A barátsággráfban (élek $AB$, $AC$, $BC$, $CD$; <a class="xref" href="../02-setak-utak-fak/#s27-a">2.7</a>) melyek a jelöltek, és mennyi a CN pontszámuk?
+      <details><summary>Megoldás</summary>Jelölt: $A$–$D$ és $B$–$D$. Mindkettő közös szomszédja a $C$: CN $= 1$, holtverseny.</details></li>
+    <li>A teljes hét mely jelöltjei kapnak CN $= 0$-t? Milyen messze van a két csúcs ezekben a párokban?
+      <details><summary>Megoldás</summary>La–Sz, La–Kl, Ön–Sz, Ön–Kl. Mindegyik pár távolsága 3 (pl. La–Po–Ko–Kl). Aki 2-nél messzebb van, annak sosincs közös szomszédja.</details></li>
+    <li>(nehezebb) Egy csillagban (középen K, körülötte 1–5 levél) mennyi a CN minden jelöltre? Mit tud ebből a rangsor?
+      <details><summary>Megoldás</summary>A jelöltek a levélpárok ($\binom52 = 10$), mindegyiknek egyetlen közös szomszédja van, a K: CN $= 1$ mindenkinek. A rangsor teljes holtverseny – a CN itt semmit sem különböztet meg.</details></li>
+  </ol>
+</details>
+
+<h3 id="s112-b">2. lépés: arányosítás – Jaccard és preferenciális kapcsolódás</h3>
+<p>A Vi–Kl és a Po–Sz egyaránt 2 közös szomszédot kapott. De nem mindegy, <b>hány szomszédja van összesen</b> a két szereplőnek: a Kl-nek csak 2 szomszédja van, és az mindkettő közös a Vi-vel. A Po-nak 4 szomszédja van, ebből kettő közös. Két ellentétes ötlet kínálkozik.</p>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Kiinduló példa – osszunk! (Jaccard)</span>
+    A közös szomszédok aránya az összes szomszédhoz:
+    <ul style="margin:.2rem 0">
+      <li>Vi–Kl: $N(\mathrm{Vi}) \cup N(\mathrm{Kl}) = \{\mathrm{Ko}, \mathrm{Po}, \mathrm{Sz}\}$, $J = 2/3 \approx 0{,}667$;</li>
+      <li>Po–Sz: $N(\mathrm{Po}) \cup N(\mathrm{Sz}) = \{\mathrm{Ko}, \mathrm{Vi}, \mathrm{La}, \text{Ön}, \mathrm{Kl}\}$, $J = 2/5 = 0{,}4$.</li>
+    </ul>
+    A Vi–Kl kerül előre: a két szereplő „világa” nagyrészt ugyanaz.
+  </div>
+  <div class="box example">
+    <span class="box-title">Kiinduló példa – szorozzunk! (PA)</span>
+    A fokszámok szorzata, a közös szomszédoktól függetlenül:
+    <ul style="margin:.2rem 0">
+      <li>Vi–Kl: $k_{\mathrm{Vi}} k_{\mathrm{Kl}} = 3 \cdot 2 = 6$;</li>
+      <li>Po–Sz: $k_{\mathrm{Po}} k_{\mathrm{Sz}} = 4 \cdot 3 = 12$.</li>
+    </ul>
+    A Po–Sz kerül előre: két „sokat szereplő” szereplő a legesélyesebb egy új közös cikkre.
+  </div>
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – Jaccard-pontszám és preferenciális kapcsolódás</span>
+  $$s_{\mathrm{J}}(u, v) = \frac{|N(u) \cap N(v)|}{|N(u) \cup N(v)|}, \qquad\qquad s_{\mathrm{PA}}(u, v) = k_u \cdot k_v.$$
+  A <b>Jaccard</b> 0 és 1 közé esik; 1, ha a két csúcsnak pontosan ugyanazok a szomszédai. A <b>preferenciális kapcsolódás</b> (PA) a közös szomszédokat egyáltalán nem nézi.
+  <small>Miért ez a két irány? A Jaccard azt mondja: <b>hasonlóság</b> számít – ugyanaz a Jaccard-index, mint két élhalmaz átfedése (<a class="xref" href="../10-halozatok-osszehasonlitasa/#s101-a">10.1</a>), csak itt két szomszédsághalmazra. A PA azt mondja: <b>aktivitás</b> számít – ha az új élek a nagy fokszámú csúcsokhoz kötődnek szívesebben (Barabási–Albert, <a class="xref" href="../07-halozatmodellek/#s73-b">7.3</a>), két hub közötti él a legvalószínűbb. Melyik igaz, az a hálózaton múlik.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – Jaccard a tanítógráfon</span>
+    A hét eleji tanítógráfban $N(\mathrm{Ko}) = \{\mathrm{Vi}, \mathrm{Po}\}$, $N(\mathrm{Sz}) = \{\mathrm{Vi}\}$. Mennyi a $J$?
+    <details><summary>Megoldás</summary>Közös: Vi; unió: $\{\mathrm{Vi}, \mathrm{Po}\}$. $J = 1/2 = 0{,}5$ – ez a tanítógráf legnagyobb Jaccard-pontszáma, és a Ko–Sz valóban él lesz a hét végén.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – PA a tanítógráfon</span>
+    Melyik jelölt kapja a legnagyobb PA-t a tanítógráfban (fokszámok: Ko 2, Vi 3, Po 3, La 2, Ön 1, Sz 1, Kl 0)?
+    <details><summary>Megoldás</summary>A Vi–Po a legnagyobb szorzat (9), de az már él. A jelöltek közül a Vi–La: $3 \cdot 2 = 6$. Ez a pár a hét végén <b>nem</b> kerül egy cikkbe. A Kl minden párja $0$-t kap: aki még nem szerepelt, annak a PA szerint esélye sincs.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az unió helyett az összeggel osztani.</b> A Vi–Kl-re $2/(3 + 2) = 0{,}4$ jönne ki – a közös szomszédokat kétszer számolnád. A nevező $|N(u)| + |N(v)| - |N(u) \cap N(v)| = 3 + 2 - 2 = 3$.</li>
+    <li><b>A Jaccardot „jobbnak” hinni, mert normált.</b> A normálás a kis csúcsokat hozza előre: két 1 fokú csúcs, közös szomszéddal, $J = 1$-et kap. A kis fokszámú csúcsoknál ez gyakran zaj (egyetlen cikk).</li>
+    <li><b>A PA-t hasonlóságnak olvasni.</b> A PA két tetszőleges hubot összeköt, akkor is, ha a gráf két távoli végén vannak. Nem azt méri, „mennyire illenek össze”, hanem azt, „mennyire aktívak”.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – Jaccard és PA</summary>
+  <ol>
+    <li>A teljes hét gráfjában mennyi a Ko–Ön pár Jaccard-pontszáma?
+      <details><summary>Megoldás</summary>$N(\mathrm{Ko}) = \{\mathrm{Vi}, \mathrm{Po}, \mathrm{Sz}, \mathrm{Kl}\}$, $N(\text{Ön}) = \{\mathrm{Po}, \mathrm{La}\}$. Közös: Po (1). Unió: 5 elem. $J = 0{,}2$.</details></li>
+    <li>Ugyanitt mennyi a Ko–La PA-ja?
+      <details><summary>Megoldás</summary>$k_{\mathrm{Ko}} = 4$, $k_{\mathrm{La}} = 2$: $8$.</details></li>
+    <li>A teljes hét 11 jelöltje közül melyiket teszi a PA az első helyre, és melyiket a Jaccard?
+      <details><summary>Megoldás</summary>PA: Po–Sz ($4 \cdot 3 = 12$). Jaccard: Vi–Kl ($2/3$). A CN szerint holtversenyben állnak (2–2).</details></li>
+    <li>Két politikusnak 50, illetve 40 együttemlítési partnere van, ebből 2 közös. Két helyi szereplőnek 2–2 partnere van, és mindkettő közös. Melyik párnak nagyobb a CN, a $J$ és a PA pontszáma?
+      <details><summary>Megoldás</summary>CN: 2 és 2 – egyenlő. $J$: politikusok $2/88 \approx 0{,}023$, helyiek $2/2 = 1$. PA: politikusok $2000$, helyiek $4$. A két normálás ellentétes rangsort ad.</details></li>
+    <li>(nehezebb) Mikor $J = 1$ egy jelölt párra, és mit jelent ez a hírek nyelvén?
+      <details><summary>Megoldás</summary>Ha $N(u) = N(v)$ (és nem üres): a két csúcs <b>szerkezetileg ekvivalens</b>. Hírekben: két szereplőt pontosan ugyanazokkal a szereplőkkel említenek, csak egymással még nem – pl. két polgármestert, akiket mindig ugyanabban a kontextusban, de külön cikkben szólaltatnak meg.</details></li>
+  </ol>
+</details>
+
+<h3 id="s112-c">3. lépés: a ritka közös szomszéd többet ér – Adamic–Adar és erőforrás-allokáció</h3>
+<p>A CN minden közös szomszédot egyformán számol. Pedig nem mindegy, <b>ki</b> a közös szomszéd. Ha a Kormány a közös szomszéd, az keveset mond: a Kormány szinte mindenkivel együtt szerepel. Ha egy szűk körben mozgó szereplő a közös, az sokkal többet.</p>
+
+<div class="box example" id="s112-c-aa">
+  <span class="box-title">Kiinduló példa – két egy közös szomszédos pár</span>
+  A tanítógráfban a <b>Po–Ön</b> párnak a Lakók a közös szomszédja ($k_{\mathrm{La}} = 2$: a La csak a Po-val és az Ön-nel szerepelt). A <b>Ko–Sz</b> párnak a Vízügy ($k_{\mathrm{Vi}} = 3$: Ko, Po, Sz).
+  A CN mindkettőnek 1-et ad. Súlyozzunk minden közös szomszédot a fokszáma szerint, fordítottan:
+  <ul style="margin:.2rem 0">
+    <li>logaritmussal: Po–Ön $1/\ln 2 \approx 1{,}443$, Ko–Sz $1/\ln 3 \approx 0{,}910$;</li>
+    <li>a fokszámmal magával: Po–Ön $1/2 = 0{,}5$, Ko–Sz $1/3 \approx 0{,}333$.</li>
+  </ul>
+  A Po–Ön kerül előre: a „szűk” közös ismerős erősebb jel. (A hét végén mindkét pár él lesz.)
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – Adamic–Adar (AA) és erőforrás-allokáció (RA)</span>
+  $$s_{\mathrm{AA}}(u, v) = \sum_{w \in N(u) \cap N(v)} \frac{1}{\ln k_w}, \qquad\qquad s_{\mathrm{RA}}(u, v) = \sum_{w \in N(u) \cap N(v)} \frac{1}{k_w}.$$
+  <small>Miért fordított súly? Egy $k_w$ fokú csúcs $\binom{k_w}{2}$ párnak közös szomszédja – minél több párt „köt össze”, annál kevesebbet mond egy-egy párról. Az <b>RA</b> szemlélete: minden csúcs 1 egységnyi „erőforrást” oszt szét egyenlően a szomszédai között; $u$ annyit kap $v$-től a közös szomszédokon át, amennyi $s_{\mathrm{RA}}$. Az <b>AA</b> enyhébben bünteti a nagy fokszámot (a logaritmus lassan nő). Egy közös szomszédnak legalább 2 szomszédja van ($u$ és $v$), ezért $\ln k_w \gt 0$ – a képlet sosem oszt nullával.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – két közös szomszéd</span>
+    A teljes héten a Vi–Kl közös szomszédai a Ko ($k = 4$) és a Sz ($k = 3$). Mennyi az AA és az RA?
+    <details><summary>Megoldás</summary>AA: $1/\ln 4 + 1/\ln 3 \approx 0{,}721 + 0{,}910 \approx 1{,}632$. RA: $1/4 + 1/3 \approx 0{,}583$. A Po–Sz közös szomszédai a Ko (4) és a Vi (3) – ugyanezek a fokszámok, ugyanez a pontszám: holtverseny marad.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy hub és egy szűk szomszéd</span>
+    Egy párnak 1 közös szomszédja van, $k = 2$. Egy másiknak 2, mindkettő $k = 20$. Melyik az erősebb AA és RA szerint?
+    <details><summary>Megoldás</summary>AA: $1/\ln 2 \approx 1{,}443$ vs. $2/\ln 20 \approx 0{,}668$. RA: $0{,}5$ vs. $0{,}1$. Mindkettő az egy szűk szomszédot teszi előre – a CN fordítva döntene (1 vs. 2).</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A pár fokszámát használni a közös szomszédé helyett.</b> Az AA-ban és az RA-ban a $k_w$ a <b>közös szomszéd</b> fokszáma, nem az $u$-é vagy a $v$-é.</li>
+    <li><b>Más logaritmust használni, és összevetni.</b> Az AA rangsora nem függ a logaritmus alapjától (minden tag ugyanazzal a tényezővel szorzódik), de a számértéke igen. Két forrás számait csak azonos alappal vesd össze (itt: természetes logaritmus).</li>
+    <li><b>Azt hinni, hogy a súlyozás a 0-s párokon segít.</b> Ha nincs közös szomszéd, az AA és az RA is 0. Ezekre a párokra (a 2-nél távolabbiakra) egyik szomszédsági heurisztika sem mond semmit.</li>
+  </ul>
+</div>
+
+<p>Próbáld ki! Jelölj ki két szereplőt: a widget megmutatja a szomszédságokat, a közös szomszédokat és az öt pontszámot. Alatta a teljes rangsor – kapcsold be, mi történt valójában a hét végén.</p>
+<div class="widget" data-widget="link-heuristics"></div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – Adamic–Adar és erőforrás-allokáció</summary>
+  <ol>
+    <li>Mennyi a tanítógráfban a Ko–Sz pár AA és RA pontszáma?
+      <details><summary>Megoldás</summary>Közös szomszéd: Vi ($k = 3$). AA $= 1/\ln 3 \approx 0{,}910$, RA $= 1/3 \approx 0{,}333$.</details></li>
+    <li>Mennyi a tanítógráfban a Ko–La pár AA-ja? Előzi-e a Po–Ön-t?
+      <details><summary>Megoldás</summary>Közös szomszéd: Po ($k = 3$ a tanítógráfban: Ko, Vi, La). AA $\approx 0{,}910$ – a Po–Ön ($1{,}443$) előtte marad.</details></li>
+    <li>Egy közös szomszéd fokszáma 2, egy másiké 10. Mennyi az egyes tagok súlya AA és RA szerint? Hányszorosa az első a másodiknak?
+      <details><summary>Megoldás</summary>AA: $1/\ln 2 \approx 1{,}443$ és $1/\ln 10 \approx 0{,}434$ – kb. 3,3-szoros. RA: $0{,}5$ és $0{,}1$ – 5-szörös. Az RA élesebben bünteti a hubot.</details></li>
+    <li>Rakd sorba AA szerint a tanítógráf öt nem nulla pontszámú jelöltjét!
+      <details><summary>Megoldás</summary>1. Po–Ön ($1{,}443$); 2–5. holtversenyben Ko–La, Ko–Sz, Vi–La, Po–Sz (mind $0{,}910$, mert a közös szomszédjuk – Po vagy Vi – 3 fokú).</details></li>
+    <li>(nehezebb) Lehet-e egy párnak nagyobb az RA-ja, mint egy másiknak, amelynek több közös szomszédja van? Adj példát a teljes hét gráfjából!
+      <details><summary>Megoldás</summary>A teljes héten nincs ilyen pár: a CN = 2-es párok RA-ja $0{,}583$, a CN = 1-eseké mind $0{,}25$ (a közös szomszéd a Po vagy a Ko, mindkettő 4 fokú). Általában igen: egy 2 fokú közös szomszéd ($0{,}5$) többet ér, mint két 5 fokú ($0{,}2 + 0{,}2 = 0{,}4$).</details></li>
+  </ol>
+</details>
+
+<div class="box tip" id="s112-c-katz">
+  <span class="box-title">🔭 Kitekintés – ha nincs közös szomszéd: a Katz-index (Kiegészítés)</span>
+  A szomszédsági heurisztikák csak a 2 távolságú párokat látják. A <b>Katz-index</b> minden hosszúságú sétát beszámít, a hosszabbakat egyre kisebb súllyal:
+  $$s_{\mathrm{Katz}}(u, v) = \sum_{\ell = 1}^{\infty} \beta^\ell (A^\ell)_{uv} = \big[(I - \beta A)^{-1} - I\big]_{uv}, \qquad 0 \lt \beta \lt 1/\lambda_{\max}.$$
+  Kis $\beta$-ra lényegében a CN (a $\beta^2 (A^2)_{uv}$ tag dominál), nagyobbra a „globális” elérhetőség – a sajátvektor-centralitás rokona (<a class="xref" href="../05-centralitas/#s54-a">5.4</a>). Az ilyen <b>útalapú</b> pontszámok átvezetnek a beágyazásokhoz: ott is a több lépésben elérhető csúcsok kerülnek közel egymáshoz.
+</div>
+
+<div class="quiz" data-quiz="gh11-112"></div>
+</section>
+
+<!-- ===================================================== 11.3 -->
+<section id="s113">
+<h2>11.3 Kiértékelés ★★</h2>
+<p>Öt pontszámunk van, és mind más rangsort ad. Melyik a jobb? Ehhez <b>egy számot</b> kell rendelni egy rangsorhoz. Kettőt használunk: a <b>precision@k</b> a „felső polcot” nézi, az <b>AUC</b> a teljes rangsort.
+Utána jön a nehezebb rész: hogy a mérés becsületes legyen – milyen negatívakhoz mérünk, és mit lát a módszer.</p>
+
+<h3 id="s113-a">1. lépés: a felső polc – precision@k és recall@k</h3>
+<div class="box example" id="s113-a-jaccard">
+  <span class="box-title">Kiinduló példa – a Jaccard-rangsor a hét elején</span>
+  A tanítógráf 15 jelöltje Jaccard szerint (✓ = a hét végén él lett):
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>hely</th><th>pár</th><th>$J$</th><th>él lett?</th></tr>
+    <tr><td>1.</td><td>Ko–Sz</td><td>0,5</td><td>✓</td></tr>
+    <tr><td>2–4.</td><td>Ko–La, Po–Ön, Po–Sz</td><td>0,333</td><td>✗, ✓, ✗</td></tr>
+    <tr><td>5.</td><td>Vi–La</td><td>0,25</td><td>✗</td></tr>
+    <tr><td>6–15.</td><td>a többi 10 pár (köztük Ko–Kl, Sz–Kl)</td><td>0</td><td>2 ✓, 8 ✗</td></tr>
+  </table></div>
+  Ha a felső <b>1</b> párt jósoljuk élnek: 1 találat 1-ből. A felső <b>4</b>-et: 2 találat 4-ből – ez fele, kétszer annyi, mint a véletlen tippelés $4/15 \approx 0{,}27$-e. A 4 pozitívból viszont csak 2-t talált meg: a Ko–Kl és a Sz–Kl a sor végén, a nullások között van.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – precision@k és recall@k</span>
+  A rangsor felső $k$ párja közül a pozitívak száma legyen $\mathrm{TP}_k$. Ekkor
+  $$\mathrm{precision@}k = \frac{\mathrm{TP}_k}{k}, \qquad \mathrm{recall@}k = \frac{\mathrm{TP}_k}{P}.$$
+  Holtversenynél, ha a $k$-adik helyen több pár áll, a holtversenyes csoportból a hiányzó helyeket <b>véletlen sorrend</b> szerint töltjük: a várható találat a csoportbeli pozitívak aránya szorozva a felvett helyek számával.
+  <small>Miért a felső polc? Mert a felhasználó ennyit lát: az ajánló 5 cikket mutat, az elemző a 10 legvalószínűbb párt nézi meg. A precision@k ugyanaz, mint a precizitás (<a class="xref" href="../../mesterseges-intelligencia/06-modellertekeles/#s61-b">MI 6.1</a>), csak a küszöb helyett a $k$ rögzített.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – Adamic–Adar, $k = 5$</span>
+    Az AA-rangsor: 1. Po–Ön ✓ (1,443), 2–5. Ko–La ✗, Ko–Sz ✓, Vi–La ✗, Po–Sz ✗ (mind 0,910). Mennyi a precision@5 és a recall@5?
+    <details><summary>Megoldás</summary>A felső 5-ben 2 találat: precision@5 $= 2/5 = 0{,}4$, recall@5 $= 2/4 = 0{,}5$. Itt a holtversenyes csoport teljesen befér az 5 helyre, nincs véletlen.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – holtverseny a határon</span>
+    A Jaccard-rangsorban mennyi a precision@3? (A 2–4. hely holtversenyben áll.)
+    <details><summary>Megoldás</summary>Az 1. hely biztos találat. A 2–4. helyről 2 párt veszünk a 3-ból, és köztük 1 pozitív van: várhatóan $2 \cdot 1/3 = 0{,}667$ találat. Összesen $1{,}667$ találat 3-ból: precision@3 $\approx 0{,}556$.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A precision@k-t a véletlen szint nélkül közölni.</b> A 0,5 csak akkor sok, ha a véletlen szint ennél jóval kisebb. Itt $4/15 \approx 0{,}27$; egy 1000 szereplős korpuszban kb. 0,01.</li>
+    <li><b>A holtversenyt „szerencsésen” feloldani.</b> Ha a holtversenyes csoportból éppen a pozitívakat veszed előre (pl. betűrend szerint, ami véletlenül kedvez), a mérés túl jó lesz. Véletlen sorrend vagy várható érték a becsületes.</li>
+    <li><b>Csak a precisiont nézni.</b> A $k$-t növelve a precision általában csökken, a recall nő. Egyetlen $k$ önmagában keveset mond – a recall megmutatja, mennyi maradt ki.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – precision@k és recall@k</summary>
+  <ol>
+    <li>A Jaccard-rangsorban mennyi a precision@1 és a recall@1?
+      <details><summary>Megoldás</summary>Az 1. hely (Ko–Sz) pozitív: precision@1 $= 1$, recall@1 $= 1/4 = 0{,}25$.</details></li>
+    <li>Mennyi a CN precision@5-je? (A CN öt párt tesz holtversenyben az élre: Ko–La, Ko–Sz, Vi–La, Po–Ön, Po–Sz.)
+      <details><summary>Megoldás</summary>A felső 5 pontosan ez az öt pár, köztük 2 pozitív: $2/5 = 0{,}4$.</details></li>
+    <li>Mennyi a CN precision@2-je?
+      <details><summary>Megoldás</summary>Az öt holtversenyes párból 2-t veszünk, és 2/5 a pozitívak aránya: várhatóan $2 \cdot 2/5 = 0{,}8$ találat, precision@2 $= 0{,}4$.</details></li>
+    <li>Egy véletlen rangsor mekkora precision@k-t ad várhatóan, ha a 15 jelöltből 4 pozitív?
+      <details><summary>Megoldás</summary>Bármely $k$-ra $4/15 \approx 0{,}267$ – a véletlen sorrendben minden hely ugyanekkora eséllyel pozitív.</details></li>
+    <li>(nehezebb) Mennyi a Jaccard-rangsor recall@15-je, és mit jelent, hogy két pozitív nullás pontszámot kapott?
+      <details><summary>Megoldás</summary>recall@15 $= 1$ – a teljes listában persze minden benne van. A két nullás pozitív (Ko–Kl, Sz–Kl) a 10 nullás pár között áll, a sorrendjük ott véletlen: a módszer ezekről <b>semmit</b> nem tud. Mindkettő a Kl-t érinti, aki a tanítógráfban még nem szerepelt.</details></li>
+  </ol>
+</details>
+
+<h3 id="s113-b">2. lépés: a teljes rangsor – ROC-görbe és AUC</h3>
+<p>A precision@k egy $k$-tól függ. Ha a rangsor egészét akarjuk egy számmal jellemezni, a kérdést így tesszük fel: <b>ha kiveszek egy véletlen pozitív és egy véletlen negatív párt, a módszer a pozitívat teszi-e előrébb?</b></p>
+
+<div class="box example" id="s113-b-kezi">
+  <span class="box-title">Kiinduló példa – 3 pozitív, 3 negatív, 9 összevetés</span>
+  Egy módszer pontszámai: pozitívak $P_1 = 0{,}9$, $P_2 = 0{,}6$, $P_3 = 0{,}3$; negatívak $N_1 = 0{,}7$, $N_2 = 0{,}3$, $N_3 = 0{,}1$. Vessünk össze minden pozitívat minden negatívval (✓: a pozitív nagyobb, ½: egyenlő, ✗: kisebb):
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th></th><th>$N_1 = 0{,}7$</th><th>$N_2 = 0{,}3$</th><th>$N_3 = 0{,}1$</th><th>összesen</th></tr>
+    <tr><th>$P_1 = 0{,}9$</th><td>✓</td><td>✓</td><td>✓</td><td>3</td></tr>
+    <tr><th>$P_2 = 0{,}6$</th><td>✗</td><td>✓</td><td>✓</td><td>2</td></tr>
+    <tr><th>$P_3 = 0{,}3$</th><td>✗</td><td>½</td><td>✓</td><td>1,5</td></tr>
+  </table></div>
+  A 9 összevetésből $6{,}5$ „nyert”: $6{,}5/9 \approx 0{,}722$. Ennyi a módszer <b>AUC</b>-ja.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – AUC mint párösszevetés</span>
+  $$\mathrm{AUC} = \frac{1}{P \cdot N}\sum_{p \in E^+}\sum_{q \in E^-} \Big( [\,s_p \gt s_q\,] + \tfrac12 [\,s_p = s_q\,] \Big),$$
+  vagyis annak a valószínűsége, hogy egy véletlen pozitív pontszáma nagyobb egy véletlen negatívénál (holtversenyben ½). $\mathrm{AUC} = 1$: minden pozitív minden negatív előtt; $0{,}5$: véletlen; $0{,}5$ alatt: rosszabb a véletlennél (fordítva rangsorol).
+  <small>Miért ugyanaz, mint a ROC-görbe alatti terület? A küszöböt lefelé csúsztatva minden pozitív felfelé, minden negatív jobbra lépteti a görbét. Egy negatív jobbra lépésekor a görbe magassága éppen azoknak a pozitívaknak az aránya, amelyek a negatív előtt vannak – ezeket a sávokat összeadva kapjuk a fenti összeget (<a class="xref" href="../../mesterseges-intelligencia/06-modellertekeles/#s62-c">MI 6.2</a>). Holtversenynél a görbe ferdén lép – ez a ½.</small>
+</div>
+
+<div class="box example" id="s113-b-arviz">
+  <span class="box-title">Példa – az Árvízhét öt heurisztikája</span>
+  A tanítógráf 15 jelöltjén $P = 4$, $N = 11$, tehát $44$ összevetés van. A Python (és a lenti widget) szerint:
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>módszer</th><th>CN</th><th>Jaccard</th><th>AA</th><th>RA</th><th>PA</th></tr>
+    <tr><th>nyert / 44</th><td>27</td><td>29</td><td>28,5</td><td>28,5</td><td>18</td></tr>
+    <tr><th>AUC</th><td>0,614</td><td><b>0,659</b></td><td>0,648</td><td>0,648</td><td>0,409</td></tr>
+  </table></div>
+  A Jaccard a legjobb, a PA <b>a véletlennél is rosszabb</b>. Miért? A PA a nagy aktivitású szereplőket kapcsolja össze (Vi–La, Ko–La), a hét végén viszont a kis aktivitású Sz és Kl kapcsolódott be. Hogy ez ilyen kis adaton mennyire véletlen, arról a <a href="#s116">11.6</a>-ban lesz szó.
+</div>
+
+<p>Építsd fel lépésről lépésre! A widget a küszöböt lefelé csúsztatja, a ROC-görbe pontról pontra nő, a végén a párösszevetések rácsa ugyanazt az AUC-t adja.</p>
+<div class="widget" data-widget="auc-builder"></div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A holtversenyeket kihagyni vagy nyertesnek számolni.</b> A kézi példában a $P_3$–$N_2$ pár egyenlő; ha 1-nek számolod, $7/9 = 0{,}778$, ha 0-nak, $6/9 = 0{,}667$. A helyes a ½. Sok holtversenynél (egész pontszámok) ez sokat számít.</li>
+    <li><b>Az AUC-t „pontosságnak” olvasni.</b> A 0,72 nem azt jelenti, hogy a párok 72%-át jól osztályoztuk, hanem hogy egy véletlen pozitív–negatív párt 72%-ban jó sorrendbe tesz a módszer.</li>
+    <li><b>A 0,5 alatti AUC-t „használhatatlannak” hinni.</b> Egy 0,41-es AUC fordítva olvasva 0,59 lenne – a módszer tud valamit, csak ellentétes irányban. Ez viszont jel: rossz a feltevésünk (itt: „a nagyok kapcsolódnak”).</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – AUC</summary>
+  <ol>
+    <li>Pozitívak: 0,8; 0,4. Negatívak: 0,5; 0,2. Mennyi az AUC?
+      <details><summary>Megoldás</summary>Összevetések: 0,8 > 0,5 ✓, 0,8 > 0,2 ✓, 0,4 &lt; 0,5 ✗, 0,4 > 0,2 ✓. $3/4 = 0{,}75$.</details></li>
+    <li>Ha minden pár pontszáma ugyanannyi, mennyi az AUC?
+      <details><summary>Megoldás</summary>Minden összevetés holtverseny: $\tfrac12$ mindenhol, AUC $= 0{,}5$ – a véletlen szint.</details></li>
+    <li>Ellenőrizd a CN-re a 27-et! (Pozitívak: Ko–Sz 1, Po–Ön 1, Ko–Kl 0, Sz–Kl 0; negatívak: három 1-es, nyolc 0-s.)
+      <details><summary>Megoldás</summary>Egy 1-es pozitív: 8 nyert (a 0-sak ellen) + 3 holtverseny ($1{,}5$) $= 9{,}5$; kettő: $19$. Egy 0-s pozitív: 8 holtverseny $= 4$; kettő: $8$. Összesen $27$, AUC $= 27/44 \approx 0{,}614$.</details></li>
+    <li>Egy módszer pontszámait megfordítjuk ($s \to -s$). Mi lesz az AUC-val?
+      <details><summary>Megoldás</summary>Ami nyert volt, vesztett lesz, a holtverseny marad: $\mathrm{AUC}' = 1 - \mathrm{AUC}$. A PA-ra $1 - 0{,}409 = 0{,}591$.</details></li>
+    <li>(nehezebb) Ellenőrizd a PA 18-ját! (Pozitívak PA-ja: Ko–Sz 2, Po–Ön 3, Ko–Kl 0, Sz–Kl 0. Negatívak: Vi–La 6, Ko–La 4, Vi–Ön 3, Po–Sz 3, Ko–Ön 2, La–Sz 2, Ön–Sz 1, és négy 0-s: Vi–Kl, Po–Kl, La–Kl, Ön–Kl.)
+      <details><summary>Megoldás</summary>Po–Ön (3): nyer az 1, 2, 2, 0, 0, 0, 0 ellen (7), döntetlen a két 3-assal (1) → 8. Ko–Sz (2): nyer az 1 és a négy 0 ellen (5), döntetlen a két 2-essel (1) → 6. Ko–Kl és Sz–Kl (0): négy döntetlen → 2–2. Összesen $8 + 6 + 2 + 2 = 18$. ✓</details></li>
+  </ol>
+</details>
+
+<h3 id="s113-c">3. lépés: kihez mérünk? – a negatívak</h3>
+<p>Az AUC azt kérdezi: a pozitívak a negatívak előtt vannak-e? Akkor viszont nagyon nem mindegy, <b>milyen negatívakhoz</b> mérünk. Kis gráfon mindet felhasználhatjuk; nagy gráfon a jelöltek milliói közül <b>mintát</b> veszünk – és a minta dönti el, mennyire nehéz a vizsga.</p>
+
+<div class="box example" id="s113-c-nehez">
+  <span class="box-title">Kiinduló példa – könnyű és nehéz negatívak a karateklubon</span>
+  Rejtsük el a karateklub 78 élének 10%-át (8 élt, <a class="xref" href="#s111-b">11.1</a>), és pontozzunk CN-nel. Két vizsga, ugyanazokkal a pozitívakkal:
+  <ul style="margin:.2rem 0">
+    <li><b>véletlen negatívak</b> (8 véletlen nem él): a CN AUC-ja átlagosan <b>0,68</b> (200 felosztás, Python);</li>
+    <li><b>nehéz negatívak</b> (8 olyan nem él, amelynek végpontjai a tanítógráfban 2 távolságra vannak): az AUC <b>0,47</b>-re esik.</li>
+  </ul>
+  A véletlen nem élek többsége távoli pár, közös szomszéd nélkül – ezeket a CN könnyen „legyőzi”. A 2 távolságú negatívaknak viszont maguknak is van közös szomszédjuk. A CN tudása nagyrészt annyi, hogy <b>a közeli párokat a távoliak elé teszi</b>; a közeli párok között már alig tud dönteni.
+</div>
+
+<div class="box def">
+  <span class="box-title">Szabály – negatív mintavétel</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Minden nem él</b> (kis gráfon): a legteljesebb, de nagy gráfon lehetetlen, és a ritka gráf miatt erősen kiegyensúlyozatlan.</li>
+    <li><b>Véletlen negatívak</b> (pl. pozitívonként 1–100): olcsó; az AUC a negatívak számától nem függ, csak az eloszlásuktól.</li>
+    <li><b>Nehéz negatívak</b> (közeli, pl. 2 távolságú párok): a valós nehézséget méri – azokat a párokat, amelyek között a felhasználónak dönteni kell.</li>
+  </ul>
+  Mindig közöld, milyen negatívakhoz mértél – két AUC csak azonos negatívakkal vethető össze.
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – jó AUC, gyenge felső polc</span>
+    Egy 1000 szereplős korpuszban 5000 pozitív és 494&nbsp;500 negatív pár van. Egy küszöbnél a módszer a pozitívak 80%-át és a negatívaknak csak 5%-át teszi a küszöb fölé (a ROC-görbe egy jó pontja). Mekkora a precizitás?
+    <details><summary>Megoldás</summary>TP $= 0{,}8 \cdot 5000 = 4000$, FP $= 0{,}05 \cdot 494\,500 = 24\,725$. Precizitás $= 4000/28\,725 \approx 0{,}139$. A jóslatok 86%-a téves – az 5%-os hamis riasztás a rengeteg negatív miatt nagy szám.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a véletlen szint a karateklubon</span>
+    8 tesztél, 483 nem él. Mekkora a véletlen rangsor precision@8-je?
+    <details><summary>Megoldás</summary>$8/(8 + 483) \approx 0{,}016$. Egy 0,25-ös precision@8 tehát a véletlen 15-szöröse – akkor is, ha „csak” minden negyedik jóslat talál.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Kiegyensúlyozatlan feladatban csak AUC-t közölni.</b> Az AUC nem érzékeny arra, hány negatív van – a precizitás nagyon is. Ritka gráfon közölj precision@k-t (vagy a precizitás–felidézés görbe alatti területét) is.</li>
+    <li><b>Könnyű negatívakkal „jó” eredményt kapni.</b> A véletlen nem élek nagy része távoli pár; ezeket minden módszer könnyen legyőzi. A szakirodalom egy része emiatt túl optimista AUC-kat közölt (Y. Yang, R. Lichtenwalter, N. Chawla, 2015).</li>
+    <li><b>Negatívnak venni, ami csak meg nem figyelt.</b> Egy „nem él” lehet valódi, de még nem látott kapcsolat. A negatív címke zajos – ezért is óvatos megfogalmazás kell: „az adott időablakban nem jelent meg”.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – negatív mintavétel</summary>
+  <ol>
+    <li>Pozitívonként 5 véletlen negatívat veszünk 20 tesztélhez. Hány összevetésből áll az AUC?
+      <details><summary>Megoldás</summary>$P = 20$, $N = 100$: $2000$ összevetés.</details></li>
+    <li>Egy módszer AUC-ja 10 negatívval pozitívonként 0,85. Mit vársz 100 negatívval (ugyanabból az eloszlásból)?
+      <details><summary>Megoldás</summary>Kb. ugyanennyit (0,85) – az AUC egy valószínűség, nem függ a negatívak számától; csak a becslés lesz pontosabb.</details></li>
+    <li>És a precision@20 hogyan változik, ha 10 helyett 100 negatív jut egy pozitívra?
+      <details><summary>Megoldás</summary>Csökken: ugyanakkora hamis riasztási arány tízszer annyi hamis pozitívat ad a felső polcon. A precizitás a kiegyensúlyozatlanságra érzékeny.</details></li>
+    <li>Egy 400 ezer jelöltes gráfban 2000 pozitív van. A módszer egy küszöbnél TPR $= 0{,}5$, FPR $= 0{,}01$. Mekkora a precizitás?
+      <details><summary>Megoldás</summary>TP $= 1000$, FP $= 0{,}01 \cdot 398\,000 = 3980$. Precizitás $= 1000/4980 \approx 0{,}201$.</details></li>
+    <li>(nehezebb) Miért esik a CN AUC-ja nehéz negatívaknál 0,5 alá is a karateklubon?
+      <details><summary>Megoldás</summary>Mert a 2 távolságú negatívak között sok olyan van, amelynek több közös szomszédja van, mint egy átlagos tesztélnek – pl. két tag a klub sűrű magjából, akik mégsem barátok. A tesztél végpontjai között viszont gyakran csak 0–1 közös szomszéd van. A CN a „közelséget” méri, és a közeli párok között ez már nem a jó irány.</details></li>
+  </ol>
+</details>
+
+<h3 id="s113-d">4. lépés: szivárgás – amikor a válasz benne van a kérdésben</h3>
+<p>A leggyakoribb hiba a kapcsolat-előrejelzésben nem a rossz pontszám, hanem a rossz <b>pontozó gráf</b>. Ha a tesztéleket nem vesszük ki abból a gráfból, amelyből a pontszámot számoljuk, a módszer a választ olvassa ki.</p>
+
+<div class="box example" id="s113-d-szivargas">
+  <span class="box-title">Kiinduló példa – a PA „csodája”</span>
+  Pontozzuk a 15 jelöltet a hét eleje helyett az <b>egész hét</b> gráfjából – vagyis a hét végén megjelent élekkel együtt. A pozitívak most élek is a pontozó gráfban, ezért a végpontjaik fokszáma nő:
+  <ul style="margin:.2rem 0">
+    <li>a Kl fokszáma 0 helyett 2, a Sz-é 1 helyett 3: a Ko–Kl PA-ja $0 \to 8$, a Sz–Kl-é $0 \to 6$;</li>
+    <li>a PA AUC-ja <b>0,409 → 0,727</b>, az AA-é és az RA-é 0,648 → 0,807. (A Jaccardé éppen csökken, 0,659 → 0,648: a bekerült élek az unióval a nevezőt is növelik – a szivárgás iránya sem mindig megjósolható.)</li>
+  </ul>
+  Semmit nem tanultunk a hét végéről – egyszerűen <b>odaadtuk</b>. Ugyanez nagy adaton csendben történik: egy módszer, amely élesben 0,6-os, a dolgozatban 0,85-ös lesz.
+</div>
+
+<div class="box def">
+  <span class="box-title">Szabály – a pontozó gráf a tanítógráf</span>
+  Minden, amiből a pontszám számol – szomszédságok, fokszámok, séták, sajátvektorok, beágyazások –, <b>csak a tanítógráfból</b> jöhet. A tesztéleket (és a validációs éleket) előbb ki kell venni, és utána kell mindent kiszámolni. Időbeli adatnál a tanítógráf <b>csak a vágás előtti</b> élekből állhat.
+  <small>Miért ilyen alattomos? Mert a szivárgást a kód nem jelzi: a pontszám ugyanúgy kiszámolható, csak rossz gráfon. A GNN-eknél ugyanez a hiba az üzenetküldő gráfban jelentkezik (<a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s136-c">MI 13.6</a>).</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a CN szinte nem szivárog</span>
+    Ha a Ko–Sz él bent van a pontozó gráfban, változik-e a Ko–Sz pár CN pontszáma?
+    <details><summary>Megoldás</summary>Nem: a $u$–$v$ él nem közös szomszéd. A CN csak <b>közvetve</b> változik – más élek is bekerültek, amelyek új közös szomszédokat adnak (itt 0,614 → 0,670). A fokszámot használó PA-nál és az egész gráfot látó beágyazásoknál a szivárgás közvetlen.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a karateklubon</span>
+    10% tesztél, 100 véletlen felosztás átlaga (Python): a PA AUC-ja 0,71 → 0,85, a 2D spektrális beágyazásé (<a href="#s114">11.4</a>) 0,60 → 0,82, ha a tesztélek bent maradnak. Melyik módszernek <b>árt a leginkább</b> a szivárgás?
+    <details><summary>Megoldás</summary>A beágyazásnak: a sajátvektorok a teljes gráfból jönnek, így a tesztél két végpontja egymáshoz húzódik – éppen az él miatt. Egy szivárgó beágyazás a legjobb módszernek látszhat, holott a helyes mérésben a leggyengébb.</details>
+  </div>
+</div>
+
+<p>Kapcsold ki-be: a tesztélek a pontozó gráfban vannak-e. Nézd meg, melyik módszer AUC-ja ugrik meg, és melyiké nem.</p>
+<div class="widget" data-widget="leakage-demo"></div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Előbb beágyazni, aztán felosztani.</b> A beágyazást (spektrális, node2vec) a teljes gráfon kiszámolni, és csak a kiértékelésnél „elrejteni” a tesztéleket – szivárgás. A sorrend: felosztás → beágyazás a tanítógráfon → pontozás.</li>
+    <li><b>A fokszámot a teljes adatból számolni.</b> Egy jellemző („hány cikkben szerepelt a szereplő”) is szivárog, ha a teszt-időszak cikkeit is beleszámoltad.</li>
+    <li><b>Véletlen felosztás időbeli adaton.</b> Ha a tesztélek véletlenül vannak kiválasztva az egész időszakból, a tanítógráfban ott vannak a teszt <b>utáni</b> élek – a módszer a jövőből lát vissza. Ez is szivárgás, csak finomabb.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – szivárgás</summary>
+  <ol>
+    <li>Ha az egész hét gráfjából pontozunk, mennyi lesz a Ko–Kl pár PA-ja? (A fokszámok a teljes héten: Ko 4, Kl 2.)
+      <details><summary>Megoldás</summary>$4 \cdot 2 = 8$ – a tanítógráfban $2 \cdot 0 = 0$ volt.</details></li>
+    <li>És a Sz–Kl-é? (Sz a teljes héten 3 fokú.)
+      <details><summary>Megoldás</summary>$3 \cdot 2 = 6$ (a tanítógráfban $1 \cdot 0 = 0$).</details></li>
+    <li>Egy kutató a teljes gráfon számol node2vec-beágyazást, aztán 10% élt kivesz teszthez, és a beágyazásokból jósol. AUC: 0,93. Mi a gond?
+      <details><summary>Megoldás</summary>A beágyazás látta a tesztéleket: a séták rajtuk is átmentek, így a végpontok közel kerültek. A helyes eljárás: előbb kivenni a tesztéleket, és a maradék gráfon újra számolni a beágyazást.</details></li>
+    <li>Egy hírgráfon a januári cikkekből akarod jósolni a februári új együttemléseket. Mi a tanítógráf, mik a jelöltek és a pozitívak?
+      <details><summary>Megoldás</summary>Tanítógráf: a januári cikkek szereplőgráfja. Jelölt: minden januárban nem létező pár (a januárban is szereplő szereplők között – vagy az összes szereplő között, ha az új belépőket is jósolni akarod). Pozitív: a februárban először megjelenő pár.</details></li>
+    <li>(nehezebb) Lehet-e szivárgás akkor is, ha a tesztéleket gondosan kivetted a gráfból?
+      <details><summary>Megoldás</summary>Igen. (1) A hiperparamétereket (pl. a node2vec $p$, $q$-ját) a tesztélek AUC-ja alapján választottad – ehhez külön validációs élek kellenek. (2) Egy csúcsjellemző (pl. „hány cikkben szerepel”) a teljes időszakból számolt. (3) Az időbeli adatot véletlenül osztottad fel. Mindhárom a teszt információját viszi a tanításba.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh11-113"></div>
+</section>
+
+<!-- ===================================================== 11.4 -->
+<section id="s114">
+<h2>11.4 Spektrális beágyazás ★★</h2>
+<p>A heurisztikák minden párra külön számolnak, és a 2-nél távolabbi párokról semmit sem mondanak. Más ötlet: adjunk minden csúcsnak <b>koordinátákat</b> – egy pontot a síkon vagy egy $d$ dimenziós térben –, úgy, hogy a szomszédok közel kerüljenek egymáshoz.
+Akkor bármely két csúcsról megmondhatjuk, milyen messze vannak, és a közeli, még nem szomszédos párokat jósoljuk élnek. Ez a <b>csúcsbeágyazás</b> (node embedding). Az első, legrégebbi változata a Laplace-mátrixból jön.</p>
+
+<h3 id="s114-a">1. lépés: egy számból koordináták – a Laplace-sajátleképezés</h3>
+<div class="box example" id="s114-a-ut">
+  <span class="box-title">Kiinduló példa – a 4 csúcsú út</span>
+  A <a class="xref" href="../04-grafok-es-matrixok/#s44-b">4.4</a>-ben láttuk: ha minden csúcshoz egy $x_i$ számot rendelünk, akkor
+  $$\mathbf x^\top L\mathbf x = \sum_{\{i,j\} \in E} (x_i - x_j)^2$$
+  azt méri, mennyire „ugrál” a jel az éleken. A legsimább nem konstans (és egységnyi hosszú, $\mathbf 1$-re merőleges) jel a Fiedler-vektor (<a class="xref" href="../04-grafok-es-matrixok/#s45-c">4.5</a>). Az 1–2–3–4 úton a Laplace-mátrix sajátértékei $0;\allowbreak\ 2 - \sqrt2 \approx 0{,}586;\allowbreak\ 2;\allowbreak\ 2 + \sqrt2 \approx 3{,}414$, a második és a harmadik sajátvektor:
+  $$\mathbf u_2 = (0{,}653;\allowbreak\ 0{,}271;\allowbreak\ -0{,}271;\allowbreak\ -0{,}653), \qquad \mathbf u_3 = (0{,}5;\allowbreak\ -0{,}5;\allowbreak\ -0{,}5;\allowbreak\ 0{,}5).$$
+  Ha az $\mathbf u_2$-t vesszük <b>első koordinátának</b>, az $\mathbf u_3$-at <b>másodiknak</b>, minden csúcs egy pont a síkon: $1 \to (0{,}653;\allowbreak\ 0{,}5)$, $2 \to (0{,}271;\allowbreak\ -0{,}5)$, $3 \to (-0{,}271;\allowbreak\ -0{,}5)$, $4 \to (-0{,}653;\allowbreak\ 0{,}5)$.
+  Az első koordináta sorba rakja a csúcsokat (1, 2, 3, 4) – ez maga az út. A második „visszahajtja” a két véget.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – Laplace-sajátleképezés (spektrális beágyazás)</span>
+  Keressünk minden csúcshoz egy $\mathbf z_i \in \mathbb R^d$ vektort úgy, hogy a szomszédok minél közelebb legyenek:
+  $$\min \sum_{\{i,j\} \in E} \lVert \mathbf z_i - \mathbf z_j \rVert^2 = \min\ \operatorname{tr}(Z^\top L Z),$$
+  ahol $Z$ az $n \times d$-s mátrix, amelynek $i$-edik sora $\mathbf z_i$; a feltétel: $Z$ oszlopai egységnyiek, egymásra és az $\mathbf 1$-re merőlegesek. A megoldás: $Z$ oszlopai az $L$ <b>2., 3., …, $(d+1)$-edik sajátvektora</b> ($\mu_2, \dots, \mu_{d+1}$), a minimum értéke $\mu_2 + \dots + \mu_{d+1}$ (M. Belkin – P. Niyogi, 2003).
+  <small>Miért? Az összeg koordinátánként szétesik: $\sum_{E} \lVert \mathbf z_i - \mathbf z_j\rVert^2 = \sum_{c=1}^{d} \mathbf x_c^\top L \mathbf x_c$, ahol $\mathbf x_c$ a $c$-edik oszlop. Az első oszlop legjobb választása a Fiedler-vektor; a második – az elsőre merőlegesen – a következő legsimább, és így tovább. A merőlegesség nélkül minden oszlop a Fiedler-vektor lenne, és $d$ dimenzió helyett egyet kapnánk; az $\mathbf 1$-re merőlegesség nélkül minden csúcs egy pontba esne (konstans vektor, 0 energia).</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – ellenőrzés: tényleg sajátvektor?</span>
+    Az út Laplace-mátrixának első sora $(1, -1, 0, 0)$, második sora $(-1, 2, -1, 0)$. Ellenőrizd, hogy $L\mathbf u_3 = 2\,\mathbf u_3$!
+    <details><summary>Megoldás</summary>1. sor: $0{,}5 - (-0{,}5) = 1 = 2 \cdot 0{,}5$. 2. sor: $-0{,}5 + 2 \cdot (-0{,}5) - (-0{,}5) = -1 = 2 \cdot (-0{,}5)$. A 3. és 4. sor a szimmetria miatt ugyanígy. ✓</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – az energia</span>
+    Mennyi $\sum_E \lVert \mathbf z_i - \mathbf z_j\rVert^2$ a fenti 2D beágyazásra?
+    <details><summary>Megoldás</summary>1–2: $0{,}382^2 + 1^2 \approx 1{,}146$; 2–3: $0{,}541^2 + 0 \approx 0{,}293$; 3–4: $1{,}146$. Összesen $\approx 2{,}586 = \mu_2 + \mu_3 = 0{,}586 + 2$. ✓ Ennél kisebb energiájú, a feltételeknek megfelelő 2D elrendezés nincs.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az első sajátvektort is felhasználni.</b> A $\mu_1 = 0$-hoz a konstans vektor tartozik: minden csúcsnak ugyanazt a koordinátát adja, semmit nem különböztet meg. A beágyazás a 2. sajátvektortól indul.</li>
+    <li><b>A legnagyobb sajátértékűeket venni.</b> A szomszédsági mátrixnál a nagy sajátértékek a fontosak (<a class="xref" href="../04-grafok-es-matrixok/#s43-a">4.3</a>), a Laplace-nál a <b>kicsik</b> – azok a sima, „szomszédot szomszéd mellé tevő” irányok. A legnagyobbak a leginkább ugráló jelek.</li>
+    <li><b>Az előjelet jelentésnek olvasni.</b> Ha $\mathbf u$ sajátvektor, $-\mathbf u$ is: a beágyazás tükrözhető, a távolságok nem változnak.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – Laplace-sajátleképezés</summary>
+  <ol>
+    <li>A 3 csúcsú út (1–2–3) Laplace-mátrixának sajátértékei 0, 1, 3. Ellenőrizd, hogy $\mathbf u_2 = (0{,}707;\allowbreak\ 0;\allowbreak\ -0{,}707)$ sajátvektor! Mi az 1D beágyazás?
+      <details><summary>Megoldás</summary>$L = \begin{pmatrix}1&-1&0\\-1&2&-1\\0&-1&1\end{pmatrix}$. $L\mathbf u_2 = (0{,}707;\allowbreak\ 0;\allowbreak\ -0{,}707) = 1 \cdot \mathbf u_2$ ✓. Beágyazás: $1 \to 0{,}707$, $2 \to 0$, $3 \to -0{,}707$ – a középső csúcs középen.</details></li>
+    <li>Mennyi a 4 csúcsú út 2D beágyazásában az 1–4 csúcspár távolsága? És az 1–2-é?
+      <details><summary>Megoldás</summary>1–4: $\sqrt{1{,}307^2 + 0^2} \approx 1{,}307$. 1–2: $\sqrt{0{,}383^2 + 1^2} \approx 1{,}071$. A szomszédos 1–2 közelebb van, mint az 1–4 – de csak kicsit: a 3. sajátvektor „visszahajtotta” a két véget.</details></li>
+    <li>Mennyi az 1D beágyazás (csak $\mathbf u_2$) energiája a 4 csúcsú úton?
+      <details><summary>Megoldás</summary>$\mu_2 \approx 0{,}586$. (Kézzel: $0{,}382^2 + 0{,}541^2 + 0{,}382^2 \approx 0{,}146 + 0{,}293 + 0{,}146 = 0{,}585$.)</details></li>
+    <li>A két háromszög + híd gráf Fiedler-vektora (<a class="xref" href="../04-grafok-es-matrixok/#s45-c">4.5</a>) $(0{,}46;\allowbreak\ 0{,}46;\allowbreak\ 0{,}26;\allowbreak\ -0{,}26;\allowbreak\ -0{,}46;\allowbreak\ -0{,}46)$. Az 1D beágyazásban melyik nem szomszédos pár van a legközelebb?
+      <details><summary>Megoldás</summary>A nem élek közül az 1–4, 2–4, 3–5, 3–6 pár távolsága $0{,}72$ – a legkisebb. Mindegyik a hídon átnyúló pár. (Az 1 és a 2 egybeesik, de ők szomszédok.)</details></li>
+    <li>(nehezebb) Miért nem lehet a beágyazás $d$ dimenziója $n - 1$-nél több?
+      <details><summary>Megoldás</summary>Az $L$-nek $n$ sajátvektora van, ebből az elsőt (konstans) nem használjuk: legfeljebb $n - 1$ merőleges, $\mathbf 1$-re merőleges irány van. Gyakorlatban $d \ll n$: a cél éppen a <b>tömörítés</b>.</details></li>
+  </ol>
+</details>
+
+<h3 id="s114-b">2. lépés: a beágyazásból jóslat – a távolság mint pontszám</h3>
+<div class="box example" id="s114-b-arviz">
+  <span class="box-title">Kiinduló példa – az Árvízhét a síkon</span>
+  A teljes hét gráfjának 2D spektrális beágyazása (Python; az előjelet úgy fordítva, hogy a Ko koordinátái pozitívak):
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th></th><th>Ko</th><th>Vi</th><th>Po</th><th>La</th><th>Ön</th><th>Sz</th><th>Kl</th></tr>
+    <tr><th>$x$ ($\mathbf u_2$)</th><td>0,239</td><td>0,178</td><td>−0,186</td><td>−0,521</td><td>−0,521</td><td>0,366</td><td>0,446</td></tr>
+    <tr><th>$y$ ($\mathbf u_3$)</th><td>0,131</td><td>0,615</td><td>0,230</td><td>−0,177</td><td>−0,177</td><td>0,073</td><td>−0,695</td></tr>
+  </table></div>
+  Az $x$ előjele a $\{\mathrm{Ko}, \mathrm{Vi}, \mathrm{Sz}, \mathrm{Kl}\}$ csoportot választja el a $\{\mathrm{Po}, \mathrm{La}, \text{Ön}\}$ csoporttól – pontosan a legnagyobb modularitású felbontás (<a class="xref" href="../08-kozossegek/#s83-b">8.3</a>). A pontszám: $s(u, v) = -\lVert \mathbf z_u - \mathbf z_v\rVert$ (a közelebbi pár a valószínűbb). A 11 jelölt közül
+  <ul style="margin:.2rem 0">
+    <li>a <b>legközelebbi</b> a Po–Sz: $$\sqrt{(−0{,}186 − 0{,}366)^2 + (0{,}230 − 0{,}073)^2} \approx 0{,}574$$;</li>
+    <li>a <b>legtávolabbi</b> a Vi–Kl ($1{,}338$) – pedig a CN és a Jaccard szerint ez az egyik legesélyesebb pár (2 közös szomszéd, $J = 2/3$)!</li>
+  </ul>
+</div>
+
+<div class="box def">
+  <span class="box-title">Szabály – beágyazásból pontszám</span>
+  Egy beágyazásból kétféle párpontszám szokásos:
+  $$s(u, v) = -\lVert \mathbf z_u - \mathbf z_v \rVert \quad\text{(távolság)}, \qquad s(u, v) = \mathbf z_u \cdot \mathbf z_v \ \text{ vagy } \ \cos(\mathbf z_u, \mathbf z_v) \quad\text{(hasonlóság)}.$$
+  A spektrális beágyazáshoz a távolság illik (a célfüggvény is távolságot minimalizál); a tanult beágyazásokhoz (<a href="#s115">11.5</a>) a skaláris szorzat vagy a koszinusz. Tanult osztályozónál a párt jellemzőkkel írjuk le (pl. $\mathbf z_u \odot \mathbf z_v$, az elemenkénti szorzat), és egy logisztikus regresszió tanulja meg a pontszámot (<a href="#s116-b">11.6</a>).
+  <small>Miért nem egyezik a CN-nel? Mert a beágyazás <b>tömörít</b>: 7 csúcsot 2 számmal ír le, ezért nem minden párt tud „jól” elhelyezni. A Kl-t a 3. sajátvektor egy külön irányba húzza (a $y$ tengelyen messze lent van), így a Vi-től messze kerül, noha két közös szomszédjuk van. Több dimenzióval ez enyhül, de a 2D kép soha nem az egész gráf.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – két csúcs egy ponton</span>
+    A La és az Ön koordinátái pontosan egyeznek. Miért?
+    <details><summary>Megoldás</summary>Mert a gráfban ugyanaz a szerepük: $N(\mathrm{La}) = \{\mathrm{Po}, \text{Ön}\}$, $N(\text{Ön}) = \{\mathrm{Po}, \mathrm{La}\}$ – egymáson kívül mindkettő csak a Po-val szerepel. Ha felcseréljük őket, a gráf nem változik, így minden sajátvektorban egyenlő az értékük (ha a sajátérték egyszeres). A spektrális beágyazás a <b>szerkezetileg ekvivalens</b> csúcsokat egy pontba teszi.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a második legközelebbi jelölt</span>
+    A táblázatból: mennyi a Ko–La távolság? (Ugyanennyi a Ko–Ön is.)
+    <details><summary>Megoldás</summary>$$\sqrt{(0{,}239 + 0{,}521)^2 + (0{,}131 + 0{,}177)^2} = \sqrt{0{,}578 + 0{,}095} \approx 0{,}820$$ (Pythonból $0{,}821$). A rangsor eleje tehát: Po–Sz, aztán holtversenyben Ko–La és Ko–Ön.</details>
+  </div>
+</div>
+
+<p>Próbáld ki! Válassz gráfot, és nézd a beágyazást a második és a harmadik (vagy negyedik) sajátvektor tengelyén. A kis gráfokon élt is be- és kikapcsolhatsz – a pontok azonnal átrendeződnek.</p>
+<div class="widget" data-widget="spectral-embed"></div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A 2D képet a teljes rangsornak hinni.</b> Két dimenzió kevés: a Vi–Kl a képen a legtávolabbi, a gráfban az egyik legközelebbi pár. A pontszámot több dimenzióban számold, a 2D csak szemléltetés.</li>
+    <li><b>A tengelyeknek nevet adni.</b> A „második sajátvektor = politikai oldal” csábító, de a tengelyek csak a gráf szerkezetéből jönnek. Néha egybeesnek egy értelmezhető ellentéttel (itt: kormányzati vs. helyi szereplők), máskor nem.</li>
+    <li><b>Egybeeső pontokat hibának hinni.</b> A La és az Ön egybeesése helyes – a gráf nem tudja őket megkülönböztetni. Kapcsolat-előrejelzésnél ez gond is lehet: a beágyazás szerint mindkettő ugyanannyira valószínű partnere bárkinek.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – távolság mint pontszám</summary>
+  <ol>
+    <li>A táblázatból számold ki a Vi–La távolságot!
+      <details><summary>Megoldás</summary>$$\sqrt{(0{,}178 + 0{,}521)^2 + (0{,}615 + 0{,}177)^2} = \sqrt{0{,}489 + 0{,}627} \approx 1{,}056$$ (Pythonból $1{,}057$).</details></li>
+    <li>Melyik pár van közelebb: Po–Kl vagy La–Kl?
+      <details><summary>Megoldás</summary>Po–Kl: $\sqrt{0{,}632^2 + 0{,}925^2} \approx 1{,}120$. La–Kl: $\sqrt{0{,}967^2 + 0{,}517^2} \approx 1{,}097$. A La–Kl kicsit közelebb van – a Kl-hez az $y$ tengelyen a La van közelebb.</details></li>
+    <li>Az öt barát gráfjában (A–B, A–C, B–C, B–D, D–E) a spektrális beágyazás az A-t és a C-t egy pontba teszi. Miért?
+      <details><summary>Megoldás</summary>$N(A) = \{B, C\}$, $N(C) = \{A, B\}$: egymáson kívül mindkettő csak a B-vel szomszédos. Felcserélhetők, így minden (egyszeres sajátértékű) sajátvektorban egyenlő az értékük.</details></li>
+    <li>Ha a pontszám $-\lVert \mathbf z_u - \mathbf z_v\rVert$, mi a pontszáma két egybeeső csúcsnak, és hol áll a rangsorban?
+      <details><summary>Megoldás</summary>$0$ – a lehető legnagyobb (minden más pár negatív). Ha nem szomszédok, a rangsor élén állnak.</details></li>
+    <li>(nehezebb) A Laplace-sajátleképezés célfüggvénye csak a <b>szomszédokat</b> húzza össze, a nem szomszédokat semmi nem taszítja. Mi akadályozza meg, hogy minden csúcs egy pontba essen?
+      <details><summary>Megoldás</summary>A feltételek: az oszlopok egységnyi hosszúak és $\mathbf 1$-re merőlegesek. Egy pontba eséshez minden oszlop konstans lenne – az $\mathbf 1$-re merőleges konstans vektor csak a nulla, aminek a hossza nem 1. A feltétel tehát „szétfeszíti” a beágyazást; a tanult beágyazásoknál ugyanezt a <b>negatív minták</b> végzik (<a href="#s115-b">11.5</a>).</details></li>
+  </ol>
+</details>
+
+<h3 id="s114-c">3. lépés: amire figyelni kell – többszörös sajátérték, szétesett gráf, új csúcs</h3>
+<div class="box example" id="s114-c-kl">
+  <span class="box-title">Kiinduló példa – a hét eleji tanítógráf</span>
+  A hét eleji tanítógráfban a Kl elszigetelt: a gráfnak két komponense van. A Laplace-mátrix sajátértékei: $0;\allowbreak\ 0;\allowbreak\ 0{,}413;\allowbreak\ 1{,}137;\allowbreak\ \dots$ – a <b>0 kétszer</b> szerepel (<a class="xref" href="../04-grafok-es-matrixok/#s44-c">4.4</a>: annyi nulla sajátérték, ahány komponens).
+  A „második sajátvektor” ilyenkor nem egyértelmű: a két nulla sajátértékhez tartozó síkból <b>bármelyik</b> irányt kaphatjuk. A Python egyik futása a Kl-t az origóba tette, a többi hat csúcsot $x = -0{,}408$-ra – a Kl így véletlenül közel került a Po-hoz, és a 2D spektrális pontszám AUC-ja 0,70 lett.
+  Ez <b>nem</b> tudás: egy másik, ugyanolyan jó bázisválasztás a Kl-t messzire tehetné. Szétesett gráfon a spektrális beágyazás komponensenként értelmes – a komponensek között nem.
+</div>
+
+<div class="box def">
+  <span class="box-title">Szabály – a spektrális beágyazás feltételei és korlátai</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Összefüggő gráf kell</b> ($\mu_2 \gt 0$). Ha nem az, beágyazz komponensenként, vagy kösd össze gyengén (pl. a PageRank teleportálásához hasonló kis súllyal mindenkit mindenkivel).</li>
+    <li><b>Többszörös sajátértéknél</b> a tengelyek nem egyértelműek, csak az általuk kifeszített tér. A távolságok akkor egyértelműek, ha a többszörös sajátérték összes vektorát beveszed.</li>
+    <li><b>Transzduktív</b>: csak a meglévő csúcsoknak van koordinátája. Egy új csúcshoz (új szereplő a hírekben) újra kell számolni az egészet.</li>
+    <li><b>Költség</b>: a teljes sajátfelbontás $O(n^3)$; nagy, ritka gráfon csak néhány sajátvektort számolunk iteratívan (Lanczos-módszer).</li>
+  </ul>
+  <small>A gyakorlatban gyakran a <b>normált</b> Laplace-mátrixot ($I - D^{-1/2} A D^{-1/2}$) használják: ennél a nagy fokszámú csúcsok nem húzzák magukhoz a beágyazást. A spektrális klaszterezés is ezt a beágyazást csoportosítja $k$-közepekkel – a kettévágás (<a class="xref" href="../08-kozossegek/#s85-b">8.5</a>) általánosításaként.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a csillag</span>
+    A 3 levelű csillag (középen K, levelek 1, 2, 3) sajátértékei $0, 1, 1, 4$. Mit jelent ez a beágyazásra?
+    <details><summary>Megoldás</summary>A $\mu_2 = \mu_3 = 1$ kétszeres: a 2. és a 3. sajátvektor bármely forgatása is jó. A 2D kép tetszőlegesen elforgatható – a távolságok nem változnak, de a „melyik tengely mit jelent” értelmetlen. (A három levél a szimmetria miatt egy szabályos háromszög csúcsaiban áll, a K középen.)</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – új szereplő</span>
+    Csütörtökön megjelenik a Klímaváltozás a hírekben. Mi kell ahhoz, hogy a spektrális beágyazásban legyen koordinátája?
+    <details><summary>Megoldás</summary>Legalább egy éle a tanítógráfban – és az egész felbontás újraszámolása. Amíg nincs éle, a gráf semmit sem tud róla; ezen egyik gráfos módszer sem segít (<a href="#s116-c">11.6</a>).</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Két futás koordinátáit összevetni.</b> Egy hét eleji és egy hét végi beágyazás tengelyei nem ugyanazok (előjel, sorrend, forgatás). Két beágyazást csak illesztés (forgatás) után, vagy csak a távolságaikon keresztül lehet összevetni.</li>
+    <li><b>Szétesett gráfon a „szerencsés” eredményt elhinni.</b> A 0,70-es AUC a bázisválasztás véletlene volt. Mindig nézd meg, hány 0 sajátérték van.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – feltételek és korlátok</summary>
+  <ol>
+    <li>Hány nulla sajátértéke van egy 3 komponensű gráf Laplace-mátrixának?
+      <details><summary>Megoldás</summary>3 – komponensenként egy (<a class="xref" href="../04-grafok-es-matrixok/#s44-c">4.4</a>).</details></li>
+    <li>A 4 csúcsú kör sajátértékei $0, 2, 2, 4$. Egyértelmű-e a 2D spektrális beágyazás?
+      <details><summary>Megoldás</summary>Nem: $\mu_2 = \mu_3 = 2$, a 2D sík bármely forgatása jó. (A négy csúcs egy négyzet csúcsaiban áll, a forgatás tetszőleges.)</details></li>
+    <li>Egy 100 csúcsú összefüggő gráfra 5 dimenziós spektrális beágyazást számolsz. Hány sajátvektor kell, és melyek?
+      <details><summary>Megoldás</summary>5: a 2.–6. (a $\mu_2, \dots, \mu_6$-hoz tartozók). Az első (konstans) kimarad.</details></li>
+    <li>Miért nem tud a spektrális beágyazás egy holnap megjelenő szereplőnek koordinátát adni újraszámolás nélkül?
+      <details><summary>Megoldás</summary>Mert a koordináták a teljes $L$ sajátvektorai: egy új csúcs új sort és oszlopot ad az $L$-hez, és ez minden sajátvektort megváltoztathat. A módszer transzduktív – nincs „képlet”, amely egy új csúcsra alkalmazható.</details></li>
+    <li>(nehezebb) A hét eleji tanítógráfban mi lenne egy becsületes 2D spektrális pontszám a Kl párjaira?
+      <details><summary>Megoldás</summary>A Kl-nek nincs éle, így a gráfból semmit sem tudunk róla: becsületes az, ha minden Kl-párt egyforma (a legkisebb) pontszámmal a rangsor végére teszünk, és a többi hat csúcsot a saját komponensükön ágyazzuk be. Ekkor a két Kl-es pozitív a véletlennél nem jobb helyre kerül – ahogy a heurisztikáknál is.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh11-114"></div>
+</section>
+
+<!-- ===================================================== 11.5 -->
+<section id="s115">
+<h2>11.5 Véletlen sétás beágyazások ★★</h2>
+<p>A spektrális beágyazás csak a <b>szomszédokat</b> húzza össze, és nagy gráfon drága. 2014-ben B. Perozzi, R. Al-Rfou és S. Skiena egy nyelvi ötletet vitt át a gráfokra: a szavak jelentését abból tanuljuk, <b>milyen szavak mellett fordulnak elő</b> (<a class="xref" href="../../mesterseges-intelligencia/12-beagyazasok-figyelem/#s122-c">MI 12.2</a>).
+Ha a gráfon véletlenül sétálunk, a séták <b>mondatok</b>, a csúcsok <b>szavak</b> – és a word2vec ugyanúgy megtanulja, mely csúcsok fordulnak elő egymás közelében. Ez a <b>DeepWalk</b>; a <b>node2vec</b> (A. Grover – J. Leskovec, 2016) azt szabályozza, hogyan sétáljunk.
+Az ötletet az <a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s132-c">MI 13.2</a> már megemlítette; itt végigszámoljuk.</p>
+
+<h3 id="s115-a">1. lépés: séták mint mondatok</h3>
+<div class="box example" id="s115-a-seta">
+  <span class="box-title">Kiinduló példa – egy séta az öt barát gráfján</span>
+  Az öt barát gráfja (<a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s131-a">MI 13.1</a>): élek A–B, A–C, B–C, B–D, D–E.
+  <div class="gfig" data-nodes="A,B,C,D,E" data-edges="A-B,A-C,B-C,B-D,D-E" data-pos="A:0,0 B:1,.6 C:0,1.2 D:2,.6 E:3,.6" data-w="300" data-h="150" data-r="15"
+    data-caption="Az öt barát gráfja"></div>
+  Indulj az A-ból, és minden lépésben menj egy véletlen szomszédhoz. Egy lehetséges, 7 hosszú séta: <b>A B D E D B C</b>. Ez a „mondat”. A skip-gram minden szóhoz a közelében álló szavakat gyűjti ki – $\pm 1$ szónyi <b>ablakkal</b>:
+  <ul style="margin:.2rem 0">
+    <li>A: (B) · B: (A, D) · D: (B, E) · E: (D, D) · D: (E, B) · B: (D, C) · C: (B) – összesen <b>12</b> (középső, környező) pár.</li>
+    <li>Párok szerint: A–B 2, B–C 2, B–D 4, D–E 4. Mind él: $\pm 1$-es ablakkal csak egymást követő csúcsok kerülnek egy párba.</li>
+  </ul>
+  $\pm 2$-es ablakkal <b>22</b> pár lesz, és megjelennek a két lépésre levő párok is: A–D, B–E, C–D – <b>ezek nem élek</b>. Az ablak teszi lehetővé, hogy a beágyazás a nem szomszédos, de közeli párokat is közel hozza: éppen ebből lesz kapcsolat-előrejelzés.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – DeepWalk-korpusz</span>
+  Minden csúcsból indíts $r$ véletlen sétát, mindegyik $\ell$ hosszú; minden lépésben egyenletesen véletlen szomszédhoz lépsz (<a class="xref" href="../04-grafok-es-matrixok/#s42-a">4.2</a>). A sétákból $\pm w$-s ablakkal kigyűjtött (középső, környező) párok a <b>tanítópárok</b>. Egy $\ell$ hosszú séta
+  $$2\sum_{j=1}^{w} (\ell - j)$$
+  párt ad (minden $j$ távolságú szópár mindkét irányban egyszer).
+  <small>Miért séta, és nem a szomszédok listája? Mert a séta <b>több lépésre</b> is elér, és oda gyakrabban, ahová sok út vezet. Két csúcs, amelyek sok közös rövid úton vannak, sokszor kerülnek egy ablakba – ugyanaz a jel, amit a CN és a Katz-index (<a class="xref" href="#s112-c-katz">11.2</a>) számol, csak mintavétellel.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a karateklub korpusza</span>
+    34 tag, tagonként $r = 10$ séta, $\ell = 20$, ablak $w = 5$. Hány séta, „szó” és tanítópár van?
+    <details><summary>Megoldás</summary>Séta: $340$. Szó: $340 \cdot 20 = 6800$. Pár sétánként $2(19 + 18 + 17 + 16 + 15) = 170$, összesen $57\,800$. Egy 34 szavas „nyelvhez” ez bőséges korpusz.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – önmaga környezete</span>
+    Az „A B D E D B C” sétában $\pm 2$-es ablakkal a D kétszer is a D környezetében áll. Hol?
+    <details><summary>Megoldás</summary>A 3. helyen álló D környezete a $\pm2$-es ablakban az 1., 2., 4. és 5. hely: A, B, E, D – az utolsó az 5. helyen álló D. És fordítva: az 5. helyi D ablakában ott a 3. helyi. Ha a séta visszafordul (D E D), a csúcs önmaga közelébe kerül; ez a word2vec-ben megengedett, de keveset számít.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Azt hinni, hogy az ablakban csak szomszédok vannak.</b> Egy $\pm w$-s ablakban legfeljebb $w$ lépésre levő csúcsok vannak – de nem feltétlenül <b>pontosan</b> $w$ távolságra: a séta vissza is léphet.</li>
+    <li><b>Kevés sétával tanítani.</b> A séták véletlenek; ha csúcsonként egy rövid séta van, a ritkán bejárt párok számlálása zajos, a beágyazás futásról futásra más.</li>
+    <li><b>A súlyozott vagy irányított gráfot figyelmen kívül hagyni.</b> Súlyozott gráfon a lépés valószínűsége legyen arányos a súllyal; irányítotton csak az él irányában lehet lépni – különben a séta olyan „mondatokat” ír, amelyek a gráfban nincsenek.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – séták és párok</summary>
+  <ol>
+    <li>Hány tanítópárt ad egy 5 hosszú séta $\pm 1$-es, és hányat $\pm 2$-es ablakkal?
+      <details><summary>Megoldás</summary>$\pm1$: $2 \cdot 4 = 8$. $\pm2$: $2(4 + 3) = 14$.</details></li>
+    <li>Sorold fel a „B C A B D” séta $\pm 1$-es párjait (rendezetlen párokként, darabszámmal)!
+      <details><summary>Megoldás</summary>B–C 2, C–A 2, A–B 2, B–D 2 – 8 pár. Mind él.</details></li>
+    <li>Melyik nem szomszédos pár kerülhet egy ablakba $\pm 2$-vel az öt barát gráfján?
+      <details><summary>Megoldás</summary>Azok, amelyek 2 lépésre vannak: A–D, C–D (a B-n át), B–E (a D-n át). Az A–E és a C–E 3 lépésre van – ezekhez $\pm 3$-as ablak kell.</details></li>
+    <li>Egy 1000 csúcsú gráfon csúcsonként 10 sétát indítasz, mindegyik 80 hosszú, $w = 10$. Hány tanítópár van?
+      <details><summary>Megoldás</summary>Sétánként $2(79 + 78 + \dots + 70) = 2 \cdot 745 = 1490$. Séták: $10\,000$. Összesen $14{,}9$ millió pár.</details></li>
+    <li>(nehezebb) Egy véletlen séta a karateklubon a 34-es tagból indul (17 szomszéd). Mekkora eséllyel lép az első lépésben a 33-asra, és mekkorával egy adott 1 fokú szomszédjára?
+      <details><summary>Megoldás</summary>Az első lépésben mindegyik szomszéd egyformán $1/17 \approx 0{,}059$ eséllyel jön. A különbség később adódik: a 33-asból (12 szomszéd) a séta gyakran visszatér a 34-esbe, ezért a 33–34 pár sokszor kerül egy ablakba.</details></li>
+  </ol>
+</details>
+
+<h3 id="s115-b">2. lépés: mit tanul a skip-gram? – együttelőfordulás, PMI, beágyazás</h3>
+<p>A sétákból tanítópárok lettek. A word2vec (skip-gram negatív mintavétellel, SGNS) minden csúcshoz egy $\mathbf z_u$ vektort tanul úgy, hogy a <b>valódi</b> (együtt előforduló) párok skaláris szorzata nagy, a <b>véletlenül húzott</b> (negatív) pároké kicsi legyen – ugyanaz a veszteség, mint a GNN-es kapcsolat-előrejelzésben (<a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s136-b">MI 13.6</a>). De mit tanul meg végül?</p>
+
+<div class="box example" id="s115-b-pmi">
+  <span class="box-title">Kiinduló példa – a 12 pár együttelőfordulási táblája</span>
+  Az „A B D E D B C” séta $\pm 1$-es párjaiból (12 rendezett pár) a csúcsonkénti párszám: A 1, B 4, C 1, D 4, E 2. Ha a párok <b>függetlenül</b> állnának össze, az A–B pár várható gyakorisága $12 \cdot \tfrac{1}{12} \cdot \tfrac{4}{12} = \tfrac13$ lenne – a megfigyelt 1, háromszoros. A B–D-é $12 \cdot \tfrac{4}{12} \cdot \tfrac{4}{12} = \tfrac43$, a megfigyelt 2, másfélszeres. A hányados logaritmusa:
+  $$\mathrm{PMI}(\mathrm A, \mathrm B) = \ln\frac{1 \cdot 12}{1 \cdot 4} \approx 1{,}099, \qquad \mathrm{PMI}(\mathrm B, \mathrm D) = \ln\frac{2 \cdot 12}{4 \cdot 4} \approx 0{,}405.$$
+  A B–D kétszer annyiszor fordult elő, mégis <b>kisebb</b> a PMI-je: a B és a D „mindenhol ott van” a sétában. Az A csak a B mellett fordul elő – ez erősebb jel. Ugyanaz az ötlet, mint az Adamic–Adar-ban (<a class="xref" href="#s112-c">11.2</a>): a gyakori szereplő kevesebbet árul el.
+</div>
+
+<div class="box thm">
+  <span class="box-title">Tétel – a skip-gram mátrixfaktorizáció (szemléletesen)</span>
+  Ha $C_{uv}$ a sétákból számolt együttelőfordulási szám, $C_u = \sum_v C_{uv}$ és $|C| = \sum_{u,v} C_{uv}$, a negatív mintavételes skip-gram (pozitív páronként $b$ negatívval) optimuma
+  $$\mathbf z_u \cdot \mathbf z'_v \approx \mathrm{PMI}(u, v) - \ln b = \ln\frac{C_{uv}\,|C|}{C_u\,C_v} - \ln b$$
+  (O. Levy – Y. Goldberg, 2014). A gráfra alkalmazva a DeepWalk lényegében a véletlen séta <b>többlépéses átmenetmátrixainak</b> ($P, P^2, \dots, P^w$, ahol $P = D^{-1}A$) egy logaritmusát faktorizálja (J. Qiu és társai, 2018: <em>NetMF</em>).
+  <small>Mit jelent ez? A „tanult” beágyazás nem varázslat: egy jól megválasztott <b>hasonlósági mátrix</b> alacsony rangú közelítése – ahogy a spektrális beágyazás a Laplace-mátrixé. A különbség a mátrixban van: a DeepWalk az $1, 2, \dots, w$ lépéses elérhetőséget nézi, a gyakori csúcsok súlyát a PMI levonja. A lenti widget pontosan így számol: PMI (a negatívakat 0-ra vágva: <b>PPMI</b>), aztán a két legnagyobb sajátirány.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a D–E pár</span>
+    A D–E 2-szer fordul elő, a D párszáma 4, az E-é 2. Mennyi a PMI?
+    <details><summary>Megoldás</summary>$\ln\frac{2 \cdot 12}{4 \cdot 2} = \ln 3 \approx 1{,}099$ – ugyanannyi, mint az A–B-é. Az E-nek csak a D a szomszédja, a D a sétában az E párszámának egészét adja.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – független pár</span>
+    Mennyi a PMI, ha egy pár pontosan annyiszor fordul elő, amennyiszer függetlenség mellett várnánk? És ha egyszer sem?
+    <details><summary>Megoldás</summary>$\ln 1 = 0$. Ha egyszer sem: $\ln 0 = -\infty$ – ezért vágjuk 0-ra a negatív értékeket (PPMI: pozitív PMI). A „nem láttuk együtt” így nem lesz végtelen nagy ellenérv.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A nyers gyakoriságot beágyazni.</b> A $C_{uv}$-ben a hubok mindenkivel nagy értéket kapnak – a beágyazás a fokszámot tanulja meg. A PMI (vagy az SGNS negatív mintavétele) ezt vonja le.</li>
+    <li><b>A beágyazás egyes koordinátáinak jelentést tulajdonítani.</b> A $\mathbf z_u$ bármely elforgatása ugyanazokat a skaláris szorzatokat adja. Csak a csúcsok egymáshoz viszonyított helyzete értelmes – ahogy a spektrális beágyazásnál (<a class="xref" href="#s114-b">11.4</a>).</li>
+    <li><b>Két futás vektorait összekeverni.</b> Két tanítás (más véletlen séták, más kezdőérték) két különböző, egymáshoz el nem forgatott beágyazást ad. Csak egy futáson belüli távolságokat hasonlíts.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – együttelőfordulás és PMI</summary>
+  <ol>
+    <li>Az „A B D E D B C” séta $\pm 1$-es tábláján mennyi a B–C PMI-je?
+      <details><summary>Megoldás</summary>$C_{\mathrm{BC}} = 1$, $C_{\mathrm B} = 4$, $C_{\mathrm C} = 1$: $\ln\frac{1 \cdot 12}{4 \cdot 1} = \ln 3 \approx 1{,}099$.</details></li>
+    <li>Mennyi az A–D PMI-je ugyanitt, és mennyi a PPMI?
+      <details><summary>Megoldás</summary>$C_{\mathrm{AD}} = 0$: PMI $= -\infty$, PPMI $= 0$.</details></li>
+    <li>Egy nagy korpuszban $|C| = 10\,000$, $C_u = 100$, $C_v = 200$, $C_{uv} = 10$. Mennyi a PMI? Gyakoribb-e a pár, mint függetlenség mellett?
+      <details><summary>Megoldás</summary>Várható $10\,000 \cdot 0{,}01 \cdot 0{,}02 = 2$; megfigyelt 10. PMI $= \ln 5 \approx 1{,}609 \gt 0$: ötszörös.</details></li>
+    <li>Ha pozitív páronként $b = 5$ negatívat veszünk, mekkora skaláris szorzatot tanul a skip-gram egy $\mathrm{PMI} = \ln 5$ párra?
+      <details><summary>Megoldás</summary>$\ln 5 - \ln 5 = 0$ – a „pont annyiszor, mint a negatívak” pár a döntési határon van.</details></li>
+    <li>(nehezebb) Miért kerülhet közel a DeepWalk-beágyazásban két csúcs, amelyek között nincs él, de sok kétlépéses út vezet?
+      <details><summary>Megoldás</summary>Mert $\pm 2$ (vagy nagyobb) ablakkal a sok kétlépéses út sok közös ablakot ad: a $C_{uv}$ nagy, a PMI pozitív, a skip-gram nagy skaláris szorzatot tanul. Ez a CN mintavételes, a gyakori csúcsok súlyát levonó változata – innen a kapcsolat-előrejelző erő.</details></li>
+  </ol>
+</details>
+
+<h3 id="s115-c">3. lépés: hogyan sétáljunk? – a node2vec $p$ és $q$ paramétere</h3>
+<p>A DeepWalk sétája egyenletes: minden szomszéd ugyanolyan eséllyel jön. A node2vec azt kérdezi: ha most érkeztem $t$-ből $v$-be, <b>maradjak-e $t$ környékén</b> (felfedezzem a szűk környezetet), vagy <b>menjek tovább</b> (messzebbre)?</p>
+
+<div class="box example" id="s115-c-lepes">
+  <span class="box-title">Kiinduló példa – a séta A-ból B-be ért</span>
+  Az öt barát gráfján a séta most lépett A-ból B-be. A B szomszédai: A, C, D. A három lehetőség más-más viszonyban van az előző csúccsal (A):
+  <ul style="margin:.2rem 0">
+    <li><b>A</b> – visszalépés: súly $1/p$;</li>
+    <li><b>C</b> – az A-nak is szomszédja (A-tól 1 lépés): súly $1$;</li>
+    <li><b>D</b> – az A-tól 2 lépés, távolodás: súly $1/q$.</li>
+  </ul>
+  $p = q = 1$-nél mindegyik $1/3$ (DeepWalk). $p = 4$, $q = 0{,}5$-nél a súlyok $0{,}25;\allowbreak\ 1;\allowbreak\ 2$, a valószínűségek $0{,}077;\allowbreak\ 0{,}308;\allowbreak\ 0{,}615$: a séta szívesen <b>távolodik</b>. $p = 1$, $q = 2$-nél a súlyok $1;\allowbreak\ 1;\allowbreak\ 0{,}5$, a valószínűségek $0{,}4;\allowbreak\ 0{,}4;\allowbreak\ 0{,}2$: a séta az A <b>környékén marad</b>.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – node2vec-séta</span>
+  Ha a séta $t \to v$ lépett, a következő $x \in N(v)$ csúcs súlya
+  $$\alpha(t, x) = \begin{cases} 1/p, & \text{ha } x = t \ \ (\text{vissza}),\\ 1, & \text{ha } x \in N(t) \ \ (t\text{-től 1 lépés}),\\ 1/q, & \text{ha } d(t, x) = 2 \ \ (\text{távolodás}),\end{cases}$$
+  és a lépés valószínűsége a súllyal arányos. <b>Nagy $q$</b> (és kis $p$) → <b>BFS-szerű</b>, szűk környezetet bejáró séták. <b>Kis $q$</b> → <b>DFS-szerű</b>, messzire jutó séták.
+  <small>Miért éppen ez a három eset? Mert a $t$-től $x$ távolsága egy lépés után csak 0, 1 vagy 2 lehet. A séta így csak a legutolsó csúcsra „emlékszik” – másodrendű Markov-lánc. Grover és Leskovec szemlélete: a DFS-szerű séta a <b>közösséget</b> (homofília) járja be, a BFS-szerű a csúcs <b>közvetlen környezetének szerkezetét</b>.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – Ko-ból a Po-ba</span>
+    A teljes hét gráfján a séta Ko → Po lépett. A Po szomszédai: Ko, Vi, La, Ön. Mennyi a lépések valószínűsége $p = 1$, $q = 0{,}5$ mellett?
+    <details><summary>Megoldás</summary>Ko: vissza, $1/p = 1$. Vi: a Ko szomszédja, $1$. La, Ön: a Ko-tól 2 lépés, $1/q = 2$–$2$. Összeg $6$: Ko $1/6$, Vi $1/6$, La $1/3$, Ön $1/3$ – a séta a helyi szereplők felé fordul.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – erős visszahúzás</span>
+    Az öt barát gráfján A → B után $p = 0{,}25$, $q = 4$. Mennyi a valószínűségek?
+    <details><summary>Megoldás</summary>Súlyok: A $4$, C $1$, D $0{,}25$; összeg $5{,}25$. A $0{,}762$, C $0{,}190$, D $0{,}048$. A séta szinte mindig visszalép – a „korpusz” az A–B pár ismételgetése lesz.</details>
+  </div>
+</div>
+
+<div class="box tip">
+  <span class="box-title">⚖️ Konszenzus és vita – szerkezeti szerep és „haladás”</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Egyetértés:</b> a DeepWalk és a node2vec a <b>közelséget</b> (ki kinek a környezetében van) jól tanulja; a karateklubon a beágyazás a két klubot szétválasztja. A $p$, $q$ hangolása feladatonként néhány százalékot ad.</li>
+    <li><b>Vita – szerkezeti szerep:</b> a node2vec eredeti cikke szerint BFS-szerű sétával a hasonló <b>szerepű</b> (pl. két híd) csúcsok kerülnek közel, akkor is, ha messze vannak. Későbbi munkák (pl. L. Ribeiro – P. Saverese – D. Figueiredo, 2017, <em>struc2vec</em>) megmutatták, hogy ez korlátozott: a séta a gráfban halad, így távoli csúcsok ritkán kerülnek egy ablakba. Szerepekhez külön módszer kell.</li>
+    <li><b>Vita – haladunk-e?</b> Gondos összevetések szerint a jól hangolt egyszerű heurisztikák (CN, AA, RA) és a régi beágyazások sok gráfon versenyképesek az újabb módszerekkel (A. Mara – J. Lijffijt – T. De Bie, 2020); a GNN-es kapcsolat-előrejelzés értékelésében a túl könnyű negatívak sok eredményt felfújtak (J. Li és társai, 2023, nehéz negatívakkal újramérve). 📅 Állapot: 2026.</li>
+  </ul>
+</div>
+
+<p>Kísérletezz! Generálj sétákat különböző $p$, $q$ értékekkel, és nézd a korpuszt, a leggyakoribb párokat és a kapott 2D beágyazást. A karateklubon figyeld, mennyire válik szét a két klub. Az „egy lépés közelről” panelen bármely élre kiszámolja a következő lépés valószínűségeit.</p>
+<div class="widget" data-widget="random-walk-corpus"></div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Felcserélni a $p$-t és a $q$-t.</b> A $p$ a <b>visszalépést</b> szabályozza, a $q$ a <b>távolodást</b>. Kis $q$ → messzire jut (DFS); kis $p$ → sokat visszalép.</li>
+    <li><b>A hiperparamétereket a teszten hangolni.</b> A $p$, $q$, $\ell$, $w$, $d$ választása is tanulás: külön validációs élek kellenek (<a class="xref" href="#s113-d">11.3</a>).</li>
+    <li><b>Új csúcsra alkalmazni.</b> A DeepWalk és a node2vec csúcsonként egy szabad vektort tanul (transzduktív) – egy új szereplőnek nincs vektora, és a csúcsok saját jellemzőit (a cikk szövegét) sem használja. Ezt oldják meg a GNN-ek (<a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s135-a">MI 13.5</a>).</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – node2vec-lépések</summary>
+  <ol>
+    <li>Az öt barát gráfján A → B után $p = 1$, $q = 2$. Mennyi a D-re lépés valószínűsége?
+      <details><summary>Megoldás</summary>Súlyok: A $1$, C $1$, D $0{,}5$; D: $0{,}5/2{,}5 = 0{,}2$.</details></li>
+    <li>Ugyanitt C → B után ($p = q = 1$ helyett) $p = 2$, $q = 1$. Mennyi az egyes lépések valószínűsége?
+      <details><summary>Megoldás</summary>A B szomszédai: A, C, D. C: vissza, $1/2$. A: a C szomszédja, $1$. D: a C-től 2 lépés, $1/q = 1$. Összeg $2{,}5$: C $0{,}2$, A $0{,}4$, D $0{,}4$.</details></li>
+    <li>B → D után hová léphet a séta, és mekkora eséllyel, ha $p = 4$, $q = 0{,}5$?
+      <details><summary>Megoldás</summary>A D szomszédai: B, E. B: vissza, $0{,}25$. E: a B-től 2 lépés, $1/q = 2$. Összeg $2{,}25$: B $0{,}111$, E $0{,}889$.</details></li>
+    <li>Melyik beállítás felel meg a DeepWalknak? És melyik visz a leggyorsabban messzire?
+      <details><summary>Megoldás</summary>DeepWalk: $p = q = 1$ (minden szomszéd egyforma). Messzire: nagy $p$ (ritkán lép vissza) és kis $q$ (szívesen távolodik).</details></li>
+    <li>(nehezebb) A teljes hét gráfján Sz → Ko lépés után $p = 1$, $q = 0{,}25$. Mennyi a Po-ra lépés valószínűsége? (A Ko szomszédai: Vi, Po, Sz, Kl; a Sz szomszédai: Vi, Ko, Kl.)
+      <details><summary>Megoldás</summary>Sz: vissza, $1$. Vi és Kl: a Sz szomszédai, $1$–$1$. Po: a Sz-től 2 lépés, $1/q = 4$. Összeg $7$: Po $4/7 \approx 0{,}571$.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh11-115"></div>
+</section>
+
+<!-- ===================================================== 11.6 -->
+<section id="s116">
+<h2>11.6 Alkalmazás ★★</h2>
+<p>Minden eszköz megvan: jelöltek, öt heurisztika, két beágyazás, becsületes kiértékelés. Most visszatérünk a fejezet kérdéséhez, aztán egy nagyobb gráfon összevetjük a módszereket, végül összeszedjük, mit nem tud egyik sem.</p>
+
+<h3 id="s116-a">1. lépés: a fejezet kérdése – mit lát szerda este az algoritmus?</h3>
+<div class="box example" id="s116-a-valasz">
+  <span class="box-title">Az Árvízhét, hétfő–szerda → csütörtök–vasárnap</span>
+  A tanítógráf 15 jelöltje, 4 pozitív (<a class="xref" href="#s111-b-felosztas">11.1</a>). Minden módszer csak a hét eleji gráfot látta:
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>módszer</th><th>AUC</th><th>1. hely</th><th>talált pozitív a felső 5-ben</th></tr>
+    <tr><td>véletlen</td><td>0,5</td><td>–</td><td>várhatóan 1,33</td></tr>
+    <tr><td>közös szomszédok</td><td>0,614</td><td>5 pár holtversenyben</td><td>2 (Ko–Sz, Po–Ön)</td></tr>
+    <tr><td>Jaccard</td><td><b>0,659</b></td><td>Ko–Sz ✓</td><td>2</td></tr>
+    <tr><td>Adamic–Adar, RA</td><td>0,648</td><td>Po–Ön ✓</td><td>2</td></tr>
+    <tr><td>pref. kapcsolódás</td><td>0,409</td><td>Vi–La ✗</td><td>1 (Po–Ön)</td></tr>
+  </table></div>
+  <b>A válasz.</b> A négy új párból kettőt – a <b>Ko–Sz</b>-t és a <b>Po–Ön</b>-t – a szomszédsági heurisztikák megtalálják: mindkettőnek volt közös szomszédja (Vi, illetve La). A Jaccard a Ko–Sz-t, az Adamic–Adar a Po–Ön-t teszi az első helyre.
+  A másik kettőt – <b>Ko–Kl</b> és <b>Sz–Kl</b> – <b>egyik gráfos módszer sem</b> találhatja meg: a Klímaváltozás szerdáig egyetlen cikkben sem szerepelt, a tanítógráfban elszigetelt csúcs. Minden pontszáma 0, minden beágyazásban önkényes helyen áll (<a class="xref" href="#s114-c-kl">11.4</a>).
+  A csütörtöki Kl-es cikkek egy <b>új eseményből</b> jönnek (E5: vita a beruházásokról és a klímáról, az Árvízhét eseménylistájában, <a class="xref" href="../03-graftipusok/#s34-a">3.4</a>): a gráf múltja ezt nem tartalmazza.
+</div>
+
+<div class="box tip">
+  <span class="box-title">Mit tanulunk ebből?</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A szerkezet a „folytatást” jósolja, nem az újat.</b> A szomszédsági heurisztikák a triadikus zárást látják: ha két szereplő ugyanazokkal a szereplőkkel szerepel, egymás mellé kerülhetnek. Egy új téma vagy új szereplő megjelenését nem.</li>
+    <li><b>Az újhoz külső információ kell</b>: a cikkek szövege (a Szakértő hétfőn már a gát gyengeségeiről beszélt), tudásgráf (klímaváltozás → gyakoribb árvíz), eseményadatok. Ezeket a csúcsjellemzőket a GNN-ek és a szövegből épített gráfok tudják bevinni – ez a III. blokk következő két fejezete.</li>
+    <li><b>Ilyen kis adaton a különbségek zajok.</b> 4 pozitív és 11 negatív mellett egyetlen pozitív helyének változása akár $11/44 = 0{,}25$-tel mozdíthatja az AUC-t. A 0,61 és a 0,66 közötti különbség itt semmit sem bizonyít; a PA 0,41-e is lehet véletlen. Módszereket nagyobb gráfon és sok felosztáson hasonlítunk össze.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a fejezet kérdése</summary>
+  <ol>
+    <li>A Jaccard-rangsor felső 4 párjából hány pozitív, és mennyi a precision@4?
+      <details><summary>Megoldás</summary>Ko–Sz ✓, Ko–La ✗, Po–Ön ✓, Po–Sz ✗: 2 pozitív, precision@4 $= 0{,}5$ (<a class="xref" href="#s113-a-jaccard">11.3</a>).</details></li>
+    <li>Ha a Kl egy hétfői cikkben a Szakértővel együtt szerepelt volna, melyik heurisztika tenné előre a Ko–Kl párt szerda este?
+      <details><summary>Megoldás</summary>Akkor a Kl szomszédja a Sz lenne; a Ko–Kl közös szomszéd nélküli pár maradna (a Ko szomszédai Vi, Po). A Sz–Kl már él lenne. Előre csak a PA tenné ($2 \cdot 1 = 2$), a CN-alapúak nem – a Ko és a Kl 3 lépésre lennének (Ko–Vi–Sz–Kl).</details></li>
+    <li>Melyik két pozitív pár közös szomszédja melyik szereplő volt a tanítógráfban?
+      <details><summary>Megoldás</summary>Ko–Sz: a Vi. Po–Ön: a La.</details></li>
+    <li>Mennyi lenne a CN AUC-ja, ha a két Kl-es pozitívat kivennénk a kiértékelésből (csak a Kl nélküli 9 jelöltet és 2 pozitívat nézve)?
+      <details><summary>Megoldás</summary>A 15 jelöltből 6 érinti a Kl-t (Ko–Kl, Vi–Kl, Po–Kl, La–Kl, Ön–Kl, Sz–Kl). Marad 9: 2 pozitív (Ko–Sz, Po–Ön, mindkettő CN = 1) és 7 negatív (három 1-es: Ko–La, Vi–La, Po–Sz; négy 0-s: Ko–Ön, Vi–Ön, La–Sz, Ön–Sz). Pozitívonként $4 + 3 \cdot \tfrac12 = 5{,}5$ nyert, összesen $11/14 \approx 0{,}786$. Az elszigetelt csúcsot kihagyva a módszer sokkal jobbnak látszik – ezért mindig közöld, mit hagytál ki.</details></li>
+    <li>(nehezebb) Fogalmazz meg egy szöveges jellemzőt, amely szerda este jelezhette volna a Sz–Kl párt!
+      <details><summary>Megoldás</summary>Például: a Szakértő hétfői cikkében (4.) előforduló szavak hasonlósága a „klíma” témához; vagy egy tudásgráf-él (Szakértő – szakterület – klímakutatás). A gráfba ez csúcsjellemzőként vagy egy szöveges réteg éleként kerülhet be.</details></li>
+  </ol>
+</details>
+
+<h3 id="s116-b">2. lépés: a karateklub – minden módszer egy táblázatban</h3>
+<div class="box example" id="s116-b-karate">
+  <span class="box-title">10% rejtett él, 100 véletlen felosztás</span>
+  A karateklubnak nincs időbélyege, ezért véletlenül rejtünk el 8 élt (a tanítógráf összefüggő marad, mindenkinek marad éle), negatívnak az összes 483 nem élt vesszük, és 100 felosztás AUC-ját átlagoljuk (Python; a node2vec-et 30 felosztáson). A „szivárgó” oszlopban a pontozó gráf a teljes gráf.
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>módszer</th><th>AUC (átlag ± szórás)</th><th>szivárgó AUC</th></tr>
+    <tr><td>közös szomszédok</td><td>0,691 ± 0,095</td><td>0,698</td></tr>
+    <tr><td>Jaccard</td><td>0,610 ± 0,078</td><td>0,565</td></tr>
+    <tr><td>Adamic–Adar</td><td>0,728 ± 0,108</td><td>0,738</td></tr>
+    <tr><td>erőforrás-allokáció</td><td>0,738 ± 0,111</td><td>0,754</td></tr>
+    <tr><td>pref. kapcsolódás</td><td>0,711 ± 0,092</td><td><b>0,852</b></td></tr>
+    <tr><td>spektrális, 2D</td><td>0,598 ± 0,082</td><td><b>0,820</b></td></tr>
+    <tr><td>spektrális, 8D</td><td>0,537 ± 0,097</td><td><b>0,859</b></td></tr>
+    <tr><td>DeepWalk (PPMI, 8D)</td><td>0,705 ± 0,106</td><td><b>0,888</b></td></tr>
+    <tr><td>node2vec / SGNS, 16D, koszinusz</td><td><b>0,748 ± 0,071</b></td><td>0,851</td></tr>
+  </table></div>
+  <ul style="margin:.2rem 0">
+    <li>A <b>legjobb</b> a node2vec (0,75) és az RA (0,74) – a különbségük jóval kisebb a szórásnál. Egy gondosan választott heurisztika ugyanannyit tud, mint a tanult beágyazás (<a class="xref" href="#s115-c">11.5</a>, ⚖️).</li>
+    <li>A <b>spektrális</b> beágyazás gyenge kapcsolat-előrejelző: a két klubot szétválasztja (<a class="xref" href="../04-grafok-es-matrixok/#s45-c">4.5</a>), de a klubon belül alig különböztet. Több dimenzióval (8D) még rosszabb: a magasabb sajátvektorok egyre „ugrálóbbak”, a távolságot a zaj uralja.</li>
+    <li>A <b>szivárgás</b> a fokszámot és a beágyazást használó módszereket emeli meg (PA, spektrális, PPMI: +0,14 … +0,32), a CN-alapúakat alig. Szivárgó méréssel a leggyengébb módszer (spektrális 8D) lenne a második legjobb.</li>
+    <li>A node2vec-vektorokból egy <b>logisztikus regresszió</b> is tanulhatja a pontszámot: a pár jellemzője az elemenkénti szorzat ($\mathbf z_u \odot \mathbf z_v$), a tanítópárok a tanítógráf élei és ugyanennyi véletlen nem él. 20 felosztáson ez 0,763 – alig több, mint a koszinusz 0,747-je ugyanazokon a felosztásokon.</li>
+  </ul>
+</div>
+
+<p>Futtasd le magad! Állítsd a tesztélek arányát, a negatívak fajtáját és a szivárgást, és nézd, hogyan rendeződik át a táblázat. A „nehéz negatívak” beállításnál figyeld a CN-t (<a class="xref" href="#s113-c-nehez">11.3</a>).</p>
+<div class="widget" data-widget="link-pred-lab"></div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Egyetlen felosztás alapján módszert választani.</b> A szórás 0,07–0,11: egy-egy felosztáson bármelyik módszer lehet az első. Sok felosztás átlaga és szórása kell.</li>
+    <li><b>A beágyazás dimenzióját „minél több, annál jobb” alapon választani.</b> A spektrálisnál a 8D rosszabb a 2D-nél. A dimenzió hiperparaméter – validációs éleken kell hangolni.</li>
+    <li><b>A szivárgó oszlopot közölni.</b> A szivárgó számok sokszor szebbek – és teljesen mást rangsorolnak.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – a karateklub táblázata</summary>
+  <ol>
+    <li>Melyik módszer nyeri a legtöbbet a szivárgással, és mennyit?
+      <details><summary>Megoldás</summary>A spektrális 8D: $0{,}537 \to 0{,}859$, $+0{,}322$.</details></li>
+    <li>Szignifikánsan jobb-e a node2vec (0,748 ± 0,071) az RA-nál (0,738 ± 0,111)?
+      <details><summary>Megoldás</summary>Nem mondható: a különbség (0,01) a szórásoknál jóval kisebb. Egy becsületes összevetés ugyanazokon a felosztásokon páros különbséget nézne (és annak a szórását).</details></li>
+    <li>Hány tesztél és hány negatív pár van egy felosztásban, és mennyi a véletlen rangsor precision@8-je?
+      <details><summary>Megoldás</summary>8 tesztél, 483 negatív; $8/491 \approx 0{,}016$.</details></li>
+    <li>Miért esik a Jaccard AUC-ja a szivárgással (0,610 → 0,565)?
+      <details><summary>Megoldás</summary>A tesztél végpontjainak szomszédságába bekerül a másik végpont, így az unió nő, a közös szomszédok száma nem: a pozitívak Jaccard-pontszáma csökkenhet. A szivárgás iránya módszerenként más – ezért nem lehet „utólag levonni”.</details></li>
+    <li>(nehezebb) Egy cikk azt írja: „módszerünk AUC-ja 0,89, a közös szomszédoké csak 0,70”. Milyen három kérdést teszel fel?
+      <details><summary>Megoldás</summary>(1) Kivették-e a tesztéleket a gráfból a beágyazás <b>előtt</b>? (2) Milyen negatívakhoz mértek (véletlen, nehéz), és ugyanazokhoz-e mindkét módszert? (3) Hány felosztáson, mekkora szórással – és a hiperparamétereket validációs vagy teszt-éleken hangolták-e? A táblázatunk szerint egy szivárgó PPMI-beágyazás pontosan 0,89-et ad.</details></li>
+  </ol>
+</details>
+
+<h3 id="s116-c">3. lépés: ellenőrző lista – és ami a gráfból nem jósolható</h3>
+<div class="box tip" id="s116-c-lista">
+  <span class="box-title">✅ Ellenőrző lista egy kapcsolat-előrejelzéshez</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Mi az él, és mi a jóslat ideje?</b> Együttemlítés egy cikkben? Egy héten belül? Az él definíciója döntés (<a class="xref" href="../01-mi-a-halozat/#s12-b">1.2</a>).</li>
+    <li><b>Felosztás:</b> időbeli adatnál időbeli vágás; statikusnál véletlen rejtés, a tanítógráf összefüggő marad.</li>
+    <li><b>Pontozó gráf = tanítógráf.</b> Minden (fokszám, séta, beágyazás) a felosztás után, csak a tanítógráfon.</li>
+    <li><b>Jelöltek és negatívak:</b> minden nem él, vagy minta – és közöld, melyik. Nézz nehéz negatívakat is.</li>
+    <li><b>Mérőszám:</b> AUC <b>és</b> precision@k a véletlen szinttel; holtversenyt ½-del vagy várható értékkel.</li>
+    <li><b>Alapvonal:</b> mindig a CN, AA/RA és PA mellett. Ha a tanult módszer nem jobb náluk, az is eredmény.</li>
+    <li><b>Ismétlés és hangolás:</b> sok felosztás átlaga ± szórás; hiperparaméter validációs éleken.</li>
+    <li><b>Elszigetelt és új csúcsok:</b> külön jelentsd – a gráfból semmit nem tudunk róluk.</li>
+  </ol>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Módszertani józanság – hírgráfokon</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az együttemlítés jóslása nem az események jóslása.</b> Ha a módszer azt mondja, a Ko–Sz pár valószínű, az a <b>tudósítás</b> mintázatáról szól (a lapok mit szoktak egymás mellé tenni), nem arról, hogy a Kormány és a Szakértő találkozni fog.</li>
+    <li><b>A „hiányzó él” és a „jövőbeli él” két feladat.</b> A véletlen rejtés azt méri, mennyire rekonstruálja a módszer a meg nem figyelt kapcsolatokat (pl. egy lap ki nem írt együttemlítéseit) – időbeli kérdésre nem ad választ.</li>
+    <li><b>A szerkezet a folytatást látja.</b> Az új téma, az új szereplő, a meglepő esemény éppen az, amit a hírek „hírnek” tartanak – és amit a gráf múltja a legkevésbé jósol.</li>
+  </ul>
+</div>
+
+<div class="quiz" data-quiz="gh11-116"></div>
+</section>
+
+<!-- ===================================================== Összefoglalás -->
+<section id="s-sum">
+<h2>Összefoglalás</h2>
+<div class="tw" style="overflow-x:auto"><table>
+  <tr><th>Fogalom / módszer</th><th>Szabály / képlet</th><th>Mit ad, mire figyelj?</th><th>Példa</th></tr>
+  <tr><td>jelöltek</td><td>a tanítógráf nem élei: $\binom n2 - m$</td><td>ritka gráfon rengeteg; a véletlen szint kicsi</td><td>karate: 483; Árvízhét H–Sze: 15</td></tr>
+  <tr><td>időbeli felosztás</td><td>tanítógráf: $t$ előtt; pozitív: $t$ után új él</td><td>a jövő élei nem lehetnek a tanításban</td><td>H–Sze → Cs–V: 4 pozitív</td></tr>
+  <tr><td>közös szomszédok</td><td>$|N(u) \cap N(v)| = (A^2)_{uv}$</td><td>triadikus zárás; sok holtverseny, hubok előnye</td><td>Vi–Kl, Po–Sz: 2</td></tr>
+  <tr><td>Jaccard</td><td>$|N(u) \cap N(v)| / |N(u) \cup N(v)|$</td><td>a kis csúcsokat hozza előre</td><td>Vi–Kl 2/3, Ko–Sz 1/2</td></tr>
+  <tr><td>Adamic–Adar, RA</td><td>$\sum_w 1/\ln k_w$, $\sum_w 1/k_w$</td><td>a ritka közös szomszéd többet ér</td><td>Po–Ön 1,443 / 0,5</td></tr>
+  <tr><td>pref. kapcsolódás</td><td>$k_u k_v$</td><td>az aktivitást méri, nem a hasonlóságot; szivárgásra érzékeny</td><td>Po–Sz 12; AUC 0,41</td></tr>
+  <tr><td>precision@k, recall@k</td><td>$\mathrm{TP}_k / k$, $\mathrm{TP}_k / P$</td><td>a véletlen szinttel együtt; holtverseny: várható érték</td><td>Jaccard: P@4 = 0,5</td></tr>
+  <tr><td>AUC</td><td>$P(s_+ \gt s_-) + \tfrac12 P(s_+ = s_-)$</td><td>nem függ a negatívak számától – a precizitás igen</td><td>3 + 3 pár: 6,5/9</td></tr>
+  <tr><td>nehéz negatívak</td><td>2 távolságú nem élek</td><td>a valós nehézség; a CN itt elbukik</td><td>karate CN: 0,68 → 0,47</td></tr>
+  <tr><td>szivárgás</td><td>pontozó gráf = tanítógráf</td><td>a fokszám- és beágyazásalapú módszereket emeli</td><td>PA 0,41 → 0,73</td></tr>
+  <tr><td>spektrális beágyazás</td><td>$L$ 2.–$(d+1)$. sajátvektora; $\min \sum_E \lVert \mathbf z_i - \mathbf z_j\rVert^2$</td><td>összefüggő gráf; többszörös sajátérték; transzduktív</td><td>út: (0,653; 0,5)…; La = Ön</td></tr>
+  <tr><td>DeepWalk</td><td>séták → skip-gram ablakkal</td><td>$\approx$ a többlépéses PMI-mátrix faktorizálása</td><td>A B D E D B C: 12 / 22 pár</td></tr>
+  <tr><td>node2vec</td><td>vissza $1/p$, közel $1$, távol $1/q$</td><td>kis $q$: DFS, közösség; nagy $q$: BFS, helyi szerkezet</td><td>A → B, $p = 4$, $q = 0{,}5$: 0,077 / 0,308 / 0,615</td></tr>
+  <tr><td>beágyazásból pontszám</td><td>$-\lVert \mathbf z_u - \mathbf z_v\rVert$, $\mathbf z_u \cdot \mathbf z_v$, $\cos$, LR a $\mathbf z_u \odot \mathbf z_v$-n</td><td>a tengelyek jelentés nélküliek</td><td>karate node2vec 0,75, LR 0,76</td></tr>
+</table></div>
+
+<div class="box tip">
+  <span class="box-title">Melyik módszer mikor? – döntési táblázat</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>Ha a helyzet ez…</th><th>…akkor ezt használd</th></tr>
+    <tr><td>gyors, értelmezhető alapvonal kell</td><td>CN, Adamic–Adar / RA (és a PA összevetésként) – mindig futtasd le</td></tr>
+    <tr><td>sok hub, a „mindenki szomszédja” torzít</td><td>Adamic–Adar vagy RA</td></tr>
+    <tr><td>a hálózat a nagy szereplők köré nő (gazdag gazdagabb lesz)</td><td>PA – de nézd meg, tényleg így nő-e</td></tr>
+    <tr><td>a pár 2-nél messzebb van egymástól</td><td>Katz-index vagy beágyazás (DeepWalk / node2vec)</td></tr>
+    <tr><td>csúcsvektor kell más feladathoz is (osztályozás, vizualizáció)</td><td>node2vec / DeepWalk; kis, összefüggő gráfon spektrális</td></tr>
+    <tr><td>vannak időbélyegek</td><td>időbeli felosztás – soha véletlen</td></tr>
+    <tr><td>„túl jó” az eredmény</td><td>szivárgás-ellenőrzés: felosztás → beágyazás → pontozás sorrend; nehéz negatívak</td></tr>
+    <tr><td>új csúcs vagy elszigetelt csúcs a jóslás tárgya</td><td>gráfból nem megy: csúcsjellemző (szöveg, attribútum) és induktív modell (GNN)</td></tr>
+  </table></div>
+</div>
+</section>
+
+<!-- ===================================================== Ellenőrző kérdések -->
+<section id="s-check">
+<h2>Ellenőrző kérdések</h2>
+<p>Gondold végig a választ, aztán kattints a kártyára a megfordításhoz!</p>
+<div class="flashcards">
+  <div class="flash"><div class="inner"><div class="face front">Mik a kapcsolat-előrejelzés jelöltjei?</div>
+    <div class="face back">A tanítógráf nem létező élei – irányítatlan gráfban $\binom n2 - m$ pár.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a pozitív és mi a negatív pár időbeli felosztásnál?</div>
+    <div class="face back">Pozitív: jelölt, amely a vágás után él lesz. Negatív: jelölt, amely nem lesz él (az adott időablakban).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Hogyan kapod meg az összes pár CN pontszámát egyszerre?</div>
+    <div class="face back">$A^2$-ből: $(A^2)_{uv}$ a két lépéses séták, azaz a közös szomszédok száma.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a különbség a Jaccard és a PA szemlélete között?</div>
+    <div class="face back">A Jaccard a hasonlóságot méri (a közös szomszédok aránya), a PA az aktivitást (fokszámszorzat) – a közös szomszédokat nem is nézi.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért osztunk a közös szomszéd fokszámával az AA-ban és az RA-ban?</div>
+    <div class="face back">Mert egy sok kapcsolatú közös szomszéd sok párt köt össze, ezért egy-egy párról keveset árul el.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit jelent, hogy egy módszer AUC-ja 0,7?</div>
+    <div class="face back">Egy véletlen pozitív párt 70% eséllyel tesz egy véletlen negatív elé (holtverseny fél ponttal).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a baj, ha ritka gráfon csak AUC-t közölsz?</div>
+    <div class="face back">Az AUC nem érzékeny a negatívak számára; a sok negatív miatt a precizitás a felső polcon ettől még nagyon kicsi lehet.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mik a nehéz negatívak, és mire jók?</div>
+    <div class="face back">Közeli (pl. 2 távolságú) nem élek. A valós döntési helyzetet mérik; a karateklubon a CN AUC-ja velük 0,47.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a szivárgás a kapcsolat-előrejelzésben?</div>
+    <div class="face back">Ha a pontozó gráfban (fokszám, séta, beágyazás) benne vannak a tesztélek – a módszer a választ olvassa ki.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a Laplace-sajátleképezés célfüggvénye?</div>
+    <div class="face back">$\min \sum_{E} \lVert \mathbf z_i - \mathbf z_j\rVert^2$ merőleges, egységnyi, $\mathbf 1$-re merőleges oszlopokkal; megoldás: $L$ 2.–$(d+1)$. sajátvektora.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért esik egy pontba két csúcs a spektrális beágyazásban?</div>
+    <div class="face back">Mert szerkezetileg ekvivalensek: felcserélve őket a gráf nem változik (pl. La és Ön).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a DeepWalk alapötlete?</div>
+    <div class="face back">Véletlen séták = mondatok, csúcsok = szavak; a word2vec skip-gramja tanul belőlük csúcsvektorokat.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit tanul valójában a skip-gram?</div>
+    <div class="face back">Az együttelőfordulások (eltolt) PMI-mátrixának alacsony rangú közelítését (Levy–Goldberg, 2014; gráfon: NetMF).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit szabályoz a node2vec $p$ és $q$ paramétere?</div>
+    <div class="face back">$p$: a visszalépést (súly $1/p$); $q$: a távolodást (súly $1/q$). Kis $q$: DFS-szerű, messzire jutó séták.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért nem tud a DeepWalk egy új szereplőre jósolni?</div>
+    <div class="face back">Mert transzduktív: csúcsonként egy szabad vektort tanul, és a csúcs saját jellemzőit nem használja.</div></div></div>
+</div>
+</section>
+
+<!-- ===================================================== Vegyes gyakorló feladatok -->
+<section id="s-ex">
+<h2>Vegyes gyakorló feladatok</h2>
+<p>Itt már nincs megmondva, melyik részhez tartozik a feladat: neked kell eldönteni, melyik eszköz kell.</p>
+<details class="box practice">
+  <summary>✏️ Vegyes gyakorló feladatok – kattints a kinyitáshoz</summary>
+  <ol>
+    <li>Egy gráf élei: A–B, A–C, B–C, C–D, D–E. Mennyi az A–D pár CN, Jaccard, AA, RA és PA pontszáma?
+      <details><summary>Tipp</summary>$N(A) = \{B, C\}$, $N(D) = \{C, E\}$, és a $C$ fokszáma 3.</details>
+      <details><summary>Megoldás</summary>CN $= 1$ (C); $J = 1/3$ (unió B, C, E); AA $= 1/\ln 3 \approx 0{,}910$; RA $= 1/3$; PA $= 2 \cdot 2 = 4$.</details></li>
+    <li>Pozitívak: 0,5; 0,5. Negatívak: 0,5; 0,2. Mennyi az AUC?
+      <details><summary>Tipp</summary>Négy összevetés; a holtverseny fél pont.</details>
+      <details><summary>Megoldás</summary>Mindkét pozitív: 0,5 = 0,5 (½) és 0,5 > 0,2 (1). Összesen $3/4 = 0{,}75$.</details></li>
+    <li>Egy rangsor első hat helye: ✓ ✗ ✓ ✗ ✗ ✓, összesen 4 pozitív van. Mennyi a precision@3 és a recall@6?
+      <details><summary>Tipp</summary>A felső 3-ban és a felső 6-ban számold a ✓-t.</details>
+      <details><summary>Megoldás</summary>precision@3 $= 2/3$; recall@6 $= 3/4$.</details></li>
+    <li>Egy elemző a teljes évi hírgráfon számol fokszámot, aztán decemberi új együttemléseket jósol PA-val. Mi a hiba?
+      <details><summary>Tipp</summary>Mit tartalmaz az „évi” fokszám?</details>
+      <details><summary>Megoldás</summary>Szivárgás: a fokszámban a decemberi (teszt) élek is benne vannak. A fokszámot csak a november végéig tartó tanítógráfból szabad számolni.</details></li>
+    <li>Az 1–2–3–4 úton a séta 1 → 2 lépett, $p = 2$, $q = 0{,}5$. Mennyi a 3-ra lépés valószínűsége?
+      <details><summary>Tipp</summary>A 2 szomszédai: 1 (vissza) és 3 (az 1-től 2 lépés).</details>
+      <details><summary>Megoldás</summary>Súlyok: 1: $1/p = 0{,}5$; 3: $1/q = 2$. A 3-ra: $2/2{,}5 = 0{,}8$.</details></li>
+    <li>A 3 csúcsú út (1–2–3) 1D spektrális beágyazása $(0{,}707;\allowbreak\ 0;\allowbreak\ -0{,}707)$. Mennyi az egyetlen jelölt pár távolsága?
+      <details><summary>Tipp</summary>Melyik pár nem él?</details>
+      <details><summary>Megoldás</summary>Az 1–3: $|0{,}707 - (-0{,}707)| \approx 1{,}414$ – a legtávolabbi két pont.</details></li>
+    <li>Hány skip-gram párt ad egy 10 hosszú séta $\pm 3$-as ablakkal?
+      <details><summary>Tipp</summary>$2\sum_{j=1}^{w}(\ell - j)$.</details>
+      <details><summary>Megoldás</summary>$2(9 + 8 + 7) = 48$.</details></li>
+    <li>Egy korpuszban $|C| = 1000$, $C_u = 50$, $C_v = 40$, $C_{uv} = 8$. Mennyi a PMI?
+      <details><summary>Tipp</summary>Mennyi a várható együttelőfordulás függetlenség mellett?</details>
+      <details><summary>Megoldás</summary>Várható $1000 \cdot 0{,}05 \cdot 0{,}04 = 2$, megfigyelt 8: $\ln 4 \approx 1{,}386$.</details></li>
+    <li>Egy hírportál azt kérdezi: „egy ma először említett politikus kivel fog együtt szerepelni?” Melyik módszert ajánlod a fejezetből?
+      <details><summary>Tipp</summary>Mit tud a gráf egy elszigetelt csúcsról?</details>
+      <details><summary>Megoldás</summary>Egyiket sem: a heurisztikák és a transzduktív beágyazások egy éltelen csúcsról semmit nem tudnak. Csúcsjellemző kell (párt, tisztség, a cikk szövege) és egy induktív modell, amely jellemzőkből számol vektort (GNN).</details></li>
+    <li>(nehezebb) Tervezz kiértékelést egy havi bontású hírkorpuszon (január–június) a júliusi új együttemlítések jóslására, a node2vec $p$, $q$ hangolásával együtt!
+      <details><summary>Tipp</summary>Három időszak kell: tanítás, validáció, teszt.</details>
+      <details><summary>Megoldás</summary>Validáció: tanítógráf január–április, a májusi új élek a pozitívak – ezen hangolod a $p$, $q$, $d$ értékét. Teszt: tanítógráf január–június (a választott beállítással, újra beágyazva), a júliusi új élek a pozitívak. Negatívak: az összes vagy egy rögzített minta nem él, plusz nehéz negatívak. Jelentés: AUC és precision@k ± szórás több kezdőértékkel, alapvonalként CN, AA, PA; a júniusban még nem szereplő politikusok párjait külön.</details></li>
+  </ol>
+</details>
+</section>
+
+<!-- ===================================================== Fejezetzáró teszt -->
+<section id="s-final">
+<h2>Fejezetzáró teszt</h2>
+<p>Vegyes kérdések a teljes fejezetből. Minden kérdésnél van tipp, és a válasz után részletes magyarázat.</p>
+<div class="quiz" data-quiz="gh11-final"></div>
+</section>
+
+<!-- ===================================================== Szómagyarázó -->
+<section id="s-gloss">
+<h2>Szómagyarázó</h2>
+<p>A fejezetben előforduló idegen vagy kevésbé ismert szakkifejezések, betűrendben.</p>
+<dl class="glossary">
+  <dt id="g-auc">AUC <span class="etym">ang. <em>area under the curve</em>, „a görbe alatti terület”</span></dt>
+  <dd><p>A ROC-görbe alatti terület; annak valószínűsége, hogy egy véletlen pozitív pontszáma nagyobb egy véletlen negatívénál.</p></dd>
+
+  <dt id="g-beagyazas">beágyazás <span class="etym">ang. <em>embedding</em>, a matematikai „beágyazás” (egy struktúra elhelyezése egy másikban) mintájára</span></dt>
+  <dd><p>Minden csúcshoz egy $d$ dimenziós vektor, úgy, hogy a gráfban közeli (hasonló) csúcsok a térben is közel legyenek.</p></dd>
+
+  <dt id="g-heurisztika">heurisztika <span class="etym">gör. <em>heuriszkein</em> „megtalálni, felfedezni”</span></dt>
+  <dd><p>Józan, tanítás nélküli szabály, amely gyakran jó eredményt ad, de nincs mögötte optimalitási garancia – itt: a szomszédsági pontszámok.</p></dd>
+
+  <dt id="g-pmi">PMI <span class="etym">ang. <em>pointwise mutual information</em>, „pontonkénti kölcsönös információ”</span></dt>
+  <dd><p>$\ln\frac{P(u, v)}{P(u)P(v)}$: hányszor gyakoribb egy pár a függetlenség mellett várhatónál, logaritmikusan. PPMI: a negatív értékeket 0-ra vágva.</p></dd>
+
+  <dt id="g-precision">precision@k <span class="etym">lat. <em>praecisio</em> „levágás, pontosság” + ang. <em>at k</em> „a k-adiknál”</span></dt>
+  <dd><p>A rangsor felső $k$ elemének az a hányada, amely valóban pozitív.</p></dd>
+
+  <dt id="g-roc">ROC-görbe <span class="etym">ang. <em>receiver operating characteristic</em>, „vevőkészülék-jelleggörbe” – a II. világháborús radarjel-észlelésből</span></dt>
+  <dd><p>A valódi pozitív arány a hamis pozitív arány függvényében, a küszöb minden értékére.</p></dd>
+
+  <dt id="g-skipgram">skip-gram <span class="etym">ang. <em>skip</em> „átugrik” + gör. <em>gramma</em> „betű, írott jel” (az <em>n</em>-gram mintájára)</span></dt>
+  <dd><p>A word2vec egyik változata: minden szóból (csúcsból) a környezetében álló szavakat (csúcsokat) jósolja – az ablakon belül a közbeeső szavakat „átugorva”.</p></dd>
+
+  <dt id="g-spektralis">spektrális <span class="etym">lat. <em>spectrum</em> „kép, jelenés”; a mátrix sajátértékeinek összessége a „spektruma”</span></dt>
+  <dd><p>Sajátértékekre, sajátvektorokra épülő – itt: a Laplace-mátrix sajátvektoraiból készült beágyazás.</p></dd>
+
+  <dt id="g-szivargas">szivárgás <span class="etym">ang. <em>data leakage</em> tükörfordítása</span></dt>
+  <dd><p>Amikor a teszt információja (itt: a tesztélek) a tanításba vagy a pontozásba kerül, és ettől a mérés túl jónak látszik.</p></dd>
+
+  <dt id="g-transzduktiv">transzduktív <span class="etym">lat. <em>transducere</em> „átvezetni” (<em>trans</em> „át” + <em>ducere</em> „vezet”)</span></dt>
+  <dd><p>Olyan tanulás, amely csak a tanításkor ismert elemekre (csúcsokra) ad választ; új elemhez újra kell tanítani. Ellentéte az induktív.</p></dd>
+</dl>
+</section>
+
+<nav class="pager">
+  <a href="../10-halozatok-osszehasonlitasa/">← 10. Hálózatok összehasonlítása</a>
+  <span class="next muted">12. Gráf neurális hálók heterogén, időbeli és tudásgráfokon (hamarosan) →</span>
+</nav>
+
+</main>
+</div>
+
+<footer class="site">
+  Források: W. L. Hamilton: <em>Graph Representation Learning</em> (Morgan &amp; Claypool, 2020), 3. fejezet · M. E. J. Newman: <em>Networks</em> (2. kiad., Oxford UP, 2018), 7. fejezet ·
+  D. Liben-Nowell – J. Kleinberg (2007) The link-prediction problem for social networks, <em>JASIST</em> 58 · L. A. Adamic – E. Adar (2003) Friends and neighbors on the Web, <em>Social Networks</em> 25 · T. Zhou – L. Lü – Y.-C. Zhang (2009, erőforrás-allokáció) · L. Katz (1953) ·
+  M. Belkin – P. Niyogi (2003) Laplacian eigenmaps, <em>Neural Computation</em> 15 · B. Perozzi – R. Al-Rfou – S. Skiena (2014) DeepWalk, <em>KDD</em> · A. Grover – J. Leskovec (2016) node2vec, <em>KDD</em> · O. Levy – Y. Goldberg (2014) <em>NeurIPS</em> · J. Qiu és társai (2018) NetMF, <em>WSDM</em> ·
+  L. Ribeiro – P. Saverese – D. Figueiredo (2017) struc2vec, <em>KDD</em> · Y. Yang – R. Lichtenwalter – N. Chawla (2015) Evaluating link prediction methods, <em>Knowledge and Information Systems</em> 45 · A. Mara – J. Lijffijt – T. De Bie (2020) <em>DSAA</em> · J. Li és társai (2023) <em>NeurIPS</em> ·
+  A karateklub: W. Zachary (1977) · Az Árvízhét kitalált példa.
+</footer>
+</body>
+</html>

@@ -1,0 +1,251 @@
+
+<!-- ===================================================== 11.3 -->
+<section id="s113">
+<h2>11.3 Kiértékelés ★★</h2>
+<p>Öt pontszámunk van, és mind más rangsort ad. Melyik a jobb? Ehhez <b>egy számot</b> kell rendelni egy rangsorhoz. Kettőt használunk: a <b>precision@k</b> a „felső polcot” nézi, az <b>AUC</b> a teljes rangsort.
+Utána jön a nehezebb rész: hogy a mérés becsületes legyen – milyen negatívakhoz mérünk, és mit lát a módszer.</p>
+
+<h3 id="s113-a">1. lépés: a felső polc – precision@k és recall@k</h3>
+<div class="box example" id="s113-a-jaccard">
+  <span class="box-title">Kiinduló példa – a Jaccard-rangsor a hét elején</span>
+  A tanítógráf 15 jelöltje Jaccard szerint (✓ = a hét végén él lett):
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>hely</th><th>pár</th><th>$J$</th><th>él lett?</th></tr>
+    <tr><td>1.</td><td>Ko–Sz</td><td>0,5</td><td>✓</td></tr>
+    <tr><td>2–4.</td><td>Ko–La, Po–Ön, Po–Sz</td><td>0,333</td><td>✗, ✓, ✗</td></tr>
+    <tr><td>5.</td><td>Vi–La</td><td>0,25</td><td>✗</td></tr>
+    <tr><td>6–15.</td><td>a többi 10 pár (köztük Ko–Kl, Sz–Kl)</td><td>0</td><td>2 ✓, 8 ✗</td></tr>
+  </table></div>
+  Ha a felső <b>1</b> párt jósoljuk élnek: 1 találat 1-ből. A felső <b>4</b>-et: 2 találat 4-ből – ez fele, kétszer annyi, mint a véletlen tippelés $4/15 \approx 0{,}27$-e. A 4 pozitívból viszont csak 2-t talált meg: a Ko–Kl és a Sz–Kl a sor végén, a nullások között van.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – precision@k és recall@k</span>
+  A rangsor felső $k$ párja közül a pozitívak száma legyen $\mathrm{TP}_k$. Ekkor
+  $$\mathrm{precision@}k = \frac{\mathrm{TP}_k}{k}, \qquad \mathrm{recall@}k = \frac{\mathrm{TP}_k}{P}.$$
+  Holtversenynél, ha a $k$-adik helyen több pár áll, a holtversenyes csoportból a hiányzó helyeket <b>véletlen sorrend</b> szerint töltjük: a várható találat a csoportbeli pozitívak aránya szorozva a felvett helyek számával.
+  <small>Miért a felső polc? Mert a felhasználó ennyit lát: az ajánló 5 cikket mutat, az elemző a 10 legvalószínűbb párt nézi meg. A precision@k ugyanaz, mint a precizitás (<a class="xref" href="../../mesterseges-intelligencia/06-modellertekeles/#s61-b">MI 6.1</a>), csak a küszöb helyett a $k$ rögzített.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – Adamic–Adar, $k = 5$</span>
+    Az AA-rangsor: 1. Po–Ön ✓ (1,443), 2–5. Ko–La ✗, Ko–Sz ✓, Vi–La ✗, Po–Sz ✗ (mind 0,910). Mennyi a precision@5 és a recall@5?
+    <details><summary>Megoldás</summary>A felső 5-ben 2 találat: precision@5 $= 2/5 = 0{,}4$, recall@5 $= 2/4 = 0{,}5$. Itt a holtversenyes csoport teljesen befér az 5 helyre, nincs véletlen.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – holtverseny a határon</span>
+    A Jaccard-rangsorban mennyi a precision@3? (A 2–4. hely holtversenyben áll.)
+    <details><summary>Megoldás</summary>Az 1. hely biztos találat. A 2–4. helyről 2 párt veszünk a 3-ból, és köztük 1 pozitív van: várhatóan $2 \cdot 1/3 = 0{,}667$ találat. Összesen $1{,}667$ találat 3-ból: precision@3 $\approx 0{,}556$.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A precision@k-t a véletlen szint nélkül közölni.</b> A 0,5 csak akkor sok, ha a véletlen szint ennél jóval kisebb. Itt $4/15 \approx 0{,}27$; egy 1000 szereplős korpuszban kb. 0,01.</li>
+    <li><b>A holtversenyt „szerencsésen” feloldani.</b> Ha a holtversenyes csoportból éppen a pozitívakat veszed előre (pl. betűrend szerint, ami véletlenül kedvez), a mérés túl jó lesz. Véletlen sorrend vagy várható érték a becsületes.</li>
+    <li><b>Csak a precisiont nézni.</b> A $k$-t növelve a precision általában csökken, a recall nő. Egyetlen $k$ önmagában keveset mond – a recall megmutatja, mennyi maradt ki.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – precision@k és recall@k</summary>
+  <ol>
+    <li>A Jaccard-rangsorban mennyi a precision@1 és a recall@1?
+      <details><summary>Megoldás</summary>Az 1. hely (Ko–Sz) pozitív: precision@1 $= 1$, recall@1 $= 1/4 = 0{,}25$.</details></li>
+    <li>Mennyi a CN precision@5-je? (A CN öt párt tesz holtversenyben az élre: Ko–La, Ko–Sz, Vi–La, Po–Ön, Po–Sz.)
+      <details><summary>Megoldás</summary>A felső 5 pontosan ez az öt pár, köztük 2 pozitív: $2/5 = 0{,}4$.</details></li>
+    <li>Mennyi a CN precision@2-je?
+      <details><summary>Megoldás</summary>Az öt holtversenyes párból 2-t veszünk, és 2/5 a pozitívak aránya: várhatóan $2 \cdot 2/5 = 0{,}8$ találat, precision@2 $= 0{,}4$.</details></li>
+    <li>Egy véletlen rangsor mekkora precision@k-t ad várhatóan, ha a 15 jelöltből 4 pozitív?
+      <details><summary>Megoldás</summary>Bármely $k$-ra $4/15 \approx 0{,}267$ – a véletlen sorrendben minden hely ugyanekkora eséllyel pozitív.</details></li>
+    <li>(nehezebb) Mennyi a Jaccard-rangsor recall@15-je, és mit jelent, hogy két pozitív nullás pontszámot kapott?
+      <details><summary>Megoldás</summary>recall@15 $= 1$ – a teljes listában persze minden benne van. A két nullás pozitív (Ko–Kl, Sz–Kl) a 10 nullás pár között áll, a sorrendjük ott véletlen: a módszer ezekről <b>semmit</b> nem tud. Mindkettő a Kl-t érinti, aki a tanítógráfban még nem szerepelt.</details></li>
+  </ol>
+</details>
+
+<h3 id="s113-b">2. lépés: a teljes rangsor – ROC-görbe és AUC</h3>
+<p>A precision@k egy $k$-tól függ. Ha a rangsor egészét akarjuk egy számmal jellemezni, a kérdést így tesszük fel: <b>ha kiveszek egy véletlen pozitív és egy véletlen negatív párt, a módszer a pozitívat teszi-e előrébb?</b></p>
+
+<div class="box example" id="s113-b-kezi">
+  <span class="box-title">Kiinduló példa – 3 pozitív, 3 negatív, 9 összevetés</span>
+  Egy módszer pontszámai: pozitívak $P_1 = 0{,}9$, $P_2 = 0{,}6$, $P_3 = 0{,}3$; negatívak $N_1 = 0{,}7$, $N_2 = 0{,}3$, $N_3 = 0{,}1$. Vessünk össze minden pozitívat minden negatívval (✓: a pozitív nagyobb, ½: egyenlő, ✗: kisebb):
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th></th><th>$N_1 = 0{,}7$</th><th>$N_2 = 0{,}3$</th><th>$N_3 = 0{,}1$</th><th>összesen</th></tr>
+    <tr><th>$P_1 = 0{,}9$</th><td>✓</td><td>✓</td><td>✓</td><td>3</td></tr>
+    <tr><th>$P_2 = 0{,}6$</th><td>✗</td><td>✓</td><td>✓</td><td>2</td></tr>
+    <tr><th>$P_3 = 0{,}3$</th><td>✗</td><td>½</td><td>✓</td><td>1,5</td></tr>
+  </table></div>
+  A 9 összevetésből $6{,}5$ „nyert”: $6{,}5/9 \approx 0{,}722$. Ennyi a módszer <b>AUC</b>-ja.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – AUC mint párösszevetés</span>
+  $$\mathrm{AUC} = \frac{1}{P \cdot N}\sum_{p \in E^+}\sum_{q \in E^-} \Big( [\,s_p \gt s_q\,] + \tfrac12 [\,s_p = s_q\,] \Big),$$
+  vagyis annak a valószínűsége, hogy egy véletlen pozitív pontszáma nagyobb egy véletlen negatívénál (holtversenyben ½). $\mathrm{AUC} = 1$: minden pozitív minden negatív előtt; $0{,}5$: véletlen; $0{,}5$ alatt: rosszabb a véletlennél (fordítva rangsorol).
+  <small>Miért ugyanaz, mint a ROC-görbe alatti terület? A küszöböt lefelé csúsztatva minden pozitív felfelé, minden negatív jobbra lépteti a görbét. Egy negatív jobbra lépésekor a görbe magassága éppen azoknak a pozitívaknak az aránya, amelyek a negatív előtt vannak – ezeket a sávokat összeadva kapjuk a fenti összeget (<a class="xref" href="../../mesterseges-intelligencia/06-modellertekeles/#s62-c">MI 6.2</a>). Holtversenynél a görbe ferdén lép – ez a ½.</small>
+</div>
+
+<div class="box example" id="s113-b-arviz">
+  <span class="box-title">Példa – az Árvízhét öt heurisztikája</span>
+  A tanítógráf 15 jelöltjén $P = 4$, $N = 11$, tehát $44$ összevetés van. A Python (és a lenti widget) szerint:
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>módszer</th><th>CN</th><th>Jaccard</th><th>AA</th><th>RA</th><th>PA</th></tr>
+    <tr><th>nyert / 44</th><td>27</td><td>29</td><td>28,5</td><td>28,5</td><td>18</td></tr>
+    <tr><th>AUC</th><td>0,614</td><td><b>0,659</b></td><td>0,648</td><td>0,648</td><td>0,409</td></tr>
+  </table></div>
+  A Jaccard a legjobb, a PA <b>a véletlennél is rosszabb</b>. Miért? A PA a nagy aktivitású szereplőket kapcsolja össze (Vi–La, Ko–La), a hét végén viszont a kis aktivitású Sz és Kl kapcsolódott be. Hogy ez ilyen kis adaton mennyire véletlen, arról a <a href="#s116">11.6</a>-ban lesz szó.
+</div>
+
+<p>Építsd fel lépésről lépésre! A widget a küszöböt lefelé csúsztatja, a ROC-görbe pontról pontra nő, a végén a párösszevetések rácsa ugyanazt az AUC-t adja.</p>
+<div class="widget" data-widget="auc-builder"></div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A holtversenyeket kihagyni vagy nyertesnek számolni.</b> A kézi példában a $P_3$–$N_2$ pár egyenlő; ha 1-nek számolod, $7/9 = 0{,}778$, ha 0-nak, $6/9 = 0{,}667$. A helyes a ½. Sok holtversenynél (egész pontszámok) ez sokat számít.</li>
+    <li><b>Az AUC-t „pontosságnak” olvasni.</b> A 0,72 nem azt jelenti, hogy a párok 72%-át jól osztályoztuk, hanem hogy egy véletlen pozitív–negatív párt 72%-ban jó sorrendbe tesz a módszer.</li>
+    <li><b>A 0,5 alatti AUC-t „használhatatlannak” hinni.</b> Egy 0,41-es AUC fordítva olvasva 0,59 lenne – a módszer tud valamit, csak ellentétes irányban. Ez viszont jel: rossz a feltevésünk (itt: „a nagyok kapcsolódnak”).</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – AUC</summary>
+  <ol>
+    <li>Pozitívak: 0,8; 0,4. Negatívak: 0,5; 0,2. Mennyi az AUC?
+      <details><summary>Megoldás</summary>Összevetések: 0,8 > 0,5 ✓, 0,8 > 0,2 ✓, 0,4 &lt; 0,5 ✗, 0,4 > 0,2 ✓. $3/4 = 0{,}75$.</details></li>
+    <li>Ha minden pár pontszáma ugyanannyi, mennyi az AUC?
+      <details><summary>Megoldás</summary>Minden összevetés holtverseny: $\tfrac12$ mindenhol, AUC $= 0{,}5$ – a véletlen szint.</details></li>
+    <li>Ellenőrizd a CN-re a 27-et! (Pozitívak: Ko–Sz 1, Po–Ön 1, Ko–Kl 0, Sz–Kl 0; negatívak: három 1-es, nyolc 0-s.)
+      <details><summary>Megoldás</summary>Egy 1-es pozitív: 8 nyert (a 0-sak ellen) + 3 holtverseny ($1{,}5$) $= 9{,}5$; kettő: $19$. Egy 0-s pozitív: 8 holtverseny $= 4$; kettő: $8$. Összesen $27$, AUC $= 27/44 \approx 0{,}614$.</details></li>
+    <li>Egy módszer pontszámait megfordítjuk ($s \to -s$). Mi lesz az AUC-val?
+      <details><summary>Megoldás</summary>Ami nyert volt, vesztett lesz, a holtverseny marad: $\mathrm{AUC}' = 1 - \mathrm{AUC}$. A PA-ra $1 - 0{,}409 = 0{,}591$.</details></li>
+    <li>(nehezebb) Ellenőrizd a PA 18-ját! (Pozitívak PA-ja: Ko–Sz 2, Po–Ön 3, Ko–Kl 0, Sz–Kl 0. Negatívak: Vi–La 6, Ko–La 4, Vi–Ön 3, Po–Sz 3, Ko–Ön 2, La–Sz 2, Ön–Sz 1, és négy 0-s: Vi–Kl, Po–Kl, La–Kl, Ön–Kl.)
+      <details><summary>Megoldás</summary>Po–Ön (3): nyer az 1, 2, 2, 0, 0, 0, 0 ellen (7), döntetlen a két 3-assal (1) → 8. Ko–Sz (2): nyer az 1 és a négy 0 ellen (5), döntetlen a két 2-essel (1) → 6. Ko–Kl és Sz–Kl (0): négy döntetlen → 2–2. Összesen $8 + 6 + 2 + 2 = 18$. ✓</details></li>
+  </ol>
+</details>
+
+<h3 id="s113-c">3. lépés: kihez mérünk? – a negatívak</h3>
+<p>Az AUC azt kérdezi: a pozitívak a negatívak előtt vannak-e? Akkor viszont nagyon nem mindegy, <b>milyen negatívakhoz</b> mérünk. Kis gráfon mindet felhasználhatjuk; nagy gráfon a jelöltek milliói közül <b>mintát</b> veszünk – és a minta dönti el, mennyire nehéz a vizsga.</p>
+
+<div class="box example" id="s113-c-nehez">
+  <span class="box-title">Kiinduló példa – könnyű és nehéz negatívak a karateklubon</span>
+  Rejtsük el a karateklub 78 élének 10%-át (8 élt, <a class="xref" href="#s111-b">11.1</a>), és pontozzunk CN-nel. Két vizsga, ugyanazokkal a pozitívakkal:
+  <ul style="margin:.2rem 0">
+    <li><b>véletlen negatívak</b> (8 véletlen nem él): a CN AUC-ja átlagosan <b>0,68</b> (200 felosztás, Python);</li>
+    <li><b>nehéz negatívak</b> (8 olyan nem él, amelynek végpontjai a tanítógráfban 2 távolságra vannak): az AUC <b>0,47</b>-re esik.</li>
+  </ul>
+  A véletlen nem élek többsége távoli pár, közös szomszéd nélkül – ezeket a CN könnyen „legyőzi”. A 2 távolságú negatívaknak viszont maguknak is van közös szomszédjuk. A CN tudása nagyrészt annyi, hogy <b>a közeli párokat a távoliak elé teszi</b>; a közeli párok között már alig tud dönteni.
+</div>
+
+<div class="box def">
+  <span class="box-title">Szabály – negatív mintavétel</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Minden nem él</b> (kis gráfon): a legteljesebb, de nagy gráfon lehetetlen, és a ritka gráf miatt erősen kiegyensúlyozatlan.</li>
+    <li><b>Véletlen negatívak</b> (pl. pozitívonként 1–100): olcsó; az AUC a negatívak számától nem függ, csak az eloszlásuktól.</li>
+    <li><b>Nehéz negatívak</b> (közeli, pl. 2 távolságú párok): a valós nehézséget méri – azokat a párokat, amelyek között a felhasználónak dönteni kell.</li>
+  </ul>
+  Mindig közöld, milyen negatívakhoz mértél – két AUC csak azonos negatívakkal vethető össze.
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – jó AUC, gyenge felső polc</span>
+    Egy 1000 szereplős korpuszban 5000 pozitív és 494&nbsp;500 negatív pár van. Egy küszöbnél a módszer a pozitívak 80%-át és a negatívaknak csak 5%-át teszi a küszöb fölé (a ROC-görbe egy jó pontja). Mekkora a precizitás?
+    <details><summary>Megoldás</summary>TP $= 0{,}8 \cdot 5000 = 4000$, FP $= 0{,}05 \cdot 494\,500 = 24\,725$. Precizitás $= 4000/28\,725 \approx 0{,}139$. A jóslatok 86%-a téves – az 5%-os hamis riasztás a rengeteg negatív miatt nagy szám.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a véletlen szint a karateklubon</span>
+    8 tesztél, 483 nem él. Mekkora a véletlen rangsor precision@8-je?
+    <details><summary>Megoldás</summary>$8/(8 + 483) \approx 0{,}016$. Egy 0,25-ös precision@8 tehát a véletlen 15-szöröse – akkor is, ha „csak” minden negyedik jóslat talál.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Kiegyensúlyozatlan feladatban csak AUC-t közölni.</b> Az AUC nem érzékeny arra, hány negatív van – a precizitás nagyon is. Ritka gráfon közölj precision@k-t (vagy a precizitás–felidézés görbe alatti területét) is.</li>
+    <li><b>Könnyű negatívakkal „jó” eredményt kapni.</b> A véletlen nem élek nagy része távoli pár; ezeket minden módszer könnyen legyőzi. A szakirodalom egy része emiatt túl optimista AUC-kat közölt (Y. Yang, R. Lichtenwalter, N. Chawla, 2015).</li>
+    <li><b>Negatívnak venni, ami csak meg nem figyelt.</b> Egy „nem él” lehet valódi, de még nem látott kapcsolat. A negatív címke zajos – ezért is óvatos megfogalmazás kell: „az adott időablakban nem jelent meg”.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – negatív mintavétel</summary>
+  <ol>
+    <li>Pozitívonként 5 véletlen negatívat veszünk 20 tesztélhez. Hány összevetésből áll az AUC?
+      <details><summary>Megoldás</summary>$P = 20$, $N = 100$: $2000$ összevetés.</details></li>
+    <li>Egy módszer AUC-ja 10 negatívval pozitívonként 0,85. Mit vársz 100 negatívval (ugyanabból az eloszlásból)?
+      <details><summary>Megoldás</summary>Kb. ugyanennyit (0,85) – az AUC egy valószínűség, nem függ a negatívak számától; csak a becslés lesz pontosabb.</details></li>
+    <li>És a precision@20 hogyan változik, ha 10 helyett 100 negatív jut egy pozitívra?
+      <details><summary>Megoldás</summary>Csökken: ugyanakkora hamis riasztási arány tízszer annyi hamis pozitívat ad a felső polcon. A precizitás a kiegyensúlyozatlanságra érzékeny.</details></li>
+    <li>Egy 400 ezer jelöltes gráfban 2000 pozitív van. A módszer egy küszöbnél TPR $= 0{,}5$, FPR $= 0{,}01$. Mekkora a precizitás?
+      <details><summary>Megoldás</summary>TP $= 1000$, FP $= 0{,}01 \cdot 398\,000 = 3980$. Precizitás $= 1000/4980 \approx 0{,}201$.</details></li>
+    <li>(nehezebb) Miért esik a CN AUC-ja nehéz negatívaknál 0,5 alá is a karateklubon?
+      <details><summary>Megoldás</summary>Mert a 2 távolságú negatívak között sok olyan van, amelynek több közös szomszédja van, mint egy átlagos tesztélnek – pl. két tag a klub sűrű magjából, akik mégsem barátok. A tesztél végpontjai között viszont gyakran csak 0–1 közös szomszéd van. A CN a „közelséget” méri, és a közeli párok között ez már nem a jó irány.</details></li>
+  </ol>
+</details>
+
+<h3 id="s113-d">4. lépés: szivárgás – amikor a válasz benne van a kérdésben</h3>
+<p>A leggyakoribb hiba a kapcsolat-előrejelzésben nem a rossz pontszám, hanem a rossz <b>pontozó gráf</b>. Ha a tesztéleket nem vesszük ki abból a gráfból, amelyből a pontszámot számoljuk, a módszer a választ olvassa ki.</p>
+
+<div class="box example" id="s113-d-szivargas">
+  <span class="box-title">Kiinduló példa – a PA „csodája”</span>
+  Pontozzuk a 15 jelöltet a hét eleje helyett az <b>egész hét</b> gráfjából – vagyis a hét végén megjelent élekkel együtt. A pozitívak most élek is a pontozó gráfban, ezért a végpontjaik fokszáma nő:
+  <ul style="margin:.2rem 0">
+    <li>a Kl fokszáma 0 helyett 2, a Sz-é 1 helyett 3: a Ko–Kl PA-ja $0 \to 8$, a Sz–Kl-é $0 \to 6$;</li>
+    <li>a PA AUC-ja <b>0,409 → 0,727</b>, az AA-é és az RA-é 0,648 → 0,807. (A Jaccardé éppen csökken, 0,659 → 0,648: a bekerült élek az unióval a nevezőt is növelik – a szivárgás iránya sem mindig megjósolható.)</li>
+  </ul>
+  Semmit nem tanultunk a hét végéről – egyszerűen <b>odaadtuk</b>. Ugyanez nagy adaton csendben történik: egy módszer, amely élesben 0,6-os, a dolgozatban 0,85-ös lesz.
+</div>
+
+<div class="box def">
+  <span class="box-title">Szabály – a pontozó gráf a tanítógráf</span>
+  Minden, amiből a pontszám számol – szomszédságok, fokszámok, séták, sajátvektorok, beágyazások –, <b>csak a tanítógráfból</b> jöhet. A tesztéleket (és a validációs éleket) előbb ki kell venni, és utána kell mindent kiszámolni. Időbeli adatnál a tanítógráf <b>csak a vágás előtti</b> élekből állhat.
+  <small>Miért ilyen alattomos? Mert a szivárgást a kód nem jelzi: a pontszám ugyanúgy kiszámolható, csak rossz gráfon. A GNN-eknél ugyanez a hiba az üzenetküldő gráfban jelentkezik (<a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s136-c">MI 13.6</a>).</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a CN szinte nem szivárog</span>
+    Ha a Ko–Sz él bent van a pontozó gráfban, változik-e a Ko–Sz pár CN pontszáma?
+    <details><summary>Megoldás</summary>Nem: a $u$–$v$ él nem közös szomszéd. A CN csak <b>közvetve</b> változik – más élek is bekerültek, amelyek új közös szomszédokat adnak (itt 0,614 → 0,670). A fokszámot használó PA-nál és az egész gráfot látó beágyazásoknál a szivárgás közvetlen.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a karateklubon</span>
+    10% tesztél, 100 véletlen felosztás átlaga (Python): a PA AUC-ja 0,71 → 0,85, a 2D spektrális beágyazásé (<a href="#s114">11.4</a>) 0,60 → 0,82, ha a tesztélek bent maradnak. Melyik módszernek <b>árt a leginkább</b> a szivárgás?
+    <details><summary>Megoldás</summary>A beágyazásnak: a sajátvektorok a teljes gráfból jönnek, így a tesztél két végpontja egymáshoz húzódik – éppen az él miatt. Egy szivárgó beágyazás a legjobb módszernek látszhat, holott a helyes mérésben a leggyengébb.</details>
+  </div>
+</div>
+
+<p>Kapcsold ki-be: a tesztélek a pontozó gráfban vannak-e. Nézd meg, melyik módszer AUC-ja ugrik meg, és melyiké nem.</p>
+<div class="widget" data-widget="leakage-demo"></div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Előbb beágyazni, aztán felosztani.</b> A beágyazást (spektrális, node2vec) a teljes gráfon kiszámolni, és csak a kiértékelésnél „elrejteni” a tesztéleket – szivárgás. A sorrend: felosztás → beágyazás a tanítógráfon → pontozás.</li>
+    <li><b>A fokszámot a teljes adatból számolni.</b> Egy jellemző („hány cikkben szerepelt a szereplő”) is szivárog, ha a teszt-időszak cikkeit is beleszámoltad.</li>
+    <li><b>Véletlen felosztás időbeli adaton.</b> Ha a tesztélek véletlenül vannak kiválasztva az egész időszakból, a tanítógráfban ott vannak a teszt <b>utáni</b> élek – a módszer a jövőből lát vissza. Ez is szivárgás, csak finomabb.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – szivárgás</summary>
+  <ol>
+    <li>Ha az egész hét gráfjából pontozunk, mennyi lesz a Ko–Kl pár PA-ja? (A fokszámok a teljes héten: Ko 4, Kl 2.)
+      <details><summary>Megoldás</summary>$4 \cdot 2 = 8$ – a tanítógráfban $2 \cdot 0 = 0$ volt.</details></li>
+    <li>És a Sz–Kl-é? (Sz a teljes héten 3 fokú.)
+      <details><summary>Megoldás</summary>$3 \cdot 2 = 6$ (a tanítógráfban $1 \cdot 0 = 0$).</details></li>
+    <li>Egy kutató a teljes gráfon számol node2vec-beágyazást, aztán 10% élt kivesz teszthez, és a beágyazásokból jósol. AUC: 0,93. Mi a gond?
+      <details><summary>Megoldás</summary>A beágyazás látta a tesztéleket: a séták rajtuk is átmentek, így a végpontok közel kerültek. A helyes eljárás: előbb kivenni a tesztéleket, és a maradék gráfon újra számolni a beágyazást.</details></li>
+    <li>Egy hírgráfon a januári cikkekből akarod jósolni a februári új együttemléseket. Mi a tanítógráf, mik a jelöltek és a pozitívak?
+      <details><summary>Megoldás</summary>Tanítógráf: a januári cikkek szereplőgráfja. Jelölt: minden januárban nem létező pár (a januárban is szereplő szereplők között – vagy az összes szereplő között, ha az új belépőket is jósolni akarod). Pozitív: a februárban először megjelenő pár.</details></li>
+    <li>(nehezebb) Lehet-e szivárgás akkor is, ha a tesztéleket gondosan kivetted a gráfból?
+      <details><summary>Megoldás</summary>Igen. (1) A hiperparamétereket (pl. a node2vec $p$, $q$-ját) a tesztélek AUC-ja alapján választottad – ehhez külön validációs élek kellenek. (2) Egy csúcsjellemző (pl. „hány cikkben szerepel”) a teljes időszakból számolt. (3) Az időbeli adatot véletlenül osztottad fel. Mindhárom a teszt információját viszi a tanításba.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh11-113"></div>
+</section>
