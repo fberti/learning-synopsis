@@ -1,0 +1,257 @@
+
+<!-- ===================================================== 12.3 -->
+<section id="s123">
+<h2>12.3 Heterogén GNN-ek ★★★</h2>
+<p>A második feltevés: <b>egyféle csúcs</b>. Az R-GCN-ben az élek típusa már különbözik, de a csúcsok ugyanolyanok – négy szereplő. Egy hírgráfban viszont a lap, a cikk, a szereplő és az esemény más-más dolog: más jellemzőjük van, és más kapcsolatokban állnak.
+Ebben a szakaszban az Árvízhét <b>teljes</b> adatmodelljén dolgozunk.</p>
+
+<h3 id="s123-a">1. lépés: típusok és séma – az Árvízhét heterogén gráfja</h3>
+<div class="box example" id="s123-a-graf">
+  <span class="box-title">Kiinduló példa – öt csúcstípus, négy éltípus</span>
+  A <a class="xref" href="../03-graftipusok/#s36-b">3.6</a>-ban már összeraktuk az Árvízhét heterogén gráfját. Most a <b>kereteket</b> is csúcsnak vesszük (a <a class="xref" href="#s127">12.7</a> jóslási feladatához), a hivatkozásokat és a szereplők közti viszonyokat pedig kihagyjuk:
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>csúcstípus</th><th>darab</th><th>éltípus</th><th>darab</th></tr>
+    <tr><td>L – lap</td><td>4</td><td>lap <b>közli</b> a cikket (L–C)</td><td>12</td></tr>
+    <tr><td>C – cikk</td><td>12</td><td>cikk <b>említi</b> a szereplőt (C–Sz)</td><td>27</td></tr>
+    <tr><td>Sz – szereplő</td><td>7</td><td>cikk <b>keretezése</b> (C–K)</td><td>12</td></tr>
+    <tr><td>E – esemény</td><td>6</td><td>cikk <b>része</b> egy eseménynek (C–E)</td><td>12</td></tr>
+    <tr><td>K – keret</td><td>3</td><td></td><td></td></tr>
+    <tr><td><b>összesen</b></td><td><b>32</b></td><td></td><td><b>63</b></td></tr>
+  </table></div>
+  Minden él egy cikkhez fut: a cikk a gráf „csomópontja”, a többi típus a cikkeken át kapcsolódik egymáshoz. A 27 említés-él a 12 cikk említéseinek összege ($2 + 3 + 2 + 2 + 3 + 2 + 2 + 3 + 2 + 2 + 2 + 2$).
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – heterogén gráf és séma</span>
+  A <b>heterogén gráf</b> $G = (V, E, \tau, \phi)$, ahol $\tau(v)$ a csúcs típusa, $\phi(e)$ az él típusa; a típusok száma $|\mathcal T| + |\mathcal R| \gt 2$ (egyetlen csúcs- és éltípus a homogén gráf).
+  A <b>séma</b> (network schema) a „gráf a gráfról”: csúcsai a csúcstípusok, élei a megengedett éltípusok. Az Árvízhét sémája egy csillag: középen a C, körülötte L, Sz, E, K.
+  <small>Miért kell a séma? Mert megmondja, milyen <b>utak</b> léteznek egyáltalán. Lap és szereplő között nincs közvetlen él – csak cikken át. Ebből a megfigyelésből lesz a metaútvonal.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy cikk szomszédsága</span>
+    Kik a C5 („Klímaváltozás és elmaradt beruházások”) szomszédai, típusonként?
+    <details><summary>Megoldás</summary>L: EK; Sz: Sz, Kl, Ko; K: felkészülési hiány; E: E5. Hat szomszéd, négy típusból – egy homogén GNN ezt hat „egyforma” szomszédnak látná.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – típusok inverzekkel</span>
+    Ha egy R-GCN-t futtatnánk ezen a gráfon, hány relációval?
+    <details><summary>Megoldás</summary>A 4 éltípus mind irányított (a lap közli a cikket, nem fordítva), az inverzekkel <b>8</b> reláció. Ez már heterogén GNN: a <a class="xref" href="#s122-b">12.2</a> szerint külön súly a „közli” és a „közölte” üzenetnek.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A típust a csúcsfeliratból kitalálni.</b> Egy algoritmus számára az „RH” és a „Ko” csak két azonosító. A típus külön adat ($\tau$) – ha nincs megadva, a modell nem tudja.</li>
+    <li><b>Mindent csúcsnak venni, ami adat.</b> A keret lehet csúcs (ha jósolni akarjuk, vagy ha a keretek egymáshoz kapcsolódnak), de lehet a cikk <b>jellemzője</b> is. A választás modellezési döntés, mint a <a class="xref" href="../03-graftipusok/#s38-b">3.8</a>-ban.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – típusok és séma</summary>
+  <ol>
+    <li>Hány éle lenne a gráfnak, ha az eseményeket kihagynánk?
+      <details><summary>Megoldás</summary>$63 - 12 = 51$.</details></li>
+    <li>Hány szomszédja van Po-nak, és milyen típusúak?
+      <details><summary>Megoldás</summary>Po-t a 2., 3., 8., 10., 11. és 12. cikk említi: 6 szomszéd, mind C típusú.</details></li>
+    <li>Ha a szereplők közti 8 viszonyt (támogat / bírál) is felvennénk, hány új éltípus jönne a sémába, és melyik két csúcstípus között?
+      <details><summary>Megoldás</summary>Kettő (támogat, bírál), mindkettő Sz–Sz. A sémában ez egy hurok a Sz típuscsúcson.</details></li>
+    <li>A 3. fejezet hivatkozásai (cikk idéz cikket) milyen éltípust adnak?
+      <details><summary>Megoldás</summary>C–C élt (irányított; az inverzével két reláció). Ez is hurok a sémában, a C csúcson.</details></li>
+    <li>(nehezebb) Miért nem érdemes a „lapot” és a „szereplőt” egy közös jellemzővektorral (pl. hat számmal) leírni?
+      <details><summary>Megoldás</summary>Mert a jellemzőik mást jelentenek (példányszám vs. hányszor nyilatkozott): ha egy közös tér ugyanazon koordinátájára kerülnek, a modell összehasonlíthatónak veszi őket. Típusonként külön bemeneti vetítés kell – ezt teszi a HGT (<a class="xref" href="#s123-d">4. lépés</a>).</details></li>
+  </ol>
+</details>
+
+<h3 id="s123-b">2. lépés: metaútvonal – egy heterogén gráf, sok homogén szomszédság</h3>
+<p>A heterogén gráfban két lap sosem szomszédos: köztük mindig cikk áll. Mégis van értelme azt kérdezni, „melyik lap melyikhez hasonlít”. A válasz: <b>utak egy adott típussorozat mentén</b>.</p>
+
+<div class="box example" id="s123-b-esemeny">
+  <span class="box-title">Kiinduló példa – két lap közös eseményen át</span>
+  Kövessük a L–C–E–C–L utat: lapból a cikkébe, onnan az eseménybe, onnan egy másik cikkbe, onnan annak a lapjába. A Reggeli Hírlap (RH) és a Vidéki Napló (VN) között két ilyen út van:
+  <ul style="margin:.2rem 0">
+    <li>RH – C2 – <b>E3</b> („Tart a gát – lakossági fórum”) – C11 – VN,</li>
+    <li>RH – C3 – <b>E6</b> („Segély és gyűjtés”) – C12 – VN.</li>
+  </ul>
+  Az Esti Krónika (EK) és a Nyitott Szó (NY) között egy sincs: az EK cikkei (E1, E5) és az NY cikkei (E2, E4, E6) más eseményekről szólnak.
+  Az utak száma egy új, <b>homogén</b> gráfot ad a lapokon: „két lap annyira szomszéd, ahány közös eseményes cikkpárjuk van”.
+</div>
+
+<div class="box def" id="s123-b-def">
+  <span class="box-title">Definíció – metaútvonal és szorzatmátrix</span>
+  A <b>metaútvonal</b> (meta-path) egy típussorozat, pl. $\Phi = \text{L–C–E–C–L}$. Két csúcs $\Phi$-szomszéd, ha van köztük ilyen típusú út. Az utak száma a típusok közti illeszkedési mátrixok szorzata:
+  $$M_\Phi = A_{LC}\, A_{CE}\, A_{CE}^\top\, A_{LC}^\top, \qquad (M_\Phi)_{ij} = \text{a } \Phi \text{ típusú utak száma } i\text{-ből } j\text{-be}.$$
+  <small>Miért szorzat? Ugyanazért, amiért $(A^2)_{ij}$ a kétlépéses séták száma (<a class="xref" href="../02-setak-utak-fak/#s27-a">2.7</a>): minden lépés egy mátrixszorzás, és a köztes csúcsokon összegzünk. A páros gráf vetülete (<a class="xref" href="../03-graftipusok/#s34-b">3.4</a>) a legrövidebb metaútvonal: a C–Sz–C vagy a Sz–C–Sz.</small>
+</div>
+
+<div class="widget" data-widget="hetero-graph-explorer"></div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – lapok közös szereplőn át</span>
+    Hány L–C–Sz–C–L út van RH és EK között?
+    <details><summary>Megoldás</summary>Közös szereplőnként szorzunk: Ko-t az RH 3 cikke (C1, C2, C3) és az EK 1 cikke (C5) említi: $3 \cdot 1 = 3$ út. Vi-t az RH 2 cikke (C1, C2) és az EK 1 cikke (C4): $2 \cdot 1 = 2$. Összesen <b>5</b>. A teljes mátrix (RH, EK, NY, VN): RH–VN 8, NY–VN 9, RH–NY 2, EK–VN 1, EK–NY 0.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy régi ismerős</span>
+    Mi a Sz–C–Sz metaútvonal mátrixa?
+    <details><summary>Megoldás</summary>$A_{CS}^\top A_{CS}$: a főátlón kívül két szereplő közös cikkeinek száma – ez az <a class="xref" href="../01-mi-a-halozat/#s17-a">1.7</a> súlyozott szereplőgráfja (Ko–Vi 2, La–Ön 3, …). A főátlón az említések száma (Po: 6). Az első gráfunk tehát egy metaútvonal volt.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A főátlót szomszédságnak olvasni.</b> $(M_\Phi)_{ii}$ az oda-vissza utak száma (az RH 17-szer „szomszédja önmagának”) – ez a csúcs aktivitása, nem kapcsolat.</li>
+    <li><b>Az utak számát a kapcsolat erősségének venni normálás nélkül.</b> Az RH–VN 8 részben azért nagy, mert mindkét lap sokat írt a Po-ról. Ugyanaz a gond, mint a vetületeknél (<a class="xref" href="../03-graftipusok/#s34-c">3.4</a>): normálni kell (pl. Jaccard vagy koszinusz), ha erősséget akarsz.</li>
+    <li><b>Túl hosszú metaútvonal.</b> Minden lépéssel sűrűbb lesz a kapott gráf. Egy L–C–Sz–C–Sz–C–L úton szinte minden lap mindenkivel szomszéd – az információ elfolyik.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – metaútvonalak</summary>
+  <ol>
+    <li>Hány L–C–E–C–L út van NY és VN között? Melyek?
+      <details><summary>Megoldás</summary>Kettő: NY – C7 – E2 – C10 – VN és NY – C9 – E6 – C12 – VN.</details></li>
+    <li>Hány L–C–K–C–L út van RH és VN között?
+      <details><summary>Megoldás</summary>Közös keret: védekezés. Az RH-nak 3 védekezés-cikke van, a VN-nek 1 (C10): $3 \cdot 1 = 3$. Más közös keretük nincs (az RH-nak nincs veszteség-cikke).</details></li>
+    <li>Mennyi az L–C–K–C–L mátrix főátlója az RH-nál, és miért?
+      <details><summary>Megoldás</summary>9: az RH 3 cikke mind védekezés-keretű, így $3 \cdot 3 = 9$ oda-vissza út.</details></li>
+    <li>Melyik cikkek C–E–C szomszédai a C3-nak?
+      <details><summary>Megoldás</summary>A C3 az E6-hoz tartozik, vele együtt a C9 és a C12: ezek a C3 szomszédai.</details></li>
+    <li>(nehezebb) Miért nulla az EK–NY elem az L–C–Sz–C–L mátrixban, és mit mond ez a két lap tematikájáról?
+      <details><summary>Megoldás</summary>Az EK cikkei Vi, Sz, Kl, Ko szereplőket említenek, az NY cikkei La, Po, Ön szereplőket – nincs közös. A két lap ugyanarról az árvízről <b>teljesen más szereplőkön át</b> írt: az egyik a szakértői, a másik a lakossági nézőpontot hozta.</details></li>
+  </ol>
+</details>
+
+<h3 id="s123-c">3. lépés: HAN – két szintű figyelem</h3>
+<p>Most már sokféle homogén szomszédságunk van: egy cikk szomszédai lehetnek az <b>ugyanabban a lapban</b> megjelent cikkek (C–L–C), a <b>közös szereplős</b> cikkek (C–Sz–C), az <b>ugyanarról az eseményről</b> szóló cikkek (C–E–C). Melyiket használjuk? A HAN válasza: mindet, és <b>tanuljuk meg</b>, melyik mennyit ér.</p>
+
+<div class="box example" id="s123-c-c10">
+  <span class="box-title">Kiinduló példa – a C10 két szomszédsága</span>
+  A C10 („A polgármester a vízügy szakembereivel bejárta a töltést”, VN, keret: védekezés). Nézzük meg a szomszédai kereteit két metaútvonal szerint:
+  <ul style="margin:.2rem 0">
+    <li><b>C–L–C</b> (ugyanaz a lap): C11, C12 – mindkettő lakossági veszteség. Átlag: $\mathbf z^{\text{CLC}} = (0;\ 0;\ 1)$ a (védekezés; hiány; veszteség) sorrendben.</li>
+    <li><b>C–Sz–C</b> (közös szereplő, a közös szereplők számával súlyozva): C1, C2 (kétszer), C3 védekezés; C4 hiány; C8, C11, C12 veszteség. Átlag: $\mathbf z^{\text{CSzC}} = \tfrac18(4;\ 1;\ 3) = (0{,}5;\ 0{,}125;\ 0{,}375)$.</li>
+  </ul>
+  A két nézet <b>mást mond</b>: a lap szerint a C10 veszteség-cikk, a szereplői szerint védekezés. A HAN egy-egy súlyt, $\beta$-t tanul a két nézetre, és ezekkel keveri őket.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – HAN (heterogén figyelmi háló)</span>
+  A HAN (X. Wang és társai, 2019) két szintben gyűjt:
+  <ol style="margin:.2rem 0">
+    <li><b>Csúcsszintű figyelem:</b> minden $\Phi$ metaútvonal homogén gráfján egy GAT-réteg (<a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s135-b">MI 13.5</a>): $\mathbf z_v^\Phi = \sum_{u \in N_\Phi(v)} \alpha_{vu}^\Phi\, \mathbf h_u W$ – a szomszédok súlyát figyelem dönti el.</li>
+    <li><b>Szemantikai figyelem:</b> minden metaútvonal kap egy pontszámot, $w_\Phi$ (az összes csúcson átlagolva: $w_\Phi = \tfrac1{|V|}\sum_v \mathbf q^\top \tanh(W' \mathbf z_v^\Phi + \mathbf b)$), és
+      $$\beta_\Phi = \frac{\exp(w_\Phi)}{\sum_{\Phi'} \exp(w_{\Phi'})}, \qquad \mathbf z_v = \sum_\Phi \beta_\Phi\, \mathbf z_v^\Phi.$$</li>
+  </ol>
+  <small>Miért két szint? Az első azt dönti el, hogy egy metaútvonalon belül melyik szomszéd fontos; a második azt, hogy melyik <b>jelentés</b> (lap, szereplő, esemény) fontos a feladathoz. A $\beta_\Phi$ minden csúcsra ugyanaz – a metaútvonal „globális fontossága”.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – softmax két metaútvonalra</span>
+    A szemantikai pontszámok $w_{\text{CLC}} = 1$, $w_{\text{CSzC}} = 0$. Mennyi a $\beta$?
+    <details><summary>Megoldás</summary>$\beta_{\text{CLC}} = \tfrac{e^1}{e^1 + e^0} \approx 0{,}731$, $\beta_{\text{CSzC}} \approx 0{,}269$.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – keverés a C10-nél</span>
+    Ezekkel a $\beta$-kkal mi lesz a C10 kevert vektora, és melyik keretet jósolja?
+    <details><summary>Megoldás</summary>$0{,}731\cdot(0;\ 0;\ 1) + 0{,}269\cdot(0{,}5;\ 0{,}125;\ 0{,}375) \approx (0{,}134;\ 0{,}034;\ 0{,}832)$ → veszteség. <b>Rossz</b>: a C10 védekezés-cikk. Ha a súly a szereplőkre esne ($\beta_{\text{CSzC}} \gt 8/9 \approx 0{,}889$), jó lenne – de egy közös $\beta$ minden cikkre ugyanaz, és a legtöbb cikknél a lap a jobb nézet (<a class="xref" href="#s127">12.7</a>).</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A $\beta$-t magyarázatnak olvasni.</b> „A modell 73%-ban a lapra figyel” – ez a tanított súly, nem bizonyíték arra, hogy a keretet a lap okozza. A figyelmi súly nem magyarázat: több súlyozás is ugyanolyan jóslatot adhat.</li>
+    <li><b>A metaútvonalakat a modellre bízni.</b> A HAN csak a <b>megadott</b> metaútvonalak között választ. Ha a jó nézet (pl. C–Sz–C) nincs a listán, a figyelem sem találja meg. A metaútvonalak kiválasztása szakértői döntés.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – HAN</summary>
+  <ol>
+    <li>$w = (2;\ 0)$. Mennyi a $\beta$?
+      <details><summary>Megoldás</summary>$\beta \approx (0{,}881;\ 0{,}119)$.</details></li>
+    <li>Három metaútvonal, mindhárom pontszáma 0. Mennyi a $\beta$?
+      <details><summary>Megoldás</summary>Egyenlő: $(1/3;\ 1/3;\ 1/3)$. A softmax csak a különbségekre érzékeny.</details></li>
+    <li>$w = (1;\ 1;\ -1)$. Mennyi a $\beta$?
+      <details><summary>Megoldás</summary>$e^1 \approx 2{,}718$ kétszer, $e^{-1} \approx 0{,}368$: összeg $5{,}804$. $\beta \approx (0{,}468;\ 0{,}468;\ 0{,}063)$.</details></li>
+    <li>Mekkora $w_{\text{CLC}} - w_{\text{CSzC}}$ különbség ad $\beta_{\text{CLC}} = 0{,}75$-öt?
+      <details><summary>Megoldás</summary>$\beta = \tfrac{1}{1 + e^{-\Delta}} = 0{,}75$ → $e^{-\Delta} = 1/3$ → $\Delta = \ln 3 \approx 1{,}099$.</details></li>
+    <li>(nehezebb) A kiinduló példában melyik $\beta_{\text{CSzC}}$-nél vált a C10 jóslata veszteségről védekezésre?
+      <details><summary>Megoldás</summary>Legyen $b = \beta_{\text{CSzC}}$. Védekezés: $0{,}5b$; veszteség: $(1 - b) + 0{,}375b$. Egyenlőség: $0{,}5b = 1 - 0{,}625b$ → $b = 1/1{,}125 = 8/9 \approx 0{,}889$. Ennél nagyobb $b$-nél a védekezés nyer.</details></li>
+  </ol>
+</details>
+
+<h3 id="s123-d">4. lépés: HGT – és mikor elég a homogén modell?</h3>
+<p>A HAN-hoz metaútvonalakat kell megadni. Ha sok típus van, ez fárasztó és önkényes. A másik út: maradjunk a heterogén gráf <b>közvetlen</b> élein, de minden számolás függjön a típusoktól.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – ki kérdez, ki válaszol?</span>
+  A figyelemben (<a class="xref" href="../../mesterseges-intelligencia/12-beagyazasok-figyelem/#s125-a">MI 12.5</a>) a fogadó csúcs egy <b>kérdés</b>-vektort ($\mathbf q$), a küldő egy <b>kulcs</b>-vektort ($\mathbf k$) és egy <b>érték</b>-vektort ($\mathbf v$) készít. A C5 cikk szomszédai: EK (lap), Ko, Sz, Kl (szereplők), E5 (esemény), hiány (keret).
+  A HGT-ben a lap a saját $K_{\text{L}}$ mátrixával, a szereplő a $K_{\text{Sz}}$-vel készít kulcsot – és a „közli” élen más $W^{\text{ATT}}$ súly méri össze a kérdéssel, mint az „említi” élen. Így egy szereplő üzenete és egy lap üzenete nem egy közös skálán versenyez.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – HGT (heterogén gráf-Transformer), szemléletesen</span>
+  A HGT (Z. Hu és társai, 2020) minden élt egy <b>meta-relációval</b> jellemez: $\langle \tau(u),\ \phi(e),\ \tau(v)\rangle$, pl. ⟨szereplő, említi$^{-1}$, cikk⟩. Minden rétegben:
+  <ul style="margin:.2rem 0">
+    <li><b>csúcstípusonként</b> külön $Q_\tau$, $K_\tau$, $V_\tau$ vetítés (a típusok jellemzőit közös térbe hozza),</li>
+    <li><b>éltípusonként</b> külön $W^{\text{ATT}}_\phi$ (hogyan mérjük össze a kérdést és a kulcsot) és $W^{\text{MSG}}_\phi$ (hogyan alakítsuk az üzenetet),</li>
+    <li>a figyelmi súly: $\alpha_{vu} \propto \exp\big(\mathbf k_u W^{\text{ATT}}_\phi \mathbf q_v^\top / \sqrt d\big)$, a szomszédokra softmax-szal.</li>
+  </ul>
+  <small>Miért jó? Nem kell metaútvonalat választani: a több réteg magától bejárja a hosszabb utakat, és a figyelem dönti el, melyik élen mi számít. Ára: sok paraméter. 5 csúcstípussal, 8 relációval, $d = 16$-tal egy réteg $5\cdot 3\cdot 256 + 8 \cdot 2 \cdot 256 = 7936$ súly.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a „szegény ember” heterogén modellje</span>
+    A homogén GAT-nak adjuk meg minden csúcs típusát egy <b>egy-forró</b> vektorként a jellemzők mellé (L, C, Sz, E, K: öt jelző). Mit tud így, és mit nem?
+    <details><summary>Megoldás</summary>Tudja: a csúcs saját típusa beépül a vektorába, a figyelem eltérhet típusonként. Nem tudja: éltípusonként külön üzenetátalakítást – minden élen ugyanaz a $W$. Ha az élnek is van típusa, egy tanult <b>éltípus-vektor</b> a figyelembe tehető (ez a Simple-HGN ötlete, lent).</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – adat és paraméter</span>
+    Egy 2 rétegű R-GCN a heterogén Árvízhéten: 8 reláció, $d = d' = 16$. Hány súly van, és hány címke (keret) van a tanításhoz?
+    <details><summary>Megoldás</summary>Rétegenként $9 \cdot 256 = 2304$, két rétegben $4608$ súly – és 12 cikkcímke. Egy ilyen modell bármit megtanul (túlillesztés). A kis hírgráfon a <a class="xref" href="#s127-a">12.7</a> egyszerű szavazása az őszinte összevetés.</details>
+  </div>
+</div>
+
+<div class="box tip" id="s123-d-konszenzus">
+  <span class="box-title">⚖️ Konszenzus és vita – kellenek-e a heterogén GNN-ek?</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Konszenzus – a típusinformáció számít.</b> Ahol sok, jelentésben eltérő éltípus van, az éltípus figyelembe vétele rendszeresen javít (a heterogén és tudásgráf-benchmarkok, pl. a TGB 2.0, J. Gastinger és társai, 2024, időbeli adaton is ezt találták).</li>
+    <li><b>Vita – kell-e hozzá külön architektúra?</b> Q. Lv és társai (2021, <em>KDD</em>) 12 heterogén GNN-t futtattak újra egységes beállítással: a <b>megfelelő bemenettel</b> futtatott homogén GAT a legtöbbjüket utolérte vagy megelőzte. Az általuk javasolt <b>Simple-HGN</b> egy GAT, éltípus-vektorral a figyelemben, maradékkapcsolattal – és erősebb volt a korábbi modelleknél. X. Yang és társai (2023, SeHGNN) szerint a metaútvonalas szomszédok egyszerű, előre kiszámolt <b>átlaga</b> + egy réteg is elég sok feladatra.</li>
+    <li><b>Ami biztos:</b> a heterogén modell sok hiperparamétert hoz (metaútvonalak, típusonkénti dimenziók), és kis adaton könnyen túlilleszt. Mindig fusson mellette egy homogén alapvonal típusjelzővel. 📅 Állapot: 2026.</li>
+  </ul>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Bonyolult modell erős alapvonal nélkül.</b> Ha a HGT-t csak egy rosszul beállított GCN-hez méred, a „javulás” a beállításból is jöhet. A Lv és társai által talált eltérések nagy része ilyen volt.</li>
+    <li><b>A figyelmi súlyokból magyarázatot írni.</b> A HGT figyelme is csak súly – nem állítás arról, hogy a lap „okozza” a keretet.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – HGT és alapvonal</summary>
+  <ol>
+    <li>Sorold fel a C5 cikkbe érkező élek meta-relációit (típus, éltípus, típus)!
+      <details><summary>Megoldás</summary>⟨L, közli, C⟩ (EK); ⟨Sz, említi$^{-1}$, C⟩ háromszor (Ko, Sz, Kl); ⟨E, része$^{-1}$, C⟩ (E5); ⟨K, keretezése$^{-1}$, C⟩ (hiány). Négy különböző meta-reláció.</details></li>
+    <li>Hány súlya van egy HGT-rétegnek 3 csúcstípussal, 4 relációval, $d = 8$-cal?
+      <details><summary>Megoldás</summary>$3 \cdot 3 \cdot 64 + 4 \cdot 2 \cdot 64 = 576 + 512 = 1088$.</details></li>
+    <li>Mit kell megadni a HAN-nak, amit a HGT-nek nem?
+      <details><summary>Megoldás</summary>A metaútvonalak listáját. A HGT a közvetlen éleken dolgozik, a hosszabb utakat a rétegek járják be.</details></li>
+    <li>Egy új modell 2 százalékponttal jobb egy cikkosztályozási feladaton, mint a „GCN”. Mit kérdezel, mielőtt elhiszed?
+      <details><summary>Megoldás</summary>Ugyanaz volt-e a felosztás, a jellemzők és a hangolási költségvetés? Futott-e GAT / Simple-HGN típusjelzővel? Hány véletlen magon, milyen szórással? (Lv és társai szerint a különbségek nagy része ezeken múlt.)</details></li>
+    <li>(nehezebb) Mikor érdemes mégis a HGT-t választani egy homogén GAT helyett?
+      <details><summary>Megoldás</summary>Ha sok csúcs- és éltípus van, a típusok jellemzőterei tényleg különböznek (szöveg, szám, kép), és sok a tanítóadat (a HGT-t egy 179 millió csúcsú tudományos gráfon mutatták be). Kis gráfon, kevés címkével a többletparaméter inkább árt.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh12-123"></div>
+</section>

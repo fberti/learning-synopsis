@@ -1,0 +1,215 @@
+
+<!-- ===================================================== 12.5 -->
+<section id="s125">
+<h2>12.5 Időbeli gráfhálók ★★★</h2>
+<p>A harmadik feltevés: <b>statikus gráf</b>. A hírek élei nem egyszerre érkeznek: hétfőn két él, csütörtökön hat, pénteken egy. Egy modell, amely az összevont gráfot látja, a jövőt is látja.
+Ebben a szakaszban az időt beépítjük a modellbe – és megnézzük, mennyire nehéz egy időbeli jóslást becsületesen kiértékelni.</p>
+
+<h3 id="s125-a">1. lépés: pillanatfelvételek vagy eseményfolyam?</h3>
+<div class="box example" id="s125-a-folyam">
+  <span class="box-title">Kiinduló példa – az Árvízhét 18 eseménye</span>
+  A <a class="xref" href="../03-graftipusok/#s35-a">3.5</a>-ban az Árvízhetet napi gráfokra bontottuk. Most minden cikk minden szereplőpárja egy <b>esemény</b> $(u, v, t)$ – a cikk napján. A 12 cikkből <b>18 esemény</b> lesz:
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>nap</th><th>események (cikk)</th><th>db</th></tr>
+    <tr><td>H</td><td>Ko–Vi (1), Vi–Sz (4)</td><td>2</td></tr>
+    <tr><td>K</td><td>La–Ön (7), Vi–Po (10)</td><td>2</td></tr>
+    <tr><td>Sze</td><td>Ko–Vi, Ko–Po, Vi–Po (2), Po–La (11)</td><td>4</td></tr>
+    <tr><td>Cs</td><td>Ko–Sz, Ko–Kl, Sz–Kl (5), Po–La, Po–Ön, La–Ön (8)</td><td>6</td></tr>
+    <tr><td>P</td><td>Ko–Po (3)</td><td>1</td></tr>
+    <tr><td>Szo</td><td>Sz–Kl (6), Po–Ön (12)</td><td>2</td></tr>
+    <tr><td>V</td><td>La–Ön (9)</td><td>1</td></tr>
+  </table></div>
+  Kétféleképpen adhatjuk oda egy modellnek. <b>Pillanatfelvételekként</b>: hét kis gráf, $G_{\mathrm H}, G_{\mathrm K}, \dots, G_{\mathrm V}$. Vagy <b>eseményfolyamként</b>: a 18 esemény időrendben, egyenként.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – diszkrét és folytonos idejű gráfmodellek</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Diszkrét idejű</b> (pillanatfelvétel-alapú) modell: minden $G_t$ pillanatfelvételen egy GNN, a csúcsvektorok időbeli sorozatát egy rekurrens háló (<a class="xref" href="../../mesterseges-intelligencia/12-beagyazasok-figyelem/#s123-b">MI 12.3</a>) dolgozza fel: $\mathbf h_v^{(t)} = \operatorname{RNN}\big(\mathbf h_v^{(t-1)},\ \operatorname{GNN}(G_t)_v\big)$. Ilyen például az EvolveGCN, amely magukat a GNN-súlyokat frissíti rekurrensen.</li>
+    <li><b>Folytonos idejű</b> modell: az eseményeket egyenként, időrendben dolgozza fel; minden csúcsnak <b>memóriája</b> van, amelyet minden őt érintő esemény frissít, és az idő <b>pontos</b> értéke (nem csak a nap) belép a számolásba. Ilyen a TGN (E. Rossi és társai, 2020) és a TGAT (D. Xu és társai, 2020).</li>
+  </ul>
+  <small>Miért két út? A pillanatfelvétel egyszerű, és a megszokott GNN-ek működnek rajta – de az ablakméret döntés (<a class="xref" href="../03-graftipusok/#s35-c">3.5</a>), és egy ablakon belül az időrend elvész. Az eseményfolyam minden időpontot megtart, de minden eseményt külön kell feldolgozni.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – üres pillanatfelvételek</span>
+    Hány él van a pénteki és a vasárnapi pillanatfelvételben? Mit „lát” ezekből egy GNN?
+    <details><summary>Megoldás</summary>Pénteken 1 (Ko–Po), vasárnap 1 (La–Ön). Az öt másik szereplő ezeken a napokon elszigetelt: a GNN nem kap tőlük üzenetet. A napi ablak itt túl kicsi – heti ablakkal viszont csütörtök és szombat sorrendje vész el.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy napon belül</span>
+    Csütörtökön a 5. és a 8. cikk is megjelent. A pillanatfelvétel-modell látja-e, melyik volt előbb?
+    <details><summary>Megoldás</summary>Nem: mindkettő a $G_{\mathrm{Cs}}$ éle. Az eseményfolyamban, ha órára pontos az időbélyeg, igen. (Az Árvízhétben csak napok vannak – itt a folyam is csak a cikkszámmal tud rendezni.)</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az eseményeket összevonni, aztán „időbelinek” hívni.</b> Ha a súly az események száma, az idő elveszett – ez statikus súlyozott gráf.</li>
+    <li><b>Egy napon belüli eseményeket egymásból jósolni.</b> Ha a 8. cikk Po–La eseményét a 8. cikk La–Ön eseményéből jósoljuk, a válasz benne van a kérdésben: ugyanabból a cikkből jönnek. Egy cikk eseményei <b>egyszerre</b> érkeznek.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – események és pillanatfelvételek</summary>
+  <ol>
+    <li>Hány esemény jön egy 3 szereplőt említő cikkből? És egy 4 szereplősből?
+      <details><summary>Megoldás</summary>$\binom32 = 3$, illetve $\binom42 = 6$.</details></li>
+    <li>Hány esemény van az Árvízhét első felében (H–Sze) és hány a második felében (Cs–V)?
+      <details><summary>Megoldás</summary>$2 + 2 + 4 = 8$, illetve $6 + 1 + 2 + 1 = 10$. Összesen 18.</details></li>
+    <li>Melyik pár fordul elő a legtöbbször a héten eseményként?
+      <details><summary>Megoldás</summary>La–Ön: 7., 8., 9. cikk – háromszor. (Kétszer: Ko–Vi, Ko–Po, Vi–Po, Po–La, Po–Ön, Sz–Kl.)</details></li>
+    <li>Ha két napos ablakot használunk (H–K, Sze–Cs, P–Szo, V), hány pillanatfelvétel lesz, és hány esemény a legnagyobbikban?
+      <details><summary>Megoldás</summary>Négy pillanatfelvétel; a Sze–Cs ablakban $4 + 6 = 10$ esemény.</details></li>
+    <li>(nehezebb) Egy közösségi oldal percre pontos válaszláncairól van adatod. Melyik modelltípus illik jobban, és miért?
+      <details><summary>Megoldás</summary>Folytonos idejű: a percre pontos sorrend (ki kinek válaszolt, mennyi idő után) információ, amit egy napi pillanatfelvétel elmosna. Napi szintű összegzéshez (pl. heti hírnapirend) a pillanatfelvétel-modell is elég.</details></li>
+  </ol>
+</details>
+
+<h3 id="s125-b">2. lépés: csúcsmemória és időkódolás</h3>
+<p>A folytonos idejű modell lényege a <b>memória</b>: minden csúcs „emlékszik”, mi történt vele, és ez az emlék idővel halványul. Kezdjük egyetlen számmal.</p>
+
+<div class="box example" id="s125-b-memoria">
+  <span class="box-title">Kiinduló példa – mennyire „forró” a polgármester?</span>
+  Minden csúcsnak legyen egy $s_v$ száma: minden nap elején megfeleződik ($\lambda = 0{,}5$), és minden őt érintő esemény 1-gyel növeli. A Polgármester (Po):
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>nap</th><th>H</th><th>K</th><th>Sze</th><th>Cs</th><th>P</th><th>Szo</th><th>V</th></tr>
+    <tr><td>aznapi események</td><td>0</td><td>1</td><td>3</td><td>2</td><td>1</td><td>1</td><td>0</td></tr>
+    <tr><td>$s_{\mathrm{Po}}$ a nap végén</td><td>0</td><td>1</td><td>3,5</td><td>3,75</td><td>2,875</td><td>2,438</td><td>1,219</td></tr>
+  </table></div>
+  Szerdán $0{,}5 \cdot 1 + 3 = 3{,}5$; csütörtökön $0{,}5 \cdot 3{,}5 + 2 = 3{,}75$. A memória a <b>friss</b> aktivitást méri: a hét elején sokat szereplő Vízügy szombatra „kihűl”.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – csúcsmemória (TGN) és időkódolás (TGAT)</span>
+  A <b>TGN</b> minden $v$ csúcshoz egy $\mathbf s_v$ memóriavektort tart. Egy $(u, v, t)$ eseménynél:
+  $$\mathbf m_u = \operatorname{msg}\big(\mathbf s_u,\ \mathbf s_v,\ \phi(t - t_u^-),\ \mathbf e_{uv}\big), \qquad \mathbf s_u \leftarrow \operatorname{GRU}(\mathbf s_u,\ \mathbf m_u),$$
+  és ugyanígy $v$-re. Itt $t_u^-$ az $u$ előző eseményének ideje, $\mathbf e_{uv}$ az esemény jellemzője (pl. a cikk vektora), a GRU egy rekurrens cella (<a class="xref" href="../../mesterseges-intelligencia/12-beagyazasok-figyelem/#s123-c">MI 12.3</a>). A jósláshoz a memóriából és a friss szomszédokból egy GNN-réteg készít csúcsvektort.
+  <br>Az <b>időkódolás</b> (a TGAT-ból) az eltelt időt vektorrá alakítja, különböző frekvenciákkal:
+  $$\phi(\Delta t) = \big(\cos(\omega_1 \Delta t),\ \cos(\omega_2 \Delta t),\ \dots,\ \cos(\omega_k \Delta t)\big), \quad \omega_i \text{ tanult}.$$
+  <small>Miért így? A fenti $s \leftarrow \lambda s + 1$ ennek legegyszerűbb, egyszámos változata: a GRU tanulja meg, mit és mennyi ideig érdemes megjegyezni. Az időkódolás a Transformer pozíciókódolásának időbeli rokona (<a class="xref" href="../../mesterseges-intelligencia/12-beagyazasok-figyelem/#s125-c">MI 12.5</a>): a gyors frekvencia a közeli, a lassú a távoli időpontokat különbözteti meg.</small>
+</div>
+
+<div class="widget" data-widget="temporal-stream"></div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a Klímaváltozás memóriája</span>
+    $\lambda = 0{,}5$. Számold ki $s_{\mathrm{Kl}}$-t napról napra!
+    <details><summary>Megoldás</summary>H–Sze: 0 (nincs esemény). Cs: 2 (Ko–Kl, Sz–Kl). P: 1. Szo: $0{,}5 + 1 = 1{,}5$ (Sz–Kl). V: $0{,}75$. A Kl szerda estig „nem létezik” a memóriában – ez a <a class="xref" href="#s127-b">12.7</a>-ben fontos lesz.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – időkódolás két frekvenciával</span>
+    $\omega = (1;\ 0{,}25)$ (napokban). Mi $\phi(0)$, $\phi(1)$, $\phi(3)$?
+    <details><summary>Megoldás</summary>$\phi(0) = (1;\ 1)$, $\phi(1) \approx (0{,}540;\ 0{,}969)$, $\phi(3) \approx (-0{,}990;\ 0{,}732)$. A gyors koordináta 1 nap alatt sokat változik, a lassú alig – együtt a „ma”, a „tegnap” és a „három napja” mind más vektor.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A memóriát a jövővel frissíteni.</b> Ha a csütörtöki jósláskor a memóriában már a csütörtöki esemény is benne van, az szivárgás. A TGN ezért egy eseményt csak <b>utána</b> ír be a memóriába, hogy jósolt rá.</li>
+    <li><b>A memóriát „tudásnak” hinni.</b> Egy csúcs memóriája csak azt tartalmazza, amit látott. Egy új szereplőnek (vagy a szerda esti Kl-nek) üres a memóriája – a modell róla semmit nem tud.</li>
+    <li><b>A nagy $\lambda$-t mindig jobbnak venni.</b> $\lambda$ közel 1: hosszú emlékezet, lassú reagálás egy új eseményre; $\lambda$ közel 0: csak a tegnap számít. A jó érték a gráf ritmusától függ – ezért tanuljuk.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – memória és időkódolás</summary>
+  <ol>
+    <li>$\lambda = 0{,}5$. Mennyi a Kormány (Ko) memóriája szerda este? (Események: H 1, K 0, Sze 2.)
+      <details><summary>Megoldás</summary>H: 1; K: $0{,}5$; Sze: $0{,}25 + 2 = 2{,}25$.</details></li>
+    <li>Ugyanígy a Vízügy (Vi)? (H 2, K 1, Sze 2.)
+      <details><summary>Megoldás</summary>H: 2; K: $1 + 1 = 2$; Sze: $1 + 2 = 3$.</details></li>
+    <li>Szerda este ki a „legforróbb” szereplő?
+      <details><summary>Megoldás</summary>Po 3,5, aztán Vi 3, Ko 2,25, La 1,5, Ön 0,5, Sz 0,25, Kl 0.</details></li>
+    <li>$\lambda = 1$ esetén mit mér $s_v$?
+      <details><summary>Megoldás</summary>Az addigi események számát (semmi nem halványul) – ez az eseményfolyam fokszáma.</details></li>
+    <li>(nehezebb) $\omega = 1$-gyel $\cos(\Delta t)$ mennyi $\Delta t = 0$-nál és $\Delta t = 2\pi \approx 6{,}28$ napnál? Mi a gond ezzel, és mit old meg a több frekvencia?
+      <details><summary>Megoldás</summary>Mindkettőnél 1: egyetlen periodikus koordináta nem különbözteti meg a „most”-ot a „6,28 napja”-tól. Több, különböző (főleg lassú) frekvenciával a teljes vektor már különböző – mint a pozíciókódolásnál.</details></li>
+  </ol>
+</details>
+
+<h3 id="s125-c">3. lépés: kiértékelés – csak a múltból, és nehéz negatívákkal</h3>
+<p>Egy időbeli modell akkor jó, ha a <b>múltból</b> jósolja a jövőt. Ezt a <a class="xref" href="../11-csucsbeagyazasok/#s111-b">11.1</a> időbeli felosztása már megköveteli. De van egy második csapda is – és ezt egy olyan módszer leplezi le, amely <b>semmit nem tanul</b>.</p>
+
+<div class="box example" id="s125-c-edgebank">
+  <span class="box-title">Kiinduló példa – „ami volt, az lesz”</span>
+  Szerda este vágunk. A jóslási szabály: <b>egy pár akkor lesz esemény, ha már volt</b> (bármikor korábban). Ez az <b>EdgeBank</b>: pontszám 1 a látott pároknak, 0 a többinek; a memória minden nap végén bővül.
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>nap</th><th>események</th><th>látott pár volt?</th><th>találat</th></tr>
+    <tr><td>Cs</td><td>Ko–Sz, Ko–Kl, Sz–Kl, <b>Po–La</b>, Po–Ön, <b>La–Ön</b></td><td>Po–La (Sze), La–Ön (K)</td><td>2 / 6</td></tr>
+    <tr><td>P</td><td><b>Ko–Po</b></td><td>Ko–Po (Sze)</td><td>1 / 1</td></tr>
+    <tr><td>Szo</td><td><b>Sz–Kl</b>, <b>Po–Ön</b></td><td>mindkettő csütörtökön</td><td>2 / 2</td></tr>
+    <tr><td>V</td><td><b>La–Ön</b></td><td>igen</td><td>1 / 1</td></tr>
+  </table></div>
+  A 10 teszteseményből <b>6 ismétlés</b>: ezeket egy tanulás nélküli szabály is „eltalálja”. A maradék 4 (Ko–Sz, Ko–Kl, Sz–Kl, Po–Ön csütörtökön) új pár – ezekről az EdgeBank semmit nem tud.
+  <br>Most mérjük AUC-val (<a class="xref" href="../11-csucsbeagyazasok/#s113-b">11.3</a>), kétféle negatívval:
+  <ul style="margin:.2rem 0">
+    <li><b>könnyű negatívák</b>: soha nem látott párok (pontszám 0). Egy ismétlés (1) mindig nyer, egy új pár (0) holtverseny: $\text{AUC} = 0{,}6\cdot 1 + 0{,}4 \cdot \tfrac12 = \mathbf{0{,}8}$;</li>
+    <li><b>történeti negatívák</b>: korábban látott, de aznap <b>nem</b> előforduló párok (pontszám 1). Egy ismétlés holtverseny, egy új pár mindig veszít: $\text{AUC} = 0{,}6 \cdot \tfrac12 + 0{,}4 \cdot 0 = \mathbf{0{,}3}$ – a véletlennél is rosszabb.</li>
+  </ul>
+</div>
+
+<div class="box def">
+  <span class="box-title">Szabály – időbeli kiértékelés</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Időrendi felosztás:</b> tanítás → validáció → teszt, időben egymás után. A modell egy $t$ időpontú eseményt csak a $t$ előtti adatból jósolhat.</li>
+    <li><b>Erős alapvonalak:</b> az <b>EdgeBank</b> (ismétlés) és egy <b>népszerűségi</b> alapvonal (a legaktívabb csúcsok, mint a memória-szorzat) mindig fusson.</li>
+    <li><b>Többféle negatív:</b> a könnyű (véletlen) negatívák mellett <b>történeti</b> (korábban látott, most nem előforduló) és <b>induktív</b> (a tesztben először megjelenő) negatívák is. A könnyű negatívákkal mért eredmény egyedül félrevezető.</li>
+    <li><b>Ismételt élek külön:</b> közöld külön az ismétlődő és az új párokra elért eredményt.</li>
+  </ol>
+  <small>Miért ilyen fontos? Mert a valós időbeli gráfokban sok az ismétlés. F. Poursafaei és társai (2022) épp ezzel mutatták meg, hogy az EdgeBank sok akkori benchmarkon a mély modellekkel vetekszik – mert a szokásos véletlen negatívák túl könnyűek.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – minden nem előforduló pár</span>
+    Ha a negatívák az aznap <b>nem</b> előforduló összes pár (könnyű és történeti vegyesen), az EdgeBank AUC-ja 0,597 (74 negatív, ebből 30 látott). Miért van a két szélső érték között?
+    <details><summary>Megoldás</summary>Mert a negatívák kb. 60%-a soha nem látott (könnyű), kb. 40%-a látott (történeti). A kevert AUC a kettő súlyozott keveréke. Egy nagy, ritka valós gráfban a véletlen pár szinte mindig soha nem látott – ott az EdgeBank a könnyű 0,8 felé húz.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a népszerűségi alapvonal</span>
+    Szerda este a memória-szorzat ($s_u \cdot s_v$, $\lambda = 0{,}5$) szerint melyik <b>új</b> pár a legvalószínűbb? Megtalálja-e a csütörtöki Ko–Kl-t?
+    <details><summary>Megoldás</summary>A szerdai memóriák: Po 3,5, Vi 3, Ko 2,25, La 1,5, Ön 0,5, Sz 0,25, Kl 0. Új (még nem látott) pár: a legnagyobb a Vi–La ($3 \cdot 1{,}5 = 4{,}5$). A Ko–Kl pontszáma $2{,}25 \cdot 0 = 0$: a Kl-nek nincs memóriája, így semmilyen aktivitás-alapú módszer nem találja meg.</details>
+  </div>
+</div>
+
+<div class="box tip" id="s125-c-konszenzus">
+  <span class="box-title">⚖️ Konszenzus és vita – mennyit tudnak az időbeli gráfhálók?</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Konszenzus – a kiértékelés volt a gyenge pont.</b> Poursafaei és társai (2022) óta elfogadott, hogy kellenek a történeti és induktív negatívák és az EdgeBank-alapvonal. A <b>TGB</b> (S. Huang és társai, 2023) nagy, éveket átfogó adatkészleteken egységes protokollt ad; azt találták, hogy a modellek sorrendje adatkészletenként nagyon eltér, és a dinamikus <b>csúcs</b>tulajdonság-jóslásban egyszerű módszerek gyakran jobbak az időbeli GNN-eknél. A TGB 2.0 (Gastinger és társai, 2024) időbeli tudásgráfokon szintén azt kapta, hogy egyszerű heurisztikák gyakran versenyképesek, és a legnagyobb adatokon a legtöbb módszer el sem fut.</li>
+    <li><b>Vita – mit mérnek a benchmarkok?</b> L. Yi és társai (2025, TGB-Seq) szerint a régi adatkészletekben annyi az ismételt él, hogy a modellek főleg az ismétlést tanulják meg; ismétlésszegény adaton a mai modellek jelentősen romlanak. M. Daniluk és J. Dąbrowski (2023, előzetes közlés) egy „mostanában népszerű csúcsok” alapvonallal több TGB-adaton is legyőzte a modelleket. 2026-os előzetes közlések szerint is: néhány paraméteres, számlálás-alapú vagy időben csillapított PageRank-alapvonal sok adatkészleten az élmezőnyben van.</li>
+    <li><b>Ami biztos:</b> időbeli gráfmodellt csak EdgeBank- és népszerűségi alapvonallal, többféle negatívval szabad közölni. 📅 Állapot: 2026.</li>
+  </ul>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az időbeli adatot véletlenszerűen felosztani.</b> A csütörtöki esemény a vasárnapiból tanulna. Ugyanaz a hiba, mint a <a class="xref" href="../11-csucsbeagyazasok/#s111-b">11.1</a>-ben – időbeli gráfon még gyakoribb, mert sok könyvtár alapból véletlenül oszt.</li>
+    <li><b>Csak könnyű negatívákkal mérni.</b> Az EdgeBank 0,8-at kap anélkül, hogy bármit tudna. Ha egy modell 0,85-öt ér el, a különbség kicsi – a történeti negatívák mutatják meg, tud-e többet az ismétlésnél.</li>
+    <li><b>Az „új” és az „ismételt” jóslást összekeverni.</b> Egy hírelemzési kérdés legtöbbször az új kapcsolatokról szól (ki kerül új szövetségbe?). Ott az ismétlés-alapú pontosság semmit nem mond.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – időbeli kiértékelés</summary>
+  <ol>
+    <li>Ha a vágás csütörtök este lenne (tanítás H–Cs, teszt P–V), hány teszteseményt találna el az EdgeBank?
+      <details><summary>Megoldás</summary>Teszt: Ko–Po (P), Sz–Kl, Po–Ön (Szo), La–Ön (V) – mind a négy ismétlés: 4 / 4.</details></li>
+    <li>Egy teszthalmazban az események 80%-a ismétlés. Mennyi az EdgeBank AUC-ja könnyű negatívákkal?
+      <details><summary>Megoldás</summary>$0{,}8 \cdot 1 + 0{,}2 \cdot \tfrac12 = 0{,}9$.</details></li>
+    <li>Ugyanez történeti negatívákkal?
+      <details><summary>Megoldás</summary>$0{,}8 \cdot \tfrac12 + 0{,}2 \cdot 0 = 0{,}4$.</details></li>
+    <li>Egy modell AUC-ja könnyű negatívákkal 0,92, történetiekkel 0,55; az EdgeBanké 0,9 és 0,4. Mit tanult a modell az ismétlésen túl?
+      <details><summary>Megoldás</summary>Könnyű negatívákkal alig jobb (0,92 vs. 0,9). Történetiekkel 0,55 vs. 0,4: valamennyit tud arról, melyik látott pár ismétlődik <b>most</b> – de a 0,55 alig több a véletlennél. Kevés tanulható időbeli szerkezet van benne az ismétlésen túl.</details></li>
+    <li>(nehezebb) Miért 0,3 – a véletlennél rosszabb – az EdgeBank történeti negatívákkal a kiinduló példában?
+      <details><summary>Megoldás</summary>Mert a történeti negatívák mind pontszám 1-et kapnak, ugyanúgy, mint az ismétlések. Az ismétlések így csak holtversenyt érnek el (½), az új párok (0) pedig mindig alulmaradnak (0). Az EdgeBank szisztematikusan a <b>régi</b> párokat teszi előre – ezért rosszabb a véletlennél, ha a kérdés az, hogy „melyik régi pár ismétlődik ma”.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh12-125"></div>
+</section>

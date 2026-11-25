@@ -1,0 +1,96 @@
+# Gráfelmélet 12. fejezet – widgetírási útmutató
+
+Synopsis tananyag (statikus oldal, vanilla JS, nincs build-lépés, nincs külső könyvtár). A fejezet: **Gráf neurális hálók heterogén, időbeli és tudásgráfokon**
+(mappa: `grafelmelet-halozattudomany/12-gnn-heterogen-idobeli/`). Szakaszok:
+
+- 12.1 🔁 emlékeztető: üzenetküldés, GCN (az MI 13. fejezet öt barátja).
+- 12.2 **relációs GNN (R-GCN)**: éltípusonként külön súly, $\mathbf h_v' = \sigma\big(W_0\mathbf h_v + \sum_r \sum_{u \in N_r(v)} \tfrac{1}{|N_r(v)|} W_r \mathbf h_u\big)$; irányított élnél az inverz reláció külön típus; bázisfelbontás.
+- 12.3 **heterogén gráf, metaútvonal, HAN, HGT**: az Árvízhét heterogén gráfja (4 lap L, 12 cikk C, 7 szereplő Sz, 3 keret K, 6 esemény E); metaútvonal (pl. L–C–Sz–C–L) → homogén szomszédság, a szorzatmátrix $A_{LC}A_{CS}A_{CS}^\top A_{CL}$ az utak száma.
+- 12.4 **tudásgráf-beágyazás**: TransE $\mathbf h + \mathbf r \approx \mathbf t$, pontszám $-\lVert \mathbf h + \mathbf r - \mathbf t\rVert_2$, margós veszteség $\max(0, \gamma + d^+ - d^-)$, negatív mintavétel (a fej vagy a farok cseréje); DistMult $\sum_i h_i r_i t_i$ (szimmetrikus!); RotatE: $\mathbf t = \mathbf h \circ \mathbf r$ komplex forgatás, $|r_i| = 1$.
+- 12.5 **időbeli gráfok**: pillanatfelvétel vs. eseményfolyam; csúcsmemória ($s \leftarrow \lambda s + \text{aznapi események}$, egyszerűsített TGN); EdgeBank (ami volt, az lesz); könnyű vs. történeti negatívák.
+- 12.6 gyakorlati kérdések: heterofília metaútvonalanként, induktív beállítás (új cikk).
+- 12.7 alkalmazás: a cikkek keretének jóslása metaútvonal-szavazással (a HAN „szegény ember” változata).
+
+Két widgetíró dolgozik párhuzamosan:
+- **A** (`_parts/gh12/w1.js`): `relation-message`, `hetero-graph-explorer`, `metapath-vote`.
+- **B** (`_parts/gh12/w2.js`): `transe-2d`, `kg-patterns`, `temporal-stream`.
+Csak a saját fájlodba írj (és a saját teszt- / ellenőrzőfájljaidba, lásd lent).
+
+## Olvasd el
+- `assets/graph.js` – a közös `GraphKit` (GK): `View` (canvas: nodes `{label,x,y,color,ink,badge,sub}` [0;1]-es koordinátákkal, edges `{a,b,w}`; opciók `aspect, radius, editable, showWeights, weightWidth, draggable, directed, onNodeClick(i), onEdgeClick(i), onChange, onDraw(ctx,view), maxNodes`; élenként `color, width, dash, label, dir, alpha`; mezők `hl`, `hlE` (Set `GK.edgeKey(a,b)`), `dim`, `sel`; metódusok `setGraph, draw, layout(seed), animateTo, edgeList`), `GK.css`, `normalize`, `circleLayout`, `forceLayout`.
+  A `graph.js`-t **ne módosítsd**.
+- `_parts/gh12/w0.js` – a fejezet közös segédfüggvényei (az 1–11. fejezeté). **Ne módosítsd**, használd: `h, btn, header, toggleGroup, math, fmt, actorName, ACTOR_POS, texLab, mixColor, nbrs, bfsDist, rng(seed)` (mulberry32), `commColor, zeros, toMatrix, ARV_IDS, arvizMatrix(cikkszűrő), edgesFromMatrix, ARV_FIRST, ARV_SECOND, arvizGraph(szűrő), pairKey, nonEdges, aucPairs, rocPoints, eigSym, dot, dist, cosine`, … (nézd meg a fájlt). Ha további közös segédfüggvény kell, a saját fájlodban írd meg (egy `{ … }` blokkban).
+- Adatok: `window.ARVIZHET` (`grafelmelet-halozattudomany/arvizhet-data.js`): `papers, actors, days, articles` (`id, paper, day, title, mentions, speakers, frame` – a keret `vedekezes` / `hiany` / `veszteseg`, magyarul `frames`), `events` (E1–E6, `articles`), `relations` (`a, b, sign, article, text`), `triples`.
+- Mintának: `_parts/gh11/w1.js`, `_parts/gh11/w2.js` (stílus, felépítés, szöveg, `div.controls`, `div.readout`, táblázatok `div.tw`-ben, SVG-diagramok, adat-attribútum a teszteléshez: pl. `root.dataset.lh = JSON.stringify(…)`).
+
+A fájlod formája: `W["név"] = root => {…}` (a fájl a w0.js IIFE-jének közepére fűződik – `cat w0.js w1.js w2.js w9.js` –, saját IIFE nélkül; a saját segédfüggvényeidet tedd egy `{ … }` blokkba, hogy ne ütközzenek a másik fájl neveivel).
+
+A futó példa számai (Pythonnal ellenőrizve, `_parts/gh12/calc*.py`):
+- Cikkek kerete: 1, 2, 3, 10 védekezés; 4, 5, 6 felkészülési hiány; 7, 8, 9, 11, 12 lakossági veszteség. Lapok: RH 1–3, EK 4–6, NY 7–9, VN 10–12.
+- Heterogén gráf élei: lap–cikk 12, cikk–szereplő 27, cikk–keret 12, cikk–esemény 12 (63 él, 32 csúcs).
+
+## A író – `w1.js`
+
+1. **`relation-message`** (12.2, a szakasz fő widgetje). A négy szereplő: Ko, Vi, Po, Sz, az `ACTOR_POS` elrendezésével. Élek két típussal (az `ARVIZHET.relations`-ből): **támogat (+)**: Ko–Vi, Sz–Vi, Po–Ko, Vi–Po; **bírál (−)**: Sz → Ko. A + él folytonos, a − szaggatott (és jelmagyarázat „+ támogat”, „− bírál” – ne csak színnel). Opcionális gomb: „mind a 7 szereplő” (a többi reláció: La–Ön +, Po–La +, Po–Ön +).
+   Csúcsjellemző $x_v$: kattintásra 0 ↔ 1 vált (alap: Ko = 1, a többi 0 – „a kormány oldala”), a csúcson felirat.
+   Csúszkák: $w_0$ (saját; alap 1), $w_+$ (alap 1), $w_-$ (alap −1), tartomány −2 … 2, lépés 0,5. Gombsor: **„homogén (egy súly: $w_+$ minden élre)”** / **„R-GCN (típusonként)”** / **„R-GCN, irányított”** (ez utóbbiban a Sz → Ko él két üzenetet jelent: Ko felé $w_-$-szal „bírálja”, Sz felé egy negyedik csúszka, $w_{-^{-1}}$ (alap 0) – „bírálták”; a + élek irányítatlanok maradnak).
+   Képlet: $h_v' = w_0 x_v + \sum_r w_r \cdot \operatorname{átlag}_{u \in N_r(v)} x_u$ (az átlag $|N_r(v)|$-vel normál; üres $N_r(v)$-nél 0). Aktivációt NE alkalmazz (a negatív érték a lényeg); egy jelölőnégyzet: „ReLU” (alapból ki).
+   Egy kijelölt csúcsnál (kattintás a csúcs melletti táblázatsorra vagy a csúcsra hosszan / külön „ki?”-választóval – döntsd el, hogy a 0↔1 kattintással ne ütközzön; pl. a csúcsra kattintás kijelöl, a táblázatban gomb vált 0/1-et) mutasd a beérkező üzeneteket éltípus szerint, behelyettesítve (KaTeX), pl. $h_{\mathrm{Sz}}' = 1\cdot 0 + 1\cdot\operatorname{átlag}(0) + (-1)\cdot\operatorname{átlag}(1) = -1$.
+   Táblázat mind a négy csúcsra: $x$, $h'$ homogén, $h'$ R-GCN (mindkettő egyszerre látszik, a kiválasztott mód kiemelve).
+   **Ellenőrző számok** (alapállapot): homogén: Ko 1, Vi 0,333, Po 0,5, Sz 0,5; R-GCN: Ko 1, Vi 0,333, Po 0,5, Sz −1. Tanulság egy mondatban: „Homogén üzenetküldéssel a bíráló szakértő ugyanúgy »a kormány oldalán« áll, mint a támogató polgármester – az éltípus nélkül a modell nem tudja, mit jelent a kapcsolat.”
+   Paraméterszám-kiírás: „ennek a rétegnek $R + 1$ súlya van” (2 típus: 3; irányítottan: 4).
+
+2. **`hetero-graph-explorer`** (12.3, a fő widget). Az Árvízhét heterogén gráfja: 4 lap (RH, EK, NY, VN), 12 cikk (C1–C12), 7 szereplő, 3 keret (véd., hiány, veszt.), 6 esemény (E1–E6). Típusonként más alak vagy jelvény (ha a GraphKit csak kört tud, használj `badge`-et / `sub`-ot és típusonkénti színt + jelmagyarázatot; a csúcsfelirat rövid: RH, C5, Ko, E3, véd.). Elrendezés: oszlopokban (balra a lapok, aztán a cikkek, a szereplők, jobbra a keretek és az események) – vagy rétegezett; legyen olvasható 390 px-en is (ott lehet kisebb sugár, rövidebb felirat).
+   Csúcstípus-szűrő (jelölőnégyzetek: lap, cikk, szereplő, keret, esemény) – a kikapcsolt típus csúcsai és élei eltűnnek. Kiírás: csúcsok és élek száma típusonként (alap: 32 csúcs, 63 él: L–C 12, C–Sz 27, C–K 12, C–E 12).
+   Kis **hálózati séma** (SVG): 5 típuscsúcs, a 4 élttípus (közli, említi, keretezi, része) – a metaútvonal kijelölésekor a séma útja kiemelve.
+   **Metaútvonal-választó** (gombsor): `L–C–Sz–C–L` (lapok közös szereplőn át), `L–C–E–C–L` (lapok közös eseményen át), `L–C–K–C–L` (lapok közös kereten át), `Sz–C–Sz` (szereplők együttemlítése – az 1. fejezet szereplőgráfja!), `C–Sz–C` (cikkek közös szereplőn át), `C–L–C` (ugyanaz a lap), `C–E–C` (ugyanaz az esemény).
+   Választáskor: (a) a heterogén gráfban egy példa-út kiemelve (pl. RH – C2 – Po – C11 – VN), (b) mellette (vagy alatta) a **kapott homogén gráf** csak a kezdő/végtípus csúcsaival, élsúly = utak száma (szám az élen), (c) a **szorzatmátrix** táblázatként (főátlóval együtt, a főátlót halványítva, magyarázat: „a főátló: oda-vissza utak, nem szomszédság”).
+   **Ellenőrző számok** (sorrend RH, EK, NY, VN): L–C–Sz–C–L: [[17,5,2,8],[5,15,0,1],[2,0,19,9],[8,1,9,12]]; L–C–E–C–L: [[3,1,1,2],[1,5,0,0],[1,0,3,2],[2,0,2,3]]; L–C–K–C–L: [[9,0,0,3],[0,9,0,0],[0,0,9,6],[3,0,6,5]]. Sz–C–Sz főátlón kívül = az Árvízhét súlyozott szereplőgráfja (Ko–Vi 2, Ko–Po 2, Vi–Po 2, Vi–Sz 1, Sz–Kl 2, Ko–Sz 1, Ko–Kl 1, La–Ön 3, Po–La 2, Po–Ön 2); főátló (4,4,6,4,4,3,2) = az említések száma. C–Sz–C: 34 cikkpár szomszéd; C–L–C: 12; C–E–C: 7 (C1–C4, C2–C11, C3–C9, C3–C12, C5–C6, C7–C10, C9–C12).
+   Egy mondat a widget alján: „Egy metaútvonal = egy jelentés. Ugyanaz a heterogén gráf hétféle homogén gráfot ad – a modellnek (vagy neked) kell eldöntenie, melyik számít.”
+
+3. **`metapath-vote`** (12.7, alkalmazás; a 12.6-ban is hivatkozunk rá). A 12 cikk csúcsként (szín = valódi keret, jelmagyarázattal; a csúcsfelirat a cikk száma, alatta `sub`-ban a lap), élek: a választott metaútvonalak szerinti szomszédság.
+   Három csúszka: $\beta_{\text{C–L–C}}$ (ugyanaz a lap), $\beta_{\text{C–Sz–C}}$ (közös szereplők száma), $\beta_{\text{C–E–C}}$ (ugyanaz az esemény), 0 … 2, lépés 0,25; alap (1, 1, 0). Előbeállítás-gombok: „csak lap” (1,0,0), „csak szereplő” (0,1,0), „csak esemény” (0,0,1), „lap + szereplő” (1,1,0), „mind egyformán” (1,1,1).
+   Szavazás: minden $c$ cikkre, **kihagyva önmagát** (leave-one-out), a keretek pontszáma $\sum_\Phi \beta_\Phi \sum_{d \ne c} M^\Phi_{cd}\,[y_d = f]$, ahol $M^{\text{C–L–C}}$ 0/1 (ugyanaz a lap), $M^{\text{C–Sz–C}}_{cd}$ = a közös szereplők száma, $M^{\text{C–E–C}}$ 0/1. A legnagyobb pontszámú keret a jóslat; holtversenynél „döntetlen (véd./veszt.)” és a pontozásban $1/(\text{holtversenyzők száma})$, ha a valódi köztük van; ha minden pontszám 0, „nincs szomszéd” (0 pont).
+   Kimenet: táblázat (cikk, lap, valódi keret, a három keret pontszáma, jóslat, ✓ / ½ / ✗), összesítés: „várható találat: 11 / 12”, és összevetésként a **többségi alapvonal** 5/12 (mindenre „lakossági veszteség”). Metaútvonalanként az **élhomofília** (a szomszédos cikkpárok hány %-a azonos keretű): C–L–C 10/12 = 83%, C–Sz–C 19/34 = 56%, C–E–C 2/7 = 29%.
+   Második mód gombbal: **„új cikk”** – a tanuló kiválasztja, melyik szereplőket említi (jelölőnégyzetek) és melyik lap közli (vagy „ismeretlen lap”); ugyanazzal a szavazással (most az összes 12 cikk szavaz) kiírja a pontszámokat és a jóslatot.
+   **Ellenőrző számok** (várható találat): (1,0,0) 10; (0,1,0) 10,5; (0,0,1) 3; (1,1,0) 11; (1,1,1) 10,5; (1,1,0,5) 11. Hibás jóslatok (1,1,0)-nál: csak a C10 (valódi véd., jóslat veszt.). Új cikk: {Ko, Kl}, ismeretlen lap → véd. 3, hiány 3, veszt. 0 (döntetlen); {Ko, Kl} + EK → hiány 6, véd. 3; {Po, Ön} → veszt. 7, véd. 3; {Sz, Kl} → hiány 5.
+   Tanulság: „Az esemény-metaútvonal heterofil: egy eseményről több keretben írnak. Egyforma súllyal rontja a jóslatot – a HAN ezért tanul metaútvonal-súlyt.”
+
+## B író – `w2.js`
+
+4. **`transe-2d`** (12.4, a fő widget). SVG (vagy canvas) sík koordinátarácsal ($-1 \ldots 7$ mindkét tengelyen, egységnyi rácsvonalak). **Entitások** húzható pontként (felirat), **relációk** húzható vektorként (egy „fogantyú” a vektor végén; a vektor a kiválasztott hármas fejéből indul, szaggatottan a többi fejből is, kapcsolhatóan).
+   Előbeállítások (gombsor):
+   (a) **„fővárosok”**: Budapest (1,1), Bécs (1,3), Prága (1,5), Magyarország (4,2), Ausztria (4,4), Csehország (4,6); reláció *fővárosa* = (3, 1); hármasok: (Budapest, fővárosa, Magyarország), (Bécs, fővárosa, Ausztria), (Prága, fővárosa, Csehország).
+   (b) **„1–N: városai”**: Magyarország (1,3), Budapest (4,4), Debrecen (4,2); reláció *városa*; hármasok (Magyarország, városa, Budapest), (Magyarország, városa, Debrecen) – tanítás után Budapest és Debrecen összecsúszik (kiírás: távolságuk).
+   (c) **„szimmetrikus: házastársa”**: Anna (1,1), Béla (4,3); hármasok (Anna, házastársa, Béla), (Béla, házastársa, Anna) – tanítás után $\mathbf r \to 0$ és Anna ≈ Béla.
+   (d) **„Árvízhét”**: néhány hármas az `ARVIZHET.triples`-ből (pl. Szakértő bírálja Kormány; Polgármester köszönetet mond Kormány; Polgármester fórumot tart Lakók; Önkéntesek gyűjtést indít Lakók; Polgármester köszönti Önkéntesek), véletlen kezdőhelyzetből (rögzített mag).
+   Táblázat: minden hármas pontszáma $-\lVert \mathbf h + \mathbf r - \mathbf t\rVert$ (2 tizedes), élőben frissül húzás közben. **Lekérdezés**: legördülő fej + reláció → az összes entitás rangsora farokként (távolság szerint), a valódi farok kiemelve, a helyezése kiírva. Ellenőrzés: fővárosok, (Prága, fővárosa, ?): Csehország 0, Ausztria 2, Magyarország 4, …; (Budapest, fővárosa, Ausztria) pontszám −2.
+   **„Tanítás”** gomb (és „1 lépés”, „újrakezdés véletlen helyzetből”): SGD a margós veszteségre, $\gamma$ csúszka (0,5 … 3, alap 1), tanulási ráta (alap 0,05), minden lépésben minden pozitív hármashoz egy **negatív** (a farok vagy a fej véletlen cseréje egy másik entitásra), az L2-távolság gradiensével; animálva (requestAnimationFrame, leáll, ha nem látszik). Kiírás: átlagos veszteség, az aktuális negatív hármas(ok) szürkén.
+   Vezérlőn kívül egy mondat: „A TransE egy relációt egy eltolásnak tanul. Ami nem eltolás (szimmetrikus, 1–N), azt csak úgy tudja, hogy összenyomja a pontokat.”
+
+5. **`kg-patterns`** (12.4, TransE / DistMult / RotatE összevetése relációmintákon). Gombsor: **szimmetrikus** (házastársa), **antiszimmetrikus** (bírálja), **inverz** (szülője ↔ gyermeke), **összetett** (fővárosa ∘ része → városa EU-ban?; egyszerűbben: *anyja* ∘ *férje* = *apja*), **1–N** (városa).
+   Három panel egymás mellett (keskenyen egymás alatt):
+   - **TransE** (2D sík, $\mathbf h + \mathbf r$ nyíl),
+   - **DistMult** (a pontszám $\sum_i h_i r_i t_i$ kiírva a hármasra és a megfordítottjára; kis vektorok csúszkával: alap Sz = (1, 2), Ko = (2, 1), $\mathbf r$ = (1, 1) → mindkét irány 4),
+   - **RotatE** (egységkör a komplex síkon; az entitások szögként, húzható; a reláció forgatási szöge csúszkával, alap: Sz 0°, Ko 90°, $\varphi$ = 90° → $d(\mathrm{Sz}\circ r, \mathrm{Ko}) = 0$, $d(\mathrm{Ko}\circ r, \mathrm{Sz}) = 2$; 180°-nál mindkettő 0 → szimmetrikus).
+   Minden panel alatt ✓ / ✗: „ki tudja-e fejezni ezt a mintát?” – a szakirodalmi táblázat szerint (szimmetrikus: TransE ✗ (csak $\mathbf r = 0$), DistMult ✓, RotatE ✓; antiszimmetrikus: TransE ✓, DistMult ✗, RotatE ✓; inverz: TransE ✓ ($-\mathbf r$), DistMult ✗ (csak ha a reláció szimmetrikus), RotatE ✓ ($-\varphi$); összetett: TransE ✓ ($\mathbf r_1 + \mathbf r_2$), DistMult ✗, RotatE ✓ ($\varphi_1 + \varphi_2$); 1–N: egyik sem jól (a TransE / RotatE összenyomja a farkakat, a DistMult kicsit jobban bírja – írd: „részben”). A ✓/✗ mellett egy-egy mondatos indok, és ahol lehet, a panel élőben mutatja (pl. DistMult: a két irány pontszáma mindig egyenlő; RotatE inverz: $-\varphi$ visszaforgat).
+
+6. **`temporal-stream`** (12.5, a fő widget). Az Árvízhét **eseményfolyamként**: minden cikk minden említett szereplőpárja egy esemény $(u, v, t)$ a cikk napján – **18 esemény** (a sorrend napon belül a cikkszám szerint). Napok H, K, Sze, Cs, P, Szo, V.
+   Felül idővonal: napok, eseményjelölők (pöttyök naponként, cikkszám-felirattal); lejátszás-gomb, „1 nap előre / vissza”, csúszka. A **vágás** helye választható (alap: szerda után – „tanítás: H–Sze, teszt: Cs–V”), a teszt rész színezve.
+   Középen a szereplőgráf (`ACTOR_POS`), az aznapi élek kiemelve, a korábbiak halványan (kapcsolóval: **„pillanatfelvétel” mód** – csak az aznapi gráf –, illetve **„folyam” mód** – minden addigi él, a legutóbbi időpont szerint halványítva).
+   Jobb oldalt **csúcsmemória-sávok** (7 vízszintes sáv): $s_v \leftarrow \lambda s_v + (\text{a } v\text{-t érintő aznapi események száma})$ minden nap végén (a nap elején előbb a $\lambda$-szorzás, aztán a hozzáadás). $\lambda$ csúszka 0 … 1, alap 0,5. Ellenőrzés $\lambda = 0{,}5$-nél: Po: H 0, K 1, Sze 3,5, Cs 3,75, P 2,875, Szo 2,4375, V 1,21875; Kl: 0, 0, 0, 2, 1, 1,5, 0,75.
+   Alul a **jóslás** a teszt napjain: az **EdgeBank** (pontszám 1, ha a pár valaha előfordult a nap előtt, különben 0; a memória a nap végén frissül, az aznapi események egymást nem látják) és a **memória-szorzat** ($s_u \cdot s_v$ az előző nap végén; „aktivitás” alapvonal). Kiírás naponként: az aznapi események, mindegyiknél ✓, ha az EdgeBank 1-et adott; összesen **6 / 10** (Cs 2/6, P 1/1, Szo 2/2, V 1/1).
+   **Negatívák** választó: „könnyű: soha nem látott párok” / „történeti: látott, de ma nem előforduló párok” / „minden ma nem előforduló pár”. Az AUC (az összes teszt-pozitív esemény × a választott negatívak, holtverseny ½), mindkét módszerre: EdgeBank – könnyű **0,8**, történeti **0,3**, minden **0,597** (74 negatív); a memória-szorzatra is számold és írd ki (ezt nem ellenőriztük – számold a JS-ben, és jelentsd a végén, mit kaptál).
+   Tanulság: „Az EdgeBank semmit nem tanul, csak emlékszik. Könnyű negatívákkal mégis jónak látszik – történeti negatívákkal kiderül, hogy az új párokról semmit nem tud.”
+
+## Követelmények (mindkét írónak)
+Magyar, tegező, rövid feliratok; a W-függvény elején `header(root, cím, alcím)`; vezérlők `div.controls`-ban, kiírás `div.readout`-ban; témaváltáskor helyes színek (CSS-változók: `--accent`, `--text`, `--muted`, `--border`, `--card`, `--setA` kék, `--setB` narancs, `--setC` zöld – a feliratokban a színeket ne nevezd meg, inkább jelmagyarázattal és szimbólummal; a `mixColor` / `GK.css` minden rajzoláskor újraszámolandó, hogy a témaváltást kövesse).
+Mobilon is használható (pointer események; ne csak hover; 390 px szélességen se lógjon ki – a széles táblázatot tedd `div.tw` (overflow-x:auto) elembe; a panelek egymás alá kerüljenek keskeny képernyőn). KaTeX-et a `math(el)` renderel (a kiírásban a `$…$`-t a frissítés után renderelni kell; csak ritkán, ne minden animációs képkockán). Számok tizedesvesszővel (`fmt`), ezres tagolás szóközzel.
+A szereplőket a rövidítésükkel (Ko, Vi, Po, La, Ön, Sz, Kl) vagy a teljes nevükkel írd (`actorName`).
+Ne használj külső könyvtárat, ne írj /tmp-be (a munkafájlok a `_parts/gh12/` alatt legyenek), ne commitolj, más fejezet fájljaihoz ne nyúlj. Animációt állítsd le, ha a widget nem látszik (IntersectionObserver).
+Tesztelhetőség: a fontos állapotot tedd adat-attribútumba (pl. `root.dataset.rm = JSON.stringify({...})`), ahogy a `_parts/gh11/w1.js`.
+
+Ellenőrzés: teszteléshez írj saját tesztoldalt – **A**: `_parts/gh12/wtest1.html` + `wtest1-widgets.js` (`cat w0.js w1.js w9.js`), **B**: `_parts/gh12/wtest2.html` + `wtest2-widgets.js` (`cat w0.js w2.js w9.js`) – minta: `_parts/gh11/wtest1.html`.
+Playwright: `uv run -q --with playwright python -I …` (a Chromium: `sorted(glob.glob("/home/febert/.cache/ms-playwright/chromium_headless_shell-*/chrome-headless-shell-linux64/chrome-headless-shell"))[-1]`; http.server egy szabad porton a synopsis gyökerében – A: 8791-es, B: 8792-es port; utána állítsd le `fuser -k <port>/tcp`-vel, NE `pkill -f`-fel). A `_parts/gh11/wtest1.py` jó minta. Python-ellenőrzéshez: `_parts/gh12/run.sh szkript.py` (uv + networkx, numpy, scipy; modul `_parts/gh12/common.py`: `ART`, `ACT`, `DAYS`, `comat`), a szkriptek a `_parts/gh12/` mappába, `wcheckA_` / `wcheckB_` előtaggal.
+Kattintsd végig: nincs konzolhiba; a fenti ellenőrző számok egyeznek. Készíts képernyőképet `_parts/gh12/shots/wA-*.png` / `wB-*.png` néven (világos és sötét téma, 390 px szélesség is), és nézd meg őket.
+A végén röviden jelentsd: mit csináltál, mit ellenőriztél, és ha a fenti ellenőrző számok közül valami nem jött ki.

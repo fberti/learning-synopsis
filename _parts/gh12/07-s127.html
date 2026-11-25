@@ -1,0 +1,126 @@
+
+<!-- ===================================================== 12.7 -->
+<section id="s127">
+<h2>12.7 Alkalmazás: az Árvízhét heterogén, időbeli gráfja</h2>
+<p>Minden eszköz megvan. Térjünk vissza a <a class="xref" href="#s121-kerdes">fejezet kérdéséhez</a>: egy cikk keretét és a jövő heti szereplőpárokat akarjuk a gráfból jósolni. A 12 cikk kevés egy GNN tanításához – de pont elég ahhoz, hogy <b>kézzel</b> lássuk, mit csinálna egy heterogén és egy időbeli modell, és mihez kell mérni.</p>
+
+<h3 id="s127-a">1. lépés: a keret jóslása metaútvonal-szavazással</h3>
+<div class="box example" id="s127-a-szavazas">
+  <span class="box-title">A módszer – a HAN „szegény ember” változata</span>
+  Minden cikkre, <b>önmagát kihagyva</b> (leave-one-out), a többi cikk szavaz a keretére. Egy szomszéd szavazata a metaútvonal $\beta_\Phi$ súlyával számít (a C–Sz–C-n a közös szereplők számával is szorozva):
+  $$\text{pont}_c(f) = \sum_\Phi \beta_\Phi \sum_{d \ne c} M^\Phi_{cd}\,[y_d = f].$$
+  A legtöbb pontot kapó keret a jóslat; holtversenynél fél (vagy harmad) találatot számolunk, ha a helyes keret köztük van; ha egy cikknek az adott úton nincs szomszédja (mint a C8-nak az esemény-úton), nincs jóslat, és nincs találat sem. Ez pontosan egy egyrétegű, átlagoló, metaútvonalas GNN – tanult súlyok nélkül: a $\beta$-kat mi állítjuk.
+</div>
+
+<div class="widget" data-widget="metapath-vote"></div>
+
+<div class="box example" id="s127-a-eredmeny">
+  <span class="box-title">Eredmény – melyik út mennyit ér?</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>módszer</th><th>$\beta$ (lap; szereplő; esemény)</th><th>várható találat</th><th>élhomofília</th></tr>
+    <tr><td>többségi alapvonal (mind veszteség)</td><td>–</td><td>5 / 12</td><td>–</td></tr>
+    <tr><td>csak esemény (C–E–C)</td><td>(0; 0; 1)</td><td>3 / 12</td><td>29%</td></tr>
+    <tr><td>csak lap (C–L–C)</td><td>(1; 0; 0)</td><td>10 / 12</td><td>83%</td></tr>
+    <tr><td>csak szereplő (C–Sz–C)</td><td>(0; 1; 0)</td><td>10,5 / 12</td><td>56%</td></tr>
+    <tr><td><b>lap + szereplő</b></td><td>(1; 1; 0)</td><td><b>11 / 12</b></td><td></td></tr>
+    <tr><td>mind egyformán</td><td>(1; 1; 1)</td><td>10,5 / 12</td><td></td></tr>
+  </table></div>
+  Három tanulság:
+  <ol style="margin:.2rem 0">
+    <li><b>A heterofil út árt.</b> Az esemény-metaútvonal egyedül a többségi alapvonalnál is rosszabb (3 vs. 5), és egyforma súllyal hozzáadva a legjobb eredményt 11-ről 10,5-re rontja. A kérdés „melyik éltípust kell figyelmen kívül hagyni?” – válasza: <b>az eseményt</b>. A HAN szemantikai figyelme (<a class="xref" href="#s123-c">12.3</a>) éppen ezt a súlyt tanulná kicsire.</li>
+    <li><b>A két jó út kiegészíti egymást.</b> A lap egyedül a Vidéki Napló vegyes cikkeit hibázza el; a szereplők egyedül a C4-et hibázzák el, a C5-nél döntetlent adnak (szakértői cikkek, amelyek a Vízügyet, illetve a Kormányt is említik). Együtt csak egy hiba marad.</li>
+    <li><b>A C10-et egyik súlyozás sem menti meg,</b> amelyik a többi cikket is jól adja: a lapja veszteség-keretű, a szereplői vegyesek. A címe viszont egyértelműen védekezés – itt a szövegjellemző segítene (<a class="xref" href="#s126-c">12.6</a>).</li>
+  </ol>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Amire figyelni kell</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A $\beta$-kat ugyanazon a 12 cikken válogattuk, amelyen mérünk.</b> A „lap + szereplő = 11/12” így optimista: a súlyválasztás is egyfajta tanítás. Becsületesen a $\beta$-t is a kihagyott cikk nélkül kellene választani (beágyazott keresztvalidáció).</li>
+    <li><b>A lap „szokása” nem tartalom.</b> A C–L–C azért erős, mert az Árvízhétben minden lap többnyire egy keretben írt. Egy új lapnál, vagy ha egy lap keretet vált, ez a jel eltűnik. A modell itt <b>a lapot ismeri fel</b>, nem a keretet.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – keret-jóslás</summary>
+  <ol>
+    <li>A „csak lap” szavazásnál melyik cikkek jóslata döntetlen, és miért?
+      <details><summary>Megoldás</summary>A C11 és a C12: a VN-ben a másik két cikk egyike védekezés (C10), a másik veszteség – 1 : 1. A C10-nél viszont a két társ (C11, C12) mindkettő veszteség: biztos, de rossz jóslat.</details></li>
+    <li>Mennyi a „csak lap” várható találata, ha a két döntetlen fél találat?
+      <details><summary>Megoldás</summary>9 biztos találat (minden cikk az RH-ban, az EK-ban, az NY-ban) $+ 2 \cdot \tfrac12 = 10$.</details></li>
+    <li>A „csak szereplő” szavazásnál miért hibázza el a C4-et?
+      <details><summary>Megoldás</summary>A C4 (hiány) Vi-t és Sz-t említi. Vi-n át a C1, C2 (védekezés) és a C10 (védekezés), Sz-en át a C5, C6 (hiány) szavaz: védekezés 3, hiány 2 – a védekezés nyer.</details></li>
+    <li>Miért nem lehet egy cikk keretét egy „csak esemény” modellel jól jósolni?
+      <details><summary>Megoldás</summary>Mert egy eseményről a lapok különböző keretben írnak (az E1-ről az RH védekezésként, az EK hiányként) – az eseménytársak kerete a véletlen szinten van (29%).</details></li>
+    <li>(nehezebb) Hogyan választanád ki becsületesen a $\beta$-kat, ha csak ez a 12 cikk van?
+      <details><summary>Megoldás</summary>Beágyazott leave-one-out: minden kihagyott $c$ cikkre a $\beta$-t csak a maradék 11 cikken optimalizálod (azokon is leave-one-out-tal), és az így kapott $\beta$-val jósolod $c$-t. Az eredmény a választási lépés optimizmusától mentes – kis adaton nagyobb szórással.</details></li>
+  </ol>
+</details>
+
+<h3 id="s127-b">2. lépés: szerda este – a jövő hét párjai</h3>
+<div class="box example" id="s127-b-ido">
+  <span class="box-title">Az időbeli kérdés három módszerrel</span>
+  Vágás szerda este, teszt: a csütörtök–vasárnapi 10 esemény (<a class="xref" href="#s125-c-edgebank">12.5</a>).
+  <ul style="margin:.2rem 0">
+    <li><b>EdgeBank</b> (ismétlés): 6 / 10 eseményt „talál el” – mind ismételt pár. AUC könnyű negatívákkal 0,8, történetiekkel 0,3.</li>
+    <li><b>Memória-szorzat</b> (aktivitás, $\lambda = 0{,}5$): AUC könnyű negatívákkal 0,42, történetiekkel 0,29 – <b>rosszabb a véletlennél</b>. A szerdán aktív szereplők (Po, Vi) párjai sokszor nem jönnek elő, a csütörtöki új esemény (E5) pedig egy szerdán „hideg” szereplőt (Kl) hoz.</li>
+    <li><b>Szomszédsági heurisztikák</b> az új párokra (a <a class="xref" href="../11-csucsbeagyazasok/#s116-a">11.6</a> eredménye): a négy új pár közül a Ko–Sz-t a Jaccard, a Po–Ön-t az Adamic–Adar az első helyre teszi; a két Kl-es párt (Ko–Kl, Sz–Kl) egyik sem.</li>
+  </ul>
+  A három módszer <b>mást</b> tud: az EdgeBank az ismétléseket, a heurisztikák a „barátom barátja” típusú új párokat. Egy jó időbeli modellnek mindkettőt tudnia kell – és a TGN memóriája, a gráfrétege és a negatívákkal való tanítása pontosan ezt a kettőt próbálja összerakni.
+</div>
+
+<div class="box def">
+  <span class="box-title">Ami a gráfból nem jósolható</span>
+  A Ko–Kl és a Sz–Kl pár egy <b>új eseményből</b> jött (E5: „Vita a beruházásokról és a klímáról”, csütörtök). Szerda estig a Kl egyetlen cikkben sem szerepelt: nincs éle, nincs memóriája, nincs szomszédja. Semmilyen gráfmodell – se heurisztika, se TGN – nem tudhatja, hogy csütörtökön egy klímakutató megszólal.
+  <small>Ez nem a modellek hibája, hanem az adat határa. Egy ilyen „új téma” jóslásához a gráfon <b>kívüli</b> jel kell: például a szakértői közlemények szövege, a közösségi média, vagy a korábbi árvizek hírciklusa. A gráfmodell abban jó, ami a meglévő szerkezetből következik.</small>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – az időbeli kérdés</summary>
+  <ol>
+    <li>A 10 teszteseményből hány új pár, és melyek?
+      <details><summary>Megoldás</summary>4: Ko–Sz, Ko–Kl, Sz–Kl, Po–Ön – mind csütörtökön. (A Po–Ön szombaton már ismétlés.)</details></li>
+    <li>Melyik módszer adna jó jóslatot a szombati Sz–Kl eseményre, ha a vágás péntek este lenne?
+      <details><summary>Megoldás</summary>Az EdgeBank: a Sz–Kl csütörtökön már előfordult, így pénteken „látott” pár.</details></li>
+    <li>Miért nem segít a memória-szorzat a Ko–Kl párnál?
+      <details><summary>Megoldás</summary>Mert szerda este $s_{\mathrm{Kl}} = 0$, így a szorzat 0 – a pár a rangsor alján van.</details></li>
+    <li>Melyik két új párt találják meg a heurisztikák, és miért éppen azokat?
+      <details><summary>Megoldás</summary>Ko–Sz (közös szomszéd: Vi; Jaccard 1/2) és Po–Ön (közös szomszéd: La, akinek kevés kapcsolata van – nagy Adamic–Adar). Mindkettő „barátom barátja” – triadikus zárás (<a class="xref" href="../06-helyi-szerkezet/#s63-a">6.3</a>).</details></li>
+    <li>(nehezebb) Tervezz egy egyszerű, tanítás nélküli „hibrid” pontszámot, amely az ismétléseket és az új párokat is kezeli!
+      <details><summary>Megoldás</summary>Például: $s(u, v) = \text{EdgeBank}(u, v) + \varepsilon \cdot \text{AA}(u, v)$, kis $\varepsilon$-nal: a látott párok elöl, köztük és utánuk az Adamic–Adar dönt. Így az ismétlés és a triadikus zárás is számít. (A Kl-es párokat ez sem találja meg.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s127-c">3. lépés: a válasz – és egy ellenőrző lista</h3>
+<div class="box example" id="s127-c-valasz">
+  <span class="box-title">🎯 Válasz a fejezet kérdésére</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Keret:</b> a gráfból a 12 cikk keretének kb. 11-ét kitaláljuk – <b>ha a jó éleket használjuk</b>: a lapot és a közös szereplőket. Az esemény-élek heterofilek: a jóslatot rontják, ezért figyelmen kívül kell hagyni őket (vagy kis súlyt adni nekik). A többségi alapvonal 5/12 – a gráf tehát sokat ad. A maradék hibát (C10) a szöveg oldaná meg.</li>
+    <li><b>Idő:</b> a csütörtök–vasárnapi események 60%-a ismétlés – ezt egy „ami volt, az lesz” szabály is tudja, és könnyű negatívákkal 0,8-as AUC-t kap érte. Az új párok közül kettőt a szomszédsági heurisztikák megtalálnak; kettőt (a klímás párokat) semmilyen gráfmodell nem, mert egy új esemény hozta őket.</li>
+    <li><b>Mennyit ér az „okos” modell?</b> Ezen a kis gráfon semmi olyat nem tudna, amit a szavazás és a heurisztikák ne mutatnának meg – csak sokkal több paraméterrel. Nagy hírgráfon (ezer cikk, sok éltípus, szövegjellemzők) a heterogén és időbeli GNN-ek valóban többet tudnak; de ott is <b>ugyanezekhez</b> az alapvonalakhoz kell mérni őket.</li>
+  </ol>
+</div>
+
+<div class="box tip">
+  <span class="box-title">✅ Ellenőrző lista – GNN egy hírgráfon</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Típusok:</b> milyen csúcs- és éltípusok vannak? Irányítottak-e (inverz relációk)? Elég-e egy homogén GNN típusjelzővel?</li>
+    <li><b>Homofília:</b> metaútvonalanként / relációnként mennyi? Van-e heterofil (bírál, esemény) út, amit külön kell kezelni?</li>
+    <li><b>Idő:</b> időrendi felosztás; a memória, a szövegjellemzők (IDF, nyelvi modell) és a szereplővektorok is csak a múltból.</li>
+    <li><b>Induktivitás:</b> lesznek-e új cikkek, szereplők a tesztben? Akkor induktív modell és induktív negatívák.</li>
+    <li><b>Alapvonalak:</b> többség, csak szöveg, szavazás / heurisztika, homogén GAT, EdgeBank, népszerűség – ugyanazon a felosztáson, ugyanakkora hangolással.</li>
+    <li><b>Kiértékelés:</b> könnyű és nehéz (történeti) negatívák; ismétlés és új él külön; szűrt MRR a tudásgráfon; több véletlen mag, szórással.</li>
+    <li><b>Értelmezés:</b> a figyelmi súly nem magyarázat; amit egy új esemény hoz, azt a gráf nem tudhatja.</li>
+  </ol>
+</div>
+
+<div class="box tip">
+  <span class="box-title">⚖️ Konszenzus és vita – gráfmodellek a hírelemzésben</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Konszenzus:</b> a hírek természetes adatmodellje heterogén és időbeli gráf (lap, cikk, szereplő, esemény, olvasó). A típus- és az időinformáció figyelembe vétele a nagy benchmarkokon rendszeresen segít (<a class="xref" href="#s123-d-konszenzus">12.3</a>, <a class="xref" href="#s125-c-konszenzus">12.5</a>).</li>
+    <li><b>Vita:</b> mennyi ebből az architektúra, és mennyi a jó adatmodell, a jó jellemzők és a becsületes kiértékelés? Az újraértékelések (heterogén GNN-ek, időbeli GNN-ek, tudásgráf-beágyazások) mind azt találták, hogy a „haladás” egy része a gyengén beállított alapvonalakból jött. A hírelemzési alkalmazásokról (álhírfelismerés, hírajánlás) a 20. fejezet szól majd. 📅 Állapot: 2026.</li>
+  </ul>
+</div>
+
+<div class="quiz" data-quiz="gh12-127"></div>
+</section>

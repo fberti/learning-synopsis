@@ -843,6 +843,10 @@ node2vec; MI 12–13. fejezet.
 **Nagy kérdés:** *Egy hírgráfban vannak lapok, cikkek, szereplők, események és olvasók, és az élek időben érkeznek. Az MI
 13. fejezet GNN-je egyféle csúcsot és statikus gráfot ismer. Mi kell ahhoz, hogy ezen a gráfon is tanuljon?*
 
+> **Megvalósítás (2026-11-25):** mappa `12-gnn-heterogen-idobeli/`; a TERV hat szakasza + **12.7 Alkalmazás**. A nagy kérdés két feladat az Árvízhét heterogén, időbeli gráfján (32 csúcs: 4 L, 12 C, 7 Sz, 6 E, 3 K; 63 él): (1) a cikkek keretének jóslása leave-one-out metaútvonal-szavazással (többség 5/12; C–E–C 3, C–L–C 10, C–Sz–C 10,5, lap + szereplő 11, mind egyformán 10,5 – az esemény-metaútvonal heterofil: élhomofília 83% / 56% / 29%); (2) szerda esti vágás, 18 eseményből 10 teszt: EdgeBank 6/10, AUC könnyű negatívákkal 0,8, történetiekkel 0,3; memória-szorzat 0,42 / 0,29.
+> R-GCN: Ko, Vi, Po, Sz (+: Ko–Vi, Sz–Vi, Po–Ko, Vi–Po; −: Sz → Ko), $x_{\mathrm{Ko}} = 1$: homogén Sz 0,5, relációs −1. TransE: fővárosok 2D-ben, $\mathbf r = (3;1)$. RotatE: Sz 0°, Ko 90°. A GDELT helyett az Árvízhét.
+> Kvízek `gh12-121` … `gh12-127`, `gh12-final`. Widgetek: `relation-message`, `hetero-graph-explorer`, `metapath-vote`, `transe-2d`, `kg-patterns`, `temporal-stream`. Számolások: `_parts/gh12/calc*.py`; a Consensus-keresés eredményei a fejezet „Konszenzus és vita” dobozaiban (12.3, 12.4, 12.5, 12.7).
+
 **Cél:** az MI 13. fejezet **ismétlése** (üzenetküldés, GCN, GAT – „🔁 Emlékeztető”) és **kiterjesztése** a hírelemzés
 gráfjaira: relációs / heterogén GNN-ek (R-GCN, HAN, HGT), tudásgráf-beágyazás (TransE, DistMult, RotatE), időbeli gráfhálók
 (TGN, TGAT; pillanatfelvétel-alapú vs. folytonos idejű), és a hírelemzésben fontos gyakorlati kérdések (heterofília,

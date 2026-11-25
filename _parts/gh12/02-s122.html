@@ -1,0 +1,187 @@
+
+<!-- ===================================================== 12.2 -->
+<section id="s122">
+<h2>12.2 Relációs GNN ★★</h2>
+<p>Az első feltevés, amit feloldunk: <b>egyféle él</b>. Egy hírgráfban az él lehet említés, idézés, támogatás, bírálat. Ha mindegyik ugyanazzal a súllyal adja tovább az üzenetet, a modell nem tudja, mit jelent a kapcsolat.
+A megoldás egyszerű: <b>éltípusonként külön súly</b>.</p>
+
+<h3 id="s122-a">1. lépés: éltípusonként külön súly</h3>
+<div class="box example" id="s122-a-negy">
+  <span class="box-title">Kiinduló példa – a bírálat negatív üzenet</span>
+  Ugyanaz a négy szereplő, mint a <a class="xref" href="#s121-b-biral">12.1 kiinduló példájában</a>, és ugyanaz a jellemző: $x_{\mathrm{Ko}} = 1$, a többieké 0. Most két <b>relációt</b> (éltípust) különböztetünk meg: <b>támogat</b> ($+$) és <b>bírál</b> ($-$).
+  Mindkettőnek saját súlya van: $w_+ = 1$, $w_- = -1$, a saját értéké $w_0 = 1$. A szomszédok értékét relációnként átlagoljuk:
+  $$h_v' = w_0\, x_v + w_+ \cdot \mathop{\text{átlag}}_{u \in N_+(v)} x_u + w_- \cdot \mathop{\text{átlag}}_{u \in N_-(v)} x_u.$$
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>csúcs</th><th>$N_+$ (támogat)</th><th>$N_-$ (bírál)</th><th>homogén (egy súly)</th><th>relációs</th></tr>
+    <tr><td>Ko</td><td>Vi, Po</td><td>Sz</td><td>$1 + \tfrac{0+0+0}{3} = 1$</td><td>$1 + 1\cdot 0 + (-1)\cdot 0 = 1$</td></tr>
+    <tr><td>Vi</td><td>Ko, Sz, Po</td><td>–</td><td>$0 + \tfrac13 \approx 0{,}333$</td><td>$0 + \tfrac13 \approx 0{,}333$</td></tr>
+    <tr><td>Po</td><td>Ko, Vi</td><td>–</td><td>$0{,}5$</td><td>$0{,}5$</td></tr>
+    <tr><td>Sz</td><td>Vi</td><td>Ko</td><td>$0 + \tfrac{0+1}{2} = 0{,}5$</td><td>$0 + 1\cdot 0 + (-1)\cdot 1 = \mathbf{-1}$</td></tr>
+  </table></div>
+  A relációs változatban a polgármester $+0{,}5$, a szakértő $-1$: a modell most már „látja”, hogy az egyik a kormány mellett, a másik ellene áll. A többi csúcs értéke nem változott – rájuk nem fut bírálat.
+</div>
+
+<div class="box def" id="s122-a-def">
+  <span class="box-title">Definíció – relációs gráf konvolúció (R-GCN)</span>
+  Egy <b>relációs gráfban</b> minden élnek van egy típusa $r \in \mathcal R$. Az R-GCN rétege (M. Schlichtkrull és társai, 2018):
+  $$\mathbf h_v' = \sigma\Big(\mathbf h_v W_0 + \sum_{r \in \mathcal R}\ \sum_{u \in N_r(v)} \frac{1}{c_{v,r}}\, \mathbf h_u W_r\Big),$$
+  ahol $N_r(v)$ a $v$ szomszédai az $r$ típusú éleken át, $W_r$ az $r$ reláció súlymátrixa, $c_{v,r}$ normáló állandó – leggyakrabban $c_{v,r} = |N_r(v)|$, vagyis relációnkénti <b>átlag</b>.
+  <small>Miért így? Az üzenetküldés szerkezete ugyanaz, mint a <a class="xref" href="#s121-a">12.1</a>-ben; csak a $W$ függ attól, <b>milyen élen</b> jön az üzenet. Egyetlen reláció esetén visszakapjuk a sima üzenetküldő réteget. A súlyok továbbra is közösek: a „bírál” súlya minden bírálatnál ugyanaz.</small>
+</div>
+
+<div class="widget" data-widget="relation-message"></div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – ki hall bírálatot?</span>
+    Most a szakértő értéke 1, a többieké 0: $x_{\mathrm{Sz}} = 1$. Mennyi Ko értéke homogén és relációs lépés után ($w_0 = w_+ = 1$, $w_- = -1$)?
+    <details><summary>Megoldás</summary>Homogén: $0 + \tfrac{0 + 0 + 1}{3} \approx 0{,}333$ – a kormány „kicsit szakértői” lett. Relációs: $0 + 1\cdot\tfrac{0 + 0}{2} + (-1)\cdot 1 = -1$ – a kormány a szakértőtől bírálatot hall. Ugyanaz a szomszéd, ellentétes jelentés.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egyforma súly, mégis más</span>
+    Legyen $w_+ = w_- = 1$ (a két reláció súlya egyenlő), $x_{\mathrm{Ko}} = 1$. Megegyezik-e a relációs eredmény a homogénnel Sz-nél?
+    <details><summary>Megoldás</summary>Nem. Homogén: $\tfrac{0 + 1}{2} = 0{,}5$ (a két szomszéd átlaga). Relációs: $\tfrac{0}{1} + \tfrac{1}{1} = 1$ (relációnként külön átlag, aztán összeg). A relációnkénti normálás miatt egy ritka reláció egyetlen éle ugyanannyit nyom, mint egy gyakori reláció összes éle együtt.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A teljes szomszédsággal normálni.</b> Az R-GCN relációnként normál ($c_{v,r} = |N_r(v)|$). Ha mindent a teljes fokszámmal osztasz, az egy másik (szintén létező) változat – a számok mások lesznek.</li>
+    <li><b>Elfelejteni a saját tagot.</b> Ha nincs $W_0$ (vagy önhurok), a csúcs elfelejti a saját értékét: Ko a fenti példában 0-t kapna.</li>
+    <li><b>A negatív kimenetet ReLU-val levágni.</b> Ha a rejtett rétegben ReLU van, a $-1$-ből 0 lesz, és a bíráló szakértő egy „semleges” csúccsal esik egybe. A jel nem vész el – a $W$ több dimenziója több irányt tud kódolni –, de egyetlen skalárral a ReLU tényleg eltünteti.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – relációs lépés</summary>
+  <ol>
+    <li>A négy szereplőn $x_{\mathrm{Vi}} = 1$, a többieké 0, $w_0 = w_+ = 1$, $w_- = -1$. Számold ki mind a négy relációs értéket!
+      <details><summary>Megoldás</summary>Ko: $0 + \tfrac{1 + 0}{2} - 0 = 0{,}5$; Vi: $1 + \tfrac{0+0+0}{3} = 1$; Po: $0 + \tfrac{0 + 1}{2} = 0{,}5$; Sz: $0 + \tfrac{1}{1} - \tfrac{0}{1} = 1$.</details></li>
+    <li>Ugyanebben a helyzetben mennyi a homogén érték Ko-nál és Sz-nél?
+      <details><summary>Megoldás</summary>Ko: $\tfrac{1 + 0 + 0}{3} \approx 0{,}333$; Sz: $\tfrac{1 + 0}{2} = 0{,}5$.</details></li>
+    <li>$x_{\mathrm{Ko}} = 1$, de most $w_- = -2$. Mennyi Sz relációs értéke?
+      <details><summary>Megoldás</summary>$0 + 1\cdot 0 + (-2)\cdot 1 = -2$.</details></li>
+    <li>Egy skalár R-GCN-rétegnek (a $W_0$, $W_r$ mind egyetlen szám) két relációval hány paramétere van? És öttel?
+      <details><summary>Megoldás</summary>$R + 1$: két relációval 3, öttel 6 (eltolás nélkül).</details></li>
+    <li>(nehezebb) Mutasd meg, hogy ha csak egyetlen reláció van, és $c_{v,r} = |N(v)|$, az R-GCN a <a class="xref" href="#s121-a">12.1</a> átlagoló üzenetküldő rétege!
+      <details><summary>Megoldás</summary>Egy relációval $N_r(v) = N(v)$, így $\mathbf h_v' = \sigma\big(\mathbf h_v W_0 + \tfrac{1}{|N(v)|}\sum_{u \in N(v)} \mathbf h_u W_1\big)$ – ez az átlaggal gyűjtő üzenetküldő réteg $W_1 \to W_0$, $W_2 \to W_1$ átnevezéssel.</details></li>
+  </ol>
+</details>
+
+<h3 id="s122-b">2. lépés: az irány is típus – inverz relációk</h3>
+<p>Az 5. cikkben a szakértő bírálja a kormányt – nem fordítva. Az előző lépésben a „bírál” élt irányítatlannak vettük: Sz is ugyanazzal a $w_-$-szal hallott Ko-tól, mint Ko Sz-től. Pedig <b>bírálni</b> és <b>bíráltnak lenni</b> két különböző szerep.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – bíráló és bírált</span>
+  Bontsuk a Sz → Ko élt két üzenetre: Ko felé a <b>bírálja</b> ($w_-$), Sz felé a <b>bírálták tőle</b> – az inverz reláció ($w_{-^{-1}}$). Legyen $w_- = -1$, $w_{-^{-1}} = 0$.
+  <ul style="margin:.2rem 0">
+    <li>$x_{\mathrm{Sz}} = 1$: Ko kapja a bírálatot, $h_{\mathrm{Ko}}' = -1$ (mint eddig).</li>
+    <li>$x_{\mathrm{Ko}} = 1$: Sz most az inverz élen hall Ko-tól, $h_{\mathrm{Sz}}' = 0 + 0 + 0\cdot 1 = 0$. Irányítatlanul $-1$ lett volna.</li>
+  </ul>
+  A két szerep most külön súlyt kap, és a tanítás dönti el, mennyit ér az egyik és a másik. Egy irányított relációból így <b>két</b> reláció lesz.
+</div>
+
+<div class="box def">
+  <span class="box-title">Szabály – inverz relációk és paraméterszám</span>
+  Irányított gráfban minden $r$ relációhoz felvesszük az <b>inverzét</b>, $r^{-1}$-et: ha $u \xrightarrow{r} v$, akkor $v \xrightarrow{r^{-1}} u$. Így minden csúcs mindkét irányból kap üzenetet, de más-más súllyal.
+  Egy R-GCN-réteg paraméterszáma $d$ dimenziós bemenetnél és $d'$ dimenziós kimenetnél:
+  $$(R + 1)\cdot d\cdot d', \qquad R = \text{a relációk száma az inverzekkel együtt}.$$
+  <small>Miért nő gyorsan? Mert minden reláció egy teljes $d \times d'$-s mátrixot kap. Egy eseménykódolási sémában (a GDELT a CAMEO kódrendszert használja, 20 főkategóriával) már a főkategóriák is 40 relációt adnak az inverzekkel.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – két reláció, irányítva</span>
+    „Támogat” és „bírál”, mindkettő irányított, $d = d' = 16$. Hány súly van egy rétegben?
+    <details><summary>Megoldás</summary>Az inverzekkel $R = 4$, plusz a $W_0$: $5 \cdot 16 \cdot 16 = 1280$.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy eseménykódrendszer</span>
+    20 főkategória, irányítva, $d = d' = 16$. Hány súly?
+    <details><summary>Megoldás</summary>$R = 40$: $41 \cdot 256 = 10\,496$. Ha egy ritka relációt csak néhányszor látunk, a saját $16\times 16$-os mátrixát ennyiből nem lehet megbízhatóan megtanulni.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az inverzt kihagyni.</b> Ha csak $u \to v$ irányban küldünk üzenetet, a $v$-ről semmi nem jut vissza $u$-hoz: a bíráló nem tudja meg, kit bírált. Az R-GCN ezért mindig felveszi az inverz relációkat.</li>
+    <li><b>Az inverzet ugyanazzal a súllyal venni.</b> Akkor az irány megint elvész – épp ez az irányítatlan változat.</li>
+    <li><b>A szimmetrikus relációt duplázni.</b> A „közösen nyilatkozik” szimmetrikus: ott az inverz ugyanaz a reláció, nem kell külön súly.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – inverz relációk</summary>
+  <ol>
+    <li>Az Árvízhét relációi: „támogat” (szimmetrikusnak vesszük) és „bírál” (irányított). Hány reláció kell az R-GCN-ben?
+      <details><summary>Megoldás</summary>Három: támogat, bírál, bírál$^{-1}$.</details></li>
+    <li>Három irányított reláció, $d = d' = 32$. Hány súly van egy rétegben?
+      <details><summary>Megoldás</summary>$R = 6$, plusz $W_0$: $7 \cdot 32 \cdot 32 = 7168$.</details></li>
+    <li>20 irányított reláció, $d = d' = 64$. Hány súly van egy rétegben?
+      <details><summary>Megoldás</summary>$41 \cdot 64 \cdot 64 = 167\,936$.</details></li>
+    <li>A kiinduló példában $w_- = -1$, $w_{-^{-1}} = -0{,}5$, $x_{\mathrm{Ko}} = 1$. Mennyi Sz értéke?
+      <details><summary>Megoldás</summary>$0 + 1\cdot 0$ (Vi támogatja) $+ (-0{,}5)\cdot 1 = -0{,}5$.</details></li>
+    <li>(nehezebb) Egy hivatkozási gráfban „A cikk idézi B-t”. Mit jelent az üzenet A → B és B → A irányban, és miért hasznos mindkettő?
+      <details><summary>Megoldás</summary>B felé (idézi): „ki épít rám” – a későbbi cikkek témája jellemzi B hatását. A felé (idézték, inverz): „mire épít” – a forrásai jellemzik A tartalmát. Mindkettő más információ; az inverz nélkül A semmit nem tudna meg a forrásairól.</details></li>
+  </ol>
+</details>
+
+<h3 id="s122-c">3. lépés: sok reláció, kevés adat – bázisfelbontás</h3>
+<p>Az előző lépés vége a gond: sok relációval a paraméterszám elszáll, a ritka relációkhoz pedig nincs elég adat. Az ötlet: a relációk <b>ne teljesen függetlenek</b> legyenek, hanem néhány közös „alapmátrix” keverékei.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két alapmátrix</span>
+  Legyen két közös alapmátrix: $V_1 = I$ (a jel változatlanul megy át) és $V_2 = \begin{pmatrix}0 & 1\\ 1 & 0\end{pmatrix}$ (a két dimenzió helyet cserél). Minden reláció ezek keveréke:
+  $$W_{\text{támogat}} = 1\cdot V_1 + 0{,}5\cdot V_2 = \begin{pmatrix}1 & 0{,}5\\ 0{,}5 & 1\end{pmatrix}, \qquad W_{\text{bírál}} = -1\cdot V_1 + 0\cdot V_2 = \begin{pmatrix}-1 & 0\\ 0 & -1\end{pmatrix}.$$
+  Egy relációt most nem 4 szám ír le, hanem 2 együttható. Egy új, ritka reláció (pl. „idézi”) is két együtthatóval elintézhető, a két alapmátrixot pedig az összes reláció adatából tanuljuk.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – bázisfelbontás</span>
+  $$W_r = \sum_{b=1}^{B} a_{rb}\, V_b,$$
+  ahol $V_1, \dots, V_B$ közös <b>alapmátrixok</b> ($d \times d'$), $a_{rb}$ relációnkénti skalár együtthatók. A paraméterszám rétegenként:
+  $$B\cdot d\cdot d' + R\cdot B + d\cdot d' \quad\text{(alapmátrixok + együtthatók + } W_0\text{)}.$$
+  <small>Miért segít? A relációk megosztják a statisztikai erőt: a gyakori relációk adataiból tanult $V_b$-ket a ritkák is használják. (Az R-GCN-cikk egy másik megoldást is ad: blokkdiagonális $W_r$-t, kevesebb kapcsolattal a dimenziók között.)</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – 40 reláció, 4 alapmátrix</span>
+    $R = 40$, $d = d' = 16$, $B = 4$. Mennyi a paraméterszám bázisfelbontással, és mennyi nélküle?
+    <details><summary>Megoldás</summary>Vele: $4\cdot 256 + 40\cdot 4 + 256 = 1440$. Nélküle: $41 \cdot 256 = 10\,496$. Hétszer kevesebb.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – mikor nem segít?</span>
+    Csak 2 reláció van, $d = d' = 16$, $B = 2$. Megéri-e?
+    <details><summary>Megoldás</summary>Nem: $2\cdot 256 + 2 \cdot 2 + 256 = 772$, nélküle $3 \cdot 256 = 768$. Kevés relációnál a felbontás nem spórol – sok, ritka reláció esetén hasznos.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Azt hinni, hogy a bázisfelbontás „ingyen” van.</b> A relációk így egy $B$ dimenziós térbe kényszerülnek. Ha két reláció tényleg teljesen különböző, kis $B$ mellett összemosódhatnak.</li>
+    <li><b>Az együtthatók jelentését túlolvasni.</b> Az $a_{rb}$ nem „a reláció jelentése”: az alapmátrixok forgatásával más együtthatók ugyanazt a $W_r$-t adják.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – bázisfelbontás</summary>
+  <ol>
+    <li>Az alapmátrixok $V_1 = I$, $V_2 = \begin{pmatrix}0&1\\1&0\end{pmatrix}$. Mi a $W_r$, ha $a_r = (0;\ 1)$?
+      <details><summary>Megoldás</summary>$W_r = V_2 = \begin{pmatrix}0&1\\1&0\end{pmatrix}$: a reláció a két jellemzőt felcseréli.</details></li>
+    <li>Ugyanezekkel: $a_r = (2;\ -1)$?
+      <details><summary>Megoldás</summary>$\begin{pmatrix}2 & -1\\ -1 & 2\end{pmatrix}$.</details></li>
+    <li>$R = 40$, $d = d' = 64$, $B = 8$. Hány paraméter van rétegenként?
+      <details><summary>Megoldás</summary>$8 \cdot 4096 + 40 \cdot 8 + 4096 = 37\,184$ (nélküle $167\,936$).</details></li>
+    <li>Egy rétegben $R = 10$, $d = d' = 16$. Hány alapmátrixnál lesz a felbontás <b>drágább</b>, mint nélküle?
+      <details><summary>Megoldás</summary>Nélküle $11 \cdot 256 = 2816$. Vele $256B + 10B + 256 = 266B + 256$. Ez $B = 10$-nél $2916 \gt 2816$, $B = 9$-nél $2650 \lt 2816$. Tehát $B \ge 10$-nél drágább – akkor már ne bontsd.</details></li>
+    <li>(nehezebb) Miért lehet hasznos bázisfelbontás akkor is, ha a paraméterszám nem kritikus?
+      <details><summary>Megoldás</summary>A ritka relációk miatt: egy 5-ször előforduló reláció saját mátrixa túlilleszt, a közös alapmátrixok viszont a gyakori relációk adataiból tanulnak. A felbontás tehát <b>regularizál</b> – a hasonló relációkat egymáshoz közelíti.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh12-122"></div>
+</section>

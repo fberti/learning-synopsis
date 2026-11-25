@@ -1,0 +1,1726 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>12. Gráf neurális hálók heterogén, időbeli és tudásgráfokon – Gráfelmélet és hálózattudomány – Synopsis</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="../../assets/common.js"></script>
+  <script defer src="../../assets/quiz.js"></script>
+  <script defer src="../../assets/graph.js"></script>
+  <script defer src="../arvizhet-data.js"></script>
+  <script defer src="../../mesterseges-intelligencia/13-graf-neuralis-halok/graph-data.js"></script>
+  <script defer src="../08-kozossegek/lesmis-data.js"></script>
+  <script defer src="widgets.js"></script>
+  <script defer src="quizzes.js"></script>
+</head>
+<body>
+<div class="progressbar"></div>
+<header class="topbar">
+  <a class="brand" href="../../">📚 Synopsis</a>
+  <span class="crumbs"><a href="../../">Tartalomjegyzék</a> › <a href="../">Gráfelmélet és hálózattudomány</a> › 12. fejezet</span>
+  <button class="icon-btn" data-theme-toggle title="Téma váltása">🌙</button>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <div class="toc-title">12. fejezet</div>
+  <ol>
+    <li><a href="#s121">12.1 🔁 Üzenetküldés</a></li>
+    <li><a href="#s122">12.2 Relációs GNN</a></li>
+    <li><a href="#s123">12.3 Heterogén GNN-ek</a></li>
+    <li><a href="#s124">12.4 Tudásgráf-beágyazás</a></li>
+    <li><a href="#s125">12.5 Időbeli gráfhálók</a></li>
+    <li><a href="#s126">12.6 Gyakorlati kérdések</a></li>
+    <li><a href="#s127">12.7 Alkalmazás</a></li>
+    <li><a href="#s-sum">Összefoglalás</a></li>
+    <li><a href="#s-check">Ellenőrző kérdések</a></li>
+    <li><a href="#s-ex">Vegyes gyakorló feladatok</a></li>
+    <li><a href="#s-final">Fejezetzáró teszt</a></li>
+    <li><a href="#s-gloss">Szómagyarázó</a></li>
+  </ol>
+</nav>
+
+<main class="content">
+
+<section class="hero" style="padding-top:.5rem">
+  <div class="kicker">Gráfelmélet és hálózattudomány · 12. fejezet · ★★–★★★ · III. blokk: gépi tanulás gráfokon</div>
+  <h1>Gráf neurális hálók heterogén, időbeli és tudásgráfokon</h1>
+  <p class="lead">A gráf neurális háló (GNN) a szomszédoktól gyűjt információt. A <a href="../../mesterseges-intelligencia/13-graf-neuralis-halok/">Mesterséges intelligencia 13. fejezetében</a> egy egyszerű gráfon láttuk: egyféle csúcs, egyféle él, és a gráf nem változik.
+  Egy hírgráf nem ilyen. Vannak benne <b>lapok, cikkek, szereplők, események, keretek</b>; egy él jelenthet <b>említést, támogatást, bírálatot</b>; és az élek <b>napról napra érkeznek</b>.
+  Ebben a fejezetben sorra feloldjuk az egyszerű GNN feltevéseit – és minden lépésnél megnézzük, mennyit nyerünk egy egyszerű alapvonalhoz képest.</p>
+</section>
+
+<div class="box tip">
+  <span class="box-title">Mit fogsz megtanulni?</span>
+  <ul style="margin:.2rem 0">
+    <li>felismerni, mit tételez fel hallgatólagosan a <b>GCN</b>, és melyik feltevés sérül egy hírgráfon;</li>
+    <li>kiszámolni kézzel egy <b>relációs (R-GCN)</b> lépést, ahol minden éltípusnak saját súlya van, és megszámolni a paramétereket;</li>
+    <li><b>metaútvonalakkal</b> homogén szomszédságot készíteni egy heterogén gráfból, és megérteni a <b>HAN</b> és a <b>HGT</b> ötletét;</li>
+    <li>hármasokat pontozni <b>TransE</b>-vel, <b>DistMult</b>-tal és <b>RotatE</b>-vel – és megmondani, melyik milyen relációt tud kifejezni;</li>
+    <li>megkülönböztetni a <b>pillanatfelvétel-alapú</b> és a <b>folytonos idejű</b> gráfhálót, és becsületesen kiértékelni egy időbeli jóslást (EdgeBank, nehéz negatívák);</li>
+    <li>eldönteni, mikor éri meg egy bonyolult modell – és mikor nyer az egyszerű alapvonal.</li>
+  </ul>
+</div>
+
+<div class="box">
+  <span class="box-title">🔁 Amit használni fogunk</span>
+  A Mesterséges intelligencia 13. fejezetéből: az <b>üzenetküldés</b> (<a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s133-a">MI 13.3</a>), a <b>GCN</b> (<a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s134-b">MI 13.4</a>), a <b>GraphSAGE</b> és a <b>GAT</b> (<a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s135-a">MI 13.5</a>), a <b>heterofília</b> (<a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s137-c">MI 13.7</a>). A figyelem és a beágyazás: <a class="xref" href="../../mesterseges-intelligencia/12-beagyazasok-figyelem/#s124-b">MI 12.4</a>.
+  Ebből a témakörből: a <b>heterogén gráf és a metaútvonal</b> (<a class="xref" href="../03-graftipusok/#s36-b">3.6</a>), az <b>időbeli gráf</b> (<a class="xref" href="../03-graftipusok/#s35-a">3.5</a>), az <b>előjeles élek</b> (<a class="xref" href="../03-graftipusok/#s33-a">3.3</a>), a <b>homofília</b> (<a class="xref" href="../06-helyi-szerkezet/#s62-a">6.2</a>),
+  és a 11. fejezet egésze: <b>kapcsolat-előrejelzés</b>, AUC, szivárgás, időbeli felosztás (<a class="xref" href="../11-csucsbeagyazasok/#s111-b">11.1</a>, <a class="xref" href="../11-csucsbeagyazasok/#s113-b">11.3</a>).
+</div>
+
+<div class="box example" id="s121-kerdes">
+  <span class="box-title">🎯 A fejezet kérdése</span>
+  Tegyük az Árvízhét minden adatát egyetlen gráfba: 4 lap, 12 cikk, 7 szereplő, 6 esemény és 3 keret – és minden cikkhez egy nap. Két feladatot adunk egy modellnek:
+  <ol style="margin:.3rem 0">
+    <li><b>Keret:</b> rejtsük el egy cikk keretét (védekezés, felkészülési hiány, lakossági veszteség). Kitalálható-e a gráfból – abból, hogy melyik lap közölte, kiket említ, melyik eseményről szól?</li>
+    <li><b>Idő:</b> szerda este vagyunk. Mely szereplőpárok kerülnek a hét hátralévő részében egy cikkbe?</li>
+  </ol>
+  Mennyit ér itt egy „okos” gráfmodell egy egyszerű szavazáshoz vagy egy „ami volt, az lesz” szabályhoz képest? És melyik éltípust kell <b>figyelmen kívül hagyni</b>, hogy a jóslat jobb legyen? A válasz a <a href="#s127">12.7</a>-ben.
+</div>
+
+<p><b>Útiterv</b> – a homogén GNN-től a heterogén, időbeli gráfig:</p>
+<ol>
+  <li><a href="#s121">🔁 Üzenetküldés</a> – egy GCN-lépés emlékeztetőül, és a négy hallgatólagos feltevés.</li>
+  <li><a href="#s122">Relációs GNN</a> – ha az élnek típusa van: „támogat” és „bírál” nem ugyanaz.</li>
+  <li><a href="#s123">Heterogén GNN-ek</a> – ha a csúcsnak is típusa van: metaútvonalak, HAN, HGT.</li>
+  <li><a href="#s124">Tudásgráf-beágyazás</a> – hármasok pontozása: TransE, DistMult, RotatE.</li>
+  <li><a href="#s125">Időbeli gráfhálók</a> – pillanatfelvétel vagy eseményfolyam; csúcsmemória; az EdgeBank tanulsága.</li>
+  <li><a href="#s126">Gyakorlati kérdések</a> – heterofília, új csúcsok, szövegjellemzők, és mikor nyer az alapvonal.</li>
+  <li><a href="#s127">Alkalmazás</a> – a fejezet két kérdése az Árvízhéten.</li>
+</ol>
+
+<div class="box tip">
+  <span class="box-title">📐 Jelölések ebben a fejezetben</span>
+  $G = (V, E)$ a gráf, $\mathbf h_v$ a $v$ csúcs vektora (rétegről rétegre $\mathbf h_v'$), $\mathbf x_v$ a bemeneti jellemzője. $N(v)$ a szomszédság.
+  Relációs gráfban $\mathcal R$ a relációk (éltípusok) halmaza, $R = |\mathcal R|$, és $N_r(v)$ a $v$ szomszédai az $r$ típusú éleken át. $W_r$ az $r$ reláció súlymátrixa, $W_0$ a saját vektoré.
+  Heterogén gráfban $\tau(v)$ a csúcs típusa (L lap, C cikk, Sz szereplő, E esemény, K keret), $\Phi$ egy metaútvonal (pl. L–C–Sz–C–L).
+  Tudásgráfban a hármas $(h, r, t)$: fej (head), reláció, farok (tail); a vektoraik $\mathbf h, \mathbf r, \mathbf t$. Időbeli gráfban az esemény $(u, v, t)$, $t$ az időpont, $s_v$ a csúcs memóriája.
+  <br><small>⚠️ A $t$ betű kétszer szerepel: a tudásgráfban a farok, az időbeli gráfban az idő. A szakaszok külön tárgyalják őket, így nem keverednek. A $\mathbf h$ is kettős: GNN-ben csúcsvektor, a tudásgráfban a fej vektora – mindkettő „egy entitás vektora”.</small>
+</div>
+
+<!-- ===================================================== 12.1 -->
+<section id="s121">
+<h2>12.1 🔁 Emlékeztető: üzenetküldés ★★</h2>
+<p>A GNN-t a Mesterséges intelligencia témakör 13. fejezete részletesen felépítette. Itt csak annyit ismétlünk, amennyire a fejezetben építünk: egy réteg számolását, kézzel.
+Utána megnézzük, mit <b>feltételez</b> hallgatólagosan ez a számolás – mert a fejezet többi része éppen ezeket a feltevéseket oldja fel.</p>
+
+<h3 id="s121-a">1. lépés: egy réteg kézzel – gyűjtés, frissítés, normalizálás</h3>
+<div class="box example" id="s121-a-ot">
+  <span class="box-title">Kiinduló példa – öt barát</span>
+  Az MI 13. fejezet futó példája (<a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s133-a">MI 13.3</a>): öt ember, Anna, Bence, Csilla, Dávid, Emese (A–E), és a barátságaik.
+  <div class="gfig" data-nodes="A,B,C,D,E" data-edges="A-B,A-C,B-C,B-D,D-E"
+    data-pos="A:0,0 C:0,1 B:1,.5 D:2,.5 E:3,.5" data-w="300" data-h="130" data-r="15"
+    data-caption="Öt barát: élek A–B, A–C, B–C, B–D, D–E"></div>
+  Minden csúcsnak egy száma van: hány koncerten volt idén. $\mathbf x = (1;\ 0;\ 0;\ 0;\ 5)$ – Anna egyen, Emese ötön, a többiek egyen sem.
+  Egy üzenetküldő lépés: mindenki <b>összegyűjti</b> a barátai számát (itt átlaggal), aztán <b>frissíti</b> a sajátját: $h' = \operatorname{ReLU}(0{,}5\cdot x + 1\cdot m)$.
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>csúcs</th><th>szomszédai</th><th>$m$ (átlag)</th><th>$h' = 0{,}5x + m$</th></tr>
+    <tr><td>A</td><td>B, C</td><td>0</td><td>0,5</td></tr>
+    <tr><td>B</td><td>A, C, D</td><td>0,333</td><td>0,333</td></tr>
+    <tr><td>C</td><td>A, B</td><td>0,5</td><td>0,5</td></tr>
+    <tr><td>D</td><td>B, E</td><td>2,5</td><td>2,5</td></tr>
+    <tr><td>E</td><td>D</td><td>0</td><td>2,5</td></tr>
+  </table></div>
+  Dávid, aki sosem volt koncerten, most 2,5-öt „tud”: Emesétől hallotta.
+</div>
+
+<div class="box def">
+  <span class="box-title">🔁 Emlékeztető – üzenetküldő réteg és GCN</span>
+  Az <b>üzenetküldő réteg</b> minden $v$ csúcsra egyszerre:
+  $$\mathbf m_v = \bigoplus_{u \in N(v)} \mathbf h_u W_2, \qquad \mathbf h_v' = \sigma\big(\mathbf h_v W_1 + \mathbf m_v\big),$$
+  ahol $\bigoplus$ összeg, átlag vagy maximum. A <b>GCN</b> (Kipf és Welling, 2017) ennek egy változata: minden csúcs önhurkot kap ($\hat A = A + I$), és az élt a két végpont fokszámának mértani közepével osztja:
+  $$H' = \sigma\big(\hat D^{-1/2}\hat A\hat D^{-1/2} H W\big), \qquad \hat d_v = \deg(v) + 1.$$
+  <small>Miért így? A gyűjtés halmazon számol, ezért nem számít a csúcsok számozása. A súlyok ($W$) <b>minden csúcsnál ugyanazok</b>: a paraméterek száma nem függ a gráf méretétől. Részletesen: <a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s133-a">MI 13.3</a> és <a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s134-b">MI 13.4</a>.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy GCN-lépés Dávidnál</span>
+    Dávid önhurkos fokszáma $\hat d_D = 3$, szomszédaié $\hat d_B = 4$, $\hat d_E = 2$. Mennyi a $P\mathbf x$ Dávidnál ($P = \hat D^{-1/2}\hat A\hat D^{-1/2}$)?
+    <details><summary>Megoldás</summary>$\tfrac{1}{\sqrt{3\cdot 4}}\cdot 0 + \tfrac13\cdot 0 + \tfrac{1}{\sqrt{3\cdot 2}}\cdot 5 = \tfrac{5}{\sqrt 6} \approx 2{,}041$. A teljes vektor: $P\mathbf x \approx (0{,}333;\ 0{,}289;\ 0{,}333;\ 2{,}041;\ 2{,}5)$ – ugyanaz, mint az <a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s134-b">MI 13.4</a>-ben.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a súly közös</span>
+    Egy GCN-réteg 16 dimenziós vektorokat 8 dimenziósra képez. Hány súlya van az öt barát gráfján, és hány egy millió csúcsú gráfon?
+    <details><summary>Megoldás</summary>Mindkettőn $16 \cdot 8 = 128$ (plusz 8 eltolás, ha van). A $W$ minden csúcsnál ugyanaz. Ez a GNN ereje – és, mint látni fogjuk, a korlátja is: <b>minden élen ugyanaz a $W$</b>.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Elfelejteni az önhurkot a fokszámban.</b> A GCN-ben $\hat d_v = \deg(v) + 1$. Dávidnál 3, nem 2.</li>
+    <li><b>Sorban frissíteni.</b> Mindenki a <b>régi</b> értékekből számol. Ha Dávid már a frissített Bence-értéket látná, a csúcsok sorrendje számítana.</li>
+    <li><b>Azt hinni, hogy a réteg „megtanulja”, kinek mennyit higgyen.</b> A GCN súlyát a fokszám dönti el, nem a tartalom. Tanult, szomszédonként más súly a GAT-ban van (<a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s135-b">MI 13.5</a>).</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – egy réteg kézzel</summary>
+  <ol>
+    <li>Az öt barát gráfján $\mathbf x = (1;\ 0;\ 0;\ 0;\ 5)$. Mi a szomszédok <b>összege</b>, $A\mathbf x$?
+      <details><summary>Megoldás</summary>A: $0 + 0 = 0$; B: $1 + 0 + 0 = 1$; C: $1 + 0 = 1$; D: $0 + 5 = 5$; E: $0$. Tehát $(0;\ 1;\ 1;\ 5;\ 0)$.</details></li>
+    <li>És önhurokkal, $(A + I)\mathbf x$?
+      <details><summary>Megoldás</summary>Mindenkinél hozzáadódik a saját érték: $(1;\ 1;\ 1;\ 5;\ 5)$. Emese most nem felejti el a saját ötösét.</details></li>
+    <li>Mekkora a GCN-ben a D–E él súlya, $P_{DE}$?
+      <details><summary>Megoldás</summary>$\hat d_D = 3$, $\hat d_E = 2$: $P_{DE} = 1/\sqrt{6} \approx 0{,}408$.</details></li>
+    <li>Mennyi Emese értéke egy GCN-lépés után ($P\mathbf x$, $W = 1$, aktiváció nélkül)?
+      <details><summary>Megoldás</summary>$P_{EE}\cdot 5 + P_{ED}\cdot 0 = \tfrac12\cdot 5 = 2{,}5$.</details></li>
+    <li>(nehezebb) Két GCN-réteg után legfeljebb hány lépésnyire lévő csúcsok értéke juthat el Annához? Eljut-e hozzá Emese ötöse?
+      <details><summary>Megoldás</summary>Két lépésnyire: $k$ réteg = $k$ ugrás (<a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s133-b">MI 13.3</a>). Anna és Emese távolsága 3 (A–B–D–E), ezért két réteg után Emese ötöse még nem ér el Annához – három után igen.</details></li>
+  </ol>
+</details>
+
+<h3 id="s121-b">2. lépés: mit tételez fel a GCN? – négy hallgatólagos feltevés</h3>
+<p>Az öt barát gráfján minden él ugyanazt jelenti (barátság), minden csúcs ugyanolyan (ember), és a gráf nem változik. Egy hírgráfban egyik sem igaz. Nézzük meg, mi történik, ha mégis GCN-t futtatunk rajta.</p>
+
+<div class="box example" id="s121-b-biral">
+  <span class="box-title">Kiinduló példa – a támogató és a bíráló ugyanazt hallja</span>
+  Az Árvízhét négy szereplője, Ko (Kormány), Vi (Vízügy), Po (Polgármester) és Sz (Szakértő) között a cikkek öt viszonyt írnak le, két típusból (<a class="xref" href="../03-graftipusok/#s33-a">3.3</a>):
+  Ko–Vi, Sz–Vi, Po–Ko és Vi–Po <b>támogató</b>, Sz → Ko <b>bíráló</b> (5. cikk: „szakértő bírálja a kormányt”).
+  <div class="gfig" data-nodes="Ko,Vi,Po,Sz" data-edges="Ko-Vi,Sz-Vi,Po-Ko,Vi-Po,Sz-Ko" data-hl="Sz-Ko"
+    data-pos="Sz:0,.5 Ko:1.3,.5 Vi:.65,1 Po:1.6,1.3" data-w="280" data-h="170" data-r="15"
+    data-caption="Négy szereplő; a kiemelt él (Sz–Ko) bírálat, a többi támogatás"></div>
+  Jelölje $x = 1$ a „kormány oldalát”: Ko értéke 1, a többieké 0. Egy átlagoló lépés ($h' = x + \mathop{\text{átlag}}$) után:
+  Po szomszédai Ko és Vi → $0 + \tfrac{1 + 0}{2} = 0{,}5$; Sz szomszédai Vi és Ko → $0 + \tfrac{0 + 1}{2} = 0{,}5$.
+  <b>A támogató polgármester és a bíráló szakértő ugyanannyira „a kormány oldalán” áll.</b> A modell számára egy él csak annyi: „kapcsolatban vannak”. Hogy a kapcsolat mit jelent, azt nem látja.
+</div>
+
+<div class="box def">
+  <span class="box-title">Összefoglaló – a GCN négy hallgatólagos feltevése</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>feltevés</th><th>mit jelent</th><th>a hírgráfban</th><th>hol oldjuk fel?</th></tr>
+    <tr><td>1. egyféle él</td><td>minden élen ugyanaz a $W$</td><td>említi, idézi, támogatja, bírálja</td><td><a class="xref" href="#s122">12.2</a> relációs GNN</td></tr>
+    <tr><td>2. egyféle csúcs</td><td>minden csúcs jellemzője ugyanabban a térben van</td><td>lap, cikk, szereplő, esemény, keret</td><td><a class="xref" href="#s123">12.3</a> heterogén GNN; <a class="xref" href="#s124">12.4</a> tudásgráf</td></tr>
+    <tr><td>3. statikus gráf</td><td>az élek egyszerre, idő nélkül adottak</td><td>a cikkek napról napra jönnek</td><td><a class="xref" href="#s125">12.5</a> időbeli gráfhálók</td></tr>
+    <tr><td>4. a szomszéd hasonló</td><td>a gyűjtés „átlagol”, ami homofil gráfon segít</td><td>a bíráló és a bírált szomszéd, de nem hasonló</td><td><a class="xref" href="#s126">12.6</a> heterofília</td></tr>
+  </table></div>
+  <small>Miért fontos ezt kimondani? Mert egy GCN-t <b>minden</b> gráfra le lehet futtatni, és mindig ad valamilyen számot. Hogy a szám értelmes-e, az azon múlik, teljesülnek-e ezek a feltevések. A homofíliáról és a heterofíliáról: <a class="xref" href="../06-helyi-szerkezet/#s62-a">6.2</a>, <a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s137-c">MI 13.7</a>.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – két csúcstípus egy térben?</span>
+    Egy gráfban a cikkek jellemzője egy 384 dimenziós szövegbeágyazás, a lapoké három szám (példányszám, alapítás éve, megjelenési gyakoriság). Futtatható-e rajtuk közvetlenül egy közös GCN-réteg?
+    <details><summary>Megoldás</summary>Nem: a $\mathbf h_u W$ szorzásban a $W$ sorainak száma a bemenet dimenziója. 384 és 3 dimenziós vektort ugyanaz a $W$ nem szoroz. Típusonként külön bemeneti vetítés kell (a <a class="xref" href="#s123">12.3</a> HGT-je pontosan ezt csinálja) – vagy közös jellemzőtér (pl. csak egy „típus” jelölő).</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a statikus gráf szivárog</span>
+    Az Árvízhét teljes szereplőgráfján tanítunk egy GCN-t, és azt kérdezzük: szerda este látszott-e már a Sz–Kl kapcsolat? Mi a baj?
+    <details><summary>Megoldás</summary>A Sz–Kl él csak csütörtöktől van meg (5. cikk). Az összevont gráf a jövőt is tartalmazza, így a modell „tudja”, ami szerdán még nem volt tudható. Ugyanaz a szivárgás, mint a <a class="xref" href="../11-csucsbeagyazasok/#s113-d">11.3</a>-ban – az időbeli gráfhoz időrendet tartó modell kell (<a class="xref" href="#s125">12.5</a>).</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az éltípust élsúlynak tenni.</b> Ha a bírálatot $-1$ súlyú élként adod meg, a GCN normalizálása ($\sqrt{\hat d_u \hat d_v}$) nem a negatív súlyhoz készült, és a fokszámok értelmetlenné válnak. A típus nem szám – saját paraméter kell neki (<a class="xref" href="#s122">12.2</a>).</li>
+    <li><b>A csúcstípust elhagyni.</b> Ha a lap, a cikk és a szereplő egyformán „csúcs”, a modell nem tudja, hogy egy lap–cikk él mást jelent, mint egy cikk–szereplő él.</li>
+    <li><b>Azt hinni, hogy a heterogén modell mindig jobb.</b> A feltevések feloldása paraméterekbe kerül. Kis adaton a gondosan hangolt homogén modell gyakran ugyanolyan jó (<a class="xref" href="#s123-d">12.3</a>).</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – melyik feltevés sérül?</summary>
+  <ol>
+    <li>Egy követési hálózatban (ki kit követ) a „követ” él irányított. Melyik feltevés sérülhet, ha irányítatlan GCN-t futtatsz?
+      <details><summary>Megoldás</summary>Az 1.: az „$u$ követi $v$-t” és a „$v$-t követi $u$” két különböző viszony. Irányítatlanná téve a kettő összeolvad. Megoldás: az irány maga is éltípus (inverz reláció, <a class="xref" href="#s122-b">12.2</a>).</details></li>
+    <li>Egy cikk–szereplő páros gráfon (<a class="xref" href="../03-graftipusok/#s34-a">3.4</a>) homogén GCN-t futtatunk. Melyik feltevés sérül?
+      <details><summary>Megoldás</summary>A 2.: két csúcstípus van. (Gyakran az 1. is: az egyetlen éltípus „említi” – az még rendben van.)</details></li>
+    <li>Az öt barát gráfján $\mathbf x = (0;\ 0;\ 0;\ 1;\ 0)$ (csak Dávid). Átlagoló lépés után ($h' = x + \mathop{\text{átlag}}$) mennyi Bence és Emese értéke?
+      <details><summary>Megoldás</summary>Bence: $0 + \tfrac{0 + 0 + 1}{3} \approx 0{,}333$. Emese: $0 + \tfrac{1}{1} = 1$.</details></li>
+    <li>A kiinduló példában számold ki Ko és Vi értékét is ugyanazzal a lépéssel!
+      <details><summary>Megoldás</summary>Ko szomszédai Vi, Po, Sz: $1 + \tfrac{0 + 0 + 0}{3} = 1$. Vi szomszédai Ko, Sz, Po: $0 + \tfrac{1 + 0 + 0}{3} \approx 0{,}333$.</details></li>
+    <li>(nehezebb) Adj egy olyan hírgráfos feladatot, ahol a 4. feltevés (a szomszéd hasonló) <b>igaz</b>, és egyet, ahol nem!
+      <details><summary>Megoldás</summary>Igaz például: cikkek hivatkozási gráfja, a cél a téma – a hivatkozott cikk többnyire hasonló témájú. Nem igaz: szereplők viszonygráfja, a cél a „tábor” – a bírálat épp két ellentétes tábor között fut. (Hasonlóan: ugyanarról az eseményről több keretben írnak – <a class="xref" href="#s126">12.6</a>.)</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh12-121"></div>
+</section>
+
+<!-- ===================================================== 12.2 -->
+<section id="s122">
+<h2>12.2 Relációs GNN ★★</h2>
+<p>Az első feltevés, amit feloldunk: <b>egyféle él</b>. Egy hírgráfban az él lehet említés, idézés, támogatás, bírálat. Ha mindegyik ugyanazzal a súllyal adja tovább az üzenetet, a modell nem tudja, mit jelent a kapcsolat.
+A megoldás egyszerű: <b>éltípusonként külön súly</b>.</p>
+
+<h3 id="s122-a">1. lépés: éltípusonként külön súly</h3>
+<div class="box example" id="s122-a-negy">
+  <span class="box-title">Kiinduló példa – a bírálat negatív üzenet</span>
+  Ugyanaz a négy szereplő, mint a <a class="xref" href="#s121-b-biral">12.1 kiinduló példájában</a>, és ugyanaz a jellemző: $x_{\mathrm{Ko}} = 1$, a többieké 0. Most két <b>relációt</b> (éltípust) különböztetünk meg: <b>támogat</b> ($+$) és <b>bírál</b> ($-$).
+  Mindkettőnek saját súlya van: $w_+ = 1$, $w_- = -1$, a saját értéké $w_0 = 1$. A szomszédok értékét relációnként átlagoljuk:
+  $$h_v' = w_0\, x_v + w_+ \cdot \mathop{\text{átlag}}_{u \in N_+(v)} x_u + w_- \cdot \mathop{\text{átlag}}_{u \in N_-(v)} x_u.$$
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>csúcs</th><th>$N_+$ (támogat)</th><th>$N_-$ (bírál)</th><th>homogén (egy súly)</th><th>relációs</th></tr>
+    <tr><td>Ko</td><td>Vi, Po</td><td>Sz</td><td>$1 + \tfrac{0+0+0}{3} = 1$</td><td>$1 + 1\cdot 0 + (-1)\cdot 0 = 1$</td></tr>
+    <tr><td>Vi</td><td>Ko, Sz, Po</td><td>–</td><td>$0 + \tfrac13 \approx 0{,}333$</td><td>$0 + \tfrac13 \approx 0{,}333$</td></tr>
+    <tr><td>Po</td><td>Ko, Vi</td><td>–</td><td>$0{,}5$</td><td>$0{,}5$</td></tr>
+    <tr><td>Sz</td><td>Vi</td><td>Ko</td><td>$0 + \tfrac{0+1}{2} = 0{,}5$</td><td>$0 + 1\cdot 0 + (-1)\cdot 1 = \mathbf{-1}$</td></tr>
+  </table></div>
+  A relációs változatban a polgármester $+0{,}5$, a szakértő $-1$: a modell most már „látja”, hogy az egyik a kormány mellett, a másik ellene áll. A többi csúcs értéke nem változott – rájuk nem fut bírálat.
+</div>
+
+<div class="box def" id="s122-a-def">
+  <span class="box-title">Definíció – relációs gráf konvolúció (R-GCN)</span>
+  Egy <b>relációs gráfban</b> minden élnek van egy típusa $r \in \mathcal R$. Az R-GCN rétege (M. Schlichtkrull és társai, 2018):
+  $$\mathbf h_v' = \sigma\Big(\mathbf h_v W_0 + \sum_{r \in \mathcal R}\ \sum_{u \in N_r(v)} \frac{1}{c_{v,r}}\, \mathbf h_u W_r\Big),$$
+  ahol $N_r(v)$ a $v$ szomszédai az $r$ típusú éleken át, $W_r$ az $r$ reláció súlymátrixa, $c_{v,r}$ normáló állandó – leggyakrabban $c_{v,r} = |N_r(v)|$, vagyis relációnkénti <b>átlag</b>.
+  <small>Miért így? Az üzenetküldés szerkezete ugyanaz, mint a <a class="xref" href="#s121-a">12.1</a>-ben; csak a $W$ függ attól, <b>milyen élen</b> jön az üzenet. Egyetlen reláció esetén visszakapjuk a sima üzenetküldő réteget. A súlyok továbbra is közösek: a „bírál” súlya minden bírálatnál ugyanaz.</small>
+</div>
+
+<div class="widget" data-widget="relation-message"></div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – ki hall bírálatot?</span>
+    Most a szakértő értéke 1, a többieké 0: $x_{\mathrm{Sz}} = 1$. Mennyi Ko értéke homogén és relációs lépés után ($w_0 = w_+ = 1$, $w_- = -1$)?
+    <details><summary>Megoldás</summary>Homogén: $0 + \tfrac{0 + 0 + 1}{3} \approx 0{,}333$ – a kormány „kicsit szakértői” lett. Relációs: $0 + 1\cdot\tfrac{0 + 0}{2} + (-1)\cdot 1 = -1$ – a kormány a szakértőtől bírálatot hall. Ugyanaz a szomszéd, ellentétes jelentés.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egyforma súly, mégis más</span>
+    Legyen $w_+ = w_- = 1$ (a két reláció súlya egyenlő), $x_{\mathrm{Ko}} = 1$. Megegyezik-e a relációs eredmény a homogénnel Sz-nél?
+    <details><summary>Megoldás</summary>Nem. Homogén: $\tfrac{0 + 1}{2} = 0{,}5$ (a két szomszéd átlaga). Relációs: $\tfrac{0}{1} + \tfrac{1}{1} = 1$ (relációnként külön átlag, aztán összeg). A relációnkénti normálás miatt egy ritka reláció egyetlen éle ugyanannyit nyom, mint egy gyakori reláció összes éle együtt.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A teljes szomszédsággal normálni.</b> Az R-GCN relációnként normál ($c_{v,r} = |N_r(v)|$). Ha mindent a teljes fokszámmal osztasz, az egy másik (szintén létező) változat – a számok mások lesznek.</li>
+    <li><b>Elfelejteni a saját tagot.</b> Ha nincs $W_0$ (vagy önhurok), a csúcs elfelejti a saját értékét: Ko a fenti példában 0-t kapna.</li>
+    <li><b>A negatív kimenetet ReLU-val levágni.</b> Ha a rejtett rétegben ReLU van, a $-1$-ből 0 lesz, és a bíráló szakértő egy „semleges” csúccsal esik egybe. A jel nem vész el – a $W$ több dimenziója több irányt tud kódolni –, de egyetlen skalárral a ReLU tényleg eltünteti.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – relációs lépés</summary>
+  <ol>
+    <li>A négy szereplőn $x_{\mathrm{Vi}} = 1$, a többieké 0, $w_0 = w_+ = 1$, $w_- = -1$. Számold ki mind a négy relációs értéket!
+      <details><summary>Megoldás</summary>Ko: $0 + \tfrac{1 + 0}{2} - 0 = 0{,}5$; Vi: $1 + \tfrac{0+0+0}{3} = 1$; Po: $0 + \tfrac{0 + 1}{2} = 0{,}5$; Sz: $0 + \tfrac{1}{1} - \tfrac{0}{1} = 1$.</details></li>
+    <li>Ugyanebben a helyzetben mennyi a homogén érték Ko-nál és Sz-nél?
+      <details><summary>Megoldás</summary>Ko: $\tfrac{1 + 0 + 0}{3} \approx 0{,}333$; Sz: $\tfrac{1 + 0}{2} = 0{,}5$.</details></li>
+    <li>$x_{\mathrm{Ko}} = 1$, de most $w_- = -2$. Mennyi Sz relációs értéke?
+      <details><summary>Megoldás</summary>$0 + 1\cdot 0 + (-2)\cdot 1 = -2$.</details></li>
+    <li>Egy skalár R-GCN-rétegnek (a $W_0$, $W_r$ mind egyetlen szám) két relációval hány paramétere van? És öttel?
+      <details><summary>Megoldás</summary>$R + 1$: két relációval 3, öttel 6 (eltolás nélkül).</details></li>
+    <li>(nehezebb) Mutasd meg, hogy ha csak egyetlen reláció van, és $c_{v,r} = |N(v)|$, az R-GCN a <a class="xref" href="#s121-a">12.1</a> átlagoló üzenetküldő rétege!
+      <details><summary>Megoldás</summary>Egy relációval $N_r(v) = N(v)$, így $\mathbf h_v' = \sigma\big(\mathbf h_v W_0 + \tfrac{1}{|N(v)|}\sum_{u \in N(v)} \mathbf h_u W_1\big)$ – ez az átlaggal gyűjtő üzenetküldő réteg $W_1 \to W_0$, $W_2 \to W_1$ átnevezéssel.</details></li>
+  </ol>
+</details>
+
+<h3 id="s122-b">2. lépés: az irány is típus – inverz relációk</h3>
+<p>Az 5. cikkben a szakértő bírálja a kormányt – nem fordítva. Az előző lépésben a „bírál” élt irányítatlannak vettük: Sz is ugyanazzal a $w_-$-szal hallott Ko-tól, mint Ko Sz-től. Pedig <b>bírálni</b> és <b>bíráltnak lenni</b> két különböző szerep.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – bíráló és bírált</span>
+  Bontsuk a Sz → Ko élt két üzenetre: Ko felé a <b>bírálja</b> ($w_-$), Sz felé a <b>bírálták tőle</b> – az inverz reláció ($w_{-^{-1}}$). Legyen $w_- = -1$, $w_{-^{-1}} = 0$.
+  <ul style="margin:.2rem 0">
+    <li>$x_{\mathrm{Sz}} = 1$: Ko kapja a bírálatot, $h_{\mathrm{Ko}}' = -1$ (mint eddig).</li>
+    <li>$x_{\mathrm{Ko}} = 1$: Sz most az inverz élen hall Ko-tól, $h_{\mathrm{Sz}}' = 0 + 0 + 0\cdot 1 = 0$. Irányítatlanul $-1$ lett volna.</li>
+  </ul>
+  A két szerep most külön súlyt kap, és a tanítás dönti el, mennyit ér az egyik és a másik. Egy irányított relációból így <b>két</b> reláció lesz.
+</div>
+
+<div class="box def">
+  <span class="box-title">Szabály – inverz relációk és paraméterszám</span>
+  Irányított gráfban minden $r$ relációhoz felvesszük az <b>inverzét</b>, $r^{-1}$-et: ha $u \xrightarrow{r} v$, akkor $v \xrightarrow{r^{-1}} u$. Így minden csúcs mindkét irányból kap üzenetet, de más-más súllyal.
+  Egy R-GCN-réteg paraméterszáma $d$ dimenziós bemenetnél és $d'$ dimenziós kimenetnél:
+  $$(R + 1)\cdot d\cdot d', \qquad R = \text{a relációk száma az inverzekkel együtt}.$$
+  <small>Miért nő gyorsan? Mert minden reláció egy teljes $d \times d'$-s mátrixot kap. Egy eseménykódolási sémában (a GDELT a CAMEO kódrendszert használja, 20 főkategóriával) már a főkategóriák is 40 relációt adnak az inverzekkel.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – két reláció, irányítva</span>
+    „Támogat” és „bírál”, mindkettő irányított, $d = d' = 16$. Hány súly van egy rétegben?
+    <details><summary>Megoldás</summary>Az inverzekkel $R = 4$, plusz a $W_0$: $5 \cdot 16 \cdot 16 = 1280$.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy eseménykódrendszer</span>
+    20 főkategória, irányítva, $d = d' = 16$. Hány súly?
+    <details><summary>Megoldás</summary>$R = 40$: $41 \cdot 256 = 10\,496$. Ha egy ritka relációt csak néhányszor látunk, a saját $16\times 16$-os mátrixát ennyiből nem lehet megbízhatóan megtanulni.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az inverzt kihagyni.</b> Ha csak $u \to v$ irányban küldünk üzenetet, a $v$-ről semmi nem jut vissza $u$-hoz: a bíráló nem tudja meg, kit bírált. Az R-GCN ezért mindig felveszi az inverz relációkat.</li>
+    <li><b>Az inverzet ugyanazzal a súllyal venni.</b> Akkor az irány megint elvész – épp ez az irányítatlan változat.</li>
+    <li><b>A szimmetrikus relációt duplázni.</b> A „közösen nyilatkozik” szimmetrikus: ott az inverz ugyanaz a reláció, nem kell külön súly.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – inverz relációk</summary>
+  <ol>
+    <li>Az Árvízhét relációi: „támogat” (szimmetrikusnak vesszük) és „bírál” (irányított). Hány reláció kell az R-GCN-ben?
+      <details><summary>Megoldás</summary>Három: támogat, bírál, bírál$^{-1}$.</details></li>
+    <li>Három irányított reláció, $d = d' = 32$. Hány súly van egy rétegben?
+      <details><summary>Megoldás</summary>$R = 6$, plusz $W_0$: $7 \cdot 32 \cdot 32 = 7168$.</details></li>
+    <li>20 irányított reláció, $d = d' = 64$. Hány súly van egy rétegben?
+      <details><summary>Megoldás</summary>$41 \cdot 64 \cdot 64 = 167\,936$.</details></li>
+    <li>A kiinduló példában $w_- = -1$, $w_{-^{-1}} = -0{,}5$, $x_{\mathrm{Ko}} = 1$. Mennyi Sz értéke?
+      <details><summary>Megoldás</summary>$0 + 1\cdot 0$ (Vi támogatja) $+ (-0{,}5)\cdot 1 = -0{,}5$.</details></li>
+    <li>(nehezebb) Egy hivatkozási gráfban „A cikk idézi B-t”. Mit jelent az üzenet A → B és B → A irányban, és miért hasznos mindkettő?
+      <details><summary>Megoldás</summary>B felé (idézi): „ki épít rám” – a későbbi cikkek témája jellemzi B hatását. A felé (idézték, inverz): „mire épít” – a forrásai jellemzik A tartalmát. Mindkettő más információ; az inverz nélkül A semmit nem tudna meg a forrásairól.</details></li>
+  </ol>
+</details>
+
+<h3 id="s122-c">3. lépés: sok reláció, kevés adat – bázisfelbontás</h3>
+<p>Az előző lépés vége a gond: sok relációval a paraméterszám elszáll, a ritka relációkhoz pedig nincs elég adat. Az ötlet: a relációk <b>ne teljesen függetlenek</b> legyenek, hanem néhány közös „alapmátrix” keverékei.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – két alapmátrix</span>
+  Legyen két közös alapmátrix: $V_1 = I$ (a jel változatlanul megy át) és $V_2 = \begin{pmatrix}0 & 1\\ 1 & 0\end{pmatrix}$ (a két dimenzió helyet cserél). Minden reláció ezek keveréke:
+  $$W_{\text{támogat}} = 1\cdot V_1 + 0{,}5\cdot V_2 = \begin{pmatrix}1 & 0{,}5\\ 0{,}5 & 1\end{pmatrix}, \qquad W_{\text{bírál}} = -1\cdot V_1 + 0\cdot V_2 = \begin{pmatrix}-1 & 0\\ 0 & -1\end{pmatrix}.$$
+  Egy relációt most nem 4 szám ír le, hanem 2 együttható. Egy új, ritka reláció (pl. „idézi”) is két együtthatóval elintézhető, a két alapmátrixot pedig az összes reláció adatából tanuljuk.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – bázisfelbontás</span>
+  $$W_r = \sum_{b=1}^{B} a_{rb}\, V_b,$$
+  ahol $V_1, \dots, V_B$ közös <b>alapmátrixok</b> ($d \times d'$), $a_{rb}$ relációnkénti skalár együtthatók. A paraméterszám rétegenként:
+  $$B\cdot d\cdot d' + R\cdot B + d\cdot d' \quad\text{(alapmátrixok + együtthatók + } W_0\text{)}.$$
+  <small>Miért segít? A relációk megosztják a statisztikai erőt: a gyakori relációk adataiból tanult $V_b$-ket a ritkák is használják. (Az R-GCN-cikk egy másik megoldást is ad: blokkdiagonális $W_r$-t, kevesebb kapcsolattal a dimenziók között.)</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – 40 reláció, 4 alapmátrix</span>
+    $R = 40$, $d = d' = 16$, $B = 4$. Mennyi a paraméterszám bázisfelbontással, és mennyi nélküle?
+    <details><summary>Megoldás</summary>Vele: $4\cdot 256 + 40\cdot 4 + 256 = 1440$. Nélküle: $41 \cdot 256 = 10\,496$. Hétszer kevesebb.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – mikor nem segít?</span>
+    Csak 2 reláció van, $d = d' = 16$, $B = 2$. Megéri-e?
+    <details><summary>Megoldás</summary>Nem: $2\cdot 256 + 2 \cdot 2 + 256 = 772$, nélküle $3 \cdot 256 = 768$. Kevés relációnál a felbontás nem spórol – sok, ritka reláció esetén hasznos.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Azt hinni, hogy a bázisfelbontás „ingyen” van.</b> A relációk így egy $B$ dimenziós térbe kényszerülnek. Ha két reláció tényleg teljesen különböző, kis $B$ mellett összemosódhatnak.</li>
+    <li><b>Az együtthatók jelentését túlolvasni.</b> Az $a_{rb}$ nem „a reláció jelentése”: az alapmátrixok forgatásával más együtthatók ugyanazt a $W_r$-t adják.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – bázisfelbontás</summary>
+  <ol>
+    <li>Az alapmátrixok $V_1 = I$, $V_2 = \begin{pmatrix}0&1\\1&0\end{pmatrix}$. Mi a $W_r$, ha $a_r = (0;\ 1)$?
+      <details><summary>Megoldás</summary>$W_r = V_2 = \begin{pmatrix}0&1\\1&0\end{pmatrix}$: a reláció a két jellemzőt felcseréli.</details></li>
+    <li>Ugyanezekkel: $a_r = (2;\ -1)$?
+      <details><summary>Megoldás</summary>$\begin{pmatrix}2 & -1\\ -1 & 2\end{pmatrix}$.</details></li>
+    <li>$R = 40$, $d = d' = 64$, $B = 8$. Hány paraméter van rétegenként?
+      <details><summary>Megoldás</summary>$8 \cdot 4096 + 40 \cdot 8 + 4096 = 37\,184$ (nélküle $167\,936$).</details></li>
+    <li>Egy rétegben $R = 10$, $d = d' = 16$. Hány alapmátrixnál lesz a felbontás <b>drágább</b>, mint nélküle?
+      <details><summary>Megoldás</summary>Nélküle $11 \cdot 256 = 2816$. Vele $256B + 10B + 256 = 266B + 256$. Ez $B = 10$-nél $2916 \gt 2816$, $B = 9$-nél $2650 \lt 2816$. Tehát $B \ge 10$-nél drágább – akkor már ne bontsd.</details></li>
+    <li>(nehezebb) Miért lehet hasznos bázisfelbontás akkor is, ha a paraméterszám nem kritikus?
+      <details><summary>Megoldás</summary>A ritka relációk miatt: egy 5-ször előforduló reláció saját mátrixa túlilleszt, a közös alapmátrixok viszont a gyakori relációk adataiból tanulnak. A felbontás tehát <b>regularizál</b> – a hasonló relációkat egymáshoz közelíti.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh12-122"></div>
+</section>
+
+<!-- ===================================================== 12.3 -->
+<section id="s123">
+<h2>12.3 Heterogén GNN-ek ★★★</h2>
+<p>A második feltevés: <b>egyféle csúcs</b>. Az R-GCN-ben az élek típusa már különbözik, de a csúcsok ugyanolyanok – négy szereplő. Egy hírgráfban viszont a lap, a cikk, a szereplő és az esemény más-más dolog: más jellemzőjük van, és más kapcsolatokban állnak.
+Ebben a szakaszban az Árvízhét <b>teljes</b> adatmodelljén dolgozunk.</p>
+
+<h3 id="s123-a">1. lépés: típusok és séma – az Árvízhét heterogén gráfja</h3>
+<div class="box example" id="s123-a-graf">
+  <span class="box-title">Kiinduló példa – öt csúcstípus, négy éltípus</span>
+  A <a class="xref" href="../03-graftipusok/#s36-b">3.6</a>-ban már összeraktuk az Árvízhét heterogén gráfját. Most a <b>kereteket</b> is csúcsnak vesszük (a <a class="xref" href="#s127">12.7</a> jóslási feladatához), a hivatkozásokat és a szereplők közti viszonyokat pedig kihagyjuk:
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>csúcstípus</th><th>darab</th><th>éltípus</th><th>darab</th></tr>
+    <tr><td>L – lap</td><td>4</td><td>lap <b>közli</b> a cikket (L–C)</td><td>12</td></tr>
+    <tr><td>C – cikk</td><td>12</td><td>cikk <b>említi</b> a szereplőt (C–Sz)</td><td>27</td></tr>
+    <tr><td>Sz – szereplő</td><td>7</td><td>cikk <b>keretezése</b> (C–K)</td><td>12</td></tr>
+    <tr><td>E – esemény</td><td>6</td><td>cikk <b>része</b> egy eseménynek (C–E)</td><td>12</td></tr>
+    <tr><td>K – keret</td><td>3</td><td></td><td></td></tr>
+    <tr><td><b>összesen</b></td><td><b>32</b></td><td></td><td><b>63</b></td></tr>
+  </table></div>
+  Minden él egy cikkhez fut: a cikk a gráf „csomópontja”, a többi típus a cikkeken át kapcsolódik egymáshoz. A 27 említés-él a 12 cikk említéseinek összege ($2 + 3 + 2 + 2 + 3 + 2 + 2 + 3 + 2 + 2 + 2 + 2$).
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – heterogén gráf és séma</span>
+  A <b>heterogén gráf</b> $G = (V, E, \tau, \phi)$, ahol $\tau(v)$ a csúcs típusa, $\phi(e)$ az él típusa; a típusok száma $|\mathcal T| + |\mathcal R| \gt 2$ (egyetlen csúcs- és éltípus a homogén gráf).
+  A <b>séma</b> (network schema) a „gráf a gráfról”: csúcsai a csúcstípusok, élei a megengedett éltípusok. Az Árvízhét sémája egy csillag: középen a C, körülötte L, Sz, E, K.
+  <small>Miért kell a séma? Mert megmondja, milyen <b>utak</b> léteznek egyáltalán. Lap és szereplő között nincs közvetlen él – csak cikken át. Ebből a megfigyelésből lesz a metaútvonal.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy cikk szomszédsága</span>
+    Kik a C5 („Klímaváltozás és elmaradt beruházások”) szomszédai, típusonként?
+    <details><summary>Megoldás</summary>L: EK; Sz: Sz, Kl, Ko; K: felkészülési hiány; E: E5. Hat szomszéd, négy típusból – egy homogén GNN ezt hat „egyforma” szomszédnak látná.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – típusok inverzekkel</span>
+    Ha egy R-GCN-t futtatnánk ezen a gráfon, hány relációval?
+    <details><summary>Megoldás</summary>A 4 éltípus mind irányított (a lap közli a cikket, nem fordítva), az inverzekkel <b>8</b> reláció. Ez már heterogén GNN: a <a class="xref" href="#s122-b">12.2</a> szerint külön súly a „közli” és a „közölte” üzenetnek.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A típust a csúcsfeliratból kitalálni.</b> Egy algoritmus számára az „RH” és a „Ko” csak két azonosító. A típus külön adat ($\tau$) – ha nincs megadva, a modell nem tudja.</li>
+    <li><b>Mindent csúcsnak venni, ami adat.</b> A keret lehet csúcs (ha jósolni akarjuk, vagy ha a keretek egymáshoz kapcsolódnak), de lehet a cikk <b>jellemzője</b> is. A választás modellezési döntés, mint a <a class="xref" href="../03-graftipusok/#s38-b">3.8</a>-ban.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – típusok és séma</summary>
+  <ol>
+    <li>Hány éle lenne a gráfnak, ha az eseményeket kihagynánk?
+      <details><summary>Megoldás</summary>$63 - 12 = 51$.</details></li>
+    <li>Hány szomszédja van Po-nak, és milyen típusúak?
+      <details><summary>Megoldás</summary>Po-t a 2., 3., 8., 10., 11. és 12. cikk említi: 6 szomszéd, mind C típusú.</details></li>
+    <li>Ha a szereplők közti 8 viszonyt (támogat / bírál) is felvennénk, hány új éltípus jönne a sémába, és melyik két csúcstípus között?
+      <details><summary>Megoldás</summary>Kettő (támogat, bírál), mindkettő Sz–Sz. A sémában ez egy hurok a Sz típuscsúcson.</details></li>
+    <li>A 3. fejezet hivatkozásai (cikk idéz cikket) milyen éltípust adnak?
+      <details><summary>Megoldás</summary>C–C élt (irányított; az inverzével két reláció). Ez is hurok a sémában, a C csúcson.</details></li>
+    <li>(nehezebb) Miért nem érdemes a „lapot” és a „szereplőt” egy közös jellemzővektorral (pl. hat számmal) leírni?
+      <details><summary>Megoldás</summary>Mert a jellemzőik mást jelentenek (példányszám vs. hányszor nyilatkozott): ha egy közös tér ugyanazon koordinátájára kerülnek, a modell összehasonlíthatónak veszi őket. Típusonként külön bemeneti vetítés kell – ezt teszi a HGT (<a class="xref" href="#s123-d">4. lépés</a>).</details></li>
+  </ol>
+</details>
+
+<h3 id="s123-b">2. lépés: metaútvonal – egy heterogén gráf, sok homogén szomszédság</h3>
+<p>A heterogén gráfban két lap sosem szomszédos: köztük mindig cikk áll. Mégis van értelme azt kérdezni, „melyik lap melyikhez hasonlít”. A válasz: <b>utak egy adott típussorozat mentén</b>.</p>
+
+<div class="box example" id="s123-b-esemeny">
+  <span class="box-title">Kiinduló példa – két lap közös eseményen át</span>
+  Kövessük a L–C–E–C–L utat: lapból a cikkébe, onnan az eseménybe, onnan egy másik cikkbe, onnan annak a lapjába. A Reggeli Hírlap (RH) és a Vidéki Napló (VN) között két ilyen út van:
+  <ul style="margin:.2rem 0">
+    <li>RH – C2 – <b>E3</b> („Tart a gát – lakossági fórum”) – C11 – VN,</li>
+    <li>RH – C3 – <b>E6</b> („Segély és gyűjtés”) – C12 – VN.</li>
+  </ul>
+  Az Esti Krónika (EK) és a Nyitott Szó (NY) között egy sincs: az EK cikkei (E1, E5) és az NY cikkei (E2, E4, E6) más eseményekről szólnak.
+  Az utak száma egy új, <b>homogén</b> gráfot ad a lapokon: „két lap annyira szomszéd, ahány közös eseményes cikkpárjuk van”.
+</div>
+
+<div class="box def" id="s123-b-def">
+  <span class="box-title">Definíció – metaútvonal és szorzatmátrix</span>
+  A <b>metaútvonal</b> (meta-path) egy típussorozat, pl. $\Phi = \text{L–C–E–C–L}$. Két csúcs $\Phi$-szomszéd, ha van köztük ilyen típusú út. Az utak száma a típusok közti illeszkedési mátrixok szorzata:
+  $$M_\Phi = A_{LC}\, A_{CE}\, A_{CE}^\top\, A_{LC}^\top, \qquad (M_\Phi)_{ij} = \text{a } \Phi \text{ típusú utak száma } i\text{-ből } j\text{-be}.$$
+  <small>Miért szorzat? Ugyanazért, amiért $(A^2)_{ij}$ a kétlépéses séták száma (<a class="xref" href="../02-setak-utak-fak/#s27-a">2.7</a>): minden lépés egy mátrixszorzás, és a köztes csúcsokon összegzünk. A páros gráf vetülete (<a class="xref" href="../03-graftipusok/#s34-b">3.4</a>) a legrövidebb metaútvonal: a C–Sz–C vagy a Sz–C–Sz.</small>
+</div>
+
+<div class="widget" data-widget="hetero-graph-explorer"></div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – lapok közös szereplőn át</span>
+    Hány L–C–Sz–C–L út van RH és EK között?
+    <details><summary>Megoldás</summary>Közös szereplőnként szorzunk: Ko-t az RH 3 cikke (C1, C2, C3) és az EK 1 cikke (C5) említi: $3 \cdot 1 = 3$ út. Vi-t az RH 2 cikke (C1, C2) és az EK 1 cikke (C4): $2 \cdot 1 = 2$. Összesen <b>5</b>. A teljes mátrix (RH, EK, NY, VN): RH–VN 8, NY–VN 9, RH–NY 2, EK–VN 1, EK–NY 0.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy régi ismerős</span>
+    Mi a Sz–C–Sz metaútvonal mátrixa?
+    <details><summary>Megoldás</summary>$A_{CS}^\top A_{CS}$: a főátlón kívül két szereplő közös cikkeinek száma – ez az <a class="xref" href="../01-mi-a-halozat/#s17-a">1.7</a> súlyozott szereplőgráfja (Ko–Vi 2, La–Ön 3, …). A főátlón az említések száma (Po: 6). Az első gráfunk tehát egy metaútvonal volt.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A főátlót szomszédságnak olvasni.</b> $(M_\Phi)_{ii}$ az oda-vissza utak száma (az RH 17-szer „szomszédja önmagának”) – ez a csúcs aktivitása, nem kapcsolat.</li>
+    <li><b>Az utak számát a kapcsolat erősségének venni normálás nélkül.</b> Az RH–VN 8 részben azért nagy, mert mindkét lap sokat írt a Po-ról. Ugyanaz a gond, mint a vetületeknél (<a class="xref" href="../03-graftipusok/#s34-c">3.4</a>): normálni kell (pl. Jaccard vagy koszinusz), ha erősséget akarsz.</li>
+    <li><b>Túl hosszú metaútvonal.</b> Minden lépéssel sűrűbb lesz a kapott gráf. Egy L–C–Sz–C–Sz–C–L úton szinte minden lap mindenkivel szomszéd – az információ elfolyik.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – metaútvonalak</summary>
+  <ol>
+    <li>Hány L–C–E–C–L út van NY és VN között? Melyek?
+      <details><summary>Megoldás</summary>Kettő: NY – C7 – E2 – C10 – VN és NY – C9 – E6 – C12 – VN.</details></li>
+    <li>Hány L–C–K–C–L út van RH és VN között?
+      <details><summary>Megoldás</summary>Közös keret: védekezés. Az RH-nak 3 védekezés-cikke van, a VN-nek 1 (C10): $3 \cdot 1 = 3$. Más közös keretük nincs (az RH-nak nincs veszteség-cikke).</details></li>
+    <li>Mennyi az L–C–K–C–L mátrix főátlója az RH-nál, és miért?
+      <details><summary>Megoldás</summary>9: az RH 3 cikke mind védekezés-keretű, így $3 \cdot 3 = 9$ oda-vissza út.</details></li>
+    <li>Melyik cikkek C–E–C szomszédai a C3-nak?
+      <details><summary>Megoldás</summary>A C3 az E6-hoz tartozik, vele együtt a C9 és a C12: ezek a C3 szomszédai.</details></li>
+    <li>(nehezebb) Miért nulla az EK–NY elem az L–C–Sz–C–L mátrixban, és mit mond ez a két lap tematikájáról?
+      <details><summary>Megoldás</summary>Az EK cikkei Vi, Sz, Kl, Ko szereplőket említenek, az NY cikkei La, Po, Ön szereplőket – nincs közös. A két lap ugyanarról az árvízről <b>teljesen más szereplőkön át</b> írt: az egyik a szakértői, a másik a lakossági nézőpontot hozta.</details></li>
+  </ol>
+</details>
+
+<h3 id="s123-c">3. lépés: HAN – két szintű figyelem</h3>
+<p>Most már sokféle homogén szomszédságunk van: egy cikk szomszédai lehetnek az <b>ugyanabban a lapban</b> megjelent cikkek (C–L–C), a <b>közös szereplős</b> cikkek (C–Sz–C), az <b>ugyanarról az eseményről</b> szóló cikkek (C–E–C). Melyiket használjuk? A HAN válasza: mindet, és <b>tanuljuk meg</b>, melyik mennyit ér.</p>
+
+<div class="box example" id="s123-c-c10">
+  <span class="box-title">Kiinduló példa – a C10 két szomszédsága</span>
+  A C10 („A polgármester a vízügy szakembereivel bejárta a töltést”, VN, keret: védekezés). Nézzük meg a szomszédai kereteit két metaútvonal szerint:
+  <ul style="margin:.2rem 0">
+    <li><b>C–L–C</b> (ugyanaz a lap): C11, C12 – mindkettő lakossági veszteség. Átlag: $\mathbf z^{\text{CLC}} = (0;\ 0;\ 1)$ a (védekezés; hiány; veszteség) sorrendben.</li>
+    <li><b>C–Sz–C</b> (közös szereplő, a közös szereplők számával súlyozva): C1, C2 (kétszer), C3 védekezés; C4 hiány; C8, C11, C12 veszteség. Átlag: $\mathbf z^{\text{CSzC}} = \tfrac18(4;\ 1;\ 3) = (0{,}5;\ 0{,}125;\ 0{,}375)$.</li>
+  </ul>
+  A két nézet <b>mást mond</b>: a lap szerint a C10 veszteség-cikk, a szereplői szerint védekezés. A HAN egy-egy súlyt, $\beta$-t tanul a két nézetre, és ezekkel keveri őket.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – HAN (heterogén figyelmi háló)</span>
+  A HAN (X. Wang és társai, 2019) két szintben gyűjt:
+  <ol style="margin:.2rem 0">
+    <li><b>Csúcsszintű figyelem:</b> minden $\Phi$ metaútvonal homogén gráfján egy GAT-réteg (<a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s135-b">MI 13.5</a>): $\mathbf z_v^\Phi = \sum_{u \in N_\Phi(v)} \alpha_{vu}^\Phi\, \mathbf h_u W$ – a szomszédok súlyát figyelem dönti el.</li>
+    <li><b>Szemantikai figyelem:</b> minden metaútvonal kap egy pontszámot, $w_\Phi$ (az összes csúcson átlagolva: $w_\Phi = \tfrac1{|V|}\sum_v \mathbf q^\top \tanh(W' \mathbf z_v^\Phi + \mathbf b)$), és
+      $$\beta_\Phi = \frac{\exp(w_\Phi)}{\sum_{\Phi'} \exp(w_{\Phi'})}, \qquad \mathbf z_v = \sum_\Phi \beta_\Phi\, \mathbf z_v^\Phi.$$</li>
+  </ol>
+  <small>Miért két szint? Az első azt dönti el, hogy egy metaútvonalon belül melyik szomszéd fontos; a második azt, hogy melyik <b>jelentés</b> (lap, szereplő, esemény) fontos a feladathoz. A $\beta_\Phi$ minden csúcsra ugyanaz – a metaútvonal „globális fontossága”.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – softmax két metaútvonalra</span>
+    A szemantikai pontszámok $w_{\text{CLC}} = 1$, $w_{\text{CSzC}} = 0$. Mennyi a $\beta$?
+    <details><summary>Megoldás</summary>$\beta_{\text{CLC}} = \tfrac{e^1}{e^1 + e^0} \approx 0{,}731$, $\beta_{\text{CSzC}} \approx 0{,}269$.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – keverés a C10-nél</span>
+    Ezekkel a $\beta$-kkal mi lesz a C10 kevert vektora, és melyik keretet jósolja?
+    <details><summary>Megoldás</summary>$0{,}731\cdot(0;\ 0;\ 1) + 0{,}269\cdot(0{,}5;\ 0{,}125;\ 0{,}375) \approx (0{,}134;\ 0{,}034;\ 0{,}832)$ → veszteség. <b>Rossz</b>: a C10 védekezés-cikk. Ha a súly a szereplőkre esne ($\beta_{\text{CSzC}} \gt 8/9 \approx 0{,}889$), jó lenne – de egy közös $\beta$ minden cikkre ugyanaz, és a legtöbb cikknél a lap a jobb nézet (<a class="xref" href="#s127">12.7</a>).</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A $\beta$-t magyarázatnak olvasni.</b> „A modell 73%-ban a lapra figyel” – ez a tanított súly, nem bizonyíték arra, hogy a keretet a lap okozza. A figyelmi súly nem magyarázat: több súlyozás is ugyanolyan jóslatot adhat.</li>
+    <li><b>A metaútvonalakat a modellre bízni.</b> A HAN csak a <b>megadott</b> metaútvonalak között választ. Ha a jó nézet (pl. C–Sz–C) nincs a listán, a figyelem sem találja meg. A metaútvonalak kiválasztása szakértői döntés.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – HAN</summary>
+  <ol>
+    <li>$w = (2;\ 0)$. Mennyi a $\beta$?
+      <details><summary>Megoldás</summary>$\beta \approx (0{,}881;\ 0{,}119)$.</details></li>
+    <li>Három metaútvonal, mindhárom pontszáma 0. Mennyi a $\beta$?
+      <details><summary>Megoldás</summary>Egyenlő: $(1/3;\ 1/3;\ 1/3)$. A softmax csak a különbségekre érzékeny.</details></li>
+    <li>$w = (1;\ 1;\ -1)$. Mennyi a $\beta$?
+      <details><summary>Megoldás</summary>$e^1 \approx 2{,}718$ kétszer, $e^{-1} \approx 0{,}368$: összeg $5{,}804$. $\beta \approx (0{,}468;\ 0{,}468;\ 0{,}063)$.</details></li>
+    <li>Mekkora $w_{\text{CLC}} - w_{\text{CSzC}}$ különbség ad $\beta_{\text{CLC}} = 0{,}75$-öt?
+      <details><summary>Megoldás</summary>$\beta = \tfrac{1}{1 + e^{-\Delta}} = 0{,}75$ → $e^{-\Delta} = 1/3$ → $\Delta = \ln 3 \approx 1{,}099$.</details></li>
+    <li>(nehezebb) A kiinduló példában melyik $\beta_{\text{CSzC}}$-nél vált a C10 jóslata veszteségről védekezésre?
+      <details><summary>Megoldás</summary>Legyen $b = \beta_{\text{CSzC}}$. Védekezés: $0{,}5b$; veszteség: $(1 - b) + 0{,}375b$. Egyenlőség: $0{,}5b = 1 - 0{,}625b$ → $b = 1/1{,}125 = 8/9 \approx 0{,}889$. Ennél nagyobb $b$-nél a védekezés nyer.</details></li>
+  </ol>
+</details>
+
+<h3 id="s123-d">4. lépés: HGT – és mikor elég a homogén modell?</h3>
+<p>A HAN-hoz metaútvonalakat kell megadni. Ha sok típus van, ez fárasztó és önkényes. A másik út: maradjunk a heterogén gráf <b>közvetlen</b> élein, de minden számolás függjön a típusoktól.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – ki kérdez, ki válaszol?</span>
+  A figyelemben (<a class="xref" href="../../mesterseges-intelligencia/12-beagyazasok-figyelem/#s125-a">MI 12.5</a>) a fogadó csúcs egy <b>kérdés</b>-vektort ($\mathbf q$), a küldő egy <b>kulcs</b>-vektort ($\mathbf k$) és egy <b>érték</b>-vektort ($\mathbf v$) készít. A C5 cikk szomszédai: EK (lap), Ko, Sz, Kl (szereplők), E5 (esemény), hiány (keret).
+  A HGT-ben a lap a saját $K_{\text{L}}$ mátrixával, a szereplő a $K_{\text{Sz}}$-vel készít kulcsot – és a „közli” élen más $W^{\text{ATT}}$ súly méri össze a kérdéssel, mint az „említi” élen. Így egy szereplő üzenete és egy lap üzenete nem egy közös skálán versenyez.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – HGT (heterogén gráf-Transformer), szemléletesen</span>
+  A HGT (Z. Hu és társai, 2020) minden élt egy <b>meta-relációval</b> jellemez: $\langle \tau(u),\ \phi(e),\ \tau(v)\rangle$, pl. ⟨szereplő, említi$^{-1}$, cikk⟩. Minden rétegben:
+  <ul style="margin:.2rem 0">
+    <li><b>csúcstípusonként</b> külön $Q_\tau$, $K_\tau$, $V_\tau$ vetítés (a típusok jellemzőit közös térbe hozza),</li>
+    <li><b>éltípusonként</b> külön $W^{\text{ATT}}_\phi$ (hogyan mérjük össze a kérdést és a kulcsot) és $W^{\text{MSG}}_\phi$ (hogyan alakítsuk az üzenetet),</li>
+    <li>a figyelmi súly: $\alpha_{vu} \propto \exp\big(\mathbf k_u W^{\text{ATT}}_\phi \mathbf q_v^\top / \sqrt d\big)$, a szomszédokra softmax-szal.</li>
+  </ul>
+  <small>Miért jó? Nem kell metaútvonalat választani: a több réteg magától bejárja a hosszabb utakat, és a figyelem dönti el, melyik élen mi számít. Ára: sok paraméter. 5 csúcstípussal, 8 relációval, $d = 16$-tal egy réteg $5\cdot 3\cdot 256 + 8 \cdot 2 \cdot 256 = 7936$ súly.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a „szegény ember” heterogén modellje</span>
+    A homogén GAT-nak adjuk meg minden csúcs típusát egy <b>egy-forró</b> vektorként a jellemzők mellé (L, C, Sz, E, K: öt jelző). Mit tud így, és mit nem?
+    <details><summary>Megoldás</summary>Tudja: a csúcs saját típusa beépül a vektorába, a figyelem eltérhet típusonként. Nem tudja: éltípusonként külön üzenetátalakítást – minden élen ugyanaz a $W$. Ha az élnek is van típusa, egy tanult <b>éltípus-vektor</b> a figyelembe tehető (ez a Simple-HGN ötlete, lent).</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – adat és paraméter</span>
+    Egy 2 rétegű R-GCN a heterogén Árvízhéten: 8 reláció, $d = d' = 16$. Hány súly van, és hány címke (keret) van a tanításhoz?
+    <details><summary>Megoldás</summary>Rétegenként $9 \cdot 256 = 2304$, két rétegben $4608$ súly – és 12 cikkcímke. Egy ilyen modell bármit megtanul (túlillesztés). A kis hírgráfon a <a class="xref" href="#s127-a">12.7</a> egyszerű szavazása az őszinte összevetés.</details>
+  </div>
+</div>
+
+<div class="box tip" id="s123-d-konszenzus">
+  <span class="box-title">⚖️ Konszenzus és vita – kellenek-e a heterogén GNN-ek?</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Konszenzus – a típusinformáció számít.</b> Ahol sok, jelentésben eltérő éltípus van, az éltípus figyelembe vétele rendszeresen javít (a heterogén és tudásgráf-benchmarkok, pl. a TGB 2.0, J. Gastinger és társai, 2024, időbeli adaton is ezt találták).</li>
+    <li><b>Vita – kell-e hozzá külön architektúra?</b> Q. Lv és társai (2021, <em>KDD</em>) 12 heterogén GNN-t futtattak újra egységes beállítással: a <b>megfelelő bemenettel</b> futtatott homogén GAT a legtöbbjüket utolérte vagy megelőzte. Az általuk javasolt <b>Simple-HGN</b> egy GAT, éltípus-vektorral a figyelemben, maradékkapcsolattal – és erősebb volt a korábbi modelleknél. X. Yang és társai (2023, SeHGNN) szerint a metaútvonalas szomszédok egyszerű, előre kiszámolt <b>átlaga</b> + egy réteg is elég sok feladatra.</li>
+    <li><b>Ami biztos:</b> a heterogén modell sok hiperparamétert hoz (metaútvonalak, típusonkénti dimenziók), és kis adaton könnyen túlilleszt. Mindig fusson mellette egy homogén alapvonal típusjelzővel. 📅 Állapot: 2026.</li>
+  </ul>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Bonyolult modell erős alapvonal nélkül.</b> Ha a HGT-t csak egy rosszul beállított GCN-hez méred, a „javulás” a beállításból is jöhet. A Lv és társai által talált eltérések nagy része ilyen volt.</li>
+    <li><b>A figyelmi súlyokból magyarázatot írni.</b> A HGT figyelme is csak súly – nem állítás arról, hogy a lap „okozza” a keretet.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – HGT és alapvonal</summary>
+  <ol>
+    <li>Sorold fel a C5 cikkbe érkező élek meta-relációit (típus, éltípus, típus)!
+      <details><summary>Megoldás</summary>⟨L, közli, C⟩ (EK); ⟨Sz, említi$^{-1}$, C⟩ háromszor (Ko, Sz, Kl); ⟨E, része$^{-1}$, C⟩ (E5); ⟨K, keretezése$^{-1}$, C⟩ (hiány). Négy különböző meta-reláció.</details></li>
+    <li>Hány súlya van egy HGT-rétegnek 3 csúcstípussal, 4 relációval, $d = 8$-cal?
+      <details><summary>Megoldás</summary>$3 \cdot 3 \cdot 64 + 4 \cdot 2 \cdot 64 = 576 + 512 = 1088$.</details></li>
+    <li>Mit kell megadni a HAN-nak, amit a HGT-nek nem?
+      <details><summary>Megoldás</summary>A metaútvonalak listáját. A HGT a közvetlen éleken dolgozik, a hosszabb utakat a rétegek járják be.</details></li>
+    <li>Egy új modell 2 százalékponttal jobb egy cikkosztályozási feladaton, mint a „GCN”. Mit kérdezel, mielőtt elhiszed?
+      <details><summary>Megoldás</summary>Ugyanaz volt-e a felosztás, a jellemzők és a hangolási költségvetés? Futott-e GAT / Simple-HGN típusjelzővel? Hány véletlen magon, milyen szórással? (Lv és társai szerint a különbségek nagy része ezeken múlt.)</details></li>
+    <li>(nehezebb) Mikor érdemes mégis a HGT-t választani egy homogén GAT helyett?
+      <details><summary>Megoldás</summary>Ha sok csúcs- és éltípus van, a típusok jellemzőterei tényleg különböznek (szöveg, szám, kép), és sok a tanítóadat (a HGT-t egy 179 millió csúcsú tudományos gráfon mutatták be). Kis gráfon, kevés címkével a többletparaméter inkább árt.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh12-123"></div>
+</section>
+
+<!-- ===================================================== 12.4 -->
+<section id="s124">
+<h2>12.4 Tudásgráf-beágyazás ★★</h2>
+<p>Ha a csúcsoknak is, az éleknek is sokféle típusa van, és a cél az, hogy <b>hiányzó tényeket</b> találjunk, akkor tudásgráfról beszélünk. Itt nem a csúcsokat osztályozzuk, hanem <b>hármasokat pontozunk</b>: igaz-e, hogy (alany, reláció, tárgy)?
+Ez a kapcsolat-előrejelzés (<a class="xref" href="../11-csucsbeagyazasok/#s111-a">11.1</a>) relációs változata.</p>
+
+<div class="box history">
+  <span class="box-title">📜 Történeti háttér</span>
+  A tudás gráfként való ábrázolása régi ötlet: M. R. Quillian <b>szemantikus hálója</b> (1968) fogalmakat kötött össze „egy fajtája”, „van neki” élekkel. A „tudásgráf” szó a Google 2012-es bejelentésével lett közkeletű; ugyanabban az évben indult a <b>Wikidata</b>, a ma legnagyobb nyílt tudásgráf.
+  A hírkutatásban a GDELT (2013-tól) kódol hírekből „ki tett mit kivel” eseményhármasokat – erről a 13. fejezet szól majd.
+</div>
+
+<h3 id="s124-a">1. lépés: hármasok és a nyílt világ</h3>
+<div class="box example" id="s124-a-hiany">
+  <span class="box-title">Kiinduló példa – amit a cikkek leírtak, és amit nem</span>
+  Az Árvízhét 12 hármasa közül néhány (<a class="xref" href="../03-graftipusok/#s36-b">3.6</a>; a szám a forráscikk):
+  (Szakértő, <i>bírálja</i>, Kormány) – 5; (Polgármester, <i>köszönetet mond</i>, Kormány) – 2; (Polgármester, <i>fórumot tart</i>, Lakók) – 11; (Önkéntesek, <i>gyűjtést indít</i>, Lakók) – 9.
+  <br>Igaz-e a (Szakértő, <i>bírálja</i>, Vízügy) hármas? A cikkekben nincs benne. De ebből <b>nem</b> következik, hogy hamis: lehet, hogy a szakértő bírálta a vízügyet, csak egyik lap sem írta meg. A tudásgráf <b>hiányos</b>, és a feladat éppen a hiányzó igaz hármasok megtalálása.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – tudásgráf, kiegészítés, nyílt világ</span>
+  A <b>tudásgráf</b> hármasok halmaza: $\mathcal G \subseteq \mathcal E \times \mathcal R \times \mathcal E$, ahol $\mathcal E$ az entitások, $\mathcal R$ a relációk halmaza; egy hármas $(h, r, t)$ – fej, reláció, farok.
+  A <b>tudásgráf-kiegészítés</b> (knowledge graph completion) lekérdezése $(h, r, ?)$ vagy $(?, r, t)$: rangsoroljuk az összes entitást aszerint, mennyire valószínű, hogy a hiányzó helyre illik. Egy <b>pontszámfüggvény</b> $f(h, r, t)$ dönti el a sorrendet.
+  <br>A <b>nyílt világ feltevés</b> (open-world assumption): ami nincs a gráfban, az <b>ismeretlen</b>, nem hamis. (A zárt világ feltevés szerint hamis lenne – egy menetrendben ez ésszerű, a hírekben nem.)
+  <small>Miért fontos? Mert a tanításhoz negatív példák kellenek, és ezeket „kitaláljuk”: egy igaz hármas fejét vagy farkát véletlen entitásra cseréljük. Ezek többnyire hamisak – de nem mindig (erről szól az alábbi buktató).</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy lekérdezés</span>
+    A $(\text{Polgármester},\ \textit{köszönti},\ ?)$ lekérdezésre melyik entitás a válasz a gráfban, és mi a feladat, ha még nem tudnánk?
+    <details><summary>Megoldás</summary>A gráfban: Önkéntesek (12. cikk). Ha nem tudnánk: az összes entitást (Kormány, Lakók, Önkéntesek, Gát, …) pontoznánk, és azt néznénk, hányadik helyre kerül az Önkéntesek.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – negatív mintavétel</span>
+    Készíts két negatív hármast a (Szakértő, <i>bírálja</i>, Kormány)-ból! Biztosan hamisak?
+    <details><summary>Megoldás</summary>Farokcsere: (Szakértő, <i>bírálja</i>, Önkéntesek); fejcsere: (Lakók, <i>bírálja</i>, Kormány). Az első valószínűleg hamis, a második lehet akár igaz is (a károsult lakók bírálhatják a kormányt) – a nyílt világban a „negatív” csak <b>feltételezett</b> negatív.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A hiányzó hármast hamisnak venni.</b> A tudásgráf nyílt világ: a hiány nem tagadás. Ebből a kiértékelésben is gond lesz (a <a class="xref" href="#s124-d">4. lépésben</a>: szűrt rangsor).</li>
+    <li><b>A hármast irányítatlannak venni.</b> A (Szakértő, <i>bírálja</i>, Kormány) és a (Kormány, <i>bírálja</i>, Szakértő) két különböző állítás.</li>
+    <li><b>A forráshelyet elhagyni.</b> Egy hírből kinyert hármas mellé mindig oda kell írni a cikket és a mondatot – különben nem ellenőrizhető (a 13. fejezet témája).</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – hármasok</summary>
+  <ol>
+    <li>Az Árvízhét hármasai közül melyikben a Polgármester a fej? Sorold fel a relációkat!
+      <details><summary>Megoldás</summary>Négy hármas: <i>köszönetet mond</i> (Kormány, 2), <i>bejárja</i> (Gát, 10), <i>fórumot tart</i> (Lakók, 11), <i>köszönti</i> (Önkéntesek, 12).</details></li>
+    <li>A $(?,\ \textit{bírálja},\ \text{Kormány})$ lekérdezésnek mi a válasza a gráfban?
+      <details><summary>Megoldás</summary>Szakértő (5. cikk).</details></li>
+    <li>Ha 15 entitás van, egy $(h, r, ?)$ lekérdezésnél hány jelöltet rangsorolunk?
+      <details><summary>Megoldás</summary>Mind a 15-öt (a fejet is – egy relációban elvileg az is lehet a farok).</details></li>
+    <li>Zárt vagy nyílt világ feltevés illik egy vasúti menetrendhez? És a hírekből épített tudásgráfhoz?
+      <details><summary>Megoldás</summary>Menetrend: zárt – ami nincs benne, az a vonat nem jár. Hírekből épített gráf: nyílt – ami nincs benne, arról nem írtak (vagy a kinyerés kihagyta).</details></li>
+    <li>(nehezebb) Miért torzít, ha a negatív hármasokat mindig a <b>legnépszerűbb</b> entitásokkal (pl. Kormány) cseréljük?
+      <details><summary>Megoldás</summary>Mert a népszerű entitásokról sok igaz hármas van – a csere gyakran igaz hármast ad, amelyet a modell hamisnak tanul. Egyúttal a modell a ritka entitásokat ritkán látja negatívban, így azokról keveset tanul. A véletlen csere egyenletes vagy gyakoriság szerint simított eloszlásból szokott lenni.</details></li>
+  </ol>
+</details>
+
+<h3 id="s124-b">2. lépés: TransE – a reláció egy eltolás</h3>
+<p>Hogyan pontozzunk egy hármast? Az ötlet a szóbeágyazásokból jön (<a class="xref" href="../../mesterseges-intelligencia/12-beagyazasok-figyelem/#s122-b">MI 12.2</a>): a „király – férfi + nő ≈ királynő” típusú összefüggésekben a <b>vektorkülönbség</b> egy relációt hordoz.
+A TransE ezt teszi szabállyá.</p>
+
+<div class="box example" id="s124-b-fovaros">
+  <span class="box-title">Kiinduló példa – fővárosok a síkon</span>
+  Hat entitás a síkon: Budapest $(1;\ 1)$, Bécs $(1;\ 3)$, Prága $(1;\ 5)$, Magyarország $(4;\ 2)$, Ausztria $(4;\ 4)$, Csehország $(4;\ 6)$. A <i>fővárosa</i> reláció egy vektor: $\mathbf r = (3;\ 1)$.
+  <ul style="margin:.2rem 0">
+    <li>Budapest $+ \mathbf r = (4;\ 2)$ = Magyarország, a távolság 0.</li>
+    <li>Bécs $+ \mathbf r = (4;\ 4)$ = Ausztria; Prága $+ \mathbf r = (4;\ 6)$ = Csehország.</li>
+    <li>A hamis (Budapest, <i>fővárosa</i>, Ausztria): $(4;\ 2)$ és $(4;\ 4)$ távolsága $2$.</li>
+  </ul>
+  A $(\text{Prága},\ \textit{fővárosa},\ ?)$ lekérdezés: $(4;\ 6)$-hoz a legközelebbi Csehország (0), aztán Ausztria (2), Prága (3,162), Magyarország (4), Bécs (4,243), Budapest (5,831) – a helyes válasz az első.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – TransE és a margós veszteség</span>
+  A TransE (A. Bordes és társai, 2013) minden entitásnak és relációnak egy $d$ dimenziós vektort ad, és
+  $$f(h, r, t) = -\lVert \mathbf h + \mathbf r - \mathbf t \rVert \qquad (\text{a nagyobb a jobb; } 0 \text{ a tökéletes}).$$
+  <b>Tanítás:</b> minden igaz $(h, r, t)$ hármashoz egy negatívat készítünk ($h$ vagy $t$ véletlen cseréjével: $(h', r, t')$), és a <b>margós rangsorolási veszteséget</b> csökkentjük:
+  $$\mathcal L = \max\big(0,\ \gamma + d^+ - d^-\big), \qquad d^+ = \lVert \mathbf h + \mathbf r - \mathbf t\rVert,\ \ d^- = \lVert \mathbf h' + \mathbf r - \mathbf t'\rVert.$$
+  <small>Miért margó? Nem azt kérjük, hogy az igaz hármas távolsága 0 legyen, hanem hogy <b>legalább $\gamma$-val</b> kisebb legyen a hamisénál. Ha ez teljesül, a veszteség 0, és a hármas nem változtat a vektorokon.</small>
+</div>
+
+<div class="widget" data-widget="transe-2d"></div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – teljesül a margó</span>
+    $\mathbf r = (2;\ 1)$ (még nem a jó vektor), $\gamma = 1$. Pozitív: (Budapest, <i>fővárosa</i>, Magyarország), negatív: (Budapest, <i>fővárosa</i>, Ausztria). Mennyi a veszteség?
+    <details><summary>Megoldás</summary>Budapest $+ \mathbf r = (3;\ 2)$. $d^+ = \lVert(3;2) - (4;2)\rVert = 1$, $d^- = \lVert(3;2) - (4;4)\rVert = \sqrt5 \approx 2{,}236$. $\mathcal L = \max(0;\ 1 + 1 - 2{,}236) = 0$. A margó teljesül, ez a pár nem tanít semmit – pedig a $d^+$ még nem 0.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – nem teljesül</span>
+    $\mathbf r = (3;\ 2)$, ugyanaz a pár, $\gamma = 1$.
+    <details><summary>Megoldás</summary>Budapest $+ \mathbf r = (4;\ 3)$: $d^+ = 1$, $d^- = 1$. $\mathcal L = 1 + 1 - 1 = 1$. A gradiens a $\mathbf h + \mathbf r$ pontot Magyarország felé húzza, Ausztriától el – vagyis $\mathbf r$ második koordinátáját lefelé.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az előjelet összekeverni.</b> A pontszám a <b>negatív</b> távolság: a nagyobb pontszám (közelebb a 0-hoz) a valószínűbb. A távolság szerint növekvően, a pontszám szerint csökkenően rendezünk.</li>
+    <li><b>Azt hinni, hogy a 0 veszteség tökéletes modellt jelent.</b> Csak annyit jelent, hogy minden látott pozitív–negatív párban teljesül a margó.</li>
+    <li><b>A vektorok hosszát nem korlátozni.</b> Ha az entitásvektorok szabadon nőhetnek, a $d^-$ egyszerűen a pontok szétnyújtásával nőhet. A TransE ezért az entitásvektorokat egységnyi hosszúra normálja minden lépés előtt.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – TransE</summary>
+  <ol>
+    <li>A kiinduló példa vektoraival mennyi a (Bécs, <i>fővárosa</i>, Magyarország) pontszáma?
+      <details><summary>Megoldás</summary>Bécs $+ \mathbf r = (4;\ 4)$, Magyarország $(4;\ 2)$: távolság 2, pontszám $-2$.</details></li>
+    <li>Rangsorold a $(\text{Bécs},\ \textit{fővárosa},\ ?)$ jelöltjeit a három ország közül!
+      <details><summary>Megoldás</summary>Ausztria (0), aztán holtversenyben Magyarország és Csehország (2).</details></li>
+    <li>$\mathbf r = (2;\ 1)$, $\gamma = 2$, a fenti pár. Mennyi a veszteség?
+      <details><summary>Megoldás</summary>$\max(0;\ 2 + 1 - 2{,}236) \approx 0{,}764$. A nagyobb margó miatt most már tanít.</details></li>
+    <li>Ha $\mathbf r = (3;\ 1)$, mekkora $\gamma$ mellett lesz a (Budapest, Magyarország) / (Budapest, Ausztria) pár vesztesége pozitív?
+      <details><summary>Megoldás</summary>$d^+ = 0$, $d^- = 2$: $\gamma + 0 - 2 \gt 0$ → $\gamma \gt 2$.</details></li>
+    <li>(nehezebb) 10 000 entitás, 200 reláció, $d = 100$. Hány paramétere van a TransE-nek? Mi lesz egy új entitással?
+      <details><summary>Megoldás</summary>$10\,000 \cdot 100 + 200 \cdot 100 = 1\,020\,000$. Minden entitásnak saját vektora van (keresőtábla), ezért egy új entitásnak nincs vektora – újra kell tanítani, vagy más módszer kell (<a class="xref" href="#s126-b">12.6</a>).</details></li>
+  </ol>
+</details>
+
+<h3 id="s124-c">3. lépés: mit tud kifejezni? – DistMult és RotatE</h3>
+<p>A TransE egy relációt egy <b>eltolásnak</b> tanul. De nem minden reláció eltolás. Nézzük meg, mi történik egy szimmetrikus relációval.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a házastárs és a bíráló</span>
+  <b>Szimmetrikus reláció:</b> (Anna, <i>házastársa</i>, Béla) és (Béla, <i>házastársa</i>, Anna). TransE-vel: $\mathbf a + \mathbf r = \mathbf b$ és $\mathbf b + \mathbf r = \mathbf a$. Összeadva: $2\mathbf r = \mathbf 0$, tehát $\mathbf r = \mathbf 0$ és $\mathbf a = \mathbf b$ – Anna és Béla ugyanoda kerül.
+  <br><b>DistMult</b> (B. Yang és társai, 2015) a pontszámot szorzattal számolja: $f = \sum_i h_i r_i t_i$. Szakértő $= (1;\ 2)$, Kormány $= (2;\ 1)$, $\mathbf r_{\textit{bírálja}} = (1;\ 1)$:
+  $f(\text{Sz}, \textit{bírálja}, \text{Ko}) = 1\cdot 1\cdot 2 + 2\cdot 1 \cdot 1 = 4$, és $f(\text{Ko}, \textit{bírálja}, \text{Sz}) = 2\cdot1\cdot1 + 1\cdot 1\cdot 2 = 4$. A szimmetrikus relációt jól tudja – de azt, hogy <b>ki bírál kit</b>, soha nem tudja megkülönböztetni: a szorzat sorrendje mindegy.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – három pontszámfüggvény</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>modell</th><th>pontszám $f(h, r, t)$</th><th>a reláció mint…</th></tr>
+    <tr><td>TransE</td><td>$-\lVert \mathbf h + \mathbf r - \mathbf t\rVert$</td><td>eltolás</td></tr>
+    <tr><td>DistMult</td><td>$\sum_i h_i\, r_i\, t_i$</td><td>koordinátánkénti nyújtás (szimmetrikus bilineáris forma)</td></tr>
+    <tr><td>RotatE</td><td>$-\lVert \mathbf h \circ \mathbf r - \mathbf t\rVert$, $\mathbf h, \mathbf r, \mathbf t \in \mathbb C^d$, $|r_i| = 1$</td><td>forgatás a komplex síkon</td></tr>
+  </table></div>
+  A <b>RotatE</b> (Z. Sun és társai, 2019) minden koordinátát egy komplex számnak vesz, és a reláció koordinátánként egy $e^{i\varphi}$ <b>forgatás</b>. Mit tud kifejezni (egy relációmintát akkor „tud”, ha van olyan beágyazás, amelyben a minta minden hármasa tökéletes pontszámot kap, és a megfordított / hamis hármasok nem):
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>minta</th><th>példa</th><th>TransE</th><th>DistMult</th><th>RotatE</th></tr>
+    <tr><td>szimmetrikus</td><td>házastársa</td><td>✗ ($\mathbf r = 0$)</td><td>✓</td><td>✓ ($\varphi = 180°$)</td></tr>
+    <tr><td>antiszimmetrikus</td><td>bírálja, szülője</td><td>✓</td><td>✗</td><td>✓</td></tr>
+    <tr><td>inverz</td><td>szülője ↔ gyermeke</td><td>✓ ($-\mathbf r$)</td><td>✗ (csak szimmetrikusan)</td><td>✓ ($-\varphi$)</td></tr>
+    <tr><td>összetett</td><td>anyja ∘ férje = apja</td><td>✓ ($\mathbf r_1 + \mathbf r_2$)</td><td>✗</td><td>✓ ($\varphi_1 + \varphi_2$)</td></tr>
+  </table></div>
+  <small>Miért nem mindig a RotatE? Mert a kifejezőerő nem minden: több paraméter (komplex számok: kétszer annyi valós szám), és a valós adat ritkán „tiszta” minta. A gyakorlatban a gondos tanítás (negatív mintavétel, regularizáció, hangolás) sokszor többet számít, mint a pontszámfüggvény (D. Ruffinelli és társai, 2020).</small>
+</div>
+
+<div class="widget" data-widget="kg-patterns"></div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – RotatE a bírálatra</span>
+    Egy dimenzió, egységkör: Szakértő a $0°$-nál, Kormány a $90°$-nál, $\varphi_{\textit{bírálja}} = 90°$. Mennyi a két irány távolsága?
+    <details><summary>Megoldás</summary>Sz $\circ\ r$ = $90°$ = Ko: távolság 0. Ko $\circ\ r$ = $180°$, Sz a $0°$-nál: a két pont átellenes, távolság 2. A RotatE megkülönbözteti, ki bírál kit.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – 1–N reláció</span>
+    (Magyarország, <i>városa</i>, Budapest) és (Magyarország, <i>városa</i>, Debrecen). Mit kezd vele a TransE?
+    <details><summary>Megoldás</summary>Mindkettőhöz $\mathbf m + \mathbf r \approx$ a város kellene, tehát Budapest $\approx$ Debrecen. A TransE a két várost összenyomja: Magyarország $(1;\ 3)$, Budapest $(4;\ 4)$, Debrecen $(4;\ 2)$ mellett a legjobb $\mathbf r = (3;\ 0)$, és mindkét távolság 1. Az 1–N relációkat egyik egyszerű modell sem bírja jól.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>DistMult-ot irányított relációra.</b> A „bírálja”, „idézi”, „segélyt küld” antiszimmetrikus. DistMult-tal a $(t, r, h)$ ugyanannyit kap, mint a $(h, r, t)$ – a jóslat irány nélküli lesz.</li>
+    <li><b>A „tudja kifejezni” és a „meg is tanulja” összekeverése.</b> A táblázat csak azt mondja, létezik-e jó beágyazás. Hogy a tanítás megtalálja-e kevés adatból, az más kérdés.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – relációminták</summary>
+  <ol>
+    <li>DistMult, Sz $= (1;\ 2)$, Ko $= (2;\ 1)$, $\mathbf r = (2;\ 0{,}5)$. Mennyi $f(\text{Sz}, r, \text{Ko})$ és $f(\text{Ko}, r, \text{Sz})$?
+      <details><summary>Megoldás</summary>$1\cdot 2\cdot 2 + 2\cdot 0{,}5\cdot 1 = 5$, és ugyanannyi fordítva (5). Bármilyen $\mathbf r$-rel egyenlők.</details></li>
+    <li>RotatE, Sz $0°$, Ko $90°$, $\varphi = 60°$. Mennyi a $d(\text{Sz} \circ r,\ \text{Ko})$? (Az egységkörön két pont távolsága $2\sin(\Delta/2)$.)
+      <details><summary>Megoldás</summary>Sz $\circ\ r$ a $60°$-nál, Ko a $90°$-nál: $\Delta = 30°$, $2\sin 15° \approx 0{,}518$.</details></li>
+    <li>RotatE-ben mi az <i>apja</i> forgatási szöge, ha $\varphi_{\textit{anyja}} = 30°$ és $\varphi_{\textit{férje}} = 60°$?
+      <details><summary>Megoldás</summary>Összetételnél a forgatások összeadódnak: $90°$.</details></li>
+    <li>Melyik modellt választanád egy olyan gráfhoz, amelyben csak „együtt szerepel” (szimmetrikus) relációk vannak?
+      <details><summary>Megoldás</summary>A DistMult elég (egyszerű, kevés paraméter, a szimmetriát pontosan tudja). A TransE itt rossz választás: minden szimmetrikus reláció $\mathbf r = 0$-ra esne.</details></li>
+    <li>(nehezebb) Miért tud a RotatE szimmetrikus relációt, ha a TransE nem? Mi a forgatás és az eltolás közti különbség ebből a szempontból?
+      <details><summary>Megoldás</summary>Kétszer alkalmazva a $180°$-os forgatás visszaad: $e^{i\pi}\cdot e^{i\pi} = 1$, így $\mathbf h \circ \mathbf r = \mathbf t$ és $\mathbf t \circ \mathbf r = \mathbf h$ egyszerre teljesülhet úgy, hogy $\mathbf h \ne \mathbf t$. Egy nem nulla eltolás kétszer alkalmazva sosem ad vissza: $\mathbf h + 2\mathbf r \ne \mathbf h$.</details></li>
+  </ol>
+</details>
+
+<h3 id="s124-d">4. lépés: kiértékelés – rangsor, MRR, Hits@k</h3>
+<p>A kapcsolat-előrejelzésnél az AUC-t használtuk (<a class="xref" href="../11-csucsbeagyazasok/#s113-b">11.3</a>). A tudásgráfoknál a szokásos mérték más: minden tesztlekérdezésnél megnézzük, <b>hányadik</b> helyre került a helyes válasz.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – négy lekérdezés</span>
+  Négy teszthármasra a helyes farok helyezése: 1., 3., 2. és 10. Az <b>átlagos reciprok rang</b>: $\tfrac14\big(1 + \tfrac13 + \tfrac12 + \tfrac1{10}\big) \approx 0{,}483$.
+  A <b>Hits@3</b> (hányszor volt a top 3-ban): 3 a 4-ből, $0{,}75$. A Hits@1: $0{,}25$.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – MRR, Hits@k, szűrt rangsor</span>
+  Ha $\operatorname{rang}_q$ a $q$ tesztlekérdezés helyes válaszának helyezése:
+  $$\text{MRR} = \frac{1}{|Q|}\sum_{q \in Q} \frac{1}{\operatorname{rang}_q}, \qquad \text{Hits@}k = \frac{1}{|Q|}\,\big|\{q : \operatorname{rang}_q \le k\}\big|.$$
+  <b>Szűrt rangsor</b> (filtered): a helyezés számolásakor kihagyjuk azokat a jelölteket, amelyek <b>más igaz hármasként</b> már ismertek (a tanító-, validációs vagy tesztadatban). Így nem büntetjük a modellt azért, mert egy másik helyes választ tett elé.
+  <small>Miért reciprok? Az első helyek közti különbség számít leginkább: az 1. és a 2. hely között $0{,}5$ a különbség, a 10. és a 11. között $0{,}009$. Az MRR a „felső polcot” jutalmazza, mint a precision@k (<a class="xref" href="../11-csucsbeagyazasok/#s113-a">11.3</a>).</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – szűrés</span>
+    A $(\text{Magyarország},\ \textit{városa},\ ?)$ tesztkérdésre a helyes válasz Debrecen, a 3. helyen. Előtte Budapest (1.) – ez a tanítóadatban igaz hármas – és Bécs (2.). Mi a szűrt rang?
+    <details><summary>Megoldás</summary>Budapestet kihagyjuk (másik helyes válasz): a szűrt rang <b>2</b>. Bécs marad – az nem igaz válasz.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy rossz és egy jó modell</span>
+    Az A modell rangjai: 2, 2, 2, 2. A B modellé: 1, 1, 1, 50. Melyiknek nagyobb az MRR-je, és melyiknek a Hits@1-e?
+    <details><summary>Megoldás</summary>A: MRR $0{,}5$, Hits@1 0. B: MRR $\tfrac14(3 + 0{,}02) = 0{,}755$, Hits@1 $0{,}75$. A B legtöbbször az első helyen találja el – egy elrontott kérdés kevéssé húzza le.</details>
+  </div>
+</div>
+
+<div class="box tip" id="s124-d-konszenzus">
+  <span class="box-title">⚖️ Konszenzus és vita – beágyazás vagy nagy nyelvi modell?</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Konszenzus:</b> a hármas-alapú beágyazások (TransE, DistMult, RotatE és utódaik) gyorsak, skálázhatók, és jól mérhetők; a régebbi modellek gondos tanítással is versenyképesek (R. Kadlec és társai, 2017; D. Ruffinelli és társai, 2020). A szűrt MRR / Hits@k a szokásos mérce.</li>
+    <li><b>A nyelvi modellek belépése:</b> a hármasok szövegként is kezelhetők. L. Yao és társai (2025) finomhangolt, kisebb nyílt modellekkel (7 milliárd paraméter körül) jobb eredményt értek el a hármasok osztályozásában, mint a ChatGPT vagy a GPT-4 utasítással. Y. Zhu és társai (2024) szerint a GPT-4 inkább <b>következtetésben</b> erős, a tudásgráf <b>építésében</b> (kinyerés) kevésbé. Sok újabb módszer a kettőt ötvözi: a beágyazás ad jelöltlistát, a nyelvi modell rangsorol.</li>
+    <li><b>Vita:</b> mennyi a nyelvi modell „tudása” és mennyi a memorizált benchmark? A szokásos adatkészletek (Freebase, WordNet részletek) a nyelvi modellek tanítóadatában is benne lehetnek. S. Pan és társai (2024) áttekintése szerint a két irány kiegészíti egymást: a tudásgráf ellenőrizhető tényeket ad, a nyelvi modell nyelvi általánosítást. 📅 Állapot: 2026.</li>
+  </ul>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Nyers rangot közölni szűrt helyett.</b> A nyers rang bünteti a modellt a többi helyes válaszért – 1–N relációknál ez nagyon sokat ronthat. Mindig írd ki, melyiket számoltad.</li>
+    <li><b>Holtversenyben a legjobb helyet adni.</b> Ha a helyes válasz 5 másikkal egyenlő pontszámú, „optimista” rangként 1-et adni csalás. Szokás a holtverseny középső rangja (vagy a legrosszabb).</li>
+    <li><b>Az inverz relációkból szivárgást csinálni.</b> Ha a (Budapest, <i>fővárosa</i>, Magyarország) a teszt, a (Magyarország, <i>fővárosa</i>$^{-1}$, Budapest) pedig a tanítóadatban van, a feladat triviális. Néhány régi benchmarkon ez sok eredményt felfújt.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – MRR és Hits@k</summary>
+  <ol>
+    <li>Rangok: 2, 2, 5. Mennyi az MRR?
+      <details><summary>Megoldás</summary>$\tfrac13(0{,}5 + 0{,}5 + 0{,}2) = 0{,}4$.</details></li>
+    <li>Ugyanezekre mennyi a Hits@1 és a Hits@3?
+      <details><summary>Megoldás</summary>Hits@1: 0; Hits@3: $2/3 \approx 0{,}667$.</details></li>
+    <li>Egy lekérdezés nyers rangja 7, és előtte 2 másik igaz válasz áll. Mi a szűrt rang?
+      <details><summary>Megoldás</summary>$7 - 2 = 5$.</details></li>
+    <li>Mennyi a véletlen tippelés várható reciprok rangja, ha 4 jelölt van, és egy a helyes?
+      <details><summary>Megoldás</summary>Minden hely $1/4$ eséllyel: $\tfrac14(1 + \tfrac12 + \tfrac13 + \tfrac14) = \tfrac{25}{48} \approx 0{,}521$. Kis jelöltlistán az MRR még véletlenül is magas – mindig a véletlen szinthez mérd.</details></li>
+    <li>(nehezebb) Egy cikk azt írja: „MRR 0,35 a nyers rangsorral, 0,52 a szűrttel.” Mit tudsz meg a különbségből a gráfról?
+      <details><summary>Megoldás</summary>Hogy sok lekérdezésnek több helyes válasza is van (1–N vagy N–N relációk): a nyers rangot ezek a „másik helyes válaszok” rontják. Minél nagyobb a különbség, annál több ilyen reláció van.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh12-124"></div>
+</section>
+
+<!-- ===================================================== 12.5 -->
+<section id="s125">
+<h2>12.5 Időbeli gráfhálók ★★★</h2>
+<p>A harmadik feltevés: <b>statikus gráf</b>. A hírek élei nem egyszerre érkeznek: hétfőn két él, csütörtökön hat, pénteken egy. Egy modell, amely az összevont gráfot látja, a jövőt is látja.
+Ebben a szakaszban az időt beépítjük a modellbe – és megnézzük, mennyire nehéz egy időbeli jóslást becsületesen kiértékelni.</p>
+
+<h3 id="s125-a">1. lépés: pillanatfelvételek vagy eseményfolyam?</h3>
+<div class="box example" id="s125-a-folyam">
+  <span class="box-title">Kiinduló példa – az Árvízhét 18 eseménye</span>
+  A <a class="xref" href="../03-graftipusok/#s35-a">3.5</a>-ban az Árvízhetet napi gráfokra bontottuk. Most minden cikk minden szereplőpárja egy <b>esemény</b> $(u, v, t)$ – a cikk napján. A 12 cikkből <b>18 esemény</b> lesz:
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>nap</th><th>események (cikk)</th><th>db</th></tr>
+    <tr><td>H</td><td>Ko–Vi (1), Vi–Sz (4)</td><td>2</td></tr>
+    <tr><td>K</td><td>La–Ön (7), Vi–Po (10)</td><td>2</td></tr>
+    <tr><td>Sze</td><td>Ko–Vi, Ko–Po, Vi–Po (2), Po–La (11)</td><td>4</td></tr>
+    <tr><td>Cs</td><td>Ko–Sz, Ko–Kl, Sz–Kl (5), Po–La, Po–Ön, La–Ön (8)</td><td>6</td></tr>
+    <tr><td>P</td><td>Ko–Po (3)</td><td>1</td></tr>
+    <tr><td>Szo</td><td>Sz–Kl (6), Po–Ön (12)</td><td>2</td></tr>
+    <tr><td>V</td><td>La–Ön (9)</td><td>1</td></tr>
+  </table></div>
+  Kétféleképpen adhatjuk oda egy modellnek. <b>Pillanatfelvételekként</b>: hét kis gráf, $G_{\mathrm H}, G_{\mathrm K}, \dots, G_{\mathrm V}$. Vagy <b>eseményfolyamként</b>: a 18 esemény időrendben, egyenként.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – diszkrét és folytonos idejű gráfmodellek</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Diszkrét idejű</b> (pillanatfelvétel-alapú) modell: minden $G_t$ pillanatfelvételen egy GNN, a csúcsvektorok időbeli sorozatát egy rekurrens háló (<a class="xref" href="../../mesterseges-intelligencia/12-beagyazasok-figyelem/#s123-b">MI 12.3</a>) dolgozza fel: $\mathbf h_v^{(t)} = \operatorname{RNN}\big(\mathbf h_v^{(t-1)},\ \operatorname{GNN}(G_t)_v\big)$. Ilyen például az EvolveGCN, amely magukat a GNN-súlyokat frissíti rekurrensen.</li>
+    <li><b>Folytonos idejű</b> modell: az eseményeket egyenként, időrendben dolgozza fel; minden csúcsnak <b>memóriája</b> van, amelyet minden őt érintő esemény frissít, és az idő <b>pontos</b> értéke (nem csak a nap) belép a számolásba. Ilyen a TGN (E. Rossi és társai, 2020) és a TGAT (D. Xu és társai, 2020).</li>
+  </ul>
+  <small>Miért két út? A pillanatfelvétel egyszerű, és a megszokott GNN-ek működnek rajta – de az ablakméret döntés (<a class="xref" href="../03-graftipusok/#s35-c">3.5</a>), és egy ablakon belül az időrend elvész. Az eseményfolyam minden időpontot megtart, de minden eseményt külön kell feldolgozni.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – üres pillanatfelvételek</span>
+    Hány él van a pénteki és a vasárnapi pillanatfelvételben? Mit „lát” ezekből egy GNN?
+    <details><summary>Megoldás</summary>Pénteken 1 (Ko–Po), vasárnap 1 (La–Ön). Az öt másik szereplő ezeken a napokon elszigetelt: a GNN nem kap tőlük üzenetet. A napi ablak itt túl kicsi – heti ablakkal viszont csütörtök és szombat sorrendje vész el.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – egy napon belül</span>
+    Csütörtökön a 5. és a 8. cikk is megjelent. A pillanatfelvétel-modell látja-e, melyik volt előbb?
+    <details><summary>Megoldás</summary>Nem: mindkettő a $G_{\mathrm{Cs}}$ éle. Az eseményfolyamban, ha órára pontos az időbélyeg, igen. (Az Árvízhétben csak napok vannak – itt a folyam is csak a cikkszámmal tud rendezni.)</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az eseményeket összevonni, aztán „időbelinek” hívni.</b> Ha a súly az események száma, az idő elveszett – ez statikus súlyozott gráf.</li>
+    <li><b>Egy napon belüli eseményeket egymásból jósolni.</b> Ha a 8. cikk Po–La eseményét a 8. cikk La–Ön eseményéből jósoljuk, a válasz benne van a kérdésben: ugyanabból a cikkből jönnek. Egy cikk eseményei <b>egyszerre</b> érkeznek.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – események és pillanatfelvételek</summary>
+  <ol>
+    <li>Hány esemény jön egy 3 szereplőt említő cikkből? És egy 4 szereplősből?
+      <details><summary>Megoldás</summary>$\binom32 = 3$, illetve $\binom42 = 6$.</details></li>
+    <li>Hány esemény van az Árvízhét első felében (H–Sze) és hány a második felében (Cs–V)?
+      <details><summary>Megoldás</summary>$2 + 2 + 4 = 8$, illetve $6 + 1 + 2 + 1 = 10$. Összesen 18.</details></li>
+    <li>Melyik pár fordul elő a legtöbbször a héten eseményként?
+      <details><summary>Megoldás</summary>La–Ön: 7., 8., 9. cikk – háromszor. (Kétszer: Ko–Vi, Ko–Po, Vi–Po, Po–La, Po–Ön, Sz–Kl.)</details></li>
+    <li>Ha két napos ablakot használunk (H–K, Sze–Cs, P–Szo, V), hány pillanatfelvétel lesz, és hány esemény a legnagyobbikban?
+      <details><summary>Megoldás</summary>Négy pillanatfelvétel; a Sze–Cs ablakban $4 + 6 = 10$ esemény.</details></li>
+    <li>(nehezebb) Egy közösségi oldal percre pontos válaszláncairól van adatod. Melyik modelltípus illik jobban, és miért?
+      <details><summary>Megoldás</summary>Folytonos idejű: a percre pontos sorrend (ki kinek válaszolt, mennyi idő után) információ, amit egy napi pillanatfelvétel elmosna. Napi szintű összegzéshez (pl. heti hírnapirend) a pillanatfelvétel-modell is elég.</details></li>
+  </ol>
+</details>
+
+<h3 id="s125-b">2. lépés: csúcsmemória és időkódolás</h3>
+<p>A folytonos idejű modell lényege a <b>memória</b>: minden csúcs „emlékszik”, mi történt vele, és ez az emlék idővel halványul. Kezdjük egyetlen számmal.</p>
+
+<div class="box example" id="s125-b-memoria">
+  <span class="box-title">Kiinduló példa – mennyire „forró” a polgármester?</span>
+  Minden csúcsnak legyen egy $s_v$ száma: minden nap elején megfeleződik ($\lambda = 0{,}5$), és minden őt érintő esemény 1-gyel növeli. A Polgármester (Po):
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>nap</th><th>H</th><th>K</th><th>Sze</th><th>Cs</th><th>P</th><th>Szo</th><th>V</th></tr>
+    <tr><td>aznapi események</td><td>0</td><td>1</td><td>3</td><td>2</td><td>1</td><td>1</td><td>0</td></tr>
+    <tr><td>$s_{\mathrm{Po}}$ a nap végén</td><td>0</td><td>1</td><td>3,5</td><td>3,75</td><td>2,875</td><td>2,438</td><td>1,219</td></tr>
+  </table></div>
+  Szerdán $0{,}5 \cdot 1 + 3 = 3{,}5$; csütörtökön $0{,}5 \cdot 3{,}5 + 2 = 3{,}75$. A memória a <b>friss</b> aktivitást méri: a hét elején sokat szereplő Vízügy szombatra „kihűl”.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – csúcsmemória (TGN) és időkódolás (TGAT)</span>
+  A <b>TGN</b> minden $v$ csúcshoz egy $\mathbf s_v$ memóriavektort tart. Egy $(u, v, t)$ eseménynél:
+  $$\mathbf m_u = \operatorname{msg}\big(\mathbf s_u,\ \mathbf s_v,\ \phi(t - t_u^-),\ \mathbf e_{uv}\big), \qquad \mathbf s_u \leftarrow \operatorname{GRU}(\mathbf s_u,\ \mathbf m_u),$$
+  és ugyanígy $v$-re. Itt $t_u^-$ az $u$ előző eseményének ideje, $\mathbf e_{uv}$ az esemény jellemzője (pl. a cikk vektora), a GRU egy rekurrens cella (<a class="xref" href="../../mesterseges-intelligencia/12-beagyazasok-figyelem/#s123-c">MI 12.3</a>). A jósláshoz a memóriából és a friss szomszédokból egy GNN-réteg készít csúcsvektort.
+  <br>Az <b>időkódolás</b> (a TGAT-ból) az eltelt időt vektorrá alakítja, különböző frekvenciákkal:
+  $$\phi(\Delta t) = \big(\cos(\omega_1 \Delta t),\ \cos(\omega_2 \Delta t),\ \dots,\ \cos(\omega_k \Delta t)\big), \quad \omega_i \text{ tanult}.$$
+  <small>Miért így? A fenti $s \leftarrow \lambda s + 1$ ennek legegyszerűbb, egyszámos változata: a GRU tanulja meg, mit és mennyi ideig érdemes megjegyezni. Az időkódolás a Transformer pozíciókódolásának időbeli rokona (<a class="xref" href="../../mesterseges-intelligencia/12-beagyazasok-figyelem/#s125-c">MI 12.5</a>): a gyors frekvencia a közeli, a lassú a távoli időpontokat különbözteti meg.</small>
+</div>
+
+<div class="widget" data-widget="temporal-stream"></div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a Klímaváltozás memóriája</span>
+    $\lambda = 0{,}5$. Számold ki $s_{\mathrm{Kl}}$-t napról napra!
+    <details><summary>Megoldás</summary>H–Sze: 0 (nincs esemény). Cs: 2 (Ko–Kl, Sz–Kl). P: 1. Szo: $0{,}5 + 1 = 1{,}5$ (Sz–Kl). V: $0{,}75$. A Kl szerda estig „nem létezik” a memóriában – ez a <a class="xref" href="#s127-b">12.7</a>-ben fontos lesz.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – időkódolás két frekvenciával</span>
+    $\omega = (1;\ 0{,}25)$ (napokban). Mi $\phi(0)$, $\phi(1)$, $\phi(3)$?
+    <details><summary>Megoldás</summary>$\phi(0) = (1;\ 1)$, $\phi(1) \approx (0{,}540;\ 0{,}969)$, $\phi(3) \approx (-0{,}990;\ 0{,}732)$. A gyors koordináta 1 nap alatt sokat változik, a lassú alig – együtt a „ma”, a „tegnap” és a „három napja” mind más vektor.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A memóriát a jövővel frissíteni.</b> Ha a csütörtöki jósláskor a memóriában már a csütörtöki esemény is benne van, az szivárgás. A TGN ezért egy eseményt csak <b>utána</b> ír be a memóriába, hogy jósolt rá.</li>
+    <li><b>A memóriát „tudásnak” hinni.</b> Egy csúcs memóriája csak azt tartalmazza, amit látott. Egy új szereplőnek (vagy a szerda esti Kl-nek) üres a memóriája – a modell róla semmit nem tud.</li>
+    <li><b>A nagy $\lambda$-t mindig jobbnak venni.</b> $\lambda$ közel 1: hosszú emlékezet, lassú reagálás egy új eseményre; $\lambda$ közel 0: csak a tegnap számít. A jó érték a gráf ritmusától függ – ezért tanuljuk.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – memória és időkódolás</summary>
+  <ol>
+    <li>$\lambda = 0{,}5$. Mennyi a Kormány (Ko) memóriája szerda este? (Események: H 1, K 0, Sze 2.)
+      <details><summary>Megoldás</summary>H: 1; K: $0{,}5$; Sze: $0{,}25 + 2 = 2{,}25$.</details></li>
+    <li>Ugyanígy a Vízügy (Vi)? (H 2, K 1, Sze 2.)
+      <details><summary>Megoldás</summary>H: 2; K: $1 + 1 = 2$; Sze: $1 + 2 = 3$.</details></li>
+    <li>Szerda este ki a „legforróbb” szereplő?
+      <details><summary>Megoldás</summary>Po 3,5, aztán Vi 3, Ko 2,25, La 1,5, Ön 0,5, Sz 0,25, Kl 0.</details></li>
+    <li>$\lambda = 1$ esetén mit mér $s_v$?
+      <details><summary>Megoldás</summary>Az addigi események számát (semmi nem halványul) – ez az eseményfolyam fokszáma.</details></li>
+    <li>(nehezebb) $\omega = 1$-gyel $\cos(\Delta t)$ mennyi $\Delta t = 0$-nál és $\Delta t = 2\pi \approx 6{,}28$ napnál? Mi a gond ezzel, és mit old meg a több frekvencia?
+      <details><summary>Megoldás</summary>Mindkettőnél 1: egyetlen periodikus koordináta nem különbözteti meg a „most”-ot a „6,28 napja”-tól. Több, különböző (főleg lassú) frekvenciával a teljes vektor már különböző – mint a pozíciókódolásnál.</details></li>
+  </ol>
+</details>
+
+<h3 id="s125-c">3. lépés: kiértékelés – csak a múltból, és nehéz negatívákkal</h3>
+<p>Egy időbeli modell akkor jó, ha a <b>múltból</b> jósolja a jövőt. Ezt a <a class="xref" href="../11-csucsbeagyazasok/#s111-b">11.1</a> időbeli felosztása már megköveteli. De van egy második csapda is – és ezt egy olyan módszer leplezi le, amely <b>semmit nem tanul</b>.</p>
+
+<div class="box example" id="s125-c-edgebank">
+  <span class="box-title">Kiinduló példa – „ami volt, az lesz”</span>
+  Szerda este vágunk. A jóslási szabály: <b>egy pár akkor lesz esemény, ha már volt</b> (bármikor korábban). Ez az <b>EdgeBank</b>: pontszám 1 a látott pároknak, 0 a többinek; a memória minden nap végén bővül.
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>nap</th><th>események</th><th>látott pár volt?</th><th>találat</th></tr>
+    <tr><td>Cs</td><td>Ko–Sz, Ko–Kl, Sz–Kl, <b>Po–La</b>, Po–Ön, <b>La–Ön</b></td><td>Po–La (Sze), La–Ön (K)</td><td>2 / 6</td></tr>
+    <tr><td>P</td><td><b>Ko–Po</b></td><td>Ko–Po (Sze)</td><td>1 / 1</td></tr>
+    <tr><td>Szo</td><td><b>Sz–Kl</b>, <b>Po–Ön</b></td><td>mindkettő csütörtökön</td><td>2 / 2</td></tr>
+    <tr><td>V</td><td><b>La–Ön</b></td><td>igen</td><td>1 / 1</td></tr>
+  </table></div>
+  A 10 teszteseményből <b>6 ismétlés</b>: ezeket egy tanulás nélküli szabály is „eltalálja”. A maradék 4 (Ko–Sz, Ko–Kl, Sz–Kl, Po–Ön csütörtökön) új pár – ezekről az EdgeBank semmit nem tud.
+  <br>Most mérjük AUC-val (<a class="xref" href="../11-csucsbeagyazasok/#s113-b">11.3</a>), kétféle negatívval:
+  <ul style="margin:.2rem 0">
+    <li><b>könnyű negatívák</b>: soha nem látott párok (pontszám 0). Egy ismétlés (1) mindig nyer, egy új pár (0) holtverseny: $\text{AUC} = 0{,}6\cdot 1 + 0{,}4 \cdot \tfrac12 = \mathbf{0{,}8}$;</li>
+    <li><b>történeti negatívák</b>: korábban látott, de aznap <b>nem</b> előforduló párok (pontszám 1). Egy ismétlés holtverseny, egy új pár mindig veszít: $\text{AUC} = 0{,}6 \cdot \tfrac12 + 0{,}4 \cdot 0 = \mathbf{0{,}3}$ – a véletlennél is rosszabb.</li>
+  </ul>
+</div>
+
+<div class="box def">
+  <span class="box-title">Szabály – időbeli kiértékelés</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Időrendi felosztás:</b> tanítás → validáció → teszt, időben egymás után. A modell egy $t$ időpontú eseményt csak a $t$ előtti adatból jósolhat.</li>
+    <li><b>Erős alapvonalak:</b> az <b>EdgeBank</b> (ismétlés) és egy <b>népszerűségi</b> alapvonal (a legaktívabb csúcsok, mint a memória-szorzat) mindig fusson.</li>
+    <li><b>Többféle negatív:</b> a könnyű (véletlen) negatívák mellett <b>történeti</b> (korábban látott, most nem előforduló) és <b>induktív</b> (a tesztben először megjelenő) negatívák is. A könnyű negatívákkal mért eredmény egyedül félrevezető.</li>
+    <li><b>Ismételt élek külön:</b> közöld külön az ismétlődő és az új párokra elért eredményt.</li>
+  </ol>
+  <small>Miért ilyen fontos? Mert a valós időbeli gráfokban sok az ismétlés. F. Poursafaei és társai (2022) épp ezzel mutatták meg, hogy az EdgeBank sok akkori benchmarkon a mély modellekkel vetekszik – mert a szokásos véletlen negatívák túl könnyűek.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – minden nem előforduló pár</span>
+    Ha a negatívák az aznap <b>nem</b> előforduló összes pár (könnyű és történeti vegyesen), az EdgeBank AUC-ja 0,597 (74 negatív, ebből 30 látott). Miért van a két szélső érték között?
+    <details><summary>Megoldás</summary>Mert a negatívák kb. 60%-a soha nem látott (könnyű), kb. 40%-a látott (történeti). A kevert AUC a kettő súlyozott keveréke. Egy nagy, ritka valós gráfban a véletlen pár szinte mindig soha nem látott – ott az EdgeBank a könnyű 0,8 felé húz.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a népszerűségi alapvonal</span>
+    Szerda este a memória-szorzat ($s_u \cdot s_v$, $\lambda = 0{,}5$) szerint melyik <b>új</b> pár a legvalószínűbb? Megtalálja-e a csütörtöki Ko–Kl-t?
+    <details><summary>Megoldás</summary>A szerdai memóriák: Po 3,5, Vi 3, Ko 2,25, La 1,5, Ön 0,5, Sz 0,25, Kl 0. Új (még nem látott) pár: a legnagyobb a Vi–La ($3 \cdot 1{,}5 = 4{,}5$). A Ko–Kl pontszáma $2{,}25 \cdot 0 = 0$: a Kl-nek nincs memóriája, így semmilyen aktivitás-alapú módszer nem találja meg.</details>
+  </div>
+</div>
+
+<div class="box tip" id="s125-c-konszenzus">
+  <span class="box-title">⚖️ Konszenzus és vita – mennyit tudnak az időbeli gráfhálók?</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Konszenzus – a kiértékelés volt a gyenge pont.</b> Poursafaei és társai (2022) óta elfogadott, hogy kellenek a történeti és induktív negatívák és az EdgeBank-alapvonal. A <b>TGB</b> (S. Huang és társai, 2023) nagy, éveket átfogó adatkészleteken egységes protokollt ad; azt találták, hogy a modellek sorrendje adatkészletenként nagyon eltér, és a dinamikus <b>csúcs</b>tulajdonság-jóslásban egyszerű módszerek gyakran jobbak az időbeli GNN-eknél. A TGB 2.0 (Gastinger és társai, 2024) időbeli tudásgráfokon szintén azt kapta, hogy egyszerű heurisztikák gyakran versenyképesek, és a legnagyobb adatokon a legtöbb módszer el sem fut.</li>
+    <li><b>Vita – mit mérnek a benchmarkok?</b> L. Yi és társai (2025, TGB-Seq) szerint a régi adatkészletekben annyi az ismételt él, hogy a modellek főleg az ismétlést tanulják meg; ismétlésszegény adaton a mai modellek jelentősen romlanak. M. Daniluk és J. Dąbrowski (2023, előzetes közlés) egy „mostanában népszerű csúcsok” alapvonallal több TGB-adaton is legyőzte a modelleket. 2026-os előzetes közlések szerint is: néhány paraméteres, számlálás-alapú vagy időben csillapított PageRank-alapvonal sok adatkészleten az élmezőnyben van.</li>
+    <li><b>Ami biztos:</b> időbeli gráfmodellt csak EdgeBank- és népszerűségi alapvonallal, többféle negatívval szabad közölni. 📅 Állapot: 2026.</li>
+  </ul>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az időbeli adatot véletlenszerűen felosztani.</b> A csütörtöki esemény a vasárnapiból tanulna. Ugyanaz a hiba, mint a <a class="xref" href="../11-csucsbeagyazasok/#s111-b">11.1</a>-ben – időbeli gráfon még gyakoribb, mert sok könyvtár alapból véletlenül oszt.</li>
+    <li><b>Csak könnyű negatívákkal mérni.</b> Az EdgeBank 0,8-at kap anélkül, hogy bármit tudna. Ha egy modell 0,85-öt ér el, a különbség kicsi – a történeti negatívák mutatják meg, tud-e többet az ismétlésnél.</li>
+    <li><b>Az „új” és az „ismételt” jóslást összekeverni.</b> Egy hírelemzési kérdés legtöbbször az új kapcsolatokról szól (ki kerül új szövetségbe?). Ott az ismétlés-alapú pontosság semmit nem mond.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – időbeli kiértékelés</summary>
+  <ol>
+    <li>Ha a vágás csütörtök este lenne (tanítás H–Cs, teszt P–V), hány teszteseményt találna el az EdgeBank?
+      <details><summary>Megoldás</summary>Teszt: Ko–Po (P), Sz–Kl, Po–Ön (Szo), La–Ön (V) – mind a négy ismétlés: 4 / 4.</details></li>
+    <li>Egy teszthalmazban az események 80%-a ismétlés. Mennyi az EdgeBank AUC-ja könnyű negatívákkal?
+      <details><summary>Megoldás</summary>$0{,}8 \cdot 1 + 0{,}2 \cdot \tfrac12 = 0{,}9$.</details></li>
+    <li>Ugyanez történeti negatívákkal?
+      <details><summary>Megoldás</summary>$0{,}8 \cdot \tfrac12 + 0{,}2 \cdot 0 = 0{,}4$.</details></li>
+    <li>Egy modell AUC-ja könnyű negatívákkal 0,92, történetiekkel 0,55; az EdgeBanké 0,9 és 0,4. Mit tanult a modell az ismétlésen túl?
+      <details><summary>Megoldás</summary>Könnyű negatívákkal alig jobb (0,92 vs. 0,9). Történetiekkel 0,55 vs. 0,4: valamennyit tud arról, melyik látott pár ismétlődik <b>most</b> – de a 0,55 alig több a véletlennél. Kevés tanulható időbeli szerkezet van benne az ismétlésen túl.</details></li>
+    <li>(nehezebb) Miért 0,3 – a véletlennél rosszabb – az EdgeBank történeti negatívákkal a kiinduló példában?
+      <details><summary>Megoldás</summary>Mert a történeti negatívák mind pontszám 1-et kapnak, ugyanúgy, mint az ismétlések. Az ismétlések így csak holtversenyt érnek el (½), az új párok (0) pedig mindig alulmaradnak (0). Az EdgeBank szisztematikusan a <b>régi</b> párokat teszi előre – ezért rosszabb a véletlennél, ha a kérdés az, hogy „melyik régi pár ismétlődik ma”.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh12-125"></div>
+</section>
+
+<!-- ===================================================== 12.6 -->
+<section id="s126">
+<h2>12.6 Gyakorlati kérdések ★★</h2>
+<p>A modellek megvannak. Mielőtt egy valódi hírgráfon használnánk őket, négy gyakorlati kérdést kell eldönteni: <b>hasonlók-e a szomszédok</b>, mi lesz az <b>új csúcsokkal</b>, mit tegyünk a csúcsokra <b>jellemzőként</b>, és <b>mihez mérünk</b>.</p>
+
+<h3 id="s126-a">1. lépés: heterofília – a szomszéd nem mindig hasonló</h3>
+<div class="box example" id="s126-a-metautak">
+  <span class="box-title">Kiinduló példa – három metaútvonal, három homofília</span>
+  A 12 cikk három metaútvonal szerinti szomszédságában (<a class="xref" href="#s123-b">12.3</a>) számoljuk meg, a szomszédos cikkpárok hány százaléka <b>azonos keretű</b>:
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>metaútvonal</th><th>szomszédos párok</th><th>azonos keretű</th><th>élhomofília</th></tr>
+    <tr><td>C–L–C (ugyanaz a lap)</td><td>12</td><td>10</td><td>83%</td></tr>
+    <tr><td>C–Sz–C (közös szereplő)</td><td>34</td><td>19</td><td>56%</td></tr>
+    <tr><td>C–E–C (ugyanaz az esemény)</td><td>7</td><td>2</td><td>29%</td></tr>
+  </table></div>
+  Ugyanazok a cikkek, ugyanaz a címke – és a homofília 83% és 29% között mozog, attól függően, <b>milyen út</b> köti össze őket. Az eseményen át a szomszéd többnyire <b>más</b> keretű: egy eseményről (pl. E1, „Készültség a gátakon”) az egyik lap védekezésként, a másik felkészülési hiányként írt.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – élhomofília és heterofília</span>
+  Egy címkézett gráf <b>élhomofíliája</b> az azonos címkéjű végpontú élek aránya:
+  $$H = \frac{|\{(u, v) \in E : y_u = y_v\}|}{|E|}.$$
+  Ha $H$ jóval a véletlen szint fölött van, a gráf <b>homofil</b>; ha a véletlen szint közelében vagy alatta, <b>heterofil</b> (szűkebb értelemben csak az utóbbi). Három kerettel, egyenlő arányok mellett a véletlen szint kb. $1/3$.
+  <small>Miért számít? Az átlagoló GNN a szomszédok címkéje felé húzza a csúcsot – homofil gráfon ez segít, heterofil gráfon árt (<a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s137-c">MI 13.7</a>). Heterogén gráfon a homofília <b>metaútvonalanként</b> más – ezért kell metaútvonal-súly (HAN, <a class="xref" href="#s123-c">12.3</a>), vagy relációnként külön $W_r$ (R-GCN), amely negatív is lehet.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – a bíráló és a bírált</span>
+    A szereplők viszonygráfjában (<a class="xref" href="../03-graftipusok/#s33-a">3.3</a>) a címke legyen a „tábor”: kormánypárti / ellenzéki. Homofil-e a „bírál” reláció?
+    <details><summary>Megoldás</summary>Erősen heterofil: a bírálat jellemzően két tábor között fut (Sz → Ko). A „támogat” reláció homofil. Egy közös súllyal a két hatás kioltaná egymást – a relációs GNN-nél a $w_-$ negatív lehet, és ez épp a heterofíliát kezeli (<a class="xref" href="#s122-a">12.2</a>).</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a véletlen szint</span>
+    A 12 cikk közül 4 védekezés, 3 hiány, 5 veszteség. Ha két cikket véletlenül választunk, mennyi az esélye, hogy azonos keretűek?
+    <details><summary>Megoldás</summary>$\dfrac{\binom42 + \binom32 + \binom52}{\binom{12}{2}} = \dfrac{6 + 3 + 10}{66} = \dfrac{19}{66} \approx 29\%$. A C–E–C homofíliája (29%) tehát a véletlen szinten van, a C–Sz–C (56%) fölötte, a C–L–C (83%) jóval fölötte.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A heterofíliát a gráf tulajdonságának hinni.</b> A homofília a gráf <b>és a címke</b> együttes tulajdonsága. Ugyanaz a C–E–C gráf a keretre nézve heterofil, a <b>napra</b> nézve erősen homofil (egy eseményről többnyire ugyanazon a napon írnak).</li>
+    <li><b>Azt hinni, hogy heterofil gráfon a GNN reménytelen.</b> O. Platonov és társai (2023) kimutatták, hogy a régi „heterofil” benchmarkok egy része duplikált csúcsokkal szivárgott; rendes heterofil adatokon a jól beállított standard GNN-ek (maradékkapcsolattal, a saját vektor külön kezelésével) a speciális modelleket is gyakran megelőzik.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – homofília</summary>
+  <ol>
+    <li>A C–L–C 12 párjából melyik kettő <b>nem</b> azonos keretű?
+      <details><summary>Megoldás</summary>A Vidéki Napló párjai közül C10–C11 és C10–C12 (a C10 védekezés, a C11 és C12 veszteség).</details></li>
+    <li>A C–E–C 7 párjából melyik kettő azonos keretű?
+      <details><summary>Megoldás</summary>C5–C6 (E5, mindkettő hiány) és C9–C12 (E6, mindkettő veszteség).</details></li>
+    <li>Egy gráfban 50 él van, ebből 40 azonos címkéjű csúcsokat köt. Mennyi az élhomofília?
+      <details><summary>Megoldás</summary>$40/50 = 0{,}8$.</details></li>
+    <li>Két kerettel, egyenlő arányban, nagy gráfban mennyi a véletlen szint?
+      <details><summary>Megoldás</summary>Kb. $0{,}5$ (mindkét végpont $1/2$ eséllyel ugyanaz).</details></li>
+    <li>(nehezebb) Mit vársz: egy átlagoló GNN, amely csak a C–E–C szomszédságot kapja, segít-e a keret jóslásában? És egy, amelyik negatív súlyt tanulhat erre a metaútvonalra?
+      <details><summary>Megoldás</summary>Az átlagoló nem segít (a szomszédok kerete véletlen szintű, sőt a saját keret ellen „szavaz”: a <a class="xref" href="#s127-a">12.7</a> szavazásában csak 3/12-t ér el). Negatív súllyal az információ elvben használható lenne („az eseménytárs kerete valószínűleg <b>nem</b> az enyém”) – de 7 párból ezt nem lehet megbízhatóan megtanulni.</details></li>
+  </ol>
+</details>
+
+<h3 id="s126-b">2. lépés: induktív tanulás – új cikk, új szereplő</h3>
+<p>A hírek folyamatosan jönnek. Csütörtök reggel megjelenik egy 13. cikk, amely eddig nem volt a gráfban. Kap-e vektort, kap-e keretet?</p>
+
+<div class="box example" id="s126-b-uj">
+  <span class="box-title">Kiinduló példa – a 13. cikk</span>
+  Az új cikk a Kormányt és a Klímaváltozást említi. Szavazzanak a meglévő cikkek a közös szereplők száma szerint (C–Sz–C):
+  Ko-t a C1, C2, C3 (védekezés) és a C5 (hiány) említi, Kl-t a C5 és a C6 (hiány). Pontszámok: védekezés 3, hiány $2 + 1 = 3$ (a C5 két közös szereplővel), veszteség 0 – <b>döntetlen</b>.
+  Most adjuk hozzá, hogy az Esti Krónika közölte (C–L–C: a C4, C5, C6 is hiány): hiány $3 + 3 = 6$, védekezés 3 – a jóslat <b>felkészülési hiány</b>.
+  <br>A lényeg: az új cikk <b>a szomszédain át</b> kapott jóslatot. Nem kellett újratanítani semmit.
+</div>
+
+<div class="box def">
+  <span class="box-title">Definíció – transzduktív és induktív modell</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Transzduktív</b>: minden csúcsnak saját, tanult vektora van (keresőtábla). Új csúcsra nincs vektor – újra kell tanítani. Ilyen a node2vec (<a class="xref" href="../11-csucsbeagyazasok/#s115-a">11.5</a>), a spektrális beágyazás (<a class="xref" href="../11-csucsbeagyazasok/#s114-c">11.4</a>), a TransE (<a class="xref" href="#s124-b">12.4</a>).</li>
+    <li><b>Induktív</b>: a csúcs vektorát egy <b>függvény</b> számolja a csúcs jellemzőiből és a szomszédaiból. Ugyanaz a függvény új csúcsra is alkalmazható. Ilyen a GraphSAGE (<a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s135-a">MI 13.5</a>), az R-GCN, a HGT, a TGN.</li>
+  </ul>
+  <small>Miért fontos a híreknél? Mert ott a gráf <b>folyamatosan nő</b>: naponta új cikkek, időnként új szereplők. Egy transzduktív modellt minden nap újra kellene tanítani. Az induktív modell csak a súlyait tanulja – a csúcsvektorok a friss gráfból adódnak.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – új szereplő</span>
+    Csütörtökön megjelenik egy új szereplő, a „Katasztrófavédelem”, egyetlen cikkben, a Kormánnyal együtt. Mit tud róla a TransE, és mit egy GNN?
+    <details><summary>Megoldás</summary>A TransE semmit: nincs vektora. A GNN a szomszédaiból (a cikkből, azon át a Kormányból) számol neki vektort – ha a csúcsnak van saját jellemzője is (pl. a neve szövegbeágyazása), azt is felhasználja.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – az EdgeBank induktívan</span>
+    Képes-e az EdgeBank (<a class="xref" href="#s125-c">12.5</a>) egy új szereplőt érintő eseményt jósolni?
+    <details><summary>Megoldás</summary>Nem: minden új pár pontszáma 0. Ezért kell induktív negatívákkal is mérni: ott az EdgeBank előnye eltűnik.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>„Induktív” modellt transzduktívan értékelni.</b> Ha a tesztcsúcsok a tanításkor is a gráfban voltak (csak a címkéjük hiányzott), azt nem mérted, hogy a modell új csúcsra működik-e. Vegyél ki teljes csúcsokat a tanításból.</li>
+    <li><b>Elszigetelt új csúcs.</b> Ha az új cikk egyetlen ismert szereplőt sem említ, és a lapja is új, a gráfon át semmi nem jut el hozzá. Ilyenkor csak a saját jellemzője (a szövege) segít.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – új csúcsok</summary>
+  <ol>
+    <li>Egy új cikk a Szakértőt és a Klímaváltozást említi, a lap ismeretlen. Mi a C–Sz–C szavazás eredménye?
+      <details><summary>Megoldás</summary>Sz-t a C4, C5, C6, Kl-t a C5, C6 említi (mind hiány). C4: 1, C5: 2, C6: 2 közös szereplő → hiány 5, a többi 0. Jóslat: felkészülési hiány.</details></li>
+    <li>Egy új cikk a Polgármestert és az Önkénteseket említi. Mi az eredmény?
+      <details><summary>Megoldás</summary>Po: C2, C3, C10 (védekezés), C8, C11, C12 (veszteség); Ön: C7, C8, C9, C12 (veszteség). Védekezés 3; veszteség: C8 2, C11 1, C12 2, C7 1, C9 1 = 7. Jóslat: veszteség.</details></li>
+    <li>Csak a Lakókat említi. Mi az eredmény?
+      <details><summary>Megoldás</summary>La: C7, C8, C9, C11 – mind veszteség: 4. Jóslat: veszteség.</details></li>
+    <li>Melyik transzduktív, melyik induktív: node2vec, GraphSAGE, TransE, TGN?
+      <details><summary>Megoldás</summary>Transzduktív: node2vec, TransE. Induktív: GraphSAGE, TGN.</details></li>
+    <li>(nehezebb) A 13. cikk {Ko, Kl} esetében a lap nélkül döntetlen, az EK-val hiány. Mi lenne, ha a Reggeli Hírlap közölné?
+      <details><summary>Megoldás</summary>Az RH 3 cikke védekezés: védekezés $3 + 3 = 6$, hiány 3. Jóslat: védekezés. Ugyanaz a tartalom, más lap – más jóslat. A modell itt a lap „szokását” tanulja, nem a cikk tartalmát; erről a <a class="xref" href="#s127-a">12.7</a> szól.</details></li>
+  </ol>
+</details>
+
+<h3 id="s126-c">3. lépés: szövegjellemzők a csúcsokon</h3>
+<p>Az eddigi példákban a csúcsoknak alig volt saját jellemzőjük: egy 0/1, vagy semmi. Egy cikknek azonban van <b>szövege</b>. Ha a szöveget vektorrá alakítjuk, a GNN a szerkezetet és a tartalmat együtt látja.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – a C10 címe</span>
+  A C10 címe: „A polgármester a vízügy szakembereivel bejárta a töltést”. A gráf szerint a lapja (VN) veszteség-keretű – a szavazás ezért tévedett (<a class="xref" href="#s123-c-c10">12.3</a>). A címben viszont a „töltés”, a „bejárta”, a „vízügy szakemberei” <b>védekezésre</b> utal.
+  Egy nyelvi modell (<a class="xref" href="../../mesterseges-intelligencia/12-beagyazasok-figyelem/#s126-c">MI 12.6</a>) a címet egy vektorrá alakítja, amely közel lesz a többi védekezés-cikk vektorához. Ha ez a csúcs jellemzője, a GNN-nek nem kell csak a szomszédokra hagyatkoznia.
+</div>
+
+<div class="box def">
+  <span class="box-title">Szabály – szövegből csúcsjellemző</span>
+  A cikkcsúcs bemenete $\mathbf x_c = \operatorname{enc}(\text{a cikk szövege})$, ahol $\operatorname{enc}$ egy előtanított nyelvi modell (mondat- vagy dokumentumbeágyazó); a szereplőé lehet a nevéből vagy a róla szóló mondatokból készült vektor. A GNN az $\mathbf x$-ből indul, és a szomszédoktól gyűjt hozzá.
+  <small>Miért jó? (1) Az új cikk azonnal kap értelmes vektort – akkor is, ha a gráfban alig kapcsolódik (induktivitás). (2) A szerkezet és a szöveg kiegészíti egymást: a szöveg a tartalmat, a gráf a kontextust (ki közölte, kik szerepelnek benne) adja.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – erős szöveg, gyenge gráf</span>
+    Ha a nyelvi modellre épített egyszerű osztályozó (gráf nélkül) már 95%-os, mit várhatsz a GNN-től?
+    <details><summary>Megoldás</summary>Keveset: a gráf csak a maradék 5%-on segíthet, és közben zajt is hozhat (heterofil szomszédok). Mindig mérd le a <b>csak szöveg</b> alapvonalat is – ha a GNN nem veri, a gráf nem ad hozzá.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – időbeli szivárgás a nyelvi modellen át</span>
+    Egy 2026-ban tanított nyelvi modellel kódolod egy 2022-es hírkorpusz cikkeit, és azt jósolod, mely szereplők kerülnek később együtt a hírekbe. Mi a gond?
+    <details><summary>Megoldás</summary>A nyelvi modell tanítóadata a 2022 utáni hírekből is tanult – „tudhatja”, mi történt később. A szöveg-vektor így a jövőből szivároghat. Időbeli kérdésnél a nyelvi modell tanítási dátuma is a felosztás része.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A címkét a szövegbe csempészni.</b> Ha a keretet egy annotátor a szöveg alapján adta, és ugyanaz a szöveg a jellemző, a modell az annotátort utánozza – ez rendben van, de akkor a „gráf hatása” csak a szöveg <b>felett</b> mérhető.</li>
+    <li><b>A szereplőcsúcsnak a teljes korpuszból számolt vektort adni.</b> Ha a „Klímaváltozás” vektora a hét összes cikkéből készül, a szerdai jóslásban a csütörtöki cikk is benne van.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – szövegjellemzők</summary>
+  <ol>
+    <li>Mi a különbség a „csak szöveg”, a „csak gráf” és a „szöveg + gráf” modell között a 13. cikk {Ko, Kl} példáján?
+      <details><summary>Megoldás</summary>Csak szöveg: a cikk tartalma dönt. Csak gráf: a szomszédok (és a lap) szavaznak – lap nélkül döntetlen. Szöveg + gráf: a tartalomvektort a szomszédok kiegészítik, a döntetlent a szöveg is feloldhatja.</details></li>
+    <li>Melyik feltevést (<a class="xref" href="#s121-b">12.1</a>) segít enyhíteni a szöveg-jellemző?
+      <details><summary>Megoldás</summary>Főleg a 2.-at (a csúcstípusoknak más-más jellemzője van – a szöveg a cikké), és közvetve a 4.-et: heterofil szomszédok mellett is van saját információ.</details></li>
+    <li>Egy szereplőnek nincs szövege. Mi lehet a jellemzője?
+      <details><summary>Megoldás</summary>Például a nevének beágyazása, a típusa (személy, szervezet, fogalom), vagy a róla szóló korábbi mondatok átlagos vektora – csak a felosztás előtti cikkekből.</details></li>
+    <li>Miért nem elég a szöveg, ha a kérdés az, hogy melyik lap hogyan keretez?
+      <details><summary>Megoldás</summary>Mert a lap „szokása” a gráfban (L–C élek) van, nem egyetlen cikk szövegében. A lap-összehasonlításhoz a szerkezet kell.</details></li>
+    <li>(nehezebb) A szöveg-vektorokat a teljes korpuszon illesztett TF-IDF-fel készíted (<a class="xref" href="../../mesterseges-intelligencia/12-beagyazasok-figyelem/#s121-c">MI 12.1</a>). Hol szivároghat itt az idő?
+      <details><summary>Megoldás</summary>Az IDF-súlyok a teljes korpuszból számolódnak, a jövőbeli cikkekből is: egy szó, amely csak csütörtöktől gyakori (pl. „klíma”), szerdán már „ismert gyakoriságú”. A TF-IDF-et is csak a tanítási időszakra szabad illeszteni.</details></li>
+  </ol>
+</details>
+
+<h3 id="s126-d">4. lépés: mikor győz egy egyszerű alapvonal?</h3>
+<p>Ebben a fejezetben minden szakaszban találtunk egy egyszerű módszert, amely erős ellenfél volt: a homogén GAT típusjelzővel, a régi KG-modell gondos tanítással, az EdgeBank. Ez nem véletlen.</p>
+
+<div class="box example">
+  <span class="box-title">Kiinduló példa – paraméterek és címkék</span>
+  A keret-jóslásban 12 címke van. A 2 rétegű R-GCN-nek $4608$ súlya lenne (<a class="xref" href="#s123-d">12.3</a>), a <a class="xref" href="#s127-a">12.7</a> szavazásának 3 (a három $\beta$). Melyikben bízol jobban, ha mindkettő 11/12-t ér el?
+  A szavazásban: 3 paraméter 12 címkén – keveset tud, de keveset is tud elrontani. Az R-GCN-ben címkénként 384 súly – bármilyen 12 címkét meg tudna tanulni, akár véletlent is.
+</div>
+
+<div class="box def">
+  <span class="box-title">Hüvelykujjszabály – az alapvonalak listája</span>
+  Mielőtt egy bonyolult gráfmodellt elhiszel, fusson mellette:
+  <ol style="margin:.2rem 0">
+    <li><b>többségi osztály / véletlen</b> (a padló);</li>
+    <li><b>gráf nélküli</b> modell a csúcsjellemzőkön (pl. csak a szöveg);</li>
+    <li><b>szomszédsági heurisztika</b> (szavazás, közös szomszédok, <a class="xref" href="../11-csucsbeagyazasok/#s112-a">11.2</a>);</li>
+    <li><b>homogén GNN</b> (GCN / GAT) típusjelzővel;</li>
+    <li>időbeli adaton <b>EdgeBank</b> és <b>népszerűség</b>; tudásgráfon egy jól hangolt <b>DistMult</b> vagy TransE.</li>
+  </ol>
+  <b>A szabály:</b> a bonyolult modell akkor ér valamit, ha <b>mindegyiket</b> ugyanazon a felosztáson, ugyanakkora hangolási költségvetéssel megveri – és a különbség nagyobb a véletlen magok közti szórásnál.
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Egyetlen futtatás.</b> 12 (vagy akár 1000) címkén egy futtatás eredménye véletlen magtól függ. Közölj átlagot és szórást.</li>
+    <li><b>Aszimmetrikus hangolás.</b> A saját modellt 100 beállítással hangolni, az alapvonalat az alapértékekkel futtatni – ez a heterogén GNN-ek újraértékelésének egyik fő tanulsága (<a class="xref" href="#s123-d-konszenzus">12.3</a>).</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – alapvonalak</summary>
+  <ol>
+    <li>Mennyi a többségi alapvonal a 12 cikk keret-jóslásában?
+      <details><summary>Megoldás</summary>5/12 (mindenre veszteség), kb. 42%.</details></li>
+    <li>Egy időbeli modell MRR-je 0,62, az EdgeBanké 0,60, a népszerűségé 0,64. Mit mondasz?
+      <details><summary>Megoldás</summary>A népszerűségi alapvonal jobb a modellnél: a modell nem tanult többet annál, hogy „a mostanában aktív csúcsok lesznek aktívak”.</details></li>
+    <li>Egy heterogén GNN 81%-os, a homogén GAT típusjelzővel 80%-os, a szórás 5 véletlen magon 1,5 százalékpont. Jobb-e a heterogén?
+      <details><summary>Megoldás</summary>Nem mutatható ki: a különbség (1 pont) kisebb a szórásnál.</details></li>
+    <li>Melyik alapvonal hiányzik: „a TGN AUC-ja 0,95 véletlen negatívákkal”?
+      <details><summary>Megoldás</summary>Az EdgeBank (ugyanazokkal a negatívákkal), és a történeti / induktív negatívás mérés.</details></li>
+    <li>(nehezebb) Miért gyakori, hogy kis hírgráfon az egyszerű szavazás ugyanolyan jó, mint egy GNN?
+      <details><summary>Megoldás</summary>Mert egy rétegű, átlagoló GNN lényegében a szomszédok címkéinek / jellemzőinek súlyozott átlagát tanulja – a szavazás ennek a legegyszerűbb, tanítás nélküli változata. Kis adaton a GNN többletparaméterei nem kapnak elég jelet, hogy ennél többet tanuljanak.</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh12-126"></div>
+</section>
+
+<!-- ===================================================== 12.7 -->
+<section id="s127">
+<h2>12.7 Alkalmazás: az Árvízhét heterogén, időbeli gráfja</h2>
+<p>Minden eszköz megvan. Térjünk vissza a <a class="xref" href="#s121-kerdes">fejezet kérdéséhez</a>: egy cikk keretét és a jövő heti szereplőpárokat akarjuk a gráfból jósolni. A 12 cikk kevés egy GNN tanításához – de pont elég ahhoz, hogy <b>kézzel</b> lássuk, mit csinálna egy heterogén és egy időbeli modell, és mihez kell mérni.</p>
+
+<h3 id="s127-a">1. lépés: a keret jóslása metaútvonal-szavazással</h3>
+<div class="box example" id="s127-a-szavazas">
+  <span class="box-title">A módszer – a HAN „szegény ember” változata</span>
+  Minden cikkre, <b>önmagát kihagyva</b> (leave-one-out), a többi cikk szavaz a keretére. Egy szomszéd szavazata a metaútvonal $\beta_\Phi$ súlyával számít (a C–Sz–C-n a közös szereplők számával is szorozva):
+  $$\text{pont}_c(f) = \sum_\Phi \beta_\Phi \sum_{d \ne c} M^\Phi_{cd}\,[y_d = f].$$
+  A legtöbb pontot kapó keret a jóslat; holtversenynél fél (vagy harmad) találatot számolunk, ha a helyes keret köztük van; ha egy cikknek az adott úton nincs szomszédja (mint a C8-nak az esemény-úton), nincs jóslat, és nincs találat sem. Ez pontosan egy egyrétegű, átlagoló, metaútvonalas GNN – tanult súlyok nélkül: a $\beta$-kat mi állítjuk.
+</div>
+
+<div class="widget" data-widget="metapath-vote"></div>
+
+<div class="box example" id="s127-a-eredmeny">
+  <span class="box-title">Eredmény – melyik út mennyit ér?</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>módszer</th><th>$\beta$ (lap; szereplő; esemény)</th><th>várható találat</th><th>élhomofília</th></tr>
+    <tr><td>többségi alapvonal (mind veszteség)</td><td>–</td><td>5 / 12</td><td>–</td></tr>
+    <tr><td>csak esemény (C–E–C)</td><td>(0; 0; 1)</td><td>3 / 12</td><td>29%</td></tr>
+    <tr><td>csak lap (C–L–C)</td><td>(1; 0; 0)</td><td>10 / 12</td><td>83%</td></tr>
+    <tr><td>csak szereplő (C–Sz–C)</td><td>(0; 1; 0)</td><td>10,5 / 12</td><td>56%</td></tr>
+    <tr><td><b>lap + szereplő</b></td><td>(1; 1; 0)</td><td><b>11 / 12</b></td><td></td></tr>
+    <tr><td>mind egyformán</td><td>(1; 1; 1)</td><td>10,5 / 12</td><td></td></tr>
+  </table></div>
+  Három tanulság:
+  <ol style="margin:.2rem 0">
+    <li><b>A heterofil út árt.</b> Az esemény-metaútvonal egyedül a többségi alapvonalnál is rosszabb (3 vs. 5), és egyforma súllyal hozzáadva a legjobb eredményt 11-ről 10,5-re rontja. A kérdés „melyik éltípust kell figyelmen kívül hagyni?” – válasza: <b>az eseményt</b>. A HAN szemantikai figyelme (<a class="xref" href="#s123-c">12.3</a>) éppen ezt a súlyt tanulná kicsire.</li>
+    <li><b>A két jó út kiegészíti egymást.</b> A lap egyedül a Vidéki Napló vegyes cikkeit hibázza el; a szereplők egyedül a C4-et hibázzák el, a C5-nél döntetlent adnak (szakértői cikkek, amelyek a Vízügyet, illetve a Kormányt is említik). Együtt csak egy hiba marad.</li>
+    <li><b>A C10-et egyik súlyozás sem menti meg,</b> amelyik a többi cikket is jól adja: a lapja veszteség-keretű, a szereplői vegyesek. A címe viszont egyértelműen védekezés – itt a szövegjellemző segítene (<a class="xref" href="#s126-c">12.6</a>).</li>
+  </ol>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Amire figyelni kell</span>
+  <ul style="margin:.2rem 0">
+    <li><b>A $\beta$-kat ugyanazon a 12 cikken válogattuk, amelyen mérünk.</b> A „lap + szereplő = 11/12” így optimista: a súlyválasztás is egyfajta tanítás. Becsületesen a $\beta$-t is a kihagyott cikk nélkül kellene választani (beágyazott keresztvalidáció).</li>
+    <li><b>A lap „szokása” nem tartalom.</b> A C–L–C azért erős, mert az Árvízhétben minden lap többnyire egy keretben írt. Egy új lapnál, vagy ha egy lap keretet vált, ez a jel eltűnik. A modell itt <b>a lapot ismeri fel</b>, nem a keretet.</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – keret-jóslás</summary>
+  <ol>
+    <li>A „csak lap” szavazásnál melyik cikkek jóslata döntetlen, és miért?
+      <details><summary>Megoldás</summary>A C11 és a C12: a VN-ben a másik két cikk egyike védekezés (C10), a másik veszteség – 1 : 1. A C10-nél viszont a két társ (C11, C12) mindkettő veszteség: biztos, de rossz jóslat.</details></li>
+    <li>Mennyi a „csak lap” várható találata, ha a két döntetlen fél találat?
+      <details><summary>Megoldás</summary>9 biztos találat (minden cikk az RH-ban, az EK-ban, az NY-ban) $+ 2 \cdot \tfrac12 = 10$.</details></li>
+    <li>A „csak szereplő” szavazásnál miért hibázza el a C4-et?
+      <details><summary>Megoldás</summary>A C4 (hiány) Vi-t és Sz-t említi. Vi-n át a C1, C2 (védekezés) és a C10 (védekezés), Sz-en át a C5, C6 (hiány) szavaz: védekezés 3, hiány 2 – a védekezés nyer.</details></li>
+    <li>Miért nem lehet egy cikk keretét egy „csak esemény” modellel jól jósolni?
+      <details><summary>Megoldás</summary>Mert egy eseményről a lapok különböző keretben írnak (az E1-ről az RH védekezésként, az EK hiányként) – az eseménytársak kerete a véletlen szinten van (29%).</details></li>
+    <li>(nehezebb) Hogyan választanád ki becsületesen a $\beta$-kat, ha csak ez a 12 cikk van?
+      <details><summary>Megoldás</summary>Beágyazott leave-one-out: minden kihagyott $c$ cikkre a $\beta$-t csak a maradék 11 cikken optimalizálod (azokon is leave-one-out-tal), és az így kapott $\beta$-val jósolod $c$-t. Az eredmény a választási lépés optimizmusától mentes – kis adaton nagyobb szórással.</details></li>
+  </ol>
+</details>
+
+<h3 id="s127-b">2. lépés: szerda este – a jövő hét párjai</h3>
+<div class="box example" id="s127-b-ido">
+  <span class="box-title">Az időbeli kérdés három módszerrel</span>
+  Vágás szerda este, teszt: a csütörtök–vasárnapi 10 esemény (<a class="xref" href="#s125-c-edgebank">12.5</a>).
+  <ul style="margin:.2rem 0">
+    <li><b>EdgeBank</b> (ismétlés): 6 / 10 eseményt „talál el” – mind ismételt pár. AUC könnyű negatívákkal 0,8, történetiekkel 0,3.</li>
+    <li><b>Memória-szorzat</b> (aktivitás, $\lambda = 0{,}5$): AUC könnyű negatívákkal 0,42, történetiekkel 0,29 – <b>rosszabb a véletlennél</b>. A szerdán aktív szereplők (Po, Vi) párjai sokszor nem jönnek elő, a csütörtöki új esemény (E5) pedig egy szerdán „hideg” szereplőt (Kl) hoz.</li>
+    <li><b>Szomszédsági heurisztikák</b> az új párokra (a <a class="xref" href="../11-csucsbeagyazasok/#s116-a">11.6</a> eredménye): a négy új pár közül a Ko–Sz-t a Jaccard, a Po–Ön-t az Adamic–Adar az első helyre teszi; a két Kl-es párt (Ko–Kl, Sz–Kl) egyik sem.</li>
+  </ul>
+  A három módszer <b>mást</b> tud: az EdgeBank az ismétléseket, a heurisztikák a „barátom barátja” típusú új párokat. Egy jó időbeli modellnek mindkettőt tudnia kell – és a TGN memóriája, a gráfrétege és a negatívákkal való tanítása pontosan ezt a kettőt próbálja összerakni.
+</div>
+
+<div class="box def">
+  <span class="box-title">Ami a gráfból nem jósolható</span>
+  A Ko–Kl és a Sz–Kl pár egy <b>új eseményből</b> jött (E5: „Vita a beruházásokról és a klímáról”, csütörtök). Szerda estig a Kl egyetlen cikkben sem szerepelt: nincs éle, nincs memóriája, nincs szomszédja. Semmilyen gráfmodell – se heurisztika, se TGN – nem tudhatja, hogy csütörtökön egy klímakutató megszólal.
+  <small>Ez nem a modellek hibája, hanem az adat határa. Egy ilyen „új téma” jóslásához a gráfon <b>kívüli</b> jel kell: például a szakértői közlemények szövege, a közösségi média, vagy a korábbi árvizek hírciklusa. A gráfmodell abban jó, ami a meglévő szerkezetből következik.</small>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – az időbeli kérdés</summary>
+  <ol>
+    <li>A 10 teszteseményből hány új pár, és melyek?
+      <details><summary>Megoldás</summary>4: Ko–Sz, Ko–Kl, Sz–Kl, Po–Ön – mind csütörtökön. (A Po–Ön szombaton már ismétlés.)</details></li>
+    <li>Melyik módszer adna jó jóslatot a szombati Sz–Kl eseményre, ha a vágás péntek este lenne?
+      <details><summary>Megoldás</summary>Az EdgeBank: a Sz–Kl csütörtökön már előfordult, így pénteken „látott” pár.</details></li>
+    <li>Miért nem segít a memória-szorzat a Ko–Kl párnál?
+      <details><summary>Megoldás</summary>Mert szerda este $s_{\mathrm{Kl}} = 0$, így a szorzat 0 – a pár a rangsor alján van.</details></li>
+    <li>Melyik két új párt találják meg a heurisztikák, és miért éppen azokat?
+      <details><summary>Megoldás</summary>Ko–Sz (közös szomszéd: Vi; Jaccard 1/2) és Po–Ön (közös szomszéd: La, akinek kevés kapcsolata van – nagy Adamic–Adar). Mindkettő „barátom barátja” – triadikus zárás (<a class="xref" href="../06-helyi-szerkezet/#s63-a">6.3</a>).</details></li>
+    <li>(nehezebb) Tervezz egy egyszerű, tanítás nélküli „hibrid” pontszámot, amely az ismétléseket és az új párokat is kezeli!
+      <details><summary>Megoldás</summary>Például: $s(u, v) = \text{EdgeBank}(u, v) + \varepsilon \cdot \text{AA}(u, v)$, kis $\varepsilon$-nal: a látott párok elöl, köztük és utánuk az Adamic–Adar dönt. Így az ismétlés és a triadikus zárás is számít. (A Kl-es párokat ez sem találja meg.)</details></li>
+  </ol>
+</details>
+
+<h3 id="s127-c">3. lépés: a válasz – és egy ellenőrző lista</h3>
+<div class="box example" id="s127-c-valasz">
+  <span class="box-title">🎯 Válasz a fejezet kérdésére</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Keret:</b> a gráfból a 12 cikk keretének kb. 11-ét kitaláljuk – <b>ha a jó éleket használjuk</b>: a lapot és a közös szereplőket. Az esemény-élek heterofilek: a jóslatot rontják, ezért figyelmen kívül kell hagyni őket (vagy kis súlyt adni nekik). A többségi alapvonal 5/12 – a gráf tehát sokat ad. A maradék hibát (C10) a szöveg oldaná meg.</li>
+    <li><b>Idő:</b> a csütörtök–vasárnapi események 60%-a ismétlés – ezt egy „ami volt, az lesz” szabály is tudja, és könnyű negatívákkal 0,8-as AUC-t kap érte. Az új párok közül kettőt a szomszédsági heurisztikák megtalálnak; kettőt (a klímás párokat) semmilyen gráfmodell nem, mert egy új esemény hozta őket.</li>
+    <li><b>Mennyit ér az „okos” modell?</b> Ezen a kis gráfon semmi olyat nem tudna, amit a szavazás és a heurisztikák ne mutatnának meg – csak sokkal több paraméterrel. Nagy hírgráfon (ezer cikk, sok éltípus, szövegjellemzők) a heterogén és időbeli GNN-ek valóban többet tudnak; de ott is <b>ugyanezekhez</b> az alapvonalakhoz kell mérni őket.</li>
+  </ol>
+</div>
+
+<div class="box tip">
+  <span class="box-title">✅ Ellenőrző lista – GNN egy hírgráfon</span>
+  <ol style="margin:.2rem 0">
+    <li><b>Típusok:</b> milyen csúcs- és éltípusok vannak? Irányítottak-e (inverz relációk)? Elég-e egy homogén GNN típusjelzővel?</li>
+    <li><b>Homofília:</b> metaútvonalanként / relációnként mennyi? Van-e heterofil (bírál, esemény) út, amit külön kell kezelni?</li>
+    <li><b>Idő:</b> időrendi felosztás; a memória, a szövegjellemzők (IDF, nyelvi modell) és a szereplővektorok is csak a múltból.</li>
+    <li><b>Induktivitás:</b> lesznek-e új cikkek, szereplők a tesztben? Akkor induktív modell és induktív negatívák.</li>
+    <li><b>Alapvonalak:</b> többség, csak szöveg, szavazás / heurisztika, homogén GAT, EdgeBank, népszerűség – ugyanazon a felosztáson, ugyanakkora hangolással.</li>
+    <li><b>Kiértékelés:</b> könnyű és nehéz (történeti) negatívák; ismétlés és új él külön; szűrt MRR a tudásgráfon; több véletlen mag, szórással.</li>
+    <li><b>Értelmezés:</b> a figyelmi súly nem magyarázat; amit egy új esemény hoz, azt a gráf nem tudhatja.</li>
+  </ol>
+</div>
+
+<div class="box tip">
+  <span class="box-title">⚖️ Konszenzus és vita – gráfmodellek a hírelemzésben</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Konszenzus:</b> a hírek természetes adatmodellje heterogén és időbeli gráf (lap, cikk, szereplő, esemény, olvasó). A típus- és az időinformáció figyelembe vétele a nagy benchmarkokon rendszeresen segít (<a class="xref" href="#s123-d-konszenzus">12.3</a>, <a class="xref" href="#s125-c-konszenzus">12.5</a>).</li>
+    <li><b>Vita:</b> mennyi ebből az architektúra, és mennyi a jó adatmodell, a jó jellemzők és a becsületes kiértékelés? Az újraértékelések (heterogén GNN-ek, időbeli GNN-ek, tudásgráf-beágyazások) mind azt találták, hogy a „haladás” egy része a gyengén beállított alapvonalakból jött. A hírelemzési alkalmazásokról (álhírfelismerés, hírajánlás) a 20. fejezet szól majd. 📅 Állapot: 2026.</li>
+  </ul>
+</div>
+
+<div class="quiz" data-quiz="gh12-127"></div>
+</section>
+
+<!-- ===================================================== Összefoglalás -->
+<section id="s-sum">
+<h2>Összefoglalás</h2>
+<div class="tw" style="overflow-x:auto"><table>
+  <tr><th>Fogalom / módszer</th><th>Szabály / képlet</th><th>Mit ad, mire figyelj?</th><th>Példa</th></tr>
+  <tr><td>GCN (🔁)</td><td>$\sigma(\hat D^{-1/2}\hat A\hat D^{-1/2}HW)$</td><td>egyféle él és csúcs, statikus gráf, homofília</td><td>öt barát: $P\mathbf x$ Dávidnál 2,041</td></tr>
+  <tr><td>R-GCN</td><td>$\mathbf h_v W_0 + \sum_r \tfrac{1}{|N_r(v)|}\sum_{u \in N_r(v)} \mathbf h_u W_r$</td><td>éltípusonként saját súly; relációnkénti normálás</td><td>Sz: homogén 0,5, relációs $-1$</td></tr>
+  <tr><td>inverz relációk</td><td>$u \xrightarrow{r} v$ ⇒ $v \xrightarrow{r^{-1}} u$; $(R + 1)dd'$ súly</td><td>az irány maga is típus</td><td>2 irányított reláció, $d = 16$: 1280</td></tr>
+  <tr><td>bázisfelbontás</td><td>$W_r = \sum_b a_{rb} V_b$; $Bdd' + RB + dd'$</td><td>sok, ritka relációnál spórol és regularizál</td><td>$R = 40$, $B = 4$: 1440 vs. 10 496</td></tr>
+  <tr><td>heterogén gráf, séma</td><td>$G = (V, E, \tau, \phi)$</td><td>a séma mondja meg, milyen utak vannak</td><td>Árvízhét: 32 csúcs, 63 él</td></tr>
+  <tr><td>metaútvonal</td><td>$M_\Phi = A_{LC}A_{CE}A_{CE}^\top A_{LC}^\top$</td><td>a főátló nem szomszédság; hosszú út → sűrű gráf</td><td>RH–VN: 2 közös eseményes út</td></tr>
+  <tr><td>HAN</td><td>csúcsszintű GAT + $\beta_\Phi = \operatorname{softmax}(w_\Phi)$</td><td>a metaútvonalakat neked kell megadni; $\beta$ ≠ magyarázat</td><td>$w = (1;\ 0)$ → $(0{,}731;\ 0{,}269)$</td></tr>
+  <tr><td>HGT</td><td>típusfüggő $Q, K, V$ és $W^{\text{ATT}}_\phi$, $W^{\text{MSG}}_\phi$</td><td>nincs metaútvonal; sok paraméter</td><td>5 típus, 8 reláció, $d = 16$: 7936</td></tr>
+  <tr><td>TransE</td><td>$-\lVert\mathbf h + \mathbf r - \mathbf t\rVert$; $\max(0, \gamma + d^+ - d^-)$</td><td>eltolás: szimmetrikus és 1–N relációt nem tud</td><td>Budapest $+ (3;1)$ = Magyarország</td></tr>
+  <tr><td>DistMult</td><td>$\sum_i h_i r_i t_i$</td><td>mindig szimmetrikus – irányt nem lát</td><td>Sz–Ko és Ko–Sz: 4 és 4</td></tr>
+  <tr><td>RotatE</td><td>$-\lVert \mathbf h \circ \mathbf r - \mathbf t\rVert$, $|r_i| = 1$</td><td>szimmetria, antiszimmetria, inverz, összetétel</td><td>$90°$: 0 és 2; $180°$: 0 és 0</td></tr>
+  <tr><td>MRR, Hits@k</td><td>$\tfrac1{|Q|}\sum 1/\operatorname{rang}$; szűrt rang</td><td>a többi igaz választ ki kell szűrni</td><td>rangok 1, 3, 2, 10: 0,483</td></tr>
+  <tr><td>pillanatfelvétel vs. folyam</td><td>$G_1, G_2, \dots$ + RNN vs. $(u, v, t)$ események</td><td>ablakméret-döntés vs. eseményenkénti feldolgozás</td><td>Árvízhét: 7 nap, 18 esemény</td></tr>
+  <tr><td>csúcsmemória</td><td>$s \leftarrow \lambda s + \text{események}$; TGN: GRU</td><td>csak a múltból frissül; új csúcsnak üres</td><td>Po szerda este 3,5</td></tr>
+  <tr><td>EdgeBank</td><td>1, ha a pár már előfordult</td><td>könnyű negatívákkal erős, történetiekkel gyenge</td><td>6/10; AUC 0,8 vs. 0,3</td></tr>
+  <tr><td>élhomofília</td><td>azonos címkéjű élek aránya</td><td>metaútvonalanként más; heterofil utat le kell súlyozni</td><td>C–L–C 83%, C–E–C 29%</td></tr>
+  <tr><td>transzduktív / induktív</td><td>keresőtábla vs. függvény a szomszédokból</td><td>hírgráf nő: induktív modell kell</td><td>13. cikk {Ko, Kl} + EK → hiány</td></tr>
+</table></div>
+
+<div class="box tip">
+  <span class="box-title">Melyik módszer mikor? – döntési táblázat</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>Ha a helyzet ez…</th><th>…akkor ezt használd</th></tr>
+    <tr><td>egyféle csúcs, kevés éltípus, a típus jelentést hordoz (támogat / bírál)</td><td>R-GCN (inverz relációkkal); sok relációnál bázisfelbontással</td></tr>
+    <tr><td>sokféle csúcs, ismert, értelmes metaútvonalak</td><td>HAN vagy metaútvonalas átlag (SeHGNN-szerű) – és összevetésként egyszerű szavazás</td></tr>
+    <tr><td>sokféle csúcs és él, sok adat, eltérő jellemzőterek</td><td>HGT; mellette mindig homogén GAT típusjelzővel (Simple-HGN)</td></tr>
+    <tr><td>hiányzó tények egy tudásgráfban, $(h, r, ?)$ lekérdezés</td><td>tudásgráf-beágyazás: szimmetrikus relációkra DistMult, irányítottakra TransE / RotatE; szűrt MRR</td></tr>
+    <tr><td>az élek időbélyegesek, napi / heti összegzés elég</td><td>pillanatfelvétel-alapú modell (GNN + RNN) – az ablakméret érzékenységvizsgálatával</td></tr>
+    <tr><td>pontos időbélyegek, folyamatos eseményfolyam</td><td>folytonos idejű modell (TGN / TGAT) – EdgeBank- és népszerűségi alapvonallal, történeti negatívákkal</td></tr>
+    <tr><td>új cikkek, szereplők a tesztben</td><td>induktív modell (GraphSAGE-szerű, R-GCN, TGN) szöveg-jellemzőkkel; induktív negatívák</td></tr>
+    <tr><td>kevés címke, kis gráf</td><td>szavazás / heurisztika / homogén GNN – a bonyolult modell itt túlilleszt</td></tr>
+    <tr><td>heterofil reláció vagy metaútvonal</td><td>külön (akár negatív) súly: R-GCN, HAN-súly; vagy hagyd ki</td></tr>
+  </table></div>
+</div>
+</section>
+
+<!-- ===================================================== Ellenőrző kérdések -->
+<section id="s-check">
+<h2>Ellenőrző kérdések</h2>
+<p>Gondold végig a választ, aztán kattints a kártyára a megfordításhoz!</p>
+<div class="flashcards">
+  <div class="flash"><div class="inner"><div class="face front">Melyik négy feltevést teszi a GCN hallgatólagosan?</div>
+    <div class="face back">Egyféle él, egyféle csúcs, statikus gráf, és hogy a szomszéd hasonló (homofília).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miben különbözik az R-GCN a GCN-től?</div>
+    <div class="face back">Éltípusonként saját súlymátrixot ($W_r$) használ, és relációnként normál; a saját vektort külön $W_0$ kezeli.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért kellenek inverz relációk?</div>
+    <div class="face back">Hogy az üzenet mindkét irányba menjen, de más súllyal: bírálni és bíráltnak lenni két szerep.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit old meg a bázisfelbontás?</div>
+    <div class="face back">Sok reláció esetén a paraméterek elszállását és a ritka relációk túlillesztését: minden $W_r$ néhány közös alapmátrix keveréke.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a metaútvonal, és hogyan számolod az utakat?</div>
+    <div class="face back">Típussorozat (pl. L–C–E–C–L); az utak száma a típusok illeszkedési mátrixainak szorzata.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a HAN két szintje?</div>
+    <div class="face back">Csúcsszintű figyelem a metaútvonal szomszédai között (GAT), és szemantikai figyelem a metaútvonalak között ($\beta_\Phi$, softmax).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit talált a heterogén GNN-ek újraértékelése (Lv és társai, 2021)?</div>
+    <div class="face back">A megfelelő bemenettel futtatott homogén GAT a legtöbb heterogén modellt utolérte; a Simple-HGN (GAT + éltípus-vektor) mindet megelőzte.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mit jelent a nyílt világ feltevés?</div>
+    <div class="face back">Ami nincs a tudásgráfban, az ismeretlen, nem hamis. A negatív mintavétel ezért csak feltételezett negatívákat ad.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért nem tud a TransE szimmetrikus relációt?</div>
+    <div class="face back">$\mathbf a + \mathbf r = \mathbf b$ és $\mathbf b + \mathbf r = \mathbf a$ csak $\mathbf r = 0$, $\mathbf a = \mathbf b$ mellett teljesül.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért nem tud a DistMult irányt?</div>
+    <div class="face back">Mert $\sum_i h_i r_i t_i = \sum_i t_i r_i h_i$: a fej és a farok cseréje nem változtat a pontszámon.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a szűrt rang?</div>
+    <div class="face back">A helyezés úgy, hogy a többi ismert igaz választ kihagyjuk a jelöltek közül.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi az EdgeBank, és mit tanít?</div>
+    <div class="face back">„Ami volt, az lesz” alapvonal, tanulás nélkül. Megmutatja, hogy könnyű negatívákkal az ismétlés is jónak látszik – történeti negatívák kellenek.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Mi a különbség a transzduktív és az induktív modell között?</div>
+    <div class="face back">A transzduktív minden csúcsnak saját vektort tanul (új csúcsra nincs); az induktív egy függvénnyel számolja a vektort a jellemzőkből és a szomszédokból.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front">Miért árt az esemény-metaútvonal a keret-jóslásban?</div>
+    <div class="face back">Mert heterofil: egy eseményről a lapok más-más keretben írnak (homofília 29%, a véletlen szinten).</div></div></div>
+</div>
+</section>
+
+<!-- ===================================================== Vegyes gyakorló feladatok -->
+<section id="s-ex">
+<h2>Vegyes gyakorló feladatok</h2>
+<p>Itt már nincs megmondva, melyik részhez tartozik a feladat: neked kell eldönteni, melyik eszköz kell.</p>
+<details class="box practice">
+  <summary>✏️ Vegyes gyakorló feladatok – kattints a kinyitáshoz</summary>
+  <ol>
+    <li>Egy gráf élei: A–B (+), A–C (+), B–C (−). $x = (2;\ 0;\ 1)$ az A, B, C sorrendben, $w_0 = w_+ = 1$, $w_- = -1$. Mennyi a három relációs érték (relációnkénti átlaggal)?
+      <details><summary>Tipp</summary>Minden csúcsnál külön a $+$ és külön a $-$ szomszédok átlaga.</details>
+      <details><summary>Megoldás</summary>A: $2 + \tfrac{0 + 1}{2} = 2{,}5$. B: $0 + 2 - 1 = 1$ ($+$: A, $-$: C). C: $1 + 2 - 0 = 3$ ($+$: A, $-$: B).</details></li>
+    <li>6 irányított reláció, $d = d' = 32$. Hány súly van egy R-GCN-rétegben bázisfelbontás nélkül, és hány $B = 3$ alapmátrixszal?
+      <details><summary>Tipp</summary>Az inverzekkel együtt számold a relációkat, és ne felejtsd el a $W_0$-t.</details>
+      <details><summary>Megoldás</summary>$R = 12$. Nélküle $13 \cdot 1024 = 13\,312$; vele $3 \cdot 1024 + 12 \cdot 3 + 1024 = 4132$.</details></li>
+    <li>Három szerző és három cikk: A1 írta P1-et és P2-t, A2 a P2-t és P3-at, A3 a P3-at. Mi a szerző–cikk–szerző metaútvonal mátrixa?
+      <details><summary>Tipp</summary>$B B^\top$, ahol $B$ a szerző × cikk illeszkedési mátrix.</details>
+      <details><summary>Megoldás</summary>$\begin{pmatrix}2&1&0\\1&2&1\\0&1&1\end{pmatrix}$: A1–A2 és A2–A3 egy-egy közös cikk, A1–A3 nincs; a főátló a cikkek száma.</details></li>
+    <li>TransE: $\mathbf h = (0;\ 0)$, $\mathbf r = (1;\ 2)$, $\mathbf t = (1;\ 1)$, a negatív farok $(3;\ 3)$, $\gamma = 1$. Mennyi a pozitív pontszám és a veszteség?
+      <details><summary>Tipp</summary>$\mathbf h + \mathbf r = (1;\ 2)$. Számold ki mindkét távolságot.</details>
+      <details><summary>Megoldás</summary>$d^+ = 1$ (pontszám $-1$), $d^- = \sqrt{4 + 1} \approx 2{,}236$. $\mathcal L = \max(0;\ 1 + 1 - 2{,}236) = 0$.</details></li>
+    <li>DistMult: $\mathbf h = (1;\ 0;\ 2)$, $\mathbf r = (1;\ 1;\ 1)$, $\mathbf t = (2;\ 3;\ 1)$. Mennyi a pontszám, és mennyi a megfordított hármasé?
+      <details><summary>Tipp</summary>Koordinátánként szorozz, aztán adj össze.</details>
+      <details><summary>Megoldás</summary>$2 + 0 + 2 = 4$; a megfordított is 4.</details></li>
+    <li>Két tesztlekérdezés rangjai: 1 és 4. Mennyi az MRR és a Hits@3?
+      <details><summary>Tipp</summary>A reciprokok átlaga.</details>
+      <details><summary>Megoldás</summary>MRR $= (1 + 0{,}25)/2 = 0{,}625$; Hits@3 $= 1/2$.</details></li>
+    <li>Egy időbeli teszthalmaz eseményeinek 70%-a ismétlés. Mennyi az EdgeBank AUC-ja könnyű és történeti negatívákkal?
+      <details><summary>Tipp</summary>Könnyű negatíva pontszáma 0, történetié 1; holtverseny fél pont.</details>
+      <details><summary>Megoldás</summary>Könnyű: $0{,}7 + 0{,}3 \cdot 0{,}5 = 0{,}85$. Történeti: $0{,}7 \cdot 0{,}5 + 0 = 0{,}35$.</details></li>
+    <li>$\lambda = 0{,}8$. Egy csúcsnak a 0. napon 2, a 2. napon 1 eseménye van. Mennyi a memóriája az 1. és a 2. nap végén?
+      <details><summary>Tipp</summary>Minden nap elején szorozz $\lambda$-val, aztán add hozzá az aznapi eseményeket.</details>
+      <details><summary>Megoldás</summary>1. nap: $2 \cdot 0{,}8 = 1{,}6$. 2. nap: $1{,}6 \cdot 0{,}8 + 1 = 2{,}28$.</details></li>
+    <li>HAN: két metaútvonal, a pontszámok $w = (0;\ \ln 4)$. Mennyi a $\beta$?
+      <details><summary>Tipp</summary>$e^{\ln 4} = 4$.</details>
+      <details><summary>Megoldás</summary>$\beta = (1/5;\ 4/5) = (0{,}2;\ 0{,}8)$.</details></li>
+    <li>Egy metaútvonal 8 szomszédos párjából 2 azonos címkéjű, két egyenlő arányú címke mellett. Homofil vagy heterofil? Mit tennél vele egy HAN-ban?
+      <details><summary>Tipp</summary>Hasonlítsd a véletlen szinthez.</details>
+      <details><summary>Megoldás</summary>Homofília $2/8 = 0{,}25$, a véletlen szint kb. 0,5: heterofil. Átlagoló aggregálással ártana; kis $\beta$-t várnánk rá, vagy kihagynánk – esetleg negatív súlyú relációként kezelnénk.</details></li>
+    <li>Egy modell transzduktív. A tesztben 40 új szereplő jelenik meg. Mit tehetsz?
+      <details><summary>Tipp</summary>Mi kell ahhoz, hogy egy új csúcs vektort kapjon?</details>
+      <details><summary>Megoldás</summary>Áttérsz induktív modellre (GraphSAGE-szerű, R-GCN, TGN), csúcsjellemzőkkel (pl. a szereplő nevének vagy a róla szóló mondatoknak a beágyazása) – vagy újratanítod a transzduktív modellt a bővített gráfon, ami időbeli feladatnál a tesztidőszak adatát is felhasználná.</details></li>
+  </ol>
+</details>
+</section>
+
+<!-- ===================================================== Fejezetzáró teszt -->
+<section id="s-final">
+<h2>Fejezetzáró teszt</h2>
+<p>Vegyes kérdések a teljes fejezetből. Minden kérdésnél van tipp, és a válasz után részletes magyarázat.</p>
+<div class="quiz" data-quiz="gh12-final"></div>
+</section>
+
+<!-- ===================================================== Szómagyarázó -->
+<section id="s-gloss">
+<h2>Szómagyarázó</h2>
+<p>A fejezetben előforduló idegen vagy kevésbé ismert szakkifejezések, betűrendben.</p>
+<dl class="glossary">
+  <dt id="g-distmult">DistMult <span class="etym">a szerzők (B. Yang és társai, 2015) elnevezése; a modell egy átlós (diagonális) bilineáris forma</span></dt>
+  <dd><p>Tudásgráf-beágyazás, amelyben a hármas pontszáma a három vektor koordinátánkénti szorzatának összege. Mindig szimmetrikus.</p></dd>
+
+  <dt id="g-edgebank">EdgeBank <span class="etym">ang. <em>edge</em> „él” + <em>bank</em> „tár”</span></dt>
+  <dd><p>Tanulás nélküli időbeli alapvonal: egy párt akkor jósol, ha már korábban előfordult.</p></dd>
+
+  <dt id="g-gru">GRU <span class="etym">ang. <em>gated recurrent unit</em>, „kapuzott rekurrens egység”</span></dt>
+  <dd><p>Egyszerűsített LSTM-cella: kapuk döntik el, mennyit tart meg a régi állapotból, és mennyit vesz át az újból. A TGN ezzel frissíti a csúcsmemóriát.</p></dd>
+
+  <dt id="g-han">HAN <span class="etym">ang. <em>heterogeneous graph attention network</em>, „heterogén gráf-figyelmi háló”</span></dt>
+  <dd><p>Heterogén GNN, amely metaútvonalanként csúcsszintű, a metaútvonalak között szemantikai figyelmet használ.</p></dd>
+
+  <dt id="g-heterogen">heterogén <span class="etym">gör. <em>heteros</em> „más” + <em>genos</em> „nem, fajta”</span></dt>
+  <dd><p>Különböző fajtájú – itt: olyan gráf, amelynek csúcsai és élei több típusba tartoznak.</p></dd>
+
+  <dt id="g-heterofilia">heterofília <span class="etym">gör. <em>heteros</em> „más” + <em>philia</em> „vonzódás”</span></dt>
+  <dd><p>Az a jelenség, hogy a szomszédos csúcsok inkább különböző címkéjűek. Ellentéte a homofília.</p></dd>
+
+  <dt id="g-hgt">HGT <span class="etym">ang. <em>heterogeneous graph transformer</em></span></dt>
+  <dd><p>Heterogén gráf-Transformer: a kérdés-, kulcs- és értékvetítések a csúcs típusától, a figyelmi és az üzenetmátrix az él típusától függenek.</p></dd>
+
+  <dt id="g-hits">Hits@k <span class="etym">ang. <em>hit</em> „találat” + <em>at k</em> „a k-adiknál”</span></dt>
+  <dd><p>A tesztlekérdezések aránya, amelyeknél a helyes válasz az első $k$ között van.</p></dd>
+
+  <dt id="g-induktiv">induktív <span class="etym">lat. <em>inducere</em> „bevezetni”</span></dt>
+  <dd><p>Olyan modell, amely a csúcsvektort függvénnyel számolja, ezért tanítás nélkül is alkalmazható új csúcsokra. Ellentéte a transzduktív.</p></dd>
+
+  <dt id="g-metautvonal">metaútvonal <span class="etym">gör. <em>meta</em> „után, fölött” – az út „típusának” útja; ang. <em>meta-path</em></span></dt>
+  <dd><p>Csúcstípusok sorozata (pl. lap–cikk–esemény–cikk–lap), amely egy heterogén gráfban egy jelentéses kapcsolatfajtát határoz meg.</p></dd>
+
+  <dt id="g-mrr">MRR <span class="etym">ang. <em>mean reciprocal rank</em>, „átlagos reciprok rang”</span></dt>
+  <dd><p>A helyes válasz helyezése reciprokának átlaga a tesztlekérdezéseken.</p></dd>
+
+  <dt id="g-rgcn">R-GCN <span class="etym">ang. <em>relational graph convolutional network</em>, „relációs gráfkonvolúciós háló”</span></dt>
+  <dd><p>GCN-változat, amelyben minden éltípusnak saját súlymátrixa van.</p></dd>
+
+  <dt id="g-rotate">RotatE <span class="etym">ang. <em>rotate</em> „forgat” + <em>E</em> (<em>embedding</em>)</span></dt>
+  <dd><p>Tudásgráf-beágyazás, amelyben a reláció koordinátánként egy forgatás a komplex síkon.</p></dd>
+
+  <dt id="g-sema">séma <span class="etym">gör. <em>skhéma</em> „alak, vázlat”; ang. <em>network schema</em></span></dt>
+  <dd><p>A heterogén gráf „gráfja”: csúcsai a csúcstípusok, élei a megengedett éltípusok.</p></dd>
+
+  <dt id="g-tgn">TGN, TGAT <span class="etym">ang. <em>temporal graph network</em>, <em>temporal graph attention</em></span></dt>
+  <dd><p>Folytonos idejű gráfhálók: a TGN csúcsmemóriát tart és eseményenként frissíti, a TGAT időkódolással és figyelemmel gyűjt az időbeli szomszédoktól.</p></dd>
+
+  <dt id="g-transe">TransE <span class="etym">ang. <em>translation</em> „eltolás” + <em>E</em> (<em>embedding</em>)</span></dt>
+  <dd><p>Tudásgráf-beágyazás, amelyben a reláció egy eltolásvektor: $\mathbf h + \mathbf r \approx \mathbf t$.</p></dd>
+
+  <dt id="g-tudasgraf">tudásgráf <span class="etym">ang. <em>knowledge graph</em> tükörfordítása</span></dt>
+  <dd><p>(alany, reláció, tárgy) hármasok halmaza; a csúcsok entitások, az élek típusos relációk.</p></dd>
+</dl>
+</section>
+
+<nav class="pager">
+  <a href="../11-csucsbeagyazasok/">← 11. Csúcsbeágyazások és kapcsolat-előrejelzés</a>
+  <span class="next muted">13. Szövegből gráf: együttelőfordulás, entitások, tudásgráfok, GraphRAG (hamarosan) →</span>
+</nav>
+
+</main>
+</div>
+
+<footer class="site">
+  Források: W. L. Hamilton: <em>Graph Representation Learning</em> (Morgan &amp; Claypool, 2020), 4–7. fejezet ·
+  T. Kipf – M. Welling (2017) <em>ICLR</em> · M. Schlichtkrull és társai (2018) Modeling relational data with graph convolutional networks (R-GCN), <em>ESWC</em> ·
+  X. Wang és társai (2019) Heterogeneous graph attention network (HAN), <em>WWW</em> · Z. Hu és társai (2020) Heterogeneous graph transformer, <em>WWW</em> ·
+  Q. Lv és társai (2021) Are we really making much progress? Revisiting, benchmarking and refining heterogeneous graph neural networks, <em>KDD</em> · X. Yang és társai (2023) SeHGNN, <em>AAAI</em> ·
+  A. Bordes és társai (2013) TransE, <em>NeurIPS</em> · B. Yang és társai (2015) DistMult, <em>ICLR</em> · Z. Sun és társai (2019) RotatE, <em>ICLR</em> ·
+  R. Kadlec – O. Bajgar – J. Kleindienst (2017) Knowledge base completion: baselines strike back, <em>RepL4NLP</em> · D. Ruffinelli – S. Broscheit – R. Gemulla (2020) You CAN teach an old dog new tricks!, <em>ICLR</em> ·
+  S. Pan és társai (2024) Unifying large language models and knowledge graphs: a roadmap, <em>IEEE TKDE</em> · L. Yao és társai (2025) Exploring large language models for knowledge graph completion, <em>ICASSP</em> · Y. Zhu és társai (2024) LLMs for knowledge graph construction and reasoning, <em>World Wide Web</em> ·
+  E. Rossi és társai (2020) Temporal graph networks (előzetes közlés) · D. Xu és társai (2020) TGAT, <em>ICLR</em> · A. Pareja és társai (2020) EvolveGCN, <em>AAAI</em> ·
+  F. Poursafaei és társai (2022) Towards better evaluation for dynamic link prediction, <em>NeurIPS</em> · S. Huang és társai (2023) Temporal Graph Benchmark, <em>NeurIPS</em> · J. Gastinger és társai (2024) TGB 2.0, <em>NeurIPS</em> · L. Yi és társai (2025) TGB-Seq, <em>ICLR</em> · M. Daniluk – J. Dąbrowski (2023, előzetes közlés) ·
+  O. Platonov és társai (2023) A critical look at the evaluation of GNNs under heterophily · M. R. Quillian (1968) Semantic memory ·
+  Az Árvízhét kitalált példa.
+</footer>
+</body>
+</html>

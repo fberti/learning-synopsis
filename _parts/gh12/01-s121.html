@@ -1,0 +1,141 @@
+
+<!-- ===================================================== 12.1 -->
+<section id="s121">
+<h2>12.1 🔁 Emlékeztető: üzenetküldés ★★</h2>
+<p>A GNN-t a Mesterséges intelligencia témakör 13. fejezete részletesen felépítette. Itt csak annyit ismétlünk, amennyire a fejezetben építünk: egy réteg számolását, kézzel.
+Utána megnézzük, mit <b>feltételez</b> hallgatólagosan ez a számolás – mert a fejezet többi része éppen ezeket a feltevéseket oldja fel.</p>
+
+<h3 id="s121-a">1. lépés: egy réteg kézzel – gyűjtés, frissítés, normalizálás</h3>
+<div class="box example" id="s121-a-ot">
+  <span class="box-title">Kiinduló példa – öt barát</span>
+  Az MI 13. fejezet futó példája (<a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s133-a">MI 13.3</a>): öt ember, Anna, Bence, Csilla, Dávid, Emese (A–E), és a barátságaik.
+  <div class="gfig" data-nodes="A,B,C,D,E" data-edges="A-B,A-C,B-C,B-D,D-E"
+    data-pos="A:0,0 C:0,1 B:1,.5 D:2,.5 E:3,.5" data-w="300" data-h="130" data-r="15"
+    data-caption="Öt barát: élek A–B, A–C, B–C, B–D, D–E"></div>
+  Minden csúcsnak egy száma van: hány koncerten volt idén. $\mathbf x = (1;\ 0;\ 0;\ 0;\ 5)$ – Anna egyen, Emese ötön, a többiek egyen sem.
+  Egy üzenetküldő lépés: mindenki <b>összegyűjti</b> a barátai számát (itt átlaggal), aztán <b>frissíti</b> a sajátját: $h' = \operatorname{ReLU}(0{,}5\cdot x + 1\cdot m)$.
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>csúcs</th><th>szomszédai</th><th>$m$ (átlag)</th><th>$h' = 0{,}5x + m$</th></tr>
+    <tr><td>A</td><td>B, C</td><td>0</td><td>0,5</td></tr>
+    <tr><td>B</td><td>A, C, D</td><td>0,333</td><td>0,333</td></tr>
+    <tr><td>C</td><td>A, B</td><td>0,5</td><td>0,5</td></tr>
+    <tr><td>D</td><td>B, E</td><td>2,5</td><td>2,5</td></tr>
+    <tr><td>E</td><td>D</td><td>0</td><td>2,5</td></tr>
+  </table></div>
+  Dávid, aki sosem volt koncerten, most 2,5-öt „tud”: Emesétől hallotta.
+</div>
+
+<div class="box def">
+  <span class="box-title">🔁 Emlékeztető – üzenetküldő réteg és GCN</span>
+  Az <b>üzenetküldő réteg</b> minden $v$ csúcsra egyszerre:
+  $$\mathbf m_v = \bigoplus_{u \in N(v)} \mathbf h_u W_2, \qquad \mathbf h_v' = \sigma\big(\mathbf h_v W_1 + \mathbf m_v\big),$$
+  ahol $\bigoplus$ összeg, átlag vagy maximum. A <b>GCN</b> (Kipf és Welling, 2017) ennek egy változata: minden csúcs önhurkot kap ($\hat A = A + I$), és az élt a két végpont fokszámának mértani közepével osztja:
+  $$H' = \sigma\big(\hat D^{-1/2}\hat A\hat D^{-1/2} H W\big), \qquad \hat d_v = \deg(v) + 1.$$
+  <small>Miért így? A gyűjtés halmazon számol, ezért nem számít a csúcsok számozása. A súlyok ($W$) <b>minden csúcsnál ugyanazok</b>: a paraméterek száma nem függ a gráf méretétől. Részletesen: <a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s133-a">MI 13.3</a> és <a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s134-b">MI 13.4</a>.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – egy GCN-lépés Dávidnál</span>
+    Dávid önhurkos fokszáma $\hat d_D = 3$, szomszédaié $\hat d_B = 4$, $\hat d_E = 2$. Mennyi a $P\mathbf x$ Dávidnál ($P = \hat D^{-1/2}\hat A\hat D^{-1/2}$)?
+    <details><summary>Megoldás</summary>$\tfrac{1}{\sqrt{3\cdot 4}}\cdot 0 + \tfrac13\cdot 0 + \tfrac{1}{\sqrt{3\cdot 2}}\cdot 5 = \tfrac{5}{\sqrt 6} \approx 2{,}041$. A teljes vektor: $P\mathbf x \approx (0{,}333;\ 0{,}289;\ 0{,}333;\ 2{,}041;\ 2{,}5)$ – ugyanaz, mint az <a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s134-b">MI 13.4</a>-ben.</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a súly közös</span>
+    Egy GCN-réteg 16 dimenziós vektorokat 8 dimenziósra képez. Hány súlya van az öt barát gráfján, és hány egy millió csúcsú gráfon?
+    <details><summary>Megoldás</summary>Mindkettőn $16 \cdot 8 = 128$ (plusz 8 eltolás, ha van). A $W$ minden csúcsnál ugyanaz. Ez a GNN ereje – és, mint látni fogjuk, a korlátja is: <b>minden élen ugyanaz a $W$</b>.</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Elfelejteni az önhurkot a fokszámban.</b> A GCN-ben $\hat d_v = \deg(v) + 1$. Dávidnál 3, nem 2.</li>
+    <li><b>Sorban frissíteni.</b> Mindenki a <b>régi</b> értékekből számol. Ha Dávid már a frissített Bence-értéket látná, a csúcsok sorrendje számítana.</li>
+    <li><b>Azt hinni, hogy a réteg „megtanulja”, kinek mennyit higgyen.</b> A GCN súlyát a fokszám dönti el, nem a tartalom. Tanult, szomszédonként más súly a GAT-ban van (<a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s135-b">MI 13.5</a>).</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – egy réteg kézzel</summary>
+  <ol>
+    <li>Az öt barát gráfján $\mathbf x = (1;\ 0;\ 0;\ 0;\ 5)$. Mi a szomszédok <b>összege</b>, $A\mathbf x$?
+      <details><summary>Megoldás</summary>A: $0 + 0 = 0$; B: $1 + 0 + 0 = 1$; C: $1 + 0 = 1$; D: $0 + 5 = 5$; E: $0$. Tehát $(0;\ 1;\ 1;\ 5;\ 0)$.</details></li>
+    <li>És önhurokkal, $(A + I)\mathbf x$?
+      <details><summary>Megoldás</summary>Mindenkinél hozzáadódik a saját érték: $(1;\ 1;\ 1;\ 5;\ 5)$. Emese most nem felejti el a saját ötösét.</details></li>
+    <li>Mekkora a GCN-ben a D–E él súlya, $P_{DE}$?
+      <details><summary>Megoldás</summary>$\hat d_D = 3$, $\hat d_E = 2$: $P_{DE} = 1/\sqrt{6} \approx 0{,}408$.</details></li>
+    <li>Mennyi Emese értéke egy GCN-lépés után ($P\mathbf x$, $W = 1$, aktiváció nélkül)?
+      <details><summary>Megoldás</summary>$P_{EE}\cdot 5 + P_{ED}\cdot 0 = \tfrac12\cdot 5 = 2{,}5$.</details></li>
+    <li>(nehezebb) Két GCN-réteg után legfeljebb hány lépésnyire lévő csúcsok értéke juthat el Annához? Eljut-e hozzá Emese ötöse?
+      <details><summary>Megoldás</summary>Két lépésnyire: $k$ réteg = $k$ ugrás (<a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s133-b">MI 13.3</a>). Anna és Emese távolsága 3 (A–B–D–E), ezért két réteg után Emese ötöse még nem ér el Annához – három után igen.</details></li>
+  </ol>
+</details>
+
+<h3 id="s121-b">2. lépés: mit tételez fel a GCN? – négy hallgatólagos feltevés</h3>
+<p>Az öt barát gráfján minden él ugyanazt jelenti (barátság), minden csúcs ugyanolyan (ember), és a gráf nem változik. Egy hírgráfban egyik sem igaz. Nézzük meg, mi történik, ha mégis GCN-t futtatunk rajta.</p>
+
+<div class="box example" id="s121-b-biral">
+  <span class="box-title">Kiinduló példa – a támogató és a bíráló ugyanazt hallja</span>
+  Az Árvízhét négy szereplője, Ko (Kormány), Vi (Vízügy), Po (Polgármester) és Sz (Szakértő) között a cikkek öt viszonyt írnak le, két típusból (<a class="xref" href="../03-graftipusok/#s33-a">3.3</a>):
+  Ko–Vi, Sz–Vi, Po–Ko és Vi–Po <b>támogató</b>, Sz → Ko <b>bíráló</b> (5. cikk: „szakértő bírálja a kormányt”).
+  <div class="gfig" data-nodes="Ko,Vi,Po,Sz" data-edges="Ko-Vi,Sz-Vi,Po-Ko,Vi-Po,Sz-Ko" data-hl="Sz-Ko"
+    data-pos="Sz:0,.5 Ko:1.3,.5 Vi:.65,1 Po:1.6,1.3" data-w="280" data-h="170" data-r="15"
+    data-caption="Négy szereplő; a kiemelt él (Sz–Ko) bírálat, a többi támogatás"></div>
+  Jelölje $x = 1$ a „kormány oldalát”: Ko értéke 1, a többieké 0. Egy átlagoló lépés ($h' = x + \mathop{\text{átlag}}$) után:
+  Po szomszédai Ko és Vi → $0 + \tfrac{1 + 0}{2} = 0{,}5$; Sz szomszédai Vi és Ko → $0 + \tfrac{0 + 1}{2} = 0{,}5$.
+  <b>A támogató polgármester és a bíráló szakértő ugyanannyira „a kormány oldalán” áll.</b> A modell számára egy él csak annyi: „kapcsolatban vannak”. Hogy a kapcsolat mit jelent, azt nem látja.
+</div>
+
+<div class="box def">
+  <span class="box-title">Összefoglaló – a GCN négy hallgatólagos feltevése</span>
+  <div class="tw" style="overflow-x:auto"><table>
+    <tr><th>feltevés</th><th>mit jelent</th><th>a hírgráfban</th><th>hol oldjuk fel?</th></tr>
+    <tr><td>1. egyféle él</td><td>minden élen ugyanaz a $W$</td><td>említi, idézi, támogatja, bírálja</td><td><a class="xref" href="#s122">12.2</a> relációs GNN</td></tr>
+    <tr><td>2. egyféle csúcs</td><td>minden csúcs jellemzője ugyanabban a térben van</td><td>lap, cikk, szereplő, esemény, keret</td><td><a class="xref" href="#s123">12.3</a> heterogén GNN; <a class="xref" href="#s124">12.4</a> tudásgráf</td></tr>
+    <tr><td>3. statikus gráf</td><td>az élek egyszerre, idő nélkül adottak</td><td>a cikkek napról napra jönnek</td><td><a class="xref" href="#s125">12.5</a> időbeli gráfhálók</td></tr>
+    <tr><td>4. a szomszéd hasonló</td><td>a gyűjtés „átlagol”, ami homofil gráfon segít</td><td>a bíráló és a bírált szomszéd, de nem hasonló</td><td><a class="xref" href="#s126">12.6</a> heterofília</td></tr>
+  </table></div>
+  <small>Miért fontos ezt kimondani? Mert egy GCN-t <b>minden</b> gráfra le lehet futtatni, és mindig ad valamilyen számot. Hogy a szám értelmes-e, az azon múlik, teljesülnek-e ezek a feltevések. A homofíliáról és a heterofíliáról: <a class="xref" href="../06-helyi-szerkezet/#s62-a">6.2</a>, <a class="xref" href="../../mesterseges-intelligencia/13-graf-neuralis-halok/#s137-c">MI 13.7</a>.</small>
+</div>
+
+<div class="two-col">
+  <div class="box example">
+    <span class="box-title">Példa – két csúcstípus egy térben?</span>
+    Egy gráfban a cikkek jellemzője egy 384 dimenziós szövegbeágyazás, a lapoké három szám (példányszám, alapítás éve, megjelenési gyakoriság). Futtatható-e rajtuk közvetlenül egy közös GCN-réteg?
+    <details><summary>Megoldás</summary>Nem: a $\mathbf h_u W$ szorzásban a $W$ sorainak száma a bemenet dimenziója. 384 és 3 dimenziós vektort ugyanaz a $W$ nem szoroz. Típusonként külön bemeneti vetítés kell (a <a class="xref" href="#s123">12.3</a> HGT-je pontosan ezt csinálja) – vagy közös jellemzőtér (pl. csak egy „típus” jelölő).</details>
+  </div>
+  <div class="box example">
+    <span class="box-title">Példa – a statikus gráf szivárog</span>
+    Az Árvízhét teljes szereplőgráfján tanítunk egy GCN-t, és azt kérdezzük: szerda este látszott-e már a Sz–Kl kapcsolat? Mi a baj?
+    <details><summary>Megoldás</summary>A Sz–Kl él csak csütörtöktől van meg (5. cikk). Az összevont gráf a jövőt is tartalmazza, így a modell „tudja”, ami szerdán még nem volt tudható. Ugyanaz a szivárgás, mint a <a class="xref" href="../11-csucsbeagyazasok/#s113-d">11.3</a>-ban – az időbeli gráfhoz időrendet tartó modell kell (<a class="xref" href="#s125">12.5</a>).</details>
+  </div>
+</div>
+
+<div class="box warn">
+  <span class="box-title">⚠️ Tipikus hibák</span>
+  <ul style="margin:.2rem 0">
+    <li><b>Az éltípust élsúlynak tenni.</b> Ha a bírálatot $-1$ súlyú élként adod meg, a GCN normalizálása ($\sqrt{\hat d_u \hat d_v}$) nem a negatív súlyhoz készült, és a fokszámok értelmetlenné válnak. A típus nem szám – saját paraméter kell neki (<a class="xref" href="#s122">12.2</a>).</li>
+    <li><b>A csúcstípust elhagyni.</b> Ha a lap, a cikk és a szereplő egyformán „csúcs”, a modell nem tudja, hogy egy lap–cikk él mást jelent, mint egy cikk–szereplő él.</li>
+    <li><b>Azt hinni, hogy a heterogén modell mindig jobb.</b> A feltevések feloldása paraméterekbe kerül. Kis adaton a gondosan hangolt homogén modell gyakran ugyanolyan jó (<a class="xref" href="#s123-d">12.3</a>).</li>
+  </ul>
+</div>
+
+<details class="box practice">
+  <summary>✏️ Gyakorlás – melyik feltevés sérül?</summary>
+  <ol>
+    <li>Egy követési hálózatban (ki kit követ) a „követ” él irányított. Melyik feltevés sérülhet, ha irányítatlan GCN-t futtatsz?
+      <details><summary>Megoldás</summary>Az 1.: az „$u$ követi $v$-t” és a „$v$-t követi $u$” két különböző viszony. Irányítatlanná téve a kettő összeolvad. Megoldás: az irány maga is éltípus (inverz reláció, <a class="xref" href="#s122-b">12.2</a>).</details></li>
+    <li>Egy cikk–szereplő páros gráfon (<a class="xref" href="../03-graftipusok/#s34-a">3.4</a>) homogén GCN-t futtatunk. Melyik feltevés sérül?
+      <details><summary>Megoldás</summary>A 2.: két csúcstípus van. (Gyakran az 1. is: az egyetlen éltípus „említi” – az még rendben van.)</details></li>
+    <li>Az öt barát gráfján $\mathbf x = (0;\ 0;\ 0;\ 1;\ 0)$ (csak Dávid). Átlagoló lépés után ($h' = x + \mathop{\text{átlag}}$) mennyi Bence és Emese értéke?
+      <details><summary>Megoldás</summary>Bence: $0 + \tfrac{0 + 0 + 1}{3} \approx 0{,}333$. Emese: $0 + \tfrac{1}{1} = 1$.</details></li>
+    <li>A kiinduló példában számold ki Ko és Vi értékét is ugyanazzal a lépéssel!
+      <details><summary>Megoldás</summary>Ko szomszédai Vi, Po, Sz: $1 + \tfrac{0 + 0 + 0}{3} = 1$. Vi szomszédai Ko, Sz, Po: $0 + \tfrac{1 + 0 + 0}{3} \approx 0{,}333$.</details></li>
+    <li>(nehezebb) Adj egy olyan hírgráfos feladatot, ahol a 4. feltevés (a szomszéd hasonló) <b>igaz</b>, és egyet, ahol nem!
+      <details><summary>Megoldás</summary>Igaz például: cikkek hivatkozási gráfja, a cél a téma – a hivatkozott cikk többnyire hasonló témájú. Nem igaz: szereplők viszonygráfja, a cél a „tábor” – a bírálat épp két ellentétes tábor között fut. (Hasonlóan: ugyanarról az eseményről több keretben írnak – <a class="xref" href="#s126">12.6</a>.)</details></li>
+  </ol>
+</details>
+
+<div class="quiz" data-quiz="gh12-121"></div>
+</section>
